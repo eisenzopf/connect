@@ -9,6 +9,7 @@ from connect_sdk import (
     StreamSelectionReceipt, StreamTarget, TopologyRevision,
     CandidateTarget, ConsultInput, ConsultationOperation, ConsultationResult, EndpointId,
     EndpointTarget, HandoffInput, HandoffResult, MoveInput, MoveResult, SessionRole,
+    Cursor, EventStream, InvitationStream, JournalEvent, IncomingInvitation,
 )
 
 
@@ -56,3 +57,19 @@ async def transitions(client: Client, mutation: MutationOptions) -> None:
     assert_type(moved,Operation[MoveResult])
     assert_type(await connection.replace_device(MoveInput(ConnectionId('retained'),CandidateTarget(ConnectionId('candidate')),TopologyRevision(4)),mutation),Operation[MoveResult])
     assert_type(client.operations.restore(moved.reference_json(),client.operation_kinds.connection_replace),Operation[MoveResult])
+
+
+async def readers(client: Client, options: RequestOptions) -> None:
+    stream=client.conversations.by_id(ConversationId('room')).events(Cursor('saved-cursor'),options)
+    assert_type(stream,EventStream)
+    assert_type(await stream.ready(),Cursor)
+    async with stream as owned:
+        assert_type(owned,EventStream)
+        async for event in owned:
+            assert_type(event,JournalEvent)
+            assert_type(event.cursor,Cursor)
+            break
+    hints=client.incoming_invitations(options)
+    assert_type(hints,InvitationStream)
+    async with hints:
+        assert_type(await anext(hints),IncomingInvitation)

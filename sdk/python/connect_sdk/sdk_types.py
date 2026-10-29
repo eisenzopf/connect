@@ -491,6 +491,47 @@ class MoveResult(TopologyChange):
     binding: MoveBinding
 
 
+@dataclass(frozen=True, repr=False)
+class EventSource:
+    kind: str
+    correlation_id: str
+
+
+@dataclass(frozen=True)
+class AudienceMember:
+    participant_id: ParticipantId
+    membership_epoch: int
+
+
+@dataclass(frozen=True, repr=False)
+class JournalEvent:
+    event_id: str
+    cursor: Cursor
+    conversation_id: ConversationId
+    session_id: SessionId | None
+    connection_id: ConnectionId | None
+    operation_id: OperationId | None
+    participant_id: ParticipantId | None
+    audience: Sequence[AudienceMember]
+    kind: str
+    revision: int
+    source: EventSource
+    observed_at: int
+    data: Json
+
+
+@dataclass(frozen=True, repr=False)
+class IncomingInvitation:
+    session: Session
+    from_participant: ParticipantId
+    to_participant: ParticipantId
+    operation_id: OperationId
+    source: EventSource
+    medium: InviteMedium
+    intent: str
+    capabilities: Json
+
+
 @dataclass(frozen=True)
 class CapabilitySnapshot:
     profile: Literal["connect/2"]

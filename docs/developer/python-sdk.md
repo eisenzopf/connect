@@ -68,7 +68,7 @@ The synchronous API remains G6-063 implementation work. Its intended owner is a
 dedicated event-loop thread with the same bounded dispatch, deadlines and single
 process lifetime; calling `asyncio.run()` independently for each method cannot
 share this client safely. Current public APIs are asynchronous. Remaining work
-also includes incoming/durable events, raw/HTTP parity, administrative provisioning, helper
+also includes raw/HTTP parity, administrative provisioning, helper
 packaging and the clean installed-venv real-server/restart qualification.
 Capabilities advertise only Python interfaces currently exposed and supported
 by the original helper. They do not grant server permission or native media.
@@ -142,7 +142,52 @@ the expanded88/100-function sources require their own Linux evidence.
 
 The expanded [exactca3 Linux component](../evidence/gate-6/python-sdk-linux-ca3.json)
 passes100 runtime functions and18 negative constraints on Python3.11–3.14.
-All65 tracked file contents/modes match each retained artifact and current guarded
-Python source. This qualifies the synthetic participant-control/helper/type
+All65 tracked file contents/modes match each retained artifact and the guarded
+Python source at checkpoint01699bf7. This qualifies the synthetic participant-control/helper/type
 component, including all22 mapped kinds; it does not qualify the original
 server/installed package, actual candidate movement or remaining SDK interfaces.
+
+Durable journal facts and incoming invitation hints now have owned asynchronous
+readers. `room.events(after, options)` accepts an opaque saved `Cursor` or `None`;
+`await events.ready()` finishes the original authorized bootstrap and returns its
+baseline without consuming a fact. Each delivered `JournalEvent` carries its own
+cursor, source, audience and original operation ID. Apply the event idempotently
+by `event_id`, then persist its cursor as private application state.
+
+```python
+async with room.events(saved_cursor, options) as events:
+    await events.ready()
+    async for event in events:
+        await apply_and_persist(event)  # Application-owned durable processing.
+        break
+
+async with client.incoming_invitations(options) as invitations:
+    hint = await anext(invitations)
+    current = await hint.session.refresh(options)
+    # Make any acceptance/rejection as a separate explicit mutation.
+```
+
+Use `async with`, `contextlib.aclosing`, or `await reader.close()` when leaving a
+reader. Python's `async for` does not automatically close an arbitrary iterator
+on break. One waiter is allowed per reader, one invitation reader per helper,
+and at most eight journal readers with one source per Conversation. The Rust
+owner retains its source limits and exact acknowledgement protocol. Structured
+source protocol/resync errors remain explicit and do not grant replay authority.
+
+A local wait timeout, explicit signal or `Task.cancel()` consumes no fact or hint.
+The original bounded poll stays owned. A later wait re-polls the Rust source
+under current health before returning a retained result; it never delivers a
+Python-cached result after revocation. Only values returned to the application
+are acknowledged on the following poll (or invitation close). An unconsumed
+invitation remains available to a fresh reader. Client close joins reader RPCs
+and the original helper. Nested event and hint data stays immutable, and default
+representations omit payloads. Invitations are hints; the journal is authoritative.
+
+[Reader component evidence](../evidence/gate-6/python-sdk-readers.json) records120
+local runtime functions, including20 reader functions,69 unchanged guarded inputs,
+all nine runtime modules plus the public type outline passing mypy, and22 expected
+negative type constraints. The first combined attempt exhausted disk before its
+summary/type verification completed; its raw logs are retained as a failed
+aggregate. The passing check disables disposable bytecode/type caches. Expanded
+Linux, installed original-server/restart/current-authority and complete SDK
+qualification remain pending; G6-063 stays in progress.

@@ -162,9 +162,9 @@ class TypedPythonSdk(PythonSdkFixture):
 
     async def test_capabilities_are_python_interface_support_and_unsupported_stays_typed(self):
         client=self.client();value=await client.capabilities.refresh(OPTIONS)
-        self.assertEqual((value.runtime_role,value.selected_transport,value.features),('python','quic',frozenset(['original-id-operations','message-receipts'])))
+        self.assertEqual((value.runtime_role,value.selected_transport,value.features),('python','quic',frozenset(['original-id-operations','message-receipts','durable-events','incoming-invitations'])))
         await client.capabilities.require('original-id-operations',OPTIONS)
-        for feature in ['native-programmatic-media','durable-events','incoming-invitations','raw-canonical']:
+        for feature in ['native-programmatic-media','raw-canonical']:
             with self.assertRaises(SdkError) as observed:await client.capabilities.require(feature,OPTIONS)
             self.assertEqual((observed.exception.kind,observed.exception.certainty),('unsupported','read-only'))
         self.assertEqual((await client.conversations.by_id('room').refresh(OPTIONS)).id,'room')

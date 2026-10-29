@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import json
 import math
 import os
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Coroutine, Generic, TypeVar
 import uuid
 
 from .sdk_types import (CERTAINTIES, ERROR_KINDS, CanonicalProblem, OperationKey,
@@ -149,6 +149,15 @@ class _SdkHelper:
         task.add_done_callback(self._tasks.discard)
         task.add_done_callback(lambda done: done.exception() if not done.cancelled() else None)
         return task
+
+    def _own(self, coroutine: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
+        """Keep a reader's bounded RPC owned when its local waiter is cancelled."""
+        loop = asyncio.get_running_loop()
+        if self._closed or self._loop is not None and self._loop is not loop:
+            coroutine.close()
+            raise SdkError("configuration", "read-only")
+        self._loop = loop
+        return self._task(coroutine)
 
     def _error(self, job, kind):
         return SdkError(kind, "uncertain" if job.mutation and job.sent else "not-submitted" if job.mutation else "read-only", job.key)

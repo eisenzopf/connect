@@ -1,4 +1,4 @@
-"""Eighteen unsuppressed public-type constraints; compilation must fail exactly eighteen."""
+"""Twenty-two unsuppressed public-type constraints; compilation must fail exactly twenty-two."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
@@ -31,3 +31,9 @@ async def invalid(client: Client, options: RequestOptions, mutation: MutationOpt
     wrong_handoff: Operation[MoveResult] = client.operations.restore({},client.operation_kinds.session_handoff)
     consult=client.operations.restore({},client.operation_kinds.session_consult)
     await consult.return_to_retained(SessionRevision(3),mutation)
+    stream=room.events(MessageId('wrong-cursor-family'),options)
+    event=await anext(stream)
+    event.cursor=event.cursor
+    event.audience.append(event.audience[0])
+    hint=await anext(client.incoming_invitations(options))
+    hint.native_owner

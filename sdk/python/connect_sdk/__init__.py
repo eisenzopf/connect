@@ -8,6 +8,8 @@ from .client import Client, Conversation, Participant, Operation, OperationKind,
 from .sdk_sessions import Session, SessionDecision, Sessions
 from .sdk_connections import Connection, Connections, Stream, Streams
 from .sdk_movements import ConsultationOperation
+from .sdk_events import EventStream
+from .sdk_incoming import InvitationStream
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -24,6 +26,7 @@ from .sdk_types import (
     StreamSelector, StreamSnapshot, StreamTarget,
     ConsultInput, ConsultationResult, ConversationRole, DeviceId, EndpointTarget, CandidateTarget,
     HandoffInput, HandoffResult, HandoffRoleChange, MoveInput, MoveResult, MoveBinding, SessionRole, TopologyChange,
+    AudienceMember, EventSource, JournalEvent, IncomingInvitation,
 )
 
 __all__ = ["ConnectError", "NativeClient", "NativeAudioClient", "HttpClient", "ContextRecord", "TASK_PROFILE", "TaskCommand", "TaskDefinition", "TaskOutcome", "TaskRecord", "TaskScope"]
@@ -50,4 +53,5 @@ __all__ += [
     "ConsultationOperation", "ConsultInput", "ConsultationResult", "ConversationRole", "DeviceId",
     "EndpointTarget", "CandidateTarget", "HandoffInput", "HandoffResult", "HandoffRoleChange",
     "MoveInput", "MoveResult", "MoveBinding", "SessionRole", "TopologyChange",
+    "AudienceMember", "EventSource", "JournalEvent", "IncomingInvitation", "EventStream", "InvitationStream",
 ]

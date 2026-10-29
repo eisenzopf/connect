@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, cast
 if TYPE_CHECKING:
     from .sdk_sessions import Session, SessionDecision, Sessions
     from .sdk_connections import Connection
+    from .sdk_events import EventStream
+    from .sdk_incoming import InvitationStream
 
 from ._sdk_helper import _SdkHelper, _encode
 from .sdk_types import (
@@ -22,7 +24,7 @@ from .sdk_types import (
     IdentityKind, Json, MessageAcceptance, MessageId, MutationOptions, NonEmpty,
     OperationId, OperationKey, OperationSnapshot, OperationState, ParticipantId,
     ParticipantSnapshot, RequestOptions, Scope, SdkError, freeze, identifier,
-    ConnectionUpdateReceipt, StreamSelectionReceipt, ConsultationResult, HandoffResult, MoveResult, TopologyRevision,
+    ConnectionUpdateReceipt, StreamSelectionReceipt, ConsultationResult, HandoffResult, MoveResult, TopologyRevision, Cursor,
 )
 
 T = TypeVar("T")
@@ -438,6 +440,10 @@ class Conversation:
         from .sdk_sessions import Sessions
         return Sessions(self._client, self.id)
 
+    def events(self, after: Cursor | None, options: RequestOptions) -> EventStream:
+        from .sdk_events import EventStream
+        return EventStream(self._client._helper, self.id, after, options)
+
     async def refresh(self, options: RequestOptions) -> ConversationSnapshot:
         def decode(value):
             if (not _object(value, ("id", "revision", "closed", "participants")) or value["id"] != self.id
@@ -493,7 +499,7 @@ class Capabilities:
                     or len(set(value["features"])) != len(value["features"])):
                 return _bad()
             # Expose only interfaces actually implemented by this Python facade.
-            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(f for f in value["features"] if f in ("original-id-operations", "message-receipts")))
+            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations")))
         return await self._client._helper.request({"type":"capabilities_refresh"}, options, decode)
 
     async def require(self, feature: str, options: RequestOptions) -> None:
@@ -527,6 +533,10 @@ class Client:
             return result
         except SdkError:
             return _bad()
+
+    def incoming_invitations(self, options: RequestOptions) -> InvitationStream:
+        from .sdk_incoming import InvitationStream
+        return InvitationStream(self, options)
 
     async def _submit(self, action: dict, kind: OperationKind[T], scope: Scope, options: MutationOptions) -> Operation[T]:
         action = {**action, "mutation":_mutation(options)}

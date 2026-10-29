@@ -44,7 +44,7 @@ def main():
     private.mkdir(mode=0o700,exist_ok=False)
     for name in ['tmp','pycache']:
         (private/name).mkdir(mode=0o700)
-    environment=dict(os.environ,PYTHONPATH=str(ROOT/'sdk/python'),PYTHONNOUSERSITE='1',
+    environment=dict(os.environ,PYTHONPATH=str(ROOT/'sdk/python'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',
                      PYTHONPYCACHEPREFIX=str(private/'pycache'),TMPDIR=str(private/'tmp'))
     before=sources()
     (directory/'source-inputs.json').write_text(json.dumps(before,indent=2)+'\n')
@@ -67,6 +67,7 @@ def main():
     sessions=[name for name in functions if '.TypedPythonSessions.' in name]
     connections=[name for name in functions if '.TypedPythonConnections.' in name]
     movements=[name for name in functions if '.TypedPythonMovements.' in name]
+    readers=[name for name in functions if '.TypedPythonReaders.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
@@ -75,14 +76,16 @@ def main():
         type_environment=dict(environment,MYPYPATH=str(ROOT/'sdk/python'))
         commands=[('positive', ['sdk/python/connect_sdk/client.py','sdk/python/connect_sdk/sdk_types.py',
                                 'sdk/python/connect_sdk/_sdk_helper.py','sdk/python/connect_sdk/sdk_sessions.py',
-                                'sdk/python/connect_sdk/sdk_connections.py','sdk/python/connect_sdk/sdk_movements.py','sdk/tests/python_sdk_positive.py']),
+                                'sdk/python/connect_sdk/sdk_connections.py','sdk/python/connect_sdk/sdk_movements.py',
+                                'sdk/python/connect_sdk/_sdk_readers.py','sdk/python/connect_sdk/sdk_events.py',
+                                'sdk/python/connect_sdk/sdk_incoming.py','sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
         for label,paths in commands:
             with (private/(label+'-types.log')).open('wb') as stream:
                 try:
                     checked=subprocess.run([str(args.types_python.absolute()),'-m','mypy','--follow-imports=silent',
-                                            '--cache-dir',str(private/(label+'-mypy-cache')),*paths],
+                                            '--cache-dir',os.devnull,*paths],
                                            cwd=ROOT,env=type_environment,stdout=stream,stderr=subprocess.STDOUT,timeout=30)
                     code=checked.returncode
                 except subprocess.TimeoutExpired:code=None
@@ -90,15 +93,15 @@ def main():
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*15+['attr-defined']*2+['misc'],
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*16+['attr-defined']*4+['misc']*2,
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==100 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12
-                          and re.search(r'^Ran 100 tests in ',log,re.M)
+                          and len(functions)==120 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20
+                          and re.search(r'^Ran 120 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
@@ -107,6 +110,7 @@ def main():
             'functions_passed':len(functions),'owned_sdk_helper_functions_passed':len(owned),'typed_public_sdk_functions_passed':len(public),'functions':functions,
             'typed_session_functions_passed':len(sessions),'typed_connection_functions_passed':len(connections),
             'typed_movement_functions_passed':len(movements),
+            'typed_reader_functions_passed':len(readers),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),
