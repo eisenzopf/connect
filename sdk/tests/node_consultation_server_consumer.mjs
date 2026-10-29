@@ -49,14 +49,17 @@ try {
   } else {
     assert.equal(spec.mode, 'return');
     const original = client.operations.restore(d.reference, client.operationKinds.session_consult);
+    checkpoint = 'return-submit';
     operation = await original.returnToRetained({expectedTopologyRevision: d.revision}, {...opts, operationId: 'return-private-native'});
     saved = operation.referenceJson();
     assert.equal(saved.continuation.retained_connection_id, d.reference.continuation.retained_connection_id);
     assert.equal(saved.continuation.consultation_record_id, d.reference.continuation.record_id);
+    checkpoint = 'return-wait';
     const completion = await operation.wait(opts);
     assert.equal(completion.value.id, original.reference.scope.sessionId);
     record = completion.snapshot.recordId;
     assert.ok(record);
+    checkpoint = 'return-recover';
     const recovered = client.operations.restore(saved, client.operationKinds.session_consult_return);
     assert.equal((await recovered.wait(opts)).snapshot.recordId, record);
     emit({phase: 'returned', reference: saved, original_record_recovered: true});
@@ -119,7 +122,7 @@ try {
   }
 } catch (error) {
   const at = /consultation-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
-  const known = ['submit', 'completed', 'revoked', 'close'].includes(checkpoint) ? checkpoint : 'invalid';
+  const known = ['submit', 'return-submit', 'return-wait', 'return-recover', 'completed', 'revoked', 'close'].includes(checkpoint) ? checkpoint : 'invalid';
   emit({phase: 'failed', checkpoint: known,
     kind: error instanceof NodeSdkError ? error.kind : 'consumer-assertion',
     certainty: error instanceof NodeSdkError ? error.certainty : null, observedKind, observedCertainty,

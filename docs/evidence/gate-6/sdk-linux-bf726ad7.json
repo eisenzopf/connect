@@ -1,0 +1,347 @@
+{
+  "schema": "connect-gate6-linux-sdk-regressions/1",
+  "task": [
+    "G6-062",
+    "G6-063"
+  ],
+  "date": "2026-10-29",
+  "run_id": 40827455554,
+  "source_revision": "bf726ad7da1c0c9f71f8d5a180e7720fbeaf3912",
+  "aggregate_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "evidence": [
+    {
+      "name": "gate6-linux-source-evidence-node-22",
+      "source_revision": "bf726ad7da1c0c9f71f8d5a180e7720fbeaf3912",
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "guarded_inputs": 8246,
+      "git_bytes_and_modes_verified": 4154,
+      "archive_digest_verified": true,
+      "passed": false,
+      "failures": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 45.78445719299998,
+          "log_sha256": "7858be194a59a1c7efa85f8ffbec320c888f9a3e9a19a51f78ce9e7fdb1c7f1d",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 45.73s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 221,
+              "column": 50
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 16.09406068499993,
+          "log_sha256": "2081ecfe519a789a3be21f2a1d72b80ce213451436685a970074cd839545693e",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 16.05s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 12,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "registered",
+              "seconds": 0.355871166
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "accepted",
+              "seconds": 0.099277331
+            }
+          ],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-consultation-remote-ended",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 8.378381061000027,
+          "log_sha256": "923142dd83e6df7dbab682279ee9f10459008112fa46e2c78ae03d0563a269f6",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 8.32s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 33,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "submitted",
+              "seconds": 0.153466949
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.027064466
+            }
+          ],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "submit",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "functions_passed": 213,
+      "artifact_id": 12880125092,
+      "archive_sha256": "68c8de7f6f5a4a198574d9e942b7f789580658fcebdca14898f9fcb726b8f2a5",
+      "installed_node_https_passed": true,
+      "installed_node_administration_passed": true,
+      "installed_node_movements_passed": false,
+      "installed_node_consultation_audio_passed": false,
+      "installed_node_native_passed": true,
+      "installed_python_native_passed": true
+    },
+    {
+      "name": "gate6-python-source-evidence-3.14",
+      "source_revision": "bf726ad7da1c0c9f71f8d5a180e7720fbeaf3912",
+      "source_inputs_sha256": "dcc755fdd2560defe89ad28f266036dc76b73af91ea3277fc27e1b1ff9782e60",
+      "guarded_inputs": 86,
+      "git_bytes_and_modes_verified": 86,
+      "archive_digest_verified": true,
+      "passed": false,
+      "phases": {
+        "core": {
+          "exit_code": 0,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 27.92641089700001,
+          "log_sha256": "b5c2a9a918d3f07d6d615950bb913a39a7d10b9d42a1e3fd38452efdeac7079c"
+        },
+        "http": {
+          "exit_code": -15,
+          "budget_seconds": 30,
+          "timed_out": true,
+          "forced_cleanup": false,
+          "seconds": 30.003871221000026,
+          "log_sha256": "203b12b21b60bde656954290be028de66af74a1a47d4a513f4b0f2be671908f4"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 5.476314266999992,
+          "log_sha256": "d16cf392b7beb6d6bd82eb6d1f9d17be89075f8751b237da07cf03becec8c5be"
+        }
+      },
+      "functions_passed": 192,
+      "failed_functions": [],
+      "failure_sites": [],
+      "public_type_checks": {
+        "passed": true,
+        "checks": {
+          "positive": {
+            "exit_code": 0,
+            "log_sha256": "59cc4d21606d1f60735af82101c6094ef4d27a1054cb5061988711c9db04c37e",
+            "negative_error_codes": []
+          },
+          "negative": {
+            "exit_code": 1,
+            "log_sha256": "2bccdd5b664ce5ba9c9301d852aaff950b47cbfdb4ae06b4d550cca1dd12dfd4",
+            "negative_error_codes": [
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "misc"
+            ]
+          }
+        }
+      },
+      "artifact_id": 12878156729,
+      "archive_sha256": "6fcff529902f2c13488869dd46f16258404d01ee8c34e4200f575ad8f20f5105"
+    },
+    {
+      "name": "gate6-linux-source-evidence-node-26",
+      "source_revision": "bf726ad7da1c0c9f71f8d5a180e7720fbeaf3912",
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "guarded_inputs": 8246,
+      "git_bytes_and_modes_verified": 4154,
+      "archive_digest_verified": true,
+      "passed": false,
+      "functions_passed": 215,
+      "failures": [
+        {
+          "name": "installed-node-consultation-remote-ended",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 10.440386922000016,
+          "log_sha256": "5308acd9e34e99ef43ac53193a33867e5c19709edf7429d247eb5f438d8798fd",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 10.40s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 33,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "submitted",
+              "seconds": 0.219415335
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.063035952
+            }
+          ],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "submit",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "artifact_id": 12880175759,
+      "archive_sha256": "fe102dc4abb94c4de6eadb8e89373270d60210edd932e7d31589ad01441cc9a3",
+      "installed_node_https_passed": true,
+      "installed_node_administration_passed": true,
+      "installed_node_movements_passed": true,
+      "installed_node_consultation_audio_passed": false,
+      "installed_node_native_passed": true,
+      "installed_python_native_passed": true
+    }
+  ],
+  "interpretation": "Node22:213functions pass and3fail; Node26:215pass and1fails. Node26 full movement, native/HTTPS/administration and installed Python native pass; consultation EOF remains failed on both Node lanes. Python3.14 synthetic:192pass, HTTP group hits30s cap with untrusted-root test incomplete; no failed assertion or causal diagnosis supplied by that artifact. Raw logs excluded; exact ZIP names, official digests and tracked Git bytes+modes verified. Later local passes do not resolve these failures."
+}

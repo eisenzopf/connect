@@ -65,7 +65,11 @@ class PythonHttpFixture(unittest.IsolatedAsyncioTestCase):
                 try:await writer.wait_closed()
                 except (ConnectionResetError,BrokenPipeError):pass
                 self.writers.discard(writer);self.handlers.discard(task)
-        server=await asyncio.start_server(handle,host,0,ssl=tls)
+        # A peer can disappear during TLS negotiation before handle owns its
+        # writer. Bound that transport too: Server.wait_closed() otherwise
+        # waits for the platform's much longer default handshake timeout.
+        tls_limits={'ssl_handshake_timeout':2,'ssl_shutdown_timeout':2} if tls is not None else {}
+        server=await asyncio.start_server(handle,host,0,ssl=tls,**tls_limits)
         self.servers.append(server)
         return ('https' if tls is not None else 'http')+'://127.0.0.1:'+str(server.sockets[0].getsockname()[1])
 

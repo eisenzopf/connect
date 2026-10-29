@@ -1,4 +1,5 @@
 """Actual local CA chain with platform TLS validation and explicit HTTPS profile."""
+import asyncio
 import json
 from pathlib import Path
 import shutil
@@ -47,6 +48,26 @@ class TypedPythonHttps(PythonHttpFixture):
             client=self.client(endpoint,transport='remote-https')
             await self.assert_error('trust','not-submitted',client.request('message.send',{},HttpCommandScope(ConversationId('room'),operation_id=OperationId('original')),OPTIONS),'original')
         self.assertEqual(self.requests,[]);self.assertTrue(self.helpers[0]._joined)
+
+    async def test_incomplete_tls_handshake_drains_before_fixture_cleanup(self):
+        self.allow_tls_alerts=True
+        endpoint=await self.tls_server()
+        reader,writer=await asyncio.open_connection('127.0.0.1',int(endpoint.rsplit(':',1)[1]))
+        try:
+            # A truncated ClientHello never reaches the application handler.
+            writer.write(b'\x16\x03\x01\x00\x20');await writer.drain()
+            # Prove the peer is accepted before closing the listening socket.
+            with self.assertRaises(TimeoutError):
+                await asyncio.wait_for(reader.read(1),.05)
+            server=self.servers[0];server.close()
+            await asyncio.wait_for(server.wait_closed(),3)
+            self.assertEqual(await asyncio.wait_for(reader.read(),3),b'')
+            self.assertEqual(self.requests,[])
+            self.assertEqual(self.handlers,set());self.assertEqual(self.writers,set())
+            self.assertEqual(len(self.loop_errors),1)
+            self.assertIsInstance(self.loop_errors.pop()['exception'],ConnectionAbortedError)
+        finally:
+            writer.close();await writer.wait_closed()
 
     async def test_trusted_ca_does_not_disable_hostname_validation(self):
         self.allow_tls_alerts=True;endpoint=(await self.tls_server()).replace('127.0.0.1','localhost')

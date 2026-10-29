@@ -1,0 +1,64 @@
+{
+  "schema": "connect-gate6-python-tls-fixture-drain/1",
+  "task": "G6-063",
+  "date": "2026-10-29",
+  "base_commit": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+  "passed": true,
+  "scope": "Local macOS arm64 Python3.14.7 controlled loopback TLS fixture shutdown and all194synthetic helper/control tests. No production SDK change, complete Python SDK, Linux or acceptance qualification.",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "source_inputs_sha256": "85f2fcc545bcf460b34d33ffd3140f1d38f205be1c7a1aa3241580b5d5904eb2",
+  "source_count": 86,
+  "source_inputs_unchanged": true,
+  "before": {
+    "method": "Same regression, monkeypatch asyncio.start_server to omit only ssl_handshake_timeout and ssl_shutdown_timeout, restoring old platform defaults.",
+    "expected_error": "TimeoutError",
+    "function": "test_python_https.TypedPythonHttps.test_incomplete_tls_handshake_drains_before_fixture_cleanup",
+    "log_sha256": "fb5c0cc340d868604631a8897980fd9f5498808000c828d16af30bb4ef205f29"
+  },
+  "after": {
+    "https_functions": 4,
+    "log_sha256": "44a310d4cbfb7ff4eea256a1dd45136903180b56d9f8793b8386a35cb98ba921",
+    "full_suite_functions": 194,
+    "phases": {
+      "core": {
+        "exit_code": 0,
+        "budget_seconds": 60,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 42.31987166684121,
+        "log_sha256": "09a0b6c5f2c99d303f02b52158d01703109f099c3c598d1a967ffcd787d3729c"
+      },
+      "http": {
+        "exit_code": 0,
+        "budget_seconds": 30,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 14.437624082900584,
+        "log_sha256": "ba958c76448d0cfc1d83f20852209ce01671c7738683421793c2032426cceacb"
+      },
+      "http-lifetime": {
+        "exit_code": 0,
+        "budget_seconds": 10,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 4.680934708099812,
+        "log_sha256": "de59f160bf58216c9792e289d238ac91129ed9b3e5f3f66c11213225e0147ae2"
+      }
+    },
+    "seconds": 61.47521404107101,
+    "unexpected_async_diagnostics": false,
+    "failed_functions": []
+  },
+  "change": {
+    "fixture_tls_handshake_seconds": 2,
+    "fixture_tls_shutdown_seconds": 2,
+    "request_deadlines_changed": false,
+    "suite_budgets_changed": false,
+    "trust_validation_changed": false,
+    "cleanup": "Incomplete ClientHello reaches no application handler; accepted socket reaches EOF, no writers/handlers remain, exactly the expected ConnectionAbortedError is asserted and consumed."
+  },
+  "original_ci_timeout_causation": "Unproven. Controlled incomplete-handshake shutdown weakness is fixed; the original Python3.14 HTTP timeout remains retained and requires current Linux followup.",
+  "history": "Initial positive regression failed because expected handshake-abort loop diagnostic was unaccounted for; corrected the test to assert exactly that diagnostic. Subsequent four HTTPS tests and full194pass suite recorded here."
+}
