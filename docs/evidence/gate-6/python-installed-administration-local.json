@@ -1,0 +1,554 @@
+{
+  "task": "G6-063",
+  "date": "2026-10-29",
+  "base_commit": "b35aceab",
+  "profile": "python-administration/1",
+  "implementation_status": "in-progress",
+  "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper trusted administrative controls. Eleven command families, independent signed Rust and exact Store receipt reads, server restart/current authorization, real held committed response cancellation and no queued effect. No complete SDK/Linux/remote/provider/model/acceptance qualification.",
+  "scenario_coverage_complete": true,
+  "all_six_single_run_passed": false,
+  "tested_inputs": {
+    "sdk/tests/python_administrative_server_consumer.py": {
+      "sha256": "edc8ecb21a1c377d5c0b87c0622e2610df098c86d37c7ee592344a06c80fc2f0",
+      "mode": 420
+    },
+    "sdk/tests/prepare_python_native_consumer.py": {
+      "sha256": "d1a19a7cb4e7e2a057833d22113e0ad94276adc27151b45545e4c3c148e2fada",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles/administration.rs": {
+      "sha256": "8bcbc30002f95c40aa4ec6ecd7b5846ddb5666111a4292f9f8b339c85daa60b9",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles/administration/node.rs": {
+      "sha256": "a3b6ba4d683a5b159864d00c827a49b13c180c04e54507b2f96b3c532a1982e3",
+      "mode": 420
+    },
+    "scripts/check-gate6-linux-hosting.py": {
+      "sha256": "9e29ff4bc7492494f5409994d6b00e1a6c22e54083a52c04b5eb9e69caa7e505",
+      "mode": 420
+    },
+    "scripts/tests/test_gate6_linux_diagnostics.py": {
+      "sha256": "124262b8d8965b09ffc699410461a3da39938b2af7dee22b7c87520123ce927a",
+      "mode": 420
+    }
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8256,
+    "source_inputs_sha256": "d21ba5e3a765a8755a6304646fc72e17e97cdaf6a249f9fb10321b8d202d96b3",
+    "build_log_sha256": "c346e2741d15fbcc4668d56732f97922a7bd02707a3a8cb200f343dcebd61ba0",
+    "seconds": 20.45194233278744,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "executables": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "3d26bdd86e2b68c044369d724bb4636d63a40b264366412b53b4c50cb5130f21"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "90db3b39ca6ecbfd35814cafe7624393b191c803f213e2c1e10a3ca20747e860"
+    }
+  ],
+  "package": {
+    "profile": "python-native-package/1",
+    "consumer_sha256": "11bafc66bbceaf3ff2c97d11b35e1e7a02b7b2538dee0193f19a7f9e79594a2e",
+    "movement_consumer_sha256": "06da29cd6e40e2effe9c37ac83d5f3702f98e4ecdace1fafdd8535007c557a31",
+    "wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "installed_dist_matches": true,
+    "installed_dist_sha256": {
+      "membership_validation.py": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+      "task_protocol.py": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+      "record_context.py": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+      "sdk_http.py": "38a51ab0761daaa143a360a3c8377ec8662b8aca5bd2407894faf2e2dd902aac",
+      "conversation_validation.py": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+      "_sdk_helper.py": "068ee6cbd9940c2e01d4b3bbcd0fbb49aafc95b402203bf03deea329e99de715",
+      "sdk_types.py": "a86a11bb737e95952da05c2764dfafeb111df96687024a6da7a74b09c38d3758",
+      "agent_observations.py": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+      "task_types.py": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+      "protocol.py": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+      "client.py": "bae17d3d644ef0f74712ccbb9437e240d45e478b8954c1c83d2b36bef6e33f62",
+      "sdk_sessions.py": "510a2ab8396227604b45af745b9c13c082148bdbc0cc71e7379d7fd9056c7c23",
+      "__init__.py": "62c0626564b965640c29aabfff052ec84dab13329463e97dff6477ccfb306498",
+      "native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+      "_sdk_validation.py": "c49304d4543b998a38af75edf387e6c23933a09137d10757bf89b652eff1df2c",
+      "membership_types.py": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+      "sdk_sync.py": "a17107799ed9e988e6d89f5487e51b667f08134c8eca46d95dbd6be779a6464e",
+      "operations.py": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+      "_sdk_http_worker.py": "de6c7f54cd27feda4c4571962bccc8b79d7d119bbae63406175ef5e0be675b10",
+      "_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+      "sdk_incoming.py": "503135a9b5beeeffcb9d4a9406cf4185457c937244a3f47fb72113fd009da2c6",
+      "task_operations.py": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+      "event_validation.py": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+      "sdk_connections.py": "def19ff13bf6e3134b53d37a48f93868ca78f1434298b25063a8e7ab4eea095e",
+      "http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+      "sdk_administration.py": "1a9fc59fe32c056a5d758fb3a54702b4e9c9e694e4b52d6e70241c9addb876b6",
+      "_sdk_http_protocol.py": "d44c6583527cb034dd7f739aa3c715f10bd88fbe394d8a0b6dccd87bbf887b48",
+      "py.typed": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sdk_events.py": "d136d353ec64ade7572f7601aa144249baccd9fc3f86238a3f9c7061cf2c022e",
+      "sdk_raw.py": "4cfb039b4121785da554b91cc1edd605929ed108ab8e4c23d409395c4f774b4e",
+      "_sdk_readers.py": "0d887b2dc13ed8587794182ffeb48bb5faed1a5ac02493b8e22eca9ca405d0f1",
+      "errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+      "contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+      "native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+      "sdk_movements.py": "fe5801a08a4b91661973e59dd061375be0af2227c865d7808ab45349a2bd53ea",
+      "media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d"
+    },
+    "python_version": "3.14.7",
+    "synthetic_http_workers_joined": 6,
+    "native_server_qualified": false,
+    "publication": false,
+    "reused_installed_runtime_from": ".local/gate-6/python-movement-installed798/package-result.json",
+    "scope": "Same verified installed36-runtime-file wheel and isolated interpreter; fresh consumer, no package/runtime code changes.",
+    "administrative_consumer_sha256": "edc8ecb21a1c377d5c0b87c0622e2610df098c86d37c7ee592344a06c80fc2f0"
+  },
+  "six_scene_run": {
+    "passed": false,
+    "results": [
+      {
+        "scenario": "commands",
+        "algorithm": "EdDSA",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 5.23138325009495,
+        "log_sha256": "57832d15ba10d2546b4b3a0545a0827be1f8ff7bea548bd50e19d0a000791908",
+        "witnesses": []
+      },
+      {
+        "scenario": "authority",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 3.1231512918602675,
+        "log_sha256": "808e051dfdbefc19b42d30e5ae2932e483d5bd16134369cdb049261796274088",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10
+          }
+        ]
+      },
+      {
+        "scenario": "uncertainty",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 1.6529882501345128,
+        "log_sha256": "eeeffad04f91784f1caa8d58611a4d1891cf83da21321f080832f7b78e2c1d89",
+        "witnesses": [
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "EdDSA",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true
+          }
+        ]
+      },
+      {
+        "scenario": "commands",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 4.249848207924515,
+        "log_sha256": "74ff3574f8d4dad7b421b0f0df5f6d198e7dbb8c22b515089a1f0cdf73e7266d",
+        "witnesses": [
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26
+          }
+        ]
+      },
+      {
+        "scenario": "authority",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 2.6866282920818776,
+        "log_sha256": "34ec0fca1a078d432a8038923d98f1fe49905603f1900d47068039d3a4f72d38",
+        "witnesses": [
+          {
+            "algorithm": "ES256",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10
+          }
+        ]
+      },
+      {
+        "scenario": "uncertainty",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 1.6459049999248236,
+        "log_sha256": "e5b4b539e5300b9a537e2be6f28d9dfdef842926b43e8100fe30554529b0d281",
+        "witnesses": [
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "ES256",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true
+          }
+        ]
+      }
+    ],
+    "seconds": 19.290139875141904,
+    "source_inputs_unchanged": true,
+    "source_count": 8256,
+    "source_inputs_sha256": "d21ba5e3a765a8755a6304646fc72e17e97cdaf6a249f9fb10321b8d202d96b3",
+    "executable_sha256": "90db3b39ca6ecbfd35814cafe7624393b191c803f213e2c1e10a3ca20747e860",
+    "installed_wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "python_version": "3.14.7",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper trusted administrative controls. Eleven command families, independent signed Rust and exact Store receipt reads, server restart/current authorization, real held committed response cancellation and no queued effect. No complete SDK/Linux/remote/provider/model/acceptance qualification."
+  },
+  "targeted_eddsa_commands": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "commands",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 4.230529209133238,
+        "log_sha256": "5b71e58b2ef02b9f429618d7092a1baa0b914a2be9ab73d42935f939b94150ce",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-administration/1",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26
+          }
+        ]
+      }
+    ],
+    "seconds": 4.939009832916781,
+    "source_inputs_unchanged": true,
+    "source_count": 8256,
+    "source_inputs_sha256": "d21ba5e3a765a8755a6304646fc72e17e97cdaf6a249f9fb10321b8d202d96b3",
+    "executable_sha256": "90db3b39ca6ecbfd35814cafe7624393b191c803f213e2c1e10a3ca20747e860",
+    "installed_wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "python_version": "3.14.7",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper trusted administrative controls. Eleven command families, independent signed Rust and exact Store receipt reads, server restart/current authorization, real held committed response cancellation and no queued effect. No complete SDK/Linux/remote/provider/model/acceptance qualification."
+  },
+  "node_shared_launcher_regression": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "commands",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 4.114513542037457,
+        "log_sha256": "8d5ff3580dea67cb8c54db2ca2a6ed96962adc7c6c9cfad570a006d7d400744f",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26
+          }
+        ]
+      },
+      {
+        "scenario": "authority",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 2.3992152919527143,
+        "log_sha256": "c4e055a55da7600ac03703f072661f144d21cabd3b375b8d233fed0f46f5cb2a",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10
+          }
+        ]
+      },
+      {
+        "scenario": "uncertainty",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 1.3518121249508113,
+        "log_sha256": "874b743abe009a7fbda85d6d7b7a71c312850b9c093a149fabf940664ead4a84",
+        "witnesses": [
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "EdDSA",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true
+          }
+        ]
+      },
+      {
+        "scenario": "commands",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 4.0945508340373635,
+        "log_sha256": "b3bbbdac28d3493116f5b34d6961e824dc1a5f616f8d03420678f624e49c9a85",
+        "witnesses": [
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26
+          }
+        ]
+      },
+      {
+        "scenario": "authority",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 2.3526911670342088,
+        "log_sha256": "f6e8a67e543aa4999574c5947238bdc69530415df3196cdd90118f6c47d0ad60",
+        "witnesses": [
+          {
+            "algorithm": "ES256",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10
+          }
+        ]
+      },
+      {
+        "scenario": "uncertainty",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 1.3163150420878083,
+        "log_sha256": "668e3fbdea400c774d9ff1eeb58551292617a188e3961ab7e47b3bd3040f54f2",
+        "witnesses": [
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "ES256",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true
+          }
+        ]
+      }
+    ],
+    "seconds": 16.32424300001003,
+    "source_inputs_unchanged": true,
+    "source_count": 8256,
+    "source_inputs_sha256": "d21ba5e3a765a8755a6304646fc72e17e97cdaf6a249f9fb10321b8d202d96b3",
+    "executable_sha256": "90db3b39ca6ecbfd35814cafe7624393b191c803f213e2c1e10a3ca20747e860",
+    "installed_archive_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "node_version": "v26.7.0",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Node package/original configured helper trusted administrative controls. Eleven command families, independent signed Rust and exact Store receipt reads, server restart/current authorization, real held committed response cancellation and no queued effect. No complete SDK/Linux/remote/provider/model/acceptance qualification."
+  },
+  "passing_scene_totals": {
+    "helpers_joined": 16,
+    "validators_joined": 80,
+    "servers_joined": 8
+  },
+  "retained_failures": [
+    {
+      "summary_sha256": "54ed2742f7e441203ab6f3a95aeebbc5c59dcf14858c0ae18295c6feae9ca502",
+      "source_inputs_sha256": "b1f86925b10d7929124c4928aeab8459bde313d7ace089963825dc10c6002cb5",
+      "executable_sha256": "ebe8cae9e7eeb6f64825d7f69d07afbba7bd158b25e076e033afe3e57464877f",
+      "scene": "EdDSA commands",
+      "passed": false,
+      "kind": "configuration",
+      "certainty": "not-submitted",
+      "stage": "public local provisioning validator before submission",
+      "cause": "Unresolved. SDK refused safely; first validator did not complete its bounded validation path. Empty private stderr is not proof of a timeout, cold-start or executable defect. No production change or timeout increase was made."
+    },
+    {
+      "summary_sha256": "a6a31f218fff83142c76b1ccbb3f22ee68f6c6a7391fc0b70288fd0af312077a",
+      "source_inputs_sha256": "d21ba5e3a765a8755a6304646fc72e17e97cdaf6a249f9fb10321b8d202d96b3",
+      "executable_sha256": "90db3b39ca6ecbfd35814cafe7624393b191c803f213e2c1e10a3ca20747e860",
+      "scene": "EdDSA commands",
+      "passed": false,
+      "kind": "configuration",
+      "certainty": "not-submitted",
+      "stage": "public local provisioning validator before submission",
+      "cause": "Unresolved. SDK refused safely; first validator did not complete its bounded validation path. Empty private stderr is not proof of a timeout, cold-start or executable defect. No production change or timeout increase was made."
+    }
+  ],
+  "diagnostics": {
+    "passed": true,
+    "functions": 10,
+    "log_sha256": "364ca0b93f5162b017c2499855565f2b0038c3dfc20bcf089068ec93470f42bb",
+    "scope": "Closed Python failure schemas; private commands, paths and unbounded fields refused."
+  },
+  "remaining": [
+    "G6-063 original control fixture still needs durable operation decisions and attributed receipts",
+    "G6-070/G6-096 retain unresolved initial EdDSA local-validator refusals; targeted pass does not erase failures",
+    "Linux lane is prepared, not executed or qualified by local evidence",
+    "No programmatic Python media or candidate packaging qualification"
+  ]
+}

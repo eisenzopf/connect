@@ -46,9 +46,12 @@ def prepare(output, build_python=Path(sys.executable)):
     shutil.copyfile(ROOT/'sdk/tests/python_native_server_consumer.py',consumer)
     movement=project/'movement-consume.py'
     shutil.copyfile(ROOT/'sdk/tests/python_movement_server_consumer.py',movement)
+    administrative=project/'admin-consume.py'
+    shutil.copyfile(ROOT/'sdk/tests/python_administrative_server_consumer.py',administrative)
     result={'profile':'python-native-package/1','python':str(python.relative_to(ROOT)),
         'consumer':str(consumer.relative_to(ROOT)),'consumer_sha256':digest(consumer),
         'movement_consumer':str(movement.relative_to(ROOT)),'movement_consumer_sha256':digest(movement),
+        'administrative_consumer':str(administrative.relative_to(ROOT)),'administrative_consumer_sha256':digest(administrative),
         'wheel_sha256':installation['wheel_sha256'],'installed_dist_matches':True,
         'installed_dist_sha256':actual,'python_version':observed['version'],
         'synthetic_http_workers_joined':installation['consumer']['owned_workers_joined'],

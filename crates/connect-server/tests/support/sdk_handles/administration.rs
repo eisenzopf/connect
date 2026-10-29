@@ -798,3 +798,51 @@ async fn installed_node_es256_administration_recovers_held_committed_receipt_wit
     uncertainty_case("ES256").await;
     node::uncertainty_witness("ES256");
 }
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_eddsa_administration_covers_all_commands_and_original_recovery() {
+    assert!(node::enabled() && node::python());
+    administration_case("EdDSA").await;
+    node::witness("EdDSA");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_eddsa_administration_enforces_current_authority_and_original_recovery() {
+    assert!(node::enabled() && node::python());
+    authority_case("EdDSA").await;
+    node::authority_witness("EdDSA");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_eddsa_administration_recovers_held_committed_receipt_without_replay() {
+    assert!(node::enabled() && node::python());
+    uncertainty_case("EdDSA").await;
+    node::uncertainty_witness("EdDSA");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_es256_administration_covers_all_commands_and_original_recovery() {
+    assert!(node::enabled() && node::python());
+    administration_case("ES256").await;
+    node::witness("ES256");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_es256_administration_enforces_current_authority_and_original_recovery() {
+    assert!(node::enabled() && node::python());
+    authority_case("ES256").await;
+    node::authority_witness("ES256");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python administrative consumer and explicit CONNECT_GATE6_PYTHON_ADMIN=1"]
+async fn installed_python_es256_administration_recovers_held_committed_receipt_without_replay() {
+    assert!(node::enabled() && node::python());
+    uncertainty_case("ES256").await;
+    node::uncertainty_witness("ES256");
+}

@@ -562,3 +562,14 @@ each named phase 15s, and each whole function 90s. This is control evidence; han
 remain observations without Python media custody. Administration, durable operation
 decisions and receipt coverage are still being completed for G6-063; package and
 full parity qualification remain G6-069/G6-070.
+
+The [installed administrative scenes](../evidence/gate-6/python-installed-administration-local.json)
+now cover all eleven provisioning families, exact original receipt recovery after
+restart, ordinary/revoked authority refusals and a real held committed response.
+Cancelling the original wait preserves uncertainty; cancelling its queued command
+leaves zero effect, and a fresh owner recovers the original without replay.
+The six successful scene observations join sixteen helpers, eighty validators
+and eight server instances in total. The two initial EdDSA command scenes refused
+local validation before submission; a targeted unchanged-source run passed. Their
+cause remains unresolved and the full six-scene run is recorded as failed.
+The shared launcher also passes all six installed Node administrative regressions.

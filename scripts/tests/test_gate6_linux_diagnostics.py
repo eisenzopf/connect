@@ -12,6 +12,7 @@ progress = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['nod
 python_movement = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_movement_failure_diagnostic']
 python_phase = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_movement_phase_diagnostic']
 python_native = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_native_failure_diagnostic']
+python_administrative = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_administrative_failure_diagnostic']
 
 
 def failure(checkpoint='events-bootstrap'):
@@ -21,6 +22,14 @@ def failure(checkpoint='events-bootstrap'):
 
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_python_administrative_diagnostics_exclude_commands_and_private_state(self):
+        value=dict(phase='failed',checkpoint='held-cancel',kind='cancelled',certainty='uncertain',
+                   line=112,error_type='SdkError')
+        self.assertEqual(python_administrative(value),value)
+        for invalid in [dict(value,command={'alias':'private'}),dict(value,message='private credential'),
+                        dict(value,line=True),dict(value,line=100000),dict(value,checkpoint='/private/state')]:
+            with self.assertRaises(AssertionError):python_administrative(invalid)
+
     def test_python_native_controls_keep_only_bounded_failure_locations(self):
         value=dict(phase='failed',checkpoint='session-decisions',kind='assertion',certainty=None,
                    source_line=184,error_type='AssertionError')

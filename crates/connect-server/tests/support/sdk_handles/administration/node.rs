@@ -1,4 +1,4 @@
-//! Installed public Node administrator; host comparisons use independent Rust reads.
+//! Installed public Node/Python administrator; independent Rust host comparisons.
 use super::*;
 use std::{
     collections::BTreeMap,
@@ -14,7 +14,29 @@ static VALIDATORS: AtomicUsize = AtomicUsize::new(0);
 static SERVERS: AtomicUsize = AtomicUsize::new(0);
 static INDEX: AtomicUsize = AtomicUsize::new(0);
 pub(super) fn enabled() -> bool {
-    std::env::var("CONNECT_GATE6_NODE_ADMIN").as_deref() == Ok("1")
+    let node = std::env::var("CONNECT_GATE6_NODE_ADMIN").as_deref() == Ok("1");
+    assert!(
+        !(node && python()),
+        "Select one installed administrative language"
+    );
+    node || python()
+}
+pub(super) fn python() -> bool {
+    std::env::var("CONNECT_GATE6_PYTHON_ADMIN").as_deref() == Ok("1")
+}
+fn language() -> &'static str {
+    if python() {
+        "python"
+    } else {
+        "node"
+    }
+}
+fn profile() -> &'static str {
+    if python() {
+        "python-administration/1"
+    } else {
+        "node-administration/3"
+    }
 }
 struct Process {
     child: Child,
@@ -33,11 +55,12 @@ impl Process {
         assert!(line.len() <= 128 * 1024);
         let value: Value = serde_json::from_str(&line).unwrap();
         if value["phase"] == "failed" {
-            eprintln!("installed-node-administrative-failure {value}");
+            eprintln!("installed-{}-administrative-failure {value}", language());
         }
         assert_eq!(value["phase"], expected);
         eprintln!(
-            "installed-node-administrative-phase {}",
+            "installed-{}-administrative-phase {}",
+            language(),
             json!({"algorithm":self.algorithm,"phase":expected,"seconds":started.elapsed().as_secs_f64(),"deadline_seconds":15})
         );
         value
@@ -65,7 +88,12 @@ impl Probe {
         application: ApplicationClientConfig,
     ) -> Self {
         let index = INDEX.fetch_add(1, Ordering::SeqCst);
-        let script = PathBuf::from(std::env::var_os("CONNECT_GATE6_NODE_ADMIN_CONSUMER").unwrap())
+        let consumer = if python() {
+            "CONNECT_GATE6_PYTHON_ADMIN_CONSUMER"
+        } else {
+            "CONNECT_GATE6_NODE_ADMIN_CONSUMER"
+        };
+        let script = PathBuf::from(std::env::var_os(consumer).unwrap())
             .canonicalize()
             .unwrap();
         assert!(script.starts_with(
@@ -87,6 +115,9 @@ impl Probe {
         let wrapper = f.temp.path().join(format!("node-admin-{index}-connect"));
         init::private_write(&wrapper,br#"#!/usr/bin/env python3
 import os,sys
+fd=os.open(os.path.join(os.environ['CONNECT_G6_ADMIN_STDERR_DIR'],'helper-'+str(os.getpid())+'.stderr'),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+os.dup2(fd,2)
+os.close(fd)
 path=os.environ['CONNECT_G6_NODE_PID_FILE']+('.validators' if sys.argv[1:2]==['sdk-validate-provisioning'] else '')
 with open(path,'a') as stream:stream.write(str(os.getpid())+'\n')
 os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONNECT'],*sys.argv[1:]])
@@ -94,13 +125,44 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o700)).unwrap();
         let input = f.temp.path().join(format!("node-admin-{index}.json"));
         init::private_write(&input,&serde_json::to_vec(&json!({"project":project,"config":native,"executable":wrapper,"pid_file":pid_file})).unwrap()).unwrap();
-        let stderr = f.temp.path().join(format!("node-admin-{index}.stderr"));
-        let mut child = tokio::process::Command::new("node")
+        let trace = project.join(format!(
+            "{}-admin-{}-{index}-{}",
+            language(),
+            config.signing_algorithm,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&trace).unwrap();
+        std::fs::set_permissions(&trace, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let stderr = trace.join("consumer.stderr");
+        let mut command = if python() {
+            let interpreter = PathBuf::from(std::env::var_os("CONNECT_GATE6_PYTHON").unwrap());
+            assert!(interpreter.is_absolute() && interpreter.is_file());
+            let bin = f.temp.path().join(format!("python-admin-{index}-bin"));
+            std::fs::create_dir(&bin).unwrap();
+            std::os::unix::fs::symlink(&wrapper, bin.join("connect")).unwrap();
+            let mut path = vec![bin];
+            path.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+            let mut command = tokio::process::Command::new(interpreter);
+            command
+                .arg("-I")
+                .env("PATH", std::env::join_paths(path).unwrap())
+                .env_remove("PYTHONPATH")
+                .env_remove("PYTHONHOME")
+                .env_remove("PYTHONUSERBASE");
+            command
+        } else {
+            tokio::process::Command::new("node")
+        };
+        let mut child = command
             .arg(&script)
             .arg(input)
             .current_dir(project)
             .env("CONNECT_G6_NODE_PID_FILE", pid_file)
             .env("CONNECT_G6_NODE_CONNECT", env!("CARGO_BIN_EXE_connect"))
+            .env("CONNECT_G6_ADMIN_STDERR_DIR", &trace)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::from(std::fs::File::create(stderr).unwrap()))
@@ -235,7 +297,8 @@ pub(super) async fn drained(f: &Fixture) {
     if drained.is_err() {
         let view = f.server.service.canonical_runtime_snapshot().unwrap();
         eprintln!(
-            "installed-node-administrative-drain-failure {}",
+            "installed-{}-administrative-drain-failure {}",
+            language(),
             json!({
                 "physical_peers":view.physical_peers,"media_readers":view.media_readers,
                 "helpers_joined":HELPERS.load(Ordering::SeqCst),"validators_joined":VALIDATORS.load(Ordering::SeqCst)
@@ -254,8 +317,9 @@ pub(super) fn witness(algorithm: &str) {
     assert_eq!(SERVERS.load(Ordering::SeqCst), 2);
     assert_eq!(VALIDATORS.load(Ordering::SeqCst), 26);
     eprintln!(
-        "installed-node-administrative-witness {}",
-        json!({"profile":"node-administration/3","scenario":"commands","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
+        "installed-{}-administrative-witness {}",
+        language(),
+        json!({"profile":profile(),"scenario":"commands","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
     );
 }
 
@@ -264,9 +328,10 @@ pub(super) fn authority_witness(algorithm: &str) {
     assert_eq!(SERVERS.load(Ordering::SeqCst), 1);
     assert_eq!(VALIDATORS.load(Ordering::SeqCst), 10);
     eprintln!(
-        "installed-node-administrative-witness {}",
+        "installed-{}-administrative-witness {}",
+        language(),
         json!({
-            "profile":"node-administration/3","scenario":"authority","algorithm":algorithm,
+            "profile":profile(),"scenario":"authority","algorithm":algorithm,
             "helpers_joined":4,"validators_joined":10,"servers_joined":1,
             "ordinary_submit_read_refused":true,"revoked_current_read_refused":true,
             "revoked_startup_replay_and_submit_not_submitted":true,
@@ -399,9 +464,10 @@ pub(super) async fn uncertainty(
 }
 pub(super) fn uncertainty_witness(algorithm: &str) {
     eprintln!(
-        "installed-node-administrative-witness {}",
+        "installed-{}-administrative-witness {}",
+        language(),
         json!({
-            "profile":"node-administration/3","scenario":"uncertainty","algorithm":algorithm,
+            "profile":profile(),"scenario":"uncertainty","algorithm":algorithm,
             "helpers_joined":2,"validators_joined":4,"servers_joined":1,
             "actual_commit_held_response":true,"original_cancelled_uncertain":true,"queued_cancelled_not_submitted":true,
             "fresh_original_record_recovered_without_replay":true,"one_original_receipt":true,"zero_queued_receipts":true,"no_hidden_resubmission":true,

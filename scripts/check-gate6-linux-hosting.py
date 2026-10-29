@@ -151,6 +151,18 @@ def python_native_failure_diagnostic(value):
     return value
 
 
+def python_administrative_failure_diagnostic(value):
+    assert set(value)=={'phase','checkpoint','kind','certainty','line','error_type'}
+    assert value['phase']=='failed'
+    assert value['checkpoint'] in {'ready','apply','read','read-refused','refuse','held','held-cancel','close','invalid'}
+    assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
+    assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
+    assert value['line'] is None or type(value['line']) is int and 0<value['line']<100000
+    assert value['error_type'] in {'SdkError','AssertionError','AttributeError','KeyError','TypeError',
+                                   'ValueError','RuntimeError','OSError','TimeoutError'}
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -175,6 +187,7 @@ def run(node_sdk=False, python_sdk=False):
         os.environ['CONNECT_GATE6_PYTHON'] = str(ROOT / python_package['python'])
         os.environ['CONNECT_GATE6_PYTHON_CONSUMER'] = str(ROOT / python_package['consumer'])
         os.environ['CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER'] = str(ROOT / python_package['movement_consumer'])
+        os.environ['CONNECT_GATE6_PYTHON_ADMIN_CONSUMER'] = str(ROOT / python_package['administrative_consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -316,7 +329,23 @@ def run(node_sdk=False, python_sdk=False):
         step['node_administrative_phases'] = []
         step['node_administrative_failures'] = []
         step['node_administrative_drain_failures'] = []
+        step['python_administrative_phases'] = []
+        step['python_administrative_failures'] = []
+        step['python_administrative_drain_failures'] = []
         for line in text.splitlines():
+            if line.startswith('installed-python-administrative-drain-failure '):
+                drain = json.loads(line.split(' ',1)[1])
+                assert set(drain)=={'physical_peers','media_readers','helpers_joined','validators_joined'}
+                assert all(type(v) is int and 0<=v<=100000 for v in drain.values())
+                step['python_administrative_drain_failures'].append(drain)
+            if line.startswith('installed-python-administrative-phase '):
+                phase=json.loads(line.split(' ',1)[1])
+                assert set(phase)=={'algorithm','phase','seconds','deadline_seconds'}
+                assert phase['algorithm'] in {'EdDSA','ES256'} and phase['phase'] in {'ready','applied','read','read-refused','submitted','uncertain','refused','closed'}
+                assert type(phase['seconds']) in (int,float) and 0<=phase['seconds']<=90 and phase['deadline_seconds']==15
+                step['python_administrative_phases'].append(phase)
+            if line.startswith('installed-python-administrative-failure '):
+                step['python_administrative_failures'].append(python_administrative_failure_diagnostic(json.loads(line.split(' ',1)[1])))
             if line.startswith('installed-node-administrative-drain-failure '):
                 drain = json.loads(line.split(' ',1)[1])
                 assert set(drain) == {'physical_peers','media_readers','helpers_joined','validators_joined'}
@@ -640,6 +669,42 @@ def run(node_sdk=False, python_sdk=False):
                 'profile': 'python-native/2', 'results': results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'scope': 'Clean installed wheel, original signed native Rust helper/server, participant epochs and stale revisions, Session decisions and incoming hints, native Connection/Stream controls, typed and finite journal agreement, saved reference across actual restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
+            administrative_results = []
+            for algorithm, label in (('EdDSA','eddsa'),('ES256','es256')):
+                for scenario, suffix in (('commands','covers_all_commands_and_original_recovery'),
+                                         ('authority','enforces_current_authority_and_original_recovery'),
+                                         ('uncertainty','recovers_held_committed_receipt_without_replay')):
+                    name = 'installed_python_' + label + '_administration_' + suffix
+                    text = sdk_case('installed-python-administration-' + label + '-' + scenario, 'sdk_handles::administration::' + name, {'CONNECT_GATE6_PYTHON_ADMIN':'1'})
+                    if text is None:
+                        administrative_results.append({'algorithm':algorithm,'scenario':scenario,'passed':False})
+                        continue
+                    assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;',text) == [('1','0','0')]
+                    witnesses = [json.loads(line.split('installed-python-administrative-witness ',1)[1]) for line in text.splitlines() if 'installed-python-administrative-witness ' in line]
+                    assert len(witnesses) == 1
+                    witness = witnesses[0]
+                    assert witness['profile'] == 'python-administration/1' and witness['algorithm'] == algorithm and witness['scenario'] == scenario
+                    if scenario == 'commands':
+                        assert witness['command_families'] == 11
+                        assert witness['helpers_joined'] == 2 and witness['validators_joined'] == 26 and witness['servers_joined'] == 2
+                        assert all(witness[field] for field in ('original_record_recovered','one_original_receipt','changed_intent_refused'))
+                    elif scenario == 'authority':
+                        assert witness['helpers_joined'] == 4 and witness['validators_joined'] == 10 and witness['servers_joined'] == 1
+                        assert all(witness[field] for field in ('ordinary_submit_read_refused','revoked_current_read_refused',
+                            'revoked_startup_replay_and_submit_not_submitted','independent_authorized_original_record_recovered','no_forbidden_or_revoked_receipts'))
+                    else:
+                        assert witness['helpers_joined'] == 2 and witness['validators_joined'] == 4 and witness['servers_joined'] == 1
+                        assert all(witness[field] for field in ('actual_commit_held_response','original_cancelled_uncertain','queued_cancelled_not_submitted',
+                            'fresh_original_record_recovered_without_replay','one_original_receipt','zero_queued_receipts','no_hidden_resubmission'))
+                    assert witness['physical_peers_drained'] and witness['media_readers_drained']
+                    administrative_results.append(dict(witness,passed=True))
+            assert len(administrative_results) == 6
+            report['installed_python_administration'] = {'passed': all(v['passed'] for v in administrative_results), 'profile':'python-administration/1',
+                'results':administrative_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,
+                'verified_helpers_joined':sum(v.get('helpers_joined',0) for v in administrative_results),
+                'verified_validators_joined':sum(v.get('validators_joined',0) for v in administrative_results),
+                'verified_servers_joined':sum(v.get('servers_joined',0) for v in administrative_results),
+                'scope':'All11 actual trusted administrative commands and ordinary/current-revoked authority via installed Python SDK; independent Rust signed journal comparisons, exact replay after server restart, new revoked startup refusing original/new mutations without submission, independent authorized recovery, no unauthorized receipts and original joins/drains. Actual held HTTP commit/cancellation preserves original uncertainty, queued no-submission and fresh signed recovery without replay. Full SDK qualification remains separate.'}
             movements=[]
             for algorithm,label in (('EdDSA','eddsa'),('ES256','es256')):
                 for suffix in ('session_handoff_observe','move_speaker'):
