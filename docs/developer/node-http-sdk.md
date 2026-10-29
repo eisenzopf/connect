@@ -159,3 +159,14 @@ recorded macOS arm64 HTTPS subset; Linux and full SDK qualification remain open.
 The [originala50 Linux artifacts](../evidence/gate-6/node-native-a50.json) stop at
 the older cleanup test generation rewind before any installed SDK scene executes,
 so they supply no result for current profiles8 or3.
+
+The [current local native profile 8](../evidence/gate-6/node-native-production-local.json)
+passes both signing algorithms on the original production executable with the
+installed Node26 consumer. This includes the resumed event correction: full Store
+causal links and exact singleton journal facts match both original and resumed
+logical operations. Native/HTTP IDs and status, typed connection/session recovery,
+finite/live journal behavior, membership changes, current refusals and all eight
+helpers/six validators/two servers drain successfully. The run takes33.85seconds
+with8,238 guarded inputs and the executable unchanged. Original4s/15s/90s limits
+remain; no decoded-media or candidate-adoption qualification is inferred. Linux
+qualification and the separate candidate/consultation scenes remain open.
