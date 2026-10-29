@@ -357,6 +357,7 @@ def run(node_sdk=False):
             ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
+            ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata", 1),
             ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
             ("rust-sdk-consultation-eof", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call", 1),
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),

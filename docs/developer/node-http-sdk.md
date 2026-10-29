@@ -113,3 +113,16 @@ Local109 Node component/type functions,33 SQLite selection vectors and six priva
 functions pass, alongside JavaScript syntax and Rust formatting. Node22's original
 event deadline, genuine candidate adoption and strict audio minimum failures
 remain open; request4s, phase15s and whole-function90s limits are unchanged.
+
+Candidate replacement also needs a fenced transfer of its original pending
+native worker. The [cleanup prerequisite](../evidence/gate-6/native-candidate-cleanup-fence.json)
+fixes a hazard before that transfer: old cleanup used `generation >= original`
+and did not check its affected row count. It now requires the exact generation,
+an absent or matching observed runtime, and exactly one projection update.
+A mismatch rolls back the original operation/effect/journal changes as well.
+Already-retired cleanup stays idempotent. Six isolated SQL/rollback vectors and
+formatting pass; the required Store regression still needs Linux compilation
+and execution. This does not complete candidate adoption. The remaining protocol
+must retain old attempt attribution, retire/join its original worker, acquire
+fresh replacement custody/resources and update the existing Connection ID under
+an exact ownership fence. An unanswered offer supplies metadata, not readiness.

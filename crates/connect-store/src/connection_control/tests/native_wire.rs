@@ -831,6 +831,86 @@ fn native_split_budgets_admit_one_cancel_receipt_and_preserve_unknown_cleanup_fa
 }
 
 #[test]
+fn native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata() {
+    struct Absent {
+        runtime: String,
+        generation: u64,
+    }
+    impl crate::NativeOfferRuntimeObservation for Absent {
+        fn observe(&self) -> connect_protocol::Result<crate::NativeOfferObservation> {
+            Ok(crate::NativeOfferObservation::Retired {
+                runtime_connection_id: self.runtime.clone(),
+                generation: self.generation,
+            })
+        }
+    }
+    // Controlled projection races qualify the Store compare-and-swap only.
+    // They are not candidate adoption or evidence of a physically ready route.
+    for (generation, observed) in [(2, None), (17, None), (1, Some("foreign-runtime"))] {
+        let f = Fixture::new();
+        let (_, proof) = prepared(&f, 600);
+        f.store
+            .accept_native_offer_with_peer(&f.keys[0], &proof)
+            .unwrap();
+        let (lease, _) = f
+            .store
+            .begin_native_offer_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .unwrap();
+        drop(proof);
+        f.store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE connections SET generation=?2,observed_runtime_id=?3 WHERE id=?1",
+                params![lease.connection_id(), generation, observed],
+            )
+            .unwrap();
+        let snapshot = || {
+            f.store.connection().unwrap().query_row(
+                "SELECT o.state,o.revision,e.state,c.state,c.generation,c.revision,c.observed_runtime_id,(SELECT COUNT(*) FROM journal) FROM operations o JOIN native_offer_operations n ON n.operation_record_id=o.record_id JOIN operation_effects e ON e.id=n.effect_id JOIN connections c ON c.id=o.connection_id WHERE o.record_id=?1",
+                [lease.record_id()],
+                |r|Ok((r.get::<_,String>(0)?,r.get::<_,u64>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,u64>(4)?,r.get::<_,u64>(5)?,r.get::<_,Option<String>>(6)?,r.get::<_,u64>(7)?)),
+            ).unwrap()
+        };
+        let before = snapshot();
+        let absent = Absent {
+            runtime: lease.runtime_connection_id().into(),
+            generation: lease.generation(),
+        };
+        assert_eq!(
+            f.store
+                .settle_native_offer_cleanup(&lease, &absent)
+                .unwrap_err()
+                .code,
+            "forbidden"
+        );
+        assert_eq!(snapshot(), before);
+        // The original generation can still settle after its actual absence.
+        f.store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE connections SET generation=?2,observed_runtime_id=NULL WHERE id=?1",
+                params![lease.connection_id(), lease.generation()],
+            )
+            .unwrap();
+        f.store
+            .settle_native_offer_cleanup(&lease, &absent)
+            .unwrap();
+        let after = snapshot();
+        assert_eq!(after.0, "failed");
+        assert_eq!(after.2, "failed");
+        assert_eq!(after.3, "retired");
+        assert_eq!(after.4, lease.generation() + 1);
+        f.store
+            .settle_native_offer_cleanup(&lease, &absent)
+            .unwrap();
+        assert_eq!(snapshot(), after);
+    }
+}
+
+#[test]
 fn controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_failed_facts() {
     use crate::{
         NativeOfferObservation, NativeOfferRecoveryObservation, NativeOfferRuntimeObservation,

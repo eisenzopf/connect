@@ -1,0 +1,69 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "component": "Fence original native-offer cleanup before candidate ownership transfer",
+  "problem": "settle_native_offer_cleanup used generation>=the original lease and ignored whether its projection UPDATE matched. An old attributed absence could retire a later generation sharing the public Connection ID, or mutate old operation/effect metadata and journal a retirement after no matching projection update.",
+  "change": "Require the exact lease generation and either an unobserved original projection or the matching installation runtime. Require exactly one projection update; refusal rolls the whole transaction back. An already-retired original remains idempotent. No candidate readiness or replacement ticket is inferred from this check.",
+  "verification": {
+    "sql": {
+      "passed": true,
+      "scope": "Extracted production SQL generation/runtime compare-and-swap and SQLite transaction rollback only; no Rust compilation, original engine cleanup or candidate adoption qualification.",
+      "source": "crates/connect-store/src/transitions/native_offers/observations.rs",
+      "source_sha256": "daa126e209b862bdf8131c38bec1e88a983264cade79bd00763a9027210a7a37",
+      "query_sha256": "e5a312f8f5008df9150dc3f7abfba6f6d3e01a9975dcf285b893a5ccaf42e8c4",
+      "vectors": [
+        {
+          "generation": 1,
+          "observed_runtime": "absent",
+          "exact_cas_applied": true,
+          "old_metadata_rolled_back": false
+        },
+        {
+          "generation": 1,
+          "observed_runtime": "matching",
+          "exact_cas_applied": true,
+          "old_metadata_rolled_back": false
+        },
+        {
+          "generation": 2,
+          "observed_runtime": "absent",
+          "exact_cas_applied": false,
+          "old_metadata_rolled_back": true
+        },
+        {
+          "generation": 17,
+          "observed_runtime": "absent",
+          "exact_cas_applied": false,
+          "old_metadata_rolled_back": true
+        },
+        {
+          "generation": 2,
+          "observed_runtime": "matching",
+          "exact_cas_applied": false,
+          "old_metadata_rolled_back": true
+        },
+        {
+          "generation": 1,
+          "observed_runtime": "foreign",
+          "exact_cas_applied": false,
+          "old_metadata_rolled_back": true
+        }
+      ],
+      "candidate_adoption_implemented": false
+    },
+    "rust_format_check_passed": true,
+    "new_store_regression": "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata",
+    "rust_regression_scope": "Three controlled projection races cover generations2/17 and foreign runtime, whole old-operation/effect/projection/journal rollback, then valid exact cleanup and repeated idempotent cleanup. No actual engine readiness or candidate adoption is simulated as a pass.",
+    "rust_compile_runtime": "Pending original Linux execution; no local Rust build due disk capacity. A required isolated Store fixture lane was added."
+  },
+  "candidate_adoption_implemented": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "remaining": [
+    "Implement explicit current-authority custody of the selected pending native attempt, preserving original attempt uncertainty and attribution.",
+    "Retire and join its old Core/native worker, acquire a fresh replacement ticket/resources/runtime identity, and compare-and-swap the existing domain projection to its new generation.",
+    "Preserve immutable historical mapping for old cleanup/status while preventing old grants or cleanup from reaching the adopted successor.",
+    "Keep source/retained media and current Endpoint/Device/member epoch/credential checks, stable logical mutation IDs, strict audio and original request/phase budgets."
+  ]
+}

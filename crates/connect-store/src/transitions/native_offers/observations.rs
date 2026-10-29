@@ -271,7 +271,13 @@ impl Store {
         )
         .map_err(|_| Error::storage())?;
         if !retired {
-            tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation>=?2",params![lease.connection,lease.generation]).map_err(|_|Error::storage())?;
+            // Absence of this exact old Core route cannot retire a successor
+            // that reuses its public Connection ID. A pending original has no
+            // observed runtime yet; an observed one must belong to this lease.
+            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND (observed_runtime_id IS NULL OR observed_runtime_id=?3)",params![lease.connection,lease.generation,lease.runtime]).map_err(|_|Error::storage())?;
+            if changed != 1 {
+                return Err(Error::forbidden());
+            }
             let row = rows::by_record(&tx, &lease.record)?;
             fact(&tx, self, &row, "connection_retired")?;
         }
