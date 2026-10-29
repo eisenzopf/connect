@@ -233,6 +233,7 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='wrong-reference')result.Ok.operation_id='foreign';
  if(config.mode==='wrong-scope') { const k=result.Ok?.snapshot?.key??result.Ok?.key; if(k)k.scope.conversationId='foreign'; }
  if(config.mode==='wrong-result'&&result.Ok?.value)result.Ok.value={id:'room'};
+ if(config.mode==='decision-target'&&result.Ok?.value?.target)result.Ok.value.target='foreign';
  if(config.mode==='record-change'&&n>1) { const s=result.Ok?.snapshot??result.Ok;if(s?.recordId)s.recordId='record-foreign'; }
  if(config.mode==='error-kind-array'||config.mode==='error-certainty-array')result={Err:{kind:config.mode==='error-kind-array'?['protocol']:'application',certainty:config.mode==='error-certainty-array'?['refused']:'refused',operation:null,problem:null,observation:null}};
  if(config.mode==='binding-state-array'&&result.Ok?.value?.outcome?.streams)result.Ok.value.outcome.streams[0].state=['active'];

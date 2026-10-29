@@ -35,6 +35,7 @@ def sources():
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--types-python',type=Path,help='Python with the pinned mypy test dependency')
     args=parser.parse_args()
     directory=args.output.absolute()
     assert directory.parent.resolve().is_relative_to((ROOT/'.local').resolve())
@@ -62,19 +63,44 @@ def main():
     functions=re.findall(r'^\w+ \(([^)]+)\) \.\.\. ok$',log,re.M)
     assert all(re.fullmatch(r'[A-Za-z0-9_.]+',name) for name in functions)
     owned=[name for name in functions if '.OwnedSdkHelper.' in name]
+    public=[name for name in functions if '.TypedPythonSdk.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
+    types=None
+    if args.types_python:
+        type_environment=dict(environment,MYPYPATH=str(ROOT/'sdk/python'))
+        commands=[('positive', ['sdk/python/connect_sdk/client.py','sdk/python/connect_sdk/sdk_types.py',
+                                'sdk/python/connect_sdk/_sdk_helper.py','sdk/tests/python_sdk_positive.py']),
+                  ('negative', ['sdk/tests/python_sdk_negative.py'])]
+        checks={}
+        for label,paths in commands:
+            with (private/(label+'-types.log')).open('wb') as stream:
+                try:
+                    checked=subprocess.run([str(args.types_python.absolute()),'-m','mypy','--follow-imports=silent',
+                                            '--cache-dir',str(private/(label+'-mypy-cache')),*paths],
+                                           cwd=ROOT,env=type_environment,stdout=stream,stderr=subprocess.STDOUT,timeout=30)
+                    code=checked.returncode
+                except subprocess.TimeoutExpired:code=None
+            type_log=(private/(label+'-types.log')).read_text(errors='replace')
+            errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
+            checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
+        types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type','arg-type','arg-type','arg-type','arg-type','attr-defined'],
+               'checks':checks}
+    unchanged=unchanged and sources()==before
     result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==53 and len(owned)==17 and re.search(r'^Ran 53 tests in ',log,re.M)
+                          and len(functions)==69 and len(owned)==17 and len(public)==16 and re.search(r'^Ran 69 tests in ',log,re.M)
+                          and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python standard-library owned SDK process/FIFO/deadline/cancellation/strict JSON tests through a synthetic helper, plus existing fake local SDK/HTTP/codec regression tests. No original Rust executable, real production server, installed package, full typed Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public typed Conversation/Participant/message/Operation/recovery/capability/receipt control slice through a synthetic child, plus existing fake SDK/HTTP/codec regression tests. No original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
             'log_sha256':digest(private/'tests.log'),'unexpected_async_diagnostics':unsafe,
             'failed_functions':failed_functions,'raw_logs_and_temporary_state_excluded_from_artifact':True,
-            'functions_passed':len(functions),'owned_sdk_helper_functions_passed':len(owned),'functions':functions,
+            'functions_passed':len(functions),'owned_sdk_helper_functions_passed':len(owned),'typed_public_sdk_functions_passed':len(public),'functions':functions,
+            'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),
             'seconds':time.monotonic()-started,

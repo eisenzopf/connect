@@ -13,6 +13,12 @@ G6-063; they do not consume the current canonical JSON-lines command shape.
 They must not be used as a fallback for a failed canonical operation. Their
 Task workflows require the explicit application API during migration.
 
+The new asynchronous Python [`Client`](../docs/developer/python-sdk.md) delegates
+typed Conversation/Participant/message and original-ID operation/decision
+recovery to the original managed Rust SDK. This G6-063 control slice has public
+runtime and static type tests; the remaining canonical controls, sync owner,
+events, provisioning, installed real-server journey and packaging remain open.
+
 Current CLI control uses `connect request --config <signed-native.toml>` for one
 canonical `Command`, or `connect stdio --config <signed-native.toml>` for sequential
 JSON lines containing `id`, `command` and `scope`. Named application/Task APIs use
