@@ -1,6 +1,8 @@
 # Typed Node Connection and Stream control
 
-G6-062 remains in progress. `session.connections` now exposes scoped `byId` and
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`session.connections` now exposes scoped `byId` and
 `offer` handles. Connection handles provide `refresh`, `update`, `end` and
 `streams.byId/subscribe/unsubscribe`; Stream handles provide current `refresh`.
 The helper delegates to the original public Rust SDK Client, which owns native

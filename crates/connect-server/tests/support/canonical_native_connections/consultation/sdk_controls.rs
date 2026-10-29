@@ -218,7 +218,40 @@ async fn restore_rust(
             panic!("SDK return refused:kind={:?},certainty={:?},problem={:?},fresh_credential_active={},operation_rows={rows:?}",error.kind,error.certainty,error.problem,actor.is_ok());
         });
     let saved = operation.reference_json();
-    let result = operation.wait(options()).await.unwrap().value;
+    let result = operation.wait(options()).await.unwrap_or_else(|error| {
+        // Preserve the failed event before Fixture drops its temporary database.
+        // Use the same bounded, consistent backup as native audio diagnostics;
+        // private references and full state never enter the public CI artifact.
+        let preserved = (|| -> anyhow::Result<std::path::PathBuf> {
+            let parent = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../.local/gate-6/sdk-external");
+            std::fs::create_dir_all(&parent)?;
+            let directory = parent.join(format!("return-wait-failure-{}", uuid::Uuid::new_v4()));
+            init::private_directory(&directory)?;
+            init::private_write(&directory.join("case.json"), &serde_json::to_vec_pretty(
+                &json!({"reference":saved,"expected_revision":revision,"continuing":continuing,
+                    "kind":format!("{:?}",error.kind),"certainty":format!("{:?}",error.certainty)}),
+            )?)?;
+            let source = rusqlite::Connection::open(&f.config.database)?;
+            let database = directory.join("state.sqlite3");
+            let mut destination = rusqlite::Connection::open(&database)?;
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o600))?;
+            let copied = super::groups::handoff::backup_handoff_state(
+                &source, &mut destination, Duration::from_secs(2),
+            );
+            init::private_write(&directory.join("snapshot.json"), &serde_json::to_vec_pretty(
+                &json!({"database_complete":copied.is_ok(),"error":copied.as_ref().err().map(ToString::to_string)}),
+            )?)?;
+            copied?;
+            Ok(directory)
+        })();
+        match preserved {
+            Ok(directory) => eprintln!("Native return wait failure private snapshot: {}", directory.display()),
+            Err(error) => eprintln!("Native return wait failure snapshot unavailable: {error:#}"),
+        }
+        panic!("SDK return wait failed:kind={:?},certainty={:?}",error.kind,error.certainty);
+    }).value;
     let receipt = result.consultation_return_receipt().unwrap();
     assert_eq!(receipt.remote_continuing, continuing);
     assert_eq!(receipt.topology.topology_revision.get(), revision + 1);
@@ -317,9 +350,51 @@ impl Probe {
             },
         }
     }
-    pub(super) async fn revoked(&self) {
+    pub(super) async fn revoked(&self, f: &Fixture) {
         match self {
             Self::Rust(p) => {
+                // A transport closure alone is not authorization evidence.
+                // Match the installed Node fixture's independent current HTTP
+                // refusal before accepting a closed native read channel.
+                let mut http = connect_client::canonical::CanonicalHttpClient::open(
+                    connect_client::application::ApplicationClientConfig {
+                        endpoint: f.server.http_address.unwrap(),
+                        credential: p.config.credential.clone(),
+                        expires_at: chrono::Utc::now() + chrono::Duration::minutes(5),
+                        timeout_ms: 4000,
+                    },
+                )
+                .await
+                .unwrap();
+                let reference = p.operation.reference();
+                let key = reference.key();
+                let denied = http
+                    .operation_get(
+                        key.operation_id.as_str(),
+                        connect_client::canonical::CommandScope {
+                            conversation_id: key
+                                .scope
+                                .conversation_id
+                                .as_ref()
+                                .map(|id| id.as_str().to_owned()),
+                            session_id: key
+                                .scope
+                                .session_id
+                                .as_ref()
+                                .map(|id| id.as_str().to_owned()),
+                            connection_id: key
+                                .scope
+                                .connection_id
+                                .as_ref()
+                                .map(|id| id.as_str().to_owned()),
+                            ..Default::default()
+                        },
+                    )
+                    .await
+                    .unwrap_err();
+                assert!(
+                    matches!(denied,connect_client::ClientError::Application(error) if matches!(error.code.as_str(),"unauthorized"|"forbidden"))
+                );
                 let error = p
                     .operation
                     .status(options())
@@ -330,7 +405,9 @@ impl Probe {
                     || (error.certainty == sdk::Certainty::ReadOnly
                         && matches!(
                             error.kind,
-                            sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
+                            sdk::ErrorKind::Authentication
+                                | sdk::ErrorKind::Cancelled
+                                | sdk::ErrorKind::TransportUncertain
                         ));
                 if !refused {
                     let encoded = sdk::helper::error_json(&error);

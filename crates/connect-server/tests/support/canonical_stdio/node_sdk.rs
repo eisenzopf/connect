@@ -181,6 +181,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         assert_eq!(native_phase["native_controls_completed"], true);
         stdin.write_all(b"finish\n").await.unwrap();
         let initial = phase(&mut lines, "initial", algorithm).await;
+        assert_eq!(initial["reconciliation_evidence_refused"], true);
         assert_eq!(
             std::fs::metadata(&native).unwrap().permissions().mode() & 0o777,
             0o600
@@ -271,7 +272,6 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             )
             .await
             .unwrap();
-        drop(recipient);
         stdin.write_all(b"receipts\n").await.unwrap();
         let receipts = phase(&mut lines, "receipts-observed", algorithm).await;
         assert_eq!(receipts["current_delivery_fact"], true);
@@ -283,6 +283,55 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         ] {
             assert_eq!(receipts[field], true);
         }
+        let mut read_reporter = CanonicalClient::open(peer_control.clone()).await.unwrap();
+        let suppressed = read_reporter
+            .report_read(
+                "typed-node-recipient-read-suppressed",
+                initial["cid"].as_str().unwrap(),
+                initial["message_id"].as_str().unwrap(),
+                chrono::Utc::now(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            suppressed.recorded,
+            Some(connect_protocol::receipts::DeliveryState::Delivered)
+        );
+        // Only the recipient can opt in for its current membership. A read
+        // claim cannot override the default preference to withhold read facts.
+        recipient
+            .execute(
+                connect_client::application::ApplicationOperation::try_from(
+                    connect_protocol::Operation::ReceiptPreferencesSet {
+                        request_id: "typed-node-recipient-read-opt-in".into(),
+                        conversation_id: initial["cid"].as_str().unwrap().into(),
+                        delivery: true,
+                        read: true,
+                    },
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        drop(recipient);
+        let reported = read_reporter
+            .report_read(
+                "typed-node-recipient-read",
+                initial["cid"].as_str().unwrap(),
+                initial["message_id"].as_str().unwrap(),
+                chrono::Utc::now(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            reported.recorded,
+            Some(connect_protocol::receipts::DeliveryState::Read)
+        );
+        read_reporter.shutdown().await.unwrap();
+        stdin.write_all(b"read-receipt\n").await.unwrap();
+        let read = phase(&mut lines, "read-observed", algorithm).await;
+        assert_eq!(read["current_read_fact"], true);
+        assert_eq!(read["http_same_read_fact"], true);
         let principal = f.server.store.authenticate(&f.client.credential).unwrap();
         let admin = f.server.store.authenticate(&f.admin).unwrap();
         let store = f.server.store.clone();
@@ -323,6 +372,10 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 .unwrap(),
             1
         );
+        assert_eq!(database.query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='typed-node-unattributed-reconcile'",
+            [], |row| row.get::<_,u64>(0),
+        ).unwrap(),0);
         // Ordinary message acceptance journals a Message fact. Its original
         // logical ID and sender bind it to the same completed control receipt;
         // no operation_updated event is invented for this atomic mutation.
@@ -423,7 +476,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/8","original_and_resumed_causal_store_verified":true,"controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/9","original_and_resumed_causal_store_verified":true,"controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

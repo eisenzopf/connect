@@ -1,0 +1,692 @@
+{
+  "schema": "connect-gate6-linux-sdk-regressions/1",
+  "date": "2026-10-29",
+  "run_id": 40833845344,
+  "source_revision": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+  "aggregate_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "evidence": [
+    {
+      "source_revision": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+      "run_id": 40833845344,
+      "name": "gate6-node-source-evidence-22",
+      "artifact_id": 12880106100,
+      "archive_sha256": "2277f85c1c1bfa43c29ed699549c96800d940a858228287bb471d1ca58646c58",
+      "archive_digest_and_manifest_verified": true,
+      "source_inputs_sha256": "23cd1c98ac3173516da020f49681bc10a4e6d6b07fc2b8f04462f5619d217fef",
+      "guarded_inputs": 230,
+      "git_contents_verified": 230,
+      "git_modes_verified": 0,
+      "runtime_and_dist_files_unchanged_from_current": 206,
+      "passed": true,
+      "functions_passed": 109,
+      "typecheck_exit_code": 0,
+      "node_version": "v22.23.4",
+      "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification."
+    },
+    {
+      "source_revision": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+      "run_id": 40833845344,
+      "name": "gate6-node-source-evidence-26",
+      "artifact_id": 12879044564,
+      "archive_sha256": "afa96738fea4e3fb6296258b1b144e475c561718e710c60144bcf0934e8d73da",
+      "archive_digest_and_manifest_verified": true,
+      "source_inputs_sha256": "23cd1c98ac3173516da020f49681bc10a4e6d6b07fc2b8f04462f5619d217fef",
+      "guarded_inputs": 230,
+      "git_contents_verified": 230,
+      "git_modes_verified": 0,
+      "runtime_and_dist_files_unchanged_from_current": 206,
+      "passed": true,
+      "functions_passed": 109,
+      "typecheck_exit_code": 0,
+      "node_version": "v26.12.1",
+      "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification."
+    },
+    {
+      "source_revision": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+      "run_id": 40833845344,
+      "name": "gate6-linux-source-evidence-node-22",
+      "artifact_id": 12881090891,
+      "archive_sha256": "befcd9330611c66505bad7f8e5f2799aa4993796b4e86e8debcf3c2efd2cdd5b",
+      "archive_digest_and_manifest_verified": true,
+      "source_inputs_sha256": "b616efc3e1382b1d222fdf66b1de060bd351414bacabe161967330b0d1e4e2f4",
+      "guarded_inputs": 8248,
+      "git_contents_verified": 4156,
+      "git_modes_verified": 4156,
+      "runtime_and_dist_files_unchanged_from_current": 206,
+      "passed": false,
+      "functions_passed": 212,
+      "failures": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 53.210812050000015,
+          "log_sha256": "47611f836ddcc62fe221f58132fb9a1aeb3c951a84aedef018b64162ea6ca4c0",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 53.15s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 221,
+              "column": 50
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_conversation_handoff_leave",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 24.894511964000003,
+          "log_sha256": "9a87b5883458ebaad88859c64b61280aa19e979258217a00e6915f8442a504e1",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 24.86s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 309,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "registered",
+              "seconds": 0.751938977
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "accepted",
+              "seconds": 0.318210642
+            }
+          ],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-consultation-restored",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 25.594346179000013,
+          "log_sha256": "051e76b8f9e8d419c18c2f0a47bac4d527c09cf67b3c914950a5f21a6aa3f909",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 25.55s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 33,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "submitted",
+              "seconds": 0.302237224
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "completed",
+              "seconds": 0.35469604
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.050367538
+            }
+          ],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "submit",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 69.58000966600002,
+          "log_sha256": "c93f4f3023049a82c2b06b81e4968fa92fb457023cff672468627e4dbd9289d9",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 69.54s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 124,
+              "column": 25
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.264437484
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.442716163
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "initial",
+              "seconds": 13.866040196
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "recovered",
+              "seconds": 5.070691045
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "receipts-observed",
+              "seconds": 0.628859938
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "completed",
+              "seconds": 0.148504308
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.448323756
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.584859
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "events-original",
+              "column": null,
+              "command": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_progress": [
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "capabilities",
+              "deadline_seconds": 15,
+              "seconds": 4.186115191
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "session",
+              "deadline_seconds": 15,
+              "seconds": 4.18891955
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-offer",
+              "deadline_seconds": 15,
+              "seconds": 0.000765888
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "peer-offer",
+              "deadline_seconds": 15,
+              "seconds": 2.342215094
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-quality",
+              "deadline_seconds": 15,
+              "seconds": 2.619940708
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-gates",
+              "deadline_seconds": 15,
+              "seconds": 2.889047524
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-codecs",
+              "deadline_seconds": 15,
+              "seconds": 5.27352882
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-selection",
+              "deadline_seconds": 15,
+              "seconds": 5.611518736
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-movement-refusals",
+              "deadline_seconds": 15,
+              "seconds": 6.41421959
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-end",
+              "deadline_seconds": 15,
+              "seconds": 8.003133351
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "session-finish",
+              "deadline_seconds": 15,
+              "seconds": 0.000164515
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "events-bootstrap",
+              "deadline_seconds": 15,
+              "seconds": 9.215781121
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "events-original",
+              "deadline_seconds": 15,
+              "seconds": 12.874550246
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-end-http-recovery",
+              "deadline_seconds": 15,
+              "seconds": 0.478505011
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-end-status",
+              "deadline_seconds": 15,
+              "seconds": 0.515683222
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "native-end-wait",
+              "deadline_seconds": 15,
+              "seconds": 0.609140757
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "session-end-wait",
+              "deadline_seconds": 15,
+              "seconds": 0.70846452
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "session-end-refresh",
+              "deadline_seconds": 15,
+              "seconds": 0.804053396
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "events-resume",
+              "deadline_seconds": 15,
+              "seconds": 4.24051881
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "message-receipts",
+              "deadline_seconds": 15,
+              "seconds": 0.000414098
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "raw-envelope",
+              "deadline_seconds": 15,
+              "seconds": 0.127842393
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "current-revocation",
+              "deadline_seconds": 15,
+              "seconds": 0.000273418
+            },
+            {
+              "algorithm": "EdDSA",
+              "checkpoint": "events-current-authority",
+              "deadline_seconds": 15,
+              "seconds": 0.122909295
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "capabilities",
+              "deadline_seconds": 15,
+              "seconds": 4.29862845
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "session",
+              "deadline_seconds": 15,
+              "seconds": 4.302226041
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-offer",
+              "deadline_seconds": 15,
+              "seconds": 0.001112526
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "peer-offer",
+              "deadline_seconds": 15,
+              "seconds": 2.404778763
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-quality",
+              "deadline_seconds": 15,
+              "seconds": 2.690031224
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-gates",
+              "deadline_seconds": 15,
+              "seconds": 2.936581631
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-codecs",
+              "deadline_seconds": 15,
+              "seconds": 5.3316362569999995
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-selection",
+              "deadline_seconds": 15,
+              "seconds": 5.669751014
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-movement-refusals",
+              "deadline_seconds": 15,
+              "seconds": 6.513554296
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "native-end",
+              "deadline_seconds": 15,
+              "seconds": 8.106054594
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "session-finish",
+              "deadline_seconds": 15,
+              "seconds": 0.000205336
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "events-bootstrap",
+              "deadline_seconds": 15,
+              "seconds": 10.45686596
+            },
+            {
+              "algorithm": "ES256",
+              "checkpoint": "events-original",
+              "deadline_seconds": 15,
+              "seconds": 14.135637013
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "installed_node_native_passed": false,
+      "installed_node_https_passed": true,
+      "installed_node_administration_passed": true,
+      "installed_node_movements_passed": false,
+      "installed_node_consultation_audio_passed": false,
+      "installed_python_native_passed": true,
+      "installed_package_sha256": "a153ed45ace1d5a9264b45fecd5be233a0f41afee8b7dd8cefa1265f603bd067"
+    },
+    {
+      "source_revision": "fd03fc4ff060e8d48afbbae03d51f08ed94f88cc",
+      "run_id": 40833845344,
+      "name": "gate6-linux-source-evidence-node-26",
+      "artifact_id": 12881290062,
+      "archive_sha256": "4bf50282a22b962f8f2b8f958086857ef58f05c281f2c6a88793dcf25952a050",
+      "archive_digest_and_manifest_verified": true,
+      "source_inputs_sha256": "b616efc3e1382b1d222fdf66b1de060bd351414bacabe161967330b0d1e4e2f4",
+      "guarded_inputs": 8248,
+      "git_contents_verified": 4156,
+      "git_modes_verified": 4156,
+      "runtime_and_dist_files_unchanged_from_current": 206,
+      "passed": false,
+      "functions_passed": 214,
+      "failures": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 50.52586147100004,
+          "log_sha256": "8cd5b288f79fdd06b3cedf71450b7801004aaa373a3e683cc703b7160274888e",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 50.47s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 221,
+              "column": 50
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-consultation-remote-ended",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 19.763502794000033,
+          "log_sha256": "8e3e8ddc75f58cba4efe507c9d76939dd97682902291180c323ff3762588d191",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 19.73s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 33,
+              "column": 9
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "submitted",
+              "seconds": 0.234250461
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.066680856
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "returned",
+              "seconds": 0.719364892
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.044505724
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "closed",
+              "seconds": 0.084854271
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "phase": "closed",
+              "seconds": 0.006053815
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "submitted",
+              "seconds": 0.207115722
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "revoked",
+              "seconds": 0.049328744
+            }
+          ],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "submit",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "installed_node_native_passed": true,
+      "installed_node_https_passed": true,
+      "installed_node_administration_passed": true,
+      "installed_node_movements_passed": true,
+      "installed_node_consultation_audio_passed": false,
+      "installed_python_native_passed": true,
+      "installed_package_sha256": "a153ed45ace1d5a9264b45fecd5be233a0f41afee8b7dd8cefa1265f603bd067"
+    }
+  ],
+  "scope": "Official ZIP digests/manifests and Git contents verified; Linux native artifacts also verify tracked Git modes. Node22/26 each pass109component/type checks on206runtime/distribution/package inputs identical to current. Native host matrices remain failed: Node22 212pass4fail; Node26 214pass2fail. Raw component logs remain excluded from this derived report; no aggregate/runtime/full SDK pass inferred."
+}

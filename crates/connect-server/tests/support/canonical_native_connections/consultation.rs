@@ -946,7 +946,7 @@ async fn private_candidate_case_with_auxiliary_checks(
                 let operator = f.server.store.authenticate(&f.admin).unwrap();
                 f.server.store.revoke(&operator, &credential.id).unwrap();
                 if let Some(probe) = &sdk_probe {
-                    probe.revoked().await;
+                    probe.revoked(&f).await;
                 }
                 perform_return_with_sdk(
                     &f,
@@ -1087,7 +1087,7 @@ async fn private_candidate_case_with_auxiliary_checks(
         f.server.store.revoke(&operator, &credential.id).unwrap();
         assert!(controller.transition(command.clone()).await.is_err());
         if let Some(probe) = &sdk_probe {
-            probe.revoked().await;
+            probe.revoked(&f).await;
         }
         if let Some(probe) = mcp_probe {
             probe.revoked_and_close().await;

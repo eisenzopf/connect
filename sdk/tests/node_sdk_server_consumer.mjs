@@ -160,11 +160,16 @@ try {
  assert.equal(history.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
  const cancel=await sent.cancel({...opts,operationId:'typed-node-cancel'}),cancelSaved=cancel.referenceJson();
  const decision=await cancel.wait(opts);assert.equal(decision.value.target,mutation.operationId);assert.equal(decision.value.decision.operationId,'typed-node-cancel');
+ await assert.rejects(sent.reconcile({outcome:'completed',evidenceId:'typed-node-invented-evidence'},{...opts,operationId:'typed-node-unattributed-reconcile'}),e=>{
+  assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');assert.equal(e.problem.code,403);
+  assert.equal(e.operation.operationId,'typed-node-unattributed-reconcile');assert.equal(e.operation.command,'operation.reconcile');return true;
+ });
  assert.equal((await sent.status(opts)).state,'completed');
+ assert.equal((await sent.status(opts)).recordId,original.recordId);
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await client.close(opts);assert.equal(await stopped(),2);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true,events_original_record:true,events_cursor_persisted:true,event_id_sha256:originalFactDigest});
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,reconciliation_evidence_refused:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true,events_original_record:true,events_cursor_persisted:true,event_id_sha256:originalFactDigest});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);
@@ -217,6 +222,13 @@ try {
  const directFacts=await application.messageReceipts(room.id,intent.messageId);
  assert.ok(directFacts.receipts.some(f=>f.participant_id===peer.id&&f.membership_epoch===currentMemberEpoch&&f.channel==='native'&&f.state==='delivered'&&f.provenance==='client_reported'));
  emit({phase:'receipts-observed',current_delivery_fact:true,http_same_delivery_fact:true,raw_signed_original_record:true,raw_same_id_one_message:true,raw_local_configuration_independent:true});
+ await resume('read-receipt');
+ progress('receipt-read');
+ const readFacts=await client.conversations.byId(room.id).receipts(intent.messageId,opts);
+ const readHttp=await application.messageReceipts(room.id,intent.messageId);
+ assert.ok(readFacts.some(f=>f.participantId===peer.id&&f.membershipEpoch===currentMemberEpoch&&f.channel==='native'&&f.state==='read'&&f.provenance==='client_reported'));
+ assert.ok(readHttp.receipts.some(f=>f.participant_id===peer.id&&f.membership_epoch===currentMemberEpoch&&f.channel==='native'&&f.state==='read'&&f.provenance==='client_reported'));
+ emit({phase:'read-observed',current_read_fact:true,http_same_read_fact:true});
  await resume('revoked');
  progress('current-revocation');
  await assert.rejects(rawRevokedClient.raw.request(checked,opts),e=>{captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['read-only','refused'].includes(e.certainty));assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind)||e.kind==='application'&&e.certainty==='refused');return true;});

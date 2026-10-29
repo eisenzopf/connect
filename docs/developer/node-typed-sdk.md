@@ -1,6 +1,8 @@
 # Typed Node control component
 
-G6-062 remains in progress. `NodeClient` implements typed Conversation,
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`NodeClient` implements typed Conversation,
 Participant, Session, Connection and Stream controls, text messages, original-ID
 operation recovery, durable decisions and topology movement. Dedicated components
 cover [native controls](node-connection-sdk.md), [movement](node-movement-sdk.md),
@@ -15,8 +17,8 @@ executables pass Node control profile 8, HTTPS profile 3 and the installed Pytho
 native restart/authority regression. The
 [current local evidence](../evidence/gate-6/native-candidate-production-local.json)
 records exact source/executable/package hashes and scope. This is macOS arm64
-with Node 26; the complete current Node 22/26 Linux matrix and frozen-contract
-closure audit remain required for G6-062. Programmatic media remains G6-064.
+with Node 26; the full current Node 22/26 Linux matrix remains part of installed parity
+qualification in G6-070. The frozen API implementation audit is complete. Programmatic media remains G6-064.
 
 The frozen public replacement method is `Connection.replaceDevice()`. The current
 installed package passes both candidate/Endpoint replacement cases and native
@@ -24,7 +26,7 @@ control profile 8 through this API; all 109 component checks pass. A preceding
 full local matrix passes 34 movement, administration and consultation functions
 with all 78 helpers and 38 servers joined. See the exact source and scope in
 [node API evidence](../evidence/gate-6/node-frozen-name-local.json). Linux failures
-remain open; these local results do not close G6-062.
+remain open; these isolated results were followed by the complete implementation audit linked above; full installed parity remains G6-070.
 
 Earlier Linux source evidence in `docs/evidence/gate-6/node-native-972.json` qualifies
 the recorded native control/invitation/raw/receipt and administration scenes on

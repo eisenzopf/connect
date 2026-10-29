@@ -1,5 +1,7 @@
 # Explicit Node HTTP control
 
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
 Use `CanonicalHttpClient` for finite current `connect/2` commands and `HttpClient`
 for named application operations. Both retain their default loopback HTTP mode.
 Select `remote-https` explicitly to use a configured HTTPS origin:

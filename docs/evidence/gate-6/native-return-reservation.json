@@ -1,0 +1,454 @@
+{
+  "schema": "connect-gate6-native-return-reservation/1",
+  "task": "G6-062",
+  "date": "2026-10-29",
+  "implementation_commit": "e357ef806896b456d23c2a0b7edaff21f60e98b0",
+  "passed": false,
+  "scope": "Proven controlled Store metadata admission defect fixed with50regression passes. Current local original Rust/installed Node physical consultation group is3pass/1fail; no aggregate runtime/full SDK/Linux/acceptance or publication qualification.",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "change": "Immediate SQL and complete authority reservation, then fresh transaction scope/plan validation. Existing5s service metadata retry replans/reacquires consumed readers; attempt admission and Core execution remain outside retry. No request deadline or authorization relaxation.",
+  "controlled_before": {
+    "expected_failure": true,
+    "exit_code": 101,
+    "seconds": 4.20503933285363,
+    "failure": "reservation exceeded500ms under external SQL writer",
+    "log_sha256": "517d9f4fe4bc807173a89f437163435378802b9dd6e9e78a5112cadc5a09d228",
+    "executable_sha256": "6e03d0d024864aa11caf0029d554c13824789020f1efc3cc4140885963d77a18",
+    "source_inputs_unchanged": true
+  },
+  "controlled_after": {
+    "passed": true,
+    "exit_code": 0,
+    "seconds": 1.955458541866392,
+    "log_sha256": "8e19702353a37f135f11fa0d62919b65ed78d69775378bd69acfe2d2961b47ac",
+    "executable_sha256": "27bcec5b51899fe13f1e167ba4c2dc2f4e89600e639f0034ef1a05882b7d5bce",
+    "source_inputs_unchanged": true
+  },
+  "store": {
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "source_count": 8250,
+    "source_inputs_sha256": "649314ec365ab4eeeaa9004356aedceac11630d5fa24fad813e71d6c2ed39c70",
+    "executable_sha256": "27bcec5b51899fe13f1e167ba4c2dc2f4e89600e639f0034ef1a05882b7d5bce",
+    "scope": "Controlled Store return reservation, current private audience, receipt/custody/recovery and native wire regressions only; no actual Core, Linux, complete SDK or acceptance qualification."
+  },
+  "store_groups": [
+    {
+      "group": "returns",
+      "passed": true,
+      "expected_functions": 12,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "budget_seconds": 90,
+      "seconds": 18.252405958017334,
+      "log_sha256": "6f724dd9d8cc9b9598d569889ed818e51ca5bb0059db72f15be15bf573824f98"
+    },
+    {
+      "group": "private-audiences",
+      "passed": true,
+      "expected_functions": 9,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "budget_seconds": 180,
+      "seconds": 10.961402708897367,
+      "log_sha256": "395bc157ea590bd71380411c76f142aa196483ced30cf9e00ec2a29424bc5f8b"
+    },
+    {
+      "group": "native-wire",
+      "passed": true,
+      "expected_functions": 29,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "budget_seconds": 90,
+      "seconds": 19.054438832914457,
+      "log_sha256": "23520bb7e7ae962e9d82d3cca0725f9f7bde8304a1e0dd246ed94a1568eb4c13"
+    }
+  ],
+  "hosting_build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8250,
+    "source_inputs_sha256": "649314ec365ab4eeeaa9004356aedceac11630d5fa24fad813e71d6c2ed39c70",
+    "build_log_sha256": "ec259511b0c3c981e76c51d6da400432f101a09d5a1b1c97a7daf176632b4959",
+    "seconds": 679.032612167066,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "compiled_executables": {
+    "connect": "3d26bdd86e2b68c044369d724bb4636d63a40b264366412b53b4c50cb5130f21",
+    "gate6_canonical_runtime": "c66ecd91be66c5e85c0f44d491c17c14ed517e6d80a40f0d50985ee19bb5d903"
+  },
+  "actual_runtime": {
+    "passed": false,
+    "seconds": 151.67082454217598,
+    "source_inputs_sha256": "649314ec365ab4eeeaa9004356aedceac11630d5fa24fad813e71d6c2ed39c70",
+    "source_count": 8250,
+    "source_inputs_unchanged": true,
+    "request_budget_ms": {
+      "rust_public_sdk": 35000,
+      "installed_node": 4000
+    },
+    "whole_function_deadline_seconds": 90,
+    "results": [
+      {
+        "name": "rust-restored",
+        "case": "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio",
+        "passed": true,
+        "witnesses": [],
+        "remaining_failed_group_terminated": false,
+        "forced_group_cleanup": false
+      },
+      {
+        "name": "rust-eof",
+        "case": "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call",
+        "passed": false,
+        "witnesses": [],
+        "remaining_failed_group_terminated": false,
+        "forced_group_cleanup": false
+      },
+      {
+        "name": "node-restored",
+        "case": "canonical_native_connections::consultation::sdk_controls::node_controls::installed_node_consultation_and_return_preserve_actual_private_and_restored_audio",
+        "passed": true,
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          }
+        ],
+        "remaining_failed_group_terminated": false,
+        "forced_group_cleanup": false
+      },
+      {
+        "name": "node-eof",
+        "case": "canonical_native_connections::consultation::sdk_controls::node_controls::installed_node_consultation_return_after_remote_eof_cannot_claim_a_continuing_call",
+        "passed": true,
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          }
+        ],
+        "remaining_failed_group_terminated": false,
+        "forced_group_cleanup": false
+      }
+    ],
+    "steps": [
+      {
+        "name": "rust-restored",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 47.25509950006381,
+        "log_sha256": "30573cf40c206179e65d9fc6dd1c853dccaa83632e714d8ed077508a0393091c",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 412 filtered out; finished in 44.51s"
+        ],
+        "panic_locations": [],
+        "local_schema_mismatches": [],
+        "native_audio_boundary_failures": [],
+        "native_audio_minimum_failures": [],
+        "native_audio_quiescence_failures": [],
+        "sdk_current_read_failures": [],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_progress": [],
+        "node_consultation_phases": [],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "node_administrative_phases": [],
+        "node_administrative_failures": [],
+        "node_administrative_drain_failures": []
+      },
+      {
+        "name": "rust-eof",
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 39.21670012502,
+        "log_sha256": "fa56a88e66ab5c334ba9989b824e8ecaca7d27bd67a99894b611f1483ea0e394",
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 412 filtered out; finished in 39.18s"
+        ],
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+            "line": 221,
+            "column": 50
+          }
+        ],
+        "local_schema_mismatches": [],
+        "native_audio_boundary_failures": [],
+        "native_audio_minimum_failures": [],
+        "native_audio_quiescence_failures": [],
+        "sdk_current_read_failures": [],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_progress": [],
+        "node_consultation_phases": [],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "node_administrative_phases": [],
+        "node_administrative_failures": [],
+        "node_administrative_drain_failures": [],
+        "compiler_diagnostics": []
+      },
+      {
+        "name": "node-restored",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 51.662468208000064,
+        "log_sha256": "09e0fa19b97b666790e6d0b654d1456b55fff92665ac79ca3246a946f78e2c1b",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 412 filtered out; finished in 51.62s"
+        ],
+        "panic_locations": [],
+        "local_schema_mismatches": [],
+        "native_audio_boundary_failures": [],
+        "native_audio_minimum_failures": [],
+        "native_audio_quiescence_failures": [],
+        "sdk_current_read_failures": [],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_progress": [],
+        "node_consultation_phases": [
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "submitted",
+            "seconds": 3.0631545
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "completed",
+            "seconds": 0.2007995
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.034413667
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "returned",
+            "seconds": 1.929830125
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.019702917
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.100902708
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.002120375
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "submitted",
+            "seconds": 0.298523666
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "completed",
+            "seconds": 0.266757
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.018896375
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "returned",
+            "seconds": 3.570956292
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.020253666
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.088988541
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.001946291
+          }
+        ],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "node_administrative_phases": [],
+        "node_administrative_failures": [],
+        "node_administrative_drain_failures": []
+      },
+      {
+        "name": "node-eof",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 12.822626792127267,
+        "log_sha256": "b168192a6193dfafa855275aa140938522d372d3b5dbe66c2a3edab253152f10",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 412 filtered out; finished in 12.80s"
+        ],
+        "panic_locations": [],
+        "local_schema_mismatches": [],
+        "native_audio_boundary_failures": [],
+        "native_audio_minimum_failures": [],
+        "native_audio_quiescence_failures": [],
+        "sdk_current_read_failures": [],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_progress": [],
+        "node_consultation_phases": [
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "submitted",
+            "seconds": 0.265395458
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.018472625
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "returned",
+            "seconds": 0.653929584
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.020607084
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.154161791
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.00261225
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "submitted",
+            "seconds": 0.319139625
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.028815542
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "returned",
+            "seconds": 0.483957458
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "revoked",
+            "seconds": 0.029247583
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.134110209
+          },
+          {
+            "algorithm": "ES256",
+            "deadline_seconds": 15,
+            "phase": "closed",
+            "seconds": 0.002581042
+          }
+        ],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "node_administrative_phases": [],
+        "node_administrative_failures": [],
+        "node_administrative_drain_failures": []
+      }
+    ]
+  },
+  "failure": "Rust remote EOF return waits until its original35s request deadline (Deadline,ReadOnly), at operation.wait after submission. Node normal/EOF both pass both algorithms with actual media, original-record recovery/current authority and all owned helpers/servers/readers joined. Historical Linux EOF causation remains unproven.",
+  "next_fixture_work": "Preserve consistent private state on Rust return wait failure with the existing bounded backup; extend installed Node fixture to refuse unattributed reconciliation and read attributed read receipts. These new fixture branches are not yet behavior-qualified."
+}

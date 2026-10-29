@@ -1,5 +1,7 @@
 # Node raw canonical exchanges
 
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
 `NodeClient.raw.validate(value)` returns an immutable, branded current envelope.
 It calls `connect sdk-validate-envelope` synchronously with the captured JSON on
 stdin. This local command loads no configuration, credentials, Store or client
@@ -52,7 +54,7 @@ vector checks and the installed native `node-controls/4` candidate are prepared
 for Ubuntu CI. They cover local validation with invalid configuration, original
 signed record reads, same-ID replay without another message, fresh wire IDs and
 current revocation. These runtime results remain pending. See
-[the evidence](../evidence/gate-6/node-raw-sdk.json); G6-062 remains in progress.
+[the evidence](../evidence/gate-6/node-raw-sdk.json); At that component checkpoint, G6-062 remained in progress.
 
 The first actual Rust cohorts (`02238a30`/`72e07ba9`) compiled the SDK/CLI, but
 the new validator suite exposed stale embedded operation metadata constraints:

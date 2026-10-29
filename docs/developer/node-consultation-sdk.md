@@ -1,6 +1,8 @@
 # Typed Node consultation control
 
-G6-062 remains in progress. `session.consult(input, options)` submits the public
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`session.consult(input, options)` submits the public
 Rust SDK consultation operation. It takes the controller Connection (`via`), the
 original retained Connection (`retain`), nonempty private participants (`with`),
 `silence` or `configured-media` hold treatment and an explicit topology revision.

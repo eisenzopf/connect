@@ -1,5 +1,7 @@
 # Owned Node incoming invitations
 
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
 `client.incomingInvitations(options)` captures the approved finite timeout and
 signal and returns an async iterator. Each `next()` uses those captured options;
 `for await` consumes original invitation metadata. The required `from` field

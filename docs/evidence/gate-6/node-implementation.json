@@ -1,0 +1,294 @@
+{
+  "schema": "connect-gate6-node-implementation/1",
+  "task": "G6-062",
+  "date": "2026-10-29",
+  "implementation_complete": true,
+  "acceptance_qualified": false,
+  "full_installed_parity_qualified": false,
+  "publication": false,
+  "scope": "Approved Node implementation scope: supported control/trusted administration/events/long operations, explicit native and HTTP/HTTPS facades, fixed helper deployment, deadlines/errors/recovery and joined ownership. Passing external macOS arm64 Node26 journeys and both-algorithm control9 plus scoped earlier movement/admin/consultation evidence. Node22/26 Linux component/type checks pass on byte-identical current SDK runtime/distribution files. Full installed cross-language/version/platform matrix is assigned G6-069/G6-070; shared runtime/privacy/quality qualification remains G6-096/G6-098. Known failures are retained rather than called passes.",
+  "contract": {
+    "file": "contracts/sdk-gate-6-api.json",
+    "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+    "method_count": 25,
+    "method_map": [
+      {
+        "id": "conversation.create",
+        "frozen_api": "Client.conversations.create",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "message.private",
+        "frozen_api": "Conversation.send",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "conversation.snapshot",
+        "frozen_api": "Conversation.refresh",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "participant.add",
+        "frozen_api": "Conversation.participants.add",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "participant.update",
+        "frozen_api": "Participant.update",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "participant.remove",
+        "frozen_api": "Participant.remove",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.invite",
+        "frozen_api": "Conversation.sessions.invite",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.accept",
+        "frozen_api": "Session.accept",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.reject",
+        "frozen_api": "Session.reject",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.cancel",
+        "frozen_api": "Session.cancelInvitation",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.consult",
+        "frozen_api": "Session.consult",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "actual installed Node native consultation, private/restored audio and remote EOF; native-return-reservation.json"
+      },
+      {
+        "id": "session.consult.return",
+        "frozen_api": "ConsultationOperation.returnToRetained",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "actual installed Node native consultation, private/restored audio and remote EOF; native-return-reservation.json"
+      },
+      {
+        "id": "session.handoff",
+        "frozen_api": "Session.handoff",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "actual installed movement matrix; node-frozen-name-local.json and native-candidate-production-local.json, with exact historical source/package scopes"
+      },
+      {
+        "id": "session.update",
+        "frozen_api": "Session.update",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "session.end",
+        "frozen_api": "Session.end",
+        "implementation": "sdk/typescript/src/node_sessions.ts",
+        "implementation_sha256": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "connection.offer",
+        "frozen_api": "Session.connections.offer",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "connection.update",
+        "frozen_api": "Connection.update",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "connection.replace",
+        "frozen_api": "Connection.replaceDevice",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "actual installed movement matrix; node-frozen-name-local.json and native-candidate-production-local.json, with exact historical source/package scopes"
+      },
+      {
+        "id": "connection.end",
+        "frozen_api": "Connection.end",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "stream.subscribe",
+        "frozen_api": "Connection.streams.subscribe",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "stream.unsubscribe",
+        "frozen_api": "Connection.streams.unsubscribe",
+        "implementation": "sdk/typescript/src/node_connections.ts",
+        "implementation_sha256": "a2824bcee731915588374e81898066a596d2a665409348ec7af607881e64826b",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "operation.status",
+        "frozen_api": "Operation.status",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "operation.cancel",
+        "frozen_api": "Operation.cancel",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      },
+      {
+        "id": "operation.reconcile",
+        "frozen_api": "Operation.reconcile",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native9: invented evidence refuses403, leaves original completed record unchanged and creates zero decision rows; valid attributed result decoding has component coverage, full valid-evidence installed parity remains G6-070"
+      },
+      {
+        "id": "events",
+        "frozen_api": "Conversation.events",
+        "implementation": "sdk/typescript/src/node_sdk.ts",
+        "implementation_sha256": "23c0b594798185701066ace81ba54d135a7c4bd5eb8440aeac1104bdb0389c04",
+        "verification": "current installed native control9"
+      }
+    ],
+    "extra_surfaces": [
+      "Session.inviteParticipants",
+      "incoming invitation readers",
+      "capabilities and explicit unsupported refusal",
+      "validated finite raw control",
+      "Conversation.receipts",
+      "separate trusted administrative client"
+    ]
+  },
+  "component": {
+    "passed": true,
+    "seconds": 14.040587292052805,
+    "source_count": 230,
+    "source_inputs_sha256": "08fc0305ea44fd4c7dbb5496aa710f618ece66d4458a2f77acc246fa168f97b8",
+    "typecheck_exit_code": 0,
+    "log_sha256": "69515190044418e2969be841146ebb7c7caa651adbe9919a68b5d4ff096345fa",
+    "changed_inputs": []
+  },
+  "linux_component_evidence": "docs/evidence/gate-6/sdk-linux-fd03fc4f.json",
+  "current_native": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 38.08521862491034,
+    "log_sha256": "5ae956471f8c89bf63e1c6d45d1633b0850a601a720f3d8d9bbb2631126725d9",
+    "source_inputs_unchanged": true,
+    "source_count": 8250,
+    "source_inputs_sha256": "1cbcada50635c2784effc0d729c9a7d6c9946ade6942e39b6523b989273d42e5",
+    "test_executable_sha256": "f3f6faf5d3f455bf871f3a824ac2ef45d5a67aa3d96e574f2f4b45bd63fc2622",
+    "installed_package_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "node_version": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "functional_profile": "node-controls/9",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "reconciliation_invented_evidence_refused": true,
+    "reconciliation_no_decision_rows": true,
+    "read_default_withheld_then_recipient_opt_in": true,
+    "native_and_http_same_attributed_read_fact": true,
+    "all_original_and_resumed_causal_store_links_verified": true,
+    "owned_helpers_joined_per_algorithm": 4,
+    "local_validators_joined_per_algorithm": 3,
+    "current_events_authority_no_data": true,
+    "server_instances_and_physical_readers_drained": true,
+    "proof_fixture": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+    "proof_fixture_sha256": "f69dc66c5f97f221d51aac35845a34a2c5ef2ce5ae37f18ef363ecda8d2a34a6",
+    "consumer_sha256": "030a5d436ecd791318770002a3a67270132a02dd75f1f22c6f87c143d372a7c6"
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8250,
+    "source_inputs_sha256": "1cbcada50635c2784effc0d729c9a7d6c9946ade6942e39b6523b989273d42e5",
+    "build_log_sha256": "fb2f3fcd812ef1ab037cec3bfb4dea5119b2da1342017426c894367babdb7825",
+    "seconds": 21.12530312500894,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "compiled_executables": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "3d26bdd86e2b68c044369d724bb4636d63a40b264366412b53b4c50cb5130f21"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "f3f6faf5d3f455bf871f3a824ac2ef45d5a67aa3d96e574f2f4b45bd63fc2622"
+    }
+  ],
+  "installed": {
+    "archive_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "installed_dist_matches": true,
+    "dist_files": 136
+  },
+  "additional_evidence": [
+    "docs/evidence/gate-6/node-frozen-name-local.json",
+    "docs/evidence/gate-6/native-candidate-production-local.json",
+    "docs/evidence/gate-6/node-https-production-local.json",
+    "docs/evidence/gate-6/native-return-reservation.json",
+    "docs/evidence/gate-6/node-administration-sdk.json",
+    "docs/evidence/gate-6/node-events-sdk.json",
+    "docs/evidence/gate-6/node-incoming-sdk.json"
+  ],
+  "deployment": "The matching trusted connect executable must be installed; default PATH and advanced explicit executable are documented. Bundled platform assets and clean registry-equivalent package installation remain G6-069, which depends on G6-062. No dependency cycle is introduced.",
+  "known_unqualified": [
+    "Full current Linux Node22/26 native matrix remains failed in recorded fd03 artifacts. Native22 failure sites include Rust EOF, a conversation handoff audio probe, consultation restored wait and control functional-phase deadline. Native26 retains Rust and Node EOF failures.",
+    "Current e357 local normal Rust and Node normal/EOF passes coexist with retained original Rust EOF Deadline/ReadOnly failure. Its protected consistent pre-cleanup snapshot records accepted revision0 and no preparation/effect.",
+    "After stronger independent HTTP authorization proof, current Rust EOF diagnostic passes both algorithms with debug tracing; this is not called a fix or cause for the original no-HTTP-observer failure. Preserve that original case in G6-070/G6-096.",
+    "Valid attributed reconciliation positive-result installed parity, all supported-language/media/platform/package profiles and clean installation still require G6-069/G6-070.",
+    "Initial control9 fixture attempts correctly refused retired application Read and withheld read facts under default recipient preference; final fixture uses signed report_read, asserts suppression, explicitly opts in, and verifies actual read through native and named HTTP.",
+    "No provider/model/named remote run, media-role implementation, full-gate acceptance or publication is inferred."
+  ]
+}

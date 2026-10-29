@@ -92,7 +92,7 @@ def audio_quiescence_diagnostic(value):
 
 
 NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
+    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'receipt-read','current-revocation'}
 
 
 def node_progress_diagnostic(value):
@@ -219,7 +219,7 @@ def run(node_sdk=False, python_sdk=False):
                 phase = json.loads(line.split(' ', 1)[1])
                 assert set(phase) == {'algorithm','phase','passed','seconds','deadline_seconds'}
                 assert phase['algorithm'] in {'EdDSA','ES256'} and phase['passed'] is True
-                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','receipts-observed','completed'}
+                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','receipts-observed','read-observed','completed'}
                 assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
                 step['node_completed_phases'].append(phase)
         step["node_failures"] = []
@@ -527,7 +527,7 @@ def run(node_sdk=False, python_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/8'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/9'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -536,7 +536,7 @@ def run(node_sdk=False, python_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/8'
+                    assert witness['functional_phase_profile'] == 'node-controls/9'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
@@ -561,7 +561,7 @@ def run(node_sdk=False, python_sdk=False):
                     assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/8', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/9', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
                     'causal_store_and_exact_journal_witnesses_per_algorithm': 2,

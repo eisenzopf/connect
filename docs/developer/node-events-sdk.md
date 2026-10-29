@@ -1,5 +1,7 @@
 # Node durable journal readers
 
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
 `conversation.events({after}, {timeoutMs, signal})` captures its input and returns
 an owned async iterator. `after` is an opaque `SdkCursor`; use `sdkCursor(saved)`
 when restoring a persisted value. A cursor never grants access. Each `next()` has

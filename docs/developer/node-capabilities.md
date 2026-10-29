@@ -1,5 +1,7 @@
 # Node capability observations
 
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
 `NodeClient.capabilities.refresh(options)` reports local interface support for
 the selected Node facade. The managed helper obtains the original Rust SDK's
 capability snapshot, validates the profile and selected transport, then the Node
@@ -39,6 +41,6 @@ enums and source coordinates in uploadable evidence. Raw helper/server
 diagnostics remain private; a synthetic invalid-profile run verifies the
 redacted failure path.
 
-G6-062 remains in progress. See
+At that component checkpoint, G6-062 remained in progress. See
 [capability evidence](../evidence/gate-6/node-capabilities.json) and the
 [Connection control scope](node-connection-sdk.md).

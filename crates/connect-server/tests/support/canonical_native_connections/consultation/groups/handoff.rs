@@ -4,7 +4,7 @@ use connect_protocol::transitions::{OutgoingDisposition, RoleScope};
 #[path = "browser_recovery.rs"]
 mod browser_recovery;
 
-fn backup_handoff_state(
+pub(in crate::canonical_native_connections::consultation) fn backup_handoff_state(
     source: &rusqlite::Connection,
     destination: &mut rusqlite::Connection,
     budget: Duration,

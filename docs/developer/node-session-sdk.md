@@ -1,6 +1,8 @@
 # Typed Node Session control
 
-G6-062 remains in progress. `NodeClient` now provides typed Session invitations,
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`NodeClient` now provides typed Session invitations,
 current refresh, accept, reject, cancel, updates and end through the public Rust
 SDK helper. Connection/Stream controls are described in
 [`node-connection-sdk.md`](node-connection-sdk.md). Consultation, handoff, owned

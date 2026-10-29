@@ -1,6 +1,8 @@
 # Typed Node handoff and device movement
 
-G6-062 remains in progress. `session.handoff(input, options)` and
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`session.handoff(input, options)` and
 `connection.replaceDevice(input, options)` delegate to the original public Rust SDK
 Client. The helper owns no alternate transition, role, journal or native-binding
 state machine. New operation kinds are `session_handoff` and
@@ -86,4 +88,4 @@ ID at commit. Both complete candidate cases pass locally on `bf726ad7`, includin
 actual decoded audio, the subsequent Endpoint move and current key-loss/recovery
 checks. See [current local evidence](../evidence/gate-6/native-candidate-production-local.json)
 and the [retained candidate investigation](../evidence/gate-6/native-candidate-adoption.json).
-The complete current local/Linux matrix and G6-062 closure audit remain open.
+The G6-062 implementation audit is complete in the scope linked above. Full current installed/Linux parity remains G6-070.

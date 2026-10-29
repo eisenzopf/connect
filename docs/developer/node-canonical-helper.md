@@ -1,10 +1,12 @@
 # Node canonical helper component
 
-G6-062 is in progress. `CanonicalNativeClient` implements finite current
+G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
+
+`CanonicalNativeClient` implements finite current
 canonical control using one owned Rust `connect stdio` process. The typed
 [NodeClient component](node-typed-sdk.md) additionally implements Conversation,
 message and durable operation/decision recovery through the public Rust SDK.
-The full SDK, trusted provisioning, remote HTTP enrollment and full journey remain open.
+This early finite-control component does not cover the typed SDK, trusted administration or HTTP facades; their current implementation scope is linked above.
 Programmatic media is G6-064.
 
 Install the matching trusted `connect` executable and protect its native client
@@ -83,7 +85,7 @@ original helper EOF exit0 and joined PID. It also uses synthetic backends.
 
 Evidence and remaining work are in
 [`node-canonical-helper.json`](../evidence/gate-6/node-canonical-helper.json).
-No npm publication or full G6-062 qualification has occurred.
+No npm publication or full installed SDK parity qualification has occurred.
 
 The installed real-server component also passes for EdDSA and ES256 on the
 recorded local macOS arm64 host. It sends a real message through the Rust helper,
