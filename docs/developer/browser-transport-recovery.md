@@ -199,3 +199,9 @@ an enrolled credential cannot cross its immutable transport binding.
 records the actual owned-Chrome positive and refusal cases. This is a G6-061
 transport prerequisite. Unified typed handles, invitation UI, device selection,
 capture/render and keyboard-accessible UI qualification remain G6-061 work.
+
+The next [typed browser control checkpoint](browser-sdk.md) adds scoped
+Conversation, Participant, Session and Operation handles, current-authorized
+incoming invitation handles, and original-operation recovery. It runs the same
+control workflow over WT and bounded WSS fallback. Media composition and
+accessible UI remain in progress.

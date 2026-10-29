@@ -97,3 +97,37 @@ export {
     type BrowserConversationRecoveryPoint,
     type BrowserConversationRecoveryPage,
 } from "./browser_transport_client.js";
+
+export {
+    BrowserSdkClient,
+    BrowserSdkError,
+    browserOperationKinds,
+    sdkId,
+    sdkRevision,
+} from "./browser_sdk.js";
+export type {
+    BrowserConversation,
+    BrowserSession,
+    BrowserParticipant,
+    BrowserOperation,
+    BrowserOperationKind,
+    BrowserSdkOperationReference,
+    BrowserOperationSnapshot,
+    BrowserCompletion,
+    BrowserConversationSnapshot,
+    BrowserSessionSnapshot,
+    BrowserSessionDecision,
+    BrowserParticipantSnapshot,
+    BrowserIncomingInvitation,
+    BrowserIncomingInvitations,
+    BrowserSdkClientOptions,
+    BrowserSdkMutationOptions,
+    BrowserSdkRequestOptions,
+    SdkId,
+    SdkRevision,
+    ConversationId,
+    IdentityId,
+    ParticipantId,
+    OperationId,
+    SessionId,
+} from "./browser_sdk.js";

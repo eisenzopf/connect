@@ -23,6 +23,8 @@ mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
 #[path = "support/browser_profile_fallback.rs"]
 mod browser_profile_fallback;
+#[path = "support/browser_sdk.rs"]
+mod browser_sdk;
 #[path = "support/enrollment_browser.rs"]
 mod enrollment_browser;
 #[path = "support/enrollment_transport.rs"]

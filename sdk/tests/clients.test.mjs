@@ -4,6 +4,7 @@ import './browser_uctp.test.mjs';
 import './browser_enrollment.test.mjs';
 import './browser_wss.test.mjs';
 import './browser_transport_client.test.mjs';
+import './browser_sdk.test.mjs';
 import './browser_webrtc_signaling.test.mjs';
 import './browser_rtp.test.mjs';
 import './browser_codecs.test.mjs';

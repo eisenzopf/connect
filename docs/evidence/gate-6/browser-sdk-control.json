@@ -1,0 +1,269 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "c09dc8cce675bf5a668c405a4b3262c298dc319b",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Unified typed browser control checkpoint: Client, Conversation, Participant, Session and Operation; six ordinary mutations, invitation decisions and original-operation recovery over actual local WT and bounded WSS fallback. No Connection/Stream composition, capture/render/UI, real media permission/screen, Linux/remote or complete Gate 6 acceptance claim.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "42ad9c93bbc0f7428e23a6b221ededdce0fbd2a6b97ef0028830cb5ec4ddcd1c",
+      "mode": 420
+    },
+    "sdk/typescript/src/sdk_identity.ts": {
+      "sha256": "e26377f080a092baf170a355d11f8921a37468b754defe2d65f8fcd4a9b2bde7",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "6fb27d9f290735254139b47f44be3ca0ccce36d7b0b59212797f231d13400bc9",
+      "mode": 420
+    },
+    "sdk/typescript/src/node_sdk.ts": {
+      "sha256": "ee1be44be5a10ce26020da226135d2a5c60f14701752fb00f82d00e9a59e04e1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "c34db8e4aa9a21eac8ba179a00bcddadbb4a1edb28abe33b8859918552d39e3b",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "4d81e6b25155f6c5298e3b5762eb71725a05f98fdebfce1e660ab03de28e8aff",
+      "mode": 420
+    },
+    "sdk/typescript/dist/sdk_identity.js": {
+      "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "mode": 420
+    },
+    "sdk/typescript/dist/sdk_identity.d.ts": {
+      "sha256": "b0adda2c006a7785f468eef14e3c4b95d819eee8518ac8538e69f3393fb8c35f",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "cfa883062ad0f2d82362923e2793c241deb92f53b79840bce02a68a229ffe0e5",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "f37ce4228fc674b63fd761b94835753a76fd8f8499be4b459a7128c7d0c5bf2a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/node_sdk.js": {
+      "sha256": "c32cbc0ae4104e5f3ba579d32655c5a09dfdffc8d8a9c690f098e69213e18ebf",
+      "mode": 420
+    },
+    "sdk/typescript/dist/node_sdk.d.ts": {
+      "sha256": "36336fe2482a5e9a6d04f318f88cba9d78fe01a33161d321777b4c55d717ae19",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "e46b8fc02ab961078a930e8bda3a845cfe52ce83d1943bdce5e898b97d2bbfe2",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "29a18650ae45e2d485a4c70a4e9df470dd4db9a7fac977f66743a5d323d1d695",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "f0b0040548bc33d9235e62aada93c1fa4c6c50ecd174806da114284a1e42a1d3",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "e8bdd0e2a5b4ed301ee7071216cfb0132a26753bfcfebd469f6614bf6ebb4acd",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "d5b1dac85a7b30bfd034a59bb6b7d1db691e43d158274eea22c26e1507085fa8",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "6f8c8e5e6719785c0cf0502c1f61aae6fa9606abc305a053d5df0977c4a4ded9",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "cbdc39f81fae422de34ada9e04128798e16522150e3e321b14321ebbf978f3a1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "77d7278893271eab1dc4de8a76413823a67862e509052a658601fee5000a41de",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "7c7f01330d0963f77fcef68dae1ac1a08ea4fe9f0ebdb7f93f958256f096ead8",
+  "source_inputs_guarded": 2468,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          412
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 4.551871791947633,
+        "log_sha256": "2323cfaebffc51ee4ecf6ba0aad7825d3cbc7b820ba9b05066f0dd19e63e47bd"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.281569582875818,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2040181669872254,
+        "log_sha256": "c18c2801a10d92ad660073ba66e033106e6eb710df24d5df776175b1cc75620d"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 29.468956040916964,
+        "log_sha256": "dfe04dd9c39620c4ad47163b386e1c5d0ba30dc066afa301b922f8ef3fcda632"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 16
+    },
+    "log_sha256": "51373847e72770449b3eac2bac82c43962fe41d920fe12adfd18d86593f113b1",
+    "mutation_observation": "Fixture forwards original production BrowserClient.request calls unchanged and counts their original operation_id. Exactly sixteen distinct mutation calls (eight per path); wait, status, restore and reconnect do not resend mutations."
+  },
+  "implemented": [
+    "Transport-independent typed control handles, shared nominal ID/revision brands in a runtime-free leaf, invariant typed operation references and SDK-owned result decoders. Node runtime JS remains byte-identical to the base commit; both Node/browser type graphs compile together.",
+    "Conversation creation, current Participant lookup, Session invite/accept/reject/cancel/end return observable Operations. Original IDs are supplied by persisted application intent; no implicit mutation waits, replacement IDs, reconnect or retry.",
+    "Operation status/wait/waitUntilReady have a finite original read budget, original logical key, immutable reference JSON, record/revision fencing and current authority. Cancelled waits do not cancel mutations. Unsupported continuation and mismatched result/scope refuse. Malformed submitted responses retain uncertain original operation key.",
+    "Incoming signed hints yield a scoped Session only after a finite consistent current-authorized snapshot confirms actor Identity, active membership/epoch, live Conversation/Session and invited appearance. Foreign reply/Connection/revision scopes refuse. Single-reader and bounded queue/wait, close and abort never send decisions.",
+    "Browser SDK connect/reconnect and operation failures expose canonical typed errors with submission certainty and original keys rather than raw response bodies. Historical receipt snapshots grant no present authority."
+  ],
+  "behavior": [
+    "18 signed browser-boundary tests cover both physical adapters, typed status/restore without resend, incoming scoped accept/reject, malformed original acknowledgement certainty, invariant original references, rollback/rebinding, cancelled read waits, snapshot revision split, foreign completed result, removed/revoked current authorization and invalid incoming scope/overlapping/closed wait.",
+    "Owned Chrome runs the same two-actor public typed workflow over direct WT and a 350ms owned UDP-blackhole WT opening followed by WSS with its separately approved profile. Each creates a Conversation, discovers recipient Participant, receives/rejects invitation, explicitly retries a fresh saved Session/operation and accepts, ends, reconnects and restores the original end receipt; then receives and cancels a third invitation. Recipient uses only supplied incoming Session handles, without copied IDs.",
+    "After both workflows, each currently selected caller profile is independently revoked. Original status refuses, and explicit reconnect refuses the original enrollment claim. Revoked preferred credential does not cause a fallback. Exactly four credentials/keys, two Devices and four Endpoints persist through status/reconnect/repeated original claims.",
+    "Final stable-source verification:412SDK functions,37targeted Node SDK/session/incoming functions,10real combined enrollment-root functions,0ignored; standalone shared browser/Node negative type checks pass. Production Node SDK JS unchanged."
+  ],
+  "prior_attempts": [
+    {
+      "passed": false,
+      "log_sha256": "b1c214ea7c0b13ba7aa7ef5b8a7772b8c72be2c8a1c9ff047b5cf860e2f8075e",
+      "observation": "Initial fixture lacked separate session_get permission. Signed invitation arrived, but current-authorized snapshot correctly omitted Session facts; bounded incoming wait expired. Added the explicit observation permission to the closed synthetic fixture grant; no production authorization changed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "921a9387bef627aa261674284628238efd9d3742d67498d82c13100ba5c6d803",
+      "observation": "Read-only tracing confirmed real invitation delivery and the correctly filtered snapshot. Same fixture permission issue; not a pass."
+    },
+    {
+      "passed": false,
+      "log_sha256": "bd8c902a69ded85e154d79ca9bbca00de141c7f91f07a15832a3a5dedc59cdc8",
+      "observation": "Direct WT workflow passed. Fixture then revoked its preferred WT profile before the fallback workflow. Original WT claim correctly refused before physical opening, so fallback did not start. Moved scoped revocation checks after both workflows and retained explicit current-claim refusal."
+    },
+    {
+      "passed": false,
+      "log_sha256": "4edcf913b00563838a70f7a77e1459acc31998fcc2250412880df749f3efdf84",
+      "observation": "Local test syntax error after adding uncertain-response assertions; corrected missing test-object delimiter."
+    },
+    {
+      "passed": false,
+      "log_sha256": "2fa3018c108e7a21ad5c75a6a93ec365f79a7051f05f5e11f8ad517d5b433887",
+      "observation": "Foreign in_reply_to test initially failed because the signed fixture overwrites that scope field with its explicit correlation argument. Passed the intended correlation through that argument; production incoming scope validation unchanged."
+    },
+    {
+      "passed": false,
+      "log_sha256": "d671c79de8948a6f1a9c2c624e72a0f76efd4e53067bf2df0d577fdb877a0b08",
+      "observation": "First standalone compiler invocation omitted --types node required for the existing Node declaration graph. Corrected invocation includes prepared installed Node types; no production type weakening."
+    }
+  ],
+  "trust_scope": "Fresh owned Chrome profile, isolated synthetic HTTPS leaf SPKI exception for HTTPS/WSS and explicit short-lived WT certificate hash, plus independent server-signature verification. No system trust, personal browser/device/screen or remote/model/account/provider execution.",
+  "remaining": [
+    "Connection and Stream typed handles, broader Session/messaging/journal composition and frozen contract coverage.",
+    "Transport-independent capture/render owners, device/source selection, permission denial, accessible pending/ready/failed UI, and persisted user intent/recovery affordances.",
+    "Complete typed workflow over WT and fallback with actual bounded synthetic user-media permission and owned-tab screen capture; no personal media authorization inferred.",
+    "Durable invitation recovery/deduplication and UI behavior need their remaining integration evidence; signed incoming hints are not a durable inbox."
+  ],
+  "open_gate_findings": [
+    "Existing installed positive provisioning CLI15second subprocess timeout remains unresolved; no CLI change or full workspace pass claimed.",
+    "Three unmodified full-tree TSformat findings remain protocol.ts/record_context.ts/task_protocol.ts; changed sources are checked separately."
+  ],
+  "privacy": "Raw logs, offers, proof keys, credentials, Chrome profile and TLS material stay in ignored.local. Public evidence contains source/log digests, aggregate counts and scoped behavior only.",
+  "reference_checks": {
+    "dependencies": {
+      "passed": true,
+      "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typescript-format": {
+      "passed": true,
+      "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    "navigation": {
+      "passed": true,
+      "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+    },
+    "http-inventory": {
+      "passed": true,
+      "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+    },
+    "application-openapi": {
+      "passed": true,
+      "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+    },
+    "canonical-openapi": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "enrollment-openapi": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "diff": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

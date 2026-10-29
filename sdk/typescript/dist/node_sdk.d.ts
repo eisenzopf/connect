@@ -11,21 +11,10 @@ import { type Json, type JsonObject } from "./uctp_json.js";
 import { SdkHelper } from "./sdk_helper.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
 import { type CanonicalRequestOptions } from "./canonical_validation.js";
-declare const identity: unique symbol;
+import type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, MessageId, OperationId } from "./sdk_identity.js";
+export type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, MessageId, OperationId, } from "./sdk_identity.js";
 declare const resultType: unique symbol;
-declare const revisionFamily: unique symbol;
-export type SdkRevision<K extends string> = number & {
-    readonly [revisionFamily]: K;
-};
 export declare function sdkRevision<K extends string>(value: number): SdkRevision<K>;
-export type SdkId<K extends string> = string & {
-    readonly [identity]: K;
-};
-export type ConversationId = SdkId<"conversation">;
-export type IdentityId = SdkId<"identity">;
-export type ParticipantId = SdkId<"participant">;
-export type MessageId = SdkId<"message">;
-export type OperationId = SdkId<"operation">;
 export interface SdkOperationKey extends CanonicalOperationKey {
     readonly operationId: OperationId;
     readonly scope: {
@@ -311,4 +300,3 @@ export declare function createAdministrativeOperations(helper: SdkHelper, valida
     recover<T>(reference: SdkOperationReference<T>): SdkOperation<T>;
     fromReply(value: Json, key: OperationKey): SdkOperation<Json>;
 };
-export {};

@@ -21,6 +21,7 @@ struct Backend {
     admin_origin: String,
     admin: String,
     identity: String,
+    peer_identity: String,
     http: reqwest::Client,
     files: Arc<HashMap<String, Vec<u8>>>,
 }
@@ -54,11 +55,21 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
         )
         .unwrap(),
     );
+    files.insert("/typed-browser".into(), b"<!doctype html><meta charset=utf-8><title>Owned typed browser workflow</title><script type=module src=/typed-browser.mjs></script>".to_vec());
+    files.insert(
+        "/typed-browser.mjs".into(),
+        std::fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-enrollment-browser/typed-browser.mjs"),
+        )
+        .unwrap(),
+    );
     let backend = Backend {
         origin,
         admin_origin: h.url(HttpSurface::Administration, ""),
         admin: h.f.admin.clone(),
         identity: h.f.client.identity_id.clone(),
+        peer_identity: h.f.peer.identity_id.clone(),
         http: h.http.clone(),
         files: Arc::new(files),
     };
@@ -99,6 +110,15 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();assert_eq!(request.identity_id,backend.identity);assert!(request.transport!=EnrollmentTransport::Quic);assert_eq!(request.operations,vec!["operation.get"]);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
                                 },
+                                "/typed-approve"=>{
+                                    let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
+                                    assert!([&backend.identity,&backend.peer_identity].contains(&&request.identity_id));
+                                    assert!(request.transport!=EnrollmentTransport::Quic);
+                                    assert_eq!(request.operations,vec!["conversation.get","create","operation.get","session.accept","session.cancel","session.end","session.invite","session.reject","session_get"]);
+                                    let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();
+                                    assert_eq!(request.recipients,recipients);
+                                    Some((format!("{}/v2/enrollments",backend.admin_origin),body))
+                                },
                                 "/revoke"=>{
                                     let value:Value=serde_json::from_slice(&body).unwrap();let id=value["enrollment_id"].as_str().unwrap();connect_protocol::transitions::id(id).unwrap();
                                     Some((format!("{}/v2/enrollments/{id}/revoke",backend.admin_origin),serde_json::to_vec(&EnrollmentRevokeRequest{operation_id:value["operation_id"].as_str().unwrap().into()}).unwrap()))
@@ -109,7 +129,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
-                        let mime=if path=="/" || path=="/profile-fallback" {"text/html"}else{mime};
+                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" {"text/html"}else{mime};
                         let header=format!("HTTP/1.1 {status} Fixture\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len());
                         let _=stream.write_all(header.as_bytes()).await;let _=stream.write_all(&body).await;let _=stream.shutdown().await;
                     }).await;});
