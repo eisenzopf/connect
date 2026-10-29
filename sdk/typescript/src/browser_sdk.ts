@@ -1,3 +1,4 @@
+import { BrowserInvitationInbox } from "./browser_sdk_inbox.js";
 import {
     fields,
     nonEmpty,
@@ -679,10 +680,6 @@ interface Snapshot {
     connections: Map<string, BrowserConnectionSnapshot>;
     streams: Map<string, BrowserStreamSnapshot>;
 }
-interface Hint {
-    frame: Envelope;
-    epoch: number;
-}
 class State {
     mediaPeer?: BrowserMediaPeer;
     local = new Map<
@@ -719,8 +716,9 @@ class State {
             },
         }));
     }
-    hints: Hint[] = [];
-    hintBytes = 0;
+    readonly inbox = new BrowserInvitationInbox();
+    invitationRead?: Promise<Snapshot>;
+    invitationFailure?: BrowserSdkError;
     wake?: () => void;
     reader = false;
     stopEvents?: () => void;
@@ -766,23 +764,26 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
-        this.hints = [];
-        this.hintBytes = 0;
+        this.inbox.clear();
+        this.invitationRead = undefined;
+        this.invitationFailure = undefined;
         const peer = this.peer,
             epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
-            this.hints = [];
-            this.hintBytes = 0;
+            this.inbox.clear();
+            this.invitationRead = undefined;
             this.wake?.();
         });
         this.stopEvents = peer.onEvent((frame) => {
-            if (frame.type !== "session.invite") return;
-            const bytes = new TextEncoder().encode(canonicalJson(frame)).length;
-            if (this.hints.length >= 64 || this.hintBytes + bytes > 1048576)
-                this.malformed();
-            this.hints.push({ frame, epoch });
-            this.hintBytes += bytes;
-            this.wake?.();
+            if (this.owner.status.physicalEpoch !== epoch || peer.closed)
+                return;
+            try {
+                if (this.inbox.record(frame, epoch)) this.wake?.();
+            } catch (error) {
+                this.invitationFailure = translated(error, "read-only");
+                peer.close(error);
+                this.wake?.();
+            }
         });
     }
     async request(
@@ -1196,8 +1197,8 @@ export class BrowserSdkClient {
         s.owner.close();
         s.stopEvents?.();
         s.stopClose?.();
-        s.hints = [];
-        s.hintBytes = 0;
+        s.inbox.clear();
+        s.invitationRead = undefined;
         s.wake?.();
     }
     async [submit]<T>(
@@ -1823,9 +1824,10 @@ function incoming(
             try {
                 for (;;) {
                     budget.options();
+                    if (s.invitationFailure) throw s.invitationFailure;
                     const peer = s.peer,
                         epoch = s.owner.status.physicalEpoch;
-                    const queued = s.hints.shift();
+                    const queued = s.inbox.peek();
                     if (!queued) {
                         await new Promise<void>((resolve, reject) => {
                             let timer: ReturnType<typeof setTimeout>;
@@ -1864,42 +1866,46 @@ function incoming(
                         });
                         continue;
                     }
-                    s.hintBytes -= new TextEncoder().encode(
-                        canonicalJson(queued.frame),
-                    ).length;
-                    if (queued.epoch !== epoch) continue;
+                    if (queued.epoch !== epoch) {
+                        s.inbox.consume(queued);
+                        continue;
+                    }
                     const f = queued.frame,
                         p = f.payload;
-                    if (
-                        f.connid !== undefined ||
-                        f.in_reply_to !== undefined ||
-                        f.expected_revision !== undefined ||
-                        !identifier(f.cid) ||
-                        !identifier(f.sid) ||
-                        !identifier(f.operation_id) ||
-                        !identifier(p.from) ||
-                        !Array.isArray(p.to) ||
-                        p.to.length !== 1 ||
-                        !identifier(p.to[0]) ||
-                        p.from === p.to[0] ||
-                        ![
-                            "voice",
-                            "video",
-                            "voice+video",
-                            "screen-share",
-                            "text-chat",
-                            "mixed",
-                        ].includes(String(p.medium)) ||
-                        !boundedText(p.intent) ||
-                        !object(p.capabilities_offer)
-                    )
-                        s.malformed();
                     const to = (p.to as string[])[0];
-                    const snapshot = await s.snapshot(
-                        f.cid as ConversationId,
+                    // A local wait can detach without cancelling the physical's
+                    // finite read. A later wait drains that original work, then
+                    // performs its own fresh authorized read; no cached delivery.
+                    const previous = s.invitationRead;
+                    if (previous) {
+                        await boundedLocal(
+                            previous.then(
+                                () => {},
+                                () => {},
+                            ),
+                            budget.options() as BrowserSdkRequestOptions,
+                        );
+                        s.observe(peer, epoch);
+                        if (s.invitationFailure) throw s.invitationFailure;
+                        if (s.inbox.peek() !== queued) continue;
+                    }
+                    const work = s.snapshot(f.cid as ConversationId, {
+                        timeoutMs: 2000,
+                    });
+                    s.invitationRead = work;
+                    const release = () => {
+                        if (s.invitationRead === work)
+                            s.invitationRead = undefined;
+                    };
+                    void work.then(release, release);
+                    const snapshot = await boundedLocal(
+                        work,
                         budget.options() as BrowserSdkRequestOptions,
                     );
                     s.observe(peer, epoch);
+                    budget.options();
+                    if (s.invitationFailure) throw s.invitationFailure;
+                    if (!s.inbox.consume(queued)) continue;
                     const target = snapshot.conversation.participants.find(
                             (v) =>
                                 v.id === to &&

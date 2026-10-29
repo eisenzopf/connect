@@ -85,8 +85,9 @@ custody. The SDK rechecks current Conversation membership, the recipient
 Identity and membership epoch, and the invited Session appearance before
 yielding. Notifications remain hints: an idle notification stream is neither a
 durable inbox nor evidence that no invitation exists. There is one reader per
-client, a bounded queue and a finite deadline for each `next()`; close or abort
-settles a pending wait without sending a decision.
+client and a finite deadline for each `next()`. Closing or aborting a reader
+settles its local wait without sending a decision. The recovery and notification
+bounds are described below.
 
 Every mutation returns an observable Operation. `status()`, `wait()` and
 `waitUntilReady()` read the original record under current authorization.
@@ -451,3 +452,53 @@ refuse locally before IO.
 
 [Browser Session control evidence](../evidence/gate-6/browser-sdk-session-controls.json)
 records the exact implemented and tested scope.
+
+
+## Invitation read recovery and notification limits
+
+An incoming notification retains its original Conversation, Session, recipient
+and server source correlation. Within the retained source window, fresh wire
+IDs carrying the same source payload yield once; changed payload for that source
+is a protocol failure. A cancellation must correlate to one of that source's
+four retained wire IDs and match its Conversation, Session and source scope.
+The signed cancellation may name a different current manager; the server owns
+that authorization decision. Unknown cancellation replies have no effect on
+other sources. A matched
+cancellation removes a queued hint, including while a current-state read is
+pending. It cannot cause a cached snapshot to yield the cancelled hint.
+
+The queue permits at most 64 hints and 1 MiB of canonical payloads. Overflow
+reports `resync-required` and retires the physical connection. Consumed/cancelled
+source history retains up to 256 sources and 1 MiB of canonical payloads;
+queued sources remain pinned independently. Deduplication is bounded by that
+history window, with four recent wire IDs per source. Only required envelope
+metadata is retained, and payload capture is isolated from caller mutation.
+These are finite metadata bounds, not an exactly-once or durable inbox promise.
+
+Before yielding, the SDK reads current authorized Conversation/Session facts
+and checks current recipient membership epoch and invited appearance. It keeps
+the hint queued until that read succeeds and the caller is still waiting.
+Cancelling, closing or timing out the local wait does not consume the hint.
+One client-owned snapshot read may continue under its separate, fixed two-second
+deadline. A subsequent wait drains any earlier read and performs a fresh
+current-authorized read; an abandoned result is never delivered as cached
+permission. Repeated short waits cannot create parallel reads or reset that
+original physical read's deadline. A permanent transport stall still retires
+the physical connection at the owned deadline.
+
+Physical retirement or explicit reconnect clears its old notification metadata.
+A late read from an old physical cannot populate the new inbox. Reconnect never
+replays a mutation, reopens capture, invents an invitation or turns an old
+snapshot into current authorization. Applications should use the journal and
+current state for recovery; this notification reader does not add offline
+invitation discovery.
+
+The actual Chrome fixture withholds an already received real snapshot at the
+application promise boundary, cancels the local wait, then releases the original
+read and verifies a second real authorized request before yielding. This is a
+local scheduling/cancellation check, not an injected network outage. Signed
+boundary checks separately cover late replies, current revocation, physical
+replacement, malformed correlation and the finite permanent-stall boundary.
+
+[Browser invitation recovery evidence](../evidence/gate-6/browser-sdk-invitation-recovery.json)
+records the causal failures, corrected behavior and remaining G6-061 scope.

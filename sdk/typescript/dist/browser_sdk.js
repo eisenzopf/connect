@@ -1,3 +1,4 @@
+import { BrowserInvitationInbox } from "./browser_sdk_inbox.js";
 import { fields, nonEmpty, sessionInviteBody, sessionUpdateBody, sessionCapabilities, offeredStreams, } from "./browser_sdk_sessions.js";
 import { subscribeBody, unsubscribeBody, updateBody, selectionResult, updateResult, } from "./browser_sdk_streams.js";
 import { BrowserRtcConnection, } from "./browser_sdk_webrtc.js";
@@ -401,8 +402,9 @@ class State {
             },
         }));
     }
-    hints = [];
-    hintBytes = 0;
+    inbox = new BrowserInvitationInbox();
+    invitationRead;
+    invitationFailure;
     wake;
     reader = false;
     stopEvents;
@@ -444,23 +446,27 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
-        this.hints = [];
-        this.hintBytes = 0;
+        this.inbox.clear();
+        this.invitationRead = undefined;
+        this.invitationFailure = undefined;
         const peer = this.peer, epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
-            this.hints = [];
-            this.hintBytes = 0;
+            this.inbox.clear();
+            this.invitationRead = undefined;
             this.wake?.();
         });
         this.stopEvents = peer.onEvent((frame) => {
-            if (frame.type !== "session.invite")
+            if (this.owner.status.physicalEpoch !== epoch || peer.closed)
                 return;
-            const bytes = new TextEncoder().encode(canonicalJson(frame)).length;
-            if (this.hints.length >= 64 || this.hintBytes + bytes > 1048576)
-                this.malformed();
-            this.hints.push({ frame, epoch });
-            this.hintBytes += bytes;
-            this.wake?.();
+            try {
+                if (this.inbox.record(frame, epoch))
+                    this.wake?.();
+            }
+            catch (error) {
+                this.invitationFailure = translated(error, "read-only");
+                peer.close(error);
+                this.wake?.();
+            }
         });
     }
     async request(type, payload, scope, options, key) {
@@ -782,8 +788,8 @@ export class BrowserSdkClient {
         s.owner.close();
         s.stopEvents?.();
         s.stopClose?.();
-        s.hints = [];
-        s.hintBytes = 0;
+        s.inbox.clear();
+        s.invitationRead = undefined;
         s.wake?.();
     }
     async [submit](k, body, scope, options) {
@@ -1159,8 +1165,10 @@ function incoming(client, options) {
             try {
                 for (;;) {
                     budget.options();
+                    if (s.invitationFailure)
+                        throw s.invitationFailure;
                     const peer = s.peer, epoch = s.owner.status.physicalEpoch;
-                    const queued = s.hints.shift();
+                    const queued = s.inbox.peek();
                     if (!queued) {
                         await new Promise((resolve, reject) => {
                             let timer;
@@ -1187,35 +1195,40 @@ function incoming(client, options) {
                         });
                         continue;
                     }
-                    s.hintBytes -= new TextEncoder().encode(canonicalJson(queued.frame)).length;
-                    if (queued.epoch !== epoch)
+                    if (queued.epoch !== epoch) {
+                        s.inbox.consume(queued);
                         continue;
+                    }
                     const f = queued.frame, p = f.payload;
-                    if (f.connid !== undefined ||
-                        f.in_reply_to !== undefined ||
-                        f.expected_revision !== undefined ||
-                        !identifier(f.cid) ||
-                        !identifier(f.sid) ||
-                        !identifier(f.operation_id) ||
-                        !identifier(p.from) ||
-                        !Array.isArray(p.to) ||
-                        p.to.length !== 1 ||
-                        !identifier(p.to[0]) ||
-                        p.from === p.to[0] ||
-                        ![
-                            "voice",
-                            "video",
-                            "voice+video",
-                            "screen-share",
-                            "text-chat",
-                            "mixed",
-                        ].includes(String(p.medium)) ||
-                        !boundedText(p.intent) ||
-                        !object(p.capabilities_offer))
-                        s.malformed();
                     const to = p.to[0];
-                    const snapshot = await s.snapshot(f.cid, budget.options());
+                    // A local wait can detach without cancelling the physical's
+                    // finite read. A later wait drains that original work, then
+                    // performs its own fresh authorized read; no cached delivery.
+                    const previous = s.invitationRead;
+                    if (previous) {
+                        await boundedLocal(previous.then(() => { }, () => { }), budget.options());
+                        s.observe(peer, epoch);
+                        if (s.invitationFailure)
+                            throw s.invitationFailure;
+                        if (s.inbox.peek() !== queued)
+                            continue;
+                    }
+                    const work = s.snapshot(f.cid, {
+                        timeoutMs: 2000,
+                    });
+                    s.invitationRead = work;
+                    const release = () => {
+                        if (s.invitationRead === work)
+                            s.invitationRead = undefined;
+                    };
+                    void work.then(release, release);
+                    const snapshot = await boundedLocal(work, budget.options());
                     s.observe(peer, epoch);
+                    budget.options();
+                    if (s.invitationFailure)
+                        throw s.invitationFailure;
+                    if (!s.inbox.consume(queued))
+                        continue;
                     const target = snapshot.conversation.participants.find((v) => v.id === to &&
                         v.identityId === s.actor &&
                         v.active), view = snapshot.sessions.get(f.sid), appearance = snapshot.appearances.get(f.sid + ":" + to);

@@ -1,0 +1,258 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "8eb71177eaed34b5df64ac570dea180b8268eed4",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Bounded browser notification inbox, duplicate/change/correlated-cancellation handling, retained original hints through locally abandoned reads, fresh current-authority delivery and old-physical fencing. Actual owned macOS Chrome WT/WSS scheduling/cancellation workflows plus signed boundary/metadata cases. No durable/offline invitation inbox, full G6-061 or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "59537085a4a174a36ab1c09dd17277b20854014460ef8611e8160cc1916f96ab",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_inbox.ts": {
+      "sha256": "08d090ac81fad4cb3ab01b3d15aada9203fb12c571ebff5a556ad35225bdc0a7",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_sessions.ts": {
+      "sha256": "2676522564e4ba4e799e911d8aa67ad4bb928feb3681a5ed603bc7d536f2a434",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "95e1ee48f640894e314a141268000c564f6831f068dc18f02f42db350db6c06c",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_inbox.js": {
+      "sha256": "e5b8b4273fb543f30f3f35c1f07895820c8789d72d184f12c847e9a136e5d3fd",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "6d26d23c7490f9b1dcde12e5410e8b2accfda2459e01dd90c866743f0923b245",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_inbox.test.mjs": {
+      "sha256": "ff88ca966ee05177cc2ba731b6bca9a4859eb2537836859fd93418d9da024b19",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "1980b7aec5cbae2bbb1824f86012721413aecc9a4440b9989f88b5e1e2cd1acb",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "7d6f0de4821068880898cefe1377a3b2b262389fb35724778460b2c018c678c1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "b1b14e72f0d52de031e25e91df17c9a25b5e1a80ff03dbc56308861ce9309dab",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_invitations.rs": {
+      "sha256": "7adfa372f93a8dd578d9356f71ea6401fdb76f66afb8cb56ee01eff5ca7e05ef",
+      "mode": 420
+    },
+    "crates/connect-store/src/session_invitations/cancellations.rs": {
+      "sha256": "e36023eb508efdc62c316c7e2365fc5657f7176323243a9717f2797b0252c9ee",
+      "mode": 420
+    },
+    "crates/connect-store/src/session_control.rs": {
+      "sha256": "691cc8963271437d9589071c9f5edaa99c2c185a3474bd06f96215e8a97f43de",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2733,
+    "source_inputs_manifest_sha256": "2278ee10f7a253bc727c410fd43cae009a34e0ddef63151c2f222ec7a867197e",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          527
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 7.9912900410126895,
+        "log_sha256": "898cd00c313e73a90805aa29c0b18a9a113307471a63d0609d2678d1339d63c2"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3024139581248164,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2376974169164896,
+        "log_sha256": "b47e840bfad168c8e72413ca4ce2152cc998ef440a98597737ea5e44e59ba2cb"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.37321404088288546,
+        "log_sha256": "15e352dc9686ea22bcce8f476e7fded14913527a645d536f2d356d16348622ab"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3716960409656167,
+        "log_sha256": "d0be9223e74da6aa10c3f0bb04d197496afa647b07b434b5aac16504c466bbed"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 76.46493837516755,
+        "log_sha256": "ced1778a314d35d6962bae393a940641090bbf8238c6ec919b019d2ac17cc932"
+      }
+    ]
+  },
+  "causal_baseline": {
+    "commit": "8eb71177",
+    "method": "Copy the unchanged baseline committed dist bundle and the current causal boundary fixture into a private isolated directory, then execute the sixteen selected tests. Same late-completion fixtures used by the patched tests; no product timeout or authorization threshold relaxed.",
+    "functions_passed": 0,
+    "functions_failed": 16,
+    "log_sha256": "f518e32ee8d1e593fde532e350b67e6769826b6fe2858fb39b645ec7133a0548",
+    "bundle_and_tests_manifest_sha256": "b8b6d81d88b2365ed3785aef71a0cf8192ab981e91321a24320625d5c33b5baf"
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "session_updates": 8,
+      "session_reinvitations": 2,
+      "restored_session_updates": 2,
+      "invitation_read_recovered": 2,
+      "queued_cancellation_refused": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 61
+    },
+    "log_sha256": "ff948081bf37c76a83d5e238f4624c8d211634cfe00d92aa2bf6e27292f88562",
+    "recovery_witness": "On each transport, the fixture withholds an already received real authorized Conversation snapshot at the application Promise boundary. The local incoming wait is aborted and closed while the same physical epoch remains connected. The original read is released; a fresh reader performs a second actual authorized snapshot request before yielding the same scoped pending invitation. No automatic accept/reject or mutation replay. This is a local scheduling/cancellation boundary, not a physical network stall.",
+    "cancellation_witness": "A separate original invitation is cancelled before the recipient reader yields it. The bounded reader produces no stale invitation and the physical connection stays usable. Two such workflows pass. Current signed component cases additionally force cancellation while a snapshot is pending and compare exact original source/wire correlation.",
+    "regressions": "The same current fixture retains Session reject/accept, additive Screen/data policy, opposite Screen decoding and causal gate/recovery checks, leave/reinvite/reaccept, original media/control/Session observation without custody, and current revoked authority refusal. There are 61 distinct original communication mutations, four transport credentials/keys, two Devices and four explicitly verified Endpoints."
+  },
+  "implementation": [
+    "Inbox keys include Conversation, Session, original server source and recipient. Fresh wire IDs with the same exact canonical payload deduplicate; a changed payload within retained history is a protocol failure. Capture isolates payload and excludes arbitrary envelope extensions.",
+    "Queue limit is 64 sources and 1 MiB canonical payload; overflow reports resync-required and retires the physical. Consumed/cancelled source history has a 256-source/1 MiB canonical-payload horizon. Queued entries remain pinned if history evicts their map entry. Each source retains four recent wire IDs; no indefinite exactly-once guarantee.",
+    "A source-correlated cancellation must match Conversation, Session and original source and must not add Connection/revision assertions. Unknown replies do not affect another source. Signed actor metadata is shape-validated; current server authorization can attribute cancellation to a different manager. Removal during a pending read prevents stale snapshot delivery.",
+    "Local reader timeout/abort/close peeks rather than consumes. One client-owned snapshot read has an independent fixed two-second deadline; later local waits drain earlier work and read current authorization afresh. They never release an abandoned cached snapshot or reset the old physical request budget. A permanent physical stall still retires at that owned deadline.",
+    "Current recipient identity, active membership epoch and invited appearance are checked before yielding. On retirement/reconnect, old queue/history and retained read references clear; late old-physical work cannot populate the replacement. No server/service/upstream policy implementation changed."
+  ],
+  "verification_cases": [
+    "Signed WT/WSS duplicate suppression, source-change refusal, four EdDSA/ES256 abandoned-read scenes, local deadline/reader-close recovery and fresh sources.",
+    "Signed current revocation after a late authorized reply, explicit physical replacement, matched foreign scope/revision refusal, unknown cancellation isolation and cancellation during current-state read.",
+    "Count and byte queue overflow, one finite physical read across repeated local deadlines and permanent stall retirement.",
+    "Internal metadata-only cases independently verify 256-source/1 MiB history eviction, queued-entry pinning, four-wire horizon, isolated payload/envelope capture and UTF8 bounds. These are not signature/hosting qualification.",
+    "Signed current-manager attribution acceptance and malformed actor refusal. Actual third-manager Store/hosting journey is not claimed by those boundary cases."
+  ],
+  "checks": "Final source-guarded cohort: 527 SDK functions, 37 Node regressions, two server Screen and two upstream Screen functions, ten real root integration functions, zero ignored; standalone browser/Node typechecks. Changed TS formatting, repository Rust formatting, Gate 6 plan/navigation and HTTP/OpenAPI references pass.",
+  "prior_attempts": [
+    {
+      "scope": "Initial sixteen signed causal diagnostics all fail: duplicate/change handling, abandoned reads and correlated cancellation. The initial indefinitely stalled-read fixture was later refined to release the original finite physical read before demanding recovery.",
+      "log_sha256": "7c3f4536ad9746be51773bbb809315c3a93e6f9ff1c681a88e020adb7eafc810"
+    },
+    {
+      "scope": "Intermediate TypeScript build fails because Client.close still referenced the removed raw hint array. Corrected before successful verification.",
+      "log_sha256": "ff586e95e67f3af04e5efe14035105c2c043f7cd32dfa037c0155a805688bad9"
+    },
+    {
+      "scope": "497 component functions pass, two cancellation assertions fail because they assumed no authorized read could race the already-enqueued cancellation. The delivery assertion was already correct; final checks allow at most that one racing read and still forbid a stale hint or automatic decision.",
+      "log_sha256": "87446c7ee8e7987fd26a39b9f4de90eedcb68e6020f552138cf594d2f4e5fd9d"
+    },
+    {
+      "scope": "499 component functions pass after the explicit race-bound assertion; predates the expanded authority/physical/queue and actor coverage.",
+      "log_sha256": "01314110215489c509a9099df50937833df595121e2bd88d13af31840f2d0fdf"
+    },
+    {
+      "scope": "Real typed WT/WSS fixture passes with two local-read recoveries, two queued-cancellation refusals and 61 original mutations. Local scheduling, not network-outage injection; predates final source guard and manager-attribution correction.",
+      "log_sha256": "a4fb9c3469eb6d0c894b87b8488b810728c53c5f8a0af6e6072c8d224b5cd9b8"
+    },
+    {
+      "scope": "Metadata component refuses a valid source-correlated cancellation attributed to a different current manager. Store source review proves the by Participant comes from the authorized cancellation actor, not necessarily the original inviter. Final browser code validates actor shape without inventing that identity restriction.",
+      "log_sha256": "e569b45b3aed9f724352080465812ffeb48fff6fc18e7944d363e973872c12b7"
+    }
+  ],
+  "remaining": [
+    "Broader frozen Conversation messaging/receipts/events, Participant mutations, browser movements, capabilities/raw surface and full reference-app integration.",
+    "Journal-based application recovery and any required durable invitation discovery remain separate; idle notifications never prove an empty durable inbox. Deduplication has an explicit finite horizon.",
+    "Full live codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence matrices and complete G6-061 audit remain. G6-054 remote media qualification is still open."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI 15-second timeout, three unchanged full-tree TS format findings and debug stripping/linker warnings remain. No release/performance/full Rust workspace qualification."
+  ],
+  "privacy": "Raw traces, candidates, credentials, device IDs, screenshots, browser profiles and logs remain ignored. Public evidence contains hashes, synthetic aggregate observations and counts only. No additional model/account/provider/named remote execution or agents."
+}

@@ -65,6 +65,8 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "screen_resubscription",
         "session_reinvitations",
         "restored_session_updates",
+        "invitation_read_recovered",
+        "queued_cancellation_refused",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
@@ -80,7 +82,7 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(result["result"][name], 1, "{name}");
     }
     assert_eq!(result["result"]["restored_media_observation_only"], 4);
-    assert_eq!(result["result"]["original_mutations"], 57);
+    assert_eq!(result["result"]["original_mutations"], 61);
     assert_eq!(result["result"]["session_updates"], 8);
     assert_eq!(result["result"]["restored_control_observations"], 6);
     assert_eq!(result["result"]["screen_camera_selector_refused"], 1);

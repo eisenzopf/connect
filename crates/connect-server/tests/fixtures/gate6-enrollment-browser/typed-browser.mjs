@@ -8,7 +8,9 @@ const rtcObservations=async()=>Promise.all(rtcOwners.map(async owner=>{
  const peer=owner.peer;const stats=await peer.getStats().catch(()=>new Map());
  return {stopped:owner.stopped,connection:peer.connectionState,ice:peer.iceConnectionState,tracks:peer.getTransceivers().map(t=>({sent:t.sender.track?.kind,sender:t.sender.track?.readyState,enabled:t.sender.track?.enabled,received:t.receiver.track.readyState})),rtp:[...stats.values()].filter(v=>['inbound-rtp','outbound-rtp'].includes(v.type)).map(v=>({type:v.type,kind:v.kind,packetsSent:v.packetsSent,packetsReceived:v.packetsReceived,framesEncoded:v.framesEncoded,framesDecoded:v.framesDecoded,bytesSent:v.bytesSent}))};
 }));
-const originalBegin=BrowserClient.prototype.begin,originalEvents=BrowserClient.prototype.onEvent;
+const originalBegin=BrowserClient.prototype.begin,originalEvents=BrowserClient.prototype.onEvent,originalRequest=BrowserClient.prototype.request;
+let deferNextSnapshot=false,heldSnapshot;
+BrowserClient.prototype.request=function(...args){const work=originalRequest.apply(this,args);if(args[0]!=='conversation.get'||!deferNextSnapshot)return work;deferNextSnapshot=false;return work.then(frames=>new Promise(resolve=>{heldSnapshot=()=>resolve(frames);}));};
 BrowserClient.prototype.begin=function(...args){const begun=originalBegin.apply(this,args);trace.push({request:args[0],operation:args[2]?.operation_id});return begun;};
 BrowserClient.prototype.onEvent=function(callback){return originalEvents.call(this,frame=>{trace.push({event:frame.type});return callback(frame);});};
 const within=async(work,label)=>{let timer;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' deadline')),5000);})]);}finally{clearTimeout(timer);}};
@@ -38,7 +40,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
  const displays=[];const originalDisplay=navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
  navigator.mediaDevices.getDisplayMedia=async input=>{const stream=await originalDisplay(input);if(stream.getVideoTracks().some(t=>t.getSettings().displaySurface!=='browser')){for(const track of stream.getTracks())track.stop();throw Error('owned tab required');}displays.push(stream);return stream;};
  const savedCancellations=new Map();let savedNative;
- const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0,owned_device_permission:0,permission_denial_ui:0,keyboard_capture_retry:0,device_source_choice:0,operation_progress_ui:0,wt_screen_connection:0,wss_screen_connection:0,owned_tab_capture:0,owned_tab_capture_retired:0,screen_kind_observed:0,screen_recovery_without_custody:0,screen_duplex_decoded:0,screen_controls:0,screen_resubscription:0,restored_control_observations:0,screen_camera_selector_refused:0,session_updates:0,session_reinvitations:0,restored_session_updates:0};
+ const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0,owned_device_permission:0,permission_denial_ui:0,keyboard_capture_retry:0,device_source_choice:0,operation_progress_ui:0,wt_screen_connection:0,wss_screen_connection:0,owned_tab_capture:0,owned_tab_capture_retired:0,screen_kind_observed:0,screen_recovery_without_custody:0,screen_duplex_decoded:0,screen_controls:0,screen_resubscription:0,restored_control_observations:0,screen_camera_selector_refused:0,session_updates:0,session_reinvitations:0,restored_session_updates:0,invitation_read_recovered:0,queued_cancellation_refused:0};
  for(const path of ['webtransport','wss-webrtc']){
   const resolutions=[[],[]],clients=[];
   try{
@@ -55,7 +57,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
    const create=await caller.conversations.create({policy:'persistent',participants:[sdkId(identities[1])]},createId);
    sessionStorage.setItem('create-reference-'+suffix,JSON.stringify(create.referenceJson()));
    const room=(await caller.operations.restore(JSON.parse(sessionStorage.getItem('create-reference-'+suffix)),browserOperationKinds.conversationCreate).wait(options)).value;
-   const target=await room.participants.byIdentity(sdkId(identities[1]),options),incoming=callee.incomingInvitations(options);
+   const target=await room.participants.byIdentity(sdkId(identities[1]),options);let incoming=callee.incomingInvitations(options);
    try{
     for(const action of ['reject','accept']){
      const sessionId=sdkId('session-'+action+'-'+suffix),invitationId=mutation('invite-'+action);
@@ -63,7 +65,10 @@ globalThis.runBrowserFixture=async cfg=>{try{
      const invite=await room.sessions.invite({sessionId,to:[target.id],medium:action==='accept'?'voice+video':'mixed',intent:'synthetic',capabilities:{audio:['opus'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']}},invitationId);
      const pending=(await invite.wait(options)).value;
      assert(pending.id===sessionId,'invitation original operation completed');
-     const hint=(await incoming.next()).value;
+     let recoveredHint;if(action==='accept'){
+      await incoming.close();const abort=new AbortController(),abandoned=callee.incomingInvitations({...options,signal:abort.signal}),epoch=callee.transport.physicalEpoch;heldSnapshot=undefined;deferNextSnapshot=true;const before=trace.filter(v=>v.request==='conversation.get').length,observation=abandoned.next();await waitUntil(()=>typeof heldSnapshot==='function','original actual authorized snapshot held');abort.abort();let cancelled;try{await observation;}catch(error){cancelled=error;}assert(cancelled?.kind==='cancelled'&&callee.transport.state==='connected'&&callee.transport.physicalEpoch===epoch,'local wait cancellation preserves original physical owner');await abandoned.close();const release=heldSnapshot;heldSnapshot=undefined;release();incoming=callee.incomingInvitations(options);const recovered=(await incoming.next()).value;assert(recovered.session.id===pending.id&&trace.filter(v=>v.request==='conversation.get').length===before+2,'retained invitation requires a fresh actual authorized snapshot');recoveredHint=recovered;result.invitation_read_recovered++;
+     }
+     const hint=recoveredHint??(await incoming.next()).value;
      assert(hint.session.id===pending.id&&hint.session.conversationId===room.id,'incoming scoped handle without copied IDs');
      assert(hint.operationId!==invitationId.operationId,'server source distinct from mutation intent');
      const current=await hint.session.refresh(options);
@@ -188,6 +193,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
     const live=await invited.refresh(options),cancel=await invited.cancelInvitation({reasonCode:487,reason:'Cancelled',expectedTopologyRevision:live.topologyRevision},mutation('cancel'));
     assert((await cancel.wait(options)).value.state==='cancelled','typed cancellation');result.cancellations++;
     savedCancellations.set(path,cancel.referenceJson());
+    {const input={sessionId:sdkId('session-queued-cancel-'+suffix),to:[target.id],medium:'text-chat',intent:'queued-synthetic',capabilities:{data:['reliable-ordered']}},key=mutation('queued-invite');sessionStorage.setItem('queued-invite-intent-'+suffix,JSON.stringify({input,mutation:key}));const queued=await room.sessions.invite(input,key),session=(await queued.wait(options)).value,current=await session.refresh(options),cancelInput={reasonCode:487,reason:'Queued cancellation',expectedTopologyRevision:current.topologyRevision},cancelKey=mutation('queued-cancel');sessionStorage.setItem('queued-cancel-intent-'+suffix,JSON.stringify({input:cancelInput,mutation:cancelKey}));const cancelled=await session.cancelInvitation(cancelInput,cancelKey);await cancelled.wait(options);await incoming.close();incoming=callee.incomingInvitations({timeoutMs:100});let empty;try{await incoming.next();}catch(error){empty=error;}assert(empty?.kind==='deadline'&&callee.transport.state==='connected','queued cancellation yields no stale invitation or automatic decision');result.queued_cancellation_refused++;}
    }finally{await incoming.close();}
   }finally{for(const client of clients)client.close();}
  }
@@ -207,6 +213,6 @@ globalThis.runBrowserFixture=async cfg=>{try{
   }finally{client.close();}
  }
  const mutations=trace.filter(x=>x.operation&&['conversation.create','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','connection.offer','connection.end','connection.update','stream.subscribe','stream.unsubscribe'].includes(x.request));
- assert(mutations.length===57&&new Set(mutations.map(x=>x.operation)).size===57,'fifty-seven original mutations, no status/restore resubmission');
+ assert(mutations.length===61&&new Set(mutations.map(x=>x.operation)).size===61,'sixty-one original mutations, no status/restore resubmission');
  return {...result,credentials:4,devices:2,endpoints:4,original_mutations:mutations.length};
 }catch(error){throw Error(String(error.stack??error)+"\n"+JSON.stringify(error.problem??{})+"\n"+JSON.stringify(await rtcObservations())+"\n"+JSON.stringify(trace));}};
