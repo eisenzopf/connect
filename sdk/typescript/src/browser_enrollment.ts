@@ -1,4 +1,8 @@
 import {
+    applicationReadOrigin,
+    type BrowserApplicationReadOptions,
+} from "./browser_application_reads.js";
+import {
     BrowserClient,
     type BrowserClientOptions,
     type RequestOptions,
@@ -281,6 +285,29 @@ export class BrowserEnrollmentSession {
             controller.abort();
         }
     }
+    /** Explicit separately enrolled HTTP read service; never a control fallback. */
+    applicationReadOptions(
+        credential: BrowserEnrollmentCredential,
+        url: string,
+    ): BrowserApplicationReadOptions {
+        const value = checkCredential(credential, this.#offer),
+            r = this.#offer.request;
+        if (
+            !r.operations.includes("history") ||
+            browserOrigin() !== r.browser_origin ||
+            applicationReadOrigin(url) !== this.#origin
+        )
+            invalid();
+        return Object.freeze({
+            url,
+            transport: "http-json",
+            identityId: r.identity_id,
+            deviceId: r.device.id,
+            browserOrigin: r.browser_origin,
+            credential: value.credential.credential,
+            expiresAt: value.credential.expires_at,
+        });
+    }
     /** Explicit memory-only installation into exactly the approved transport.
      * Contact/TLS and server signing trust must come from trusted configuration. */
     clientOptions(
@@ -290,6 +317,8 @@ export class BrowserEnrollmentSession {
         if (browserOrigin() !== this.#offer.request.browser_origin) invalid();
         const value = checkCredential(credential, this.#offer);
         const r = this.#offer.request;
+        if (r.transport !== "webtransport" && r.transport !== "wss-webrtc")
+            invalid();
         if (typeof contact.url !== "string" || contact.url.length > 2048)
             invalid();
         const pins = contact.serverCertificateHashes;

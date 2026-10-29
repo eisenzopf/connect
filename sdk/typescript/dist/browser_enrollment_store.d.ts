@@ -1,3 +1,4 @@
+import { type BrowserApplicationReadResolver } from "./browser_application_reads.js";
 import { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
 import { BrowserEnrollmentSession, type BrowserEnrollmentContact } from "./browser_enrollment.js";
 import type { BrowserTransportClientOptions, BrowserTransportPath } from "./browser_transport_client.js";
@@ -24,6 +25,11 @@ export declare class BrowserEnrollmentStore {
      * recovers only its original approved profile under current authorization;
      * this never approves a grant or invents replacement intent after failure. */
     resolveProfiles(profiles: Partial<Record<BrowserTransportPath, BrowserEnrollmentProfile>>): BrowserTransportClientOptions["resolveEnrollment"];
+    /** Resolve a fresh, separately scoped HTTP grant for each logical read. */
+    resolveApplicationReads(profile: {
+        readonly name: string;
+        readonly url: string;
+    }): BrowserApplicationReadResolver;
     /** Explicit local forgetting only; does not revoke any server credential. */
     forget(name: string): Promise<void>;
 }

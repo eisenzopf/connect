@@ -543,8 +543,8 @@ sending again. Public operation references name canonical commands:
 Store records under the recorded `create` and `send` names internally. Old
 pre-alpha `create` references are refused; no legacy alias is inferred.
 A message acceptance does not prove receipt, rendering, reading or provider
-delivery. Delivery receipt queries still require the separate application read
-service and are not implemented by this browser checkpoint.
+delivery. Delivery receipt queries use the explicit application read service described
+below; they remain separate from message acceptance.
 
 Enrollment must grant `send` for messages, `conversation.get` for the baseline,
 `conversation.subscribe` for journal reads and `history` for visible message
@@ -644,3 +644,78 @@ browser control API does not introduce history sharing.
 [Browser Participant evidence](../evidence/gate-6/browser-sdk-participants.json)
 records the signed control boundaries and actual two-transport membership
 lifecycle. Full G6-061 and remote media qualification remain open.
+
+
+## Separate application receipt reads
+
+`conversation.receipts(messageId, wait)` returns immutable per-recipient/channel
+observations. It requires an explicitly configured application HTTP service and
+its own current enrollment resolver. Missing configuration returns `unsupported`;
+there is no endpoint inference or reuse of the active WT/WSS control credential.
+
+```ts
+const client = await BrowserSdkClient.connect({
+    tenantId: "tnt_default",
+    identityId: enrolledIdentityId,
+    deviceId: enrolledDeviceId,
+    endpoints: trustedEndpoints,
+    resolveEnrollment: vault.resolveProfiles(trustedControlProfiles),
+    resolveApplicationRead: vault.resolveApplicationReads({
+        name: savedApplicationReadEnrollmentName,
+        url: trustedApplicationApiOrigin,
+    }),
+    timeoutMs: 10000,
+});
+const facts = await client.conversations.byId(savedConversationId)
+    .receipts(savedMessageId, { timeoutMs: 5000, signal: controller.signal });
+```
+
+Prepare and approve the separate enrollment through the existing
+[browser enrollment flow](browser-enrollment.md), saving its original key and
+intent before IO. Use the same Identity and Device, an explicit browser Origin,
+an approved browser signaling profile, `history` authority and the required
+recipient ceiling. The owned fixture uses a separate `wss-webrtc` enrollment
+with `control` capability and only `history` operation scope. The server already
+permits finite HTTP reads independently of signaling transport while enforcing
+the enrollment's exact Origin and current issuer/key/Device/credential state.
+No new enrollment transport is introduced. `http-json` in the resolved read
+options identifies the local HTTP client service.
+
+The existing `history` authority also covers receipt reporting/preferences in
+the server API; it is not a separately defined read-only credential scope. This
+SDK method executes only receipt queries. Trusted backend policy chooses the
+grant. The resolver reclaims the original current enrollment for each logical
+read and materializes its finite credential in memory. The vault retains the
+original key/intent, never the issued bearer. `applicationReadOptions(...)` also
+supports explicit in-memory configuration from an already claimed matching
+enrollment; the configured HTTPS origin must match its enrollment service.
+
+Every fact preserves Participant ID, membership epoch, channel, delivery ID,
+state, provenance and observation time. `queued` with `journal` provenance is
+different from `delivered` with `client_reported` provenance. A `read` fact retains
+its attribution and does not establish human action. The query does not report
+delivery, mark anything read, change privacy preferences or send another message.
+Current original audience, membership epoch, recipient ceiling and preferences
+are enforced on each server page. A later page refusal discards the accumulated
+result; no partial facts are returned.
+
+One finite caller deadline covers resolver, original enrollment claim, HTTP,
+body streaming and all pages. The client permits eight simultaneous reads, at
+most 64 pages of 100 facts, 4096 distinct recipient/epoch/channel/delivery groups
+and 2 MiB of response bytes in total. All requests omit cookies and referrers,
+refuse redirects and bypass caches. Receipt source identifiers, enum values,
+integer bounds and opaque cursor progress are validated before delivery. HTTP
+401/403 are authorization refusals; an `unauthorized` body with HTTP 200 or 500
+cannot masquerade as one. Errors omit remote messages.
+
+Local cancellation, timeout, close or physical replacement aborts only that
+independently disposable HTTP read. An abandoned result cannot request another
+page or follow a replacement physical. A later call resolves current authority
+again; no cached partial observations are released. Malformed/refused HTTP reads
+do not close the shared canonical control connection or replay a mutation.
+
+[Browser receipt evidence](../evidence/gate-6/browser-sdk-receipts.json) records
+the signed control-boundary/HTTP fixtures and actual HTTPS/Chrome workflow. Its
+synthetic delivery reports come from a separate fixture recipient through the
+public application client; they are not evidence of human reading or a provider
+outcome. Full G6-061 qualification remains open.

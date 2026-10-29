@@ -1,0 +1,305 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "aa141c5107a4bf1a8b5aef5cf1572593d85aa173",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Explicit browser application HTTPS receipt queries with current separately resolved enrollment, bounded paginated immutable observations, disposable HTTP cancellation and physical-client fencing. Actual owned local macOS Chrome WT/WSS rehearsal plus signed-control/mocked-HTTP boundaries. No full browser SDK, remote media, provider or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/lib.rs": {
+      "sha256": "6eee92b5f6bd9f944958333db0dd2ed2e988b5d97b06318e9f0bf730e36b1ce6",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/receipts-browser.mjs": {
+      "sha256": "aaad13630d85864a3b892256b55754bf3141696c3a6ec9f6bc346d508ab64061",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "d8cafd82bd7bae3b3866595f98257d5e3235d8afce164454b0d3ac08251271b1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_receipts.rs": {
+      "sha256": "78f17ada633073a0fb62988da9e4e1349b2703c42982fe055f72d65b9ef7dfe7",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "281b20015c94f34fd5793878291d2e3e97b49a62d99e6861b3a38a0018fe66bc",
+      "mode": 420
+    },
+    "crates/connect-store/migrations/024_recipient_receipts.sql": {
+      "sha256": "b44d49b13cca3ee5bdb0f75fed82ec4170b8de08b20a8bbbfe8d3eb686cc789c",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/mod.rs": {
+      "sha256": "f143c2db083cd84dc74df041ee217e77b39ee038ffd5d17df1b223205b48c4ff",
+      "mode": 420
+    },
+    "crates/connect-store/src/operations/receipts.rs": {
+      "sha256": "3a4b1cd35e991f6b5a6862596b1f268d86439a8ff57c5251881414df4a7dd92f",
+      "mode": 420
+    },
+    "crates/connect-store/src/recipient_receipts.rs": {
+      "sha256": "8e9d19eda37b47cadcdfe850d402e8347c9428b888b197182f48203e49d64137",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_enrollment.test.mjs": {
+      "sha256": "4f8fb975cbc7ddb83dff976e5546f38ea3bf8808c3902b859995df518cec12d1",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_receipts.test.mjs": {
+      "sha256": "5bdb02fbe83e0a94bf3d86b0476c495ab9f0997d3fdade6882b79ea2c2ae7c66",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "cd8a8863c78b16a88c1080a2d35e73ecc78d831e2863ca821ba3a18be017b521",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "4ea909dfc19bbebd60bc2b8ed47c0bc85e59f356869962c4adc9a3d1b7e1906f",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "a8dd54dadb0e6188a1de0c5b8d814552b5015a225f5e06161ba8fedf8ca00c62",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_application_reads.d.ts": {
+      "sha256": "7ee4e7d080fa03622eb33dac633734d0da54d853a222bbc736b721b7376fc1d2",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_application_reads.js": {
+      "sha256": "b68e47c454c2b14f8140e6fb8e52dbcce258c563c80f4e59e18c1689e6228c72",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment.d.ts": {
+      "sha256": "05df2b7fa6eb278b848ec89b4cc89271df5abd74c8ba9d3001f0e10a70c15afe",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment.js": {
+      "sha256": "5e00707a119af77c2d22f8ac877f6b4967a688ad6f32d728bb87c798bda42d68",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.d.ts": {
+      "sha256": "71917022e7c6bd4b7d8969bb905ba3e5bb5aa5ad1655d641519bff9257934fac",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.js": {
+      "sha256": "13c2f2a094aff3324107bb7cf645d3e651d3dd7ba4de2d4be2fb1c7f0ac57f3a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "28415d5e747782190e8f9b0ca7010bb85e7db282be3d076c6decbde01f6d8c70",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "cb6a8e5b7735398774756c36c55f0ac56e97b6f62e829138b8e0283b10536e3d",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "d07d5f9364c34f2e06e3ab7724ac452da4d43c8da8e04acfec1ddc73ee19a4c5",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_application_reads.ts": {
+      "sha256": "ab9d000c52ec524751418f5d7db0738d49d9dc6f88cc558c1fdd027c9b349498",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment.ts": {
+      "sha256": "b0a6304cf4d910dc99c2d540aff25db1d9e16cc0ce0b7452749ac894e29ab5bd",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment_store.ts": {
+      "sha256": "03cee117adb35b3b46cc1de764c0f0f65c3103cdba6db013d18105b05a82a430",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "4ca86c008faf1ee28c3904b9fc59ae60e426b5563498ad7b140920e98805e797",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2750,
+    "source_inputs_manifest_sha256": "e62848b71f1e5e627059b2b6ee9aa7cc1147c3998d9493ec12b8ec0acd811e76",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          611
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.145483375061303,
+        "log_sha256": "7650834e50dcd6fbba3c996db2c17c0f93e64ae72965eecf382c9f2b46aa3b21"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36397187504917383,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.360846957890317,
+        "log_sha256": "dd65d0db532ec0d81fd4b4463753a8c1f29d216d7ddb7f0b5b528e065c012cf2"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43321816716343164,
+        "log_sha256": "d9dc3d3271ea5cac02f9545cf9e52d5a096dfd28e2daf719435d0079a5273104"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.38286166707985103,
+        "log_sha256": "998b0afeb2de22613cf63703eed32ddc25a26b1140eee4596118f424efbcf538"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          11
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 87.66887737507932,
+        "log_sha256": "c0f2d40782371dd6a5ea6d0539714442e0dcebe346a14461728c5eca2e45d79e"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "queued_journal": 2,
+      "delivered_client_reported": 2,
+      "recipient_read": 2,
+      "reconnected_read": 2,
+      "original_operation_recovered": 2,
+      "http_revoked_control_current": 1,
+      "canonical_mutations": 4,
+      "synthetic_receipt_reports": 2,
+      "credentials": 6,
+      "devices": 2,
+      "endpoints": 6
+    },
+    "log_sha256": "4d4eda1e838d9ff6e1e5e14b98e619c660ccc6ba3756c5caeb16eebee280a5a1",
+    "witness": "Both direct WT and bounded WT-to-WSS fallback use distinct control enrollments for two Identities/Devices and separate application-read enrollments. One private message per path returns only local-mutation acceptance. HTTPS reads initially return the queued/journal fact. The recipient reads the exact journal Message, then a separate fixture recipient reports delivered through the public Rust application client. Sender and recipient HTTPS queries preserve delivered/native/client_reported attribution; explicit control reconnect reclaims the original application enrollment and reads again. Original Message operation restoration does not resubmit.",
+    "revocation": "A further owned WT peer uses the same explicitly materialized original HTTP credential. Actual enrollment revocation causes the next HTTP receipt query to refuse with authentication/refused. A canonical Conversation refresh still succeeds on the same physical epoch. No cached partial fact or replacement credential is adopted.",
+    "independent_store_checks": {
+      "messages": 2,
+      "original_send_records": 2,
+      "synthetic_receipt_report_records_with_history_scope_and_message_receipt_intent": 2,
+      "native_delivered_client_reported_facts": 2,
+      "message_audience_rows": 4
+    },
+    "enrollment_scope": "Six keys/credentials and six unverified non-media Endpoint records across two Devices: four transport-bound control profiles and two separate application profiles. Application profiles retain the existing wss-webrtc enrollment transport, control capability, history operation scope and exact browser Origin. No new wire transport, verification claim, schema or upstream change.",
+    "regressions": "The separate original75-mutation typed media/Session/membership/journal/UI fixture and its driver remain byte-identical to the base commit. Its existing deadlines and media assertions are retained in the final11-function root cohort. The new focused receipt fixture adds four original canonical communication mutations and two independently attributed synthetic receipt-report metadata mutations."
+  },
+  "implementation": [
+    "BrowserSdkClient.resolveApplicationRead explicitly supplies an application HTTP service. Conversation.receipts accepts a nominal Message ID and returns frozen per-recipient/channel evidence. Missing configuration is unsupported, with no URL inference or borrowing of active signaling credentials.",
+    "BrowserEnrollmentSession.applicationReadOptions and BrowserEnrollmentStore.resolveApplicationReads restore/reclaim the original saved enrollment, validate history authority metadata, exact service/browser Origin, current Identity/Device and expiry, and materialize the issued bearer in memory only. HTTP request options use a local http-json tag; the existing EnrollmentTransport enum remains unchanged.",
+    "The existing server finite-HTTP policy is independent of signaling transport and enforces its immutable enrollment Origin ceiling plus current issuer/key/Device/credential and operation/resource authority. history is the actual required scope, not the message_receipts operation name. That existing scope also covers receipt reporting/preferences; only this SDK interface is read-only, not a newly defined credential capability.",
+    "Eight simultaneous reads are bounded independently of shared canonical control. One monotonic1..60000ms budget covers resolver, original claim, HTTPS, streaming, parsing and at most64pages/100facts per page,4096unique recipient/epoch/channel/delivery groups and2MiB total response bytes. Requests omit cookies/referrers, refuse redirects and disable caches.",
+    "Closed response/page/fact shapes, exact Conversation/Message, nominal recipient IDs, positive safe membership epochs, channel/delivery bounds, enum provenance/state, safe observation time and opaque cursor progress are validated. Current authorization is checked per HTTP page. Malformed or refused later pages discard all accumulated observations. Actual HTTP status is independent of an unauthorized body;200/500 cannot count as401/403.",
+    "Timeout/abort/close/reconnect dispose only the owned HTTP work. Active readers are cancelled explicitly, and a response abandoned before reader ownership is cancelled too. Late results cannot request another page or follow a replacement physical. A subsequent logical read resolves current authority again; no partial or stale-authority result is cached. HTTP refusal/malformed data do not retire canonical control or replay mutations."
+  ],
+  "verification_cases": [
+    "Four WT/WSS x EdDSA/ES256 signed-control-boundary workflows with mocked HTTP prove explicit service resolution, exact request/cookie/cache/redirect/referrer policy, paged and empty immutable evidence. These are not real TLS or provider proofs.",
+    "Wrong Conversation/Message/epoch/channel/delivery/state/provenance/time/unknown fields, malformed/duplicate JSON, wrong profile/outcome, oversized header/stream, repeated cursor/group and later-page refusal release no partial result. HTTP200/500 unauthorized bodies refuse as protocol, while actual401/403 refuse as authorization without remote-message leakage.",
+    "Resolver, fetch and body deadline/abort scenes preserve shared control. Eight concurrent resolver owners, missing configuration, expired/misbound Device/Identity/Origin/URL/transport profiles, current close/reconnect and late abandoned work are bounded. Browser/Node declaration checks reject wrong nominal Message IDs and mutable delivery evidence.",
+    "Two exact body-abandonment checks fail against the initial candidate. An intermediate active-reader-only cancellation passes1/2; explicit unlocked-response disposal makes both pass. No timeout or assertion is relaxed for those checks.",
+    "Focused actual Chrome uses real HTTPS, IndexedDB, WebCrypto enrollment, production browser SDK, Store receipt grouping and public Rust application-client reports. It verifies queued/journal then delivered/client_reported, sender/recipient reads, reconnect/original recovery, independent SQL and current HTTP revocation with canonical control still usable."
+  ],
+  "checks": "Final unchanged-input cohort:611SDK functions,37Node regressions,2serverScreen and2upstreamScreen functions,11realroot integration functions,0ignored; standalone browser/Node types. Changed-source TS and repository Rust formatting, plan/navigation and server HTTP/OpenAPI references pass.",
+  "prior_attempts": [
+    {
+      "scope": "Initial TypeScript narrowing of never-returning arrow failure helper fails; function declaration corrects control flow before verification.",
+      "log_sha256": "4e956c00fcaacd455e72d1c916f80089db6e11cd40c91222c46759f15d4bd7d3"
+    },
+    {
+      "scope": "Initial607/611 component run has an unhandled test rejection while awaiting reconnect, causing late test-global cleanup. Attach the pending assertion handler before reconnect; subsequent611component functions pass. Product assertions and timeout budgets unchanged.",
+      "log_sha256": "7ace495172312dbf96929d557d04733df6933adc83ed0e4b2ab7f9fb411201d1"
+    },
+    {
+      "scope": "Initial fixture compilation assumes nonexistent HttpJson EnrollmentTransport; discarded after authoritative server source review. Current code uses the existing independent finite-HTTP Origin policy and an existing browser enrollment profile.",
+      "log_sha256": "2188f9a61b49860c9916ae8891a656b16769b16bf723b78c6a8022882de03977"
+    },
+    {
+      "scope": "Real first HTTP receipt query403 because the fixture granted the operation name message_receipts instead of actual required history scope. Corrected the exact fixture grant; production authorization unchanged.",
+      "log_sha256": "147df7913351e0838b312b195ce17a91c5e32a99df2f4fb5939c5e75283ad927"
+    },
+    {
+      "scope": "Next real query returns the existing queued/journal fact, contradicting the fixture assumption of an empty result. The queued_native_receipt trigger is authoritative; final fixture explicitly checks queued/journal before independent client_reported delivery.",
+      "log_sha256": "8943f0aef1cd2027b751249f9b8a5017fd8c91966609b8125b717d657305477c"
+    },
+    {
+      "scope": "An expanded combined media/receipt workflow hits its UI coordination deadline. An interim UI completion marker still hits screen-progress-1 in a later cohort. The final change removes all receipt work from that existing fixture and restores both original typed fixture and driver byte-for-byte; the new receipt test is independent. No existing media or API deadline/threshold is increased.",
+      "logs_sha256": [
+        "6f06863d2319b9781cc65276c6077478e1611054758eea1eed4f2c5aec5d44c6",
+        "3bd350025969dfef63284835c3450e830ac98507e31efed949951fad310d9d80"
+      ]
+    },
+    {
+      "scope": "Combined Chrome receipt workflow passes, but independent SQL incorrectly selects message_receipt as ledger command_type. Store ledger uses required_scope history; current SQL also requires original intent.op=message_receipt and confirms exactly two records.",
+      "log_sha256": "1f4455abcfc8d9c3e2958b54361e3ed05085306eccf0b227bf9a8da9f9e7a567"
+    },
+    {
+      "scope": "Exact two body cleanup negatives fail; intermediate active-reader-only cleanup1pass/1fail; full response/reader cleanup2pass/0fail.",
+      "negative_log_sha256": "4ef22af9499f0c8300cf61ce6523deb4e9240b915af116d1499bf410a7f7ce73",
+      "intermediate_log_sha256": "b34e66588f7466c24ab58f9d87768b47683a0e49ae5a22ca6696755a961619f0",
+      "positive_log_sha256": "2e81bae4c55bdc0c824c3445036bcdcecdbd584bd8116a139ae35baf696801d3"
+    },
+    {
+      "scope": "The separate focused Chrome receipt rehearsal passes1function in2.69s on both paths, including all independent SQL checks. Predates final source guard and the added explicit report-intent save.",
+      "log_sha256": "5bca9ea70997aa658464a7692706347347161bf4ef450501fc0107ac7729871c"
+    }
+  ],
+  "remaining": [
+    "Browser operation cancellation/reconciliation decisions, consultation/handoff/device movement, capabilities/raw surface and full reference-app integration.",
+    "Application snapshot/journal recovery and durable invitation discovery; no offline inbox or indefinite deduplication claim.",
+    "Earlier intermittent WTScreen-resume revision/catalog conflict remains open despite later passing runs. Complete frozen API, live codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit and G6-054 remote qualification remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker warnings remain. No release/performance/full Rust workspace qualification."
+  ],
+  "privacy": "Raw traces, candidates, state/credentials, browser profiles/screenshots and logs remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

@@ -1,3 +1,4 @@
+import { type BrowserApplicationReadOptions } from "./browser_application_reads.js";
 import { BrowserClient, type BrowserClientOptions, type RequestOptions } from "./browser_client.js";
 import { type ServerTrust } from "./uctp_signing.js";
 import { type BrowserEnrollmentKeyState } from "./browser_enrollment_key.js";
@@ -28,6 +29,8 @@ export declare class BrowserEnrollmentSession {
     get offer(): BrowserEnrollmentOffer;
     snapshot(): BrowserEnrollmentState;
     claim(options?: RequestOptions): Promise<BrowserEnrollmentCredential>;
+    /** Explicit separately enrolled HTTP read service; never a control fallback. */
+    applicationReadOptions(credential: BrowserEnrollmentCredential, url: string): BrowserApplicationReadOptions;
     /** Explicit memory-only installation into exactly the approved transport.
      * Contact/TLS and server signing trust must come from trusted configuration. */
     clientOptions(credential: BrowserEnrollmentCredential, contact: BrowserEnrollmentContact): BrowserClientOptions;

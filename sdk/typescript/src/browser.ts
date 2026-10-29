@@ -107,6 +107,10 @@ export {
     sdkRevision,
 } from "./browser_sdk.js";
 export type {
+    BrowserApplicationReadOptions,
+    BrowserApplicationReadContext,
+    BrowserApplicationReadResolver,
+    BrowserDeliveryObservation,
     BrowserIdentityKind,
     BrowserMessageAcceptance,
     BrowserCursor,

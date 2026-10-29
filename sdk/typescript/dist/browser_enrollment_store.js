@@ -1,3 +1,4 @@
+import { applicationReadOrigin, } from "./browser_application_reads.js";
 import { ConnectError } from "./errors.js";
 import { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
 import { BrowserEnrollmentSession, } from "./browser_enrollment.js";
@@ -242,6 +243,26 @@ export class BrowserEnrollmentStore {
                 invalid();
             const credential = await saved.claim({ signal });
             return saved.clientOptions(credential, profile.contact);
+        };
+    }
+    /** Resolve a fresh, separately scoped HTTP grant for each logical read. */
+    resolveApplicationReads(profile) {
+        const name = profile.name, url = applicationReadOrigin(profile.url);
+        id(name);
+        browserOrigin();
+        return async (context) => {
+            if (context.signal.aborted)
+                throw new ConnectError("cancelled", "Application enrollment read cancelled");
+            const saved = await this.load(name);
+            if (!saved.offer.request.operations.includes("history") ||
+                saved.offer.request.identity_id !== context.identityId ||
+                saved.offer.request.device.id !== context.deviceId)
+                invalid();
+            const credential = await saved.claim({
+                signal: context.signal,
+                timeoutMs: context.timeoutMs,
+            });
+            return saved.applicationReadOptions(credential, url);
         };
     }
     /** Explicit local forgetting only; does not revoke any server credential. */

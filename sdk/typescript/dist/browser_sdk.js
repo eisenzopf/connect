@@ -1,3 +1,4 @@
+import { BrowserApplicationReads, } from "./browser_application_reads.js";
 import { identityKind, membershipRole, membershipRevision, participantView, membershipResult, } from "./browser_sdk_membership.js";
 import { messageBody, messageResult, } from "./browser_sdk_messages.js";
 import { createBrowserEvents, isBrowserCursor, } from "./browser_sdk_events.js";
@@ -399,6 +400,7 @@ class State {
     tenant;
     actor;
     rtcConfiguration;
+    applicationReads;
     mediaPeer;
     local = new Map();
     renderers = new Map();
@@ -428,11 +430,12 @@ class State {
     reader = false;
     stopEvents;
     stopClose;
-    constructor(owner, tenant, actor, rtcConfiguration = {}) {
+    constructor(owner, tenant, actor, rtcConfiguration, applicationReads) {
         this.owner = owner;
         this.tenant = tenant;
         this.actor = actor;
         this.rtcConfiguration = rtcConfiguration;
+        this.applicationReads = applicationReads;
     }
     get peer() {
         try {
@@ -465,6 +468,7 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
+        this.applicationReads.retire();
         for (const retire of this.eventReaders)
             retire();
         this.eventReaders.clear();
@@ -473,6 +477,7 @@ class State {
         this.invitationFailure = undefined;
         const peer = this.peer, epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
+            this.applicationReads.retire();
             for (const retire of this.eventReaders)
                 retire();
             this.inbox.clear();
@@ -767,6 +772,10 @@ export class BrowserSdkClient {
     }
     static async connect(options) {
         sdkId(options.tenantId);
+        if (options.resolveApplicationRead !== undefined &&
+            typeof options.resolveApplicationRead !== "function")
+            invalid();
+        const applicationReads = new BrowserApplicationReads(options.resolveApplicationRead, options.identityId, options.deviceId);
         const tenant = options.tenantId, actor = options.identityId;
         let media;
         try {
@@ -777,7 +786,7 @@ export class BrowserSdkClient {
             throw translated(error, "not-submitted");
         }
         try {
-            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor, media));
+            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor, media, applicationReads));
         }
         catch (error) {
             throw translated(error, "not-submitted");
@@ -799,6 +808,7 @@ export class BrowserSdkClient {
     close() {
         const s = current(this);
         s.owner.close();
+        s.applicationReads.retire();
         s.stopEvents?.();
         s.stopClose?.();
         s.inbox.clear();
@@ -1025,6 +1035,15 @@ export class BrowserConversation {
     }
     send(input, options) {
         return this.client[submit](browserOperationKinds.messageSend, messageBody(input, invalid), { cid: this.id }, options);
+    }
+    async receipts(messageId, options) {
+        const budget = new Budget(options), s = current(this.client), peer = s.peer, epoch = s.owner.status.physicalEpoch;
+        try {
+            return await s.applicationReads.receipts(this.id, messageId, { ...budget.options(), timeoutMs: budget.options().timeoutMs }, epoch, () => s.observe(peer, epoch));
+        }
+        catch (error) {
+            throw translated(error, "read-only");
+        }
     }
     events(input, options) {
         new Budget(options);

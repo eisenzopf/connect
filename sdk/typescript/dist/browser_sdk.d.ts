@@ -1,3 +1,5 @@
+import { type BrowserApplicationReadResolver, type BrowserDeliveryObservation } from "./browser_application_reads.js";
+export type { BrowserApplicationReadOptions, BrowserApplicationReadContext, BrowserApplicationReadResolver, BrowserDeliveryObservation, } from "./browser_application_reads.js";
 import { type BrowserIdentityKind } from "./browser_sdk_membership.js";
 export type { BrowserIdentityKind } from "./browser_sdk_membership.js";
 import { type BrowserMessageAcceptance } from "./browser_sdk_messages.js";
@@ -32,6 +34,7 @@ export interface BrowserSdkMutationOptions extends BrowserSdkRequestOptions {
 export interface BrowserSdkClientOptions extends BrowserTransportClientOptions {
     readonly tenantId: string;
     readonly media?: BrowserRtcConfiguration;
+    readonly resolveApplicationRead?: BrowserApplicationReadResolver;
 }
 export type BrowserOperationState = "accepted" | "preparing" | "ready" | "committing" | "completed" | "cancelled" | "failed" | "interrupted" | "unknown";
 export interface BrowserOperationSnapshot {
@@ -214,6 +217,7 @@ export declare class BrowserConversation {
         readonly to: BrowserNonEmpty<ParticipantId>;
         readonly text: string;
     }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserMessageAcceptance>>;
+    receipts(messageId: MessageId, options: BrowserSdkRequestOptions): Promise<readonly BrowserDeliveryObservation[]>;
     events(input: {
         readonly after?: BrowserCursor;
     }, options: BrowserSdkRequestOptions): import("./browser_sdk_events.js").BrowserEventStream;

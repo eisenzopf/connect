@@ -22,6 +22,7 @@ struct Backend {
     admin: String,
     identity: String,
     peer_identity: String,
+    receipt_reporter: connect_client::application::ApplicationClientConfig,
     http: reqwest::Client,
     files: Arc<HashMap<String, Vec<u8>>>,
     typed_endpoints: Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
@@ -65,12 +66,27 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
         )
         .unwrap(),
     );
+    files.insert("/receipts-browser".into(), b"<!doctype html><meta charset=utf-8><title>Owned browser receipt workflow</title><script type=module src=/receipts-browser.mjs></script>".to_vec());
+    files.insert(
+        "/receipts-browser.mjs".into(),
+        std::fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-enrollment-browser/receipts-browser.mjs"),
+        )
+        .unwrap(),
+    );
     let backend = Backend {
         origin,
         admin_origin: h.url(HttpSurface::Administration, ""),
         admin: h.f.admin.clone(),
         identity: h.f.client.identity_id.clone(),
         peer_identity: h.f.peer.identity_id.clone(),
+        receipt_reporter: connect_client::application::ApplicationClientConfig {
+            endpoint: h.f.server.http_address.unwrap(),
+            credential: h.f.peer.credential.clone(),
+            expires_at: chrono::Utc::now() + chrono::Duration::minutes(10),
+            timeout_ms: 5000,
+        },
         http: h.http.clone(),
         files: Arc::new(files),
         typed_endpoints: Arc::new(std::sync::Mutex::new(std::collections::HashSet::new())),
@@ -106,6 +122,16 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                         };
                         let first=headers.lines().next().unwrap();let mut words=first.split_whitespace();let method=words.next().unwrap();let path=words.next().unwrap();
                         let (status,mime,body)=if method=="GET" {match backend.files.get(path){Some(bytes)=>(200,"text/javascript",bytes.clone()),None=>(404,"text/plain",b"missing".to_vec())}}
+                        else if method=="POST" && path=="/typed-receipt" && headers.lines().any(|line|line.split_once(':').is_some_and(|(k,v)|k.eq_ignore_ascii_case("origin") && v.trim()==backend.origin)) {
+                            // Independent synthetic recipient report through the public
+                            // application client, never a Store write or browser grant.
+                            let command:connect_protocol::Operation=serde_json::from_slice(&body).unwrap();
+                            assert!(matches!(&command,connect_protocol::Operation::MessageReceipt{message_id,state:connect_protocol::receipts::ClientReceiptState::Delivered,..} if message_id.starts_with("typed-message-caller-")));
+                            let mut client=connect_client::application::ApplicationClient::open(backend.receipt_reporter.clone()).await.unwrap();
+                            let result=client.execute(connect_client::application::ApplicationOperation::try_from(command).unwrap()).await.unwrap();
+                            assert!(matches!(&result,connect_protocol::Outcome::ReceiptAcknowledged(v) if v.recorded==Some(connect_protocol::receipts::DeliveryState::Delivered)));
+                            (200,"application/json",serde_json::to_vec(&json!({"passed":true})).unwrap())
+                        }
                         else if method=="POST" && headers.lines().any(|line|line.split_once(':').is_some_and(|(k,v)|k.eq_ignore_ascii_case("origin") && v.trim()==backend.origin)) {
                             let target=match path {
                                 "/approve"=>{
@@ -119,6 +145,13 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     assert_eq!(request.operations,vec!["connection.end","connection.offer","connection.update","conversation.get","conversation.participant.add","conversation.participant.remove","conversation.participant.update","conversation.subscribe","create","history","operation.get","send","session.accept","session.cancel","session.end","session.invite","session.reject","session.update","session_get","stream.subscribe","stream.unsubscribe"]);
                                     let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();
                                     assert_eq!(request.recipients,recipients);
+                                    Some((format!("{}/v2/enrollments",backend.admin_origin),body))
+                                },
+                                "/receipts-approve"=>{
+                                    let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
+                                    assert!([&backend.identity,&backend.peer_identity].contains(&&request.identity_id));
+                                    if request.operations==vec!["history"] {assert_eq!(request.transport,EnrollmentTransport::WssWebrtc);assert_eq!(request.capabilities,vec!["control"]);} else {assert!([EnrollmentTransport::Webtransport,EnrollmentTransport::WssWebrtc].contains(&request.transport));assert_eq!(request.operations,vec!["conversation.get","conversation.subscribe","create","history","operation.get","send"]);assert_eq!(request.capabilities,vec!["control","data"]);}
+                                    let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();assert_eq!(request.recipients,recipients);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
                                 },
                                 "/typed-verify"=>{
@@ -143,7 +176,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
-                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" {"text/html"}else{mime};
+                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" || path=="/receipts-browser" {"text/html"}else{mime};
                         let header=format!("HTTP/1.1 {status} Fixture\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len());
                         let _=stream.write_all(header.as_bytes()).await;let _=stream.write_all(&body).await;let _=stream.shutdown().await;
                     }).await;});

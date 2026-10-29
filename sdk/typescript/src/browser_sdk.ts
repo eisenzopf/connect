@@ -1,4 +1,15 @@
 import {
+    BrowserApplicationReads,
+    type BrowserApplicationReadResolver,
+    type BrowserDeliveryObservation,
+} from "./browser_application_reads.js";
+export type {
+    BrowserApplicationReadOptions,
+    BrowserApplicationReadContext,
+    BrowserApplicationReadResolver,
+    BrowserDeliveryObservation,
+} from "./browser_application_reads.js";
+import {
     identityKind,
     membershipRole,
     membershipRevision,
@@ -182,6 +193,7 @@ export interface BrowserSdkMutationOptions extends BrowserSdkRequestOptions {
 export interface BrowserSdkClientOptions extends BrowserTransportClientOptions {
     readonly tenantId: string;
     readonly media?: BrowserRtcConfiguration;
+    readonly resolveApplicationRead?: BrowserApplicationReadResolver;
 }
 export type BrowserOperationState =
     | "accepted"
@@ -795,7 +807,8 @@ class State {
         readonly owner: BrowserTransportClient,
         readonly tenant: string,
         readonly actor: string,
-        readonly rtcConfiguration: BrowserRtcConfiguration = {},
+        readonly rtcConfiguration: BrowserRtcConfiguration,
+        readonly applicationReads: BrowserApplicationReads,
     ) {}
     get peer(): BrowserClient {
         try {
@@ -832,6 +845,7 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
+        this.applicationReads.retire();
         for (const retire of this.eventReaders) retire();
         this.eventReaders.clear();
         this.inbox.clear();
@@ -840,6 +854,7 @@ class State {
         const peer = this.peer,
             epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
+            this.applicationReads.retire();
             for (const retire of this.eventReaders) retire();
             this.inbox.clear();
             this.invitationRead = undefined;
@@ -1204,6 +1219,16 @@ export class BrowserSdkClient {
         options: BrowserSdkClientOptions,
     ): Promise<BrowserSdkClient> {
         sdkId(options.tenantId);
+        if (
+            options.resolveApplicationRead !== undefined &&
+            typeof options.resolveApplicationRead !== "function"
+        )
+            invalid();
+        const applicationReads = new BrowserApplicationReads(
+            options.resolveApplicationRead,
+            options.identityId,
+            options.deviceId,
+        );
         const tenant = options.tenantId,
             actor = options.identityId;
         let media: BrowserRtcConfiguration;
@@ -1223,6 +1248,7 @@ export class BrowserSdkClient {
                     tenant,
                     actor,
                     media,
+                    applicationReads,
                 ),
             );
         } catch (error) {
@@ -1247,6 +1273,7 @@ export class BrowserSdkClient {
     close(): void {
         const s = current(this);
         s.owner.close();
+        s.applicationReads.retire();
         s.stopEvents?.();
         s.stopClose?.();
         s.inbox.clear();
@@ -1613,6 +1640,26 @@ export class BrowserConversation {
             { cid: this.id },
             options,
         );
+    }
+    async receipts(
+        messageId: MessageId,
+        options: BrowserSdkRequestOptions,
+    ): Promise<readonly BrowserDeliveryObservation[]> {
+        const budget = new Budget(options),
+            s = current(this.client),
+            peer = s.peer,
+            epoch = s.owner.status.physicalEpoch;
+        try {
+            return await s.applicationReads.receipts(
+                this.id,
+                messageId,
+                { ...budget.options(), timeoutMs: budget.options().timeoutMs! },
+                epoch,
+                () => s.observe(peer, epoch),
+            );
+        } catch (error) {
+            throw translated(error, "read-only");
+        }
     }
     events(
         input: { readonly after?: BrowserCursor },

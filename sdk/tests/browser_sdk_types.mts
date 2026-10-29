@@ -126,3 +126,9 @@ participant.remove({expectedConversationRevision:sdkRevision<'topology'>(3)},{ti
 room.participants.add({identityId:sdkId<'participant'>('recipient'),kind:'human',role:'reviewer',expectedRevision:sdkRevision<'conversation'>(1)},{timeoutMs:1000,operationId});
 // @ts-expect-error Identity kinds are the frozen closed union.
 room.participants.add({identityId:sdkId<'identity'>('recipient'),kind:'robot',role:'reviewer',expectedRevision:sdkRevision<'conversation'>(1)},{timeoutMs:1000,operationId});
+
+const delivery:readonly import('../typescript/dist/browser.js').BrowserDeliveryObservation[]=await room.receipts(sdkId<'message'>('message'),{timeoutMs:1000});
+// @ts-expect-error A Participant ID cannot replace the Message whose receipts are read.
+room.receipts(sdkId<'participant'>('recipient'),{timeoutMs:1000});
+// @ts-expect-error Delivery evidence is immutable.
+delivery[0].state='read';

@@ -90,3 +90,27 @@ actual local Chrome HTTPS, IndexedDB and signed WebTransport/WSS checks. The
 fixture trusts only its synthetic leaf SPKI in an owned temporary browser
 profile; it does not modify system trust or personal browser state. Native
 installation is documented in [native enrollment](native-enrollment.md).
+
+
+## Explicit application read service
+
+A typed browser SDK may configure `resolveApplicationRead` with
+`vault.resolveApplicationReads({ name, url })`. Use a separately approved saved
+browser enrollment for the same Identity/Device and exact Origin. Receipt
+queries require the existing `history` scope and current original audience;
+that scope also covers receipt reporting/preferences in the server API. The
+client read interface sends queries only. It never borrows its active signaling
+credential or derives an HTTP endpoint from a WT/WSS URL.
+
+The service URL is an explicit HTTPS origin matching the enrollment service.
+`BrowserEnrollmentSession.applicationReadOptions(credential, url)` validates the
+original claimed grant and returns memory-only HTTP client options. The server's
+finite HTTP Origin ceiling is independent of the approved signaling transport;
+no `http-json` EnrollmentTransport is added. A separately enrolled `wss-webrtc`
+profile can therefore supply this HTTP service while its original scopes,
+recipient ceiling, key/Device lifetime and exact Origin remain enforced.
+
+Resolution restores and reclaims the same original enrollment, not a replacement
+identity, key or operation. The SDK's one read deadline/cancellation signal covers
+this work and all subsequent pages. See [the receipt API](browser-sdk.md) for
+current authorization, bounded reads, cancellation and separate delivery facts.
