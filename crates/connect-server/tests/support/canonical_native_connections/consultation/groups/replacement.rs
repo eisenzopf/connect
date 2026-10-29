@@ -359,7 +359,7 @@ async fn exercise_replacement_with_control(
             );
             let database = rusqlite::Connection::open(&f.config.database).unwrap();
             let original:(String,String)=database.query_row("SELECT root.record_id,mapping.runtime_connection_id FROM connections c JOIN connection_offers mapping ON mapping.connection_id=c.id JOIN operations root ON root.connection_id=c.id AND root.operation_id=mapping.operation_id JOIN native_offer_operations original ON original.operation_record_id=root.record_id JOIN operation_effects effect ON effect.id=original.effect_id WHERE c.id=?1 AND c.session_id='native-session' AND c.participant_id=?2 AND c.endpoint_id=?3 AND c.state='preparing' AND c.generation=1 AND c.observed_runtime_id IS NULL AND c.readiness_json IS NULL AND original.effect_started=1 AND original.generation=c.generation AND original.attempt_runtime=?4 AND root.state='preparing' AND root.lease_owner=original.attempt_id AND effect.state='submitting' AND effect.attempt=1",rusqlite::params![candidate_id,owner,endpoint,f.server.store.runtime_epoch()],|row|Ok((row.get(0)?,row.get(1)?))).unwrap();
-            original_candidate = Some(original);
+            original_candidate = Some((original.0, original.1, request_id));
             drop(database);
             Some(client)
         } else {
@@ -449,12 +449,36 @@ async fn exercise_replacement_with_control(
         assert_eq!(exists, candidate_target);
         if candidate_target {
             assert_eq!(candidate, candidate_id);
-            let (original_record, old_runtime) = original_candidate.as_ref().unwrap();
+            let (original_record, old_runtime, _) = original_candidate.as_ref().unwrap();
             assert_ne!(plan["candidate_runtime_id"], old_runtime.as_str());
             let retired:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_candidates q JOIN operation_effects e ON e.id=q.retirement_effect_id JOIN connections v ON v.id=q.candidate_connection_id JOIN connection_offers mapping ON mapping.connection_id=v.id JOIN operations original ON original.record_id=q.original_record_id WHERE q.operation_record_id=?1 AND q.original_record_id=?2 AND json_extract(q.claim_json,'$.core')=?3 AND e.provider='native-candidate-retire' AND e.state='confirmed' AND e.attempt=1 AND json_extract(e.observation_json,'$.core')=?3 AND json_extract(e.observation_json,'$.retired_generation')=2 AND v.state='retired' AND v.generation=2 AND v.observed_runtime_id IS NULL AND v.readiness_json IS NULL AND mapping.runtime_connection_id=?3 AND original.state='failed')",rusqlite::params![prepared.record_id,original_record,old_runtime],|row|row.get(0)).unwrap();
             assert!(retired);
         }
         drop(c);
+        if let Some((_, _, original_request)) = &original_candidate {
+            // Retirement ends the still-unanswered original exchange. Consume
+            // and verify its own terminal reply before expecting the fresh
+            // replacement exchange on this same authenticated physical peer.
+            let ended = tokio::time::timeout(
+                Duration::from_secs(4),
+                preparing_target.as_mut().unwrap().receive_control(),
+            )
+            .await
+            .unwrap()
+            .unwrap();
+            assert_eq!(ended.kind(), "error");
+            for (field, expected) in [
+                ("in_reply_to", original_request.as_str()),
+                ("operation_id", "node-candidate-initial-offer"),
+                ("cid", cid.as_str()),
+                ("sid", "native-session"),
+                ("connid", candidate_id),
+            ] {
+                assert_eq!(ended.original()[field], expected);
+            }
+            assert_eq!(ended.original()["payload"]["code"], 400);
+            assert_eq!(ended.original()["payload"]["reason"], "operation_rejected");
+        }
         // Real ticket ownership retains no idle Store grant. A bounded writer
         // may temporarily deny fresh polling without destroying the ticket.
         let until = tokio::time::Instant::now() + Duration::from_secs(2);

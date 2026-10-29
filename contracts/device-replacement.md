@@ -882,14 +882,21 @@ no operator assertion can manufacture replacement completion. No new wire route
 is added: the existing connection.replace and native offer continuations retain
 their public authority and result rules.
 
-Candidate reservation couples immediate SQL mutex and complete authority
-admission, then resolves current scopes and facts again in the transaction.
-It never waits for an authority file while holding SQL. Contention records no
-preparation and releases both resources before the original metadata retry.
+Every managed replacement reservation couples immediate SQL mutex and complete
+authority admission, then resolves current scopes and facts again in the
+transaction. It never waits for an authority file while holding SQL. Contention
+records no preparation and releases both resources before the original metadata
+retry. This also applies to a later Endpoint move from an adopted candidate.
 
-Store checks qualify admission, retirement metadata, cancellation/revocation,
-crash recovery and the final public-slot CAS. The pre-fix installed runtime
-reaches confirmed original retirement but fails fresh reservation at the shared
-SQL mutex. The immediate admission fix passes the current controlled Store
-checks; production candidate media, complete SDK and Gate 6 acceptance remain
-unqualified. See docs/evidence/gate-6/native-candidate-adoption.json.
+The original ordinary offer remains a separate signed exchange. The fixture
+verifies its correlated terminal rejection before expecting the fresh media
+answer on the same authenticated physical peer. An old reply cannot be treated
+as the new request's answer.
+
+All142 controlled replacement and29 native-wire Store checks pass. The installed
+pre-shared-admission run completes the first candidate move on both signing
+algorithms, including actual decoded audio and continued current control after
+old-source revocation, but fails its later generation-three Endpoint preparation.
+The current shared admission fix still requires complete installed runtime
+verification. Complete SDK and Gate 6 acceptance remain unqualified; see
+docs/evidence/gate-6/native-candidate-adoption.json.

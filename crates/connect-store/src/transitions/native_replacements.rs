@@ -216,43 +216,21 @@ impl Store {
     ) -> Result<Option<NativeReplacementPreparationLease>> {
         validate_request(&request)?;
         let selection = read.into_selection()?;
-        // Original candidate status polling shares this SQL mutex. Repeatedly
+        // Original operation status polling shares this SQL mutex. Repeatedly
         // releasing it between writer admission and scope validation can starve
-        // the reservation. Couple only immediate acquisitions for this path:
+        // the reservation. Couple only immediate acquisitions:
         // no authority file wait may run while SQL is held. The transaction
         // below still resolves and validates every current fact and scope.
-        let candidate_sql = if matches!(
-            &selection.origin.request.intent,
-            TransitionIntent::Replace {
-                candidate_connid: Some(_),
-                ..
-            }
-        ) {
-            Some(self.try_connection()?)
-        } else {
-            None
-        };
-        let held = if let Some(c) = candidate_sql.as_ref() {
-            self.try_acquire_authority(&selection.scopes(self, c, true)?)
-        } else {
-            self.stable_authority(
-                &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-                || {
-                    let c = self.try_connection()?;
-                    selection.scopes(self, &c, true)
-                },
-            )
-        }.map_err(|error| {
-            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
+        let mut c = self.try_connection().map_err(|error| {
+            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
             error
         })?;
-        let mut c = match candidate_sql {
-            Some(c) => c,
-            None => self.try_connection().map_err(|error| {
-                tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
+        let held = self
+            .try_acquire_authority(&selection.scopes(self, &c, true)?)
+            .map_err(|error| {
+                tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
                 error
-            })?,
-        };
+            })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| {

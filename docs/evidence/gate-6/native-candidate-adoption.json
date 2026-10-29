@@ -1,5 +1,5 @@
 {
-  "passed": true,
+  "passed": false,
   "results": [
     {
       "phase": "candidate",
@@ -93,14 +93,14 @@
   "source_count": 8244,
   "source_inputs_sha256": "e6a2006f79a97f68f4130b83f73ba5c3ad6b97136a1538601283b9aabe75dfd7",
   "test_executable_sha256": "58e240408f92e1e5bb3920f6b312f998dcaf021cfb5b4695e3790dd6660e9417",
-  "scope": "Actual local controlled Store admission/claim/retirement/CAS/history/recovery and existing native-wire regressions. No real Core ticket, signed host media, Linux/remote/provider or full SDK qualification.",
+  "scope": "Controlled Store replacement proof and source-bound installed native candidate investigation. Both prior installed cases complete the first candidate move but fail the later Endpoint move; current shared admission fix still requires complete installed runtime verification. No full SDK or acceptance qualification.",
   "task": "G6-062",
   "date": "2026-10-28",
   "qualified": false,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
-  "implementation_status": "Store/Service candidate custody implemented. Actual pre-fix runtime proves original retirement but fails fresh reservation at main SQL mutex contention. Candidate-only joint immediate admission fix passes current39 Store checks; fresh production hosting/installed native media qualification pending.",
+  "implementation_status": "Candidate-only immediate admission allows the installed first move to complete on both signing algorithms after correlated original reply handling. The remaining observed failure is the same SQL reacquisition pattern in a later ordinary Endpoint reservation. Shared immediate admission passes171 current Store checks; full post-fix hosting/installed verification is pending.",
   "store_implementation_commit": "d3ec1194",
   "service_implementation_commit": "915c9665",
   "hosting_build": {
@@ -230,7 +230,7 @@
       "diagnosis": "One EdDSA diagnostic run confirms same boundary; metadata retry returns authority-busy. No additional model/account/provider call. Failure site requires further diagnosis."
     }
   ],
-  "next_required": "Build and seal current production hosting, run both installed Node candidate signing algorithms, then current native8/HTTPS3/Python1 regressions and original Linux matrix. Retain request4s/phase15s/function90s and all decoded audio/current authorization predicates.",
+  "next_required": "Fresh full hosting build and both complete installed candidate functions, then current Node native8/HTTPS3/Python1 regressions and current Linux matrix. Preserve all original request/phase/function and audio/authority/drain predicates.",
   "current_store_diagnostics_check": {
     "passed": true,
     "results": [
@@ -471,5 +471,683 @@
     },
     "regression": "Current39 controlled Store checks pass. The strengthened contention function refuses a held authority reader within500ms, releases SQL, preserves the exact snapshot/no preparation, then succeeds after release. Existing external SQL-writer contention, original attempt, transfer and restart regressions remain passing.",
     "actual_installed_post_fix_executed": false
+  },
+  "current_complete_store_replacements": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "replacement-sources",
+        "passed": true,
+        "expected_functions": 142,
+        "functions": [
+          "connection_control::tests::replacement_sources::allocation::replacement_allocation_begins_once_under_independent_target_and_original_grants_without_io",
+          "connection_control::tests::replacement_sources::allocation::replacement_allocation_cannot_upgrade_a_binding_only_fence_or_borrow_revoked_source",
+          "connection_control::tests::replacement_sources::allocation::replacement_allocation_planning_contention_has_no_effect_and_begin_remains_once_only",
+          "connection_control::tests::replacement_sources::allocation::replacement_allocation_rejects_forged_target_binding_and_does_not_start_an_effect",
+          "connection_control::tests::replacement_sources::allocation::replacement_allocation_unknown_cannot_reexecute_or_borrow_preparation_cleanup",
+          "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+          "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+          "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+          "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+          "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket",
+          "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping",
+          "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor",
+          "connection_control::tests::replacement_sources::commit::replacement_actual_absence_cleanup_is_exact_historical_and_idempotent_after_target_revoke",
+          "connection_control::tests::replacement_sources::commit::replacement_audience_revisions_are_atomic_historical_and_keep_surviving_native_controls_current",
+          "connection_control::tests::replacement_sources::commit::replacement_commit_capture_refuses_wrong_incarnation_role_confirmation_and_unobserved_streams",
+          "connection_control::tests::replacement_sources::commit::replacement_commit_requires_actual_private_readiness_and_complete_current_scene",
+          "connection_control::tests::replacement_sources::commit::replacement_established_projection_keeps_target_generation_and_survives_old_key_revocation_and_retirement_race",
+          "connection_control::tests::replacement_sources::commit::replacement_established_stream_commands_use_candidate_parent_and_independent_target_permission",
+          "connection_control::tests::replacement_sources::commit::replacement_known_commit_capture_survives_cancel_revocation_and_failed_metadata_write_without_reexecution",
+          "connection_control::tests::replacement_sources::commit::replacement_known_commit_projection_preserves_later_topology_without_replaying_physical_effect",
+          "connection_control::tests::replacement_sources::commit::replacement_scene_pairs_use_independent_candidate_and_existing_receiver_permissions",
+          "connection_control::tests::replacement_sources::commit::replacement_unknown_commit_cannot_be_cancelled_into_candidate_cleanup_or_worker_retry",
+          "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect",
+          "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+          "connection_control::tests::replacement_sources::custody::replacement_captured_local_stop_is_idempotent_after_cancel_or_revocation",
+          "connection_control::tests::replacement_sources::custody::replacement_local_stop_cannot_assert_cleanup_after_target_allocation_started",
+          "connection_control::tests::replacement_sources::custody::replacement_preflight_refusal_is_exact_and_cannot_close_a_reserved_attempt",
+          "connection_control::tests::replacement_sources::custody::replacement_preparation_begins_once_and_unknown_never_authorizes_another_attempt",
+          "connection_control::tests::replacement_sources::custody::replacement_preparation_cancel_before_begin_preserves_original_and_tombstones_candidate",
+          "connection_control::tests::replacement_sources::custody::replacement_preparation_captured_fact_survives_cancel_and_revoke_without_media_or_role_claim",
+          "connection_control::tests::replacement_sources::custody::replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not_execution",
+          "connection_control::tests::replacement_sources::custody::replacement_preparation_refuses_forged_ticket_fields_and_ready_claims",
+          "connection_control::tests::replacement_sources::custody::replacement_reservation_is_exact_idempotent_and_does_not_allocate_or_claim_readiness",
+          "connection_control::tests::replacement_sources::custody::replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and_after_cancel",
+          "connection_control::tests::replacement_sources::custody::replacement_restart_fences_unstarted_started_and_captured_preparation_without_reexecution",
+          "connection_control::tests::replacement_sources::custody::replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing",
+          "connection_control::tests::replacement_sources::replacement_candidate_metadata_is_pinned_to_its_original_endpoint_and_does_not_prove_media",
+          "connection_control::tests::replacement_sources::replacement_metadata_preserves_an_observer_role_without_promoting_or_changing_defaults",
+          "connection_control::tests::replacement_sources::replacement_preparation_read_holds_only_current_original_physical_authority_and_no_candidate_io",
+          "connection_control::tests::replacement_sources::replacement_preparation_read_refuses_a_held_writer_without_waiting_or_reserving_work",
+          "connection_control::tests::replacement_sources::replacement_preparation_refuses_swapped_foreign_and_revoked_physical_origins_despite_valid_control",
+          "connection_control::tests::replacement_sources::replacement_source_has_no_idle_reader_and_cannot_cross_installation_or_restart",
+          "connection_control::tests::replacement_sources::replacement_source_pins_original_command_expiry_and_only_the_provisioned_destination_without_effects",
+          "connection_control::tests::replacement_sources::replacement_source_rechecks_endpoint_device_membership_generation_topology_cancel_and_worker",
+          "connection_control::tests::replacement_sources::replacement_source_refuses_same_foreign_unverified_and_non_audio_endpoint_selection",
+          "connection_control::tests::replacement_sources::replacement_source_requires_current_named_owner_permission_and_new_source_after_revocation",
+          "connection_control::tests::replacement_sources::start::replacement_full_scene_read_uses_one_complete_interval_for_target_and_existing_routes",
+          "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+          "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+          "connection_control::tests::replacement_sources::start::replacement_start_refuses_changed_parameters_and_unknown_never_repeats",
+          "connection_control::tests::replacement_sources::start::replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit",
+          "connection_control::tests::replacement_sources::start::uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settle_commit",
+          "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_captured_revision_never_rebinds_call_or_rewrites_later_state",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_requires_complete_current_nonduplicated_scene",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_uses_current_route_without_retired_native_credentials",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_captured_origin_keeps_route_authority_separate_and_owns_no_idle_reader",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_captured_origin_refuses_foreign_dialog_and_retired_generation",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_captured_audience_records_its_generation_and_establishes_current_typed_context",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_fresh_packet_pair_grants_only_its_current_registered_native_connection",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_plan_cannot_activate_the_phone_or_give_private_audio_to_the_retained_remote",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_does_not_require_offer_subscribe_or_codec_permissions",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_rechecks_independent_current_named_signal_permissions",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_grants_cannot_be_borrowed_by_a_public_sibling_of_the_consultant",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_owns_only_typed_private_edges_and_releases_all_idle_readers",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_refuses_incomplete_duplicated_and_borrowed_private_sets",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_requires_current_named_receive_and_reciprocal_participant_ceilings",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_received_private_dtmf_freezes_only_its_physical_partner_and_rechecks_on_write",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_return_grants_restore_only_the_original_call_and_exclude_the_consultant",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_does_not_confuse_withdrawn_receive_right_with_departure",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_keeps_original_call_and_replays_once",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_uses_phone_identity_and_current_route_recipient_ceiling",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_scene_records_its_own_revision_and_current_private_lifetime",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_holds_one_bounded_interval_and_refuses_fresh_read_after_route_revocation",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_rejects_same_participant_native_connection",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_requires_opposite_native_direction_and_both_recipient_ceilings",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_rechecks_actual_call_route_device_and_membership_lifetime",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_requires_independent_named_directions_without_codec_or_media_permission",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_current_rights_refuse_queued_work_but_captured_outcome_survives",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_failed_reservation_rolls_back_and_retries_original_schedule_only",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_freezes_actual_committed_generation_without_initial_or_native_surrogate",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_recovery_preserves_original_reserved_uncertainty_and_never_replays",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_schema_refuses_wrong_call_generation_route_or_borrowed_native_facts",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_snapshot_digest_includes_recipient_only_reservation",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_directions_are_independent_and_known_output_survives_route_revocation",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_original_input_replay_rechecks_route_ceiling_without_recapturing_audience",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_owns_logical_member_and_real_call_without_borrowing_retired_credentials",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_single_current_interval_blocks_revocation_without_queued_readers",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_snapshot_detects_recipient_reservation_and_sql_origin_kind_is_immutable",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_successor_preserves_reserved_unknown_and_never_replays_input",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::refresh::dtmf_refresh_native_source_and_native_recipient_use_applied_epoch_without_changing_lineage",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::refresh::dtmf_refresh_received_queued_recipient_keeps_original_epoch_and_fresh_input_uses_current_view",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_records_actual_capture_before_projection_and_established_read_ignores_old_credentials",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_requires_confirmed_private_readiness_and_never_begins_twice",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_uncertainty_late_known_result_and_projection_rollback_never_reexecute",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_cleanup_requires_exact_absence_preserves_retained_and_is_idempotent",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_pair_requires_independent_named_subscribe_and_both_recipient_ceilings",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_requires_complete_current_native_and_phone_sources_without_surrogate",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_retains_one_complete_interval_behind_queued_route_revocation",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_source_native_replacement_uses_independent_current_origin_and_generation_three",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_reuses_complete_original_interval_behind_a_queued_route_writer",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_uses_exact_signed_attempt_and_independent_receive_permissions",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_capture_rollback_retries_same_fact_and_immutable_phase_is_retained",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_phases_are_ordered_once_and_actual_audience_revisions_are_required",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_scene_requires_all_native_origins_and_fences_route_writer_without_fake_peer",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_unknown_then_late_capture_preserves_knowledge_without_restarting",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_backup_digest_covers_actual_resource_capture_rows",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_known_activation_has_current_independent_route_not_native_target_or_readiness",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_begin_once_and_exact_muted_codec_capture_cannot_claim_duplex",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_failure_preserves_unknown_and_late_knowledge_without_reexecution",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_recording_failure_rolls_back_then_only_same_capture_retries",
+          "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_revocation_refuses_new_resource_read_but_known_submission_can_be_abandoned",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_preparation_begun_attempt_cannot_be_reclassified_as_unstarted_or_begun_twice",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_preparation_unstarted_refusal_settles_exact_reservation_without_core_or_callback",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_allocation_must_be_recorded_before_once_only_submission",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_cancelled_root_records_known_allocation_without_revival",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_endpoint_and_operator_are_required_after_allocation",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_reader_binds_independent_credential_and_verified_route",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_route_fence_blocks_revocation_and_requires_fresh_authority",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_each_physical_write_reacquires_exact_begun_submission_authority",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_expired_route_interval_refuses_begin_without_an_effect",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_new_write_interval_refuses_revoked_route_credential",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_revocation_after_allocation_cannot_erase_capture_or_authorize_submission",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_route_credential_requires_its_own_dial_and_recipient_permissions",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_start_control_waits_for_sql_but_releases_authority_before_ring",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_submission_restart_keeps_exact_correlation_and_no_second_attempt",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_terminal_or_uncertain_submission_cannot_lend_another_write_interval",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_allocation_can_record_late_knowledge_but_never_redial",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_submission_keeps_call_id_and_never_restores_root_state",
+          "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_wrong_phase_and_call_reference_cannot_create_a_new_effect",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_binds_verified_destination_trunk_and_configured_confirmation",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_cannot_be_applied_to_a_native_endpoint",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_rejects_ambiguous_routing_and_confirmation",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_preparation_rejects_changed_policy_and_revoked_endpoint",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_rejects_missing_policy_and_cross_trunk_without_effects",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_requires_independent_current_dial_permission",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_route_owner_is_fenced_and_rechecked_before_begin",
+          "connection_control::tests::replacement_sources::telephone::telephone_replacement_unknown_preparation_cannot_reenter_or_claim_a_call"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 152.61285212496296,
+        "log_sha256": "2cd34942c5a004d87b2b777217f14bea655285bc18903919d1a8b9617ee8d204"
+      },
+      {
+        "phase": "native-wire",
+        "passed": true,
+        "expected_functions": 29,
+        "functions": [
+          "connection_control::tests::native_wire::controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_failed_facts",
+          "connection_control::tests::native_wire::direct_preparation_cannot_pair_a_native_offer_with_a_verified_web_rtc_endpoint",
+          "connection_control::tests::native_wire::native_cleanup_finishes_original_route_after_actual_session_retirement",
+          "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata",
+          "connection_control::tests::native_wire::native_dormant_retirement_fanout_and_decision_are_atomic_and_replay_exactly",
+          "connection_control::tests::native_wire::native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_ids",
+          "connection_control::tests::native_wire::native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_another_profile",
+          "connection_control::tests::native_wire::native_endpoint_selection_refuses_missing_and_ambiguous_profiles_without_creating_slots",
+          "connection_control::tests::native_wire::native_split_budgets_admit_one_cancel_receipt_and_preserve_unknown_cleanup_fanout",
+          "connection_control::tests::native_wire::native_transport_selection_preserves_verified_endpoint_and_refuses_cross_transport_replay",
+          "connection_control::tests::native_wire::native_wire_accept_and_begin_storage_failures_roll_back_before_issuing_an_attempt",
+          "connection_control::tests::native_wire::native_wire_acceptance_is_separate_from_private_completion_and_can_be_read_under_held_invocation",
+          "connection_control::tests::native_wire::native_wire_cancel_before_effect_retires_only_dormant_slot_but_attempted_cancel_remains_unknown",
+          "connection_control::tests::native_wire::native_wire_concurrent_claims_issue_one_attempt_and_one_stable_effect",
+          "connection_control::tests::native_wire::native_wire_replay_conflict_and_binding_proof_cannot_start_or_replace_an_attempt",
+          "connection_control::tests::native_wire::native_wire_restart_after_attempt_marks_unknown_and_never_issues_another_attempt",
+          "connection_control::tests::native_wire::native_wire_source_expiry_before_effect_fails_without_extending_replay_or_allocating_media",
+          "connection_control::tests::native_wire::web_rtc_original_sdp_replay_cannot_select_new_intent_or_revoked_endpoint",
+          "connection_control::tests::native_wire::web_rtc_preparation_requires_verified_exact_device_transport_and_never_reports_media",
+          "connection_control::tests::native_wire::webrtc_continuation::native_quic_cannot_enter_the_webrtc_continuation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_complete_a_cancelled_original_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_substitute_a_credential_origin_or_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_does_not_extend_the_original_source_expiry",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_preserves_caller_cancellation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_reacquires_exact_original_authority_without_another_effect_or_idle_reader",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_rechecks_current_credential_key_device_and_endpoint",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_a_current_writer_and_preserves_original_uncertainty",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_departed_session_membership",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_wait_does_not_outlive_original_source_budget"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 18.59315458405763,
+        "log_sha256": "bb48eb750f51bd12c88d9f3026c323e4ce365d7ecc9eb5ada759344d9785ebd1"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "ee5e425624de5fecdba286d0556dd0d8f93a2768ab909eeb029bc364c30c1ebd",
+    "test_executable_sha256": "274bd3821d571ab7499f439fbd29d88b4e1189f5551e70e7ed0cdad95bc7f968",
+    "scope": "All controlled local Store native/telephone replacement source, reservation, custody, phase, commit, failure/recovery and native-wire regressions. No real Core ticket, signed host media, phone/provider or full SDK qualification."
+  },
+  "aggregate_passed": false,
+  "controlled_store_passed": true,
+  "installed_after_candidate_only_fix": {
+    "passed": false,
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "scenario": "installed_node_eddsa_move_candidate",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 14.503374624997377,
+        "log_sha256": "cfc58428e0853f67807a1bdc0cdaff9f63d064d7f03b86e2d00d5db9dd850201",
+        "witnesses": []
+      },
+      {
+        "algorithm": "ES256",
+        "scenario": "installed_node_es256_move_candidate",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 7.650926084024832,
+        "log_sha256": "64ed5b6f93fb56835e6da50e3be1c3e26f7e99df200a796e8f05aa222543fcb4",
+        "witnesses": []
+      }
+    ],
+    "seconds": 22.855183999985456,
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "1802b698f55398cc0fab90fdc1dd04f232a4a466ebf2b23c001f8c9eb49a7b00",
+    "test_executable_sha256": "12e3e80faece5d4a8b8a4de8122f5566c3eeee95973d61d6c595d66846bae094",
+    "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "node_version": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Both cases reach confirmed fresh preparation/allocation, then fail because the fixture reads the original cancelled offer rejection as the fresh media answer. No completed first move or whole-case qualification at this checkpoint."
+  },
+  "correlated_original_reply_fix": "Record the original signed offer request ID. On the same physical target, require its terminal400 operation_rejected with exact original reply/operation/Conversation/Session/Connection scopes before beginning the fresh media exchange. Never discard an unrelated error or replace the peer to hide it.",
+  "installed_first_move_observation": {
+    "passed": false,
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "scenario": "installed_node_eddsa_move_candidate",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 42.463481415994465,
+        "log_sha256": "ec0dd814aaf8b8f6fa8341138d45d401d028c0eb0bd7a89f9a62dd3cc600ac9f",
+        "witnesses": []
+      },
+      {
+        "algorithm": "ES256",
+        "scenario": "installed_node_es256_move_candidate",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 36.07189737516455,
+        "log_sha256": "60b2e6430a637d41514bfde652531bbf52af1ac1ee02116be34bac64cae01630",
+        "witnesses": []
+      }
+    ],
+    "seconds": 79.23200345784426,
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "6aa2cc71443de607e8e84e0548fea167cb2f8e8298abc643082c5fd5fbbf6d0f",
+    "test_executable_sha256": "b13fd11066e53f19855c2dbd49907bf46c681b29439d2365c3d263af6fb09041",
+    "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "node_version": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Both signing algorithms complete the first actual candidate move and sampled live-route audio/current-authority predicates, then fail the later generation-three Endpoint reservation. No complete function/server drain/full SDK qualification."
+  },
+  "verified_partial_first_move": [
+    {
+      "algorithm": "EdDSA",
+      "first_candidate_move_complete": true,
+      "sampled_live_route_probes": [
+        {
+          "probe": "replace-before-prepare-remote",
+          "source_index": 0,
+          "allowed_indices": [
+            1
+          ],
+          "marked_frames": [
+            0,
+            76
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            76
+          ]
+        },
+        {
+          "probe": "replace-before-prepare-source",
+          "source_index": 1,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            98,
+            0
+          ],
+          "sent_packets": 99,
+          "received_packets": [
+            98,
+            0
+          ]
+        },
+        {
+          "probe": "replace-real-preparation-retains-remote-audio",
+          "source_index": 0,
+          "allowed_indices": [
+            1
+          ],
+          "marked_frames": [
+            0,
+            24
+          ],
+          "sent_packets": 30,
+          "received_packets": [
+            0,
+            24
+          ]
+        },
+        {
+          "probe": "replace-real-preparation-retains-source-role",
+          "source_index": 1,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            26,
+            0
+          ],
+          "sent_packets": 30,
+          "received_packets": [
+            26,
+            0
+          ]
+        },
+        {
+          "probe": "replace-moved-remote-reaches-only-target",
+          "source_index": 0,
+          "allowed_indices": [
+            2
+          ],
+          "marked_frames": [
+            0,
+            0,
+            80
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            115
+          ]
+        },
+        {
+          "probe": "replace-moved-target-preserves-original-role",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ]
+        },
+        {
+          "probe": "replace-retained-control-uses-current-durable-revision",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ]
+        },
+        {
+          "probe": "replace-moved-survives-old-source-and-controller-revoke",
+          "source_index": 0,
+          "allowed_indices": [
+            2
+          ],
+          "marked_frames": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            100
+          ]
+        },
+        {
+          "probe": "replace-moved-target-still-current",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ]
+        }
+      ],
+      "node_phases": [
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "registered",
+          "seconds": 3.063451084
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "accepted",
+          "seconds": 0.092403583
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "completed",
+          "seconds": 0.242684917
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "closed",
+          "seconds": 0.093218
+        }
+      ],
+      "whole_function_passed": false,
+      "later_failure": "generation-three Endpoint preparation: main SQL mutex contention during authority scope derivation; no new preparation effect recorded."
+    },
+    {
+      "algorithm": "ES256",
+      "first_candidate_move_complete": true,
+      "sampled_live_route_probes": [
+        {
+          "probe": "replace-before-prepare-remote",
+          "source_index": 0,
+          "allowed_indices": [
+            1
+          ],
+          "marked_frames": [
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            100
+          ]
+        },
+        {
+          "probe": "replace-before-prepare-source",
+          "source_index": 1,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            99,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            99,
+            0
+          ]
+        },
+        {
+          "probe": "replace-real-preparation-retains-remote-audio",
+          "source_index": 0,
+          "allowed_indices": [
+            1
+          ],
+          "marked_frames": [
+            0,
+            20
+          ],
+          "sent_packets": 29,
+          "received_packets": [
+            0,
+            20
+          ]
+        },
+        {
+          "probe": "replace-real-preparation-retains-source-role",
+          "source_index": 1,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            26,
+            0
+          ],
+          "sent_packets": 31,
+          "received_packets": [
+            26,
+            0
+          ]
+        },
+        {
+          "probe": "replace-moved-remote-reaches-only-target",
+          "source_index": 0,
+          "allowed_indices": [
+            2
+          ],
+          "marked_frames": [
+            0,
+            0,
+            99
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            134
+          ]
+        },
+        {
+          "probe": "replace-moved-target-preserves-original-role",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ]
+        },
+        {
+          "probe": "replace-retained-control-uses-current-durable-revision",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ]
+        },
+        {
+          "probe": "replace-moved-survives-old-source-and-controller-revoke",
+          "source_index": 0,
+          "allowed_indices": [
+            2
+          ],
+          "marked_frames": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            100
+          ]
+        },
+        {
+          "probe": "replace-moved-target-still-current",
+          "source_index": 2,
+          "allowed_indices": [
+            0
+          ],
+          "marked_frames": [
+            90,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            90,
+            0,
+            0
+          ]
+        }
+      ],
+      "node_phases": [
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "registered",
+          "seconds": 0.489231209
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "accepted",
+          "seconds": 0.05721525
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "completed",
+          "seconds": 0.255609167
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "closed",
+          "seconds": 0.091066958
+        }
+      ],
+      "whole_function_passed": false,
+      "later_failure": "generation-three Endpoint preparation: main SQL mutex contention during authority scope derivation; no new preparation effect recorded."
+    }
+  ],
+  "shared_reservation_fix": {
+    "candidate_only": false,
+    "description": "Apply immediate joint SQL mutex and complete authority admission to every managed replacement reservation, including later Endpoint moves from an adopted candidate. Revalidate all current scopes and facts in the immediate transaction. Never wait for authority files while SQL is held; retain existing metadata retry and physical effect semantics.",
+    "source_sha256": {
+      "crates/connect-store/src/transitions/native_replacements.rs": "e6529184a7f351f7aa431acece664074b8bda60f9450bd3fe0cc9b8375f40acd",
+      "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs": "8ce5e2cf49d758e135e68b488e4b7f24a79d2a093755c3319b90cf1697befa80",
+      "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "10e43005b484a0bb6acee5dc4b7a50134fa82ba2be4b1f272e2063a82e689119",
+      "scripts/check-gate6-linux-hosting.py": "9f12c5e1e6365970d01fc153c9020d21f56869df3dfea6b2b3b57e8666c6fa87"
+    },
+    "regressions": "All142 controlled replacement-source/custody/native/telephone/phase/commit/recovery functions and29 native-wire functions pass. New Endpoint test proves SQL/current-reader contention returns within500ms, releases SQL, preserves the snapshot without reservation/effect, and permits later exact preparation. The new test is required explicitly by the Linux runner.",
+    "actual_installed_after_shared_fix_executed": false
   }
 }

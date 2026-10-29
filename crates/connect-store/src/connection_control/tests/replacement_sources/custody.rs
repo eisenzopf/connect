@@ -93,6 +93,62 @@ pub(super) fn cancel(f: &Fixture, key: &str, command: &TransitionCommand) {
         .unwrap();
 }
 #[test]
+fn endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect() {
+    let (f, key, _, origin, sources) = setup();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let read = || {
+        f.store
+            .try_native_replacement_preparation_read(
+                &origin,
+                &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+                &sources[1],
+            )
+            .unwrap()
+    };
+    let writer = rusqlite::Connection::open(f.store.path()).unwrap();
+    writer.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let input = read();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        f.store
+            .prepare_native_replacement(input, request())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    drop(f.store.try_connection().unwrap());
+    writer.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let reader = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::identity(
+            &identity,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let input = read();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        f.store
+            .prepare_native_replacement(input, request())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    drop(f.store.try_connection().unwrap());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(reader);
+    let lease = prepare(&f, &origin, &sources);
+    assert_eq!(lease.plan().unwrap()["generation"], 2);
+    assert_eq!(f.count("native_replacements"), 1);
+}
+
+#[test]
 fn replacement_reservation_is_exact_idempotent_and_does_not_allocate_or_claim_readiness() {
     let (f, key, command, origin, sources) = setup();
     let connections = f.count("connections");

@@ -368,6 +368,7 @@ def run(node_sdk=False, python_sdk=False):
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
             ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_", 2),
             ("native-candidate-retirement", "store", "connection_control::tests::replacement_sources::candidate::", 8),
+            ("native-endpoint-reservation-contention", "store", "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect", 1),
             ("native-candidate-transfer", "store", "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor", 1),
             ("native-candidate-recovery", "store", "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping", 1),
             ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
