@@ -1,4 +1,6 @@
-import { type ConsultationReference, type BrowserConsultationContinuation, type BrowserConsultInput, type BrowserConsultationResult, type BrowserConsultationReturnReceipt } from "./browser_sdk_consultations.js";
+import { type BrowserHandoffInput, type BrowserHandoffResult, type BrowserMoveInput, type BrowserMoveResult } from "./browser_sdk_movements.js";
+export type { EndpointId, DeviceId, BrowserHandoffRole, BrowserHandoffInput, BrowserHandoffResult, BrowserHandoffRoleChange, BrowserMoveTarget, BrowserMoveInput, BrowserMoveResult, BrowserMoveBindingObservation, } from "./browser_sdk_movements.js";
+import { type TransitionReference, type BrowserTransitionContinuation, type BrowserConsultInput, type BrowserConsultationResult, type BrowserConsultationReturnReceipt } from "./browser_sdk_consultations.js";
 export type { BrowserOperationRecordId, BrowserConsultInput, BrowserConsultationResult, BrowserConsultationReturnReceipt, BrowserTopologyChange, } from "./browser_sdk_consultations.js";
 import { type BrowserDecisionReceipt } from "./browser_sdk_decisions.js";
 export type { BrowserDecisionReceipt } from "./browser_sdk_decisions.js";
@@ -53,7 +55,7 @@ export interface BrowserCompletion<T> {
     readonly value: T;
 }
 declare const result: unique symbol;
-export interface BrowserSdkOperationReference<T> extends ConsultationReference {
+export interface BrowserSdkOperationReference<T> extends TransitionReference {
     readonly operationId: OperationId;
     readonly scope: {
         readonly conversationId?: ConversationId;
@@ -104,6 +106,8 @@ export interface BrowserSessionDecision {
     readonly topologyRevision: SdkRevision<"topology">;
 }
 export declare const browserOperationKinds: Readonly<{
+    sessionHandoff: BrowserOperationKind<BrowserHandoffResult>;
+    connectionReplace: BrowserOperationKind<BrowserMoveResult>;
     sessionConsult: BrowserOperationKind<BrowserConsultationResult>;
     sessionConsultReturn: BrowserOperationKind<BrowserSession>;
     operationCancel: BrowserOperationKind<BrowserDecisionReceipt>;
@@ -131,7 +135,7 @@ export declare class BrowserOperation<T> {
     private readonly kind;
     readonly reference: BrowserSdkOperationReference<T>;
     /** @internal Instances are supplied by SDK-owned mutation kinds. */
-    constructor(client: BrowserSdkClient, ref: ConsultationReference, kind: BrowserOperationKind<T>);
+    constructor(client: BrowserSdkClient, ref: TransitionReference, kind: BrowserOperationKind<T>);
     referenceJson(): Json;
     private observation;
     status(options: BrowserSdkRequestOptions): Promise<BrowserOperationSnapshot>;
@@ -167,6 +171,8 @@ declare const submit: unique symbol;
 export declare class BrowserSdkClient {
     readonly role: "browser";
     readonly operationKinds: Readonly<{
+        sessionHandoff: BrowserOperationKind<BrowserHandoffResult>;
+        connectionReplace: BrowserOperationKind<BrowserMoveResult>;
         sessionConsult: BrowserOperationKind<BrowserConsultationResult>;
         sessionConsultReturn: BrowserOperationKind<BrowserSession>;
         operationCancel: BrowserOperationKind<BrowserDecisionReceipt>;
@@ -207,7 +213,7 @@ export declare class BrowserSdkClient {
     get transport(): BrowserTransportState;
     reconnect(options?: Parameters<BrowserTransportClient["reconnect"]>[0]): Promise<void>;
     close(): void;
-    [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope, continuation?: BrowserConsultationContinuation): Promise<BrowserOperation<T>>;
+    [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope, continuation?: BrowserTransitionContinuation): Promise<BrowserOperation<T>>;
     incomingInvitations(options: BrowserSdkRequestOptions): BrowserIncomingInvitations;
 }
 export declare class BrowserParticipant {
@@ -276,6 +282,7 @@ export declare class BrowserSession {
     };
     constructor(client: BrowserSdkClient, conversationId: ConversationId, id: SessionId, receiptSnapshot?: BrowserSessionSnapshot | undefined, receiptConsultationReturn?: BrowserConsultationReturnReceipt | undefined);
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserSessionSnapshot>;
+    handoff(input: BrowserHandoffInput, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserHandoffResult>>;
     consult(input: BrowserConsultInput, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserConsultationResult>>;
     inviteParticipants(input: {
         readonly to: BrowserNonEmpty<ParticipantId>;
@@ -393,6 +400,7 @@ export declare class BrowserConnection {
     constructor(client: BrowserSdkClient, conversationId: ConversationId, sessionId: SessionId, id: ConnectionId, receiptStreamRevision?: SdkRevision<"stream"> | undefined);
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserConnectionSnapshot>;
     update(input: BrowserConnectionUpdate, expectedStreamRevision: SdkRevision<"stream">, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserConnectionUpdateReceipt>>;
+    replaceDevice(input: BrowserMoveInput, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserMoveResult>>;
     end(input: {
         reasonCode: number;
         reason: string;

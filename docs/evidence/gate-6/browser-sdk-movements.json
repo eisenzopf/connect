@@ -1,0 +1,244 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "f58c9ad24f476c35291e91c7a902234b3bfa5a24",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Browser Session.handoff and Connection.replaceDevice preserve frozen canonical intent and typed topology/role/binding observations. Successful movement receipts/recovery use controlled signed fixtures. Actual owned local macOS Chrome WT/WSS verifies current enrollment refusal, not successful live private media movement. No full SDK/installed parity/remote/provider/acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical/tests/sdk_movements.rs": {
+      "sha256": "ca80b1f06313d8ad6f0706b88a0a4fd02b0e4a7cb8e56ce24a3f25f666bf6ffc",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/consultations.rs": {
+      "sha256": "a543eeecc7b153152dc4cfa350c2877a14a077ad7f74278fd1ae6f91659e1601",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/movements.rs": {
+      "sha256": "5b41761c72c43202a401f1fed19c3f51484cdf8905bd3f06c5e5be05c67a9767",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/operation.rs": {
+      "sha256": "0822006329a668093d3f7736c3bd863b6a8f9071f39576f532b5a10015f40b97",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/transitions.rs": {
+      "sha256": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "b1875453db1b4d9b2584c6fff5330244e67c7b15067e471cf76c4ab30c2cca5a",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_decisions.rs": {
+      "sha256": "f70ecefbe6a8892235f76c7d16b79267b39efa06763b4966da6ef6563978c710",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_movements.test.mjs": {
+      "sha256": "0ba2ed1a53c17f71ada9060a265c159bd96c9cb34c3e1a6a09a870c2c220aab1",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "f542c7bbc17df791878dfc53a4ccb65a03103ab6c01c3eb4a84326926edb8d3a",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "dec205f8c4bf40893bdef0336d58fd32bcec3304bf9eea4cccd38e5d407a639c",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "9ce94602e682a1217a85a2f627accdfd21e2aab56c97d49081a903199344ab80",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "9900fa18250293fbcbf5988616ef7195993a45bd954015b2e3fb260499f1f8d9",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "e05919e26eb91ee54107e1ee151d2f838f55e1a45f61979998cfa1bc93cd4064",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_consultations.d.ts": {
+      "sha256": "b62fc16faf14344e1d3396cf04e048e98c251db3bb0020a67322edd132879509",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_consultations.js": {
+      "sha256": "095665329af3429cc6b577706ed7df3e5dc0afff8f4122d3f40ccb1484af8dd0",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_movements.d.ts": {
+      "sha256": "183c6ea0630ac84639c51248f4aaef80849ee70c2beb47f366f21a5494d14948",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_movements.js": {
+      "sha256": "c1b6dacbb06846d02cb971d7589c532d5dc25526733a6d8d094b29684a7f0915",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "310ede7dbe696e0f1c146f729e27656bbef1c9c25cbaed6b303cd522eadd4aa8",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "7d658f9c08b1d3c3c4e0599d31011fa901d0ba6a853993509396b8f2f9a82f39",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_consultations.ts": {
+      "sha256": "c4ac95bf61d89a04ec8f193b2afb3b29f9cc6b3ef18e273d032fd8e4ab0df5d7",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_movements.ts": {
+      "sha256": "6a51f3d003932ecb2d546d98827cffc43d80e52552a5d72f1462c1d42802c528",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2765,
+    "source_inputs_manifest_sha256": "f0e4db9c5e9771d1fa04d676692fbc878134b164a04eecabdfd5c1619060543a",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          769
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.663855666993186,
+        "log_sha256": "9afe0f9b2a361ec0afaa9cf27d3845f92883ce2ff0747a4d9fc762ea4f0d7050"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36971562495455146,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3845377499237657,
+        "log_sha256": "bd5b7e9df830201e06752fee47c538bb2055e1240db0b9c1dcd5040435c11614"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43770991708151996,
+        "log_sha256": "d9dc3d3271ea5cac02f9545cf9e52d5a096dfd28e2daf719435d0079a5273104"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.42735179187729955,
+        "log_sha256": "998b0afeb2de22613cf63703eed32ddc25a26b1140eee4596118f424efbcf538"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 101.81002920796163,
+        "log_sha256": "b1863527f2667eda0e5442872b41c2cc14846a104d98c60487980470b5daf770"
+      }
+    ]
+  },
+  "implementation": [
+    "Handoff explicitly captures primary/source/target/retained, optional prepared candidate, leave/observe, Session/Conversation role scope and distinct topology/Conversation revisions. Device movement chooses exactly one nominal Endpoint or prepared Connection target. Closed input/options and incompatible saved continuation fields refuse before IO; revisions cannot be incremented beyond the safe bound.",
+    "Strict handoff/replacement continuations preserve captured role/outgoing/target in connect-operation-reference/1. Shared transition validation checks correlated host record, command and expected revision at submission, current original status and bounded completion. Consultation references remain compatible with their current frozen contract; unrelated operation kinds reject continuations.",
+    "Optional original consultation must match Conversation/Session with a distinct logical ID. A known host record avoids parent reads; an unknown record is read through the current handoff owner under the same monotonic budget, even when its original handle belongs to a retired owner. Refused/aborted/expired parent lookup preserves the new own ID as not-submitted. Mutable caller IDs/input cannot change captured intent across awaits.",
+    "Completed32KiB receipts enforce at most100distinct topology IDs, exact retained engagement and exactly one admitted Connection. Handoff checks exact candidate when supplied, source retirement iff leave, Conversation revision advancement and any native role attribution/cleanup. Missing native role data remains absent. A source Connection cannot be its own admission even when candidate selection was delegated to the host.",
+    "Replacement binds the replaced source and its retirement, admitted Connection, exact selected Endpoint/candidate, positive safe generation/membership epoch and nominal Participant/Endpoint/Device identities. Server readiness must be an object but is not exposed as a local media grant. Frozen role/binding/topology handles acquire no capture/render ownership.",
+    "Lost replies and postcommit5xx remain uncertain. Explicit reconnect plus original-ID status recovery does not replay movement; unknown status or local wait abort dispatches no second movement or durable cancellation. Final remaining-budget conversion preserves the own not-submitted key for handoff and consultation return before a new submission."
+  ],
+  "verification_cases": [
+    "81 added signed component functions.16handoff workflows cover WT/WSS x EdDSA/ES256 x Session/Conversation roles x leave/observe, with explicit/delegated candidate selection.8device workflows cover both paths/signatures x Endpoint/candidate targets. Capture attempts on returned observation handles refuse; no native offer/capture authority is borrowed.",
+    "Malformed completion cases cover duplicates/missing/foreign retained engagement, extra or foreign admission, source retirement, revisions, unknown result fields, role scope/source/target/outgoing/cleanup/revision/extensions, replaced source, exact target, invalid binding IDs/generation/epoch and missing/nonobject/oversize readiness. Initial wrong command/record/expected revision/extra frames preserve original uncertain keys.",
+    "Optional consultation known/unknown host record cases verify skipped/current-authorized parent reads, captured intent under mutation, correct host record on wire, scope/self-parent refusal and parent refusal/deadline/abort own-key semantics. A parent from a retired client is read through the current handoff client.",
+    "Both movement kinds exercise lost ACK and503 followed by explicit reconnect/current original recovery without mutation replay. Unknown/local wait abort, current revocation and record rebinding refuse safely. Saved input and continuation validation includes nonstring enum arrays, incompatible candidates/roles/targets and injected authority fields."
+  ],
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "root_decisions": 2,
+      "message_decisions": 2,
+      "original_sources_unchanged": 2,
+      "recovered_originals": 2,
+      "unattributed_evidence_refused": 2,
+      "revoked_decision_refused": 1,
+      "local_capability_snapshots": 4,
+      "local_capability_refusals": 8,
+      "ungranted_consults_refused": 2,
+      "ungranted_handoffs_refused": 2,
+      "ungranted_moves_refused": 2,
+      "source_mutations": 4,
+      "decision_mutations": 4,
+      "reconcile_attempts": 2,
+      "credentials": 2,
+      "devices": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "332aa816056c0036e730ecdf70981226d9e949b50d2d7a6a7e80c36578f3fbe1",
+    "independent_store_checks": {
+      "accepted_consult_return_handoff_or_replacement_records": 0
+    },
+    "witness": "Actual direct WT and bounded WT-to-WSS fallback each attempt one ungranted consultation, handoff and Endpoint replacement. Host refuses each with authentication/refused and the own original key. Existing local capability, durable cancellation, unattributed reconciliation refusal, reconnect/original recovery and current revocation assertions remain. Independent SQL checks no accepted movement records.",
+    "limits": "Four source mutations/four accepted cancel decisions/two refused reconciliations/six ungranted transition attempts use16distinct explicit IDs;2credentials/1Device/2non-media Endpoints. No successful live browser handoff, device replacement or private decoded-media outcome is claimed."
+  },
+  "checks": "Final unchanged-input769SDK functions, standalone browser/Node types,37Node regressions,2serverScreen,2upstreamScreen and12realroot integration functions;0ignored. Rust/changed-source TS formatting, plan/navigation and HTTP/OpenAPI references checked before commit.",
+  "prior_attempts": [
+    {
+      "scope": "Initial80focused movement functions and standalone types pass; the final cohort additionally includes the retired-parent-owner function. No failing runtime or assertion/deadline relaxation in this increment.",
+      "log_sha256": "4b4a7f7e6e3644f1ab1dd87b604e3146db633a7a2c52ca22b15fa84ee1fa7892",
+      "types_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remaining": [
+    "G6-061 raw canonical access and requirement-by-requirement frozen browser API/UI-primitive audit remain.",
+    "Successful browser consultation/return/handoff/device movement media integration remains unqualified. Installed facade parity, public reference app and remote/browser qualification are separately required by downstream G6-070/G6-072/G6-095; this checkpoint does not satisfy those tasks.",
+    "Earlier intermittent native WT Screen-resume revision/catalog conflict remains unresolved. Full Gate6 codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence qualification and G6-054 remote proof remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker unwind warning remain. No full Rust workspace, release or performance qualification."
+  ],
+  "privacy": "Raw logs, signed traces, record/operation IDs, state, credentials and owned browser profiles remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

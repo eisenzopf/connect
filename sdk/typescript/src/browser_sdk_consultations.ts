@@ -1,3 +1,9 @@
+import {
+    movementCommand,
+    movementContinuation,
+    movementCompletion,
+    type BrowserMovementContinuation,
+} from "./browser_sdk_movements.js";
 import { fields, nonEmpty } from "./browser_sdk_sessions.js";
 import {
     canonicalJson,
@@ -18,7 +24,8 @@ import type {
 
 export type BrowserOperationRecordId = SdkId<"operation-record">;
 /** Opaque persistence context; this is original intent, never an authority grant. */
-export type BrowserConsultationContinuation =
+export type BrowserTransitionContinuation =
+    | BrowserMovementContinuation
     | {
           readonly kind: "consultation";
           readonly retained_connection_id: ConnectionId;
@@ -29,8 +36,8 @@ export type BrowserConsultationContinuation =
           readonly retained_connection_id: ConnectionId;
           readonly consultation_record_id: BrowserOperationRecordId;
       };
-export interface ConsultationReference extends BrowserOperationReference {
-    readonly continuation?: BrowserConsultationContinuation;
+export interface TransitionReference extends BrowserOperationReference {
+    readonly continuation?: BrowserTransitionContinuation;
 }
 export interface BrowserConsultInput {
     readonly via: ConnectionId;
@@ -44,6 +51,7 @@ export interface BrowserTopologyChange {
     readonly admitted: readonly BrowserConnection[];
     readonly retired: readonly ConnectionId[];
     readonly topologyRevision: SdkRevision<"topology">;
+    readonly conversationRevision?: SdkRevision<"conversation">;
 }
 export interface BrowserConsultationResult {
     readonly session: BrowserSession;
@@ -54,22 +62,25 @@ export interface BrowserConsultationReturnReceipt {
     readonly topology: BrowserTopologyChange;
     readonly remoteContinuing: boolean;
 }
-export const consultationCommand = (command: string) =>
-    ["session.consult", "session.consult.return"].includes(command);
+export const transitionCommand = (command: string) =>
+    ["session.consult", "session.consult.return"].includes(command) ||
+    movementCommand(command);
 const revision = (value: unknown) =>
     typeof value === "number" &&
     Number.isSafeInteger(value) &&
     value >= 0 &&
     value < Number.MAX_SAFE_INTEGER;
-export function consultationContinuation(
+export function transitionContinuation(
     value: Json | undefined,
     key: BrowserOperationReference,
     bad: () => never,
-): BrowserConsultationContinuation | undefined {
-    if (!consultationCommand(key.command)) {
+): BrowserTransitionContinuation | undefined {
+    if (!transitionCommand(key.command)) {
         if (value !== undefined) bad();
         return undefined;
     }
+    if (movementCommand(key.command))
+        return movementContinuation(value, key, bad);
     if (
         !value ||
         !jsonObject(value) ||
@@ -96,7 +107,7 @@ export function consultationContinuation(
         )
             return bad();
     }
-    return value as unknown as BrowserConsultationContinuation;
+    return value as unknown as BrowserTransitionContinuation;
 }
 export function consultBody(
     input: BrowserConsultInput,
@@ -127,9 +138,9 @@ export function consultBody(
         hold_treatment: input.hold,
     };
 }
-export function consultationObservation(
+export function transitionObservation(
     value: JsonObject,
-    key: ConsultationReference,
+    key: TransitionReference,
     expected: number | undefined,
     bad: () => never,
 ): void {
@@ -143,12 +154,15 @@ export function consultationObservation(
             value.record_id !== key.continuation.record_id)
     )
         bad();
-    if (value.state === "completed")
-        consultationCompletion(value.result, key, bad);
+    if (value.state === "completed") {
+        if (movementCommand(key.command))
+            movementCompletion(value.result, key, bad);
+        else consultationCompletion(value.result, key, bad);
+    }
 }
 export function consultationCompletion(
     value: Json,
-    key: ConsultationReference,
+    key: TransitionReference,
     bad: () => never,
 ) {
     if (

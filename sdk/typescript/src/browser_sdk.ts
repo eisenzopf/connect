@@ -1,11 +1,32 @@
 import {
-    consultationCommand,
-    consultationContinuation,
-    consultationObservation,
+    handoffIntent,
+    moveIntent,
+    movementCompletion,
+    type BrowserHandoffInput,
+    type BrowserHandoffResult,
+    type BrowserMoveInput,
+    type BrowserMoveResult,
+} from "./browser_sdk_movements.js";
+export type {
+    EndpointId,
+    DeviceId,
+    BrowserHandoffRole,
+    BrowserHandoffInput,
+    BrowserHandoffResult,
+    BrowserHandoffRoleChange,
+    BrowserMoveTarget,
+    BrowserMoveInput,
+    BrowserMoveResult,
+    BrowserMoveBindingObservation,
+} from "./browser_sdk_movements.js";
+import {
+    transitionCommand,
+    transitionContinuation,
+    transitionObservation,
     consultationCompletion,
     consultBody,
-    type ConsultationReference,
-    type BrowserConsultationContinuation,
+    type TransitionReference,
+    type BrowserTransitionContinuation,
     type BrowserConsultInput,
     type BrowserConsultationResult,
     type BrowserConsultationReturnReceipt,
@@ -254,7 +275,7 @@ export interface BrowserCompletion<T> {
     readonly value: T;
 }
 declare const result: unique symbol;
-export interface BrowserSdkOperationReference<T> extends ConsultationReference {
+export interface BrowserSdkOperationReference<T> extends TransitionReference {
     readonly operationId: OperationId;
     readonly scope: {
         readonly conversationId?: ConversationId;
@@ -273,7 +294,7 @@ interface Kind<T> {
     decode: (
         value: Json,
         client: BrowserSdkClient,
-        key: ConsultationReference,
+        key: TransitionReference,
     ) => T;
 }
 const kinds = new WeakMap<object, Kind<unknown>>();
@@ -537,10 +558,16 @@ function participantResult(
         result.revision,
     );
 }
-function consultationTopology(
+function transitionTopology(
     client: BrowserSdkClient,
-    key: ConsultationReference,
-    value: ReturnType<typeof consultationCompletion>,
+    key: TransitionReference,
+    value: {
+        retained: readonly ConnectionId[];
+        admitted: readonly ConnectionId[];
+        retired: readonly ConnectionId[];
+        topologyRevision: SdkRevision<"topology">;
+        conversationRevision?: SdkRevision<"conversation">;
+    },
 ): BrowserTopologyChange {
     const connection = (id: ConnectionId) =>
         new BrowserConnection(
@@ -554,12 +581,15 @@ function consultationTopology(
         admitted: value.admitted.map(connection),
         retired: value.retired,
         topologyRevision: value.topologyRevision,
+        ...(value.conversationRevision === undefined
+            ? {}
+            : { conversationRevision: value.conversationRevision }),
     });
 }
 function consultationResult(
     value: Json,
     client: BrowserSdkClient,
-    key: ConsultationReference,
+    key: TransitionReference,
 ): BrowserConsultationResult {
     const observed = consultationCompletion(value, key, () =>
         current(client).malformed(key, "recorded"),
@@ -570,13 +600,13 @@ function consultationResult(
             key.scope.conversationId as ConversationId,
             key.scope.sessionId as SessionId,
         ),
-        topology: consultationTopology(client, key, observed),
+        topology: transitionTopology(client, key, observed),
     });
 }
 function consultationReturnResult(
     value: Json,
     client: BrowserSdkClient,
-    key: ConsultationReference,
+    key: TransitionReference,
 ): BrowserSession {
     const observed = consultationCompletion(value, key, () =>
         current(client).malformed(key, "recorded"),
@@ -589,11 +619,47 @@ function consultationReturnResult(
         freeze({
             consultationRecordId: observed.consultationRecordId!,
             remoteContinuing: observed.remoteContinuing!,
-            topology: consultationTopology(client, key, observed),
+            topology: transitionTopology(client, key, observed),
         }),
     );
 }
+function handoffResult(
+    value: Json,
+    client: BrowserSdkClient,
+    key: TransitionReference,
+): BrowserHandoffResult {
+    const bad = () => current(client).malformed(key, "recorded"),
+        observed = movementCompletion(value, key, bad);
+    if (observed.kind !== "handoff") return bad();
+    return freeze({
+        topology: transitionTopology(client, key, observed),
+        ...(observed.roleChange === undefined
+            ? {}
+            : { roleChange: observed.roleChange }),
+    });
+}
+function moveResult(
+    value: Json,
+    client: BrowserSdkClient,
+    key: TransitionReference,
+): BrowserMoveResult {
+    const bad = () => current(client).malformed(key, "recorded"),
+        observed = movementCompletion(value, key, bad);
+    if (observed.kind !== "replacement") return bad();
+    return freeze({
+        connection: new BrowserConnection(
+            client,
+            key.scope.conversationId as ConversationId,
+            key.scope.sessionId as SessionId,
+            observed.connectionId,
+        ),
+        topology: transitionTopology(client, key, observed),
+        binding: observed.binding,
+    });
+}
 export const browserOperationKinds = Object.freeze({
+    sessionHandoff: kind("session.handoff", "connection", handoffResult),
+    connectionReplace: kind("connection.replace", "connection", moveResult),
     sessionConsult: kind("session.consult", "connection", consultationResult),
     sessionConsultReturn: kind(
         "session.consult.return",
@@ -684,7 +750,7 @@ function descriptor<T>(k: BrowserOperationKind<T>): Kind<T> {
 function reference<T>(
     saved: Json,
     k: BrowserOperationKind<T>,
-): ConsultationReference {
+): TransitionReference {
     const d = descriptor(k);
     if (
         !object(saved) ||
@@ -722,7 +788,7 @@ function reference<T>(
                     : s.connection_id !== undefined)
     )
         invalid();
-    const context = consultationContinuation(
+    const context = transitionContinuation(
         saved.continuation,
         {
             operationId: saved.operation_id,
@@ -737,7 +803,7 @@ function reference<T>(
             : {
                   continuation: copy(
                       context as unknown as Json,
-                  ) as unknown as BrowserConsultationContinuation,
+                  ) as unknown as BrowserTransitionContinuation,
               }),
         operationId: saved.operation_id,
         command: d.command,
@@ -754,7 +820,7 @@ function reference<T>(
         },
     });
 }
-function referenceJson(key: ConsultationReference): JsonObject {
+function referenceJson(key: TransitionReference): JsonObject {
     if (!key || !object(key.scope)) invalid();
     return {
         schema: "connect-operation-reference/1",
@@ -815,6 +881,25 @@ class Budget {
             this.signal?.addEventListener("abort", abort, { once: true });
             if (this.signal?.aborted) abort();
         });
+    }
+}
+function mutationRemainder(
+    budget: Budget,
+    key: BrowserOperationReference,
+): BrowserSdkMutationOptions {
+    try {
+        return {
+            operationId: key.operationId,
+            ...budget.options(),
+        } as BrowserSdkMutationOptions;
+    } catch (error) {
+        const failure = translated(error, "not-submitted");
+        throw new BrowserSdkError(
+            failure.kind,
+            "not-submitted",
+            key,
+            failure.problem,
+        );
     }
 }
 function translated(
@@ -1157,7 +1242,7 @@ export class BrowserOperation<T> {
     /** @internal Instances are supplied by SDK-owned mutation kinds. */
     constructor(
         private readonly client: BrowserSdkClient,
-        ref: ConsultationReference,
+        ref: TransitionReference,
         private readonly kind: BrowserOperationKind<T>,
     ) {
         this.reference = reference(
@@ -1208,8 +1293,8 @@ export class BrowserOperation<T> {
             Number(value.revision) < this.#revision
         )
             s.malformed(this.reference);
-        if (consultationCommand(this.reference.command))
-            consultationObservation(
+        if (transitionCommand(this.reference.command))
+            transitionObservation(
                 value as JsonObject,
                 this.reference,
                 undefined,
@@ -1355,10 +1440,7 @@ export class BrowserOperation<T> {
                 retained_connid: context!.retained_connection_id,
             },
             scope,
-            {
-                operationId: key.operationId,
-                ...budget!.options(),
-            } as BrowserSdkMutationOptions,
+            mutationRemainder(budget!, key),
             scope,
             {
                 kind: "consultation-return",
@@ -1666,7 +1748,7 @@ export class BrowserSdkClient {
         scope: Scope,
         options: BrowserSdkMutationOptions,
         recordScope: Scope = scope,
-        continuation?: BrowserConsultationContinuation,
+        continuation?: BrowserTransitionContinuation,
     ): Promise<BrowserOperation<T>> {
         const d = descriptor(k);
         if (!options || !identifier(options.operationId)) invalid();
@@ -1808,10 +1890,10 @@ export class BrowserSdkClient {
                 )
                     current(this).malformed(key, "uncertain");
             }
-            if (consultationCommand(d.command)) {
+            if (transitionCommand(d.command)) {
                 const bad = () => current(this).malformed(key, "uncertain");
                 if (frames.length !== 2) bad();
-                consultationObservation(
+                transitionObservation(
                     updates[0].payload,
                     key,
                     scope.expected_revision,
@@ -2352,6 +2434,84 @@ export class BrowserSession {
             s = snapshot.sessions.get(this.id);
         if (!s) throw new BrowserSdkError("receipt-unavailable", "read-only");
         return s;
+    }
+    async handoff(
+        input: BrowserHandoffInput,
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserHandoffResult>> {
+        fields(options, ["timeoutMs", "signal", "operationId"], invalid);
+        const key: BrowserOperationReference = freeze({
+            operationId: options.operationId,
+            command: "session.handoff",
+            scope: {
+                conversationId: this.conversationId,
+                sessionId: this.id,
+                ...(identifier(input?.via) ? { connectionId: input.via } : {}),
+            },
+        });
+        const bad = () => {
+            throw new BrowserSdkError("validation", "not-submitted", key);
+        };
+        let intent: ReturnType<typeof handoffIntent>, budget: Budget;
+        try {
+            if (!identifier(key.operationId)) bad();
+            intent = handoffIntent(input, bad);
+            budget = new Budget(options);
+            if (input.consultation !== undefined) {
+                if (!(input.consultation instanceof BrowserOperation)) bad();
+                const parent = this.client.operations.restore(
+                        input.consultation.referenceJson(),
+                        browserOperationKinds.sessionConsult,
+                    ),
+                    saved = parent.reference;
+                if (
+                    saved.scope.conversationId !== this.conversationId ||
+                    saved.scope.sessionId !== this.id ||
+                    saved.operationId === key.operationId ||
+                    saved.continuation?.kind !== "consultation"
+                )
+                    bad();
+                const record =
+                    saved.continuation!.kind === "consultation"
+                        ? (saved.continuation!.record_id ??
+                          (
+                              await parent.status(
+                                  budget.options() as BrowserSdkRequestOptions,
+                              )
+                          ).recordId)
+                        : undefined;
+                if (!identifier(record))
+                    throw new BrowserSdkError(
+                        "receipt-unavailable",
+                        "not-submitted",
+                        key,
+                    );
+                intent.body.consultation_record_id = record;
+            }
+            budget.options();
+        } catch (error) {
+            const failure = translated(error, "not-submitted");
+            throw new BrowserSdkError(
+                failure.kind,
+                "not-submitted",
+                key,
+                failure.problem,
+            );
+        }
+        const scope = {
+            cid: this.conversationId,
+            sid: this.id,
+            connid: intent!.via,
+            expected_revision: intent!.expected,
+        };
+        return this.client[submit](
+            browserOperationKinds.sessionHandoff,
+            intent!.body,
+            scope,
+            mutationRemainder(budget!, key),
+            scope,
+            intent!.context,
+        );
     }
     consult(
         input: BrowserConsultInput,
@@ -2970,6 +3130,27 @@ export class BrowserConnection {
                 expected_revision: sdkRevision(expectedStreamRevision),
             },
             options,
+        );
+    }
+    replaceDevice(
+        input: BrowserMoveInput,
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserMoveResult>> {
+        fields(options, ["timeoutMs", "signal", "operationId"], invalid);
+        const intent = moveIntent(input, this.id, invalid),
+            scope = {
+                cid: this.conversationId,
+                sid: this.sessionId,
+                connid: this.id,
+                expected_revision: intent.expected,
+            };
+        return this.client[submit](
+            browserOperationKinds.connectionReplace,
+            intent.body,
+            scope,
+            options,
+            scope,
+            intent.context,
         );
     }
     end(

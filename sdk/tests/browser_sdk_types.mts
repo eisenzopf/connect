@@ -167,3 +167,19 @@ consultation.topology.admitted.push(consultation.topology.retained[0]);
 // @ts-expect-error A logical mutation ID is not a host operation-record identity.
 const falseRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId=operationId;
 void [hostRecord,falseRecord];
+
+const transfer=await room.sessions.byId(sdkId<'session'>('s')).handoff({via:sdkId<'connection'>('primary'),from:sdkId<'participant'>('from'),to:sdkId<'participant'>('to'),retain:sdkId<'connection'>('remote'),outgoing:'leave',role:{scope:'conversation',expectedConversationRevision:sdkRevision<'conversation'>(7)},expectedTopologyRevision:sdkRevision<'topology'>(3),consultation:consulting},{timeoutMs:1000,operationId});
+const transferred:import('../typescript/dist/browser.js').BrowserHandoffResult=(await transfer.wait({timeoutMs:1000})).value;
+const moved:import('../typescript/dist/browser.js').BrowserMoveResult=(await(await connection.replaceDevice({retain:sdkId<'connection'>('remote'),target:{endpoint:sdkId<'endpoint'>('new-endpoint')},expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId})).wait({timeoutMs:1000})).value;
+const endpoint:import('../typescript/dist/browser.js').EndpointId=moved.binding.endpointId;
+// @ts-expect-error Endpoint targets cannot be manufactured from Connection IDs.
+connection.replaceDevice({retain:sdkId<'connection'>('remote'),target:{endpoint:sdkId<'connection'>('candidate')},expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId});
+// @ts-expect-error Device movement must choose one target kind.
+connection.replaceDevice({retain:sdkId<'connection'>('remote'),target:{endpoint:sdkId<'endpoint'>('new'),candidate:sdkId<'connection'>('candidate')},expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId});
+// @ts-expect-error A Message operation cannot supply a consultation continuation.
+room.sessions.byId(sdkId<'session'>('s')).handoff({via:sdkId<'connection'>('primary'),from:sdkId<'participant'>('from'),to:sdkId<'participant'>('to'),retain:sdkId<'connection'>('remote'),outgoing:'observe',role:{scope:'session'},expectedTopologyRevision:sdkRevision<'topology'>(3),consultation:await textSend},{timeoutMs:1000,operationId});
+// @ts-expect-error Captured binding metadata is immutable.
+moved.binding.generation=3;
+// @ts-expect-error Captured role metadata is immutable.
+if(transferred.roleChange)transferred.roleChange.cleanup='pending';
+void [transferred,endpoint];

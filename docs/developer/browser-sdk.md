@@ -908,3 +908,75 @@ media through their separate owners.
 signed controlled receipt/recovery cases and real Chrome current-enrollment
 refusal. Successful private consultation/return over live browser media remains
 a separate integration and qualification requirement.
+
+## Handoff and device movement
+
+```ts
+const handingOff = await session.handoff({
+    via: primaryConnectionId,
+    from: outgoingParticipantId,
+    to: incomingParticipantId,
+    retain: remoteConnectionId,
+    candidate: preparedCandidateId, // optional; otherwise the host selects admission
+    outgoing: 'leave', // or 'observe'
+    role: { scope: 'conversation', expectedConversationRevision },
+    expectedTopologyRevision,
+    consultation: originalConsultation, // optional original Operation
+}, { timeoutMs: 5000, operationId: savedHandoffId });
+await saveOriginalReference(handingOff.referenceJson());
+const handoff = (await handingOff.wait({ timeoutMs: 5000 })).value;
+// handoff.topology and optional handoff.roleChange are captured observations.
+
+const replacing = await primaryConnection.replaceDevice({
+    retain: remoteConnectionId,
+    target: { endpoint: selectedEndpointId }, // or { candidate: preparedCandidateId }
+    expectedTopologyRevision,
+}, { timeoutMs: 5000, operationId: savedMoveId });
+await saveOriginalReference(replacing.referenceJson());
+const moved = (await replacing.wait({ timeoutMs: 5000 })).value;
+// moved.connection is a handle; moved.binding describes the observed committed binding.
+```
+
+Save full mutation intent and each original logical ID before IO. Session role
+handoff uses `role: { scope: 'session' }`; Conversation role handoff also requires
+its distinct Conversation revision. Topology and Conversation assertions must be
+below the maximum safe integer. Source and target Participants differ, primary
+and retained Connections differ, and a prepared candidate differs from both.
+Device movement chooses exactly one nominal Endpoint or Connection target.
+Closed input/option shapes refuse injected authority or payload extensions.
+The host checks current participant, membership, endpoint, device and worker
+state before any effect; a selected target ID supplies no authority.
+
+An optional consultation is captured from its original saved reference and must
+belong to the same Conversation and Session with a distinct logical ID. Its
+already observed host record avoids a parent read. When that record remains
+unknown, handoff obtains it through the current client under the same bounded
+budget as submission, even if the original handle belonged to a retired client.
+It never borrows the old physical client. Parent read refusal, abort or deadline
+leaves the new handoff not submitted with its own ID. Neither flow enrolls a
+replacement identity or retries an uncertain mutation.
+
+Strict `handoff` and `replacement` continuations preserve target/role/outgoing
+intent in `connect-operation-reference/1`. Restore with
+`browserOperationKinds.sessionHandoff` or `connectionReplace`, then query or
+wait on the original operation. Status enforces current authority and monotonic
+record observation. Lost ACKs and server 5xx retain uncertainty; explicit
+reconnect and original-ID recovery do not resubmit either mutation. An unknown
+state and a local wait abort do not dispatch another handoff, move or durable
+cancellation.
+
+Completed receipts are bounded to 32 KiB and one hundred distinct topology IDs.
+Both admit exactly one Connection and retain the specified engagement. Handoff
+checks any exact candidate, source retirement versus leave/observe, Conversation
+revision advancement and any attributed role-change fields. Native role data
+can be absent; the SDK does not invent it. Replacement checks the source it
+replaces, its retirement, exact selected target, admitted Connection and positive
+safe generation/membership epoch with nominal Participant/Endpoint/Device IDs.
+The immutable `binding` and optional `roleChange` are observations, rather than
+current grants. Server readiness metadata does not allocate a local media owner;
+returned handles cannot borrow capture/render custody from another Connection.
+
+[Movement evidence](../evidence/gate-6/browser-sdk-movements.json) separates
+controlled signed successful receipts/recovery from actual Chrome refusal of
+ungranted actions. Successful live browser media handoff and device-movement
+qualification remain outstanding.

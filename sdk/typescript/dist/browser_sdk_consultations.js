@@ -1,17 +1,21 @@
+import { movementCommand, movementContinuation, movementCompletion, } from "./browser_sdk_movements.js";
 import { fields, nonEmpty } from "./browser_sdk_sessions.js";
 import { canonicalJson, jsonObject, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
-export const consultationCommand = (command) => ["session.consult", "session.consult.return"].includes(command);
+export const transitionCommand = (command) => ["session.consult", "session.consult.return"].includes(command) ||
+    movementCommand(command);
 const revision = (value) => typeof value === "number" &&
     Number.isSafeInteger(value) &&
     value >= 0 &&
     value < Number.MAX_SAFE_INTEGER;
-export function consultationContinuation(value, key, bad) {
-    if (!consultationCommand(key.command)) {
+export function transitionContinuation(value, key, bad) {
+    if (!transitionCommand(key.command)) {
         if (value !== undefined)
             bad();
         return undefined;
     }
+    if (movementCommand(key.command))
+        return movementContinuation(value, key, bad);
     if (!value ||
         !jsonObject(value) ||
         !identifier(value.retained_connection_id) ||
@@ -49,7 +53,7 @@ export function consultBody(input, bad) {
         hold_treatment: input.hold,
     };
 }
-export function consultationObservation(value, key, expected, bad) {
+export function transitionObservation(value, key, expected, bad) {
     if (!identifier(value.record_id) ||
         value.command_type !== key.command ||
         !revision(value.expected_revision) ||
@@ -58,8 +62,12 @@ export function consultationObservation(value, key, expected, bad) {
             key.continuation.record_id !== undefined &&
             value.record_id !== key.continuation.record_id))
         bad();
-    if (value.state === "completed")
-        consultationCompletion(value.result, key, bad);
+    if (value.state === "completed") {
+        if (movementCommand(key.command))
+            movementCompletion(value.result, key, bad);
+        else
+            consultationCompletion(value.result, key, bad);
+    }
 }
 export function consultationCompletion(value, key, bad) {
     if (!jsonObject(value) ||
