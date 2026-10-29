@@ -1,0 +1,98 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "ac302f8f",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Protocol component only: normalized backend-approved enrollment intent, exact native/browser Origin and immutable target/original-ID binding, bounded challenge/credential lifetimes, closed wire shapes, redacted diagnostics and canonical device-key proof context. No cryptographic signature verification, Store/HTTP issuance, physical credential delivery, native/browser setup, rotation/revocation, named remote execution or complete G6-055 qualification.",
+  "profile": "connect-enrollment/1",
+  "tested_inputs": {
+    "crates/connect-protocol/src/lib.rs": {
+      "sha256": "6eee92b5f6bd9f944958333db0dd2ed2e988b5d97b06318e9f0bf730e36b1ce6",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/enrollment.rs": {
+      "sha256": "b373c179e67a656ac2c6f87d35f16ee626a79bc7984c2d16d0e774ab503302be",
+      "mode": 420
+    },
+    "crates/connect-protocol/tests/enrollment.rs": {
+      "sha256": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/credential_issuance.rs": {
+      "sha256": "5698195e40bb155b8c948bd62791037ad6bce8347faf734624d372a09bc787c5",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/provisioning.rs": {
+      "sha256": "60114420e0ae7fe3e52bb77d011194cec681e87f151ebd7d9f59c36d87e33ab8",
+      "mode": 420
+    },
+    "crates/connect-protocol/Cargo.toml": {
+      "sha256": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5",
+      "mode": 420
+    },
+    "Cargo.toml": {
+      "sha256": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+      "mode": 420
+    }
+  },
+  "default_component": {
+    "passed": true,
+    "exit_code": 0,
+    "seconds": 8.609865624923259,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "b2d609de420f4008f73aecbf7ec48ce1421b8a64ec51c832c9ab4b9aaf8755de",
+    "log_sha256": "e1fc2eeaa46d4f0a9b5d45835c730a8f94cda59a28facfb0ca51f4225eb888fb",
+    "scope": "Enrollment intent normalization, bounded temporal/profile/key/signature shape, immutable claim/Origin binding and canonical proof-context vectors only. No cryptographic signature verification, Store/HTTP issuance, client enrollment, credential delivery, rotation/revocation, remote execution or fullG6-055 qualification."
+  },
+  "schema_component": {
+    "passed": true,
+    "exit_code": 0,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "a4e71d808d0b7cfe51ecb112e6fe02cb1a8dd4d3cd0bcddaf99343b5cb45f3d6",
+    "log_sha256": "366770bccdc913c0bb6047d415285ad6b305a4431021bea101af8a0abe36dad3",
+    "seconds": 6.409476000117138,
+    "scope": "Same six enrollment protocol component functions with schema derives enabled. No emitted HTTP reference or runtime endpoint, cryptographic admission, Store delivery or G6-055 qualification."
+  },
+  "unique_test_functions": 6,
+  "schema_run_repeats_same_functions": true,
+  "proof_format": {
+    "domain_ascii": "connect-enrollment-proof/1",
+    "separator_hex": "00",
+    "digest": "SHA256(JCS(normalized complete offer))",
+    "message_bytes": 59,
+    "signature": "Ed25519 or ES256(SHA256), exactly64 raw signature bytes encoded as canonical unpadded base64url",
+    "independent_vector": "Python sorted ASCII JSON with hashlib; fixed literal proof bytes checked in the Rust component."
+  },
+  "limits": {
+    "challenge_seconds": 600,
+    "browser_credential_seconds": 3600,
+    "native_credential_seconds": 86400,
+    "issuer_ceiling_checked_by_future_store": true,
+    "operations": 64,
+    "recipients": 128,
+    "endpoint_capabilities": 32,
+    "canonical_offer_bytes": 65536
+  },
+  "remaining": [
+    "Cryptographic proof/key verification and bounded one-use challenge state",
+    "Atomic current-authority Store issuance/endpoint/key bindings and original-ID recovery",
+    "Origin/transport-bound credential admission and administrative isolation",
+    "Protected HTTP physical-write custody and complete OpenAPI reference",
+    "Native/browser public enrollment clients and trusted backend setup",
+    "Rotation/revocation and actual stolen/expired/wrong-endpoint/cross-origin/replay failures",
+    "Gate6 acceptance"
+  ],
+  "no_accounts_remote_provider_model_or_secret_execution": true,
+  "raw_logs_private_state_and_credentials_excluded": true,
+  "format": {
+    "script": "scripts/format.sh --check",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
