@@ -357,8 +357,29 @@ impl Store {
                 "Replacement lifecycle journal capacity exhausted",
             ));
         }
-        tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,replaces,state,revision,observed_runtime_id,observed_at,readiness_json) SELECT ?1,?2,?3,?4,?5,tenant_id,?6,?7,id,'ready',1,?8,?9,?10 FROM connections WHERE id=?11 AND generation BETWEEN ?12 AND ?12+1",params![target.connection.connection_id,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,target.connection.generation,p.runtime,crate::now(),ready["readiness"].to_string(),source,saved["source_generation"].as_u64().ok_or_else(invalid)?]).map_err(|_| Error::storage())?;
-        tx.execute("INSERT INTO connection_offers(connection_id,runtime_connection_id,operation_id,credential_id,offer_json,created_at) VALUES(?1,?2,?3,?4,?5,?6)",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now()]).map_err(|_| Error::storage())?;
+        let claim: Option<String> = tx
+            .query_row(
+                "SELECT claim_json FROM native_replacement_candidates WHERE operation_record_id=?1",
+                [&p.record],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?;
+        if let Some(claim) = claim {
+            let claim: serde_json::Value =
+                serde_json::from_str(&claim).map_err(|_| Error::storage())?;
+            let changed=tx.execute("UPDATE connections SET generation=?2,replaces=?3,state='ready',revision=revision+1,observed_runtime_id=?4,observed_at=?5,readiness_json=?6 WHERE id=?1 AND session_id=?7 AND participant_id=?8 AND membership_epoch=?9 AND identity_id=?10 AND endpoint_id=?11 AND state='retired' AND generation=?12+1 AND observed_runtime_id IS NULL AND readiness_json IS NULL",params![target.connection.connection_id,target.connection.generation,source,p.runtime,crate::now(),ready["readiness"].to_string(),target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,claim["generation"].as_u64().ok_or_else(invalid)?]).map_err(|_|Error::storage())?;
+            if changed != 1 {
+                return Err(conflict());
+            }
+            let changed=tx.execute("UPDATE connection_offers SET runtime_connection_id=?2,operation_id=?3,credential_id=?4,offer_json=?5,created_at=?6 WHERE connection_id=?1 AND runtime_connection_id=?7 AND operation_id=?8 AND credential_id=?9",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now(),claim["core"].as_str().ok_or_else(invalid)?,claim["operation"].as_str().ok_or_else(invalid)?,claim["credential"].as_str().ok_or_else(invalid)?]).map_err(|_|Error::storage())?;
+            if changed != 1 {
+                return Err(conflict());
+            }
+        } else {
+            tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,replaces,state,revision,observed_runtime_id,observed_at,readiness_json) SELECT ?1,?2,?3,?4,?5,tenant_id,?6,?7,id,'ready',1,?8,?9,?10 FROM connections WHERE id=?11 AND generation BETWEEN ?12 AND ?12+1",params![target.connection.connection_id,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,target.connection.generation,p.runtime,crate::now(),ready["readiness"].to_string(),source,saved["source_generation"].as_u64().ok_or_else(invalid)?]).map_err(|_| Error::storage())?;
+            tx.execute("INSERT INTO connection_offers(connection_id,runtime_connection_id,operation_id,credential_id,offer_json,created_at) VALUES(?1,?2,?3,?4,?5,?6)",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now()]).map_err(|_| Error::storage())?;
+        }
         let old_retired: bool = tx
             .query_row(
                 "SELECT state='retired' FROM connections WHERE id=?1",

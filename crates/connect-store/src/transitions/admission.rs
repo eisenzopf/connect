@@ -11,6 +11,37 @@ pub(super) fn scopes(owner: &str, cid: Option<&str>) -> Result<Vec<AuthorityScop
     }
     Ok(result)
 }
+pub(super) fn candidate_row(row: &rows::Saved) -> Result<bool> {
+    Ok(row.ledger
+        && row.record.command_type == "connection.replace"
+        && matches!(
+            rows::request(row)?.intent,
+            TransitionIntent::Replace {
+                candidate_connid: Some(_),
+                ..
+            }
+        ))
+}
+pub(super) fn request_scopes(
+    owner: &str,
+    request: &TransitionRequest,
+) -> Result<Vec<AuthorityScope>> {
+    if matches!(
+        request.intent,
+        TransitionIntent::Replace {
+            candidate_connid: Some(_),
+            ..
+        }
+    ) {
+        // This admits immutable metadata only. Actual graph/binding changes
+        // retain their later write footprint and opaque native custody.
+        return Ok(vec![
+            AuthorityScope::identity(owner, AuthorityMode::Read)?,
+            AuthorityScope::conversation(&request.conversation_id, AuthorityMode::Read)?,
+        ]);
+    }
+    scopes(owner, Some(&request.conversation_id))
+}
 pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
     if row.native
         || row.session_codecs
@@ -18,6 +49,7 @@ pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
         || (row.native_consultation || row.native_provider)
         || (row.native_return || row.native_handoff || row.native_replacement)
         || row.native_decision
+        || candidate_row(row)?
     {
         let mut result = vec![AuthorityScope::identity(&row.owner, AuthorityMode::Read)?];
         if let Some(cid) = &row.record.conversation_id {
@@ -82,7 +114,7 @@ pub(crate) fn transition_admission_scopes(
             false,
         );
     }
-    let mut result = scopes(&actor.identity_id, Some(&request.conversation_id))?;
+    let mut result = request_scopes(&actor.identity_id, request)?;
     result.extend(authority::admission_readers(c, actor, request, store)?);
     Ok(result)
 }

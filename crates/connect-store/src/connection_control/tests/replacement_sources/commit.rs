@@ -17,8 +17,130 @@ fn fixture(ready: bool) -> Movement {
     fixture_scoped(ready, &[])
 }
 fn fixture_scoped(ready: bool, extra_operations: &[&str]) -> Movement {
-    let (f, key, command, prepared, mut request, sources) =
-        prepared_target_scene_scoped(extra_operations);
+    fixture_prepared(ready, prepared_target_scene_scoped(extra_operations))
+}
+
+#[test]
+fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor() {
+    let (f, key, command, prepared, request, sources, old) = super::candidate::prepared_scene();
+    let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let expected = attempt.expected().unwrap();
+    let observed = ready(&read, &expected);
+    let captured = attempt.committed(expected, &observed).unwrap();
+    drop(read);
+    m.f.store
+        .record_native_replacement_committed(&captured)
+        .unwrap();
+    let established =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    assert_eq!(established.connection_id(), old.connection_id());
+    assert_ne!(
+        established.runtime_connection_id(),
+        old.runtime_connection_id()
+    );
+    assert_eq!(established.generation(), 2);
+    assert_eq!(m.f.count("connections"), 3);
+    let snapshot = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    m.f.store
+        .settle_native_offer_cleanup(
+            &old,
+            &super::candidate::Absent(old.runtime_connection_id().into(), old.generation()),
+        )
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
+    let repeated =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    assert_eq!(
+        repeated.runtime_connection_id(),
+        established.runtime_connection_id()
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
+    let c = m.f.store.connection().unwrap();
+    let exact:bool=c.query_row("SELECT state='ready' AND generation=2 AND replaces=?2 AND observed_runtime_id=?3 AND readiness_json IS NOT NULL FROM connections WHERE id=?1",params![old.connection_id(),m.sources[0].connection_id(),m.f.store.runtime_epoch()],|r|r.get(0)).unwrap();
+    assert!(exact);
+    let mapping: String = c
+        .query_row(
+            "SELECT runtime_connection_id FROM connection_offers WHERE connection_id=?1",
+            [old.connection_id()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(mapping, established.runtime_connection_id());
+}
+
+#[test]
+fn candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping() {
+    let (f, key, command, prepared, request, sources, old) = super::candidate::prepared_scene();
+    let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let expected = attempt.expected().unwrap();
+    let observed = ready(&read, &expected);
+    let captured = attempt.committed(expected, &observed).unwrap();
+    drop(read);
+    m.f.store
+        .record_native_replacement_committed(&captured)
+        .unwrap();
+    let established =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    let fresh_runtime = established.runtime_connection_id().to_owned();
+    let path = m.f.store.path().to_owned();
+    drop(m.f.store);
+    let successor = Store::open(&path, connect_protocol::Limits::default()).unwrap();
+    struct Recovery(std::sync::Mutex<Vec<String>>);
+    impl crate::NativeOfferRecoveryObservation for Recovery {
+        fn observe_retired(
+            &self,
+            id: &str,
+            generation: u64,
+        ) -> connect_protocol::Result<crate::NativeOfferObservation> {
+            self.0.lock().unwrap().push(id.into());
+            Ok(crate::NativeOfferObservation::Retired {
+                runtime_connection_id: id.into(),
+                generation,
+            })
+        }
+    }
+    let observations = Recovery(Default::default());
+    successor
+        .recover_native_offer_cleanup(&observations)
+        .unwrap();
+    let ids = observations.0.lock().unwrap();
+    assert!(!ids.contains(&fresh_runtime));
+    assert!(!ids.iter().any(|id| id == old.runtime_connection_id()));
+}
+fn fixture_prepared(
+    ready: bool,
+    scene: (
+        Fixture,
+        String,
+        TransitionCommand,
+        crate::NativeReplacementPrepared,
+        crate::PeerAuthorityRequest,
+        Vec<Arc<NativeMediaOrigin>>,
+    ),
+) -> Movement {
+    let (f, key, command, prepared, mut request, sources) = scene;
     let proof = f.admit(&request);
     let (attempt, read) = f
         .store

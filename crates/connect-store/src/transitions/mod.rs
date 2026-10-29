@@ -22,10 +22,11 @@ mod native_replacements;
 mod replacement_source;
 pub use native_replacements::{
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
-    NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
-    NativeReplacementCommitAttempt, NativeReplacementCommitUncertain, NativeReplacementCommitted,
-    NativeReplacementMediaAttempt, NativeReplacementMediaCapture, NativeReplacementMediaOrigin,
-    NativeReplacementMediaPhase, NativeReplacementMediaRead, NativeReplacementPreparationAttempt,
+    NativeReplacementAllocationRead, NativeReplacementAudienceCapture, NativeReplacementCandidate,
+    NativeReplacementCandidateRetirement, NativeReplacementCommitAttempt,
+    NativeReplacementCommitUncertain, NativeReplacementCommitted, NativeReplacementMediaAttempt,
+    NativeReplacementMediaCapture, NativeReplacementMediaOrigin, NativeReplacementMediaPhase,
+    NativeReplacementMediaRead, NativeReplacementPreparationAttempt,
     NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
     NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
     NativeReplacementStarted, ReplacementConfirmation, ReplacementPreparationRequest,
@@ -274,7 +275,7 @@ impl Store {
         let sources = authority::admission(&tx, &actor, &request, self)?;
         if !self.authority_covers(
             &authority,
-            &admission::scopes(&actor.identity_id, Some(&request.conversation_id))?,
+            &admission::request_scopes(&actor.identity_id, &request)?,
         ) {
             return Err(Error::new(
                 "authority-unavailable",

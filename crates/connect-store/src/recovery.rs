@@ -157,6 +157,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 55 {
         tables.extend(["native_replacements", "native_replacement_steps"]);
     }
+    if schema >= 114 {
+        tables.push("native_replacement_candidates");
+    }
     if schema >= 42 {
         tables.extend(["native_data_messages", "native_data_recipients"]);
     }

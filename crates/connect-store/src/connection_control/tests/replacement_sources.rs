@@ -581,6 +581,7 @@ fn replacement_preparation_read_refuses_a_held_writer_without_waiting_or_reservi
         .is_ok());
 }
 
+mod candidate;
 #[path = "replacement_sources/custody.rs"]
 mod custody;
 

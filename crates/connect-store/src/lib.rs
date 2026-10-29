@@ -60,25 +60,26 @@ pub use transitions::{
     NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
     NativeOfferRecoveryObservation, NativeOfferRuntimeObservation, NativeReadyObservation,
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
-    NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
-    NativeReplacementCommitAttempt, NativeReplacementCommitUncertain, NativeReplacementCommitted,
-    NativeReplacementContext, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
-    NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
-    NativeReplacementOrigin, NativeReplacementPreparationAttempt,
-    NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
-    NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
-    NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect,
-    PrivateInitialTelephonePhase, PrivateInitialTelephoneRuntimeObservation, ReceivedDtmfBatch,
-    ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget, ReplacementConfirmation,
-    ReplacementPreparationRequest, SessionCodecTarget, SipNativeSignalRead, SipSignalOrigin,
-    SipSignalRead, TelephoneAudioResources, TelephoneConnectionRuntimeObservation,
-    TelephoneConnectionSnapshot, TelephoneMediaOrigin, TelephoneMediaRead,
-    TelephoneNativeMediaRead, TelephoneNativeSignalRead, TelephoneReplacementAllocated,
-    TelephoneReplacementAttempt, TelephoneReplacementAudienceCapture,
-    TelephoneReplacementCommitAttempt, TelephoneReplacementCommitUncertain,
-    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
-    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
-    TelephoneReplacementPolicy, TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    NativeReplacementAllocationRead, NativeReplacementAudienceCapture, NativeReplacementCandidate,
+    NativeReplacementCandidateRetirement, NativeReplacementCommitAttempt,
+    NativeReplacementCommitUncertain, NativeReplacementCommitted, NativeReplacementContext,
+    NativeReplacementMediaAttempt, NativeReplacementMediaCapture, NativeReplacementMediaOrigin,
+    NativeReplacementMediaPhase, NativeReplacementMediaRead, NativeReplacementOrigin,
+    NativeReplacementPreparationAttempt, NativeReplacementPreparationLease,
+    NativeReplacementPrepared, NativeReplacementSceneRead, NativeReplacementStartAttempt,
+    NativeReplacementStartRead, NativeReplacementStartUncertain, NativeReplacementStarted,
+    NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect, PrivateInitialTelephonePhase,
+    PrivateInitialTelephoneRuntimeObservation, ReceivedDtmfBatch, ReceivedDtmfPreparation,
+    ReceivedDtmfRead, ReceivedDtmfTarget, ReplacementConfirmation, ReplacementPreparationRequest,
+    SessionCodecTarget, SipNativeSignalRead, SipSignalOrigin, SipSignalRead,
+    TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
+    TelephoneReplacementAllocated, TelephoneReplacementAttempt,
+    TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
+    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
+    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
+    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementPolicy,
+    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
     TelephoneSignalDirection, TelephoneSignalRead, TransitionLease,
@@ -186,7 +187,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 113;
+pub const SCHEMA_VERSION: u32 = 114;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -548,6 +549,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/113_contributed_message_endpoints.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/114_native_candidate_adoption.sql"
         ))
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;

@@ -53,6 +53,8 @@ pub struct NativeReplacementPrepared {
     observation: String,
 }
 macro_rules! redacted {($($name:ident),*)=>{$(impl std::fmt::Debug for $name {fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {f.write_str(concat!(stringify!($name),"(redacted)"))}})*}}
+pub(super) mod candidate;
+pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetirement};
 mod allocation;
 mod telephone;
 pub use telephone::{
@@ -217,14 +219,16 @@ impl Store {
         let held = self.stable_authority(
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
-                let c = self.connection()?;
+                let c = self.try_connection()?;
                 selection.scopes(self, &c, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.try_connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+            .map_err(|_| {
+                Error::new("authority-busy", "Replacement reservation metadata is busy")
+            })?;
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
@@ -263,22 +267,29 @@ impl Store {
                 expires,
             }));
         }
-        if row.record.state != OperationState::Accepted
-            || !row.record.effects.is_empty()
+        let claimed = candidate::prepared(&tx, origin)?;
+        if (!(row.record.state == OperationState::Accepted && row.record.effects.is_empty())
+            && !(claimed && row.record.state == OperationState::Preparing))
             || row.generation >= 9_007_199_254_740_990
         {
             return Err(conflict());
         }
         let context = selection.context(self, &tx)?;
-        let runtime = if context.candidate_connection_id.is_some() {
-            tx.query_row("SELECT m.runtime_connection_id FROM connections v JOIN connection_offers m ON m.connection_id=v.id WHERE v.id=?1 AND v.state='preparing' AND v.observed_runtime_id=?2",params![request.candidate_connection_id,self.runtime_epoch()],|r|r.get::<_,String>(0)).optional().map_err(|_|Error::storage())?.ok_or_else(conflict)?
+        if context.candidate_connection_id.is_some() {
+            if !claimed {
+                return Err(conflict());
+            }
+            let valid:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_candidates q JOIN connections v ON v.id=q.candidate_connection_id JOIN connection_offers m ON m.connection_id=v.id WHERE q.operation_record_id=?1 AND v.id=?2 AND v.state='retired' AND v.generation=json_extract(q.claim_json,'$.generation')+1 AND v.observed_runtime_id IS NULL AND v.readiness_json IS NULL AND m.runtime_connection_id=json_extract(q.claim_json,'$.core') AND ?3+1>=v.generation)",params![origin.record,request.candidate_connection_id,context.source_generation],|r|r.get(0)).map_err(|_|Error::storage())?;
+            if !valid {
+                return Err(conflict());
+            }
         } else {
             let used:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1) OR EXISTS(SELECT 1 FROM native_replacements WHERE candidate_connection_id=?1)",[&request.candidate_connection_id],|r|r.get(0)).map_err(|_|Error::storage())?;
             if used {
                 return Err(conflict());
             }
-            format!("cre_{}", uuid::Uuid::new_v4())
-        };
+        }
+        let runtime = format!("cre_{}", uuid::Uuid::new_v4());
         let value = plan(self, &tx, &selection, &request, &runtime)?;
         let (hash, encoded) = digest(&value)?;
         if encoded.len() > 32768 || selected.len() > 32768 {
@@ -580,6 +591,9 @@ impl Store {
             return Err(invalid());
         }
         self.require_runtime_owner()?;
+        if let Some(settled) = self.fail_candidate_before_preparation(credential, &command)? {
+            return Ok(settled);
+        }
         let held = self.transition_operation_authority(
             credential,
             &command.operation_id,

@@ -255,6 +255,7 @@ impl Store {
                         || row.native_stream
                         || (row.native_consultation || row.native_provider)
                         || (row.native_return || row.native_handoff || row.native_replacement)
+                        || admission::candidate_row(&row)?
                     {
                         return Err(Error::new(
                             "reconciliation-required",

@@ -87,11 +87,20 @@ impl NativeReplacementOrigin {
             if !exact || row.record.state != OperationState::Preparing {
                 return Err(Error::forbidden());
             }
-        } else if row.record.state != OperationState::Accepted
-            || row.worker.is_some()
-            || !row.record.effects.is_empty()
-        {
-            return Err(Error::forbidden());
+        } else {
+            let claimed = super::native_replacements::candidate::unreserved(c, self)?;
+            if row.worker.is_some()
+                || (!claimed
+                    && (row.record.state != OperationState::Accepted
+                        || !row.record.effects.is_empty()))
+                || (claimed
+                    && !matches!(
+                        row.record.state,
+                        OperationState::Accepted | OperationState::Preparing
+                    ))
+            {
+                return Err(Error::forbidden());
+            }
         }
         authority::execution(c, &actor, &row, store)?;
         Ok(actor)
@@ -200,7 +209,7 @@ fn context(
     } else {
         // Candidate selection still grants no readiness or right to adopt an
         // ordinary binding. Managed replacement must separately own its ticket.
-        c.query_row("SELECT endpoint_id FROM connections WHERE id=?1 AND session_id=?2 AND participant_id=?3 AND membership_epoch=?4 AND state IN ('preparing','ready','active')",params![candidate_connid,origin.request.session_id,old.participant,old.epoch],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?
+        c.query_row("SELECT candidate.endpoint_id FROM connections candidate WHERE candidate.id=?1 AND candidate.session_id=?2 AND candidate.participant_id=?3 AND candidate.membership_epoch=?4 AND (candidate.state IN ('preparing','ready','active') OR EXISTS(SELECT 1 FROM native_candidate_retired_slots q WHERE q.operation_record_id=?5 AND q.candidate_connection_id=candidate.id AND q.runtime_epoch=?6 AND q.credential_id=?7 AND q.original_digest=?8))",params![candidate_connid,origin.request.session_id,old.participant,old.epoch,origin.record,origin.runtime,origin.credential,origin.digest],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?
     };
     if endpoint == old.endpoint {
         return Err(Error::new(

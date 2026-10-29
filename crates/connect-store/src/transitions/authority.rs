@@ -91,11 +91,15 @@ fn add_connection(
 ) -> Result<String> {
     let (pid,owner,epoch,gen,endpoint,state,runtime):(String,String,u64,u64,String,String,Option<String>)=c.query_row("SELECT participant_id,identity_id,membership_epoch,generation,endpoint_id,state,observed_runtime_id FROM connections WHERE id=?1 AND session_id=?2",params![id,r.session_id],|v|Ok((v.get(0)?,v.get(1)?,v.get(2)?,v.get(3)?,v.get(4)?,v.get(5)?,v.get(6)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
     let m = add_member(c, actor, &r.conversation_id, &pid, sources)?;
+    let selected_candidate = candidate
+        && matches!(&r.intent,TransitionIntent::Replace{candidate_connid:Some(selected),..} if selected==id);
+    let pending=selected_candidate && c.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN connection_offers m ON m.connection_id=v.id JOIN operations o ON o.connection_id=v.id AND o.command_type='connection.offer' JOIN native_offer_operations n ON n.operation_record_id=o.record_id JOIN operation_effects e ON e.id=n.effect_id JOIN credentials credential ON credential.id=n.credential_id AND credential.revoked=0 JOIN peer_signing_keys key ON key.key_id=n.key_id AND key.revoked=0 WHERE v.id=?1 AND v.state='preparing' AND v.generation=1 AND v.observed_runtime_id IS NULL AND v.readiness_json IS NULL AND n.attempt_runtime=?2 AND n.generation=v.generation AND n.effect_started=1 AND o.state='preparing' AND o.cancel_requested=0 AND o.lease_owner=n.attempt_id AND o.worker_runtime=n.attempt_runtime AND o.lease_expires_at=o.expires_at AND o.expires_at>?3 AND credential.expires_at>?3 AND key.expires_at>?3 AND m.operation_id=o.operation_id AND m.credential_id=n.credential_id AND e.operation_record_id=o.record_id AND e.provider='native-media' AND e.state='submitting' AND e.attempt=1)",params![id,store.runtime_epoch(),crate::now()],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?;
+    let claimed=selected_candidate && c.query_row("SELECT EXISTS(SELECT 1 FROM native_candidate_retired_slots q JOIN operations parent ON parent.record_id=q.operation_record_id WHERE q.candidate_connection_id=?1 AND parent.operation_id=?2 AND parent.owner_id=?3 AND parent.conversation_id=?4 AND parent.session_id=?5 AND q.credential_id=?6 AND q.runtime_epoch=?7 AND q.original_digest=parent.digest)",params![id,r.operation_id,actor.identity_id,r.conversation_id,r.session_id,actor.credential_id,store.runtime_epoch()],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?;
     if m.identity_id != owner
         || m.membership_epoch != epoch
-        || runtime.as_deref() != Some(store.runtime_epoch())
+        || (runtime.as_deref() != Some(store.runtime_epoch()) && !pending && !claimed)
         || if candidate {
-            !["preparing", "ready", "active"].contains(&state.as_str())
+            !["preparing", "ready", "active"].contains(&state.as_str()) && !claimed
         } else {
             !retained_ready(c, id, &state, store)?
         }
@@ -411,7 +415,7 @@ pub(super) fn execution(
             return Err(Error::forbidden());
         }
     }
-    let mismatch:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM operation_connections s JOIN connections v ON v.id=s.connection_id WHERE s.operation_record_id=?1 AND s.generation!=v.generation AND ?2=0) OR EXISTS(SELECT 1 FROM operation_endpoints s JOIN endpoints e ON e.id=s.endpoint_id WHERE s.operation_record_id=?1 AND (s.revision!=e.revision OR e.verification_state!='verified'))",params![row.record.record_id,row.native_return],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let mismatch:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM operation_connections s JOIN connections v ON v.id=s.connection_id WHERE s.operation_record_id=?1 AND s.generation!=v.generation AND ?2=0 AND NOT EXISTS(SELECT 1 FROM native_candidate_retired_slots q WHERE q.operation_record_id=s.operation_record_id AND q.candidate_connection_id=s.connection_id AND json_extract(q.claim_json,'$.generation')=s.generation AND v.generation=s.generation+1)) OR EXISTS(SELECT 1 FROM operation_endpoints s JOIN endpoints e ON e.id=s.endpoint_id WHERE s.operation_record_id=?1 AND (s.revision!=e.revision OR e.verification_state!='verified'))",params![row.record.record_id,row.native_return],|r|r.get(0)).map_err(|_|Error::storage())?;
     if mismatch {
         return Err(Error::forbidden());
     }

@@ -225,6 +225,26 @@ impl Store {
         if observation.observe()? != expected {
             return Err(Error::forbidden());
         }
+        // The original cleanup completed before the replacement could acquire
+        // fresh custody. Its immutable claim outlives the public mapping CAS;
+        // repeated old cleanup must not read or modify the successor slot.
+        {
+            let c = self.try_connection()?;
+            if super::super::native_replacements::candidate::retired_original(
+                &c,
+                &lease.record,
+                &lease.core_connection,
+                lease.generation,
+                &lease.attempt,
+                &lease.effect,
+                &lease.runtime,
+            )? {
+                if observation.observe()? != expected || !owner.current() {
+                    return Err(Error::forbidden());
+                }
+                return Ok(());
+            }
+        }
         let scopes = {
             let c = self.connection()?;
             admission::row_scopes(&bound(&c, lease)?)?

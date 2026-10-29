@@ -31,7 +31,7 @@ impl Store {
         recover_one(&tx, &row, &self.transition_runtime, self)?;
         row = rows::by_record(&tx, &row.record.record_id)?;
         if !row.ledger
-            || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement)
+            || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement || admission::candidate_row(&row)?)
             || tx.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
             || !matches!(
                 row.record.state,
@@ -275,7 +275,10 @@ pub(super) fn lease_authority(
     let row = rows::by_record(c, &lease.record_id)?;
     authority::read(c, actor, &row)?;
     if (row.initial_telephone || row.native_consultation || row.native_provider)
-        || (row.native_return || row.native_handoff || row.native_replacement)
+        || (row.native_return
+            || row.native_handoff
+            || row.native_replacement
+            || admission::candidate_row(&row)?)
     {
         return Err(Error::forbidden());
     }
@@ -535,7 +538,7 @@ impl Store {
         authority::read(&tx, &actor, &row)?;
         admission::require_row(self, &authority, &row)?;
         if !row.ledger
-            || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement)
+            || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement || admission::candidate_row(&row)?)
             || tx.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
             || row.tombstoned
             || !matches!(
@@ -688,7 +691,10 @@ impl Store {
         }
         if !row.ledger
             || (row.initial_telephone || row.native_consultation || row.native_provider)
-            || (row.native_return || row.native_handoff || row.native_replacement)
+            || (row.native_return
+                || row.native_handoff
+                || row.native_replacement
+                || admission::candidate_row(&row)?)
             || row.tombstoned
             || !matches!(
                 row.record.state,
