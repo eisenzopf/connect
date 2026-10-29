@@ -72,4 +72,12 @@ journey remains unqualified. The installed script is named `https-consume.mjs`,
 while its catch code matched only the source filename, so that result has no
 exact assertion location. The diagnostic now recognizes both names and emits only
 bounded line/column numbers; four diagnostic/privacy tests pass. The corrected
-full-record causal witness and later native stages still await exact-source CI.
+canonical/Store causal witness and later native stages still await exact-source CI.
+
+The consumer's attempted `HttpClient.operationAction()` full-record read was
+excluded by the current application profile. It is removed. Public identity and
+state use canonical `operation.get`; the independent Rust host verifies the
+same owner's full Store causal link and an exact journal-row digest. The HTTPS
+witness is now `node-https/2`, with its original4s/15s/90s budgets and all
+current-authority/one-effect/drain requirements. Exact38 failures remain retained;
+no whole native or HTTPS pass is inferred from component checks.

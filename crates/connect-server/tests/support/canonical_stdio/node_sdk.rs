@@ -185,6 +185,30 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"restart\n").await.unwrap();
         let recovered = phase(&mut lines, "recovered", algorithm).await;
         assert_eq!(initial["record_id"], recovered["record_id"]);
+        // Full causal metadata is an independent Store witness, not an
+        // excluded legacy application operation or an invented canonical field.
+        let actor = f.server.store.authenticate(&f.client.credential).unwrap();
+        let durable = f
+            .server
+            .store
+            .execute_operation_action(
+                &actor.credential_id,
+                connect_protocol::transitions::OperationAction::Get {
+                    operation_id: "typed-node-original-send".into(),
+                },
+            )
+            .unwrap();
+        assert_eq!(initial["record_id"], durable.record_id);
+        assert_eq!(durable.operation_id, "typed-node-original-send");
+        assert_eq!(durable.command_type, "send");
+        assert_eq!(
+            durable.state,
+            connect_protocol::transitions::OperationState::Completed
+        );
+        assert_eq!(durable.conversation_id.as_deref(), initial["cid"].as_str());
+        assert!(durable.causal_event_ids.iter().any(
+            |id| initial["event_id_sha256"] == hex::encode(sha2::Sha256::digest(id.as_bytes()))
+        ));
         for field in ["events_original_record", "events_cursor_persisted"] {
             assert_eq!(initial[field], true);
         }
@@ -284,7 +308,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         // Ordinary message acceptance journals a Message fact. Its original
         // logical ID and sender bind it to the same completed control receipt;
         // no operation_updated event is invented for this atomic mutation.
-        let (count, event_id): (u64, String) = database.query_row("SELECT COUNT(*),MIN(j.id) FROM visible_journal j JOIN operations o ON o.record_id=?1 WHERE j.recipient=o.owner_id AND j.conversation_id=o.conversation_id AND j.kind='message' AND j.message_id='typed-node-original-message' AND json_extract(j.data_json,'$.operation_id')=o.operation_id AND o.state='completed'", [initial["record_id"].as_str().unwrap()], |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+        let (count, event_id): (u64, String) = database.query_row("SELECT COUNT(*),MIN(j.id) FROM visible_journal j JOIN operations o ON o.record_id=?1 WHERE j.recipient=o.owner_id AND j.conversation_id=o.conversation_id AND j.kind='message' AND j.message_id='typed-node-original-message' AND json_extract(j.data_json,'$.operation_id')=o.operation_id AND o.operation_id='typed-node-original-send' AND o.command_type='send' AND o.state='completed'", [initial["record_id"].as_str().unwrap()], |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
         assert_eq!(count, 1);
         assert_eq!(
             initial["event_id_sha256"],

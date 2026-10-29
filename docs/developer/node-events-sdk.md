@@ -84,14 +84,22 @@ behavior is invented. Eight isolated SQL selection vectors, Rust formatting and
 both consumer syntax checks pass. Actual native/HTTPS correction remains pending
 in the source CI lane; see [the witness evidence](../evidence/gate-6/node-message-journal-witness.json).
 
-The exactca3 Linux run now receives the original Message fact on both Node22/26.
-It then fails the new causal-link assertion: canonical `operation.updated` is a
-compact projection and deliberately omits `causal_event_ids`. The consumer now
-reads the full record through the existing public
-`HttpClient.operationAction({action: 'get', operation_id})`, after observing the
-fact. It requires the same original logical ID, record ID, command, Conversation,
-completed state and exact causal event ID. Both native and HTTPS journeys keep
-their canonical reads, journal checks, current-authority checks and deadlines.
-No wire/schema extension or mutation behavior changed. Corrected production
-execution remains pending; [record-witness evidence](../evidence/gate-6/node-operation-record-witness.json)
-preserves the failed source-bound result separately.
+The exactca3 Linux run receives the original Message fact on both Node22/26,
+then fails the causal-link assertion because compact canonical
+`operation.updated` omits `causal_event_ids`. The attempted full-record read
+through `HttpClient.operationAction()` was also wrong: `DurableOperation` is
+explicitly excluded from the application API. Exact38 reaches that call and
+fails on both matrices. Its runtime error code was not captured.
+
+The current consumer uses canonical `operation.get` for public record identity,
+state and command, plus the exact original operation/Conversation/Message fact.
+The independent Rust host reads the same authenticated owner's full Store record
+and requires the exact logical ID, record ID, command, Conversation, completed
+state and observed event digest in `causal_event_ids`. Native and HTTPS SQL
+witnesses independently require one exact original sender/Conversation/Message/
+logical-operation/completed-record link and compare its event digest. The
+application client is used only for its allowed receipt extension. Restart,
+cursor, current-authority, one-effect and cleanup checks retain their original
+deadlines. No legacy route or new canonical field is exposed. Corrected
+production execution remains pending; [canonical witness evidence](../evidence/gate-6/node-canonical-journal-witness.json)
+preserves the source audit and failed attempts separately.

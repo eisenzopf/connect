@@ -389,13 +389,14 @@ def run(node_sdk=False):
                 witnesses=[json.loads(line.split('installed-node-https-witness ',1)[1]) for line in text.splitlines() if 'installed-node-https-witness ' in line]
                 assert len(witnesses)==1
                 witness=witnesses[0]
-                assert witness['profile']=='node-https/1' and witness['algorithm']==algorithm
-                assert all(witness[field] for field in ('independent_native_original_record','one_original_message_and_operation','zero_forbidden_message_and_operation','node_process_joined','physical_peers_drained','media_readers_drained'))
+                assert witness['profile']=='node-https/2' and witness['algorithm']==algorithm
+                assert all(witness[field] for field in ('independent_native_original_record','independent_store_original_cause','one_original_message_and_operation','zero_forbidden_message_and_operation','node_process_joined','physical_peers_drained','media_readers_drained'))
+                assert re.fullmatch(r'[0-9a-f]{64}',witness['initial']['event_id_sha256'])
                 assert all(witness['initial'][f] for f in ('current_https_journal','original_replay_record','application_receipts_empty'))
                 assert all(witness['completed'][f] for f in ('current_https_read_refused','current_https_replay_refused','current_https_new_mutation_refused','current_https_receipts_refused'))
                 assert witness['helper_processes']==0 and witness['servers_joined']==2
                 https_results.append(dict(witness,passed=True))
-            report['installed_node_https']={'passed':all(v['passed'] for v in https_results),'profile':'node-https/1','results':https_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,'scope':'Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification.'}
+            report['installed_node_https']={'passed':all(v['passed'] for v in https_results),'profile':'node-https/2','results':https_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,'scope':'Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, independent full Store causal link and exact journal row, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification.'}
             administrative_results = []
             for algorithm, label in (('EdDSA','eddsa'),('ES256','es256')):
                 for scenario, suffix in (('commands','covers_all_commands_and_original_recovery'),

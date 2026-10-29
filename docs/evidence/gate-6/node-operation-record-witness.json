@@ -138,7 +138,7 @@
     "finished_at": "2026-10-29T01:07:36.266291+00:00"
   },
   "javascript_syntax_both_consumers_passed": true,
-  "production_verification": "Pending corrected-source original CI. Earlier exactca3 failure remains retained in node-native-ca3.json; do not inherit a full lane pass.",
+  "production_verification": "Failed in exact38: attempted full application operation read is explicitly excluded by current application profile. This is a historical failed attempt, not a supported route or pending qualification.",
   "sources": {
     "sdk/tests/node_sdk_server_consumer.mjs": "fdb812b3437ba8bd5e85b3ea5907978fbaf868a9b257d8048046567a6464438c",
     "sdk/tests/node_https_server_consumer.mjs": "15075d70030bd934ac24b909ea01c8a523f29600960bc70c756d5fae4497be67",
@@ -146,5 +146,6 @@
     "crates/connect-protocol/src/application_api.rs": "92f9ceebc43320e807845d7b47db6a3495134444ed21f3735da0d838a57efec7",
     "sdk/typescript/src/operations.ts": "a55f8c7512ead8d3d006b80e26fbff7c2664ff37edf4c9dcdfb66b880bd1f27b",
     "sdk/typescript/src/transitions.ts": "de80e92abc65ae0b38d14c559482a9c6f13c98dc3ee3a70232aa2535308ed737"
-  }
+  },
+  "superseded_by": "node-canonical-journal-witness.json"
 }

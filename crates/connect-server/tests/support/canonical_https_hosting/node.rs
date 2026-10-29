@@ -2,6 +2,7 @@
 use super::*;
 use connect_client::sdk;
 use serde_json::Value;
+use sha2::Digest;
 use std::{path::PathBuf, process::Stdio};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 async fn run(algorithm: &str) {
@@ -118,6 +119,28 @@ async fn run(algorithm: &str) {
             .store
             .authenticate(&h.f.client.credential)
             .unwrap();
+    let durable =
+        h.f.server
+            .store
+            .execute_operation_action(
+                &actor.credential_id,
+                connect_protocol::transitions::OperationAction::Get {
+                    operation_id: "node-https-original-send".into(),
+                },
+            )
+            .unwrap();
+    assert_eq!(initial["record_id"], durable.record_id);
+    assert_eq!(durable.operation_id, "node-https-original-send");
+    assert_eq!(durable.command_type, "send");
+    assert_eq!(
+        durable.state,
+        connect_protocol::transitions::OperationState::Completed
+    );
+    assert_eq!(durable.conversation_id.as_deref(), Some(room.id().as_str()));
+    assert!(durable
+        .causal_event_ids
+        .iter()
+        .any(|id| initial["event_id_sha256"] == hex::encode(sha2::Sha256::digest(id.as_bytes()))));
     let administrator = h.f.server.store.authenticate(&h.f.admin).unwrap();
     let store = h.f.server.store.clone();
     tokio::task::spawn_blocking(move || store.revoke(&administrator, &actor.credential_id))
@@ -160,6 +183,12 @@ async fn run(algorithm: &str) {
             .unwrap();
         assert_eq!(count, expected);
     }
+    let (count, event_id): (u64, String) = database.query_row("SELECT COUNT(*),MIN(j.id) FROM visible_journal j JOIN operations o ON o.record_id=?1 WHERE j.recipient=o.owner_id AND j.conversation_id=o.conversation_id AND j.kind='message' AND j.message_id='node-https-original-message' AND json_extract(j.data_json,'$.operation_id')=o.operation_id AND o.operation_id='node-https-original-send' AND o.command_type='send' AND o.state='completed'", [initial["record_id"].as_str().unwrap()], |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+    assert_eq!(count, 1);
+    assert_eq!(
+        initial["event_id_sha256"],
+        hex::encode(sha2::Sha256::digest(event_id.as_bytes()))
+    );
     drop(database);
     native.close(options()).await.unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
@@ -176,7 +205,7 @@ async fn run(algorithm: &str) {
     h.f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-node-https-witness {}",
-        json!({"profile":"node-https/1","algorithm":algorithm,"initial":initial,"completed":completed,"independent_native_original_record":true,"one_original_message_and_operation":true,"zero_forbidden_message_and_operation":true,"node_process_joined":true,"helper_processes":0,"servers_joined":2,"physical_peers_drained":true,"media_readers_drained":true})
+        json!({"profile":"node-https/2","algorithm":algorithm,"initial":initial,"completed":completed,"independent_native_original_record":true,"independent_store_original_cause":true,"one_original_message_and_operation":true,"zero_forbidden_message_and_operation":true,"node_process_joined":true,"helper_processes":0,"servers_joined":2,"physical_peers_drained":true,"media_readers_drained":true})
     );
 }
 #[tokio::test]
