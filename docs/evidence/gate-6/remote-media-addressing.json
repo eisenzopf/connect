@@ -365,6 +365,11 @@
     "retained_quality_failures": [
       "ES256 TCP changingfps22.8/21.9",
       "Current SDK ES256 UDP changingfps23.78/24.33"
+    ],
+    "fresh_decoded_recovery_cases": [
+      "browser-recovery-udp-eddsa-02",
+      "browser-recovery-udp-es256-02",
+      "browser-recovery-tcp-es256-02"
     ]
   },
   "browser_unreachable_turn_continuation": {

@@ -48,5 +48,14 @@
     "observed_at": "2026-10-30T12:55:28.203935+00:00"
   },
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "linux_current_recovery_followup": {
+    "source_revision": "f1fe1226e7cb0b468df77d3eba1a1ceaa4206f02",
+    "run_id": 41065660942,
+    "status": "pending",
+    "purpose": "Current fresh decoded recovery guard and finite ICE worker diagnostics; queued behind original full-opt3 cold producer. No original run restart or qualification inheritance.",
+    "original_run_id": 41058262859,
+    "original_build_started_at": "2026-10-30T12:50:10Z",
+    "original_build_budget_seconds": 3600
+  }
 }

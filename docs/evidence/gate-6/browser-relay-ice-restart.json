@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "checked_at": "2026-10-30T12:21:52.006192+00:00",
+  "checked_at": "2026-10-30T13:50:28.055158+00:00",
   "scope": "Actual owned loopback coturn/browser/server relay-only audio/video and two-generation original-peer ICE recovery. Synthetic signed identities, normal private CA verification; unchanged clean60 media bounds. No distinct-network or full task/acceptance qualification.",
   "implementation": "The public conversation example now forwards iceTransportPolicy. Browser and server explicitly select relay-only policy. Actual browser getStats nominated remote candidates must be relay before/after restart and after the measured window; SDK refuses absent relay gathering. Same-peer/track/Worker and original Store effects are checked independently. Coturn zero-allocation drain and original-process join run even if media quality fails.",
   "cases": [
@@ -779,11 +779,10 @@
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "remaining": [
-    "Retained ES256 UDP and TCP full-profile changing-fps failures, despite relay/ICE/audio/AV/Store/cleanup proof. No threshold change or full-quality pass inferred.",
-    "Distinct-network current browser and approved Linux full media profile",
-    "Browser loss/unreachable-port media matrix",
-    "Retained direct optimized EdDSA audio extra-edge calibration failure",
-    "Current Linux hosting/installed-SDK regression failures"
+    "Actual approved current distinct-network browser and native Linux hosting media profiles, with no inheritance from these macOS loopback cases.",
+    "Actual browser packet-loss/unreachable-media-port behavior; TURN Allocate blackhole proof is recorded separately and is not an unreachable RTP path.",
+    "Current Linux installed-SDK/IPC/consultation failures require source-bound continuation.",
+    "Earlier media failures remain part of operating-limit investigation; remaining algorithm/topology/transport cells are not inferred from this fixed cohort."
   ],
   "expired_credentials": {
     "scope": "Actual installed Chrome with normal signed WSS; fresh expired synthetic REST values for both participants in each algorithm. Explicit coturn expiry/401 proof, zero logical submission, Store/host/relay allocations, owned capture/peer/context close, daemon drain and join. No media-quality or distinct-network claim.",
@@ -1019,5 +1018,939 @@
       "passed": false,
       "disposition": "Same stale authentication-log label; retained failed. Corrected runner requires explicit credential-expiry AND actual401 messages."
     }
-  ]
+  ],
+  "fresh_decoded_recovery_cohort": {
+    "scope": "Owned loopback coturn4.18/installed macOS Chrome156, UDP EdDSA/ES256 and TCP ES256 only. Each original restart completion requires both receivers to prove fresh decoded media within2s, followed by unchanged fullclean60 quality and original zero-allocation/process drains. No distinct-network/Linux/whole task qualification.",
+    "cases": [
+      {
+        "name": "browser-recovery-udp-eddsa-02",
+        "algorithm": "eddsa",
+        "transport": "udp",
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 70.16681920806877,
+          "log_sha256": "448d3db2ad3db0bf03986064d9899e0d8d3c4c9b32defdcd9a3722463ab1e5ab",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 105 filtered out; finished in 70.12s"
+          ],
+          "panic_locations": []
+        },
+        "source_count": 5932,
+        "source_manifest_sha256": "c4b8fdba6d420f92dfbab9181e358da30a2aa5bf8fa3684bd95057fbe6897005",
+        "changed_source_inputs": [],
+        "binary_sha256": "338ffbd25684169d927c5d93215b3873c07b73f2bc6c17aacdeaebc2f9b92e82",
+        "coturn_version": "4.18.0",
+        "coturn_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "tools_unchanged": true,
+        "tool_inputs": 79,
+        "tool_manifest_sha256": "8a4d66d0954d35f360eabc71cb846b30671b31fb503d790430ce317ea6518833",
+        "relay_path": {
+          "before": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "after": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "final": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ]
+        },
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6296999998092652,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.09940004348754883
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8935,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 3,
+                  "maximum_audio_gap_seconds": 0.1017000675201416
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.21190000009536744,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 6,
+                  "maximum_audio_gap_seconds": 0.10019993782043457
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.5513999998569489,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.11010003089904785
+                }
+              ]
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.8462999999523163,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10840010643005371
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.42189999985694887,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 10,
+                  "maximum_audio_gap_seconds": 0.10829997062683105
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6622000000476838,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10100007057189941
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.3372999999523163,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10109972953796387
+                }
+              ]
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "allocation_successes": 10,
+        "zero_allocation_drain_seconds": 4.653103959048167,
+        "allocation_drain_limit_seconds": 10,
+        "original_process_join_seconds": 5.47271579108201,
+        "post_drain_join_limit_seconds": 10,
+        "server_joined": true,
+        "drain_exit_code": 0,
+        "browser_report_sha256": "685d13f03cf5a612ff56561e730bea9ed2060a8edfa705338d9b69709972969e",
+        "summary_sha256": "b312e5e9fdcb5443f4c1e7bb4f9bb10774cfa708eafcf43981fcd29489e78e2c",
+        "quality": [
+          {
+            "decoded_fps": 28.447297566958532,
+            "changing_fps": 24.381017188318882,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 31.200000047682863,
+            "p95_abs_skew_ms": 71.90000009536845
+          },
+          {
+            "decoded_fps": 28.880589738452922,
+            "changing_fps": 24.680988691661153,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 43.49999988079034,
+            "p95_abs_skew_ms": 76.00000000000051
+          }
+        ],
+        "passed": true
+      },
+      {
+        "name": "browser-recovery-udp-es256-02",
+        "algorithm": "es256",
+        "transport": "udp",
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 70.23269554181024,
+          "log_sha256": "6e1ab6b55037e453965997c5f323c54730e550700659587492bed6196e89623f",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 105 filtered out; finished in 70.17s"
+          ],
+          "panic_locations": []
+        },
+        "source_count": 5932,
+        "source_manifest_sha256": "c4b8fdba6d420f92dfbab9181e358da30a2aa5bf8fa3684bd95057fbe6897005",
+        "changed_source_inputs": [],
+        "binary_sha256": "338ffbd25684169d927c5d93215b3873c07b73f2bc6c17aacdeaebc2f9b92e82",
+        "coturn_version": "4.18.0",
+        "coturn_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "tools_unchanged": true,
+        "tool_inputs": 79,
+        "tool_manifest_sha256": "80599f9e68ad1618ec304a26f8f01fde8ca0d01dc25313805926fa1f5959f235",
+        "relay_path": {
+          "before": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "after": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "final": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ]
+        },
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6554000000953675,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10000014305114746
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8947999999523163,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 4,
+                  "maximum_audio_gap_seconds": 0.10069990158081055
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.23319999980926515,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 6,
+                  "maximum_audio_gap_seconds": 0.10100007057189941
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.4717000000476837,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10130000114440918
+                }
+              ]
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.7921000001430512,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10860013961791992
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.7919000000953674,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.09960007667541504
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6040999999046326,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 2,
+                  "maximum_audio_gap_seconds": 0.10789990425109863
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.2362000000476837,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10889983177185059
+                }
+              ]
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "allocation_successes": 10,
+        "zero_allocation_drain_seconds": 4.551718625007197,
+        "allocation_drain_limit_seconds": 10,
+        "original_process_join_seconds": 5.441389207961038,
+        "post_drain_join_limit_seconds": 10,
+        "server_joined": true,
+        "drain_exit_code": 0,
+        "browser_report_sha256": "dbca0f372d22f26e3db21e5d4e3fd1c95c00ea1f0101d3c4815283cca5c05ab2",
+        "summary_sha256": "658b083f55b2aacebef761ed6ddfb111a1323e0c71757da033c2bc68ed2d663b",
+        "quality": [
+          {
+            "decoded_fps": 29.99495078682827,
+            "changing_fps": 25.579027476545217,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 30.300000071527222,
+            "p95_abs_skew_ms": 75.70000004768218
+          },
+          {
+            "decoded_fps": 28.84514433999985,
+            "changing_fps": 24.59585964519918,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 32.00000000000003,
+            "p95_abs_skew_ms": 70.90000009536723
+          }
+        ],
+        "passed": true
+      },
+      {
+        "name": "browser-recovery-tcp-es256-02",
+        "algorithm": "es256",
+        "transport": "tcp",
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 69.68277741689235,
+          "log_sha256": "da28260bd6c3726d3f92a80bb94bf2f983dc77fcf04778b017ad1ed137441819",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 105 filtered out; finished in 69.61s"
+          ],
+          "panic_locations": []
+        },
+        "source_count": 5932,
+        "source_manifest_sha256": "c4b8fdba6d420f92dfbab9181e358da30a2aa5bf8fa3684bd95057fbe6897005",
+        "changed_source_inputs": [],
+        "binary_sha256": "338ffbd25684169d927c5d93215b3873c07b73f2bc6c17aacdeaebc2f9b92e82",
+        "coturn_version": "4.18.0",
+        "coturn_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "tools_unchanged": true,
+        "tool_inputs": 79,
+        "tool_manifest_sha256": "14841116e2509574563a594dd328254ba51e1912630cb5c4c44050e2ea350ce9",
+        "relay_path": {
+          "before": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "after": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ],
+          "final": [
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            },
+            {
+              "candidate_type": "relay",
+              "observation_source": "stats"
+            }
+          ]
+        },
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6583999998569489,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10119986534118652
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8432999999523163,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 2,
+                  "maximum_audio_gap_seconds": 0.10039997100830078
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.21040000009536744,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 7,
+                  "maximum_audio_gap_seconds": 0.10160017013549805
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.44720000004768373,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.1099998950958252
+                }
+              ]
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.8899000000953674,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10010004043579102
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.26240000009536746,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 6,
+                  "maximum_audio_gap_seconds": 0.10050010681152344
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.20790000009536744,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 4,
+                  "maximum_audio_gap_seconds": 0.10030007362365723
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.4465,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.09939980506896973
+                }
+              ]
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "allocation_successes": 10,
+        "zero_allocation_drain_seconds": 4.994025125168264,
+        "allocation_drain_limit_seconds": 10,
+        "original_process_join_seconds": 5.558251166017726,
+        "post_drain_join_limit_seconds": 10,
+        "server_joined": true,
+        "drain_exit_code": 0,
+        "browser_report_sha256": "3bd29423febf2201619f93253376c9d375a73f47fc546d48c52b4bd976062559",
+        "summary_sha256": "b2164262287c11382daf505dfc27f8a7af060c1980da06660eaf7cbbc7b5b835",
+        "quality": [
+          {
+            "decoded_fps": 29.59679367786233,
+            "changing_fps": 25.43057835158666,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 25.949999928473133,
+            "p95_abs_skew_ms": 56.70000004768383
+          },
+          {
+            "decoded_fps": 29.04685325479394,
+            "changing_fps": 24.73065417677235,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "source_identity": "passed",
+            "motion_status": "passed",
+            "av_status": "passed",
+            "median_abs_skew_ms": 18.799999952314295,
+            "p95_abs_skew_ms": 78.69999980926501
+          }
+        ],
+        "passed": true
+      }
+    ],
+    "passed": true,
+    "prior_failures": "Earlier source-bound UDP ES256/TCP ES256 changing-fps failures and direct audio-edge/low-sample failures remain recorded. New passes verify the changed fixture in these exact scenes; intermittent causes are not established."
+  }
 }
