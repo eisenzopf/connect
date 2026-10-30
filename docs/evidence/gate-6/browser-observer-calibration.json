@@ -441,6 +441,132 @@
     "platform": "linux/amd64",
     "tool_version": "1.64.1",
     "expected_browser_version": "156.0.8078.4",
-    "runtime_result": "Pending. Upgrade the immutable image to match the already integrity-locked fixture tool. Same source, observer, launch policy and24fps minimum; no old-image pass or generic renderer fix inferred."
+    "runtime_result": "Verified passing isolated Linuxx86Chromium156.0.8078.4 observer: both contexts~29.7callbacks/~26.2changingfps, unchanged24minimum, original process exit0/no forced kill. Archive/source hashes and all7tracked inputs match1b2744a2. Full RTC/audio/60second media remains unqualified."
+  },
+  "linux_x86_image156_observation": {
+    "run_id": 41048282939,
+    "job_id": 124037713574,
+    "artifact_id": 12973691298,
+    "zip_sha256": "eb251a2ab2530d3eb72aba57a949f09713662dc447976f986043b92e0b729413",
+    "tracked_sources_verified_against_git": [
+      ".github/workflows/gate6-browser-observer.yml",
+      "scripts/video/check-renderer.mjs",
+      "scripts/video/marker_calibration.mjs",
+      "scripts/video/observer-tools/package-lock.json",
+      "scripts/video/observer-tools/package.json",
+      "scripts/video/owned_chromium.mjs",
+      "scripts/video/source_identity.mjs"
+    ],
+    "summary": {
+      "scope": "Two owned local canvas/capture/video observers for8seconds. Same synthetic motion/identity/cadence and independent8x8pixel comparison as browser quality fixture. No RTC, transport, Core, audio, remote host or account qualification.",
+      "os": "linux",
+      "architecture": "x64",
+      "node": "v24.22.1",
+      "browser": "156.0.8078.4",
+      "source_count": 79,
+      "source_manifest_sha256": "2535de0e94f29e3bab5d04061f623b99a95c5f8c4e8be55bb2cbdce323a508b7",
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "minimum_callback_and_changing_fps": 24,
+      "rows": [
+        {
+          "index": 0,
+          "seconds": 8.010699999999996,
+          "draw_fps": 30.334427702947323,
+          "callback_fps": 29.71026252387433,
+          "changing_fps": 26.214937521065586,
+          "raf_fps": 36.451246457862624,
+          "visibility": "visible",
+          "passed": true
+        },
+        {
+          "index": 1,
+          "seconds": 8.009,
+          "draw_fps": 30.21600699213385,
+          "callback_fps": 29.716568860032464,
+          "changing_fps": 26.220501935322762,
+          "raf_fps": 39.33075290298414,
+          "visibility": "visible",
+          "passed": true
+        }
+      ],
+      "original_browser_joined": true,
+      "ownership": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "error": null,
+      "passed": true
+    },
+    "image_browser": {
+      "cache": "/ms-playwright",
+      "architecture": "x64",
+      "entries": [
+        "chromium-1248"
+      ],
+      "candidates": [
+        "/ms-playwright/chromium-1248/chrome-linux64/chrome"
+      ]
+    }
+  },
+  "current_status": "Current MacChrome156 and Linuxx86Chromium156 isolated renderers pass; historical Chromium151 VM profiles and full RTC/media operating profiles remain unqualified.",
+  "candidate_trust_preparation": {
+    "recorded_at": "2026-10-30T11:42:05.463258+00:00",
+    "source": "docs/evidence/gate-6/chrome-current-trust-probe.py",
+    "source_sha256": "7e8fa6b876e68819b3118060ba369c5a4c2f1f0550170726fa5e667c57341b6e",
+    "mac_source_bound_observations": {
+      "scope": "Candidate Chrome156 normal private profile on owned loopback HTTPS: untrusted CA refusal, trusted CA acceptance and trusted wrong-host refusal. No RTC/Core/media/remote/account qualification.",
+      "candidate_only": true,
+      "browser_version": "Google Chrome 156.0.8078.48",
+      "original_helper_pin": "156.0.8078.48",
+      "helper_file_unchanged": true,
+      "source_inputs_sha256": {
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/chrome-current-trust-probe.py": "7e8fa6b876e68819b3118060ba369c5a4c2f1f0550170726fa5e667c57341b6e",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/scripts/video/browser_profile.py": "ce993b4d4717718d951a789b6fba664fe9873ce00aadde080811fefbc9c8749a",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/scripts/video/observer-tools/node_modules/playwright/index.mjs": "a0f5715ea22354f922791a9c53dc012d5d5c067ff9cc4cd35ffb7cd272071a9f",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/scripts/video/observer-tools/node_modules/playwright/package.json": "313d23ce667d93962d3a1ab4be80908cefe840e4d9e48f1cd5863b91f65e8e39",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome": "4f71e9dbe725fec1110977b6a6dd0708fb32fbde9c905b4b461cef880ac08288",
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node": "1ef99ea25fe70c9b67e7efe768ef8ee22148d3cabc703db6131b57aeb617d040"
+      },
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "driver_sha256": "d8d86dc908dd8e310a04d490e7641d8226a5261c7287f122758a70d5fd09f724",
+      "root_der_sha256": "310a61869864371e5d2162232199b45e5bbf75f17e71e74371720c7b3d2cb532",
+      "observations": {
+        "passed": true,
+        "results": [
+          {
+            "trusted": false,
+            "expected": "ERR_CERT_AUTHORITY_INVALID",
+            "error": "ERR_CERT_AUTHORITY_INVALID",
+            "status": null
+          },
+          {
+            "trusted": true,
+            "expected": "accepted",
+            "error": null,
+            "status": 200
+          },
+          {
+            "trusted": true,
+            "expected": "ERR_CERT_COMMON_NAME_INVALID",
+            "error": "ERR_CERT_COMMON_NAME_INVALID",
+            "status": null
+          }
+        ],
+        "normal_certificate_verification": true,
+        "original_contexts_closed": 2
+      },
+      "original_servers_joined": 2,
+      "exit_code": 0,
+      "timed_out": false,
+      "original_root_retained": true,
+      "passed": true
+    },
+    "linux_result": "Pending exact same three normalTLS cases on the pinned Linux browser. Candidate mutates only in-memory version selector; tracked profile helper remains unchanged. No normal Linux TLS or RTC claim before proof."
   }
 }

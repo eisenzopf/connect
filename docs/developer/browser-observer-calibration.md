@@ -36,3 +36,12 @@ uses no RTC/server/account endpoint and uploads only numeric/source manifests.
 Its result qualifies only the measured renderer. Normal TLS, decoded media,
 ICE/recovery, relay, loss, expiry and full Gate 6 acceptance retain their own
 required evidence.
+
+The candidate evidence probe `docs/evidence/gate-6/chrome-current-trust-probe.py`
+separately tests untrusted-CA refusal, trusted-CA acceptance and trusted
+wrong-host refusal with new loopback HTTPS servers and private profiles. It
+records the exact browser label, retained fixture root and unchanged helper.
+Its version selector changes only in memory for this diagnostic; production
+profile pins remain unchanged until the target-platform proof passes. The CI
+probe also rechecks the preceding renderer source/tool manifest. Only its
+redacted summary is uploaded; keys, profiles and raw logs stay private.
