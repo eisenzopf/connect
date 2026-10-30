@@ -1333,7 +1333,7 @@
         "result": "RTC gathering deadline with no nonloopback container interface or STUN server; zero measured rows. Normal browser join."
       }
     ],
-    "next": "Both 80 ms and zero receiver targets retain zero RTP loss/decoder drops, about 30 decoded frames/s and fewer frame callbacks than submitted composition frames. No production preference or threshold changes. A cloned-track direct decoded-frame pixel observer is prepared, with three ownership/failure/cleanup component tests passed; actual native-browser capability and pixel rates pending.",
+    "next": "Dimension-aware native-frame prototype is prepared for Linux. Main Connect qualification observer has not changed; actual Linux dimension-aware observations remain required.",
     "receiver_target_comparison": {
       "run_id": 41120360551,
       "artifact_id": 13008820876,
@@ -1654,6 +1654,552 @@
         "original_bridge_removed": true,
         "forced_cleanup": false
       }
+    },
+    "direct_content_prototype": {
+      "run_id": 41121475574,
+      "artifact_id": 13007654047,
+      "revision": "fb16f4d7902a589fe05198d2d34a1ed4cde95b81",
+      "zip_sha256": "42740407ca0b176912e805e50d22ff5f78c52c01f5abda0cf7d136de6ff1134d",
+      "cases": [
+        {
+          "mode": "run",
+          "tracked_sources_verified": [
+            ".github/workflows/gate6-browser-observer.yml",
+            "scripts/video/check-renderer.mjs",
+            "scripts/video/decoded_video_frames.mjs",
+            "scripts/video/marker_calibration.mjs",
+            "scripts/video/observer-tools/package-lock.json",
+            "scripts/video/observer-tools/package.json",
+            "scripts/video/owned_chromium.mjs",
+            "scripts/video/source_identity.mjs"
+          ],
+          "summary": {
+            "scope": "Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.",
+            "mode": "calibration",
+            "requested_seconds": 8,
+            "motion_sample_pixels": [
+              8,
+              8
+            ],
+            "os": "linux",
+            "architecture": "x64",
+            "node": "v24.22.1",
+            "browser": "156.0.8078.4",
+            "source_count": 80,
+            "source_manifest_sha256": "4d4a7d1a439279026ac7817581fd874231565716ff4298952f789b2eda6036a1",
+            "sources_unchanged": true,
+            "changed_inputs": [],
+            "minimum_callback_and_changing_fps": 24,
+            "rows": [
+              {
+                "index": 0,
+                "seconds": 8.006399999999994,
+                "draw_fps": 30.350719424460454,
+                "callback_fps": 29.85111910471625,
+                "changing_fps": 26.229016786570764,
+                "raf_fps": 41.71662669864112,
+                "presented_counter_fps": null,
+                "visibility": "visible",
+                "passed": true
+              },
+              {
+                "index": 1,
+                "seconds": 8.007,
+                "draw_fps": 30.34844511052829,
+                "callback_fps": 29.723991507431,
+                "changing_fps": 26.10216060946672,
+                "raf_fps": 39.71524915698764,
+                "presented_counter_fps": null,
+                "visibility": "visible",
+                "passed": true
+              }
+            ],
+            "original_browser_joined": true,
+            "ownership": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "error": null,
+            "passed": true
+          }
+        },
+        {
+          "mode": "quality",
+          "tracked_sources_verified": [
+            ".github/workflows/gate6-browser-observer.yml",
+            "scripts/video/check-renderer.mjs",
+            "scripts/video/decoded_video_frames.mjs",
+            "scripts/video/marker_calibration.mjs",
+            "scripts/video/observer-tools/package-lock.json",
+            "scripts/video/observer-tools/package.json",
+            "scripts/video/owned_chromium.mjs",
+            "scripts/video/source_identity.mjs"
+          ],
+          "summary": {
+            "scope": "Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.",
+            "mode": "quality",
+            "requested_seconds": 60,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "os": "linux",
+            "architecture": "x64",
+            "node": "v24.22.1",
+            "browser": "156.0.8078.4",
+            "source_count": 80,
+            "source_manifest_sha256": "4d4a7d1a439279026ac7817581fd874231565716ff4298952f789b2eda6036a1",
+            "sources_unchanged": true,
+            "changed_inputs": [],
+            "minimum_callback_and_changing_fps": 24,
+            "rows": [
+              {
+                "index": 0,
+                "seconds": 60.01310000000001,
+                "draw_fps": 30.31004897264097,
+                "callback_fps": 30.14341868692002,
+                "changing_fps": 27.244051715375473,
+                "raf_fps": 40.674452744484114,
+                "presented_counter_fps": null,
+                "visibility": "visible",
+                "passed": true
+              },
+              {
+                "index": 1,
+                "seconds": 60.011100000000006,
+                "draw_fps": 30.294395536825686,
+                "callback_fps": 30.227741201211106,
+                "changing_fps": 27.31161401807332,
+                "raf_fps": 42.0255586049914,
+                "presented_counter_fps": null,
+                "visibility": "visible",
+                "passed": true
+              }
+            ],
+            "original_browser_joined": true,
+            "ownership": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "error": null,
+            "passed": true
+          }
+        },
+        {
+          "mode": "rtc",
+          "tracked_sources_verified": [
+            ".github/workflows/gate6-browser-observer.yml",
+            "scripts/video/check-renderer.mjs",
+            "scripts/video/decoded_video_frames.mjs",
+            "scripts/video/marker_calibration.mjs",
+            "scripts/video/observer-tools/package-lock.json",
+            "scripts/video/observer-tools/package.json",
+            "scripts/video/owned_chromium.mjs",
+            "scripts/video/source_identity.mjs"
+          ],
+          "summary": {
+            "scope": "Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.",
+            "mode": "rtc",
+            "requested_seconds": 60,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "os": "linux",
+            "architecture": "x64",
+            "node": "v24.22.1",
+            "browser": "156.0.8078.4",
+            "source_count": 80,
+            "source_manifest_sha256": "4d4a7d1a439279026ac7817581fd874231565716ff4298952f789b2eda6036a1",
+            "sources_unchanged": true,
+            "changed_inputs": [],
+            "minimum_callback_and_changing_fps": 24,
+            "rows": [
+              {
+                "index": 0,
+                "seconds": 60.007700000000014,
+                "draw_fps": 30.296111998960125,
+                "callback_fps": 24.84681132587984,
+                "changing_fps": 22.847067959611845,
+                "raf_fps": 40.92808089628497,
+                "presented_counter_fps": 29.046272395042628,
+                "decoded_fps": 29.996150494019926,
+                "receiver_target_ms": 80,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 108.34425499999999,
+                  "jitterBufferTargetDelay": 122.709,
+                  "jitterBufferEmittedCount": 1800,
+                  "totalDecodeTime": 1.595061,
+                  "totalProcessingDelay": 110.11021199999999,
+                  "totalInterFrameDelay": 60.001
+                },
+                "visibility": "visible",
+                "passed": false
+              },
+              {
+                "index": 1,
+                "seconds": 60.008,
+                "draw_fps": 30.312624983335553,
+                "callback_fps": 24.34675376616451,
+                "changing_fps": 22.530329289428074,
+                "raf_fps": 41.54446073856819,
+                "presented_counter_fps": 28.596187175043326,
+                "decoded_fps": 29.99600053326223,
+                "receiver_target_ms": 80,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 109.48799,
+                  "jitterBufferTargetDelay": 123.163,
+                  "jitterBufferEmittedCount": 1800,
+                  "totalDecodeTime": 1.59294,
+                  "totalProcessingDelay": 111.268053,
+                  "totalInterFrameDelay": 60.001
+                },
+                "visibility": "visible",
+                "passed": false
+              }
+            ],
+            "original_browser_joined": true,
+            "ownership": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "error": null,
+            "passed": false
+          }
+        },
+        {
+          "mode": "rtc-buffer",
+          "tracked_sources_verified": [
+            ".github/workflows/gate6-browser-observer.yml",
+            "scripts/video/check-renderer.mjs",
+            "scripts/video/decoded_video_frames.mjs",
+            "scripts/video/marker_calibration.mjs",
+            "scripts/video/observer-tools/package-lock.json",
+            "scripts/video/observer-tools/package.json",
+            "scripts/video/owned_chromium.mjs",
+            "scripts/video/source_identity.mjs"
+          ],
+          "summary": {
+            "scope": "Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.",
+            "mode": "rtc-buffer",
+            "requested_seconds": 60,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "os": "linux",
+            "architecture": "x64",
+            "node": "v24.22.1",
+            "browser": "156.0.8078.4",
+            "source_count": 80,
+            "source_manifest_sha256": "4d4a7d1a439279026ac7817581fd874231565716ff4298952f789b2eda6036a1",
+            "sources_unchanged": true,
+            "changed_inputs": [],
+            "minimum_callback_and_changing_fps": 24,
+            "rows": [
+              {
+                "index": 0,
+                "seconds": 60.007600000000004,
+                "draw_fps": 30.296162486085095,
+                "callback_fps": 23.94696671754911,
+                "changing_fps": 22.180523800318625,
+                "raf_fps": 41.02813643605143,
+                "presented_counter_fps": 28.32974489897946,
+                "decoded_fps": 29.97953592544944,
+                "receiver_target_ms": 80,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 109.455338,
+                  "jitterBufferTargetDelay": 123.12599999999999,
+                  "jitterBufferEmittedCount": 1799,
+                  "totalDecodeTime": 1.4376639999999998,
+                  "totalProcessingDelay": 111.022184,
+                  "totalInterFrameDelay": 59.985
+                },
+                "visibility": "visible",
+                "passed": false
+              },
+              {
+                "index": 1,
+                "seconds": 60.00719999999998,
+                "draw_fps": 30.313029103174294,
+                "callback_fps": 24.880347691610346,
+                "changing_fps": 22.81392899518725,
+                "raf_fps": 41.14506259248891,
+                "presented_counter_fps": 29.379807756402574,
+                "decoded_fps": 29.979735765041536,
+                "receiver_target_ms": 0,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 14.132926,
+                  "jitterBufferTargetDelay": 22.224661,
+                  "jitterBufferEmittedCount": 1799,
+                  "totalDecodeTime": 1.368693,
+                  "totalProcessingDelay": 15.607413999999999,
+                  "totalInterFrameDelay": 59.985
+                },
+                "visibility": "visible",
+                "passed": false
+              }
+            ],
+            "original_browser_joined": true,
+            "ownership": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "error": null,
+            "passed": false
+          }
+        },
+        {
+          "mode": "rtc-content",
+          "tracked_sources_verified": [
+            ".github/workflows/gate6-browser-observer.yml",
+            "scripts/video/check-renderer.mjs",
+            "scripts/video/decoded_video_frames.mjs",
+            "scripts/video/marker_calibration.mjs",
+            "scripts/video/observer-tools/package-lock.json",
+            "scripts/video/observer-tools/package.json",
+            "scripts/video/owned_chromium.mjs",
+            "scripts/video/source_identity.mjs"
+          ],
+          "summary": {
+            "scope": "Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.",
+            "mode": "rtc-content",
+            "requested_seconds": 60,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "os": "linux",
+            "architecture": "x64",
+            "node": "v24.22.1",
+            "browser": "156.0.8078.4",
+            "source_count": 80,
+            "source_manifest_sha256": "4d4a7d1a439279026ac7817581fd874231565716ff4298952f789b2eda6036a1",
+            "sources_unchanged": true,
+            "changed_inputs": [],
+            "minimum_callback_and_changing_fps": 24,
+            "rows": [
+              {
+                "index": 0,
+                "seconds": 60.008399999999966,
+                "draw_fps": 30.295758593796887,
+                "callback_fps": 24.51323481379275,
+                "changing_fps": 22.5635077755781,
+                "raf_fps": 40.994260803487535,
+                "presented_counter_fps": 28.162723885322738,
+                "decoded_fps": 29.979136254257753,
+                "receiver_target_ms": 80,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 107.99725699999999,
+                  "jitterBufferTargetDelay": 122.63199999999999,
+                  "jitterBufferEmittedCount": 1799,
+                  "totalDecodeTime": 1.6446079999999998,
+                  "totalProcessingDelay": 109.85225399999999,
+                  "totalInterFrameDelay": 60.001
+                },
+                "decoded_content": {
+                  "status": "observing",
+                  "frames_fps": 0,
+                  "changing_fps": 0,
+                  "failed": true,
+                  "reader_joined": true
+                },
+                "visibility": "visible",
+                "passed": false
+              },
+              {
+                "index": 1,
+                "seconds": 60.0085,
+                "draw_fps": 30.295708108018033,
+                "callback_fps": 24.363215211178417,
+                "changing_fps": 22.546805869168534,
+                "raf_fps": 40.810885124607346,
+                "presented_counter_fps": 29.012556554488114,
+                "decoded_fps": 29.99575060199805,
+                "receiver_target_ms": 80,
+                "rtp_deltas": {
+                  "framesDropped": 0,
+                  "packetsLost": 0,
+                  "jitterBufferDelay": 108.22647099999999,
+                  "jitterBufferTargetDelay": 122.42999999999999,
+                  "jitterBufferEmittedCount": 1800,
+                  "totalDecodeTime": 1.6482519999999998,
+                  "totalProcessingDelay": 110.08369499999999,
+                  "totalInterFrameDelay": 60
+                },
+                "decoded_content": {
+                  "status": "observing",
+                  "frames_fps": 29.99575060199805,
+                  "changing_fps": 27.7460693068482,
+                  "failed": false,
+                  "reader_joined": true
+                },
+                "visibility": "visible",
+                "passed": false
+              }
+            ],
+            "original_browser_joined": true,
+            "ownership": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "error": null,
+            "passed": false
+          }
+        }
+      ],
+      "network": {
+        "owned_internal_bridge": true,
+        "original_bridge_removed": true,
+        "forced_cleanup": false
+      }
+    },
+    "local_dimension_aware_content_followup": {
+      "scope": "Owned local Mac Chrome156 native VP8-only direct decoded-frame observer capability/content diagnostic. No Linux/Connect/Core/audio/account qualification.",
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 64.12933949986473,
+        "log_sha256": "eca59b40f2b86cdcfde2861ddf38b0da41140de41a94eaa71e22d0e9409ce059"
+      },
+      "summary": {
+        "scope": "Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.",
+        "mode": "rtc-content",
+        "requested_seconds": 60,
+        "motion_sample_pixels": [
+          128,
+          72
+        ],
+        "os": "darwin",
+        "architecture": "arm64",
+        "node": "v26.7.0",
+        "browser": "156.0.8078.48",
+        "source_count": 84,
+        "source_manifest_sha256": "8bd70712371c97ba7fdd8118cdb278e4a3efe3ca3909d120040e81af92f25e94",
+        "sources_unchanged": true,
+        "changed_inputs": [],
+        "minimum_callback_and_changing_fps": 24,
+        "rows": [
+          {
+            "index": 0,
+            "seconds": 60.00520000004769,
+            "draw_fps": 30.31403944989025,
+            "callback_fps": 26.864338423981902,
+            "changing_fps": 25.014498743422354,
+            "raf_fps": 59.96147000588517,
+            "presented_counter_fps": 29.9640697805952,
+            "decoded_fps": 29.980735002942584,
+            "receiver_target_ms": 80,
+            "rtp_deltas": {
+              "framesDropped": 0,
+              "packetsLost": 0,
+              "jitterBufferDelay": 108.454834,
+              "jitterBufferTargetDelay": 123.374,
+              "jitterBufferEmittedCount": 1799,
+              "totalDecodeTime": 1.266181,
+              "totalProcessingDelay": 109.831758,
+              "totalInterFrameDelay": 60.019000000000005
+            },
+            "decoded_content": {
+              "status": "observing",
+              "frames_fps": 27.69759954135107,
+              "received_frames_fps": 29.980735002942584,
+              "changing_fps": 25.681107637317687,
+              "dimension_refusals": 137,
+              "last_dimensions": [
+                640,
+                360
+              ],
+              "pixel_failure": false,
+              "failed": false,
+              "reader_joined": true
+            },
+            "visibility": "visible",
+            "passed": true
+          },
+          {
+            "index": 1,
+            "seconds": 60.00509999990463,
+            "draw_fps": 30.29742471894705,
+            "callback_fps": 26.9310441946196,
+            "changing_fps": 24.94787943028808,
+            "raf_fps": 59.96156993331764,
+            "presented_counter_fps": 29.947454466417955,
+            "decoded_fps": 29.98078496665882,
+            "receiver_target_ms": 80,
+            "rtp_deltas": {
+              "framesDropped": 0,
+              "packetsLost": 0,
+              "jitterBufferDelay": 108.87679,
+              "jitterBufferTargetDelay": 123.37599999999999,
+              "jitterBufferEmittedCount": 1799,
+              "totalDecodeTime": 1.2598829999999999,
+              "totalProcessingDelay": 110.241109,
+              "totalInterFrameDelay": 60.016999999999996
+            },
+            "decoded_content": {
+              "status": "observing",
+              "frames_fps": 27.697645700159512,
+              "received_frames_fps": 29.98078496665882,
+              "changing_fps": 25.597824184984965,
+              "dimension_refusals": 137,
+              "last_dimensions": [
+                640,
+                360
+              ],
+              "pixel_failure": false,
+              "failed": false,
+              "reader_joined": true
+            },
+            "visibility": "visible",
+            "passed": true
+          }
+        ],
+        "original_browser_joined": true,
+        "ownership": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "error": null,
+        "passed": true
+      },
+      "native_content_observer_passed": true,
+      "interpretation": "Only actual 640x360 VideoFrames count. Both local native RTC receivers exceed24 changing frames/s;137 measured size refusals each remain recorded. Four cloned-track ownership, failure, unsupported and synchronous-callback tests pass. This is not Linux or Connect qualification. Earlier fail-fast native-frame prototypes remain failed; no old report is promoted."
     }
   }
 }

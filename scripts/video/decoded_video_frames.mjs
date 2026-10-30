@@ -19,7 +19,9 @@ export function observeDecodedVideoFrames(track, observe) {
                 if(done)break;
                 try {
                     if(stopped)break;
-                    observe(value);
+                    const result=observe(value);
+                    if(result&&typeof result.then==="function")
+                        throw new TypeError("Decoded-frame observation must be synchronous");
                     frames=Math.min(Number.MAX_SAFE_INTEGER,frames+1);
                 } finally { value.close(); }
             }

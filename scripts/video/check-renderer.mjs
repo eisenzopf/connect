@@ -140,18 +140,25 @@ try{
             };
             const animation=()=>{if(!closed){raf++;requestAnimationFrame(animation);}};
             video.requestVideoFrameCallback(decoded);requestAnimationFrame(animation);
-            let contentObserver,contentLast,contentChanging=0;
+            let contentObserver,contentLast,contentChanging=0,contentFrames=0,contentDimensionsRefused=0,
+                contentLastDimensions=null,contentPixelFailure=false;
             let contentStatus=mode==='rtc-content'?'unsupported':'not-requested';
             if(mode==='rtc-content'&&typeof globalThis.MediaStreamTrackProcessor==='function'){
                 const {observeDecodedVideoFrames}=await import('/decoded-video-frames.mjs');
                 const contentCanvas=document.createElement('canvas');contentCanvas.width=width;contentCanvas.height=height;
                 const contentPixels=contentCanvas.getContext('2d',{willReadFrequently:true});contentPixels.imageSmoothingEnabled=false;
                 contentObserver=observeDecodedVideoFrames(received.getVideoTracks()[0],frame=>{
-                    if(frame.displayWidth!==640||frame.displayHeight!==360)throw Error('Unexpected decoded dimensions');
-                    contentPixels.drawImage(frame,0,0,width,height);
-                    const bytes=contentPixels.getImageData(0,0,width,height).data;
-                    if(contentLast!==undefined&&bytes.some((value,index)=>value!==contentLast[index]))contentChanging++;
-                    contentLast=bytes;
+                    contentLastDimensions=[frame.displayWidth,frame.displayHeight].map(value=>
+                        Number.isSafeInteger(value)&&value>=0&&value<=16384?value:null);
+                    if(frame.displayWidth!==640||frame.displayHeight!==360){
+                        contentDimensionsRefused++;contentLast=undefined;return;
+                    }
+                    try{
+                        contentPixels.drawImage(frame,0,0,width,height);
+                        const bytes=contentPixels.getImageData(0,0,width,height).data;
+                        if(contentLast!==undefined&&bytes.some((value,index)=>value!==contentLast[index]))contentChanging++;
+                        contentLast=bytes;contentFrames++;
+                    }catch(error){contentPixelFailure=true;throw error;}
                 });
                 contentStatus='observing';
             }
@@ -165,7 +172,9 @@ try{
                         if(Number.isFinite(stat[key])&&stat[key]>=0)rtp[key]=stat[key];
                 });
                 return {index,draws,callbacks,changing,raf,decoded,rtp,presented,
-                    content:{status:contentStatus,changing:contentChanging,...contentObserver?.snapshot()},
+                    content:{status:contentStatus,changing:contentChanging,observedFrames:contentFrames,
+                        dimensionsRefused:contentDimensionsRefused,lastDimensions:contentLastDimensions,
+                        pixelFailure:contentPixelFailure,...contentObserver?.snapshot()},
                     time:performance.now(),visibility:document.visibilityState};
             },close:async()=>{closed=true;clearInterval(timer);
                 const contentJoined=await contentObserver?.close();sender?.close();receiver?.close();
@@ -189,9 +198,12 @@ try{
                 rtp_deltas:Object.fromEntries(Object.entries(end.rtp).map(([key,value])=>[key,
                     Number.isFinite(start.rtp[key])&&value>=start.rtp[key]?value-start.rtp[key]:null]))}:{}),
             ...(mode==='rtc-content'?{decoded_content:{status:end.content.status,
-                frames_fps:Number.isFinite(end.content.frames)&&Number.isFinite(start.content.frames)
+                frames_fps:(end.content.observedFrames-start.content.observedFrames)/seconds,
+                received_frames_fps:Number.isFinite(end.content.frames)&&Number.isFinite(start.content.frames)
                     ?(end.content.frames-start.content.frames)/seconds:null,
                 changing_fps:(end.content.changing-start.content.changing)/seconds,
+                dimension_refusals:end.content.dimensionsRefused-start.content.dimensionsRefused,
+                last_dimensions:end.content.lastDimensions,pixel_failure:end.content.pixelFailure,
                 failed:end.content.failed??null,reader_joined:contentJoined?.joined??null}}:{}),
             visibility:end.visibility,passed:end.visibility==='visible'&&(end.callbacks-start.callbacks)/seconds>=24
                 &&(end.changing-start.changing)/seconds>=24&&(!rtcControl||(end.decoded-start.decoded)/seconds>=24)};

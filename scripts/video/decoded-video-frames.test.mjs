@@ -44,3 +44,16 @@ test("unsupported or failed construction cannot take or leak the original track"
         assert.throws(()=>observeDecodedVideoFrames(track,()=>{}));assert.equal(clones,1);assert.equal(stops,1);
     }finally{globalThis.MediaStreamTrackProcessor=original;}
 });
+
+test("asynchronous observers cannot retain a borrowed frame past its observation",async()=>{
+    const original=globalThis.MediaStreamTrackProcessor;let closed=0,stops=0;
+    globalThis.MediaStreamTrackProcessor=class {
+        readable=new ReadableStream({start(c){c.enqueue({close:()=>closed++});}});
+    };
+    try{
+        const observer=observeDecodedVideoFrames({clone:()=>({stop:()=>stops++})},()=>Promise.resolve());
+        await new Promise(resolve=>setImmediate(resolve));
+        assert.deepEqual(await observer.close(),{frames:0,failed:true,joined:true});
+        assert.equal(closed,1);assert.equal(stops,1);
+    }finally{globalThis.MediaStreamTrackProcessor=original;}
+});
