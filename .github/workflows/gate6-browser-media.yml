@@ -84,6 +84,9 @@ jobs:
             --mount "type=bind,source=$PWD/.local/gate6-browser-media/evidence,target=$PWD/.local/gate6-browser-media/evidence" \
             --workdir "$PWD" \
             --env PYTHONDONTWRITEBYTECODE=1 \
+            --env GIT_CONFIG_COUNT=1 \
+            --env GIT_CONFIG_KEY_0=safe.directory \
+            --env "GIT_CONFIG_VALUE_0=$PWD" \
             --env TMPDIR=/tmp/connect-fixtures \
             --env CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1 \
             --env "CONNECT_GATE6_BROWSER_IMAGE_ID=$(docker image inspect --format '{{.Id}}' connect-g6-browser-media)" \

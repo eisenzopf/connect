@@ -199,5 +199,42 @@
       "script_sha256": "eed0b24e9675a9bbc7798ba7065a42a7aec54efe714535586f0dac0ff2e6023f"
     },
     "qualification": "Matched owned Linux arm64 Pulse16.1 startup-only regression. No x86/browser/media/audio-clock pass is inferred; exact x86 runtime must still execute."
+  },
+  "private_home_git_checkout_fix": {
+    "run_id": 41076127518,
+    "source_revision": "ba3864d1796983fe966609622716008c3f84fb4c",
+    "artifact_id": 12987996430,
+    "artifact_sha256": "33e27081d9e61aaa4b53f8601047ac0301942c3432221d916c5c8e7fcc905b1e",
+    "linux_build": {
+      "passed": true,
+      "seconds": 355.763479448,
+      "production_libraries_opt3": 11,
+      "missing_libraries": 0,
+      "fixture_opt_level": 0,
+      "unrequested_cli_artifacts": 0,
+      "unchanged_sources": 5921
+    },
+    "audio": {
+      "startup_socket_created": true,
+      "private_cookie_created": true,
+      "original_process_joined": true,
+      "exit_code": 0,
+      "socket_exists_after_join": false
+    },
+    "runtime": {
+      "passed": false,
+      "clock_and_media_cases_run": 0,
+      "failure": "Git rejected the differently owned read-only checkout under the new private HOME, before the first runtime source snapshot."
+    },
+    "fix": "Supply safe.directory through command-scoped GIT_CONFIG_COUNT for exactly the mounted checkout. No wildcard or global configuration change.",
+    "regression": "Owned Linux arm64 synthetic differently owned read-only checkout rejects missing trust and accepts only the exact safe.directory; no browser or x86 runtime claim.",
+    "default_cli_build": {
+      "passed": true,
+      "sources_unchanged": true,
+      "source_count": 5921,
+      "binary_sha256": "30ef847997b7522c5795ba43f0a2ba763a08725d485376a919a1ab7a4e58d4bd",
+      "scope": "macOS arm64 default CLI, retained local store/service/server opt0 exceptions; no Linux runtime qualification."
+    },
+    "remaining": "Rerun actual Linux x86 clock and all eight bounded media cases. G6-054 and acceptance remain open."
   }
 }
