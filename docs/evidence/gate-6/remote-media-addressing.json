@@ -366,5 +366,14 @@
       "ES256 TCP changingfps22.8/21.9",
       "Current SDK ES256 UDP changingfps23.78/24.33"
     ]
+  },
+  "browser_unreachable_turn_continuation": {
+    "evidence": "docs/evidence/gate-6/browser-unreachable-turn.json",
+    "passed": true,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "scope": "Owned loopback TURN control refusal only; no media-port, decoded-quality, distinct-network or full-task inference."
   }
 }

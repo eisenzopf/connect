@@ -128,14 +128,24 @@ struct OwnedUdpFixture {
     stop: tokio_util::sync::CancellationToken,
     task: Option<tokio::task::JoinHandle<()>>,
 }
+enum UdpFixtureKind {
+    QuicBlackhole,
+    Stun,
+    TurnBlackhole,
+}
 impl OwnedUdpFixture {
     async fn open() -> Self {
-        Self::bind(false).await
+        Self::bind(UdpFixtureKind::QuicBlackhole).await
     }
     async fn stun() -> Self {
-        Self::bind(true).await
+        Self::bind(UdpFixtureKind::Stun).await
     }
-    async fn bind(stun: bool) -> Self {
+    async fn unreachable_turn() -> Self {
+        Self::bind(UdpFixtureKind::TurnBlackhole).await
+    }
+    async fn bind(kind: UdpFixtureKind) -> Self {
+        let stun = matches!(kind, UdpFixtureKind::Stun);
+        let turn = matches!(kind, UdpFixtureKind::TurnBlackhole);
         let socket = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
         let address = socket.local_addr().unwrap();
         let packets = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -182,6 +192,15 @@ impl OwnedUdpFixture {
                             }
                             socket.send_to(&response,source).await.unwrap();
                             count.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+                        } else if turn {
+                            // Count only actual complete STUN Allocate requests;
+                            // never respond or proxy to any destination.
+                            if length>=20 && buffer[..2]==[0,3]
+                                && buffer[4..8]==[0x21,0x12,0xa4,0x42]
+                                && usize::from(u16::from_be_bytes([buffer[2],buffer[3]]))==length-20
+                                && (length-20)%4==0 {
+                                count.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+                            }
                         } else if length>=1200 {
                             count.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
                         }
@@ -272,6 +291,35 @@ fn original_message_counts(f: &Fixture) -> (i64, i64, i64) {
     (messages, journal, operations)
 }
 
+#[tokio::test]
+async fn canonical_loopback_turn_blackhole_counts_only_allocate_and_joins() {
+    let fixture = OwnedUdpFixture::unreachable_turn().await;
+    let address = fixture.address;
+    let socket = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
+    let mut allocate = [7u8; 20];
+    allocate[..8].copy_from_slice(&[0, 3, 0, 0, 0x21, 0x12, 0xa4, 0x42]);
+    socket.send_to(&allocate, address).await.unwrap();
+    allocate[1] = 1;
+    socket.send_to(&allocate, address).await.unwrap();
+    allocate[1] = 3;
+    allocate[4] ^= 1;
+    socket.send_to(&allocate, address).await.unwrap();
+    let mut response = [0; 64];
+    assert!(
+        tokio::time::timeout(Duration::from_millis(50), socket.recv_from(&mut response))
+            .await
+            .is_err()
+    );
+    assert_eq!(fixture.close().await, 1);
+    drop(std::net::UdpSocket::bind(address).unwrap());
+}
+
+#[derive(Clone, Copy)]
+enum RelayRefusal {
+    Expired,
+    Unreachable,
+}
+
 async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
     Box::pin(run_profile(
         algorithm,
@@ -309,7 +357,7 @@ struct Profile {
     transport_recovery: bool,
     transport_faults: bool,
     ice_restart: bool,
-    expired_relay: bool,
+    relay_refusal: Option<RelayRefusal>,
     relay: Option<relay::Fixture>,
 }
 
@@ -331,7 +379,7 @@ async fn run_full_profile(
             transport_recovery,
             transport_faults,
             ice_restart,
-            expired_relay: false,
+            relay_refusal: None,
             relay: None,
         },
     ))
@@ -345,13 +393,14 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         transport_recovery,
         transport_faults,
         ice_restart,
-        expired_relay,
+        relay_refusal,
         relay,
     } = profile;
-    assert!(
-        !expired_relay
-            || (relay.is_some() && !ice_restart && !transition_control && !forced_fallback)
-    );
+    let expired_relay = matches!(relay_refusal, Some(RelayRefusal::Expired));
+    let unreachable_relay = matches!(relay_refusal, Some(RelayRefusal::Unreachable));
+    assert!(!expired_relay || relay.is_some());
+    assert!(!unreachable_relay || relay.is_none());
+    assert!(relay_refusal.is_none() || (!ice_restart && !transition_control && !forced_fallback));
     assert!(
         !ice_restart
             || (!forced_fallback
@@ -657,6 +706,19 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         participant(&f, &f.client, &room.id, mine, theirs, 0),
         participant(&f, &other, &room.id, theirs, mine, 1),
     ];
+    let unreachable_turn = if unreachable_relay {
+        let hole = OwnedUdpFixture::unreachable_turn().await;
+        for participant in &mut participants {
+            participant["connection"]["iceTransportPolicy"] = json!("relay");
+            participant["connection"]["iceServers"] = json!([{
+                "urls":format!("turn:{}?transport=udp",hole.address),
+                "username":"owned-synthetic", "credential":"owned-unreachable-fixture",
+            }]);
+        }
+        Some(hole)
+    } else {
+        None
+    };
     if let Some(relay) = &relay {
         for participant in &mut participants {
             relay.configure(participant, expired_relay);
@@ -688,6 +750,9 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
     }
     if expired_relay {
         spec["expiredRelayOnly"] = json!(true);
+    }
+    if unreachable_relay {
+        spec["unreachableRelayOnly"] = json!(true);
     }
     if transition_control {
         spec["controlOnly"] = json!(true);
@@ -734,21 +799,45 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         }
     };
     drop(browser);
-    if expired_relay && !runner_timed_out && status.success() {
+    if let Some(hole) = unreachable_turn {
+        let address = hole.address;
+        let requests = hole.close().await;
+        drop(std::net::UdpSocket::bind(address).unwrap());
+        std::fs::write(output.join("unreachable-turn.json"), serde_json::to_vec(&json!({"owned_loopback_only":true,"actual_unanswered_allocate_requests":requests,"owned_listener_joined":true,"original_address_reclaimed":true})).unwrap()).unwrap();
+        assert!(
+            requests > 0,
+            "Browser did not reach owned unreachable TURN listener"
+        );
+    }
+    if relay_refusal.is_some() && !runner_timed_out && status.success() {
+        let reason = if expired_relay {
+            "expired"
+        } else {
+            "unreachable"
+        };
         assert_eq!(host.adapter().total_allocations(), 0);
         let report: Value =
             serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
                 .unwrap();
-        assert_eq!(report["expired_relay"]["status"], "passed");
+        assert_eq!(report[format!("{reason}_relay")]["status"], "passed");
         let db = rusqlite::Connection::open_with_flags(
             f.server.store.path(),
             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
         )
         .unwrap();
-        let operations: i64 = db.query_row("SELECT count(*) FROM operations WHERE operation_id IN ('browser-expired-relay-0', 'browser-expired-relay-1')", [], |row| row.get(0)).unwrap();
+        let operations: i64 = db
+            .query_row(
+                "SELECT count(*) FROM operations WHERE operation_id IN (?1, ?2)",
+                [
+                    format!("browser-{reason}-relay-0"),
+                    format!("browser-{reason}-relay-1"),
+                ],
+                |row| row.get(0),
+            )
+            .unwrap();
         assert_eq!(operations, 0);
         std::fs::write(
-            output.join("expired-relay-oracle.json"),
+            output.join(format!("{reason}-relay-oracle.json")),
             serde_json::to_vec(
                 &json!({"passed":true,"logical_operations":operations,"physical_allocations":0}),
             )
@@ -970,7 +1059,7 @@ async fn canonical_chrome_relay_expired_credentials_eddsa() {
         "EdDSA",
         "chrome",
         Profile {
-            expired_relay: true,
+            relay_refusal: Some(RelayRefusal::Expired),
             relay: Some(relay::Fixture::load()),
             ..Profile::default()
         },
@@ -985,8 +1074,36 @@ async fn canonical_chrome_relay_expired_credentials_es256() {
         "ES256",
         "chrome",
         Profile {
-            expired_relay: true,
+            relay_refusal: Some(RelayRefusal::Expired),
             relay: Some(relay::Fixture::load()),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome, owned nonresponding TURN listener and unchanged original media-open deadline"]
+async fn canonical_chrome_unreachable_turn_eddsa() {
+    Box::pin(run_configured_profile(
+        "EdDSA",
+        "chrome",
+        Profile {
+            relay_refusal: Some(RelayRefusal::Unreachable),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome, owned nonresponding TURN listener and unchanged original media-open deadline"]
+async fn canonical_chrome_unreachable_turn_es256() {
+    Box::pin(run_configured_profile(
+        "ES256",
+        "chrome",
+        Profile {
+            relay_refusal: Some(RelayRefusal::Unreachable),
             ..Profile::default()
         },
     ))

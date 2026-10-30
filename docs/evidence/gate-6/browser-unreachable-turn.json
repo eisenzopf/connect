@@ -1,0 +1,176 @@
+{
+  "task": "G6-054",
+  "checked_at": "2026-10-30T12:27:40.771647+00:00",
+  "scope": "Owned loopback actual Chrome TURN blackhole and original signed WSS authority for both algorithms. Explicit8second media-open deadline, no logical/physical admission or alternate fallback, closed original peer/capture/context/host/listeners. No decoded-media, distinct-network, full task or acceptance qualification.",
+  "passed": true,
+  "source_inputs": 6001,
+  "sources_unchanged": true,
+  "source_manifest_sha256": "878a06a4d7ad847274b0d23cfb25fb9c550ec8a093ade0a3310624bd75fd3f02",
+  "summary_sha256": "e89dc32ff4910189e7a902a524e509dab2b8607f7496dfa079d5778a88e1c800",
+  "producer_binary_sha256": "97d3c0e089aea8cff7d91a0e26e7b11d195211bbf59c2b3be91a6caf8abbc743",
+  "steps": [
+    {
+      "name": "blackhole-protocol",
+      "command": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "canonical_webrtc_browser::canonical_loopback_turn_blackhole_counts_only_allocate_and_joins",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "seconds": 2.017102,
+      "log_sha256": "6ad33edf53aa2ba21eefeeee723c810f3c831b81f047146689e68083a84986bf"
+    },
+    {
+      "name": "eddsa",
+      "command": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "canonical_webrtc_browser::canonical_chrome_unreachable_turn_eddsa",
+        "--exact",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "seconds": 17.302484,
+      "log_sha256": "1b487f65d80f95c33397ecef5942768900948224017f6189b8a23cbcf73f79ee"
+    },
+    {
+      "name": "es256",
+      "command": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "canonical_webrtc_browser::canonical_chrome_unreachable_turn_es256",
+        "--exact",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "seconds": 17.206207,
+      "log_sha256": "9c29b9a037cd7b600b691790e2acd6561883a4477be31640f89a9b50de320f94"
+    }
+  ],
+  "cases": [
+    {
+      "algorithm": "eddsa",
+      "report": {
+        "status": "passed",
+        "browser": "156.0.8078.48",
+        "unreachable_relay": {
+          "status": "passed",
+          "reason": "unreachable",
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "timeout",
+              "seconds": 8.002700000047684,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "timeout",
+              "seconds": 8.00339999985695,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ],
+          "original_contexts_closed": 2
+        }
+      },
+      "report_sha256": "41b4a13cbab012f6d7424bdf0bd3d499ed077bf07e9ed29bb396057a9e59c4a4",
+      "store_oracle": {
+        "logical_operations": 0,
+        "passed": true,
+        "physical_allocations": 0
+      },
+      "udp_observation": {
+        "actual_unanswered_allocate_requests": 12,
+        "original_address_reclaimed": true,
+        "owned_listener_joined": true,
+        "owned_loopback_only": true
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "algorithm": "es256",
+      "report": {
+        "status": "passed",
+        "browser": "156.0.8078.48",
+        "unreachable_relay": {
+          "status": "passed",
+          "reason": "unreachable",
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "timeout",
+              "seconds": 8.00360000014305,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "timeout",
+              "seconds": 8.003100000143052,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ],
+          "original_contexts_closed": 2
+        }
+      },
+      "report_sha256": "8dfcea4d6c390fedf90c69ddb847c25032a805a03fa2a6b122c2bad422c43d3a",
+      "store_oracle": {
+        "logical_operations": 0,
+        "passed": true,
+        "physical_allocations": 0
+      },
+      "udp_observation": {
+        "actual_unanswered_allocate_requests": 12,
+        "original_address_reclaimed": true,
+        "owned_listener_joined": true,
+        "owned_loopback_only": true
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    }
+  ],
+  "protocol_regressions": {
+    "functions": 2,
+    "log_sha256": "aafc59826777e721fa07c6b2ea4d1608d6299992ed763591d60e559f137f1b3d",
+    "scope": "Actual owned loopback STUN Binding reply preserves transaction; TURN blackhole counts only complete Allocate requests, never replies, joins and reclaims its original address."
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

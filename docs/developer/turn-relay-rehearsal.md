@@ -75,6 +75,18 @@ claim. The SDK snapshots relay-only policy and rejects absent or nonexclusive
 relay candidates before logical offer submission; retained policy alone does
 not establish that TURN gathering succeeded.
 
+The explicit ignored tests `canonical_chrome_unreachable_turn_eddsa` and
+`canonical_chrome_unreachable_turn_es256` use an owned nonresponding loopback
+TURN listener. Each participant retains the eight-second media-open budget;
+the listener counts complete STUN Allocate requests, never replies or proxies,
+and must join and release its original address. The browser must refuse with
+no logical offer or Store/host allocation and close its original capture/peer.
+These tests use the same installed-browser environment and private artifact
+directory as the relay scene but require no coturn process. They qualify only
+this unreachable TURN-control case; blocked media ports and distinct-network
+decoded media remain separate. See
+[unreachable TURN evidence](../evidence/gate-6/browser-unreachable-turn.json).
+
 
 For the explicit shared-endpoint All-policy lane, add `--ice-policy all` to the
 UDP command and use a fresh output directory. It publishes host and relay
