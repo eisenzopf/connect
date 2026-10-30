@@ -765,42 +765,45 @@ impl Store {
     }
     /// Initial control derives the same admitted grant, with no reader reentry
     /// or fallback when a foreign/insufficient/different intent proof is supplied.
+    /// Seal committed WAL metadata under that same proof, independently of
+    /// unrelated command SQL custody. Observer contention remains immediate.
     pub fn native_media_read_with_peer(
         &self,
         target: &NativeMediaOrigin,
         source: Option<&NativeMediaOrigin>,
         proof: &PeerAuthorityGuard,
     ) -> Result<NativeMediaRead> {
-        let c = self.try_connection()?;
-        let credential = target
-            .binding
-            .credentials
-            .last()
-            .ok_or_else(Error::forbidden)?;
-        self.require_peer_control(
-            &c,
-            proof,
-            credential,
-            &connect_protocol::Operation::ConnectionPrepare {
-                request: PrepareRequest::new(target.intent.clone(), target.endpoint_id.clone()),
-            },
-        )?;
-        let (target_view, source_view, scopes, expires_at) = views(self, &c, target, source)?;
-        if !self.authority_covers(&proof._scopes, &scopes) {
-            return Err(Error::forbidden());
-        }
-        let owner = current_owner(self, target)?;
-        let expires_at = expires_at.min(proof.expires_at);
-        if crate::now() >= expires_at {
-            return Err(Error::forbidden());
-        }
-        Ok(NativeMediaRead {
-            target: target_view,
-            source: source_view,
-            _scopes: proof._scopes.clone(),
-            owner,
-            expires_at,
-            may_subscribe: subscription_permission(&c, target)?,
+        snapshot::current_under(self, &proof._scopes, |c| {
+            let credential = target
+                .binding
+                .credentials
+                .last()
+                .ok_or_else(Error::forbidden)?;
+            self.require_peer_control(
+                c,
+                proof,
+                credential,
+                &connect_protocol::Operation::ConnectionPrepare {
+                    request: PrepareRequest::new(target.intent.clone(), target.endpoint_id.clone()),
+                },
+            )?;
+            let (target_view, source_view, scopes, expires_at) = views(self, c, target, source)?;
+            let owner = current_owner(self, target)?;
+            let expires_at = expires_at.min(proof.expires_at);
+            if crate::now() >= expires_at {
+                return Err(Error::forbidden());
+            }
+            Ok((
+                NativeMediaRead {
+                    target: target_view,
+                    source: source_view,
+                    _scopes: proof._scopes.clone(),
+                    owner,
+                    expires_at,
+                    may_subscribe: subscription_permission(c, target)?,
+                },
+                scopes,
+            ))
         })
     }
 }

@@ -1,0 +1,134 @@
+{
+  "task": "G6-054",
+  "status": "component regression passed; Linux/runtime confirmation pending",
+  "base_revision": "51ba5ccb80670fc3b397f412dffc7e7975f79dda",
+  "scope": "Actual local Store current-control/read components with synthetic signed identities and original effect records. No network, Linux, provider, account, hosting or acceptance qualification.",
+  "problem": "Current RTC continuation metadata returned authority-busy while an unrelated caller held command SQL custody, despite the original exact authority interval already being owned.",
+  "change": "Use the existing snapshot::current_under helper to derive and seal committed WAL metadata using the same exact PeerAuthorityGuard. Revalidate intent, principal, endpoint, source, current scopes, clock/schema/SQL versions and original expiry; return no new or partial authority interval.",
+  "bounds": {
+    "read_only_observers": 4,
+    "observer_contention": "Immediate authority-busy; no command SQL fallback or new wait.",
+    "scope_custody": "The original proof must cover the complete current derived scope set. SQL custody never survives the call.",
+    "initial_admission_budget": "Existing two-second cap and original deadline/cancellation unchanged.",
+    "idle": "Neither this read nor a failed observer lookup retains an idle permission beyond the caller-owned original proof/read.",
+    "effects": "One original effect; no negotiation, allocation, participant mutation or operation retry."
+  },
+  "source_sha256": {
+    "crates/connect-store/src/peer_authority/connection_media.rs": "3dadb40b6531ab415f966b108a75dba424c28dc8c0acc185737abe61dd60d47d",
+    "crates/connect-store/src/connection_control/tests/native_wire/webrtc_continuation.rs": "3cce5a40d861dbd3ecac7151386ee8b484d1029e50b26d5bd86775a913243b75",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "781115b08ae2b77c409afeb764ca15c1fc4927d69cdca31233a41882c379ab66"
+  },
+  "before": {
+    "scope": "Actual Store current RTC media metadata read while unrelated command SQL custody is held. No runtime/Linux qualification.",
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "-j1",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-store.strip=\"none\"",
+      "-p",
+      "connect-store",
+      "--lib",
+      "webrtc_continuation_current_media_read_does_not_require_command_sql_custody",
+      "--",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "execution": {
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 23.901185125112534,
+      "log_sha256": "d669f879311f6641afa18cccbdac1e349119e6a2e871d4c584d05f85406c81b2"
+    },
+    "source_inputs": 5937,
+    "source_manifest_sha256": "57d93b5d421157e86f85272bb45939a9977b764253e756edee725f0fd6ac490a",
+    "sources_unchanged": true,
+    "changed_inputs": [],
+    "expected_regression_reproduced": true
+  },
+  "after": {
+    "scope": "Actual Store current RTC media metadata read while unrelated command SQL custody is held. No runtime/Linux qualification.",
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "-j1",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-store.strip=\"none\"",
+      "-p",
+      "connect-store",
+      "--lib",
+      "connection_control::tests::native_wire::webrtc_continuation::",
+      "--",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 28.36691304203123,
+      "log_sha256": "d1e057ef54ac86020c45085e7b7ef1bcc255132fd95e52f69aa85baa53013ca2"
+    },
+    "source_inputs": 5937,
+    "source_manifest_sha256": "61590849c7031540913158758b7abcc93b299782726448bafa3a894f0de3a128",
+    "sources_unchanged": true,
+    "changed_inputs": [],
+    "passed": true
+  },
+  "broader_regressions": {
+    "scope": "Actual Store native offer/current authority/snapshot components after sealed observer control read. No Linux/runtime qualification.",
+    "source_inputs": 5937,
+    "source_manifest_sha256": "61590849c7031540913158758b7abcc93b299782726448bafa3a894f0de3a128",
+    "sources_unchanged": true,
+    "changed_inputs": [],
+    "binary_sha256": "ce791a82009999e00ba1415831b0b7f84da1140706a9d70e937438f7335f5cde",
+    "binary_unchanged": true,
+    "steps": [
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 18.426958250114694,
+        "log_sha256": "8524962efe015868f1cd657ebd9f551c375b9ae8ea32efef3ff7fed0aa1259bf",
+        "name": "native-wire",
+        "expected_functions": 46,
+        "passed": true
+      },
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 65.57933224993758,
+        "log_sha256": "c975b77c1953398ac7fd28948d35e9137bc5e1f0905d65c29a59d456e26bc81d",
+        "name": "native-authority",
+        "expected_functions": 182,
+        "passed": true
+      },
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 5.132492957869545,
+        "log_sha256": "4fa609c94a5c454c6357f1b1212cf7cedb42212016f1a170da84d27ea7d711f0",
+        "name": "snapshot",
+        "expected_functions": 21,
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "linux_followup": "Older 396240ea matrix retains initial RTC authority-busy and installed SDK failures. The 51ba5ccb matrix does not contain this change. Both remain separate; new runtime result required.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

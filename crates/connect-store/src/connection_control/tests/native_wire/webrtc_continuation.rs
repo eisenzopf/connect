@@ -70,6 +70,85 @@ fn webrtc_continuation_reacquires_exact_original_authority_without_another_effec
     assert!(current.result.is_none());
 }
 #[test]
+fn webrtc_continuation_current_media_read_does_not_require_command_sql_custody() {
+    let (f, _, request) = fixture();
+    let (origin, attempt) = begun(&f, &request, None);
+    let proof = f
+        .store
+        .resume_webrtc_offer_authority(
+            &f.keys[0],
+            &origin,
+            &attempt,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    // An unrelated caller owns the command SQL mutex without changing state.
+    // Current committed metadata is available through the bounded WAL readers;
+    // the exact original proof still owns every required authority scope.
+    let command_sql = f.store.connection().unwrap();
+    let read = f.store.native_media_read_with_peer(&origin, None, &proof);
+    assert!(
+        read.is_ok(),
+        "Current RTC control metadata contended with unrelated command SQL: {:?}",
+        read.err().map(|error| error.code)
+    );
+    let read = read.unwrap();
+    assert!(proof.current() && read.current());
+    assert_eq!(
+        read.target().runtime_connection_id,
+        attempt.runtime_connection_id()
+    );
+    let scope = crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap();
+    assert!(f.store.try_acquire_authority(&[scope.clone()]).is_err());
+    drop(command_sql);
+    drop(read);
+    drop(proof);
+    drop(f.store.try_acquire_authority(&[scope]).unwrap());
+    assert_eq!(f.count("operation_effects"), 1);
+}
+#[test]
+fn webrtc_continuation_current_media_read_refuses_busy_observers_without_fallback() {
+    let (f, _, request) = fixture();
+    let (origin, attempt) = begun(&f, &request, None);
+    let proof = f
+        .store
+        .resume_webrtc_offer_authority(
+            &f.keys[0],
+            &origin,
+            &attempt,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    let observers = f
+        .store
+        .packet_connections
+        .iter()
+        .map(|connection| connection.lock().unwrap())
+        .collect::<Vec<_>>();
+    let error = f
+        .store
+        .native_media_read_with_peer(&origin, None, &proof)
+        .err()
+        .unwrap();
+    assert_eq!(error.code, "authority-busy");
+    assert!(proof.current());
+    drop(observers);
+    let read = f
+        .store
+        .native_media_read_with_peer(&origin, None, &proof)
+        .unwrap();
+    assert!(read.current());
+    assert_eq!(
+        read.target().runtime_connection_id,
+        attempt.runtime_connection_id()
+    );
+    drop(read);
+    drop(proof);
+    let scope = crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap();
+    drop(f.store.try_acquire_authority(&[scope]).unwrap());
+    assert_eq!(f.count("operation_effects"), 1);
+}
+#[test]
 fn webrtc_continuation_refuses_a_current_writer_and_preserves_original_uncertainty() {
     let (f, _, request) = fixture();
     let (origin, attempt) = begun(&f, &request, None);
