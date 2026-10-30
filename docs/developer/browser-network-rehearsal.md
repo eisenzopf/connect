@@ -34,6 +34,11 @@ Linux x86_64 kernel, in a network-disabled container with the previously verifie
 CFT156 base image. It builds a full release opt3 producer, separately from the
 recorded local producer's opt0 exceptions. It records exact source, executable,
 image, package and automation hashes. No image or package is published.
+Compiler progress exposes only completed-artifact counts and fixed runtime
+library names/optimization levels. Successful builds require all eleven checked
+client/server/store/service, Core, media, RTP and RTC libraries at opt3. Private
+paths, package identifiers and raw compiler output remain excluded. The original
+one-hour build limit and media thresholds are unchanged.
 
 An owned PulseAudio null sink supplies a paced software clock, with one private
 Unix socket and cookie. The native-protocol cookie path follows the

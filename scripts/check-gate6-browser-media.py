@@ -10,11 +10,55 @@ import re
 import runpy
 import shutil
 import subprocess
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / '.local/gate6-browser-media'
 INPUTS = runpy.run_path(str(ROOT / 'scripts/check-gate6-ice-restart.py'))['inputs']
 BOUNDED = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-turn-relay.py'))['bounded_child']
+RUNTIME_LIBRARIES = frozenset({'connect_client', 'connect_server', 'connect_service', 'connect_store',
+    'rvoip_core', 'rvoip_media_core', 'rvoip_rtp_core', 'rvoip_webrtc', 'rtc', 'rtc_ice', 'rtc_dtls'})
+
+
+def runtime_library_profiles(rows):
+    profiles = {}
+    artifacts = 0
+    for row in rows:
+        if row.get('reason') != 'compiler-artifact':
+            continue
+        artifacts += 1
+        name = row.get('target', {}).get('name')
+        if name in RUNTIME_LIBRARIES and row['target'].get('kind') == ['lib']:
+            level = row.get('profile', {}).get('opt_level')
+            profiles.setdefault(name, set()).add(level if level in {'0', '1', '2', '3', 's', 'z'} else 'invalid')
+    missing = sorted(RUNTIME_LIBRARIES - profiles.keys())
+    return dict(completed_artifacts=artifacts, profiles={name:sorted(values) for name, values in sorted(profiles.items())},
+        missing=missing, passed=not missing and all(values == {'3'} for values in profiles.values()))
+
+
+def read_build_rows(path):
+    rows = []
+    if path.exists():
+        with path.open(errors='replace') as stream:
+            for line in stream:
+                try:
+                    row = json.loads(line)
+                    if isinstance(row, dict):
+                        rows.append(row)
+                except ValueError:
+                    continue
+    return rows
+
+
+def report_build_progress(path, stopped):
+    previous = None
+    while not stopped.wait(30):
+        progress = runtime_library_profiles(read_build_rows(path))
+        if progress != previous:
+            # Only fixed library labels, optimization levels and a count leave
+            # private compiler output. No paths, package IDs or diagnostics.
+            print(json.dumps(dict(build_progress=progress)), flush=True)
+            previous = progress
 
 
 def digest(path):
@@ -35,21 +79,25 @@ def build():
     command = ['cargo', 'rustc', '--release', '--offline', '--locked', '-j1',
         '-p', 'connect-server', '--features', 'test-support', '--test',
         'gate6_canonical_webtransport', '--message-format=json', '--', '-C', 'strip=none']
-    result = BOUNDED(command, dict(os.environ), output / 'build.log', 3600)
-    rows = []
-    for line in (output / 'build.log').read_text(errors='replace').splitlines():
-        try:
-            rows.append(json.loads(line))
-        except ValueError:
-            continue
+    stopped = threading.Event()
+    progress = threading.Thread(target=report_build_progress, args=(output / 'build.log', stopped))
+    progress.start()
+    try:
+        result = BOUNDED(command, dict(os.environ), output / 'build.log', 3600)
+    finally:
+        stopped.set()
+        progress.join()
+    rows = read_build_rows(output / 'build.log')
+    runtime_profiles = runtime_library_profiles(rows)
     artifacts = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
         and row['target']['name'] == 'gate6_canonical_webtransport' and row.get('executable')]
     unchanged = INPUTS() == before
     report = dict(scope='Native Linux x86_64 full release opt3 producer, no root opt0 exceptions. Build only.',
-        command=command, execution=result, source_count=len(before), sources_unchanged=unchanged,
+        command=command, execution=result, runtime_library_profiles=runtime_profiles,
+        source_count=len(before), sources_unchanged=unchanged,
         source_manifest_sha256=digest(output / 'source-inputs.json'),
         artifacts=[dict(path=value, sha256=digest(value)) for value in artifacts],
-        passed=result['exit_code'] == 0 and not result['timed_out'] and not result['forced_kill'] and len(artifacts) == 1 and unchanged)
+        passed=result['exit_code'] == 0 and not result['timed_out'] and not result['forced_kill'] and len(artifacts) == 1 and unchanged and runtime_profiles['passed'])
     save(output / 'summary.json', report)
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:

@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "status": "linux-runtime-pending",
+  "status": "linux-runtime-pending-after-cold-build-timeout",
   "scope": "Prepared owned local browser UDP loss/delay/burst and selected-path proof; no runtime, distinct-network or acceptance credit.",
   "implementation": [
     "Fixed port-preserving loopback NAT/proxy pool; actual nominated address/port proof before/final prevents bypass",
@@ -57,5 +57,37 @@
     "original_run_id": 41058262859,
     "original_build_started_at": "2026-10-30T12:50:10Z",
     "original_build_budget_seconds": 3600
+  },
+  "cold_build_attempt": {
+    "source_revision": "41f4d7b323cea7545c0581e0faf86316a99103bf",
+    "run_id": 41058262859,
+    "job_id": 124071197045,
+    "artifact_id": 12982494129,
+    "zip_sha256": "c4ca64ba9eed10c9418c55a2797364df10ac8a1339d26bbc9218e59c8ffbb712",
+    "tracked_sources_verified": 2832,
+    "source_count": 5919,
+    "source_manifest_sha256": "3aa60248d004d768680e66fea8ad1a23f6b75247fea1a99016d867ddbcb392fd",
+    "sources_unchanged": true,
+    "execution": {
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 3600.017186159,
+      "log_sha256": "cfbe208427291cb02fce86a47a9b69dab6a0825f084743453c737463205cf2e5"
+    },
+    "producer_artifacts": 0,
+    "passed": false,
+    "runtime_cases_executed": 0,
+    "runtime_cases_unrun": 8,
+    "partial_build_cache_saved": true,
+    "continuation_run_id": 41065660942,
+    "scope": "Bounded cold full-opt3 compilation timed out before any browser media execution. No runtime failure/pass or acceptance is inferred. Source-owned partial cache retained for the separately queued current-source continuation."
+  },
+  "build_progress_guard": {
+    "scope": "Compilation observation only; no compiler flags, build/runtime budgets, source code optimization or media thresholds changed.",
+    "required_opt3_runtime_libraries": 11,
+    "unit_functions": 5,
+    "privacy": "Only finite fixed library labels, optimization levels and completed compiler-artifact counts enter public progress; paths, package IDs and raw diagnostics stay private.",
+    "qualification": "Future successful producers must contain every required runtime library at opt3. Current f1fe continuation predates this additional reporting guard; no new pass inferred."
   }
 }
