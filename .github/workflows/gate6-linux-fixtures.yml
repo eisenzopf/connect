@@ -1,6 +1,12 @@
 name: Gate 6 isolated Linux fixtures
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: 'Full fixtures or the isolated Python 3.14 diagnostic component'
+        type: choice
+        options: [full, python314]
+        default: full
   push:
     branches: [main]
     paths:
@@ -21,10 +27,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-linux-fixtures-${{ github.ref }}
+  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'python314' && '-python314' || '' }}
   cancel-in-progress: false
 jobs:
   node-control:
+    if: ${{ inputs.lane != 'python314' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -65,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.11', '3.12', '3.13', '3.14']
+        python: ${{ fromJSON(inputs.lane == 'python314' && '["3.14"]' || '["3.11","3.12","3.13","3.14"]') }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -106,6 +113,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   ubuntu-x86:
+    if: ${{ inputs.lane != 'python314' }}
     name: ubuntu-x86 (Node ${{ matrix.node }})
     runs-on: ubuntu-24.04
     timeout-minutes: 90
