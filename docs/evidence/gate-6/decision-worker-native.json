@@ -1,0 +1,180 @@
+{
+  "task": "G6-073",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T04:41:37.559045+00:00",
+  "base_revision": "cf77c9287447446f17d70891f91a6397aa3d9ff5",
+  "scope": "Local macOS arm64 Node26.7, EdDSA, normal-feature current source Connect CLI; native signed journal/app decision/message operation plus controlled policy replay snapshots. Actual model disabled.",
+  "components": {
+    "command": [
+      "npm",
+      "test",
+      "--prefix",
+      "examples/parley-on-connect"
+    ],
+    "exit_code": 0,
+    "seconds": 1.3088303338736296,
+    "passed": 72,
+    "worker_checks": 53,
+    "existing_fixture_checks": 19,
+    "failed": 0,
+    "skipped": 0,
+    "source_count": 298,
+    "changed_inputs": [],
+    "manifest_sha256": "b60a609c97873fdf76a53749b64e5e77fcaba5f6946c334dec2db15aab778c68",
+    "log_sha256": "388ee107437dc378a519f5a7d8ec70e3c5cc487ddc4dd151d87f7b41ac07dc6c"
+  },
+  "native": {
+    "profile": "parley-worker-native-summary/1",
+    "runtime_exit": 0,
+    "server_exit": 0,
+    "forced_server_cleanup": false,
+    "forced_worker_group_cleanup": false,
+    "helpers_joined": true,
+    "listener_reclaimed": true,
+    "seconds": 2.2990505828056484,
+    "source_count": 2960,
+    "changed_inputs": [],
+    "binary_sha256": "cc4f34787065d99b94b10104193b6a0faa83f8cd45a7ab9b7667a0401732e1b9",
+    "binary_unchanged": true,
+    "error": null,
+    "actual_model_requested": false,
+    "scope": "Local signed EdDSA native messages/events, app approval and original operation recovery; model result requires its separately retained host outcome. No media qualification."
+  },
+  "native_outcome": {
+    "profile": "parley-worker-native-outcome/1",
+    "actualModelRequested": false,
+    "realSignedNativeJournal": true,
+    "ownerAttributionAndExactApproval": true,
+    "modelCalls": 1,
+    "submissions": 1,
+    "originalStatusReads": 1,
+    "restartRecoveredOriginal": true,
+    "currentMembershipReplayRefused": true,
+    "businessStageUnchanged": true,
+    "policyCases": [
+      {
+        "case": "invalid-action",
+        "result": "invalid-model-action",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      },
+      {
+        "case": "speech-playing",
+        "result": "speech-in-progress",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      },
+      {
+        "case": "stale-session",
+        "result": "stale-action-context",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      }
+    ]
+  },
+  "native_evidence": {
+    "runtime_log_sha256": "05d6d17b583f7cb0034ab5f360cff4bfc234e8d52a2e48dd7aa4a562e1a00206",
+    "server_log_sha256": "a17a1a46d017d3b171f794ffac57c08442940bae62e4665101cf0981799a2461",
+    "source_manifest_sha256": "b5c1fd3df45fe93295f67bcbfdfad0767185a2ddd5d9176d30c9a863d6104f18"
+  },
+  "source_cli_build": {
+    "exit_code": 0,
+    "reported_duration": "20m07s",
+    "binary_sha256": "cc4f34787065d99b94b10104193b6a0faa83f8cd45a7ab9b7667a0401732e1b9",
+    "binary_bytes": 434804568,
+    "features": "normal (no test-support)",
+    "prepare_log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+    "build_log_sha256": "795b26534c543574a5c831773318e93bb3ca10e85eaf69b0eb02797e22c8f8f4",
+    "source_qualification": "Current source Cargo build succeeded. The subsequent native run independently checks executable identity and all2960 current source/prepared-manifest inputs unchanged across runtime.",
+    "warning": "Darwin linker reports __eh_frame exceeds16MiB compact-unwind offset encoding; no performance/exception-handling qualification claimed."
+  },
+  "fixes": [
+    "Opaque event cursors are resealed on authorized replay. Correlate stable event ID and Conversation, retaining original cursor only as an opaque resume token.",
+    "Project optional SDK metadata to JSON without undefined properties or model exposure of opaque cursors.",
+    "Join the consumer reader before acquiring its bounded authorized replay reader; reopen from the saved cursor for the next fact.",
+    "Revalidate cached model answers against current bindings on every replay, including semantically corrupt cached answers."
+  ],
+  "host_readiness": {
+    "version": "codex-cli 0.164.0-alpha.11.1",
+    "binary_sha256": "a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e",
+    "account_status": {
+      "exit_code": 0,
+      "actual_model_started": false,
+      "source": "pinned CLI login status with exact planned environment allowlist; launcher does not inspect/copy account credential files",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "16118df3eb3595e44a4721878cef0f79910e6564e10ff0e78e451e7c4e478947"
+    },
+    "actual_model_started": false,
+    "configuration": "examples/parley-on-connect/worker/model-host.example.json",
+    "approved_model_execution": false,
+    "maximum_invocations": 1,
+    "host_budget_seconds": 60,
+    "review": "docs/developer/decision-worker-rehearsal.md",
+    "qualification": "Five parser/approval/custody tests use synthetic JSONL/processes and do not qualify an actual host turn/runtime flags. Real model pending new direct owner authorization."
+  },
+  "historical_runs": [
+    {
+      "run": "native-worker-01",
+      "passed": false,
+      "finding": "Expected approval wait missing before model/effect; original fresh-read error was not captured. No retrospective exact-cause claim.",
+      "summary_sha256": "b87621ec67f0bea3a12a682d93ed52184c84050e8ec97ddb13593f247d216d58"
+    },
+    {
+      "run": "native-worker-02",
+      "passed": false,
+      "finding": "Fresh read captured different-event-cursor; opaque tokens cannot identify the same event by byte equality.",
+      "summary_sha256": "d34443023c2d77cb4d79c464bc63c5c6ba5ae16fb398b1b3082e77158c803960"
+    },
+    {
+      "run": "native-worker-03",
+      "passed": false,
+      "finding": "invalid-business-state before model. Typed optional JS metadata requires JSON projection; controlled regression and subsequent native passes cover omission.",
+      "summary_sha256": "2bcc1c7d6c2aac52f523ce516ff8721ee9bd4f1bfd2865b1e775ade5b5502e6c"
+    },
+    {
+      "run": "native-worker-04",
+      "passed": true,
+      "finding": "Earlier real positive native path before controlled replay snapshots; no actual model.",
+      "summary_sha256": "54b800f81df0d2ff92049067222ca1be4718b607bafec09888f47777abe7b8e3"
+    },
+    {
+      "run": "native-worker-05",
+      "passed": true,
+      "finding": "Positive native path plus three controlled replay snapshots; before final manifest/host-budget refinements. No actual model.",
+      "summary_sha256": "319c8a8a0efbe05d1cbcebdaf42f5b0f3ece1c855827bf991ad3560e4b8d659e"
+    }
+  ],
+  "limits": [
+    "G6-073 remains in-progress pending separately authorized actual-model execution; prior G6-065 one-run approval was consumed.",
+    "Native journal reopen/reconstruction uses the same Node process. Separate component tests prove actual process exits during pending submission and after model-response fsync.",
+    "Speech and stale Session cases are controlled metadata injections, not physical speech/rendered audio or native Session/media qualification.",
+    "One local native EdDSA profile only; no Linux, ES256 native worker, remote/provider/PSTN/SMS, package, whole-app or Gate6 acceptance qualification.",
+    "SDK completed denotes its local-mutation boundary; no carrier delivery or complete business outcome inferred.",
+    "Raw state, keys, request/response, cursors and logs retained under ignored .local only."
+  ],
+  "sources": {
+    "examples/parley-on-connect/worker/README.md": "61b6f598727ed77b9c3e5902e6d5d73bc4df9480f7255626201efe070caa28be",
+    "examples/parley-on-connect/worker/connect.mjs": "36e558f90e7b0434ba26a15a8b2033ccf117cd95137dead0e1451fbd38d55185",
+    "examples/parley-on-connect/worker/connect.test.mjs": "f101c47505058d1644fa638b3320ea5b57e70089afe7bb34ec25f9b7ae8b7d18",
+    "examples/parley-on-connect/worker/engine.mjs": "fdd9daef5f6e8b71b205abd849b0ec3b7e55b4ef68221cc36ce3fee06b358c11",
+    "examples/parley-on-connect/worker/engine.test.mjs": "dc17f60ee9ba6527bdf44177cb1b83399fb912f2fec93f66ba96a64493c374fa",
+    "examples/parley-on-connect/worker/model-host.example.json": "fcc300351574bf3d71e5daa795304a7db90e3b989f8c7dad37dfc7d0bb44cd8d",
+    "examples/parley-on-connect/worker/model-host.py": "10b434fa7ca8bfb89318e7ea5e1a40a9f2ad77963d2ddc434d57ec2e40e5a7de",
+    "examples/parley-on-connect/worker/model-host.test.mjs": "25876dcfdbc773e65ed241d4da1e935e7b4600ec1c3aaa56b1e6460e64cc318c",
+    "examples/parley-on-connect/worker/model.mjs": "c2abf308ae4fc5120fe90809769f053ec3bfc1b8d7aabe10476d52d374ab2fa5",
+    "examples/parley-on-connect/worker/model.test.mjs": "f3739666e35441cb4af9cb48f856f28889a6a44e7b8895c9b74c655d5e128110",
+    "examples/parley-on-connect/worker/native-rehearsal.mjs": "9f83007e34f367f5d6e8f42a84989f39f62025b673cebdb717eeee4d69c627b9",
+    "examples/parley-on-connect/worker/native-rehearsal.py": "b6da4403d949f562e025e1d65164decfa021dbcd7fb28a63d5403941f479d204",
+    "examples/parley-on-connect/worker/policy.mjs": "9984a05540a70b5da4accce45504b462b6267a4c2a267627c746d69d6e33d1a4",
+    "examples/parley-on-connect/worker/policy.test.mjs": "a7599c0ba389846c3152eecedbdea8b2733ab31844d368624d9d68fa38fa4115",
+    "examples/parley-on-connect/worker/state.mjs": "8a982b0effa2f33e8395fab440cba4197484ddd7802512653ca0e0ddab4249e1",
+    "examples/parley-on-connect/worker/state.test.mjs": "5e138c96013244dc0386106049f2994f70aada47e48389c0dcfe731f0c58c6d6"
+  },
+  "gate_progress": {
+    "done": 67,
+    "in_progress": 2,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  },
+  "private_evidence": ".local/gate-6/transport-reconnect-owner/"
+}

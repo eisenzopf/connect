@@ -95,3 +95,12 @@ test("fresh context comes from public snapshots while owned speech remains an ap
         assert.deepEqual((await calls(dir)).map(x => x.request.action.type), ["conversation_refresh", "session"]);
     });
 });
+test("an opaque replay cursor may be resealed while the authorized event ID remains stable", async () => {
+    let closed = false;
+    const fresh = { eventId: "event-1", conversationId: "room", cursor: "newly-sealed-token", data: { body: "fresh authorized fact" } };
+    const client = { conversations: { byId: () => ({ events: () => ({ ready: async () => "fresh-bootstrap",
+        next: async () => ({ done: false, value: fresh }), close: async () => { closed = true; } }) }) } };
+    const gateway = new ConnectWorkerGateway({ client, conversationId: "room" });
+    assert.deepEqual(await gateway.readEvent({ eventId: "event-1", conversationId: "room", previousCursor: "original-bootstrap", cursor: "original-sealed-token" }), fresh);
+    assert.equal(closed, true);
+});

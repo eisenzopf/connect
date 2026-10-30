@@ -1,0 +1,11 @@
+{
+  "profile": "parley-worker-model-rehearsal/1",
+  "task": "G6-073",
+  "approved_model_execution": false,
+  "authorization_reference": "REQUIRES_NEW_EXPLICIT_OWNER_AUTHORIZATION",
+  "maximum_invocations": 1,
+  "timeout_seconds": 60,
+  "account_reference": "Existing authenticated local Codex account; no account files or credentials copied",
+  "codex_binary": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+  "codex_sha256": "a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e"
+}

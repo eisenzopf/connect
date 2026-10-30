@@ -31,10 +31,8 @@ export class ConnectWorkerGateway {
                 const next = await stream.next();
                 if (next.done) return null;
                 if (next.value.eventId === reference.eventId) {
-                    if (next.value.cursor !== reference.cursor) fail("different-event-cursor");
                     return next.value;
                 }
-                if (next.value.cursor === reference.cursor) return null;
             }
             fail("event-replay-budget-exhausted");
         } finally { await stream.close(); }

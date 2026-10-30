@@ -210,3 +210,47 @@ test("an unexpected app-journal write during a model await cannot be silently ov
         assert.equal(f.calls.submit.length, 0);
     } finally { f.close(); }
 });
+test("re-authorized event replay correlates stable identity rather than opaque cursor bytes", async () => {
+    const f = await fixture(); try {
+        f.sdk.readEvent = async ref => ({ ...event(ref.eventId), cursor: "freshly-sealed-replay-token" });
+        await f.worker().accept(event());
+        assert.equal(f.calls.submit.length, 1); assert.equal(f.worker().snapshot().attention, null);
+        assert.equal(f.worker().snapshot().cursor, event().cursor);
+    } finally { f.close(); }
+});
+test("SDK optional metadata is projected to JSON without exposing opaque resume tokens to the model", async () => {
+    const f = await fixture(); try {
+        f.sdk.readEvent = async ref => ({ ...event(ref.eventId), sessionId: undefined, operationId: undefined });
+        await f.worker().accept(event());
+        assert.equal(f.calls.submit.length, 1);
+        const supplied = f.calls.generate[0].input.untrustedEvent;
+        for (const field of ["sessionId", "operationId", "cursor"]) assert.equal(Object.hasOwn(supplied, field), false);
+        assert.deepEqual(supplied.data, event().data);
+    } finally { f.close(); }
+});
+test("the consumer joins each owned reader before fresh replay and reopens only after its saved cursor", async () => {
+    const f = await fixture(); try {
+        let active = false, created = 0, closed = 0, facts = 0;
+        const after = [];
+        f.sdk.events = cursor => {
+            assert.equal(active, false); active = true; created++; after.push(cursor);
+            return { ready: async () => "bootstrap", next: async () => ({ done: false, value: event("fact-" + ++facts) }),
+                close: async () => { assert.equal(active, true); active = false; closed++; } };
+        };
+        f.sdk.readEvent = async ref => { assert.equal(active, false, "consumer still owns the native Conversation reader"); return event(ref.eventId); };
+        await f.worker().run(f.sdk.events("bootstrap"), { maximumEvents: 2 });
+        assert.deepEqual(after, ["bootstrap", event("fact-1").cursor]);
+        assert.equal(created, 2); assert.equal(closed, 2); assert.equal(active, false);
+        assert.equal(f.calls.submit.length, 1); // Stable business slot across two facts.
+    } finally { f.close(); }
+});
+test("restart revalidates a semantically corrupted cached model answer before using its saved intent", async () => {
+    const f = await fixture({ binding: { ...binding(), approval: { participantId: "owner", purpose: "followup" } } }); try {
+        await f.worker().accept(event());
+        const saved = f.state().read(); saved.value.model.output = { action: "notify", text: "x", approved: true };
+        f.state().write(saved.revision, saved.value);
+        await f.restart(); await f.worker().wake();
+        assert.equal(f.worker().snapshot().attention, "invalid-model-action");
+        assert.equal(f.calls.submit.length, 0); assert.equal(f.calls.generate.length, 1);
+    } finally { f.close(); }
+});

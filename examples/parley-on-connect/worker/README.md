@@ -81,9 +81,9 @@ reference validators with an explicitly synthetic helper; they do not qualify
 a native server, real media, Linux, remote hosts or actual-model execution.
 The existing19 Parley fixture checks also pass (55 combined).
 
-Remaining G6-073 work: a concrete scenario/model adapter, native integration
-and a separately authorized actual-model rehearsal. Existing G6-065 model
-execution authorization has already been consumed. See the source-bound
+G6-073 remains in progress pending the separately authorized actual-model
+rehearsal below. Existing G6-065 model execution authorization has already been
+consumed. See the source-bound
 [increment evidence](../../../docs/evidence/gate-6/decision-worker-initial.json).
 
 `RecordedProposalModel` now supplies the durable model-response boundary. It
@@ -105,3 +105,38 @@ The engine also retains its last committed journal revision across external
 awaits. An unexpected write by another application component refuses with
 `stale-business-state` before submission, preserving that component's state.
 This regression brings the current combined suite to62 (43 worker/19 existing).
+
+The native lane now runs the public Node SDK against a freshly initialized,
+source-bound Connect executable and two isolated signed identities. Real journal
+attribution binds an exact owner decision; a controlled response loss after SDK
+submission recovers the original status after reopening the worker journal.
+Current membership removal refuses replay. Server and helpers join and the
+original listener is reclaimed. Controlled replay snapshots of the retained
+answer reject an invalid action, speech still playing and stale Session
+metadata without another model turn or Connect effect. These are explicit
+metadata fault injections, not native Session/media qualification.
+
+The native runs exposed two assumptions absent from the synthetic helper:
+opaque cursors are resealed on replay, and optional SDK JS properties may be
+undefined. Correlation now uses stable event/conversation identity; JSON model
+context omits absent properties and opaque resume tokens. Consumers close their
+owned reader before reauthorizing a fact. Cached answers pass policy again on
+restart. All72 combined component checks pass (53 worker/19 existing).
+
+Run the isolated native lane explicitly with a verified current source binary:
+
+```sh
+python3 examples/parley-on-connect/worker/native-rehearsal.py \
+  --executable /absolute/source-target/debug/connect \
+  --expected-sha256 REVIEWED_SOURCE_BINARY_SHA256 \
+  --output /absolute/checkout/.local/fresh-native-worker-run
+```
+
+The actual model callback is prepared and disabled by default. Its pinned Codex
+host receives only the protected proposal request; it receives no Connect or
+provider credential/tool configuration. An exclusive authorization-consumption
+record prevents another invocation with the same reviewed configuration, even
+for a different request. Recovery only reads retained output; unknown remains
+pending. See the [bounded rehearsal review](../../../docs/developer/decision-worker-rehearsal.md)
+before authorizing this separate action. Default npm and native runs start no
+model/account/provider call.

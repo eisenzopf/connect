@@ -64,22 +64,38 @@ export class DecisionWorker {
         if (!Number.isInteger(maximumEvents) || maximumEvents < 1 || maximumEvents > 256)
             fail("invalid-event-budget");
         let count = 0;
+        let source = stream;
         try {
+            // Recover before opening a consumer reader on this Conversation.
+            // Each fact is later re-authorized with its own bounded reader.
+            if (this.snapshot().trigger || this.snapshot().attention) {
+                await source.close(); source = null;
+                await this.wake();
+                if (this.snapshot().trigger || this.snapshot().attention) return;
+                source = this.#sdk.events(this.snapshot().cursor, signal);
+            }
             await this.#serial(async () => {
                 const plan = this.snapshot();
-                const cursor = await stream.ready();
+                const cursor = await source.ready();
                 if (plan.cursor === null) { plan.cursor = cursor; this.#save(plan); }
             });
             await this.wake();
             if (this.snapshot().trigger || this.snapshot().attention) return;
             while (!signal?.aborted && count++ < maximumEvents) {
-                const next = await stream.next();
+                const next = await source.next();
                 if (next.done) break;
+                // The native SDK owns a signed Conversation reader. Close the
+                // consumer before its fresh replay/status path acquires one.
+                await source.close(); source = null;
                 await this.accept(next.value);
                 const current = this.snapshot();
                 if (current.trigger || current.attention) break;
+                if (count < maximumEvents && !signal?.aborted) {
+                    source = this.#sdk.events(current.cursor, signal);
+                    await source.ready();
+                }
             }
-        } finally { await stream.close(); }
+        } finally { await source?.close(); }
     }
     accept(event) {
         return this.#serial(async () => {
@@ -111,7 +127,6 @@ export class DecisionWorker {
             // original reference and stops before model/effect/status access.
             const event = await this.#sdk.readEvent(copy(plan.trigger));
             if (!event || event.eventId !== plan.trigger.eventId ||
-                event.cursor !== plan.trigger.cursor ||
                 event.conversationId !== this.#state.scope.conversationId)
                 fail("event-no-longer-visible");
             if (plan.pending) {
@@ -123,9 +138,14 @@ export class DecisionWorker {
                 if (plan.proposals >= 32) fail("proposal-budget-exhausted");
                 const actions = Object.keys(this.#bindings).filter(name => this.#bindings[name].stage === plan.stage);
                 if (!actions.length) fail("no-stage-actions");
+                // Optional SDK metadata is represented by undefined in JS.
+                // Project the typed fact to JSON and keep opaque resume tokens
+                // in the worker journal, outside the model's context.
+                const untrustedEvent = Object.fromEntries(Object.entries(event)
+                    .filter(([key, value]) => key !== "cursor" && value !== undefined));
                 const input = { profile: "parley-model-proposal/1", planId: plan.planId,
                     planVersion: plan.planVersion, stage: plan.stage,
-                    context: current, actions, untrustedEvent: event };
+                    context: current, actions, untrustedEvent };
                 if (Buffer.byteLength(stateJson(input)) > 32768) fail("model-context-capacity");
                 plan.model = { requestId: "model-" + digest({ workerId: this.#state.scope.workerId,
                     eventId: event.eventId, planId: plan.planId, planVersion: plan.planVersion,
@@ -147,7 +167,7 @@ export class DecisionWorker {
                 plan.model.output = proposal(recovered.output, this.#bindings);
                 this.#save(plan);
             }
-            const selected = plan.model.output, binding = this.#bindings[selected.action];
+            const selected = proposal(plan.model.output, this.#bindings), binding = this.#bindings[selected.action];
             if (!binding || binding.stage !== plan.stage) fail("invalid-stage-action");
             if (!plan.intent) {
                 const intent = intentFor({ workerId: this.#state.scope.workerId, eventId: event.eventId,
