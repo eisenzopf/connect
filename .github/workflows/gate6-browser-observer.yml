@@ -64,7 +64,18 @@ jobs:
             node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/quality quality
       - name: Isolate native VP8 RTC presentation without Connect
         run: |
-          docker run --rm --network none --shm-size=1g --platform linux/amd64 \
+          observer_network="$(docker network create --internal --driver bridge --label "connect.gate6.observer=$GITHUB_RUN_ID" "connect-g6-observer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")"
+          cleanup_observer_network() {
+            docker network rm "$observer_network" >/dev/null
+            python3 - <<'PY'
+          from pathlib import Path
+          import json
+          output=Path('.local/gate6-browser-observer/evidence/rtc-network.json')
+          output.write_text(json.dumps(dict(owned_internal_bridge=True,original_bridge_removed=True,forced_cleanup=False))+'\n')
+          PY
+          }
+          trap cleanup_observer_network EXIT
+          docker run --rm --network "$observer_network" --shm-size=1g --platform linux/amd64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
             --workdir /work \
@@ -91,6 +102,7 @@ jobs:
             .local/gate6-browser-observer/evidence/quality/source-inputs.json
             .local/gate6-browser-observer/evidence/rtc/summary.json
             .local/gate6-browser-observer/evidence/rtc/source-inputs.json
+            .local/gate6-browser-observer/evidence/rtc-network.json
             .local/gate6-browser-observer/evidence/trust/summary.json
           include-hidden-files: true
           retention-days: 7
