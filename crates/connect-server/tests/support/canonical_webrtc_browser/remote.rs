@@ -45,6 +45,25 @@ async fn distinct_network_browser_server_child() {
     };
     let bind_ip = bridge.unwrap_or(std::net::Ipv4Addr::UNSPECIFIED);
     let public_ip = bridge.unwrap_or(std::net::Ipv4Addr::new(192, 168, 5, 2));
+    let relay = std::env::var_os("CONNECT_G6_REMOTE_BROWSER_RELAY_CONFIG").map(|path| {
+        assert!(
+            bridge.is_some(),
+            "Relay extension requires the owned internal bridge"
+        );
+        let path = PathBuf::from(path).canonicalize().unwrap();
+        assert_eq!(path, output.join("turn/fixture.json"));
+        let value: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let ip: std::net::Ipv4Addr = value["ip"].as_str().unwrap().parse().unwrap();
+        assert!(ip.is_private() && Some(ip) != bridge);
+        let url = value["url"].as_str().unwrap();
+        assert!(
+            url == format!("turn:{ip}:3478?transport=udp")
+                || url == format!("turn:{ip}:3478?transport=tcp")
+        );
+        assert_eq!(value["relay_port_start"], 32000);
+        assert_eq!(value["relay_port_end"], 32031);
+        value
+    });
     let mut f = Fixture::with_native_end_scope(&algorithm, 8).await;
     f.server.shutdown().await.unwrap();
     let now = std::time::SystemTime::now();
@@ -127,8 +146,21 @@ async fn distinct_network_browser_server_child() {
                 port_start: port,
                 port_end: port + 15,
                 public_ip: Some(public_ip.into()),
-                ice_policy: connect_server::canonical_webrtc::CanonicalIcePolicy::All,
-                ice_services: vec![],
+                ice_policy: if relay.is_some() {
+                    connect_server::canonical_webrtc::CanonicalIcePolicy::Relay
+                } else {
+                    connect_server::canonical_webrtc::CanonicalIcePolicy::All
+                },
+                ice_services: relay
+                    .as_ref()
+                    .map(|turn| {
+                        vec![connect_server::canonical_webrtc::CanonicalIceService {
+                            urls: vec![turn["url"].as_str().unwrap().to_owned()],
+                            username_ref: Some("CONNECT_GATE6_TURN_USER".into()),
+                            credential_ref: Some("CONNECT_GATE6_TURN_PASSWORD".into()),
+                        }]
+                    })
+                    .unwrap_or_default(),
             },
         ),
     });
@@ -213,9 +245,21 @@ async fn distinct_network_browser_server_child() {
     ];
     for participant in &mut participants {
         participant["url"] = json!(url);
+        if let Some(turn) = &relay {
+            participant["connection"]["iceTransportPolicy"] = json!("relay");
+            participant["connection"]["iceServers"] = json!([{
+                "urls": turn["url"], "username": turn["username"], "credential": turn["credential"],
+            }]);
+        }
     }
+    let bridge_path = bridge.map(|ip| match &relay {
+        Some(turn) => {
+            json!({"ip":turn["ip"],"port_start":32000,"port_end":32031,"require_relay":true})
+        }
+        None => json!({"ip":ip.to_string(),"port_start":port,"port_end":port+15}),
+    });
     let spec = json!({"browser":"chrome","root":root,"assetPort":30379,"assetTls":{"certFile":"/fixture/asset-cert.pem","keyFile":"/fixture/asset-key.pem"},"seconds":60,"profileMode":"clean",
-        "designatedRemoteHost":hostname,"ownedContainerBridge":bridge.map(|ip|json!({"ip":ip.to_string(),"port_start":port,"port_end":port+15})),"sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],
+        "designatedRemoteHost":hostname,"ownedContainerBridge":bridge_path,"requireRelay":relay.is_some(),"iceRestart":relay.is_some(),"sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],
         "participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
     let input = output.join("input.json");
     std::fs::write(&input, serde_json::to_vec(&spec).unwrap()).unwrap();

@@ -17,3 +17,11 @@ test('missing or extra peers and selected transports cannot qualify the bridge',
         await assert.rejects(observedBridgePaths([page([[path()]]),page(paths)],{}));
     }
 });
+test('relay scope requires actual local and remote relay candidates',async()=>{
+    const relay=()=>({...path(),local_relay:true,remote_relay:true});
+    const result=await observedBridgePaths([page([[relay()]]),page([[relay()]])],{require_relay:true});
+    assert.equal(result.expected_private_relay,true);assert.equal(result.expected_private_gateway,false);
+    for(const field of ['local_relay','remote_relay']){
+        await assert.rejects(observedBridgePaths([page([[relay()]]),page([[{...relay(),[field]:false}]])],{require_relay:true}));
+    }
+});

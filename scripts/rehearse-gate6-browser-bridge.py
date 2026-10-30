@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owned Linux x86 host/browser namespaces on an internal Docker bridge only."""
+"""Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -54,9 +54,12 @@ def main():
     parser.add_argument('--image', required=True)
     parser.add_argument('--algorithm', choices=['EdDSA', 'ES256'], required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--relay-transport',choices=['udp','tcp'])
+    parser.add_argument('--turn-image')
     args = parser.parse_args()
     assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
     assert os.getuid() != 0, 'Run the owned fixture as the non-root host operator'
+    assert bool(args.relay_transport)==bool(args.turn_image)
     assert re.search(r'^vendor_id\s*:', Path('/proc/cpuinfo').read_text(), re.M)
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', args.image)
     image = json.loads(command(['docker', 'image', 'inspect', args.image]))[0]
@@ -77,6 +80,7 @@ def main():
     assert tools
     (output/'tool-inputs.json').write_text(json.dumps(tools, indent=2)+'\n')
     report = dict(scope=__doc__, algorithm=args.algorithm, passed=False, image_id=args.image,
+        relay_transport=args.relay_transport,
         binary_sha256=digest(binary), source_count=len(before), source_manifest_sha256=digest(args.source_manifest),
         tool_inputs_sha256=digest(output/'tool-inputs.json'))
     base = ROOT/'.local/gate-6/browser-remote'
@@ -86,7 +90,7 @@ def main():
     (fixture/'private-tmp').mkdir(mode=0o700)
     name = 'connect-g6-'+uuid.uuid4().hex[:12]
     network = None
-    server = browser = None
+    server = browser = turn = None
     forced = False
     stage = 'browser-discovery'
     cidfile = fixture/'container-id'
@@ -102,10 +106,19 @@ def main():
         ip = info['IPAM']['Config'][0]['Gateway']
         assert isinstance(ipaddress.ip_address(ip), ipaddress.IPv4Address) and ipaddress.ip_address(ip).is_private
         port = media_port(ip)
+        if args.relay_transport:
+            assert re.fullmatch(r'sha256:[0-9a-f]{64}',args.turn_image)
+            turn_image=json.loads(command(['docker','image','inspect',args.turn_image]))[0]
+            assert turn_image['Id']==args.turn_image and turn_image['Architecture']=='amd64' and turn_image['Os']=='linux'
+            stage='owned-turn-start'
+            Turn=runpy.run_path(str(ROOT/'scripts/lib/owned_bridge_turn.py'))['OwnedBridgeTurn']
+            turn=Turn(network,args.turn_image,args.image,ip,fixture/'turn',args.relay_transport)
+            turn.start()
         host_namespace = hashlib.sha256(os.readlink('/proc/self/ns/net').encode()).hexdigest()
         environment = dict(os.environ, CONNECT_G6_REMOTE_BROWSER_DIR=str(fixture),
             CONNECT_G6_REMOTE_BROWSER_ALGORITHM=args.algorithm, CONNECT_G6_REMOTE_BROWSER_MEDIA_PORT=str(port),
             CONNECT_G6_OWNED_BROWSER_BRIDGE='1', CONNECT_G6_OWNED_BROWSER_BRIDGE_IP=ip, TMPDIR=str(fixture/'private-tmp'))
+        if turn:environment.update(turn.environment)
         with (fixture/'server.log').open('w') as server_log, (fixture/'container.log').open('w') as browser_log:
             stage = 'server-readiness'
             server = subprocess.Popen([str(binary), CASE, '--exact', '--ignored', '--nocapture', '--test-threads=1'],
@@ -129,7 +142,8 @@ def main():
                 '--mount', f'type=bind,source={fixture},target=/fixture', '--workdir', str(ROOT)]
             for key,value in dict(CONNECT_GATE6_OWNED_BROWSER_CONTAINER='1', CONNECT_PLAYWRIGHT_MODULE=str(module),
                 PYTHONDONTWRITEBYTECODE='1', GIT_CONFIG_COUNT='1', GIT_CONFIG_KEY_0='safe.directory',
-                GIT_CONFIG_VALUE_0=str(ROOT), TMPDIR='/tmp', CONNECT_GATE6_CHROME=chrome).items():
+                GIT_CONFIG_VALUE_0=str(ROOT), TMPDIR='/tmp', CONNECT_GATE6_CHROME=chrome,
+                CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(fixture)).items():
                 docker += ['--env', key+'='+value]
             docker += [args.image,'python3','scripts/video/owned_pulse_audio.py','--output',str(fixture/'audio'),
                 '--','node','scripts/video/owned_bridge_browser.mjs',str(fixture)]
@@ -157,6 +171,7 @@ def main():
                 # Exclude diagnostic wire IDs, private state and raw content.
                 browser_summary['media'] = dict(status=media.get('status'),phase=media.get('phase'),
                     error_class=media.get('error_class'),owned_container_bridge=media.get('owned_container_bridge'),
+                    relay_path=media.get('relay_path'),
                     observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
                         changing_fps=o['changing']/o['elapsed_seconds'],rendered_fps=o['rendered']/o['elapsed_seconds'],
                         motion_sample_pixels=o.get('motion_sample_pixels'),identity_sample_pixels=o.get('identity_sample_pixels'),
@@ -164,6 +179,12 @@ def main():
                         audio=o['audio_profile']['status'],
                         motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],
                         av_acceptance=o['av_acceptance']) for o in media.get('observations',[])])
+                if media.get('ice_restarts'):
+                    restart=media['ice_restarts']
+                    browser_summary['media']['ice_restarts']=dict(status=restart['status'],profile=restart['profile'],
+                        results=[{key:row[key] for key in ['participant','ice_generation','stream_revision',
+                            'connection_generation','discarded_answers','signed_requests','ownership','decoded_recovery']}
+                            for row in restart['results']])
             report.update(browser=browser_summary, audio=audio_summary, browser_exit_code=browser_exit,
                 different_network_namespaces=browser_summary['network_namespace_sha256'] != host_namespace,
                 internal_bridge=True)
@@ -207,6 +228,12 @@ def main():
                     os.killpg(server.pid, signal.SIGKILL)
                     server.wait()
         if network is not None:
+            if turn:
+                try:
+                    report['turn']=turn.close()
+                    report['passed']=report['passed'] and report['turn']['passed'] and report['turn']['allocation_successes']>=4
+                except Exception as error:
+                    report['turn_cleanup_failure']=type(error).__name__;report['passed']=False
             info = json.loads(command(['docker', 'network', 'inspect', network]))[0]
             report['bridge_containers_drained'] = not info['Containers']
             removed = subprocess.run(['docker', 'network', 'rm', network], capture_output=True).returncode == 0

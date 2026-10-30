@@ -129,6 +129,10 @@ async def run(args):
                 owned_network_paths=value.get('owned_network_paths'),
                 observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
                     changing_fps=o['changing']/o['elapsed_seconds'],audio=o['audio_profile']['status'],
+                    audio_coverage_complete=o['audio_profile'].get('coverage_complete'),
+                    audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
+                    audio_bad_unexcepted_samples=o['audio_profile'].get('bad_unexcepted_samples'),
+                    maximum_unexcluded_motion_gap_seconds=o['motion_profile'].get('maximum_unexcluded_freshness_gap_seconds'),
                     motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],
                     recovery=o['recovery'],av_acceptance=o['av_acceptance']) for o in value.get('observations',[])])
         assert report['exit_code']==0 and not report.get('timed_out') and not report.get('cleanup_required_sigterm')

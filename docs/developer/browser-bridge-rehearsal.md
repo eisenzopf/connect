@@ -29,3 +29,32 @@ Keys, configs, full media observations and raw process logs remain under ignored
 `.local/`. This fixture prepares current distinct-network browser evidence;
 it does not qualify WAN, remote providers, relay, ICE restart, installation or
 the complete Gate6 matrix. Actual Linux execution remains required.
+
+## Owned distinct-network relay extension
+
+The manual `relay` lane selects EdDSA/ES256 with UDP and TCP TURN control.
+The `full` lane also includes those four cells. The native Linux x86 image is
+pinned to `coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf`;
+the launcher verifies the actual 4.18.0 binary and its digest. TURN runs in a
+third namespace on the same internal bridge. Its entrypoint is invoked directly,
+so the image's external-IP discovery is never used. It receives only
+`NET_BIND_SERVICE` in its capability bounding set because the image executable
+carries that file capability; all configured ports are above1024, with no host
+network mode or published ports.
+
+One synthetic REST secret issues credentials valid for180seconds, with quota8
+and a32port relay pool. Explicit peer allowlists admit only this bridge's server
+gateway and owned TURN address; all other IPv4 peers are denied. Every original
+browser/server peer uses relay-only policy through protected server secret
+references. Public stats must prove both local and remote relay candidates,
+the exact private relay range, nominated duplex UDP and decoded opposite-source
+content. Each cell additionally performs the original two ICE generations and
+lost-answer recovery on the same browser objects, retaining the two-second
+fresh decoded-content limit and unchanged clean60 quality bounds.
+
+All original browser and server owners must join before coturn receives SIGUSR1.
+The same verified4.18 oracle must observe zero allocations within10seconds,
+then join the original container within a separate10seconds. The owned container
+and internal bridge must be removed. Numeric summaries exclude REST credentials,
+wire operation IDs and raw logs. Preparation and local ARM primitive probes do
+not qualify native Linux x86 browser relay media.

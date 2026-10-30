@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Complete current native Linuxx86 browser fault and strict-quality checks. Kernel-netem run41093929194 records actual bidirectional forwarded/dropped UDP and complete queue/port cleanup but its path predicate rejects the case before the three-second burst. Per-path boolean diagnostics and finer decoded motion sampling are prepared; neither is a runtime pass.",
-    "Complete the required G6-054 distinct-network direct/relay and fault coverage. Current owned bridge bothalgorithms prove direct topology and decoded duplex content with normalCA and clean retirement, while strictquality remains failed. Native and telephone owned direct/loss component limits remain in their artifacts. Distinct-network browser relay still requires its own exact fixture; local loopback relay does not inherit that result.",
+    "Resolve actual native Linuxx86 media loss and audio/freshness failures. Full run41095499407 retains nativeICE2 and unreachableTURN passes but fails all clean/ICE/fault quality scenes. Focused41096295382 traverses the measured3.003second kernel burst and bothvideo recoveries pass.265/.664seconds; audio identity and one outside-burst motion gap fail, with complete queue/port cleanup.",
+    "Complete distinct-network direct/relay and fault coverage. Both current bridge algorithms prove selected private duplex paths and decoded source content, while strict quality remains failed in the full recheck. A third owned namespace with pinned coturn4.18, UDP/TCP control, protected REST references and original-browser ICE is prepared but x86 runtime unrun. Local loopback relay and ARM tool probes do not inherit this result.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
@@ -415,10 +415,10 @@
     },
     {
       "profile": "native Linux x86 opt3 media runtime",
-      "status": "native ICE2 and both unreachable-TURN algorithms pass; full browser quality fails",
-      "run_id": 41086327828,
+      "status": "nativeICE2/unreachableTURN pass; clean Linux browser media quality still fails",
+      "run_id": 41095499407,
       "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
-      "limits": "CFT156 allopt3 runtime libraries. Original-browser ICE recovery remains within2seconds, but no full media matrix or quality qualification. Instrumented follow-up41092205182 receives about30decodedfps while finer changing-frame sampling is under investigation."
+      "limits": "Source/encoder30fps but receiver16\u201322fps and actual packet loss/bad audio with complete observer coverage. Finer motion observation has only a separate Mac positive result; it does not resolve Linux media loss."
     },
     {
       "profile": "current browser Linux x86 distinct-network internal bridge",
