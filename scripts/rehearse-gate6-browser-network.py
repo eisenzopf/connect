@@ -132,6 +132,7 @@ async def run(args):
                 owned_network_paths=value.get('owned_network_paths'),
                 observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
                     changing_fps=o['changing']/o['elapsed_seconds'],audio=o['audio_profile']['status'],
+                    rendered_fps=o['rendered']/o['elapsed_seconds'],
                     audio_coverage_complete=o['audio_profile'].get('coverage_complete'),
                     audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
                     audio_bad_unexcepted_samples=o['audio_profile'].get('bad_unexcepted_samples'),

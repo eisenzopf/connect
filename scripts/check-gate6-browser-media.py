@@ -259,6 +259,7 @@ def runtime(component=None):
                             peer_states=peer_states,
                             unreachable_relay=value.get('unreachable_relay'), observations=[dict(
                                 decoded_fps=o['decoded']/o['elapsed_seconds'], changing_fps=o['changing']/o['elapsed_seconds'],
+                                rendered_fps=o['rendered']/o['elapsed_seconds'],
                                 motion_sample_pixels=o.get('motion_sample_pixels'),identity_sample_pixels=o.get('identity_sample_pixels'),
                                 source_draw_fps=o.get('source_observation',{}).get('draws_per_second'),
                                 encoded_fps=o.get('outbound_observation',{}).get('frames')/o['elapsed_seconds']

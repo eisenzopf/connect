@@ -58,7 +58,9 @@ export function installPeerDiagnostics() {
             "totalSamplesDuration","audioLevel","frameWidth","frameHeight"];
         fields.push("packetsLost","nackCount","pliCount","firCount","retransmittedPacketsSent",
             "retransmittedBytesSent","concealedSamples","silentConcealedSamples","concealmentEvents",
-            "jitterBufferDelay","jitterBufferEmittedCount");
+            "jitterBufferDelay","jitterBufferEmittedCount","jitterBufferTargetDelay",
+            "jitterBufferMinimumDelay","totalDecodeTime","totalProcessingDelay",
+            "totalInterFrameDelay","totalSquaredInterFrameDelay","freezeCount","totalFreezesDuration");
         report.forEach(stat=>{
             if(!["inbound-rtp","outbound-rtp","media-source"].includes(stat.type)||rows.length>=8)return;
             const row={type:stat.type,kind:["audio","video"].includes(stat.kind)?stat.kind:"other"};

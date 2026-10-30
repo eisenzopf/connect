@@ -12,6 +12,9 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
                 type:"inbound-rtp",kind:"audio",id:"private-secret",trackIdentifier:"private-secret",
                 nackCount:4,concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
                 jitterBufferDelay:.1,jitterBufferEmittedCount:960,packetsLost:2,
+                totalDecodeTime:.01,totalProcessingDelay:.03,totalInterFrameDelay:1,
+                totalSquaredInterFrameDelay:.04,jitterBufferTargetDelay:.2,jitterBufferMinimumDelay:.05,
+                freezeCount:1,totalFreezesDuration:.4,
                 pliCount:Infinity,firCount:-1,retransmittedPacketsSent:"private-secret",
             }]));
         }
@@ -23,7 +26,9 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         assert.equal(value.length,4);assert(value.every(rows=>rows.length===8));
         assert.deepEqual(value[0][0],{type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
             concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
-            jitterBufferDelay:.1,jitterBufferEmittedCount:960});
+            jitterBufferDelay:.1,jitterBufferEmittedCount:960,jitterBufferTargetDelay:.2,
+            jitterBufferMinimumDelay:.05,totalDecodeTime:.01,totalProcessingDelay:.03,
+            totalInterFrameDelay:1,totalSquaredInterFrameDelay:.04,freezeCount:1,totalFreezesDuration:.4});
         assert.equal(JSON.stringify(value).includes("private-secret"),false);
     }finally{
         globalThis.RTCPeerConnection=original;

@@ -175,6 +175,8 @@ def main():
                     observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
                         changing_fps=o['changing']/o['elapsed_seconds'],rendered_fps=o['rendered']/o['elapsed_seconds'],
                         motion_sample_pixels=o.get('motion_sample_pixels'),identity_sample_pixels=o.get('identity_sample_pixels'),
+                        rtp_feedback=o.get('rtp_feedback'),
+                        audio_bad_sample_diagnostics=o['audio_profile'].get('bad_sample_diagnostics'),
                         av_sync={key:o['av_sync'].get(key) for key in ['status','median_abs_skew_ms','p95_abs_skew_ms']},
                         audio=o['audio_profile']['status'],
                         motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],
