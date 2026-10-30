@@ -39,10 +39,16 @@ jobs:
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
             --workdir /work \
-            --env CONNECT_CHROME_BINARY=/ms-playwright/chromium-1234/chrome-linux/chrome \
+            --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
             --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
             mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e \
             node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/run
+      - name: Return only owned fixture files to the runner
+        if: always()
+        run: |
+          if [ -d .local/gate6-browser-observer/evidence ]; then
+            sudo chown -R "$(id -u):$(id -g)" .local/gate6-browser-observer/evidence
+          fi
       - name: Upload source and numeric observer evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -51,6 +57,7 @@ jobs:
           path: |
             .local/gate6-browser-observer/evidence/run/summary.json
             .local/gate6-browser-observer/evidence/run/source-inputs.json
+            .local/gate6-browser-observer/evidence/run/image-browser.json
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error

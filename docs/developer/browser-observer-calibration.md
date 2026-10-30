@@ -27,7 +27,11 @@ its new profile and process. Linux root containers additionally require
 Forced process termination is a failed observation.
 
 The separate `Gate 6 Linux browser observer` workflow uses the existing pinned
-Playwright image on Linux x86_64. It exposes no host browser or sound device,
+Playwright image on Linux x86_64. It requires exactly one Chromium executable
+in that image's `/ms-playwright` cache, records the actual CPU-specific path and
+hashes the executable; it never downloads or selects another browser. It
+returns ownership of only its fixture output to the CI runner for upload while
+keeping private profile permissions. It exposes no host browser or sound device,
 uses no RTC/server/account endpoint and uploads only numeric/source manifests.
 Its result qualifies only the measured renderer. Normal TLS, decoded media,
 ICE/recovery, relay, loss, expiry and full Gate 6 acceptance retain their own

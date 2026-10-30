@@ -11,11 +11,26 @@ import {launchOwnedChromium} from './owned_chromium.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const [directory]=process.argv.slice(2);
 if(process.argv.length!==3||!directory)throw Error('One fresh .local output directory required');
-const output=path.resolve(directory),binary=process.env.CONNECT_CHROME_BINARY;
+const output=path.resolve(directory);let binary=process.env.CONNECT_CHROME_BINARY;
 const modulePath=process.env.CONNECT_PLAYWRIGHT_MODULE;
-if(!output.startsWith(root+path.sep+'.local'+path.sep)||!path.isAbsolute(binary??'')||!path.isAbsolute(modulePath??''))
+if(!output.startsWith(root+path.sep+'.local'+path.sep)||!path.isAbsolute(modulePath??''))
     throw Error('Explicit installed browser, framework module and ignored output required');
 await fs.mkdir(path.dirname(output),{recursive:true});await fs.mkdir(output,{mode:0o700});
+if(process.env.CONNECT_PINNED_CHROMIUM_CACHE){
+    // The pinned image has different executable subdirectories per CPU. Use
+    // its ONE installed Chromium, never a download or alternate browser.
+    if(binary||process.platform!=='linux'||process.arch!=='x64'||process.env.CONNECT_PINNED_CHROMIUM_CACHE!=='/ms-playwright')
+        throw Error('Pinned image discovery requires the explicit Linux x86 cache');
+    const cache='/ms-playwright',entries=(await fs.readdir(cache)).filter(name=>/^chromium-\d+$/.test(name)).sort(),candidates=[];
+    for(const entry of entries)for(const folder of ['chrome-linux64','chrome-linux']){
+        const file=path.join(cache,entry,folder,'chrome');
+        try{if((await fs.stat(file)).isFile())candidates.push(file);}catch(error){if(error.code!=='ENOENT')throw error;}
+    }
+    await fs.writeFile(path.join(output,'image-browser.json'),JSON.stringify({cache,architecture:process.arch,entries,candidates},null,2)+'\n');
+    if(candidates.length!==1)throw Error('Pinned image must contain exactly one Chromium executable');
+    [binary]=candidates;
+}
+if(!path.isAbsolute(binary??''))throw Error('Explicit installed browser required');
 const hash=async file=>{const h=createHash('sha256');for await(const bytes of createReadStream(file))h.update(bytes);return h.digest('hex');};
 const files=[fileURLToPath(import.meta.url),path.join(root,'scripts/video/marker_calibration.mjs'),
     path.join(root,'scripts/video/source_identity.mjs'),binary,
