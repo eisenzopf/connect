@@ -344,6 +344,7 @@ mod tests {
             device_id: "device".into(),
             generation: 1,
             revision: 88,
+            stream_revision: Some(1),
             state: "ready".into(),
             replaces: None,
         }

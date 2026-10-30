@@ -1108,7 +1108,10 @@ export class BrowserMediaPeer {
         const budget = new BrowserDeadline(timeout);
         await budget.run(() => this.stable(state), options.signal);
         const expected = requestedRevision ?? state.revision;
-        if (expected !== state.revision)
+        // Audience-only commits can advance the server revision without new
+        // local parameters. A caller may assert a later observed revision;
+        // only the original signed result can advance this physical owner.
+        if (expected < state.revision)
             throw new ConnectError(
                 "conflict",
                 "Native control revision conflicts",
@@ -1139,7 +1142,7 @@ export class BrowserMediaPeer {
         const scope = {
             ...state.scope,
             operation_id: operationId,
-            expected_revision: state.revision,
+            expected_revision: expected,
         };
         attempted?.();
         const started = this.client.begin(type, payload, scope, {
@@ -1151,7 +1154,7 @@ export class BrowserMediaPeer {
         this.transitions.set(operationId, {
             scope,
             requestId: started.id,
-            revision: state.revision,
+            revision: expected,
             accept,
             fail: reject,
         });

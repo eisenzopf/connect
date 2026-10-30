@@ -1,6 +1,8 @@
 //! Fresh authorized views over the journal, with bounded ephemeral snapshot pages.
 pub(crate) mod admission;
+mod connection_revision;
 mod journal;
+pub(crate) use connection_revision::stream_revision;
 pub(crate) mod observations;
 mod snapshots;
 pub use observations::{SessionObservationActivity, SessionObservationSource};

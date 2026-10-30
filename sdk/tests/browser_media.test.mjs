@@ -269,3 +269,29 @@ test('target-owned native handoff preparation is captured once and mixed media r
  }finally{peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
  for(const patch of [{purpose:'forged'},{video:'video'},{screen:'screen'},{data:[{id:'data',protocol:'binary'}]},{audio:undefined}]){const client=new Control('audio'),peer=new BrowserMediaPeer(client);try{await assert.rejects(()=>peer.offerConnection({...offer,purpose:'handoff-preparation',...patch}),{code:'invalid-request'});assert.equal(client.sent.length,0);}finally{peer.close();}}
 });
+
+test('typed WT later observed control assertion waits for the original completed result before advancing local custody',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client);
+ try{
+  const connection=await peer.offerConnection(input);client.hold=true;
+  const control=peer.beginControl(connection.id,'after-audience','connection.update',{action:'mute',streams:['data']},5,{timeoutMs:500});
+  await control.response;assert.equal(control.submissionAttempted,true);assert.equal(connection.revision,1);assert.equal(client.begun.at(-1).scope.expected_revision,5);
+  client.hold=false;await control.ready;assert.equal(connection.revision,6);assert.equal(client.closed,false);
+  const stale=peer.beginControl(connection.id,'old-receipt','connection.update',{action:'unmute',streams:['data']},5,{timeoutMs:100});await assert.rejects(stale.ready,{code:'conflict'});assert.equal(stale.submissionAttempted,false);assert.equal(client.begun.filter(v=>v.type==='connection.update').length,1);
+ }finally{peer.close();}
+});
+test('typed WT resource negotiation binds its signed counteroffer to the later asserted server revision',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client);
+ try{
+  const connection=await peer.offerConnection(input),selection=peer.beginControl(connection.id,'after-route-change','stream.subscribe',{subscriptions:[{from_participant:'other',kinds:['data']}]},7,{timeoutMs:300});
+  await selection.ready;assert.equal(connection.revision,8);assert.equal(client.begun.at(-1).scope.expected_revision,7);assert.equal(client.sent.filter(v=>v.type==='connection.answer'&&v.scope.operation_id==='after-route-change').length,1);assert.equal(client.closed,false);
+ }finally{peer.close();}
+});
+test('typed WT server refusal of a future assertion preserves the original physical revision without retry',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client),status=client.operationStatus.bind(client);
+ client.operationStatus=(cid,op)=>op==='future-conflict'?Promise.resolve({operation_id:op,state:'failed',problem:{code:'conflict'}}):status(cid,op);
+ try{
+  const connection=await peer.offerConnection(input),control=peer.beginControl(connection.id,'future-conflict','connection.update',{action:'mute',streams:['data']},5,{timeoutMs:300});
+  await control.response;await assert.rejects(control.ready,{code:'refused'});assert.equal(control.submissionAttempted,true);assert.equal(client.begun.filter(v=>v.type==='connection.update').length,1);assert.equal(connection.revision,1);assert.equal(client.closed,false);
+ }finally{peer.close();}
+});

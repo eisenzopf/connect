@@ -129,8 +129,8 @@ fn retire_dormant(c: &Connection, row: &rows::Saved, store: &Store) -> Result<()
             "Dormant native slot requires attributed cleanup",
         ));
     }
-    let value = c.query_row("SELECT n.id,n.session_id,n.participant_id,n.membership_epoch,n.endpoint_id,e.device_id,n.generation,n.revision,n.state,n.replaces FROM connections n JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1",[&row.record.connection_id],|r|Ok(connect_protocol::events::ConnectionState {
-        connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?,
+    let value = c.query_row("SELECT n.id,n.session_id,n.participant_id,n.membership_epoch,n.endpoint_id,e.device_id,n.generation,n.revision,n.state,n.replaces,n.readiness_json,n.observed_runtime_id FROM connections n JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1",[&row.record.connection_id],|r|Ok(connect_protocol::events::ConnectionState {
+        connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?,stream_revision:crate::events::stream_revision(r.get(8)?,r.get(10)?,r.get(11)?)?,
     })).map_err(|_|Error::storage())?;
     let resources: String = c
         .query_row(

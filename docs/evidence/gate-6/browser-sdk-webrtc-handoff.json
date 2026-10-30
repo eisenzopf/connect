@@ -2425,5 +2425,11 @@
       "changed_test_sha256": "fac2ec4c53b25b8282f170eb3bdab1e4dc3ec59293c44129e07f75e75a4040a7",
       "meaning": "The 835 SDK/37 Node/15 enrollment and four Store results retain their frozen earlier cohort. Only this additional test assertion changed subsequently; those full suites were not rerun."
     }
+  },
+  "control_revision_follow_up": {
+    "evidence": "docs/evidence/gate-6/browser-sdk-control-revision.json",
+    "qualified": true,
+    "scope": "Server-recorded revision refresh and actual retained WT/WSS post-handoff mute/unmute are now verified in a new frozen normal cohort. Historical source hashes and prior failures in this file remain unchanged.",
+    "remaining": "Live descriptor carry, consultation/return/device workflows, full audit and unresolved iterations remain open."
   }
 }

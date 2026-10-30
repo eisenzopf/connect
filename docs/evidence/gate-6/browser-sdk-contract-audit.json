@@ -499,6 +499,12 @@
       "supported_case_verified": true,
       "full_task_complete": false,
       "open": "authoritative stream revision refresh, consultation/return, device movement and full audit"
+    },
+    "control-revision-after-audience": {
+      "supported_case_verified": true,
+      "evidence": "docs/evidence/gate-6/browser-sdk-control-revision.json",
+      "scope": "Current server control observation and original confirmed WT/WSS post-handoff mute/unmute; no local custody from foreign snapshots.",
+      "remaining": "Actual Stream descriptor carry, consultation/return/device workflows, full audit and preserved intermittent handoff wait deadline remain open."
     }
   }
 }

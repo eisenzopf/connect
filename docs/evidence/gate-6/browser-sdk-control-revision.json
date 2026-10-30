@@ -1,0 +1,426 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "db96db95",
+  "passed": true,
+  "full_task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Bounded local macOS arm64 server-recorded Connection control versions and actual WT/WSS post-handoff mute/unmute on retained browser media owners. Full task and acceptance remain open.",
+  "implementation": [
+    "Connection snapshots and lifecycle journal facts include nullable stream_revision, independent of the Connection resource revision. It is read only from attributed ready/active runtime metadata; terminal/unobserved and invalid bounded versions produce null.",
+    "Typed browser refresh exposes the server observation, including when another endpoint owns the Connection. The same-generation local owner retains any newer original confirmed revision. Neither path creates media ownership.",
+    "WT controls retain an explicit later caller revision in the signed original request and exact correlated counteroffer expectation. A stale assertion still refuses before submission. Local state advances only from the original completed scoped result, with no automatic retry.",
+    "Application HTTP/OpenAPI serde schema, dispatch and endpoint source digests are refreshed. No Store schema or dependency patch change."
+  ],
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "command": [
+          "npm",
+          "test",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          842
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.302130457945168,
+        "log_sha256": "f49bac7a36cb889472b09af881c29a2b5d10e529ac538fc2ff9e987474523173"
+      },
+      {
+        "phase": "types",
+        "command": [
+          "sdk/typescript/node_modules/.bin/tsc",
+          "--noEmit",
+          "--strict",
+          "--target",
+          "ES2022",
+          "--module",
+          "NodeNext",
+          "--moduleResolution",
+          "NodeNext",
+          "--lib",
+          "ES2022,DOM,DOM.Iterable",
+          "--types",
+          "node",
+          "--typeRoots",
+          "sdk/typescript/node_modules/@types",
+          "sdk/tests/browser_sdk_types.mts",
+          "sdk/tests/node_sdk_types.mts"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3552215408999473,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/node_sdk.test.mjs",
+          "sdk/tests/node_sessions.test.mjs",
+          "sdk/tests/node_incoming.test.mjs"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3818290408235043,
+        "log_sha256": "ca0118f8e1cd5cfe7c9eeaece982859f6a7c2ce220d4bfdb7746512c5c6371d5"
+      },
+      {
+        "phase": "enrollment",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_enrollment-aaef4384bdcdf571",
+          "--include-ignored",
+          "--test-threads=1"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          15
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 171.54827337502502,
+        "log_sha256": "6cd5372a1aefb3c812ed14e547d552bdb7f66ad737ead4c6c01b769f2c7d49e5"
+      }
+    ],
+    "source_inputs": 2793
+  },
+  "store_verification": {
+    "passed": 26,
+    "failed": 0,
+    "events": 23,
+    "stream_projection": 3,
+    "meaning": "The revision helper test is included in the 23 event tests, not an additional distinct pass.",
+    "logs": {
+      ".local/gate-6/connection-revision/store-events-external.log": "48674162e8d5c240137d41374f106585fa223c030ef0afc4fd3af7b6430f6ec6",
+      ".local/gate-6/connection-revision/store-streams.log": "7bd8658c7d7f82103be5ea530770016d0f6de64d8e4b11c903e00b2394d4f1d0"
+    }
+  },
+  "source_manifest_sha256": "e90b221d507857d251eb162799d7c70b029724919cf105da1b56659835ba3a23",
+  "source_inputs": 2793,
+  "dependency_patch_count": 244,
+  "preserved_failures": [
+    {
+      "log": ".local/gate-6/connection-revision/sdk.log",
+      "sha256": "d3664aa30a935d75e9f96ae3336113a74cbd0fffb7dd92079714c2b59e249c2e",
+      "finding": "Initial negative fixture put JavaScript undefined inside signed JSON, so the fixture could not emit a response and the expected malformed-snapshot test timed out. Corrected the fixture to omit the property; final SDK run tests real missing/invalid fields and passes842."
+    },
+    {
+      "log": ".local/gate-6/connection-revision/store-events.log",
+      "sha256": "98c1fcc5aa66fc226fd757b27765433150c2f05c32efd15a5ce875f6cd9fb8dc",
+      "finding": "Expanded Store direct invocation omitted external TMPDIR and hit internal ENOSPC:10passed/13failed. Corrected external scratch run passes23 on unchanged production/test sources. No product fix is inferred from a scratch-setting correction."
+    },
+    {
+      "directory": ".local/gate-6/connection-revision/before-approval-scope-fix",
+      "log_sha256": "20118a62deb8acf8850b8fe85f522a442cae3dcfbbe48c290fcf9ef1b1a472c0",
+      "passed": 12,
+      "failed": 3,
+      "ignored": 0,
+      "finding": "Three handoff-family functions stopped before enrollment because the fixture approval helper asserted the old exact capability list. Added the same connection.update permission requested by the synthetic mute/unmute scene; no server authorization changes. All twelve other functions passed. Production inputs were unchanged throughout this failed cohort."
+    },
+    {
+      "directory": ".local/gate-6/connection-revision/before-handoff-diagnostics",
+      "log_sha256": "57aeada0ca955835de09a6054b73d44a55af8683bb23c6b569e5a0087e836a5a",
+      "passed": 14,
+      "failed": 1,
+      "ignored": 0,
+      "finding": "Ordinary WT handoff wait reached its bounded read-only deadline before any post-handoff gate check. Actual source inputs remained unchanged; scope and root cause are not yet established. Original failed artifact preserved before adding read-only diagnostics."
+    }
+  ],
+  "limitations": [
+    "Live Stream descriptor carry after audience-only revision changes remains open; this increment adds control revision observations without inferring descriptor state.",
+    "Browser consultation/return/device movement and the full G6-061 contract audit remain open.",
+    "Previous separate WT authority-busy/status-uncertainty case and one local synthetic SIP unknown iteration remain unresolved in browser-sdk-webrtc-handoff.json.",
+    "No installed CLI, release, Linux, remote/provider/account/model or independent acceptance qualification.",
+    "One preceding ordinary WT original handoff wait exceeded its read-only observation budget before the new gate checks. Its artifact is retained; cause and terminal original outcome were not captured in that iteration. New failure-only status/SQL diagnostics preserve future occurrences without resubmission."
+  ],
+  "task_progress": {
+    "done": 65,
+    "in_progress": 2,
+    "not_started": 38,
+    "acceptance_qualified": 0
+  },
+  "diagnostic": {
+    "passed": true,
+    "functions": 1,
+    "filtered_out": 14,
+    "seconds": 52.56,
+    "source_inputs_unchanged": true,
+    "log_sha256": "4d25d5ca01343f5fb1dcb9d5e95596e674cdb7b9c46b59a20dc4168c75013d20",
+    "artifact_sha256": "3de356155da3318fcd1de8da4a87fe08914101132b04fbaf0b4129fad146d2ed",
+    "observations": [
+      {
+        "path": "webtransport",
+        "postHandoffRevisions": [
+          3,
+          3
+        ],
+        "postControlRevisions": [
+          4,
+          5
+        ],
+        "foreignCaptureRefused": true
+      },
+      {
+        "path": "wss-webrtc",
+        "postHandoffRevisions": [
+          3,
+          3
+        ],
+        "postControlRevisions": [
+          4,
+          5
+        ],
+        "foreignCaptureRefused": true
+      }
+    ],
+    "meaning": "Positive scoped-debug diagnostic on frozen production inputs. The later complete normal cohort also passes. Neither result establishes the cause of the preceding ordinary handoff wait deadline."
+  },
+  "prior_handoff_timeout_resolved": false,
+  "behavior": {
+    "original_mutations": 32,
+    "completed_post_handoff_gates": 4,
+    "selected_ignored": 0,
+    "selected_excluded": 0,
+    "receiver_rms_minimum": 0.01,
+    "silence_rms_maximum": 0.003,
+    "decoded_frame_equivalents_minimum": 10,
+    "measurement_window_ms": 500,
+    "reports": [
+      {
+        "path": "webtransport",
+        "postHandoffRevisions": [
+          3,
+          3
+        ],
+        "postControlRevisions": [
+          4,
+          5
+        ],
+        "foreignCaptureRefused": true,
+        "outgoingCaptureRetired": true,
+        "recoveredOriginal": true,
+        "observations": [
+          {
+            "label": "handoff-target-to-remote",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.14368576798594881,
+              2.0345869483764863e-34
+            ],
+            "counts": [
+              0,
+              25,
+              25
+            ]
+          },
+          {
+            "label": "handoff-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              2.0345869483764863e-34,
+              0.14321225739051155
+            ],
+            "counts": [
+              0,
+              25,
+              25
+            ]
+          },
+          {
+            "label": "post-handoff-mute",
+            "source": 2,
+            "allowed": [],
+            "max": [
+              0,
+              0,
+              2.0345887850864095e-34
+            ],
+            "counts": [
+              0,
+              0,
+              26
+            ]
+          },
+          {
+            "label": "post-handoff-unmute",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.143771073951143,
+              2.0345887850864095e-34
+            ],
+            "counts": [
+              0,
+              25,
+              26
+            ]
+          },
+          {
+            "label": "post-controls-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              2.0345887850864095e-34,
+              0.14365963865836465
+            ],
+            "counts": [
+              0,
+              25,
+              25
+            ]
+          }
+        ]
+      },
+      {
+        "path": "wss-webrtc",
+        "postHandoffRevisions": [
+          3,
+          3
+        ],
+        "postControlRevisions": [
+          4,
+          5
+        ],
+        "foreignCaptureRefused": true,
+        "outgoingCaptureRetired": true,
+        "recoveredOriginal": true,
+        "observations": [
+          {
+            "label": "handoff-target-to-remote",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.14396356011480854,
+              0
+            ],
+            "counts": [
+              0,
+              29,
+              27
+            ]
+          },
+          {
+            "label": "handoff-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              0,
+              0.14290729800053237
+            ],
+            "counts": [
+              0,
+              29,
+              29
+            ]
+          },
+          {
+            "label": "post-handoff-mute",
+            "source": 2,
+            "allowed": [],
+            "max": [
+              0,
+              0,
+              0
+            ],
+            "counts": [
+              0,
+              0,
+              30
+            ]
+          },
+          {
+            "label": "post-handoff-unmute",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.14410245549190806,
+              0
+            ],
+            "counts": [
+              0,
+              29,
+              24
+            ]
+          },
+          {
+            "label": "post-controls-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              0,
+              0.1422253915368088
+            ],
+            "counts": [
+              0,
+              30,
+              29
+            ]
+          }
+        ]
+      }
+    ],
+    "artifact_sha256": "75aa234e77093f3196fe9cadc6c3da7e3c93a93ff71f4a5ee57f0b51d0ba621c"
+  },
+  "build": {
+    "profile": "cargo rustc --offline --locked -p connect-server --test gate6_enrollment -- -C strip=none; direct confirmed Mach-O arm64 execution",
+    "executable": "gate6_enrollment-aaef4384bdcdf571",
+    "bytes": 369748496,
+    "executable_sha256": "e6375ce5750be37f55bc7cc4e0eab8db4eaaf4763b33940eedc8216ab81d00e3",
+    "cold_build_seconds": 841,
+    "limitation": "Cold build separately produced a damaged non-executable CLI after strip ENOSPC. The browser fixture initializes through cli::init library calls and did not execute that CLI. No CLI or installed/release qualification is claimed."
+  },
+  "tested_sources": {
+    "contracts/openapi-application-http.json": "75be8be7fca7a4d06c3076a2423f59aee4d64ad36ebc5c43483e911e43220e4a",
+    "crates/connect-protocol/src/events.rs": "1341260e990dc5d91d5ff3a5697c7e01c0ef54de59598086e4fa1bfcb9b6c298",
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/handoff-browser.mjs": "73aa9b92e1d5bf2a390c8c1d330d6fe1a1ebfe2a505bd3183dd659386fd5a833",
+    "crates/connect-server/tests/support/browser_handoff.rs": "b9143b5fa4a9af0832ab599eab710aee74f4be5378489c6e354f9481fd4f1ede",
+    "crates/connect-server/tests/support/enrollment_browser.rs": "e8e2c26474a8fd91d0009fa5e2956a7d96e0c762650b58d0918dc34fbd0bd51a",
+    "crates/connect-store/src/events/connection_revision.rs": "d31e4f7838a925c69d2875855c72df04663de8a0e3d0488b1855becf2444c18f",
+    "crates/connect-store/src/events/snapshots.rs": "f1d6b576581a813d1383f44edca8a428df2cb342ae2700fce7f35a88b1474fbd",
+    "sdk/typescript/src/browser_media.ts": "a0d2a71135853b5a388a1a2a0034a55f3930a5dad3c987ac3f7b16fb0867a9de",
+    "sdk/typescript/src/browser_sdk.ts": "8c00e328ce471951d06c6b8a688d0c34e3217396864ed7be6e689437e8234c47"
+  }
+}

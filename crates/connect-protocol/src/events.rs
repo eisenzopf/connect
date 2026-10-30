@@ -46,6 +46,9 @@ pub struct ConnectionState {
     pub device_id: String,
     pub generation: u64,
     pub revision: u64,
+    /// Last committed stream-control revision recorded for this ready physical
+    /// generation. An observation only; null without attributed readiness.
+    pub stream_revision: Option<u64>,
     pub state: String,
     pub replaces: Option<String>,
 }

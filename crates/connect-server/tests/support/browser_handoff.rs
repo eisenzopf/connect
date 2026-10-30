@@ -96,10 +96,15 @@ async fn run_handoff(audio_probe: bool, privacy_probe: bool) {
         assert_eq!(count("SELECT COUNT(*) FROM operations o JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE (o.operation_id LIKE 'handoff-public-to-prepared-%' OR o.operation_id LIKE 'handoff-prepared-to-public-%') AND o.state='failed' AND json_extract(o.problem_json,'$.code')='forbidden' AND n.effect_started=0 AND n.effect_id IS NULL AND n.attempt_id IS NULL"), 4);
     } else {
         assert_eq!(result["result"]["reports"].as_array().unwrap().len(), 2);
-        assert_eq!(result["result"]["original_mutations"], 28);
+        assert_eq!(result["result"]["original_mutations"], 32);
         {
+            for report in result["result"]["reports"].as_array().unwrap() {
+                assert_eq!(report["foreignCaptureRefused"], true);
+                assert_eq!(report["postControlRevisions"].as_array().unwrap().len(), 2);
+            }
             let db = rusqlite::Connection::open(&h.f.config.database).unwrap();
             let count = |sql| db.query_row(sql, [], |r| r.get::<_, u64>(0)).unwrap();
+            assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type='connection.update' AND state='completed'"), 4);
             assert_eq!(
                 count("SELECT COUNT(*) FROM operations WHERE command_type='session.handoff'"),
                 4

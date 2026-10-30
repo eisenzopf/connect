@@ -3037,7 +3037,8 @@ export interface BrowserOfferedStream {
     readonly codecs: BrowserNonEmpty<string>;
 }
 export interface BrowserConnectionSnapshot {
-    /** Current physical's last committed negotiated revision, when locally known. */
+    /** Last committed stream-control observation for this physical generation.
+     * Does not grant local capture, rendering or media custody. */
     readonly streamRevision?: SdkRevision<"stream">;
     readonly id: ConnectionId;
     readonly conversationId: ConversationId;
@@ -3076,6 +3077,10 @@ function connectionView(
         !numeric(d.generation) ||
         d.generation < 1 ||
         !numeric(d.revision) ||
+        !(
+            d.stream_revision === null ||
+            (numeric(d.stream_revision) && d.stream_revision > 0)
+        ) ||
         !boundedText(d.state, 64) ||
         !(d.replaces === null || identifier(d.replaces))
     )
@@ -3087,6 +3092,9 @@ function connectionView(
         participantId: d.participant_id as ParticipantId,
         generation: d.generation,
         resourceRevision: d.revision as SdkRevision<"connection-resource">,
+        ...(d.stream_revision === null
+            ? {}
+            : { streamRevision: d.stream_revision as SdkRevision<"stream"> }),
         state: d.state,
     });
 }
@@ -3250,7 +3258,7 @@ export class BrowserConnection {
             local.epoch === s.owner.status.physicalEpoch &&
             local.generation === c.generation
         ) {
-            let revision = local.revision ?? 0;
+            let revision = Math.max(c.streamRevision ?? 0, local.revision ?? 0);
             if (s.mediaPeer)
                 try {
                     revision = Math.max(

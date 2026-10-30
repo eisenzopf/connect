@@ -1895,6 +1895,8 @@ function connectionView(d, cid, bad) {
         !numeric(d.generation) ||
         d.generation < 1 ||
         !numeric(d.revision) ||
+        !(d.stream_revision === null ||
+            (numeric(d.stream_revision) && d.stream_revision > 0)) ||
         !boundedText(d.state, 64) ||
         !(d.replaces === null || identifier(d.replaces)))
         return bad();
@@ -1905,6 +1907,9 @@ function connectionView(d, cid, bad) {
         participantId: d.participant_id,
         generation: d.generation,
         resourceRevision: d.revision,
+        ...(d.stream_revision === null
+            ? {}
+            : { streamRevision: d.stream_revision }),
         state: d.state,
     });
 }
@@ -2011,7 +2016,7 @@ export class BrowserConnection {
             local.sid === this.sessionId &&
             local.epoch === s.owner.status.physicalEpoch &&
             local.generation === c.generation) {
-            let revision = local.revision ?? 0;
+            let revision = Math.max(c.streamRevision ?? 0, local.revision ?? 0);
             if (s.mediaPeer)
                 try {
                     revision = Math.max(revision, s.mediaPeer.revision(this.id));

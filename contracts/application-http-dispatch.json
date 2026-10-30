@@ -1011,7 +1011,7 @@
     "crates/connect-protocol/src/enrollment.rs": "944e17240d03b49400f28d8c42f6a947fc69ab753506b4e7d4a8b78cbbe336c5",
     "crates/connect-protocol/src/events/agent.rs": "5edabb2228bd2ad88e6e4e3648ef8c163f45c01ab07e9e807e043c77334a5d86",
     "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
-    "crates/connect-protocol/src/events.rs": "894e5f211449f729045aa69f904c3fffe3a7c0a7c604c0297097ba69956a422c",
+    "crates/connect-protocol/src/events.rs": "1341260e990dc5d91d5ff3a5697c7e01c0ef54de59598086e4fa1bfcb9b6c298",
     "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
     "crates/connect-protocol/src/lib.rs": "6eee92b5f6bd9f944958333db0dd2ed2e988b5d97b06318e9f0bf730e36b1ce6",
     "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",

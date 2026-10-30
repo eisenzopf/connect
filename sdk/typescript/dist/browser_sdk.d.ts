@@ -364,7 +364,8 @@ export interface BrowserOfferedStream {
     readonly codecs: BrowserNonEmpty<string>;
 }
 export interface BrowserConnectionSnapshot {
-    /** Current physical's last committed negotiated revision, when locally known. */
+    /** Last committed stream-control observation for this physical generation.
+     * Does not grant local capture, rendering or media custody. */
     readonly streamRevision?: SdkRevision<"stream">;
     readonly id: ConnectionId;
     readonly conversationId: ConversationId;

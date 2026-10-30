@@ -7,9 +7,9 @@ const reference=(command='session.invite',extra={})=>({schema:'connect-operation
 function scenario(run,{path='wss-webrtc',algorithm='EdDSA',fault}={}) {
  let revision=0,state='invited',recordOverride,revisionOverride,mode=fault,snapshotHook;const records=new Map();
  const view=(sid='session')=>({id:sid,conversation_id:'room',state,media:['data'],intent:'synthetic',capabilities_offer:{data:['reliable-ordered']},codec_preferences:[],is_main:true,revision,topology_revision:revision,created_at:1,updated_at:2,ended_reason:null});
- const items=()=>[{kind:'conversation',data:{conversation_id:'room',revision,closed:false,policy:'persistent'}},...['caller','callee'].map((pid,i)=>({kind:'participant',data:{participant_id:pid,conversation_id:'room',identity_id:i?'wss_identity':'other',kind:'human',role:'participant',membership_epoch:1,active:mode!=='removed'||i===0,removal_reason:null}})),{kind:'connection',data:{connection_id:mode==='foreign-connection'?'other':'connection',session_id:mode==='foreign-parent'?'other':'session',participant_id:'callee',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:3,state:'ready',replaces:null}},
+ const items=()=>[{kind:'conversation',data:{conversation_id:'room',revision,closed:false,policy:'persistent'}},...['caller','callee'].map((pid,i)=>({kind:'participant',data:{participant_id:pid,conversation_id:'room',identity_id:i?'wss_identity':'other',kind:'human',role:'participant',membership_epoch:1,active:mode!=='removed'||i===0,removal_reason:null}})),{kind:'connection',data:{connection_id:mode==='foreign-connection'?'other':'connection',session_id:mode==='foreign-parent'?'other':'session',participant_id:'callee',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:3,...(mode==='missing-control'?{}:{stream_revision:mode==='observed-control'?9:mode==='bad-control'?0:null}),state:'ready',replaces:null}},
  {kind:'stream',data:{stream_id:'source',session_id:'session',participant_id:'callee',connection_id:'connection',medium:'video',state:'active',revision:7}},
- ...(mode==='scoped-streams'?[{kind:'connection',data:{connection_id:'subscriber',session_id:'session',participant_id:'caller',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:4,state:'ready',replaces:null}}]:[]),
+ ...(mode==='scoped-streams'?[{kind:'connection',data:{connection_id:'subscriber',session_id:'session',participant_id:'caller',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:4,stream_revision:null,state:'ready',replaces:null}}]:[]),
  ...(mode==='scoped-streams'||mode==='duplicate-stream'?[{kind:'stream',data:{stream_id:'source',session_id:'session',participant_id:'caller',connection_id:mode==='duplicate-stream'?'connection':'subscriber',medium:'video',state:'paused',revision:9}}]:[]),
  {kind:'session',data:view()},{kind:'session_participant',data:{session_id:'session',participant_id:'callee',membership_epoch:1,role:'participant',state:state==='invited'?'invited':'present'}}];
  return fixture(async f=>{
@@ -233,3 +233,11 @@ for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} handoff prep
  for(const patch of [{purpose:'forged'},{streams:one(video)},{streams:{first:audio,rest:[video]}},{streams:one({...audio,direction:'recvonly'})}])await assert.rejects(()=>session.connections.offer({connectionId:id('prepared'),purpose:'handoff-preparation',streams:one(audio),...patch},{...opts,operationId:id('prepare-original')}),{kind:'validation',certainty:'not-submitted'});
  assert.equal(f.sent.length,before);
 },{path}));
+
+for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} Connection exposes server control revision without granting foreign capture`,()=>scenario(async({client,f})=>{
+ const connection=client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection')),snapshot=await connection.refresh(opts);
+ assert.equal(snapshot.streamRevision,9);assert.equal(snapshot.resourceRevision,3);assert.equal(snapshot.generation,1);const before=f.sent.length;await assert.rejects(()=>connection.capture({audio:true},opts),{kind:'receipt-unavailable'});assert.equal(f.sent.length,before);
+},{path,fault:'observed-control'}));
+for(const fault of ['bad-control','missing-control'])test(`typed Connection rejects ${fault} snapshot control revision`,()=>scenario(async({client})=>{
+ await assert.rejects(()=>client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection')).refresh(opts),{kind:'protocol'});
+},{fault}));

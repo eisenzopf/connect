@@ -255,7 +255,7 @@ fn visible(c: &Connection, actor: &Actor, cid: &str, item: &SnapshotItem) -> Res
             let Some(connection) = &value.connection_id else {
                 return Ok(false);
             };
-            let parent:Option<ConnectionState>=c.query_row("SELECT v.id,v.session_id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces FROM connections v JOIN endpoints e ON e.id=v.endpoint_id WHERE v.id=?1",[connection],|r|Ok(ConnectionState{connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?})).optional().map_err(|_|Error::storage())?;
+            let parent:Option<ConnectionState>=c.query_row("SELECT v.id,v.session_id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces,v.readiness_json,v.observed_runtime_id FROM connections v JOIN endpoints e ON e.id=v.endpoint_id WHERE v.id=?1",[connection],|r|Ok(ConnectionState{connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?,stream_revision:crate::events::stream_revision(r.get(8)?,r.get(10)?,r.get(11)?)?})).optional().map_err(|_|Error::storage())?;
             let Some(parent) = parent else {
                 return Ok(false);
             };
@@ -381,7 +381,7 @@ pub(super) fn capture(
                         }
                     }
 
-                    let mut connections=c.prepare("SELECT v.id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces FROM connections v JOIN participants p ON p.participant_id=v.participant_id AND p.membership_epoch=v.membership_epoch AND p.active=1 JOIN endpoints e ON e.id=v.endpoint_id JOIN devices d ON d.id=e.device_id AND d.revoked=0 WHERE v.session_id=?1 AND e.verification_state='verified' ORDER BY v.id").map_err(|_|Error::storage())?;
+                    let mut connections=c.prepare("SELECT v.id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces,v.readiness_json,v.observed_runtime_id FROM connections v JOIN participants p ON p.participant_id=v.participant_id AND p.membership_epoch=v.membership_epoch AND p.active=1 JOIN endpoints e ON e.id=v.endpoint_id JOIN devices d ON d.id=e.device_id AND d.revoked=0 WHERE v.session_id=?1 AND e.verification_state='verified' ORDER BY v.id").map_err(|_|Error::storage())?;
                     for connection in connections
                         .query_map([&id], |r| {
                             Ok(ConnectionState {
@@ -395,6 +395,11 @@ pub(super) fn capture(
                                 revision: r.get(6)?,
                                 state: r.get(7)?,
                                 replaces: r.get(8)?,
+                                stream_revision: crate::events::stream_revision(
+                                    r.get(7)?,
+                                    r.get(9)?,
+                                    r.get(10)?,
+                                )?,
                             })
                         })
                         .map_err(|_| Error::storage())?

@@ -326,9 +326,11 @@ Enrollment must permit the requested `connection.update`, `stream.subscribe` or
 the relevant Conversation/Session reads.
 
 Every control uses a caller-saved original mutation ID and an explicit negotiated
-Stream revision. A current local media owner exposes its last committed
-`streamRevision` through `connection.refresh(wait)`; observers without that
-owner omit it. `resourceRevision` describes a Store resource and cannot be used
+Stream revision. `connection.refresh(wait)` exposes the server-recorded committed
+`streamRevision` for a ready physical generation, including audience changes
+such as handoff. The field is omitted without an attributed ready observation.
+A locally owned peer can retain a newer confirmed result while the Store catches
+up. An observed revision grants no local capture or rendering ownership. `resourceRevision` describes a Store resource and cannot be used
 as a negotiated revision. A control receipt records its original revision;
 restoring an older receipt never rolls the current local revision backward.
 Concurrent changes can still conflict: observe the original result and refresh
@@ -345,7 +347,7 @@ describes the boundary between these refusals and uncertainty after an attempt.
 
 ```ts
 const current = await connection.refresh(wait);
-if (current.streamRevision === undefined) throw new Error("No local media revision");
+if (current.streamRevision === undefined) throw new Error("No observed media revision");
 // Persist selector, revision and original ID before IO.
 const subscribe = await connection.streams.subscribe({
     selectors: { first: { stream: savedRemoteStreamId }, rest: [] },

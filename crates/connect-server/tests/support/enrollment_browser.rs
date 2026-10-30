@@ -181,7 +181,7 @@ pub(super) async fn page_with_handoff(
                                     assert!(recipients.contains(&request.identity_id));assert_eq!(request.recipients,recipients);
                                     assert!([EnrollmentTransport::Webtransport,EnrollmentTransport::WssWebrtc].contains(&request.transport));
                                     assert_eq!(request.capabilities,vec!["audio","control"]);
-                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","conversation.get","create","operation.get","session.accept","session.end","session.handoff","session.invite","session_get","stream.subscribe"]);
+                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","connection.update","conversation.get","create","operation.get","session.accept","session.end","session.handoff","session.invite","session_get","stream.subscribe"]);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
                                 },
                                 "/decisions-approve"=>{
@@ -327,6 +327,22 @@ pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join(format!("{phase}.json")), &output.stdout).unwrap();
         std::fs::write(dir.join(format!("{phase}.stderr")), &output.stderr).unwrap();
+        if phase == "handoff-browser" && !output.status.success() {
+            // Read-only bounded synthetic operation/effect metadata; never keys,
+            // credentials, raw provider state or a new execution attempt.
+            let db = rusqlite::Connection::open_with_flags(
+                &h.f.config.database,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )
+            .unwrap();
+            let mut query = db.prepare("SELECT o.operation_id,o.state,o.revision,o.problem_json,n.started,n.applied_json IS NOT NULL,e.state,e.attempt FROM operations o LEFT JOIN native_handoffs n ON n.operation_record_id=o.record_id LEFT JOIN operation_effects e ON e.operation_record_id=o.record_id WHERE o.command_type='session.handoff' ORDER BY o.created_at,o.record_id LIMIT 8").unwrap();
+            let rows = query.query_map([], |r| Ok(json!({"operation_id":r.get::<_,String>(0)?,"state":r.get::<_,String>(1)?,"revision":r.get::<_,u64>(2)?,"problem":r.get::<_,Option<String>>(3)?,"started":r.get::<_,Option<bool>>(4)?,"applied":r.get::<_,bool>(5)?,"effect_state":r.get::<_,Option<String>>(6)?,"attempt":r.get::<_,Option<u64>>(7)?}))).unwrap().collect::<rusqlite::Result<Vec<_>>>().unwrap();
+            std::fs::write(
+                dir.join("handoff-sql-failure.json"),
+                serde_json::to_vec_pretty(&rows).unwrap(),
+            )
+            .unwrap();
+        }
     }
     assert!(
         output.status.success(),
