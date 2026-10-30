@@ -196,7 +196,7 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
             let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
                 .await
                 .unwrap();
-            let observer = helper::ManagedClient::new(fresh);
+            let observer = helper::ManagedClient::new(fresh.clone());
             let result = observer
                 .execute(request(
                     json!({"type":"operation","reference":saved,"kind":"data_send",
@@ -318,12 +318,45 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
                 ))
                 .await
                 .unwrap_err();
-            assert!(matches!(
+            // Shared::request_inner returns Cancelled/ReadOnly when the
+            // revoked original control owner has already retired. This is
+            // still a failed observation, with no mutation or receipt grant.
+            let valid_status_revocation = matches!(
                 (result.kind, result.certainty),
                 (sdk::ErrorKind::Authentication, sdk::Certainty::Refused)
                     | (sdk::ErrorKind::Authentication, sdk::Certainty::ReadOnly)
                     | (sdk::ErrorKind::TransportUncertain, sdk::Certainty::ReadOnly)
+                    | (sdk::ErrorKind::Cancelled, sdk::Certainty::ReadOnly)
+            );
+            if !valid_status_revocation {
+                let value = sdk::helper::error_json(&result);
+                eprintln!(
+                    "ipc-data-status-revocation-failure {}",
+                    json!({"kind":value["kind"],"certainty":value["certainty"],
+                    "original_operation_matches":result.operation.as_ref().is_some_and(|key|key.operation_id.as_str()=="ipc-data-send")})
+                );
+            }
+            assert!(valid_status_revocation);
+            assert_eq!(
+                result.operation.as_ref().unwrap().operation_id.as_str(),
+                "ipc-data-send"
+            );
+            // Deterministically exercise the closed-owner observation branch,
+            // independently of the server revocation/retirement scheduling.
+            fresh.close(options()).await.unwrap();
+            let closed = observer
+                .execute(request(json!({"type":"operation","reference":saved,
+                    "kind":"data_send","action":{"type":"status"}})))
+                .await
+                .unwrap_err();
+            assert!(matches!(
+                (closed.kind, closed.certainty),
+                (sdk::ErrorKind::Cancelled, sdk::Certainty::ReadOnly)
             ));
+            assert_eq!(
+                closed.operation.as_ref().unwrap().operation_id.as_str(),
+                "ipc-data-send"
+            );
             let Err(rejected) =
                 Client::connect(f.client.clone(), "tnt_default".parse().unwrap()).await
             else {

@@ -41,6 +41,7 @@ class InstalledFailureDiagnostics(unittest.TestCase):
 
     def test_ipc_revocation_failure_excludes_command_receipt_and_payload(self):
         validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['ipc_data_revocation_failure_diagnostic']
+        self.assertEqual(validate(dict(kind='cancelled',certainty='read-only',original_operation_matches=True))['kind'],'cancelled')
         value=dict(kind='closed',certainty='not-submitted',original_operation_matches=True)
         self.assertEqual(validate(value),value)
         for invalid in [dict(value,operation={'credential':'private'}),dict(value,kind='private'),dict(value,certainty='private'),dict(value,original_operation_matches=1)]:

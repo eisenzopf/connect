@@ -697,5 +697,98 @@
     ],
     "result": "Both Python algorithms and subsequent Node two-algorithm journey pass. First Node creation deadline is retained and unresolved; no broader stability or Linux qualification claim.",
     "initial_preparation_failure": "A stale private Python builder path failed before package/server work; fresh hash-pinned build-tools venv and independent clean wheel preparation passed."
+  },
+  "continuation_4bba": [
+    {
+      "source_revision": "4bba20cd",
+      "run_id": 41059055441,
+      "artifact_id": 12980630144,
+      "zip_sha256": "f352e580d68396f934f91f6f5124997d8527d7b4f6d98295c8e42b9978254fdd",
+      "tracked_sources_verified": 4473,
+      "source_count": 8569,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "ebf59af1c956c0df35345d2bb9114be718d5eada06cfe2132b90bfc6170141ca",
+      "steps": 15,
+      "failed_steps": [
+        {
+          "name": "sdk-media-ipc-runtime",
+          "exit_code": 101,
+          "seconds": 18.96308744000001,
+          "log_sha256": "2cde09b891a78c9bc90054311d48965f1e867ac377dc28b0ca6a935808c63510",
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/sdk_handles/media_ipc/data.rs",
+              "line": 321,
+              "column": 13
+            }
+          ],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "python_native_failures": []
+        }
+      ],
+      "passed": false
+    },
+    {
+      "source_revision": "4bba20cd",
+      "run_id": 41059055441,
+      "artifact_id": 12980900021,
+      "zip_sha256": "8bdf8b40ea13aaeb9bd8e7e6f1be876f13253f3b5786448366ac022a930b06a8",
+      "tracked_sources_verified": 4473,
+      "source_count": 8569,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "ebf59af1c956c0df35345d2bb9114be718d5eada06cfe2132b90bfc6170141ca",
+      "steps": 15,
+      "failed_steps": [
+        {
+          "name": "sdk-media-ipc-runtime",
+          "exit_code": 101,
+          "seconds": 21.17514621699999,
+          "log_sha256": "162fbf0d346aa8650f38269e5f2c1c45863a4a2e31d711bac9355ad816715425",
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/sdk_handles/media_ipc/data.rs",
+              "line": 321,
+              "column": 13
+            }
+          ],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "python_native_failures": []
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "closed_observer_status_fixture": {
+    "contract": "Shared::request_inner returns Cancelled/ReadOnly before submitting a read when its original owner is closed. Operation::observe attaches the retained original operation key. This is a failed observation, never a mutation, refusal receipt or physical-media grant.",
+    "change": "Status fixture now accepts that exact closed-owner pair in addition to existing authentication/transport outcomes. Independently closes the separate original observer and requires Cancelled/ReadOnly plus the same original mutation key in every algorithm/payload case. Fresh authentication must still refuse; one effect, no changed message and all owner drains remain required.",
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 9.589781166985631,
+      "log_sha256": "bfaacaae31a9ac383e1862da73c3c563e50fc97e44300efbf5a35a3b92baf2ba"
+    },
+    "source_inputs": 5920,
+    "source_manifest_sha256": "f284b66848e5deb93eeb9aeda8463f62c7d929396de0526e6a18df22aada8a98",
+    "sources_unchanged": true,
+    "binary_sha256": "5684a243a919f8bcddf2f80245625ea1bfd6e9576311c2c6d4ecf7cbe86c5fe7",
+    "actual_runtime_functions": 2,
+    "full_payload_cases": 6,
+    "payload_bytes": 65536,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "formats": [
+      "text",
+      "json",
+      "binary"
+    ],
+    "privacy_schema_functions": 15,
+    "passed": true,
+    "retained_initial_failure": "First deterministic fixture iteration incorrectly closed the separate media owner rather than its observer; closed-branch assertion failed. Corrected fixture retains a clone of the exact observer owner and closes that original owner. Failed run remains private and is not a pass.",
+    "linux_limit": "Both4bba artifacts fail the original status assertion, but do not include its concrete error category. This source-verified contract omission is covered locally; further Linux errors now emit finite status diagnostics. No Linux failure-resolution claim until actual continuation passes."
   }
 }

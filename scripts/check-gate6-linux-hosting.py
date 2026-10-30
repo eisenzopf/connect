@@ -209,7 +209,7 @@ def rtc_operation_failure_diagnostic(value):
 
 def ipc_data_revocation_failure_diagnostic(value):
     assert type(value) is dict and set(value)=={'kind','certainty','original_operation_matches'}
-    assert value['kind'] in {'authentication','transport-uncertain','closed','deadline','forbidden','backpressure','protocol','unsupported','other'}
+    assert value['kind'] in {'authentication','transport-uncertain','closed','deadline','forbidden','backpressure','protocol','unsupported','other','cancelled','validation','configuration','trust','conflict','application','receipt-unavailable','resync-required','cleanup-incomplete'}
     assert value['certainty'] in {'refused','not-submitted','uncertain','read-only','confirmed','other'}
     assert type(value['original_operation_matches']) is bool
     return value
@@ -305,6 +305,7 @@ def run(node_sdk=False, python_sdk=False):
         for key, prefix, validate in (
             ('rtc_operation_failures', 'rtc-operation-failure ', rtc_operation_failure_diagnostic),
             ('ipc_data_revocation_failures', 'ipc-data-revocation-failure ', ipc_data_revocation_failure_diagnostic),
+            ('ipc_data_status_revocation_failures', 'ipc-data-status-revocation-failure ', ipc_data_revocation_failure_diagnostic),
             ('rtc_ice_worker_failures', 'rtc-ice-worker-failure ', rtc_ice_worker_failure_diagnostic),
         ):
             values = [validate(json.loads(line[len(prefix):])) for line in text.splitlines() if line.startswith(prefix)]
