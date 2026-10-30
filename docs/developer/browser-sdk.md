@@ -1,4 +1,12 @@
-# Typed browser control SDK (G6-061 checkpoint)
+# Typed browser SDK and UI primitives
+
+G6-061 is complete for its approved local macOS arm64 implementation and
+verification clauses. [Completion evidence](../evidence/gate-6/browser-sdk-completion.json)
+maps each clause to the current real WT/WSS workflow. Installed operation parity
+(G6-070), application consultation/takeover (G6-076), device movement (G6-077)
+and remote profiles (G6-095) retain their separate requirements. The checkpoint
+notes below preserve their original scope qualifications. No Gate 6 acceptance
+criterion is qualified by this task closure.
 
 Import `BrowserSdkClient` from `@rudeless/connect/browser`. It owns the same
 transport selection, current enrollment and explicit reconnection rules as
@@ -6,7 +14,7 @@ transport selection, current enrollment and explicit reconnection rules as
 loads no Node helper. Identity and revision brands are shared with the Node
 SDK through a type-only leaf.
 
-This checkpoint implements Client, Conversation, Participant, Session,
+The SDK exposes Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
 creation, private text messages, durable journal reads, Participant
 admission/role updates/removal, Session
@@ -14,8 +22,10 @@ invitation/acceptance/rejection/cancellation/end, and native
 WT/WSS audio/video/Screen Connection offer/end, typed Connection updates and
 Stream subscribe/unsubscribe. Session controls include leave, role change,
 additive media upgrade, codec policy and inviting new appearances on an existing
-Session. Consultation/handoff, complete media parity and full app integration
-remain in progress. A successful Session control operation does not establish media.
+Session. Actual local WT/WSS handoff is covered by the current decoded-media
+fixture. Live browser private consultation/return, device movement, installed
+media parity and full app integration retain the downstream requirements above.
+A successful Session control operation does not establish media.
 
 ```ts
 import {

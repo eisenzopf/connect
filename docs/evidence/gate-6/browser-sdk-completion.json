@@ -1,0 +1,289 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "source_commit": "aa48068da1e470ca0b20e3e8aaf84a201143276c",
+  "status": "done",
+  "task_clauses_complete": true,
+  "gate_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Approved G6-061 implementation and verification clauses, local macOS arm64. This is not installed operation parity, full application journey, remote qualification or acceptance. The approved downstream tasks retain those requirements.",
+  "approved_task": {
+    "id": "G6-061",
+    "title": "Implement the unified browser SDK and UI primitives",
+    "depends": [
+      "G6-050",
+      "G6-051",
+      "G6-052",
+      "G6-055",
+      "G6-059"
+    ],
+    "work": "Expose transport-independent control and capture/render handles, invitation notifications, device choice, operation progress and recovery. Support keyboard-accessible pending/ready/failed states, permission denial and source selection without leaking protocol plumbing into ordinary app code.",
+    "verify": "Run the same typed browser workflow over WT and fallback, with real user-media permissions and screen capture. Incoming invitation, rejection and retry do not require manually copied conversation/session IDs.",
+    "acceptance": "A6-14 A6-19 A6-20 A6-21"
+  },
+  "clause_audit": [
+    {
+      "requirement": "Transport-independent control and capture/render handles",
+      "evidence": "One identical typed workflow loops through direct WT and bounded WSS fallback. Physical native/RTC capture and render owners are retired; restored receipts remain observation-only. The handoff regression separately verifies decoded duplex and retained owners.",
+      "observed": {
+        "direct_wt": 1,
+        "bounded_wss_fallback": 1,
+        "wt_native_connection": 1,
+        "wss_media_connection": 1,
+        "wt_owned_capture_retired": 1,
+        "wss_owned_capture_retired": 1,
+        "wss_owned_renderer_retired": 1,
+        "restored_media_observation_only": 4
+      }
+    },
+    {
+      "requirement": "Invitation notifications, incoming rejection and explicit retry without manually copied Conversation/Session IDs",
+      "evidence": "Typed invitation handles supply the Session scope for acceptance/rejection. Both paths receive and reject, receive and accept, explicitly retry, recover an abandoned original read and refuse queued cancellation under current authority.",
+      "observed": {
+        "incoming_rejections": 2,
+        "incoming_accepts": 2,
+        "explicit_retry": 2,
+        "invitation_read_recovered": 2,
+        "queued_cancellation_refused": 2
+      }
+    },
+    {
+      "requirement": "Device choice, permission denial and source selection",
+      "evidence": "Real browser permission controls deny then grant synthetic microphone/camera access. Trusted keyboard input selects devices and retries the same capture view. Display capture uses a fixture-owned tab and a decoded pixel witness. No personal devices/browser are used.",
+      "observed": {
+        "owned_device_permission": 2,
+        "permission_denial_ui": 2,
+        "keyboard_capture_retry": 2,
+        "device_source_choice": 2,
+        "owned_tab_capture": 2,
+        "screen_duplex_decoded": 2
+      }
+    },
+    {
+      "requirement": "Keyboard-accessible pending/ready/failed UI primitives",
+      "evidence": "Native buttons/selects, role=status, aria-live/atomic and aria-busy expose pending/ready/failed capture and progress states. Current UI tests exercise focus preservation, permission refusal, deduplicated pending clicks, late owner retirement and original-read-only retry. Actual CDP keyboard events drive both transport paths; completion is observed after screen progress.",
+      "observed": {
+        "completed": true,
+        "final_phase": "screen-progress-1"
+      }
+    },
+    {
+      "requirement": "Operation progress and recovery without protocol plumbing in ordinary app code",
+      "evidence": "Typed Operation handles carry immutable IDs/scope/intent. Both paths recover original completions, refresh current authority, cancel only local reads, and restore media observations without capture custody. The server asserts exactly76 unique original mutations in the main typed workflow.",
+      "observed": {
+        "operation_progress_ui": 2,
+        "recovered_original": 2,
+        "current_authority_refusal": 2,
+        "restored_control_observations": 6,
+        "original_mutations": 76,
+        "screen_recovery_without_custody": 2
+      }
+    },
+    {
+      "requirement": "Same typed browser workflow on WT and fallback, including real permission APIs and Screen",
+      "evidence": "The current full15-function enrollment cohort explicitly includes owned Chrome. The typed workflow passes both transports with screen capture, received decoded Screen, permission denial/retry and independent logical Screen controls. Source inputs remain unchanged.",
+      "observed": {
+        "direct_wt": 1,
+        "bounded_wss_fallback": 1,
+        "wt_screen_connection": 1,
+        "wss_screen_connection": 1,
+        "screen_controls": 2,
+        "screen_resubscription": 2,
+        "screen_stale_gate_refused": 1,
+        "screen_conflict_original_recovered": 1
+      }
+    }
+  ],
+  "verification": {
+    "required_typed_workflow_passed": true,
+    "sdk_types_node_passed": true,
+    "normal_cohort": {
+      "passed": false,
+      "results": [
+        {
+          "phase": "sdk",
+          "command": [
+            "npm",
+            "test",
+            "--prefix",
+            "sdk/typescript"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "functions_passed": [
+            842
+          ],
+          "source_inputs_unchanged": true,
+          "seconds": 9.714298208011314,
+          "log_sha256": "57b273931a4856ff7f859d381f376b670227f4806b995c454ce17c4b803b27ce"
+        },
+        {
+          "phase": "types",
+          "command": [
+            "sdk/typescript/node_modules/.bin/tsc",
+            "--noEmit",
+            "--strict",
+            "--target",
+            "ES2022",
+            "--module",
+            "NodeNext",
+            "--moduleResolution",
+            "NodeNext",
+            "--lib",
+            "ES2022,DOM,DOM.Iterable",
+            "--types",
+            "node",
+            "--typeRoots",
+            "sdk/typescript/node_modules/@types",
+            "sdk/tests/browser_sdk_types.mts",
+            "sdk/tests/node_sdk_types.mts"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "functions_passed": [],
+          "source_inputs_unchanged": true,
+          "seconds": 0.3614021248649806,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "phase": "node",
+          "command": [
+            "node",
+            "--test",
+            "sdk/tests/node_sdk.test.mjs",
+            "sdk/tests/node_sessions.test.mjs",
+            "sdk/tests/node_incoming.test.mjs"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "functions_passed": [
+            37
+          ],
+          "source_inputs_unchanged": true,
+          "seconds": 2.397681124974042,
+          "log_sha256": "44f5be39e27fd742b8de112d1c6d1be10abc802205a437b29210a68d6b3bc196"
+        },
+        {
+          "phase": "enrollment",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_enrollment-aaef4384bdcdf571",
+            "--include-ignored",
+            "--test-threads=1"
+          ],
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "functions_passed": [],
+          "source_inputs_unchanged": true,
+          "seconds": 178.8965510840062,
+          "log_sha256": "53afc335eb8ef8626e48106f65b0ccc58bb752bc61f62de416cf3888f3ad0162"
+        }
+      ],
+      "source_inputs": 2796
+    },
+    "normal_cohort_counts": {
+      "passed": 14,
+      "failed": 1,
+      "ignored": 0,
+      "filtered_out": 0
+    },
+    "additional_handoff_component": [
+      {
+        "attempt": 1,
+        "exit_code": 0,
+        "seconds": 57.917000541929156,
+        "source_inputs_unchanged": true,
+        "log_sha256": "f99e2c3364d860912f76a2d302c5b7aed6cae19ce8967faea8b2217a5b257baf",
+        "errors": [
+          "2026-10-30T02:37:47.078961Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden",
+          "2026-10-30T02:38:16.682322Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden"
+        ],
+        "functions_passed": 1,
+        "ignored": 0,
+        "filtered_out": 14,
+        "artifact_sha256": "d958d86c99f710996ca7d192957f1a8e0c50b5fb63d3f11d5b9a80fa888eaf95"
+      },
+      {
+        "attempt": 2,
+        "exit_code": 0,
+        "seconds": 56.98077620798722,
+        "source_inputs_unchanged": true,
+        "log_sha256": "cb6a948f65e976d6a605fa09e23100b10b00ce082bc22de26ddc6ab35ff082b2",
+        "errors": [
+          "2026-10-30T02:38:45.320365Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden",
+          "2026-10-30T02:39:14.774638Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden"
+        ],
+        "functions_passed": 1,
+        "ignored": 0,
+        "filtered_out": 14,
+        "artifact_sha256": "7157619274cfc8b4e22653ad745f7aadce81e064a3ffb45a90b34dc3025eec6b"
+      },
+      {
+        "attempt": 3,
+        "exit_code": 0,
+        "seconds": 56.73904329095967,
+        "source_inputs_unchanged": true,
+        "log_sha256": "ddfc82d3d7350ac4f3df486d76d2f9dfa06a31c4679e61db9e48b75272336ef8",
+        "errors": [
+          "2026-10-30T02:39:41.929979Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden",
+          "2026-10-30T02:40:09.554169Z DEBUG connect_service::canonical_handoff: Native handoff did not complete code=forbidden"
+        ],
+        "functions_passed": 1,
+        "ignored": 0,
+        "filtered_out": 14,
+        "artifact_sha256": "ea1817a6c76a86c72f96e6341968dc51e7bfdf943c7e9c20b6d8d59748bb100e"
+      }
+    ],
+    "known_failure": "The complete normal cohort remains14pass/1fail; the additional original WSS handoff becameunknown before descriptor checks. All exact G6-061 clauses map to the separately passing required typed workflow; installed-operation parity and unresolved original outcomes remainG6-070."
+  },
+  "browser": {
+    "product": "Chrome/156.0.8078.48",
+    "protocol_version": "1.3",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "js_version": "15.6.75.19"
+  },
+  "typed_browser_artifact_sha256": "51299a83e186e7a1f3299a81371b7b6be69f1286696d20c7dcc161c46d3ae2ba",
+  "source_manifest_sha256": "5e4bba104519f0378c9e98c8ebcbc0e52ca2d1d02882e166dc7d99dd7d8e3b48",
+  "source_inputs": 2796,
+  "component_evidence": [
+    "docs/evidence/gate-6/browser-sdk-audience-descriptors.json",
+    "docs/evidence/gate-6/browser-sdk-control-revision.json",
+    "docs/evidence/gate-6/browser-sdk-contract-audit.json",
+    "docs/evidence/gate-6/browser-sdk-return-outlines.json"
+  ],
+  "retained_downstream_requirements": [
+    {
+      "task": "G6-070",
+      "remaining": "Installed package/facade parity for every promised operation, including live browser consultation/return/device workflows and replacement descriptor carry. Resolve retained ordinary WT original-wait timeout/authority-busy uncertainty and synthetic SIP unknown iteration; later positive runs do not establish their cause.",
+      "approved_work": "Run the operation/event/error/authority matrix against installed packages, including media roles, helper lifecycle, remote trust and explicit supported-version refusal. Compare observable effects rather than demanding identical implementation internals.",
+      "approved_verification": "Every promised control operation passes in Rust, browser/Node TypeScript and Python; explicit HTTP/CLI/MCP cells pass their control scope. Failures and unsupported combinations remain visible and cannot be masked by wrapper unit tests."
+    },
+    {
+      "task": "G6-076",
+      "remaining": "Full application private consultation/human takeover UX and identified media/journal isolation, including actual browser private-leg setup.",
+      "approved_work": "Use public consultation/handoff operations to hold the organizer, consult privately with the owner and transfer the speaking role after the app\u2019s consent decision. Show ready versus committed states and let the owner decline or return without rebuilding the call.",
+      "approved_verification": "The UI never constructs a bridge. Identified audio and journals prove isolation, retained remote connection/session and the configured outgoing AI disposition; denial and failure preserve a usable state."
+    },
+    {
+      "task": "G6-077",
+      "remaining": "Full application browser/native/provisioned-phone movement and all confirmation/cancellation/uncertainty UX.",
+      "approved_work": "Move the owner between browser/native and provisioned phone endpoints through the public SDK. Present ringing, confirmation, ready, switched, cancelled and uncertain states. Keep the current route usable until commit and expose a supported reconciliation path.",
+      "approved_verification": "Wrong/no DTMF confirmation, voicemail, no-answer, cancellation and stale browser events cannot steal the speaking route. The organizer Connection and main Session remain stable on successful movement."
+    },
+    {
+      "task": "G6-095",
+      "remaining": "The separately approved remote media/profile qualification; this task closure is local macOS arm64 only.",
+      "approved_work": "Run Chrome WT and forced WSS/WebRTC fallback, Firefox fallback, native/browser/native combinations and the Linux-hosted app. Cover permissions, screen/data, ICE/TURN, expired certificates, network loss and ongoing-operation recovery.",
+      "approved_verification": "Each required matrix cell has actual decoded media, exact versions and failure/recovery proof. A local fixture result does not replace a remote path and a browser frame counter does not replace identified audio/video."
+    }
+  ],
+  "limits": [
+    "No promise that every exposed operation is already installed/media-qualified; G6-070 explicitly requires that matrix.",
+    "No full assistive-technology/accessibility certification or frozen network quality/performance qualification.",
+    "No additional model/account/provider/named remote execution. The separate authorized host rehearsal was consumed earlier.",
+    "Prior raw failed runs and unresolved outcomes stay recorded in the linked component evidence."
+  ]
+}
