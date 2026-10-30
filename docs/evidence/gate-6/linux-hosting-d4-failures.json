@@ -2263,5 +2263,277 @@
       "passed": false
     }
   ],
-  "continuation_396240ea_scope": "Actual source-bound Linux x86_64 matrix before Core patch 250: Node22 retains one initial RTC authority-busy failure, Node26 retains six movement/consultation/native-AV failures. Every one of the 4,491 Git and 4,096 prepared inputs is verified per matrix. New audio fix and new matrix are separate and pending; no whole hosting or acceptance pass."
+  "continuation_396240ea_scope": "Actual source-bound Linux x86_64 matrix before Core patch 250: Node22 retains one initial RTC authority-busy failure, Node26 retains six movement/consultation/native-AV failures. Every one of the 4,491 Git and 4,096 prepared inputs is verified per matrix. New audio fix and new matrix are separate and pending; no whole hosting or acceptance pass.",
+  "continuation_51ba5ccb": [
+    {
+      "source_revision": "51ba5ccb80670fc3b397f412dffc7e7975f79dda",
+      "run_id": 41116481433,
+      "artifact_id": 13008239160,
+      "zip_sha256": "f82ced26bcd9f7a689853dfe872f43620aac1aa9a22ae689ac5e5d626cc43619",
+      "tracked_sources_verified": 4495,
+      "prepared_sources_verified": 4096,
+      "source_count": 8591,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "5c660b273df4e32c7af537ba7733ce8a74ced24cc9e3ce706985d09aae7c696f",
+      "steps": 23,
+      "failed_steps": [
+        {
+          "name": "native-ice-restart",
+          "exit_code": 101,
+          "seconds": 14.470056057999955,
+          "log_sha256": "5b4e81e3237a7e64153c73f7717dccb35cab85363b5856c499e54f8304bc6af3",
+          "rtc_admission_observations": [
+            {
+              "phase": "initial-authority",
+              "code": "authority-busy",
+              "flags": {}
+            },
+            {
+              "phase": "initial-admission",
+              "code": "authority-busy",
+              "flags": {}
+            }
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+              "line": 72,
+              "column": 13
+            }
+          ],
+          "rtc_operation_failures": [
+            {
+              "cancel_requested": false,
+              "checkpoint": "initial-offer",
+              "effects": [
+                {
+                  "attempt": 1,
+                  "state": "failed"
+                }
+              ],
+              "problem_code": "none",
+              "result_present": false,
+              "state": "failed"
+            }
+          ],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        }
+      ],
+      "passed": false
+    },
+    {
+      "source_revision": "51ba5ccb80670fc3b397f412dffc7e7975f79dda",
+      "run_id": 41116481433,
+      "artifact_id": 13008829279,
+      "zip_sha256": "c31f07909c1095a9210e9fae0a32e5474c5ff9f6057fcedc484cdcecb41e6305",
+      "tracked_sources_verified": 4495,
+      "prepared_sources_verified": 4096,
+      "source_count": 8591,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "5c660b273df4e32c7af537ba7733ce8a74ced24cc9e3ce706985d09aae7c696f",
+      "steps": 93,
+      "failed_steps": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "seconds": 41.246948085999975,
+          "log_sha256": "14cc78ddd1596fc4d39db389d7964e60bd48cfc655c1393e16c00526909c6d82",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 253,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_move_candidate",
+          "exit_code": 101,
+          "seconds": 16.999468875000275,
+          "log_sha256": "64aae9777fc0cf9bc8b941f88d3859570011d6627aed1685eab3703c97d1373f",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 12,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "seconds": 16.847671534000256,
+          "log_sha256": "0dbf3b5ceeb1e8ba63426e46560095337c2ef57df676d2c3f923109e7e9b5f2f",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 12,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-consultation-restored",
+          "exit_code": 101,
+          "seconds": 24.616027699999904,
+          "log_sha256": "4a7abee6d3fcba245633599e87f34a2ed517131b96db64182eb4522e88cb5487",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 47,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "return-wait",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "seconds": 13.997697826999683,
+          "log_sha256": "00afd5c8c16740434042615b9c1c55f27fd6a76c78e6606df21fe614fce04523",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 147,
+              "column": 17
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "media-av",
+              "column": null,
+              "command": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-python-native-eddsa",
+          "exit_code": 101,
+          "seconds": 46.12531448500022,
+          "log_sha256": "778b770255da46edd71112c126332ad3665613356c8f7ba776840f8c35e862c9",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 163,
+              "column": 14
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-python-native-es256",
+          "exit_code": 101,
+          "seconds": 45.61735758500026,
+          "log_sha256": "07236ec8794ea4dfa90b24bfe7f3f2e59650bb48952bf5c00e3ef929dd23b346",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 163,
+              "column": 14
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-python-consultation-restored",
+          "exit_code": 101,
+          "seconds": 49.92957573700005,
+          "log_sha256": "31ff8d202450b25eff93c9cecd279a4c941ee99e823d748302bc83cd131bbf35",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 47,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "return-wait",
+              "error_type": "SdkError",
+              "kind": "deadline",
+              "line": 161,
+              "phase": "failed"
+            }
+          ]
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "continuation_51ba5ccb_scope": "Source-verified Core250 Linux matrix before sealed RTC Store control-read fix f64e5b3e. Node22 stopped at native ICE authority-busy; Node26 ran 93 steps with eight retained failures: Rust SDK consultation return, both signed Node movement preparation cases, Node/Python consultation return, Node media-av, both Python native phase timeouts. All 4495 Git and 4096 prepared inputs match per artifact. No overall matrix qualification. Current f64e5b3e followup is independent and pending."
 }
