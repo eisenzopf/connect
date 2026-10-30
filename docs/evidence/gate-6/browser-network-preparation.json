@@ -3759,5 +3759,97 @@
     "source_manifest_sha256": "21448e8be9feffc9a7b02a816746e71be7cd021f52555cd34d16a031cc93bc25",
     "observer_sha256": "bf04c6ec15680ea94d14e4d7eb8ba42d2233c0e6a3f07dd94e974f3096f87a25",
     "remaining": "Current Linux x86 direct bridge and kernel-impairment verification; no Linux, full task or acceptance inference from this Mac pass."
+  },
+  "impaired_selected_path_observation": {
+    "run_id": 41095503561,
+    "source_revision": "9fbfb28ffcc0c71abbbbdabd4f2c13782668fac5",
+    "artifact_sha256": "8298b274676ceb250ae68ceb8f758378c46a9e96b19e03a81093e0df1d87ca76",
+    "git_sources_verified": 2853,
+    "prepared_dependencies_matching": 3087,
+    "passed": false,
+    "seconds": 7.693488588000008,
+    "failure": {
+      "status": "failed",
+      "phase": "browser-participation",
+      "failure_code": "proxy-path-bypassed",
+      "error_class": "Error",
+      "peer_states": [
+        {
+          "connection": "connected",
+          "ice": "connected",
+          "gathering": "complete",
+          "signaling": "stable",
+          "participant": 0,
+          "local_description_set": true,
+          "remote_description_set": true,
+          "observed_gathering_states": [
+            "complete",
+            "gathering",
+            "new"
+          ]
+        },
+        {
+          "connection": "connected",
+          "ice": "connected",
+          "gathering": "complete",
+          "signaling": "stable",
+          "participant": 1,
+          "local_description_set": true,
+          "remote_description_set": true,
+          "observed_gathering_states": [
+            "complete",
+            "gathering",
+            "new"
+          ]
+        }
+      ],
+      "owned_network_paths": [
+        {
+          "peer_count": 1,
+          "selected_pairs": [
+            {
+              "succeeded": false,
+              "nominated": true,
+              "udp": true,
+              "sent": true,
+              "received": true,
+              "prescribed_address_selected": true,
+              "prescribed_port_selected": true
+            }
+          ]
+        },
+        {
+          "peer_count": 1,
+          "selected_pairs": [
+            {
+              "succeeded": true,
+              "nominated": true,
+              "udp": true,
+              "sent": true,
+              "received": true,
+              "prescribed_address_selected": true,
+              "prescribed_port_selected": true
+            }
+          ]
+        }
+      ],
+      "observations": []
+    },
+    "ownership": {
+      "original_process_joined": true,
+      "owned_qdiscs_removed": true,
+      "original_media_addresses_reclaimed": 8
+    },
+    "change": "Both peers have the prescribed address/port, nominated UDP and real sent/received bytes. One immediate selected-pair snapshot reports succeeded=false while the peer is connected. Reobserve only stats under one absolute2second budget, including each getStats/evaluate wait; retain every address/port/nomination/state/duplex predicate. No intent, offer or effect is replayed, and no deadline is renewed.",
+    "guards": {
+      "functions_passed": 4,
+      "behaviors": [
+        "both current valid nominated duplex paths required",
+        "transient check freshly reobserved",
+        "persistent foreign addressing refused",
+        "unresolved metadata cannot exceed the shared observation budget"
+      ]
+    },
+    "remaining": "Run actual current native Linuxx86 fault case through the measured burst; no impaired-media pass yet. Full run41095499407 at9fbfb28f remains a separate source/profile."
   }
 }

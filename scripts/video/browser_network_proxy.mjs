@@ -22,11 +22,24 @@ export function installNetworkProxyProof() {
 }
 
 export async function observedProxyPaths(pages,expected) {
-    const paths=await Promise.all(pages.map(page=>page.evaluate(expected=>globalThis.connectOwnedMediaProxyProof(expected),expected)));
-    if(paths.length!==2||paths.some(row=>row.peer_count!==1||row.selected_pairs.length!==1
-        ||Object.values(row.selected_pairs[0]).some(value=>value!==true))){
-        const error=Error('Actual media candidate pair bypassed its owned impairment proxy');
-        error.owned_network_paths=paths;throw error;
+    const until=performance.now()+2000;
+    let paths=[];
+    while(performance.now()<until){
+        let timer;
+        try{
+            const observed=await Promise.race([
+                Promise.all(pages.map(page=>page.evaluate(expected=>globalThis.connectOwnedMediaProxyProof(expected),expected))),
+                new Promise(resolve=>{timer=setTimeout(()=>resolve(null),Math.max(0,until-performance.now()));}),
+            ]);
+            if(observed===null)break;
+            paths=observed;
+        }finally{clearTimeout(timer);}
+        if(performance.now()<=until&&paths.length===2&&paths.every(row=>row.peer_count===1&&row.selected_pairs.length===1
+            &&Object.values(row.selected_pairs[0]).every(value=>value===true)))return paths;
+        // A selected nominated path can report an in-progress connectivity
+        // check under loss/delay. Reobserve stats only; never replay an intent.
+        await new Promise(resolve=>setTimeout(resolve,Math.min(25,Math.max(0,until-performance.now()))));
     }
-    return paths;
+    const error=Error('Actual media candidate pair bypassed its owned impairment proxy');
+    error.owned_network_paths=paths;throw error;
 }
