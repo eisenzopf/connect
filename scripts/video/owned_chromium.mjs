@@ -4,8 +4,9 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function launchOwnedChromium(chromium,binary,profile,environment=process.env){
-    await fs.mkdir(profile,{mode:0o700});
+export async function launchOwnedChromium(chromium,binary,profile,environment=process.env,initializeProfile){
+    if(initializeProfile)await initializeProfile(profile);
+    else await fs.mkdir(profile,{mode:0o700});
     const child=spawn(binary,['--headless=new','--remote-debugging-address=127.0.0.1',
         '--remote-debugging-port=0','--no-first-run','--no-default-browser-check',
         '--disable-background-networking','--disable-sync','--disable-breakpad','--disable-crash-reporter',

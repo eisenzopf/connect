@@ -109,6 +109,12 @@ export async function browserFailure(pages, error) {
         } catch { return {participant: index, unavailable: true}; }
     }));
     return {status: "failed", profile: "connect-video-vp8/1", phase: "browser-participation",
+        failure_code: [
+            ['decoded-audio-readiness','Identifiable duplex decoded audio did not become ready within five seconds'],
+            ['proxy-configuration','Explicit owned loopback media proxy range required'],
+            ['proxy-path-bypassed','Actual media candidate pair bypassed its owned impairment proxy'],
+            ['bridge-path-unproved','Owned internal bridge selected path not proved'],
+        ].find(([,message])=>String(error?.message).includes(message))?.[0]??'other',
         error_class: ["Error", "TimeoutError", "ConnectError"].includes(error?.name) ? error.name : "OtherError",
         observations: [], peer_diagnostics: peerDiagnostics,
         diagnostic_scope: "bounded peer state, numeric RTP counters and codec/direction metadata; no raw SDP, ICE candidates, keys, credentials or media content"};

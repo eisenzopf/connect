@@ -110,7 +110,7 @@ async def run(args):
             value=json.loads(result_path.read_text())
             states=runpy.run_path(str(ROOT/'scripts/check-gate6-browser-media.py'))['browser_participation_states']
             report['browser_failure']=dict(status=value.get('status'),phase=value.get('phase'),
-                error_class=value.get('error_class'),peer_states=states(value))
+                failure_code=value.get('failure_code'),error_class=value.get('error_class'),peer_states=states(value))
         active = [proxy for proxy in report["proxies"]
                   if all(proxy["directions"][direction]["forwarded"] > 0 for direction in ("to_server", "to_client"))]
         report["active_bidirectional_proxies"] = len(active)

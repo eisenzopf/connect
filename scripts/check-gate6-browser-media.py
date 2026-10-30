@@ -60,6 +60,25 @@ def cpu_measurement(before,after,seconds):
         if 'usage_usec' in delta and seconds>0 else None)
 
 
+def pipeline_diagnostic(path):
+    value=json.loads(path.read_text())
+    messages={'Current native packet authority':'packet_authority_refused',
+        'Guarded audio delivery refused':'audio_delivery_refused',
+        'Guarded audio pending burst trimmed':'audio_burst_trimmed',
+        'RTC original packet path refused':'rtc_packet_path_refused'}
+    counts={name:0 for name in messages.values()}
+    problems={code:0 for code in ['authority-busy','forbidden','storage-unavailable','conflict','other']}
+    for row in value['events']:
+        fields=row.get('fields',{})
+        message=fields.get('message')
+        if message in messages:counts[messages[message]]+=1
+        if message=='Current native packet authority' and fields.get('problem'):
+            code=fields['problem'];problems[code if code in problems else 'other']+=1
+    return dict(scope='Bounded private synthetic-lane trace counts only; instrumentation can affect timing.',
+        captured_events=len(value['events']),omitted_events=value['omitted_events'],
+        suppressed_known_successes=value['suppressed_known_successes'],counts=counts,authority_problems=problems)
+
+
 def runtime_library_profiles(rows):
     profiles = {}
     artifacts = 0
@@ -211,9 +230,14 @@ def runtime(component=None):
             directory.mkdir()
             command = [str(binary), case] + (['--exact', '--ignored'] if ignored else []) + ['--test-threads=1']
             cpu_before=cpu_snapshot()
-            step = BOUNDED(command, dict(env, CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(directory)),
+            case_env=dict(env, CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(directory))
+            if component=='baseline':
+                case_env['CONNECT_GATE6_CANONICAL_AUDIO_TRACE']=str(directory)
+            step = BOUNDED(command, case_env,
                 output / (name + '.log'), 120)
             step['cpu']=cpu_measurement(cpu_before,cpu_snapshot(),step['seconds'])
+            if (directory/'core-audio-timeline.json').is_file():
+                step['pipeline_diagnostic']=pipeline_diagnostic(directory/'core-audio-timeline.json')
             raw = (output / (name + '.log')).read_text(errors='replace')
             step['rtc_admission_observations'] = admission_diagnostic(raw) if step['exit_code'] else []
             step.update(name=name, passed=step['exit_code'] == 0 and not step['timed_out'] and not step['forced_kill'] and re.findall(
@@ -242,6 +266,7 @@ def runtime(component=None):
                                 audio_coverage_complete=o['audio_profile'].get('coverage_complete'),
                                 audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
                                 audio_bad_samples=o['audio_profile'].get('bad_unexcepted_samples'),
+                                worker_pipeline=o.get('worker_pipeline'),
                                 audio=o['audio_profile']['status'], motion=o['motion_profile']['status'],
                                 source_identity=o['source_identity']['status'], av_sync=o['av_sync']['status'],
                                 av_acceptance=o['av_acceptance']) for o in value.get('observations', [])])

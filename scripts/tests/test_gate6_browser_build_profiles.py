@@ -18,6 +18,20 @@ def artifact(name, level='3', kind=None):
 
 
 class RuntimeBuildProfiles(unittest.TestCase):
+    def test_pipeline_diagnostic_excludes_private_trace_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'trace.json'
+            path.write_text(json.dumps(dict(omitted_events=7,suppressed_known_successes=10,events=[
+                {'fields':{'message':'Current native packet authority','problem':'authority-busy','connection':'private-secret'}},
+                {'fields':{'message':'Current native packet authority','problem':'private-secret','detail':'private-secret'}},
+                {'fields':{'message':'private-secret','error':'private-secret'}}])))
+            result=CHECK['pipeline_diagnostic'](path)
+        self.assertNotIn('private-secret',repr(result))
+        self.assertEqual(result['authority_problems']['authority-busy'],1)
+        self.assertEqual(result['authority_problems']['other'],1)
+        self.assertEqual(result['counts']['packet_authority_refused'],2)
+        self.assertEqual(result['omitted_events'],7)
+
     def test_browser_participation_states_exclude_private_control_and_transport_values(self):
         result = CHECK['browser_participation_states']({'peer_diagnostics':[{'participant':'private-secret',
             'control':{'credential':'private-secret'},'peers':[{'current':{'connection':'private-secret',

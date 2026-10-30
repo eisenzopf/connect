@@ -30,11 +30,15 @@ try{
     if(!refused||!summary.untrusted_browser.original_process_joined||summary.untrusted_browser.forced_kill)throw Error('Unconfigured CA refusal required');
     summary.unconfigured_ca_refused=true;
     stage='normal-ca-import';
-    const trust=spawnSync('python3',['scripts/video/linux_browser_trust.py',path.join(output,'root.der')],{encoding:'utf8'});
-    if(trust.status!==0)throw Error('Normal private NSS import required');
-    summary.trust=JSON.parse(trust.stdout);
+    const trustedProfile=path.join(output,'trusted-profile');
+    const prepareProfile=async profile=>{
+        const trust=spawnSync('python3',['scripts/video/browser_profile.py','chrome',binary,profile,path.join(output,'root.der')],{encoding:'utf8'});
+        if(trust.status!==0)throw Error('Normal private Chrome profile import required');
+        const value=JSON.parse(trust.stdout);
+        summary.trust={normal_profile_ca_import:true,browser:value.browser,version:value.version,root_sha256:value.root_sha256};
+    };
+    owner=await launchOwnedChromium(chromium,binary,trustedProfile,process.env,prepareProfile);
     stage='trusted-ca';
-    owner=await launchOwnedChromium(chromium,binary,path.join(output,'trusted-profile'));
     const response=await (await owner.browser.newPage()).goto(httpsUrl,{timeout:5000});
     if(!response)throw Error('Normal HTTPS response required');
     summary.trusted_https_status=response.status();summary.trusted_browser=await owner.close();owner=undefined;
@@ -45,7 +49,7 @@ try{
     summary.clock=JSON.parse(await fs.readFile(path.join(output,'clock/summary.json'),'utf8'));
     if(clockExit.code!==0||clockExit.signal||!summary.clock.passed)throw Error('Paced audio required');
     stage='decoded-media';
-    owner=await launchOwnedChromium(chromium,binary,path.join(output,'media-profile'));
+    owner=await launchOwnedChromium(chromium,binary,path.join(output,'media-profile'),process.env,prepareProfile);
     spec.debugPort=owner.port;
     const child=spawn(process.execPath,['scripts/video/browser-qualify.mjs'],{stdio:['pipe','pipe','inherit']});
     let text='';child.stdout.on('data',chunk=>{text+=chunk;if(text.length>4*1024*1024)child.kill('SIGTERM');});
@@ -57,7 +61,9 @@ try{
     summary.passed=exit.code===0&&!exit.signal&&summary.media?.status==='passed'
         &&summary.media.owned_container_bridge?.nominated_udp_duplex===true
         &&summary.media_browser.original_process_joined&&!summary.media_browser.forced_kill;
-}catch(error){summary.failure={stage,error_class:error?.name==='Error'?'Error':'other'};}
+}catch(error){summary.failure={stage,error_class:error?.name==='Error'?'Error':'other',
+    certificate_error:['ERR_CERT_AUTHORITY_INVALID','ERR_CERT_COMMON_NAME_INVALID','ERR_CERT_DATE_INVALID']
+        .find(code=>String(error?.message).includes(code))??null};}
 finally{
     if(owner)summary.failure_browser=await owner.close();
     await fs.writeFile(path.join(output,'browser-summary.json'),JSON.stringify(summary,null,2)+'\n',{mode:0o600});

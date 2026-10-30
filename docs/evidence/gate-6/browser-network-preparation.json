@@ -2522,5 +2522,320 @@
       "One independent EdDSA fault case records bounded panic source sites and sanitized peer states.",
       "Bridge runs as the host non-root UID/GID with all capabilities dropped and direct argv; no shell discovery, chown or permission widening. Local LinuxARM Pulse16.1 and Chrome151 component probes passed with private HOME, but are not native Linuxx86 media qualification."
     ]
+  },
+  "linux_diagnostic_1f": {
+    "impairment-eddsa": {
+      "run_id": 41091361808,
+      "source_revision": "1f2a4b0a00610b537dfc0f9974d45af121463dcf",
+      "artifact_sha256": "ed1062efeabbd8b863147b428ed4927063374c2059f457edbfb93d2b4f297be2",
+      "git_sources_independently_verified": 2851,
+      "prepared_dependencies_matching": 3087,
+      "passed": false,
+      "full_matrix": false,
+      "sources_unchanged": true,
+      "case": {
+        "name": "impairment-eddsa",
+        "passed": false,
+        "seconds": 8.509310599000003,
+        "cpu": {
+          "profile": {
+            "logical_cpus": 4,
+            "affinity_cpus": 4,
+            "quota_cores": 4.0
+          },
+          "cpu_stat_delta": {
+            "usage_usec": 17747554,
+            "user_usec": 12641301,
+            "system_usec": 5106253,
+            "nr_periods": 85,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "average_cores_used": 2.0856629680535645
+        },
+        "failure": {
+          "exit_code": 101,
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+              "line": 1021,
+              "column": 5
+            }
+          ],
+          "browser_failure": {
+            "status": "failed",
+            "phase": "browser-participation",
+            "error_class": "Error",
+            "peer_states": [
+              {
+                "connection": "connected",
+                "ice": "connected",
+                "gathering": "complete",
+                "signaling": "stable",
+                "participant": 0,
+                "local_description_set": true,
+                "remote_description_set": true,
+                "observed_gathering_states": [
+                  "complete",
+                  "gathering",
+                  "new"
+                ]
+              },
+              {
+                "connection": "connected",
+                "ice": "connected",
+                "gathering": "complete",
+                "signaling": "stable",
+                "participant": 1,
+                "local_description_set": true,
+                "remote_description_set": true,
+                "observed_gathering_states": [
+                  "complete",
+                  "gathering",
+                  "new"
+                ]
+              }
+            ]
+          },
+          "active_bidirectional_proxies": 2,
+          "original_proxy_addresses_reclaimed": 10,
+          "owned_proxies_closed": 8
+        }
+      }
+    },
+    "baseline": {
+      "run_id": 41091356742,
+      "source_revision": "1f2a4b0a00610b537dfc0f9974d45af121463dcf",
+      "artifact_sha256": "6be008116949ce1c88a1ebac3ad75a17cffeba2ef066bf3171319ee4aa4d90d9",
+      "git_sources_independently_verified": 2851,
+      "prepared_dependencies_matching": 3087,
+      "passed": false,
+      "full_matrix": false,
+      "sources_unchanged": true,
+      "case": {
+        "name": "baseline",
+        "passed": false,
+        "seconds": 69.535823199,
+        "cpu": {
+          "profile": {
+            "logical_cpus": 4,
+            "affinity_cpus": 4,
+            "quota_cores": 4.0
+          },
+          "cpu_stat_delta": {
+            "usage_usec": 157414292,
+            "user_usec": 96617734,
+            "system_usec": 60796559,
+            "nr_periods": 695,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "average_cores_used": 2.2637869914836037
+        },
+        "browser": {
+          "status": "failed",
+          "phase": null,
+          "error_class": null,
+          "ice_restarts": null,
+          "peer_states": [],
+          "unreachable_relay": null,
+          "observations": [
+            {
+              "decoded_fps": 20.139594576733707,
+              "changing_fps": 16.40818912992779,
+              "source_draw_fps": 30.30101119526767,
+              "encoded_fps": 30.001166114720764,
+              "packets": 3726,
+              "lost": 86,
+              "jitter": 0.015,
+              "audio_coverage_complete": true,
+              "audio_maximum_sampling_gap_seconds": 0.11259984970092773,
+              "audio_bad_samples": 0,
+              "audio": "passed",
+              "motion": "passed",
+              "source_identity": "passed",
+              "av_sync": "failed",
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "failed",
+                "quality_status": "failed",
+                "reason": "strict-quality-not-met"
+              }
+            },
+            {
+              "decoded_fps": 18.090140926446576,
+              "changing_fps": 14.8085960254245,
+              "source_draw_fps": 30.300153172381513,
+              "encoded_fps": 30.00031658244041,
+              "packets": 3579,
+              "lost": 120,
+              "jitter": 0.024,
+              "audio_coverage_complete": true,
+              "audio_maximum_sampling_gap_seconds": 0.1109001636505127,
+              "audio_bad_samples": 2,
+              "audio": "failed",
+              "motion": "passed",
+              "source_identity": "passed",
+              "av_sync": "failed",
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "failed",
+                "quality_status": "failed",
+                "reason": "strict-quality-not-met"
+              }
+            }
+          ]
+        }
+      },
+      "bridges": {
+        "bridge-eddsa": {
+          "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "image_id": "sha256:3f3eaa74ac56d441fc3dc90aa3186888e6f7ec78ba6459eda8238859ce970bef",
+          "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+          "source_count": 5927,
+          "source_manifest_sha256": "5068afc240f16a7442f10b4856159e613a2a0801daf998a985e0d4073e6a8616",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "browser_exit_code": 1,
+          "startup_browser_summary_present": true,
+          "startup_audio_summary_present": true,
+          "private_fixture_same_uid": true,
+          "browser": {
+            "scope": "Owned internal Docker bridge, Linux x86 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.",
+            "browser": "Google Chrome for Testing 156.0.8078.4",
+            "network_namespace_sha256": "6b49451b0b73ffa4f7a2a2ab6067fa500328b5d705fa493377fcad7d9c120bab",
+            "passed": false,
+            "untrusted_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "unconfigured_ca_refused": true,
+            "trust": {
+              "normal_user_ca_import": true,
+              "nss_version": "3.98",
+              "root_sha256": "919f9994e630c00044d78959ac47cecacd18def11b8dc9f999b46a525cd56aab"
+            },
+            "failure": {
+              "stage": "trusted-ca",
+              "error_class": "Error"
+            },
+            "failure_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            }
+          },
+          "audio": {
+            "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+            "passed": false,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1",
+            "startup_socket_created": true,
+            "command_exit_code": 1,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_home_created": true,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "different_network_namespaces": true,
+          "internal_bridge": true,
+          "failure": {
+            "stage": "server-retirement",
+            "error_class": "AssertionError"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        },
+        "bridge-es256": {
+          "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+          "algorithm": "ES256",
+          "passed": false,
+          "image_id": "sha256:3f3eaa74ac56d441fc3dc90aa3186888e6f7ec78ba6459eda8238859ce970bef",
+          "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+          "source_count": 5927,
+          "source_manifest_sha256": "5068afc240f16a7442f10b4856159e613a2a0801daf998a985e0d4073e6a8616",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "browser_exit_code": 1,
+          "startup_browser_summary_present": true,
+          "startup_audio_summary_present": true,
+          "private_fixture_same_uid": true,
+          "browser": {
+            "scope": "Owned internal Docker bridge, Linux x86 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.",
+            "browser": "Google Chrome for Testing 156.0.8078.4",
+            "network_namespace_sha256": "10265919f3cdbe6a5a8f7e36a131d0f42740d74f025ad2dfdeb1503e989fdbb0",
+            "passed": false,
+            "untrusted_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "unconfigured_ca_refused": true,
+            "trust": {
+              "normal_user_ca_import": true,
+              "nss_version": "3.98",
+              "root_sha256": "7caf0ceeb52b489ca7f3c5bb1f85ecbd84f4c017d870760b9e3b082d16b18910"
+            },
+            "failure": {
+              "stage": "trusted-ca",
+              "error_class": "Error"
+            },
+            "failure_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            }
+          },
+          "audio": {
+            "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+            "passed": false,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1",
+            "startup_socket_created": true,
+            "command_exit_code": 1,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_home_created": true,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "different_network_namespaces": true,
+          "internal_bridge": true,
+          "failure": {
+            "stage": "server-retirement",
+            "error_class": "AssertionError"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        }
+      }
+    },
+    "next": "Use the already verified normal Chrome156 fresh-profile certificate store instead of NSS alone for the bridge. Add finite failure classification for fault path proof and bounded private pipeline trace aggregates for baseline. Source/encoder30fps with receiver18\u201320fps and observed packet loss locates video loss after encoding; four cores are unthrottled and average2.26 cores used. No media quality, full-task or acceptance claim."
   }
 }
