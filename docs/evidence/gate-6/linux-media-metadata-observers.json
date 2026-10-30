@@ -1179,5 +1179,160 @@
       }
     },
     "interpretation": "The full 60-second two-observer canvas/capture/video control passes without RTC or Core. The current media-path changing-frame deficit remains unresolved; no transport/media qualification follows from this control."
+  },
+  "linux_native_rtc_observer_control": {
+    "run_id": 41119621573,
+    "artifact_id": 13007328666,
+    "revision": "f01a3807119dc5d81cc758a1946828a61fb90bea",
+    "zip_sha256": "4ddd10a0d24ef08e55e31a490899c91e180f632b219a871193475ba562950561",
+    "network": {
+      "owned_internal_bridge": true,
+      "original_bridge_removed": true,
+      "forced_cleanup": false
+    },
+    "control_case": {
+      "mode": "rtc",
+      "tracked_sources_verified": [
+        ".github/workflows/gate6-browser-observer.yml",
+        "scripts/video/check-renderer.mjs",
+        "scripts/video/marker_calibration.mjs",
+        "scripts/video/observer-tools/package-lock.json",
+        "scripts/video/observer-tools/package.json",
+        "scripts/video/owned_chromium.mjs",
+        "scripts/video/source_identity.mjs"
+      ],
+      "summary": {
+        "scope": "Two owned browser-native VP8-only RTC loopback controls with 80 ms receiver targets. No Connect, Core, SDK worker, audio, remote host or account qualification.",
+        "mode": "rtc",
+        "requested_seconds": 60,
+        "motion_sample_pixels": [
+          128,
+          72
+        ],
+        "os": "linux",
+        "architecture": "x64",
+        "node": "v24.22.1",
+        "browser": "156.0.8078.4",
+        "source_count": 79,
+        "source_manifest_sha256": "924b9c888bafd51b08b4f4075cf5500be06fc3bbf03685811de604516324d94c",
+        "sources_unchanged": true,
+        "changed_inputs": [],
+        "minimum_callback_and_changing_fps": 24,
+        "rows": [
+          {
+            "index": 0,
+            "seconds": 60.00399999999997,
+            "draw_fps": 30.297980134657706,
+            "callback_fps": 24.048396773548443,
+            "changing_fps": 22.01519898673423,
+            "raf_fps": 42.58049463369111,
+            "decoded_fps": 29.964669022065213,
+            "visibility": "visible",
+            "passed": false
+          },
+          {
+            "index": 1,
+            "seconds": 60.004,
+            "draw_fps": 30.297980134657692,
+            "callback_fps": 24.065062329178055,
+            "changing_fps": 22.048530097993467,
+            "raf_fps": 42.03053129791348,
+            "decoded_fps": 29.9646690220652,
+            "visibility": "visible",
+            "passed": false
+          }
+        ],
+        "original_browser_joined": true,
+        "ownership": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "error": null,
+        "passed": false
+      }
+    },
+    "plain_control_case": {
+      "mode": "quality",
+      "tracked_sources_verified": [
+        ".github/workflows/gate6-browser-observer.yml",
+        "scripts/video/check-renderer.mjs",
+        "scripts/video/marker_calibration.mjs",
+        "scripts/video/observer-tools/package-lock.json",
+        "scripts/video/observer-tools/package.json",
+        "scripts/video/owned_chromium.mjs",
+        "scripts/video/source_identity.mjs"
+      ],
+      "summary": {
+        "scope": "Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.",
+        "mode": "quality",
+        "requested_seconds": 60,
+        "motion_sample_pixels": [
+          128,
+          72
+        ],
+        "os": "linux",
+        "architecture": "x64",
+        "node": "v24.22.1",
+        "browser": "156.0.8078.4",
+        "source_count": 79,
+        "source_manifest_sha256": "924b9c888bafd51b08b4f4075cf5500be06fc3bbf03685811de604516324d94c",
+        "sources_unchanged": true,
+        "changed_inputs": [],
+        "minimum_callback_and_changing_fps": 24,
+        "rows": [
+          {
+            "index": 0,
+            "seconds": 60.009200000000014,
+            "draw_fps": 30.312018823780345,
+            "callback_fps": 30.195370043260027,
+            "changing_fps": 27.245822307246215,
+            "raf_fps": 35.89449617725281,
+            "visibility": "visible",
+            "passed": true
+          },
+          {
+            "index": 1,
+            "seconds": 60.00930000000002,
+            "draw_fps": 30.31196831157836,
+            "callback_fps": 30.128663390507796,
+            "changing_fps": 27.24577690457978,
+            "raf_fps": 35.94442861356489,
+            "visibility": "visible",
+            "passed": true
+          }
+        ],
+        "original_browser_joined": true,
+        "ownership": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "error": null,
+        "passed": true
+      }
+    },
+    "interpretation": "The changing-pixel deficit also occurs in browser-native VP8 RTC without Connect, Core, SDK workers or audio: about 30 decoded, 24 callbacks and 22 changing observations per second. The separate plain-capture control passes about 27 changing observations per second. This narrows the investigation to native RTC presentation/observation; it does not qualify a Connect media path or establish the sole cause of runtime failures.",
+    "startup_attempts": [
+      {
+        "run_id": 41118631725,
+        "source_revision": "62112ad7",
+        "result": "Startup failed; zero measured rows. Normal browser join. See retained private source-bound artifact."
+      },
+      {
+        "run_id": 41119246971,
+        "artifact_id": 13006478744,
+        "source_revision": "1934b6f9",
+        "zip_sha256": "1d3e4e95e624767204f4a346116ab0ca160675f0d391599b221e8ba5d12c9fb9",
+        "result": "RTC gathering deadline with no nonloopback container interface or STUN server; zero measured rows. Normal browser join."
+      }
+    ],
+    "next": "Controlled 80 ms versus zero-target RTC presentation counters are prepared; production receiver preferences and all quality thresholds remain unchanged. Actual rerun pending."
   }
 }
