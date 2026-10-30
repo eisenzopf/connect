@@ -8,6 +8,8 @@ repository.workspace = true
 publish = false
 
 [features]
+default = ["cli"]
+cli = []
 test-support = ["connect-store/test-support", "connect-service/test-support"]
 
 [dependencies]
@@ -93,3 +95,4 @@ workspace = true
 [[bin]]
 name = "connect"
 path = "src/main.rs"
+required-features = ["cli"]

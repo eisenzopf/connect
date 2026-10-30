@@ -224,6 +224,34 @@ def rtc_ice_worker_failure_diagnostic(value):
     return value
 
 
+def rtc_admission_observations(text):
+    messages = {'RTC actual admission boundary refused':'actual-boundary',
+        'RTC original resource observation refused':'resource-observation',
+        'RTC original Session observation refused':'session-observation',
+        'RTC original media admission refused':'initial-admission',
+        'RTC idle observation retired original media':'idle-retirement'}
+    codes = {'forbidden','conflict','timeout','closed','authority-busy','storage','storage-unavailable'}
+    flags = {'original_revision','physical_closed','runtime_stopped','peer_closed',
+        'bindings_match','connection_present','participant_present'}
+    observed = []
+    for line in text.splitlines():
+        line = re.sub(r'\x1b\[[0-9;]*m', '', line)
+        phase = next((value for message,value in messages.items() if message in line), None)
+        if phase is None:
+            continue
+        code = re.search(r'\bcode=([a-z-]+)\b', line)
+        code = code[1] if code and code[1] in codes else 'other'
+        if re.search(r'\berror=Authority\b', line):
+            code = 'authority'
+        elif re.search(r'\berror=Transition\(Conflict\)', line):
+            code = 'transition-conflict'
+        observed.append(dict(phase=phase, code=code, flags={name:match[1]=='true' for name in sorted(flags)
+            if (match := re.search(r'\b' + name + r'=(true|false)\b', line))}))
+        if len(observed) == 16:
+            break
+    return observed
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
@@ -298,6 +326,14 @@ def run(node_sdk=False, python_sdk=False):
         summary = [line for line in text.splitlines() if line.startswith("test result:")]
         step = {"name": name, "exit_code": child.returncode, "timed_out": timed, "forced_kill": forced,
                 "seconds": time.monotonic() - started, "log_sha256": digest(log), "test_results": summary}
+        step['rtc_admission_observations'] = rtc_admission_observations(text) if child.returncode else []
+        step['rtc_admission_trace_enabled'] = []
+        for line in text.splitlines():
+            if 'rtc-admission-tracing-ready ' in line:
+                value = json.loads(line.split('rtc-admission-tracing-ready ',1)[1])
+                assert set(value) == {'enabled'} and type(value['enabled']) is bool
+                step['rtc_admission_trace_enabled'].append(value['enabled'])
+        assert len(step['rtc_admission_trace_enabled']) <= 2
         step["panic_locations"] = [
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
             for location in re.findall(r"thread '[^']+'(?: \([0-9]+\))? panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
@@ -570,7 +606,8 @@ def run(node_sdk=False, python_sdk=False):
                 report['baseline_https_exclusion'] = {'pattern':'canonical_https_hosting::node::','functions':2,
                     'reason':'Installed Node consumers require their explicit environment and --ignored selection.',
                     'explicit_sdk_matrix_requested':node_sdk,'qualified_by_baseline':False}
-            text = execute(name, selection + ["--test-threads=1"], 90, defer_failure=independent_sdk)
+            text = execute(name, selection + ["--test-threads=1"], 90, defer_failure=independent_sdk,
+                environment={'RUST_LOG':'connect_service::canonical_webrtc=debug'} if name == 'native-ice-restart' else None)
             if text is None:
                 sdk_failures.append(name)
                 continue

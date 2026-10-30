@@ -79,7 +79,7 @@ def build():
     before = INPUTS()
     save(output / 'source-inputs.json', before)
     command = ['cargo', 'rustc', '--release', '--offline', '--locked', '-j1',
-        '-p', 'connect-server', '--features', 'test-support', '--test',
+        '-p', 'connect-server', '--no-default-features', '--features', 'test-support', '--test',
         'gate6_canonical_webtransport', '--message-format=json', '--', '-C', 'strip=none',
         '-C', 'opt-level=' + fixture_level]
     stopped = threading.Event()
@@ -92,16 +92,19 @@ def build():
         progress.join()
     rows = read_build_rows(output / 'build.log')
     runtime_profiles = runtime_library_profiles(rows)
+    unrequested_cli_artifacts = sum(row.get('reason') == 'compiler-artifact'
+        and row.get('target', {}).get('name') == 'connect'
+        and row['target'].get('kind') == ['bin'] for row in rows)
     artifacts = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
         and row['target']['name'] == 'gate6_canonical_webtransport' and row.get('executable')]
     unchanged = INPUTS() == before
     report = dict(scope='Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt' + fixture_level + '. Build only.',
-        fixture_opt_level=fixture_level,
+        fixture_opt_level=fixture_level, unrequested_cli_artifacts=unrequested_cli_artifacts,
         command=command, execution=result, runtime_library_profiles=runtime_profiles,
         source_count=len(before), sources_unchanged=unchanged,
         source_manifest_sha256=digest(output / 'source-inputs.json'),
         artifacts=[dict(path=value, sha256=digest(value)) for value in artifacts],
-        passed=result['exit_code'] == 0 and not result['timed_out'] and not result['forced_kill'] and len(artifacts) == 1 and unchanged and runtime_profiles['passed'])
+        passed=result['exit_code'] == 0 and not result['timed_out'] and not result['forced_kill'] and len(artifacts) == 1 and unchanged and runtime_profiles['passed'] and unrequested_cli_artifacts == 0)
     save(output / 'summary.json', report)
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
@@ -143,9 +146,11 @@ def runtime():
             if path.is_file() and path.suffix in ('.js', '.mjs', '.json'):
                 tools[str(path)] = digest(path)
     save(output / 'tool-inputs.json', tools)
-    env = dict(os.environ, CONNECT_GATE6_NODE=str(node), CONNECT_GATE6_ICE_DIAGNOSTICS='1')
+    env = dict(os.environ, CONNECT_GATE6_NODE=str(node), CONNECT_GATE6_ICE_DIAGNOSTICS='1',
+        RUST_LOG='connect_service::canonical_webrtc=debug')
     failure_diagnostic = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['rtc_operation_failure_diagnostic']
     worker_diagnostic = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['rtc_ice_worker_failure_diagnostic']
+    admission_diagnostic = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['rtc_admission_observations']
     steps = []
     try:
         clock = BOUNDED([str(node), 'scripts/video/check-audio-clock.mjs', str(output / 'clock')],
@@ -166,6 +171,7 @@ def runtime():
             step = BOUNDED(command, dict(env, CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(directory)),
                 output / (name + '.log'), 120)
             raw = (output / (name + '.log')).read_text(errors='replace')
+            step['rtc_admission_observations'] = admission_diagnostic(raw) if step['exit_code'] else []
             step.update(name=name, passed=step['exit_code'] == 0 and not step['timed_out'] and not step['forced_kill'] and re.findall(
                 r'^test result: ok\. (\d+) passed; 0 failed;', raw, re.M) == [str(count)])
             step['rtc_operation_failures'] = [failure_diagnostic(json.loads(line.split(' ', 1)[1])) for line in raw.splitlines()

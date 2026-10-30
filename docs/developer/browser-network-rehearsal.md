@@ -42,6 +42,10 @@ library names/optimization levels. Successful builds require all eleven checked
 client/server/store/service, Core, media, RTP and RTC libraries at opt3. Private
 paths, package identifiers and raw compiler output remain excluded. The original
 one-hour build limit and media thresholds are unchanged.
+The fixture links the public server library directly and uses
+`--no-default-features --features test-support` to omit the unrelated CLI
+executable. Normal builds retain the default `cli` feature and produce `connect`.
+The producer refuses unexpected CLI artifacts in this library-only lane.
 
 An owned PulseAudio null sink supplies a paced software clock, with one private
 Unix socket and cookie. The native-protocol cookie path follows the

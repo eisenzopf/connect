@@ -25,6 +25,18 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_initial_rtc_admission_trace_retains_only_finite_boundaries(self):
+        check = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_admission_observations']
+        source = '\x1b[31mDEBUG private/path connection=private-secret RTC actual admission boundary refused error=Authority\x1b[0m\nRTC original media admission refused code=forbidden credential=private-secret\nRTC original resource observation refused physical_closed=false bindings_match=true revision=private-secret\nRTC original Session observation refused code=private-secret connection_present=false participant_present=true'
+        result = check(source)
+        self.assertEqual(result[0], dict(phase='actual-boundary',code='authority',flags={}))
+        self.assertEqual(result[1]['code'],'forbidden')
+        self.assertEqual(result[2]['flags'],dict(bindings_match=True,physical_closed=False))
+        self.assertEqual(result[3],dict(phase='session-observation',code='other',flags=dict(connection_present=False,participant_present=True)))
+        self.assertNotIn('private',json.dumps(result))
+        self.assertEqual(len(check(source*20)),16)
+        self.assertEqual(check('unrelated private diagnostic'),[])
+
     def test_ice_worker_failure_preserves_boundary_without_authority_or_transport_secrets(self):
         validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_ice_worker_failure_diagnostic']
         value=dict(phase='current-authority',code='forbidden',expected_generation=2,submitted=True,receipt_captured=False,stop_cancelled=False,physical_cancelled=False,deadline_elapsed=False)

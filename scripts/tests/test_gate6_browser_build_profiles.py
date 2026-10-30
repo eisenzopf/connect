@@ -59,6 +59,7 @@ class RuntimeBuildProfiles(unittest.TestCase):
                 self.assertEqual(command[-2:], ['-C','opt-level=0'])
                 self.assertLess(command.index('--'), len(command) - 2)
                 self.assertNotIn('--config', command)
+                self.assertIn('--no-default-features', command)
                 log.write_text('')
                 return {'exit_code':-15,'timed_out':True,'forced_kill':False,'seconds':3600}
 

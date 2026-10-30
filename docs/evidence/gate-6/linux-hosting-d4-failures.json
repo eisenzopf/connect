@@ -790,5 +790,174 @@
     "passed": true,
     "retained_initial_failure": "First deterministic fixture iteration incorrectly closed the separate media owner rather than its observer; closed-branch assertion failed. Corrected fixture retains a clone of the exact observer owner and closes that original owner. Failed run remains private and is not a pass.",
     "linux_limit": "Both4bba artifacts fail the original status assertion, but do not include its concrete error category. This source-verified contract omission is covered locally; further Linux errors now emit finite status diagnostics. No Linux failure-resolution claim until actual continuation passes."
+  },
+  "continuation_f1": [
+    {
+      "source_revision": "f1fe1226",
+      "run_id": 41065639794,
+      "artifact_id": 12983282388,
+      "zip_sha256": "d0c6809265a57f0ed367ffec082e667411d5241667698a403199bcf7a0d08907",
+      "tracked_sources_verified": 4474,
+      "source_count": 8570,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "203b18bd51054426575a4c73f552455aa7cc2aa756a7ccb3b4b8c999bcf6f7e1",
+      "steps": 23,
+      "failed_steps": [
+        {
+          "name": "native-ice-restart",
+          "exit_code": 101,
+          "seconds": 21.338928047000024,
+          "log_sha256": "dc25bbe62cc9f7926dc067f16840231d093874990e8c2004244b8242e894c778",
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+              "line": 72,
+              "column": 13
+            }
+          ],
+          "rtc_operation_failures": [
+            {
+              "cancel_requested": false,
+              "checkpoint": "initial-offer",
+              "effects": [
+                {
+                  "attempt": 1,
+                  "state": "failed"
+                }
+              ],
+              "problem_code": "none",
+              "result_present": false,
+              "state": "failed"
+            }
+          ],
+          "ipc_data_status_revocation_failures": [],
+          "rtc_ice_worker_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "python_native_failures": []
+        }
+      ],
+      "passed": false
+    },
+    {
+      "source_revision": "f1fe1226",
+      "run_id": 41065639794,
+      "artifact_id": 12984041284,
+      "zip_sha256": "df70272cf2ea6acafa4dfb4d368402cbfa9faaed1bda8ab18e38012f95b8cfa5",
+      "tracked_sources_verified": 4474,
+      "source_count": 8570,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "203b18bd51054426575a4c73f552455aa7cc2aa756a7ccb3b4b8c999bcf6f7e1",
+      "steps": 23,
+      "failed_steps": [
+        {
+          "name": "native-ice-restart",
+          "exit_code": 101,
+          "seconds": 8.73897047500003,
+          "log_sha256": "300054f945922197ad80d3e479dc4e41ffba478de858ee93577fa03293c091d7",
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+              "line": 72,
+              "column": 13
+            },
+            {
+              "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+              "line": 72,
+              "column": 13
+            }
+          ],
+          "rtc_operation_failures": [
+            {
+              "cancel_requested": false,
+              "checkpoint": "initial-offer",
+              "effects": [
+                {
+                  "attempt": 1,
+                  "state": "failed"
+                }
+              ],
+              "problem_code": "none",
+              "result_present": false,
+              "state": "failed"
+            },
+            {
+              "cancel_requested": false,
+              "checkpoint": "initial-offer",
+              "effects": [
+                {
+                  "attempt": 1,
+                  "state": "failed"
+                }
+              ],
+              "problem_code": "none",
+              "result_present": false,
+              "state": "failed"
+            }
+          ],
+          "ipc_data_status_revocation_failures": [],
+          "rtc_ice_worker_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "python_native_failures": []
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "initial_rtc_admission_trace_preparation": {
+    "observed_linux": "Both f1fe jobs pass the repaired IPC runtime, then fail initial native RTC offer preparation before ICE restart. Original operation Failed, one Failed effect, no result/problem code; original restart-worker diagnostics cannot identify a pre-restart failure.",
+    "linux_managed_ipc_runtime_passes": [
+      {
+        "node": "26",
+        "source_revision": "f1fe1226e7cb0b468df77d3eba1a1ceaa4206f02",
+        "run_id": 41065639794,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 36.14878757600002,
+          "log_sha256": "863857e1bbfc10b583e17f0944282f524b959787bdf6ad1138bd4cd48aab6136",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 426 filtered out; finished in 36.12s"
+          ]
+        }
+      },
+      {
+        "node": "22",
+        "source_revision": "f1fe1226e7cb0b468df77d3eba1a1ceaa4206f02",
+        "run_id": 41065639794,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 37.387134949,
+          "log_sha256": "8cf89e8293a53728974439e81414960a179bf2b61b0d0ee5ba635f09b5ff157a",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 426 filtered out; finished in 37.34s"
+          ]
+        }
+      }
+    ],
+    "change": "Initialize the existing filtered tracing subscriber for ICE cases too. Capture only finite admission/resource/session/idle boundary labels, allowlisted error categories and booleans on failure; raw paths, IDs, arbitrary reasons and fields stay private. Explicit readiness booleans distinguish enabled tracing from missing observations. Service behavior, authority and deadlines unchanged.",
+    "privacy_functions": 16,
+    "local_actual_native_functions": 2,
+    "local_sources": 5921,
+    "local_sources_unchanged": true,
+    "local_source_manifest_sha256": "0954512d3288cad10d5e9eb7b23fb19fdcba57edd47c0c2daa79726dd433037e",
+    "local_binary_sha256": "fc452253dbddcb7c621103f9c5dc09f95ab5021433ddfbc8e414a3bd5f7c3bcf",
+    "local_trace_enabled": [
+      true,
+      true
+    ],
+    "local_execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 8.840664624935016,
+      "log_sha256": "a1fd1f44c27bc337c5e6bb7a07875e1238c7d5245bd6bddf73d90679b20dcaa5"
+    },
+    "local_passed": true,
+    "linux_initial_admission_resolution": false
   }
 }

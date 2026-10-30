@@ -302,13 +302,19 @@ async fn inaudible(rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>) {
     }
 }
 async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool, ice: bool) {
-    if roles || gates {
+    if roles || gates || ice {
         let _ = tracing_subscriber::fmt()
             .with_env_filter(
                 tracing_subscriber::EnvFilter::try_from_default_env()
                     .unwrap_or_else(|_| "warn".into()),
             )
             .try_init();
+        if ice {
+            eprintln!(
+                "rtc-admission-tracing-ready {}",
+                json!({"enabled":tracing::enabled!(target:"connect_service::canonical_webrtc",tracing::Level::DEBUG)})
+            );
+        }
     }
     let f = configured_end_scope(algorithm, 8, None, end).await;
     let host = SignalingHost::new(audio_config(), 2).unwrap();

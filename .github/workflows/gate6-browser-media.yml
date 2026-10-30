@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-browser-media-driver0-${{ github.ref }}
+  group: gate6-browser-media-library-driver0-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   linux-x86-browser-media:
@@ -56,7 +56,7 @@ jobs:
           python3 scripts/lib/source_build_cache.py restore
           bash scripts/prepare-dependencies.sh
           cargo fetch --locked
-      - name: Build opt3 production libraries and opt0 integration driver
+      - name: Build opt3 server libraries and opt0 driver without unused CLI
         id: build
         run: python3 scripts/check-gate6-browser-media.py build
       - name: Install integrity-locked browser automation without downloads
