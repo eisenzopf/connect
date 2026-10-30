@@ -153,7 +153,7 @@ try {
  const nativeInput=(connectionId,streamId)=>({connectionId,streams:{first:{id:streamId,kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:['g.711-a']}},rest:[]}});
  const nativeOffer=await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'}),native=(await nativeOffer.wait(opts)).value;
  const nativeSaved=nativeOffer.referenceJson();assert.equal(native.id,'typed-node-native');assert.ok(native.receiptStreamRevision>0);
- assert.equal((await native.refresh(opts)).streamRevision,undefined);
+ assert.equal((await native.refresh(opts)).streamRevision,native.receiptStreamRevision);
  const audio=native.streams.byId('typed-native-audio');assert.equal((await audio.refresh(opts)).ownership,'observation');
  assert.equal((await (await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'})).wait(opts)).value.id,native.id);
  progress('peer-offer');

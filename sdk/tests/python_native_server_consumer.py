@@ -285,7 +285,7 @@ async def controls(owner):
                 StreamId(stream),'audio','sendrecv',NonEmpty('g.711-mu',('g.711-a',)))),mutation(operation)))
         native=await offer(solo,'python-control-native','python-control-audio','python-control-offer')
         remote=await offer(peer_solo,'python-control-peer','python-control-peer-audio','python-control-peer-offer')
-        assert native.receipt_stream_revision>0 and (await native.refresh(options)).stream_revision is None
+        assert native.receipt_stream_revision>0 and (await native.refresh(options)).stream_revision==native.receipt_stream_revision
         audio=native.streams.by_id(StreamId('python-control-audio'))
         selected_media=await native.media.refresh(options)
         assert selected_media.binding.connection_id==native.id

@@ -522,5 +522,180 @@
     ],
     "observation": "Only intentional third-generation endpoint revocation emitted terminal boundaries. Both ordinary two-generation signed ICE journeys retained captured completions and fresh decoded markers.",
     "passed": true
+  },
+  "continuation_6e77_node26": {
+    "source_revision": "6e77e49a",
+    "run_id": 41056115095,
+    "artifact_id": 12980000132,
+    "zip_sha256": "08066c2e449c2ab5cd6e9e3a881a6982ef5f663b258f4ccecb4730faebaeeb30",
+    "tracked_sources_verified": 4463,
+    "source_count": 8559,
+    "source_inputs_unchanged": true,
+    "source_manifest_sha256": "12f4e83935af7bc72831988ed3ccbb8cbee5efa05cf322288da19b896a6fe7ec",
+    "steps": 93,
+    "failed_steps": [
+      {
+        "name": "rust-sdk-consultation-eof",
+        "exit_code": 101,
+        "seconds": 52.190100959999995,
+        "log_sha256": "3075b2ec6a6c1232d09362e5721b4d53f85c05e4fa0eecb3462494d0f2943ee6",
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+            "line": 253,
+            "column": 9
+          }
+        ],
+        "node_failures": [],
+        "node_consultation_failures": [],
+        "python_native_failures": []
+      },
+      {
+        "name": "installed-node-native-control",
+        "exit_code": 101,
+        "seconds": 9.035410315000036,
+        "log_sha256": "76bd572d5cdcb58fc54a01025c044cf755a0a8b2f71d7738e0f864a411b0dc4c",
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+            "line": 147,
+            "column": 17
+          }
+        ],
+        "node_failures": [
+          {
+            "certainty": null,
+            "checkpoint": "native-offer",
+            "column": 9,
+            "command": null,
+            "kind": "assertion",
+            "line": 156,
+            "observedCertainty": null,
+            "observedHttpStatus": null,
+            "observedKind": null,
+            "observedState": null,
+            "phase": "failed"
+          }
+        ],
+        "node_consultation_failures": [],
+        "python_native_failures": []
+      },
+      {
+        "name": "installed-python-native-eddsa",
+        "exit_code": 101,
+        "seconds": 11.340381909000143,
+        "log_sha256": "6f45c7c7d403e31e5c868482599d5e1a666021aba51036c24291c6523901c8e3",
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/python_sdk.rs",
+            "line": 171,
+            "column": 9
+          }
+        ],
+        "node_failures": [],
+        "node_consultation_failures": [],
+        "python_native_failures": [
+          {
+            "certainty": null,
+            "checkpoint": "connections",
+            "error_type": "AssertionError",
+            "kind": "assertion",
+            "phase": "failed",
+            "source_line": 288
+          }
+        ]
+      },
+      {
+        "name": "installed-python-native-es256",
+        "exit_code": 101,
+        "seconds": 11.490571750000072,
+        "log_sha256": "f4869801e5469333b9535b78d73830a5184e85e0e4086c0a49ffc0b3fe6654a2",
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/python_sdk.rs",
+            "line": 171,
+            "column": 9
+          }
+        ],
+        "node_failures": [],
+        "node_consultation_failures": [],
+        "python_native_failures": [
+          {
+            "certainty": null,
+            "checkpoint": "connections",
+            "error_type": "AssertionError",
+            "kind": "assertion",
+            "phase": "failed",
+            "source_line": 288
+          }
+        ]
+      }
+    ],
+    "passed": false
+  },
+  "installed_current_revision_fixture_correction": {
+    "contract": "ConnectionSnapshot.stream_revision is the server-recorded committed control observation, independent of the resource revision and never a physical media grant. Immediately after offer, both installed language consumers require equality to the original receipt revision; Node retains stream observation ownership assertion.",
+    "changes": "Two stale absence assertions corrected; production SDK behavior, deadlines and media/authority/recovery assertions unchanged.",
+    "local_scope": "Actual locally installed Node26/Python packages through owned signed native server/helper and independently decoded synthetic media. Current committed stream revision equals original offer receipt; observation ownership remains required. No Linux/browser/task qualification.",
+    "source_inputs": 5919,
+    "source_manifest_sha256": "f6d1bce2881adc720b1daa3a2d1ea1ba96117a53d570a440a6aa18929edd3683",
+    "sources_unchanged": true,
+    "binary_sha256": "e2940d42c0fb039a1c8feb5fb93af881587140e00aa1048a25588942a02b5f5b",
+    "node_archive_sha256": "a44f07ed6734c61836fc0cfed6bad9f9d357e275f42e5f4b6e7b9ac87673faf9",
+    "python_wheel_sha256": "eb0c12791ed16ed14905978b1f2ab1ac7d95143dbe95ee2ff7f46e8cc748cacd",
+    "node_version": "v26.7.0",
+    "python_version": "3.14.7",
+    "first_cohort": [
+      {
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 7.154236250091344,
+        "log_sha256": "97f7fe699538904ac91de361c3e3e4a8e23bd00695d3a7a44c6af5467d48d4e0",
+        "name": "node",
+        "passed": false,
+        "panic_locations": [
+          [
+            "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+            "147",
+            "17"
+          ]
+        ]
+      },
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 14.277573541970924,
+        "log_sha256": "77c0951ce319eddcafa6f5d472b2afc9a35e310b58190aa762b17d75cbc28a87",
+        "name": "python-eddsa",
+        "passed": true,
+        "panic_locations": []
+      },
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 12.882569208042696,
+        "log_sha256": "b7a57d6e8478e276b58ac2b1fc16a3ee25bdec6828e99b1992e12b1eeeba6578",
+        "name": "python-es256",
+        "passed": true,
+        "panic_locations": []
+      }
+    ],
+    "bounded_node_followup": [
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 29.146282040979713,
+        "log_sha256": "f95187f5e9d9545cce793353cdecd03b61dd25edf1c8c87a7cb541dfe26c67df",
+        "name": "node",
+        "passed": true,
+        "panic_locations": []
+      }
+    ],
+    "result": "Both Python algorithms and subsequent Node two-algorithm journey pass. First Node creation deadline is retained and unresolved; no broader stability or Linux qualification claim.",
+    "initial_preparation_failure": "A stale private Python builder path failed before package/server work; fresh hash-pinned build-tools venv and independent clean wheel preparation passed."
   }
 }
