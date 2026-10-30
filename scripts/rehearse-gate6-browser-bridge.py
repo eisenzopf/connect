@@ -201,7 +201,8 @@ def main():
             report['passed'] = report['passed'] and report['different_network_namespaces']
     except Exception as error:
         report['failure'] = dict(stage=stage,error_class=type(error).__name__ if type(error).__name__ in
-            {'AssertionError','TimeoutExpired','FileNotFoundError','CalledProcessError','ValueError','KeyError'} else 'other')
+            {'AssertionError','TimeoutExpired','FileNotFoundError','CalledProcessError','ValueError','KeyError'} else 'other',
+            owned_startup_reason=getattr(error,'owned_docker_failure',None))
         raise
     finally:
         if browser is not None and browser.poll() is None:

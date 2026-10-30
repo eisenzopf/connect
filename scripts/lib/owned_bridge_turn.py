@@ -14,7 +14,15 @@ import uuid
 
 
 def command(args, timeout=15):
-    return subprocess.check_output(args,text=True,stderr=subprocess.PIPE,timeout=timeout).strip()
+    try:
+        return subprocess.check_output(args,text=True,stderr=subprocess.PIPE,timeout=timeout).strip()
+    except subprocess.CalledProcessError as error:
+        error.owned_docker_failure=next((name for name,pattern in [
+            ('user-configured-subnet-required','user configured subnets'),
+            ('permission','permission denied'),('capability','operation not permitted'),
+            ('capacity','no space left'),('mount','invalid mount config')]
+            if pattern in (error.stderr or '').lower()),'other')
+        raise
 
 
 def private_write(path,text):
@@ -45,8 +53,6 @@ class OwnedBridgeTurn:
         assert info['Id']==self.network and info['Internal'] and info['Driver']=='bridge'
         subnet=ipaddress.IPv4Network(info['IPAM']['Config'][0]['Subnet']);assert self.gateway in subnet
         assert subnet.is_private
-        occupied={ipaddress.IPv4Interface(row['IPv4Address']).ip for row in info['Containers'].values()}
-        self.ip=next(ip for ip in subnet.hosts() if ip!=self.gateway and ip not in occupied)
         self.directory.mkdir(mode=0o700,exist_ok=False)
         image=json.loads(command(['docker','image','inspect',self.image]))[0]
         probe=json.loads(command(['docker','image','inspect',self.probe_image]))[0]
@@ -59,17 +65,33 @@ class OwnedBridgeTurn:
         binary=command([*base,'--entrypoint','/usr/bin/sha256sum',self.image,'/usr/bin/turnserver']).split()[0]
         assert re.fullmatch(r'[0-9a-f]{64}',binary)
         self.report.update(image_id=self.image,architecture=image['Architecture'],version=version,binary_sha256=binary)
+        self.report['startup_stage']='container-create'
+        gate='''i=0
+while [ ! -f /fixture/turnserver.conf ]; do
+    i=$((i+1))
+    [ "$i" -lt 400 ] || exit 1
+    sleep 0.025
+done
+exec /usr/bin/turnserver -c /fixture/turnserver.conf'''
         self.cid=command(['docker','create','--name','connect-g6-turn-'+uuid.uuid4().hex[:12],
-            '--read-only','--network',self.network,'--ip',str(self.ip),'--user',f'{os.getuid()}:{os.getgid()}',
+            '--read-only','--network',self.network,'--user',f'{os.getuid()}:{os.getgid()}',
             '--cap-drop','ALL','--cap-add','NET_BIND_SERVICE','--security-opt','no-new-privileges',
             '--tmpfs','/tmp:rw,nosuid,nodev,mode=1777,size=16m',
             '--mount',f'type=bind,source={self.directory},target=/fixture','--workdir','/fixture',
-            '--entrypoint','/usr/bin/turnserver',self.image,'-c','/fixture/turnserver.conf'])
+            '--entrypoint','/bin/sh',self.image,'-eu','-c',gate])
         assert re.fullmatch(r'[0-9a-f]{64}',self.cid)
+        self.report['startup_stage']='network-start'
+        command(['docker','start',self.cid])
+        container=json.loads(command(['docker','inspect',self.cid]))[0]
+        networks=list(container['NetworkSettings']['Networks'].values())
+        assert len(networks)==1 and networks[0]['NetworkID']==self.network
+        self.ip=ipaddress.IPv4Address(networks[0]['IPAddress'])
+        assert self.ip in subnet and self.ip!=self.gateway
+        self.report['startup_stage']='private-configuration'
         shared=secrets.token_hex(32)
         self.username=f'{int(time.time())+180}:synthetic-g6-bridge'
         self.password=base64.b64encode(hmac.new(shared.encode(),self.username.encode(),hashlib.sha1).digest()).decode()
-        private_write(self.directory/'turnserver.conf','\n'.join([
+        private_write(self.directory/'turnserver.pending.conf','\n'.join([
             f'listening-ip={self.ip}',f'relay-ip={self.ip}','listening-port=3478',
             'min-port=32000','max-port=32031','relay-threads=1','realm=gate6.invalid','use-auth-secret',
             f'static-auth-secret={shared}',f'allowed-peer-ip={self.gateway}',f'allowed-peer-ip={self.ip}',
@@ -77,6 +99,7 @@ class OwnedBridgeTurn:
             'no-tcp' if self.transport=='udp' else 'no-udp','fingerprint','verbose',
             'user-quota=8','total-quota=8','drain-min-allocations=0','userdb=/fixture/turn.sqlite',
             'pidfile=/fixture/turn.pid','log-file=stdout','simple-log','new-log-timestamp=false','']))
+        os.replace(self.directory/'turnserver.pending.conf',self.directory/'turnserver.conf')
         self.url=f'turn:{self.ip}:3478?transport={self.transport}'
         private_write(self.directory/'fixture.json',json.dumps(dict(url=self.url,ip=str(self.ip),
             listener_port=3478,relay_port_start=32000,relay_port_end=32031,
@@ -86,11 +109,6 @@ class OwnedBridgeTurn:
             for name in ['CONNECT_GATE6_TURN_USER','CONNECT_GATE6_TURN_PASSWORD']))
         self.environment=dict(CONNECT_SECRET_REFERENCES=str(refs),CONNECT_GATE6_TURN_USER=self.username,
             CONNECT_GATE6_TURN_PASSWORD=self.password,CONNECT_G6_REMOTE_BROWSER_RELAY_CONFIG=str(self.directory/'fixture.json'))
-        command(['docker','start',self.cid])
-        container=json.loads(command(['docker','inspect',self.cid]))[0]
-        networks=list(container['NetworkSettings']['Networks'].values())
-        assert len(networks)==1 and networks[0]['NetworkID']==self.network
-        assert ipaddress.IPv4Address(networks[0]['IPAddress'])==self.ip
         # A real unauthenticated STUN binding exchange in a separate owned
         # container proves the selected control listener, without external IO.
         code='''import socket,struct,secrets,time,sys
@@ -114,6 +132,7 @@ while True:
   time.sleep(.025)
 print('owned-stun-binding-ready')'''
         probe_name='connect-g6-turn-probe-'+uuid.uuid4().hex[:12]
+        self.report['startup_stage']='control-binding'
         try:
             ready=command(['docker','run','--rm','--name',probe_name,'--read-only','--network',self.network,'--cap-drop','ALL',
                 '--security-opt','no-new-privileges','--env','PYTHONDONTWRITEBYTECODE=1',

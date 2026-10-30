@@ -36,8 +36,9 @@ The manual `relay` lane selects EdDSA/ES256 with UDP and TCP TURN control.
 The `full` lane also includes those four cells. The native Linux x86 image is
 pinned to `coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf`;
 the launcher verifies the actual 4.18.0 binary and its digest. TURN runs in a
-third namespace on the same internal bridge. Its entrypoint is invoked directly,
-so the image's external-IP discovery is never used. It receives only
+third namespace on the same internal bridge. A bounded private-config gate starts before address inspection, then execs the
+verified daemon after atomic configuration publication; no static IPAM setup or
+image external-IP discovery is used. It receives only
 `NET_BIND_SERVICE` in its capability bounding set because the image executable
 carries that file capability; all configured ports are above1024, with no host
 network mode or published ports.

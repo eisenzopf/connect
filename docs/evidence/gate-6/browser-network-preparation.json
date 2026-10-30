@@ -5217,5 +5217,410 @@
     "python_guards_passed": 16,
     "node_path_recovery_guards_passed": 14,
     "remaining": "Run four actual Linuxx86 browser relay cells and require at least4real allocations plus zero-allocation drain before original daemon exit. Uclient UDP allocated5but did not drain within10seconds; it remains failed. Preparation/ARM primitives cannot qualify G6-054 or acceptance."
+  },
+  "linux_5c_relay_start_and_fault": {
+    "relay": {
+      "run_id": 41098854766,
+      "source_revision": "5ca22859c44439281a7dd3188be1d703f99bca98",
+      "artifact_sha256": "00b736fd313905a42ebac6f27fc3e588323766f10442001351e368b3653a72c8",
+      "git_sources_verified": 2845,
+      "prepared_dependencies_matching": 3087,
+      "cases": {
+        "bridge-relay-tcp-eddsa": {
+          "scope": "Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge.",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "image_id": "sha256:406c69d05667ec6c80c59f17e65d63378408a971735256e1cd2dffd8f0ca8522",
+          "relay_transport": "tcp",
+          "binary_sha256": "54b8740647477a37e14a221e7d0aacbd90a45c9888a6a5b9d2f21446389de9c7",
+          "source_count": 5932,
+          "source_manifest_sha256": "a32c601633797ed3a7944f7f4757d682bee7769ad143006962705871df9f0b82",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "failure": {
+            "stage": "owned-turn-start",
+            "error_class": "CalledProcessError"
+          },
+          "turn": {
+            "passed": false,
+            "transport": "tcp",
+            "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+            "architecture": "amd64",
+            "version": "4.18.0",
+            "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        },
+        "bridge-relay-tcp-es256": {
+          "scope": "Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge.",
+          "algorithm": "ES256",
+          "passed": false,
+          "image_id": "sha256:406c69d05667ec6c80c59f17e65d63378408a971735256e1cd2dffd8f0ca8522",
+          "relay_transport": "tcp",
+          "binary_sha256": "54b8740647477a37e14a221e7d0aacbd90a45c9888a6a5b9d2f21446389de9c7",
+          "source_count": 5932,
+          "source_manifest_sha256": "a32c601633797ed3a7944f7f4757d682bee7769ad143006962705871df9f0b82",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "failure": {
+            "stage": "owned-turn-start",
+            "error_class": "CalledProcessError"
+          },
+          "turn": {
+            "passed": false,
+            "transport": "tcp",
+            "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+            "architecture": "amd64",
+            "version": "4.18.0",
+            "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        },
+        "bridge-relay-udp-eddsa": {
+          "scope": "Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge.",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "image_id": "sha256:406c69d05667ec6c80c59f17e65d63378408a971735256e1cd2dffd8f0ca8522",
+          "relay_transport": "udp",
+          "binary_sha256": "54b8740647477a37e14a221e7d0aacbd90a45c9888a6a5b9d2f21446389de9c7",
+          "source_count": 5932,
+          "source_manifest_sha256": "a32c601633797ed3a7944f7f4757d682bee7769ad143006962705871df9f0b82",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "failure": {
+            "stage": "owned-turn-start",
+            "error_class": "CalledProcessError"
+          },
+          "turn": {
+            "passed": false,
+            "transport": "udp",
+            "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+            "architecture": "amd64",
+            "version": "4.18.0",
+            "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        },
+        "bridge-relay-udp-es256": {
+          "scope": "Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge.",
+          "algorithm": "ES256",
+          "passed": false,
+          "image_id": "sha256:406c69d05667ec6c80c59f17e65d63378408a971735256e1cd2dffd8f0ca8522",
+          "relay_transport": "udp",
+          "binary_sha256": "54b8740647477a37e14a221e7d0aacbd90a45c9888a6a5b9d2f21446389de9c7",
+          "source_count": 5932,
+          "source_manifest_sha256": "a32c601633797ed3a7944f7f4757d682bee7769ad143006962705871df9f0b82",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "failure": {
+            "stage": "owned-turn-start",
+            "error_class": "CalledProcessError"
+          },
+          "turn": {
+            "passed": false,
+            "transport": "udp",
+            "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+            "architecture": "amd64",
+            "version": "4.18.0",
+            "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc"
+          },
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        }
+      },
+      "conclusion": "All four native Linuxx86 coturn4.18 binaries/version digests verify, but Docker create rejects the static-IP invocation before a daemon exists. No browser relay runtime or allocation drain pass. Remove static-IP prerequisites; start one bounded private-config gate, inspect the actual assigned address, atomically publish its config and exec the verified daemon. The image external-IP entrypoint remains bypassed."
+    },
+    "fault": {
+      "run_id": 41098859120,
+      "source_revision": "5ca22859c44439281a7dd3188be1d703f99bca98",
+      "artifact_sha256": "af8a5239d5e5be0cc0eafdcfe5cacf9aa93e8e2c9dc31c9e46a826405475b1bc",
+      "git_sources_verified": 2856,
+      "prepared_dependencies_matching": 3087,
+      "case": {
+        "exit_code": 1,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 67.192128424,
+        "log_sha256": "a607c27bfd1c18807476ecc5739659d22f4183a1b8a9108ed959ec58fc8c1e00",
+        "cpu": {
+          "profile": {
+            "logical_cpus": 4,
+            "affinity_cpus": 4,
+            "quota_cores": 4.0
+          },
+          "cpu_stat_delta": {
+            "usage_usec": 66498573,
+            "user_usec": 40998260,
+            "system_usec": 25500314,
+            "nr_periods": 672,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "average_cores_used": 0.9896780256814683
+        },
+        "name": "impairment-eddsa",
+        "passed": false,
+        "network": {
+          "scope": "Owned Linux Docker loopback UDP netem; no host or external network changes.\n\nBoth directions across the exact eight server media ports get 3% random loss,\n0\u2013100ms delay and one observed three-second blackhole. Raw state stays in .local.\n",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_owned_udp_impairment_eddsa",
+          "source_count": 5943,
+          "kernel_release": "7.0.0-1017-azure",
+          "source_manifest_sha256": "14589a12035e70e6638af4ca0c3ada8dc4a98c5234a867ff503e499a76c5fa0a",
+          "binary_sha256": "54b8740647477a37e14a221e7d0aacbd90a45c9888a6a5b9d2f21446389de9c7",
+          "runner_sha256": "cd99ca4fe802b76cd7b7d35e72451bcfa642ace44725f499894d0f88960a956a",
+          "profile": "impairment",
+          "configured_random_drop_probability": 0.03,
+          "configured_delay_ms": [
+            0,
+            100
+          ],
+          "configured_burst_seconds": 3,
+          "delay_distribution": "kernel netem uniform50ms +/-50ms",
+          "random_method": "kernel netem per-packet random loss; realized drops are reported, no fixed-seed claim",
+          "initial_counters": {
+            "to_client": {
+              "bytes": 0,
+              "packets": 0,
+              "drops": 0,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            },
+            "to_server": {
+              "bytes": 0,
+              "packets": 0,
+              "drops": 0,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            }
+          },
+          "burst": {
+            "interval": {
+              "start_unix_seconds": 1793381342.6596375,
+              "end_unix_seconds": 1793381345.661816,
+              "duration_seconds": 3.0021780549999733
+            },
+            "before": {
+              "to_client": {
+                "bytes": 1875651,
+                "packets": 4458,
+                "drops": 143,
+                "overlimits": 0,
+                "requeues": 0,
+                "backlog": 1776,
+                "qlen": 6
+              },
+              "to_server": {
+                "bytes": 2506718,
+                "packets": 5572,
+                "drops": 186,
+                "overlimits": 0,
+                "requeues": 0,
+                "backlog": 3948,
+                "qlen": 12
+              }
+            },
+            "after": {
+              "to_client": {
+                "bytes": 1877427,
+                "packets": 4464,
+                "drops": 227,
+                "overlimits": 0,
+                "requeues": 0,
+                "backlog": 0,
+                "qlen": 0
+              },
+              "to_server": {
+                "bytes": 2510666,
+                "packets": 5584,
+                "drops": 650,
+                "overlimits": 0,
+                "requeues": 0,
+                "backlog": 0,
+                "qlen": 0
+              }
+            },
+            "dropped": {
+              "to_client": 84,
+              "to_server": 464
+            }
+          },
+          "exit_code": 101,
+          "original_process_joined": true,
+          "final_counters": {
+            "to_client": {
+              "bytes": 4743125,
+              "packets": 11829,
+              "drops": 450,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            },
+            "to_server": {
+              "bytes": 6183361,
+              "packets": 15014,
+              "drops": 948,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            }
+          },
+          "owned_qdiscs_removed": true,
+          "original_media_addresses_reclaimed": 8,
+          "test_log_sha256": "83e1e0982dabe48be3730de1d289a5ba853f67596971d209056c84d2be9c2e44",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 105 filtered out; finished in 66.45s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+              "line": 1021,
+              "column": 5
+            }
+          ],
+          "browser": {
+            "status": "failed",
+            "phase": null,
+            "failure_code": null,
+            "error_class": null,
+            "peer_states": [],
+            "owned_network_paths": null,
+            "observations": [
+              {
+                "decoded_fps": 7.332367904939134,
+                "changing_fps": 6.28250613673194,
+                "audio": "passed",
+                "audio_coverage_complete": true,
+                "audio_maximum_sampling_gap_seconds": 0.11140012741088867,
+                "audio_bad_unexcepted_samples": 0,
+                "maximum_unexcluded_motion_gap_seconds": 1.3324999809265137,
+                "motion": "passed",
+                "source_identity": "passed",
+                "recovery": [
+                  {
+                    "burst": {
+                      "start_unix_seconds": 1793381342.6596375,
+                      "end_unix_seconds": 1793381345.661816,
+                      "duration_seconds": 3.0021780549999733
+                    },
+                    "burst_inside_measured_window": true,
+                    "changing_content_before_burst": true,
+                    "decoded_keyframe_increment_observation": {
+                      "status": "observed",
+                      "sampled_interval_start_unix_seconds": 1793381345.641,
+                      "sampled_interval_end_unix_seconds": 1793381346.1361,
+                      "before": 21,
+                      "after": 22,
+                      "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+                    },
+                    "fresh_decoded_content_after_end_seconds": 0.3447842597961426,
+                    "status": "passed"
+                  }
+                ],
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "impairment",
+                  "status": "passed",
+                  "quality_status": "failed",
+                  "reason": "impaired-quality-advisory"
+                }
+              },
+              {
+                "decoded_fps": 10.28182532718648,
+                "changing_fps": 8.665395737661214,
+                "audio": "failed",
+                "audio_coverage_complete": true,
+                "audio_maximum_sampling_gap_seconds": 0.11210012435913086,
+                "audio_bad_unexcepted_samples": 2,
+                "maximum_unexcluded_motion_gap_seconds": 1.949699878692627,
+                "motion": "passed",
+                "source_identity": "passed",
+                "recovery": [
+                  {
+                    "burst": {
+                      "start_unix_seconds": 1793381342.6596375,
+                      "end_unix_seconds": 1793381345.661816,
+                      "duration_seconds": 3.0021780549999733
+                    },
+                    "burst_inside_measured_window": true,
+                    "changing_content_before_burst": true,
+                    "decoded_keyframe_increment_observation": {
+                      "status": "observed",
+                      "sampled_interval_start_unix_seconds": 1793381345.6422,
+                      "sampled_interval_end_unix_seconds": 1793381347.1357,
+                      "before": 22,
+                      "after": 23,
+                      "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+                    },
+                    "fresh_decoded_content_after_end_seconds": 1.1101841926574707,
+                    "status": "passed"
+                  }
+                ],
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "impairment",
+                  "status": "passed",
+                  "quality_status": "failed",
+                  "reason": "impaired-quality-advisory"
+                }
+              }
+            ]
+          },
+          "failure": {
+            "stage": "decoded-media-verification",
+            "error_class": "AssertionError",
+            "network_error": null
+          },
+          "changed_source_inputs": []
+        }
+      },
+      "conclusion": "Both motion freshness checks and both actual burst video recoveries now pass.344/1.110seconds, and one audio window passes with0bad samples. The other has2bad audio samples despite complete coverage; overall impairment remains failed."
+    },
+    "portable_start_primitive": {
+      "passed": true,
+      "scope": "Owned LinuxARM TURN container start, actual separate-namespace STUN and zero-allocation drain only; no media or Linuxx86 qualification",
+      "turn": {
+        "passed": true,
+        "transport": "udp",
+        "image_id": "sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068",
+        "architecture": "arm64",
+        "version": "4.18.0",
+        "binary_sha256": "25bd7874d5b655ba5dff52eef8905627e8305898e0d10e67abd01f87d6d70e92",
+        "startup_stage": "control-binding",
+        "control_binding_ready": true,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 4.870028000092134,
+        "original_exit_code": 0,
+        "allocation_successes": 0,
+        "log_sha256": "3b67d85e4ac0d61de54dec5610af460009f1ec97157f371efc61e9246de5b8f7",
+        "original_container_joined": true,
+        "owned_container_removed": true,
+        "forced_cleanup": false
+      },
+      "containers_drained": true,
+      "network_removed": true
+    },
+    "remaining": "Native Linuxx86 rerun of portable TURN startup and browser relay; Linux clean/fault audio/video quality still unqualified. No G6-054 or acceptance closure."
   }
 }
