@@ -58,7 +58,9 @@ type MediaFacts = (
     i64,
     bool,
 );
-/// At most three entries per original live origin, independent of packet count.
+/// Three memos per live origin, each bounded to the four SQL observers.
+/// Independent observers never evict each other's current metadata. Their
+/// connection-specific SQL/clock stamps are still compared without substitution.
 /// No reader, execution handle or IO grant can be retained by this metadata.
 #[derive(Default)]
 pub(super) struct Metadata {
@@ -66,17 +68,17 @@ pub(super) struct Metadata {
     pub(super) unary: Memo<MediaFacts>,
     pub(super) paired: Memo<MediaFacts>,
 }
-pub(super) struct Memo<T>(Mutex<Option<Entry<T>>>);
+pub(super) struct Memo<T>(Mutex<Vec<Entry<T>>>);
 impl<T> Default for Memo<T> {
     fn default() -> Self {
-        Self(Mutex::new(None))
+        Self(Mutex::new(Vec::new()))
     }
 }
 #[derive(Clone)]
 struct Entry<T> {
     version: Version,
     source: Option<Weak<ErasedMetadata>>,
-    facts: T,
+    facts: Arc<T>,
     scopes: Vec<AuthorityScope>,
 }
 impl<T> Entry<T> {
@@ -104,8 +106,8 @@ pub(super) fn peek_map<T, U>(
     let c = store.try_packet_connection()?;
     let before = version(&c)?;
     let observed = memo.0.try_lock().ok().and_then(|slot| {
-        slot.as_ref()
-            .filter(|entry| entry.matches(before, source))
+        slot.iter()
+            .find(|entry| entry.matches(before, source))
             .map(|entry| project(&entry.facts))
     });
     if version(&c)? != before {
@@ -148,14 +150,12 @@ fn cached_with<T: Clone>(
     let mut captured = None;
     let mut capture = |c: &Connection, version: Version| {
         if let Ok(entry) = memo.0.try_lock() {
-            if let Some(entry) = entry
-                .as_ref()
-                .filter(|entry| entry.matches(version, source))
-            {
+            if let Some(entry) = entry.iter().find(|entry| entry.matches(version, source)) {
                 return Ok((entry.facts.clone(), entry.scopes.clone()));
             }
         }
         let (facts, scopes) = derive(c)?;
+        let facts = Arc::new(facts);
         captured = Some(Entry {
             version,
             source: source.map(Arc::downgrade),
@@ -171,11 +171,11 @@ fn cached_with<T: Clone>(
         // new file interval. It lends no grant. The exact current SQL/clock/
         // source version must still match under that new interval. A mismatch
         // drops both SQL and the disposable reader before normal derivation.
-        let previous = memo.0.try_lock().ok().and_then(|slot| {
-            slot.as_ref()
-                .filter(|entry| entry.same_source(source))
-                .cloned()
-        });
+        let previous = memo
+            .0
+            .try_lock()
+            .ok()
+            .and_then(|slot| slot.iter().find(|entry| entry.same_source(source)).cloned());
         if let Some(previous) = previous {
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
                 let c = store.try_packet_connection()?;
@@ -216,10 +216,23 @@ fn cached_with<T: Clone>(
     // SQL is retained by the caller's owned fresh authority guard.
     if let Some(entry) = captured {
         if let Ok(mut slot) = memo.0.try_lock() {
-            *slot = Some(entry);
+            if let Some(previous) = slot
+                .iter_mut()
+                .find(|previous| previous.version.connection == entry.version.connection)
+            {
+                *previous = entry;
+            } else {
+                if slot.len() == crate::packet_observation::OBSERVERS {
+                    slot.remove(0);
+                }
+                slot.push(entry);
+            }
         }
     }
-    Ok(result)
+    // Only immutable metadata references are copied under SQL. A potentially
+    // large caller projection is cloned after both SQL and the memo mutex end;
+    // the separately acquired current file interval remains caller-owned.
+    Ok((result.0.as_ref().clone(), result.1))
 }
 
 /// Capture under short immediate SQL custody, release SQL for all file admission,

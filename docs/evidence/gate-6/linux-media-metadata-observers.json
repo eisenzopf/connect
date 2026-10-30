@@ -1,0 +1,66 @@
+{
+  "task": "G6-054",
+  "scope": "Controlled macOSarm64 Store snapshot/authority regression and bounded metadata-work reduction only; no Linux media performance or full-task qualification.",
+  "base_revision": "0e93e36a374103e7725c5654e5a2a82d9bf6ea73",
+  "source_sha256": {
+    "crates/connect-store/src/packet_observation.rs": "bcf42703148faef8ed85de70dca0c849cc45156616f07cca326644afecaa7bca",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "781115b08ae2b77c409afeb764ca15c1fc4927d69cdca31233a41882c379ab66",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "e499dd348901e9f6862c806eb649603240e041e8bc784f422af4c82aef020eec",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests/hints.rs": "fe135a10616e5e9d41c7e5bd0d2bd0cf26207ba06083da9cdb0a799ce7668329"
+  },
+  "change": "Retain at most one immutable metadata entry for each of the four bounded SQL observers in each lifetime/unary/paired memo. Keep exact connection/data/schema/change/clock stamps and source weak identity; every executable read still acquires its fresh complete file authority interval. Clone large projections after SQL and memo mutex release.",
+  "bounds": {
+    "sql_observers": 4,
+    "memos_per_origin": 3,
+    "maximum_metadata_entries_per_origin": 12,
+    "retained_sql_guards": 0,
+    "retained_authority_grants": 0
+  },
+  "controlled_before": {
+    "passed": false,
+    "unchanged_reads": 12,
+    "full_derivations": 12,
+    "expected_derivations": 4,
+    "log_sha256": "9e0171a59db66fe6ab34e0838528ad79fdd147cbdc2757ddd30d4c0ddfb65e91"
+  },
+  "controlled_after": {
+    "passed": true,
+    "unchanged_reads": 12,
+    "full_derivations": 4,
+    "repeated_external_commits": 11,
+    "all_observers_revalidate": true,
+    "retained_metadata_stays_bounded": true,
+    "queued_writer_still_refused": true
+  },
+  "checks": [
+    {
+      "name": "metadata-observers-after-snapshot-final",
+      "functions_passed": 21,
+      "seconds": 3.89,
+      "log_sha256": "60417c3ef2df99eab584cf1c1b71a1c73fb8a5064ed6ad81ad8ffeefb2f25366"
+    },
+    {
+      "name": "metadata-observers-after-native-authority",
+      "functions_passed": 182,
+      "seconds": 50.03,
+      "log_sha256": "69e3ba2eab54089cb573250d4596241cbac4bee2d687134e8a9fca4bcb7bd44a"
+    }
+  ],
+  "development_checks": [
+    {
+      "status": "unrun",
+      "reason": "Initial macOS debug stripping ran out of space and left a non-executable artifact; no tests executed."
+    },
+    {
+      "status": "failed-build",
+      "reason": "Global strip override caused dependency rebuilding and exhausted local space; no behavioral pass."
+    },
+    {
+      "status": "executed",
+      "reason": "Package-only strip=none reused ordinary dependencies. The before test genuinely failed12versus4; final snapshot and related authority suites pass."
+    }
+  ],
+  "linux_runtime": "pending",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

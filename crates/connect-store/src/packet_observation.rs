@@ -3,7 +3,7 @@
 //! original complete file interval and seals SQL/source/schema/clock versions.
 use crate::*;
 
-const OBSERVERS: usize = 4;
+pub(crate) const OBSERVERS: usize = 4;
 
 pub(crate) fn open(path: &Path) -> Result<Vec<Mutex<Connection>>> {
     (0..OBSERVERS)

@@ -386,3 +386,12 @@ ICE credentials remain outside the canonical offer/control intents. This uses
 the client's scoped relay credentials; it does not expose server secret refs.
 The wrapper tests use synthetic RTC boundaries; actual relay traffic remains
 part of G6-054 verification.
+
+The current packet-metadata memos retain at most one entry per each of the four
+read-only SQL observers: twelve metadata entries across an origin's lifetime,
+unary and paired memos. Exact SQL-connection, data/schema/change, policy-clock
+and source-identity stamps still gate every reuse. These entries retain neither
+SQL custody nor executable authority; packet IO reacquires its complete current
+file interval. Projection copies run after SQL and cache-mutex release. The
+controlled regression and its Linux qualification limits are recorded in
+[the metadata-observer evidence](../evidence/gate-6/linux-media-metadata-observers.json).

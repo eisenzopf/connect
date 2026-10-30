@@ -186,6 +186,81 @@ struct Fixture {
     read: AuthorityScope,
     write: AuthorityScope,
 }
+
+#[test]
+fn unchanged_packet_metadata_is_retained_for_each_bounded_sql_observer() {
+    let f = Fixture::new();
+    for _ in 0..8 {
+        let memo = Memo::default();
+        let second = crate::now();
+        let mut resolutions = 0;
+        for _ in 0..3 {
+            for selected in 0..f.store.packet_connections.len() {
+                // Force real independent SQL custody, without swapping or
+                // pretending equal data_version values identify a connection.
+                let occupied: Vec<_> = f
+                    .store
+                    .packet_connections
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != selected)
+                    .map(|(_, connection)| connection.lock().unwrap())
+                    .collect();
+                let (value, held) = cached(&f.store, &memo, None, |c| {
+                    resolutions += 1;
+                    f.derive(c)
+                })
+                .unwrap();
+                assert_eq!(value, 1);
+                drop(held);
+                drop(occupied);
+            }
+        }
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(
+            resolutions,
+            f.store.packet_connections.len(),
+            "unchanged observers must not continually evict each other's validated metadata"
+        );
+        let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+        assert_eq!(
+            cached(&f.store, &memo, None, |c| f.derive(c))
+                .unwrap_err()
+                .code,
+            "authority-busy",
+            "every metadata hit still needs a fresh complete file interval"
+        );
+        drop(writer);
+        let external = Connection::open(f.store.path()).unwrap();
+        for value in 2..=12 {
+            external
+                .execute("UPDATE packet_snapshot_test SET value=?1", [value])
+                .unwrap();
+            for selected in 0..f.store.packet_connections.len() {
+                let occupied: Vec<_> = f
+                    .store
+                    .packet_connections
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != selected)
+                    .map(|(_, connection)| connection.lock().unwrap())
+                    .collect();
+                assert_eq!(
+                    cached(&f.store, &memo, None, |c| f.derive(c)).unwrap().0,
+                    value,
+                    "an external commit must invalidate every observer's old metadata"
+                );
+                drop(occupied);
+            }
+            assert!(memo.0.lock().unwrap().len()<=f.store.packet_connections.len(),
+                "repeated external commits cannot grow retained metadata beyond the bounded observer pool");
+        }
+        return;
+    }
+    panic!("No unchanged clock interval for the controlled observer test");
+}
 impl Fixture {
     fn new() -> Self {
         let dir = tempfile::tempdir().unwrap();
@@ -388,7 +463,9 @@ fn packet_metadata_memo_invalidates_external_own_clock_connection_and_source_cha
     assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
     assert_eq!(count.get(), 3);
     // Controlled memo timestamp models crossing an integer policy-clock edge.
-    memo.0.lock().unwrap().as_mut().unwrap().version.second -= 1;
+    for entry in memo.0.lock().unwrap().iter_mut() {
+        entry.version.second -= 1;
+    }
     assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
     assert_eq!(count.get(), 4);
     assert_eq!(
@@ -438,7 +515,7 @@ fn packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant() {
     assert!(start.elapsed() < Duration::from_millis(500));
     drop(locked);
     assert!(
-        memo.0.lock().unwrap().is_none(),
+        memo.0.lock().unwrap().is_empty(),
         "contended memo is optional metadata"
     );
     let external = Connection::open(f.store.path()).unwrap();
@@ -455,7 +532,7 @@ fn packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant() {
         "authority-busy"
     );
     assert!(
-        memo.0.lock().unwrap().is_none(),
+        memo.0.lock().unwrap().is_empty(),
         "failed admission cannot populate memo"
     );
     drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());

@@ -54,7 +54,7 @@ fn packet_metadata_hint_peek_checks_clock_and_refuses_sql_without_waiting_on_met
         "authority-busy"
     );
     drop(sql);
-    let second = memo.0.lock().unwrap().as_ref().unwrap().version.second;
+    let second = memo.0.lock().unwrap()[0].version.second;
     while crate::now() == second {
         std::thread::sleep(Duration::from_millis(2));
     }
