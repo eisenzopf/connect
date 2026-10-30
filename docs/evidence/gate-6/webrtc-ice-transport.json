@@ -1,9 +1,9 @@
 {
   "task": "G6-054",
   "status": "in-progress",
-  "checked_at": "2026-10-30T07:20:41.912311+00:00",
+  "checked_at": "2026-10-30T07:27:50.249744+00:00",
   "base_revision": "3132af4d",
-  "scope": "Upstream exclusive transport custody and read-only exact-SDP generation query; original canonical allocation lookup compiles in the normal upstream dependency graph. No canonical restart wire or decoded-media runtime claim.",
+  "scope": "Internal original-peer physical custodian, current authority, exclusive Core slot and exact-SDP live ICE query. Canonical wire dispatch, protected answer delivery and cleanup integration are still unregistered/unqualified; no actual canonical restart or decoded-media runtime claim.",
   "implementation": {
     "schema": 116,
     "patches": 247,
@@ -11,7 +11,9 @@
     "patch_sha256": "70b40e1aa42184f152ebfa89bd214f1b9eba31da511850545d5e9f9b8ee757db",
     "core_slot": "Same exclusive inflight semaphore as media/gate/audience/credential changes; no proposal/revision/port/source/gate mutation, separate default-deny exact held transport policy, original credential incarnation/deadline/port-pointer checks, no idle policy reader.",
     "canonical_allocation": "Borrow only the exact existing route/physical binding/PeerAdmission allocation; verify the same route before and after awaiting, no allocation start/replacement or legacy adapter fallback. Compiled, not separately runtime qualified.",
-    "live_query": "Under one core lock, compare exact current SDP strings and full credential generation/live selected pair/DTLS/stable signaling. Caller parameters/history cannot substitute another SDP identity."
+    "live_query": "Under one core lock, compare exact current SDP strings and full credential generation/live selected pair/DTLS/stable signaling. Caller parameters/history cannot substitute another SDP identity.",
+    "service_custodian": "Owns the original move-only Store lease and reader-free origin. Reuses the exact original canonical peer and Core slot, captures original descriptions, invokes answerer restart at most once, saves its actual answer before returning, then reacquires short current authority for every exact-SDP live ICE observation. Only a ready observation consumes the lease into a receipt; metadata completion retries do no RTC IO.",
+    "contention": "Pre-submission current-authority/metadata/Core-slot contention remains bounded/retryable on the same custodian/deadline. After the physical submission marker is set, negotiation cannot be called again. Idle custody retains no Store readers or AuthorizedEnvelope. Unknown status/replay does not obtain this worker or a new lease."
   },
   "verification": {
     "runs": [
@@ -32,8 +34,8 @@
           "--test-threads=1"
         ],
         "exit_code": 0,
-        "seconds": 26.42186183296144,
-        "log_sha256": "eb3830d8b76cb31af40be6b6cd8cd30976970c5cbf46e397f8022020933d63fc",
+        "seconds": 0.4395447501447052,
+        "log_sha256": "88d0540a7d0992de416e9070dbccb6b14bd431ce0961a541c47c89e922e01212",
         "passed": 4,
         "failed": 0,
         "ignored": 0
@@ -55,8 +57,8 @@
           "--test-threads=1"
         ],
         "exit_code": 0,
-        "seconds": 0.5594975422136486,
-        "log_sha256": "4abb8ff98bda05f5a67d2f18ecab9df6f18ecfe688b311da2e16738edbaffbb0",
+        "seconds": 0.3088382079731673,
+        "log_sha256": "de23bcaf76702e5477808866aee5eae34863d4fc4277d0f149809ffb6003f427",
         "passed": 3,
         "failed": 0,
         "ignored": 0
@@ -78,18 +80,57 @@
           "--test-threads=1"
         ],
         "exit_code": 0,
-        "seconds": 6.230162708088756,
-        "log_sha256": "bccfa3d9fa1739e50ebd3e0c56b62f58d7d82353c4a008193bc3972a122e370e",
+        "seconds": 0.5892315420787781,
+        "log_sha256": "ba25916d19fbc31ee171ce6c8960ba05a5b5f09487fb75cfba3832d1adcb4db7",
         "passed": 3,
         "failed": 0,
         "ignored": 0
+      },
+      {
+        "label": "service",
+        "command": [
+          "cargo",
+          "check",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-service",
+          "--lib"
+        ],
+        "exit_code": 0,
+        "seconds": 0.43460616702213883,
+        "log_sha256": "a32639022cea679cc8445e744b1308b6842deb426e9707717d5eb71d98a5f11c"
+      },
+      {
+        "label": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "seconds": 3.055481000104919,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "label": "prepare",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "seconds": 0.20056937518529594,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
       }
     ],
     "upstream_guarded_inputs": 4351,
     "upstream_changed_inputs": [],
-    "full_manifest_sha256": "79e384fee5e190c438bee5d8c31f57089653686a051436557b9dc6f1aac32f84",
+    "full_manifest_sha256": "3a6364ad49542aecd90bd2310a725f11a39d74a5f6a9eb6c1d877f51490df3cc",
     "behavior": "Four default-deny/idle revocation/deadline-shutdown-credential/gate exclusion-original port functions, three related gate-slot regressions, three actual synthetic sans-I/O ICE/DTLS packet functions including exact/stale/changed SDP and packet-loss restart readiness. No sockets/provider/media payload proof.",
-    "service": "Production service worker integration verification pending at this checkpoint."
+    "service": "Production connect-service default library check passes at schema116/247 patches, including the internal physical custodian and policy. The preceding compilation took604.068s; final frozen verification reused its matching artifacts in0.435s. This checks types/features, not runtime execution or Send/spawn qualification of the unwired worker.",
+    "source_count": 5898,
+    "changed_inputs": [],
+    "store_continuation": "Separate thirteen targeted Store functions pass; see webrtc-ice-continuation.json. That earlier run used246prepared patches and records a post-run source hash only; no fresh whole Store regression claim."
   },
   "unqualified_attempts": [
     {
@@ -99,17 +140,23 @@
     {
       "scope": "First corrected Core link",
       "result": "LLVM objcopy ENOSPC left nonexecutable 2112-byte data stub; tests never executed. Original log/stub mode/hash preserved. Losslessly verified archival of closed generated caches preceded successful unchanged-source rerun."
+    },
+    {
+      "scope": "Intermediate whole-source verification",
+      "result": "Service command passed, but the verification guard rejected two intentional service-file edits for contention/single-submission review during dependency compilation. That cycle is unqualified as an unchanged whole interval; final frozen six-command verification passes on5898 unchanged guarded inputs."
     }
   ],
   "remaining": [
-    "Tracked canonical worker/answer delivery/uncertainty and original cleanup integration",
-    "Public wire/HTTP/OpenAPI/SDK integration",
-    "Actual distinct-network direct/relay/expiry/restart/loss/unreachable decoded-duplex and cleanup qualification"
+    "Tracked canonical dispatch worker, protected correlated answer delivery and original-peer cleanup/join integration",
+    "Canonical wire action and HTTP/OpenAPI/SDK registration together",
+    "Actual same-peer signed native/WSS/browser restart with current authority, uncertainty/replay and independently decoded duplex proof",
+    "Distinct-network direct/relay/expiry/loss/unreachable-port qualification, relay cleanup and unresolved video quality at unchanged thresholds"
   ],
   "gate_counts": {
     "done": 68,
     "in_progress": 1,
     "not_started": 36,
     "acceptance_qualified": 0
-  }
+  },
+  "service_base_revision": "2eab88b2"
 }

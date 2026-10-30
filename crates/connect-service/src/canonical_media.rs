@@ -3,6 +3,7 @@ pub(crate) mod credential_refresh;
 pub(crate) mod data;
 pub(crate) mod data_writes;
 pub(crate) mod handoff;
+pub(crate) mod ice;
 mod packet_metadata;
 mod packets;
 pub(crate) mod preparation;
@@ -839,6 +840,16 @@ impl MediaAuthorityLease for Held {
     }
 }
 impl MediaPolicy for Policy {
+    fn current_transport_update(
+        &self,
+        scope: &MediaScope<'_>,
+        expected: u64,
+        held: &(dyn Any + Send + Sync),
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        held.downcast_ref::<ice::Invocation>()
+            .ok_or(StreamControlError::Authority)?
+            .current(self, scope, expected)
+    }
     fn current_device_replacement_signal(
         &self,
         scope: &rvoip_core::orchestrator::participant_control::DeviceReplacementSignalScope<'_>,

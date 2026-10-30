@@ -2,8 +2,10 @@
 
 G6-054 implementation is in progress. The bounded request types are implemented
 in `connect-protocol::webrtc_ice_restart`. Private Store custody is implemented
-in schema116. Canonical dispatch, physical execution, SDK methods and
-HTTP/OpenAPI registration are still pending. This document does not advertise a working public restart API.
+in schema116. An internal physical custodian and separate Core transport slot
+are implemented; public dispatch, answer delivery, cleanup integration, SDK
+methods and HTTP/OpenAPI registration remain pending. This document does not
+advertise a working public restart API.
 
 The intended mutation is `connection.update` with the original Conversation,
 Session and Connection scope, a new logical operation ID saved before IO, and
@@ -85,8 +87,8 @@ two retained peers, restart both credentials, drop the first restart flight,
 then require a new selected pair before either peer reports ready. They also
 refuse stale generations, same-fragment wrong passwords, empty parameters,
 closure and historical Connected metadata. No sockets/providers/media sources
-are created by that packet fixture. The Store operation and canonical restart
-worker are not installed by this read-only engine API.
+are created by that packet fixture. This read-only query does not install a
+canonical wire handler or grant IO.
 
 ## Private Store custody
 
@@ -118,7 +120,38 @@ with three ignored worker entrypoints and one stale enrollment schema assertion.
 exact function passes on unchanged production inputs; the original full run
 remains failed. This is composite coverage, not a fresh full-suite pass.
 
-## Required physical execution
+## Original physical custody
+
+`NativeIceOrigin` retains only Store-issued attribution for the original
+command, complete credential chain, key, member epoch, Endpoint, effect and
+runtime. It holds no authority readers. Each subsequent observation must use
+`resume_native_ice_authority` with the original move-only attempt lease. Fresh
+admission is bounded by its original expiry; Unknown attempts, foreign effects,
+changed runtimes and withdrawn authority cannot obtain another IO grant.
+
+Core's `TransportUpdateSlot` holds the same exclusive slot as media/gate,
+audience and credential changes. It stages no media proposal and changes no
+revision, port, source or gate. A separate default-deny transport policy must
+recognize the exact held invocation. Each use checks current authority, the
+original credential incarnation, same original port pointers and deadline.
+Idle custody retains only the slot and attribution, allowing authority writers.
+
+The internal service `Restart` custodian borrows the exact original canonical
+RTC allocation, captures its actual SDP baseline and permits only one physical
+answerer restart call. It persists the returned answer before returning it to
+its caller. Submission errors/cancellation cannot become no-effect receipts;
+replay/status must not invoke negotiation again. Fresh short authority reads
+guard each live observation, and the RTC query compares the exact persisted
+offer/answer and their live ICE generation together under one core lock.
+Only that observed completion consumes the original lease into a receipt.
+Metadata persistence can retry with that receipt without invoking RTC again.
+
+This custodian is not yet connected to public dispatch. Its caller still needs
+tracked worker custody, protected correlated answer delivery and original-peer
+cleanup/join handling. Source compilation and component tests do not establish
+actual canonical restart, network recovery or decoded-media qualification.
+
+## Required public execution and qualification
 
 Before physical IO, save the complete original payload, caller, scope, current
 Endpoint/membership, Connection ownership generation, expected media revision
@@ -130,8 +163,8 @@ Connection, choose another Endpoint or switch substrate.
 The canonical physical host must use its existing Core-reserved WebRTC peer.
 Upstream's other WebSocket/WHIP signaling adapter already has an authorized
 answerer restart primitive; that route does not grant access to canonical
-resources. Add the corresponding guarded canonical primitive and retain the
-same original physical owner, logical streams, source identities and gates.
+resources. Public integration must retain the guarded original physical owner,
+logical streams, source identities and gates throughout that mutation.
 Validate unchanged media/DTLS identity and the new ICE credentials before
 applying the offer. No changed route is accepted from an untrusted body alone.
 

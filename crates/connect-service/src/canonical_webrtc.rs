@@ -24,6 +24,7 @@ use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 mod admission;
 mod gates;
+mod ice;
 mod streams;
 
 /// One original Store-issued attempt; the host must take custody synchronously.
