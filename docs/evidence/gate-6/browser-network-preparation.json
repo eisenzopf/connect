@@ -385,5 +385,288 @@
       }
     },
     "remaining": "Execute both actual Linux x86 bridge scenes. G6-054 remains in progress and acceptance unqualified."
+  },
+  "linux_host_gathering_and_bridge_continuation": {
+    "verified_runs": [
+      {
+        "run_id": 41078605823,
+        "source_revision": "55c058f24e37b320a5dfdaa82c09de5d0aa1a06d",
+        "zip_sha256": "58eb1afc61e39485637728e3e17dc5e5fc601de51b3cd90f17adef868d55cc5e",
+        "git_sources_verified": 2845,
+        "prepared_upstream_files_verified": 3087,
+        "prepared_upstream_differences": [],
+        "cases": [
+          {
+            "name": "native-ice",
+            "passed": true,
+            "seconds": 11.69458191800004,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "baseline",
+            "passed": false,
+            "seconds": 17.51355027999989,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "ice-eddsa",
+            "passed": false,
+            "seconds": 17.504592012999638,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "ice-es256",
+            "passed": false,
+            "seconds": 17.457685958000184,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "unreachable-eddsa",
+            "passed": true,
+            "seconds": 18.509423637000054,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": {
+              "actual_unanswered_allocate_requests": 12,
+              "original_address_reclaimed": true,
+              "owned_listener_joined": true,
+              "owned_loopback_only": true
+            }
+          },
+          {
+            "name": "unreachable-es256",
+            "passed": true,
+            "seconds": 18.50718087200039,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": {
+              "actual_unanswered_allocate_requests": 12,
+              "original_address_reclaimed": true,
+              "owned_listener_joined": true,
+              "owned_loopback_only": true
+            }
+          },
+          {
+            "name": "impairment-eddsa",
+            "passed": false,
+            "seconds": 18.762215411999932,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "impairment-es256",
+            "passed": false,
+            "seconds": 18.761426680000113,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          }
+        ],
+        "bridge_results": {}
+      },
+      {
+        "run_id": 41083266931,
+        "source_revision": "9a369e051debb295c4ba9cd8cf45c0c9489e913e",
+        "zip_sha256": "ef760d52e58c05af4b020e5ded1ba2205d2401e55e77c5e3a623565a853a663c",
+        "git_sources_verified": 2849,
+        "prepared_upstream_files_verified": 3087,
+        "prepared_upstream_differences": [],
+        "cases": [
+          {
+            "name": "native-ice",
+            "passed": true,
+            "seconds": 8.432853395999985,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "baseline",
+            "passed": false,
+            "seconds": 16.65199379500001,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "ice-eddsa",
+            "passed": false,
+            "seconds": 16.705009692000033,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "ice-es256",
+            "passed": false,
+            "seconds": 16.75978280099997,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "unreachable-eddsa",
+            "passed": true,
+            "seconds": 17.657340317999967,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": {
+              "actual_unanswered_allocate_requests": 12,
+              "original_address_reclaimed": true,
+              "owned_listener_joined": true,
+              "owned_loopback_only": true
+            }
+          },
+          {
+            "name": "unreachable-es256",
+            "passed": true,
+            "seconds": 17.80922044800002,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": {
+              "actual_unanswered_allocate_requests": 12,
+              "original_address_reclaimed": true,
+              "owned_listener_joined": true,
+              "owned_loopback_only": true
+            }
+          },
+          {
+            "name": "impairment-eddsa",
+            "passed": false,
+            "seconds": 17.56313807899994,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          },
+          {
+            "name": "impairment-es256",
+            "passed": false,
+            "seconds": 17.358029631000022,
+            "timed_out": false,
+            "forced_kill": false,
+            "turn": null
+          }
+        ],
+        "bridge_results": {
+          "bridge-eddsa": {
+            "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+            "algorithm": "EdDSA",
+            "passed": false,
+            "image_id": "sha256:278d2bdabfaafdaec90f004195cb9a4bc56e6c7c15e290b75c86d95b8de77669",
+            "binary_sha256": "50a4a037a24b1b24ad1fd011adea25b328274fd385c9e79e41ed7a4075c0a933",
+            "source_count": 5925,
+            "source_manifest_sha256": "4a043a3f330a42c109eeae1fc33c593784915a5a8182e531eb1debcb94487ae7",
+            "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+            "failure": {
+              "stage": "browser-container",
+              "error_class": "FileNotFoundError"
+            },
+            "bridge_containers_drained": true,
+            "owned_bridge_removed": true,
+            "forced_cleanup": false,
+            "sources_unchanged": true,
+            "tools_unchanged": true,
+            "tool_count": 71
+          },
+          "bridge-es256": {
+            "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+            "algorithm": "ES256",
+            "passed": false,
+            "image_id": "sha256:278d2bdabfaafdaec90f004195cb9a4bc56e6c7c15e290b75c86d95b8de77669",
+            "binary_sha256": "50a4a037a24b1b24ad1fd011adea25b328274fd385c9e79e41ed7a4075c0a933",
+            "source_count": 5925,
+            "source_manifest_sha256": "4a043a3f330a42c109eeae1fc33c593784915a5a8182e531eb1debcb94487ae7",
+            "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+            "failure": {
+              "stage": "browser-container",
+              "error_class": "FileNotFoundError"
+            },
+            "bridge_containers_drained": true,
+            "owned_bridge_removed": true,
+            "forced_cleanup": false,
+            "sources_unchanged": true,
+            "tools_unchanged": true,
+            "tool_count": 71
+          }
+        }
+      }
+    ],
+    "host_gathering_probe": {
+      "scope": "Owned Linux arm64 Chromium151 network-disabled host gathering probe only; normal address obfuscation settings, no decoded media or x86 qualification.",
+      "reports": [
+        {
+          "media_permission": false,
+          "owned_stun": false,
+          "bindings": 0,
+          "gathering": "gathering",
+          "host_candidates": 0,
+          "srflx_candidates": 0,
+          "mdns_candidates": 0
+        },
+        {
+          "media_permission": true,
+          "owned_stun": false,
+          "bindings": 0,
+          "gathering": "complete",
+          "host_candidates": 2,
+          "srflx_candidates": 0,
+          "mdns_candidates": 0
+        },
+        {
+          "media_permission": false,
+          "owned_stun": true,
+          "bindings": 1,
+          "gathering": "gathering",
+          "host_candidates": 0,
+          "srflx_candidates": 1,
+          "mdns_candidates": 0
+        },
+        {
+          "media_permission": true,
+          "owned_stun": true,
+          "bindings": 1,
+          "gathering": "complete",
+          "host_candidates": 2,
+          "srflx_candidates": 0,
+          "mdns_candidates": 0
+        }
+      ]
+    },
+    "fix": "Grant camera/microphone permission only to each owned Linux synthetic page origin. Both loopback ICE and media permission are explicit fixture settings; no device capture, address-obfuscation disablement or certificate bypass is added. Actual current CFT156 replay remains required.",
+    "bridge_filesystem_probe": {
+      "scope": "Owned Linux arm64 private-volume filesystem probe only; no browser/media/x86 qualification.",
+      "dropped_capabilities_cannot_read_private_runner_file": true,
+      "single_dac_override_reads_and_writes": true,
+      "private_modes_preserved": true,
+      "passed": true,
+      "owned_volume_removed": true
+    },
+    "bridge_fix": "Retain only DAC_OVERRIDE in the root fixture container, which must read runner-owned0700/0600 state while the host server uses it; return only that fresh fixture ownership afterward. All other capabilities remain dropped, source/root filesystem read-only and network internal.",
+    "guards": {
+      "build_and_privacy_functions": 9,
+      "native_local_regression": {
+        "passed": true,
+        "source_inputs": 5926,
+        "sources_unchanged": true,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 9.687102250056341,
+          "log_sha256": "335f5fbd5d692cdba5e90c16a095beb7d9f6a65c3f98dfa6a5d642bd45cd7b1b"
+        }
+      },
+      "syntax_and_format": true
+    },
+    "remaining": "Current Linux browser clean/ICE/fault and both distinct-network bridge scenes. All previous quality/setup failures remain retained; no whole G6-054 or acceptance qualification."
   }
 }

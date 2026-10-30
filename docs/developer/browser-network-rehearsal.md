@@ -60,3 +60,13 @@ scenes. Raw logs, certificates, keys, cookies and browser profiles remain privat
 only source manifests and bounded numeric summaries are uploaded. Preparation,
 compilation, skipped cases and runtime qualification are recorded separately in
 [the preparation evidence](../evidence/gate-6/browser-network-preparation.json).
+## Synthetic browser permission in the owned Linux container
+
+The network-disabled Chromium fixture explicitly enables its loopback ICE
+interface and grants camera/microphone permission only to each fresh synthetic
+page's loopback origin. Canvas/AudioContext input does not itself request device
+permission. A controlled owned Linux probe showed pending host gathering without
+permission and completed gathering with two host candidates after the grant.
+The fixture captures no physical device and does not disable address obfuscation
+or certificate checks. Actual current Linux x86 media results remain required.
+

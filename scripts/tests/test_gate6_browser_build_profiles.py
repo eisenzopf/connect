@@ -18,6 +18,21 @@ def artifact(name, level='3', kind=None):
 
 
 class RuntimeBuildProfiles(unittest.TestCase):
+    def test_browser_participation_states_exclude_private_control_and_transport_values(self):
+        result = CHECK['browser_participation_states']({'peer_diagnostics':[{'participant':'private-secret',
+            'control':{'credential':'private-secret'},'peers':[{'current':{'connection':'private-secret',
+            'ice':'checking','gathering':'gathering','signaling':{},'local_description_set':1,
+            'remote_description_set':True},'events':[{'gathering':'new'},{'gathering':'private-secret'}]}]}]})
+        self.assertNotIn('private',repr(result))
+        self.assertEqual(result,[dict(participant=0,connection='other',ice='checking',gathering='gathering',
+            signaling='other',local_description_set=False,remote_description_set=True,observed_gathering_states=['new'])])
+
+    def test_browser_participation_states_bound_participants_peers_and_events(self):
+        peer={'current':{},'events':[{'gathering':'new'}]*128+[{'gathering':'complete'}]}
+        result=CHECK['browser_participation_states']({'peer_diagnostics':[{'peers':[peer]*6}]*3})
+        self.assertEqual(len(result),8)
+        self.assertTrue(all(row['observed_gathering_states']==['new'] for row in result))
+
     def test_every_required_runtime_library_must_be_present_at_opt3(self):
         result = profiles([artifact(name) for name in LIBRARIES])
         self.assertTrue(result['passed'])

@@ -114,7 +114,8 @@ def main():
             assert module.is_file()
             docker = ['docker', 'run', '--rm', '--cidfile', str(cidfile), '--read-only', '--network', network,
                 '--platform', 'linux/amd64', '--cpus', '4', '--memory', '6g', '--shm-size', '1g',
-                '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:rw,nosuid,nodev,size=1g',
+                '--cap-drop', 'ALL', '--cap-add', 'DAC_OVERRIDE', '--security-opt', 'no-new-privileges',
+                '--tmpfs', '/tmp:rw,nosuid,nodev,size=1g',
                 '--add-host', 'connect.fixture.internal:'+ip,
                 '--mount', f'type=bind,source={ROOT},target={ROOT},readonly',
                 '--mount', f'type=bind,source={fixture},target={fixture}',
@@ -128,12 +129,21 @@ def main():
             browser = subprocess.Popen(docker, cwd=ROOT, stdout=browser_log, stderr=subprocess.STDOUT, start_new_session=True)
             stage = 'browser-container'
             browser_exit = browser.wait(timeout=140)
+            report['browser_exit_code'] = browser_exit
             # Root in the isolated browser image writes private0600/0700 files.
             # Return only this fresh fixture to its host owner before reading;
             # never relax modes or recursively follow browser profile symlinks.
             if os.getuid() != 0:
                 subprocess.run(['sudo', '-n', 'chown', '--recursive', '--no-dereference', '--',
                     f'{os.getuid()}:{os.getgid()}', str(fixture)], check=True, timeout=30)
+            report['startup_browser_summary_present'] = (fixture/'browser-summary.json').is_file()
+            report['startup_audio_summary_present'] = (fixture/'audio/summary.json').is_file()
+            if not report['startup_browser_summary_present']:
+                text = (fixture/'container.log').read_text(errors='replace').lower()
+                report['startup_error_categories'] = [name for name,pattern in [
+                    ('permission','permission denied'),('read-only-filesystem','read-only file system'),
+                    ('audio-startup','owned audio startup failed'),('browser-version','current pinned cft required')]
+                    if pattern in text]
             assert (fixture/'browser-summary.json').stat().st_uid == os.getuid()
             report['private_fixture_ownership_normalized'] = True
             browser_summary = json.loads((fixture/'browser-summary.json').read_text())

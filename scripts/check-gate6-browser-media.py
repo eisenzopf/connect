@@ -20,6 +20,25 @@ RUNTIME_LIBRARIES = frozenset({'connect_client', 'connect_server', 'connect_serv
     'rvoip_core', 'rvoip_media_core', 'rvoip_rtp_core', 'rvoip_webrtc', 'rtc', 'rtc_ice', 'rtc_dtls'})
 
 
+def browser_participation_states(value):
+    allowed = dict(connection={'new','connecting','connected','disconnected','failed','closed'},
+        ice={'new','checking','connected','completed','disconnected','failed','closed'},
+        gathering={'new','gathering','complete'},
+        signaling={'stable','have-local-offer','have-remote-offer','have-local-pranswer','have-remote-pranswer','closed'})
+    result = []
+    for participant, diagnostic in enumerate(value.get('peer_diagnostics', [])[:2]):
+        for peer in diagnostic.get('peers', [])[:4]:
+            current = peer.get('current', {})
+            row = {name:current.get(name) if isinstance(current.get(name),str) and current.get(name) in states else 'other' for name,states in allowed.items()}
+            row.update(participant=participant,
+                local_description_set=current.get('local_description_set') is True,
+                remote_description_set=current.get('remote_description_set') is True,
+                observed_gathering_states=sorted({event.get('gathering') for event in peer.get('events', [])[:128]
+                    if isinstance(event.get('gathering'),str) and event.get('gathering') in allowed['gathering']}))
+            result.append(row)
+    return result
+
+
 def runtime_library_profiles(rows):
     profiles = {}
     artifacts = 0
@@ -186,7 +205,9 @@ def runtime():
                 if path.is_file() and path.stat().st_size:
                     value = json.loads(path.read_text())
                     if filename == 'browser-result.jsonl':
+                        peer_states = browser_participation_states(value)
                         value = dict(status=value.get('status'), phase=value.get('phase'), error_class=value.get('error_class'), ice_restarts=value.get('ice_restarts'),
+                            peer_states=peer_states,
                             unreachable_relay=value.get('unreachable_relay'), observations=[dict(
                                 decoded_fps=o['decoded']/o['elapsed_seconds'], changing_fps=o['changing']/o['elapsed_seconds'],
                                 audio=o['audio_profile']['status'], motion=o['motion_profile']['status'],

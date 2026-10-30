@@ -631,6 +631,9 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
             "isolated_firefox_loopback_ice":browser_kind == "firefox",
             "isolated_chromium_loopback_ice":browser_kind == "chrome"
                 && cfg!(target_os = "linux")
+                && std::env::var("CONNECT_GATE6_OWNED_BROWSER_CONTAINER").as_deref() == Ok("1"),
+            "isolated_synthetic_media_permission":browser_kind == "chrome"
+                && cfg!(target_os = "linux")
                 && std::env::var("CONNECT_GATE6_OWNED_BROWSER_CONTAINER").as_deref() == Ok("1")
         }))
         .unwrap(),

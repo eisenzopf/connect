@@ -148,6 +148,13 @@ try {
     } else {
     const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
         const context = await browser.newContext(); contexts.push(context);
+        if(spec.browser==='chrome'&&process.platform==='linux'&&process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER==='1'){
+            // Synthetic canvas/AudioContext capture does not request device
+            // permission. In the network-disabled container that leaves the
+            // sole loopback interface's host gathering pending indefinitely.
+            // Grant only this owned page origin; no physical devices are used.
+            await context.grantPermissions(['microphone','camera'],{origin:new URL(spec.baseURL).origin});
+        }
         const page = await context.newPage();
         observedPages[index]=page;
         await page.addInitScript(installPeerDiagnostics);

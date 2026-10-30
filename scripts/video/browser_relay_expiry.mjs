@@ -7,6 +7,9 @@ export async function refusedRelay(browser,spec,reason) {
     for(const [index,configuration] of spec.participants.entries()) {
         const context=await browser.newContext();
         try {
+            if(spec.browser==='chrome'&&process.platform==='linux'&&process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER==='1'){
+                await context.grantPermissions(['microphone','camera'],{origin:new URL(spec.baseURL).origin});
+            }
             const page=await context.newPage();
             await page.addInitScript(installPeerDiagnostics);
             await page.goto(spec.baseURL+'/examples/conversation-client/');
