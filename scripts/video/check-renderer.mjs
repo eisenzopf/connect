@@ -9,8 +9,12 @@ import {markerCells} from './source_identity.mjs';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
-const [directory]=process.argv.slice(2);
-if(process.argv.length!==3||!directory)throw Error('One fresh .local output directory required');
+const [directory,mode='calibration']=process.argv.slice(2);
+if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality'].includes(mode))
+    throw Error('One fresh .local output directory and optional quality mode required');
+// Retain the original calibration. The separate quality control matches the
+// actual fixture's 60-second window, native canvas capture and 128x72 observer.
+const seconds=mode==='quality'?60:8,pixelsPerSide=mode==='quality'?[128,72]:[8,8];
 const output=path.resolve(directory);let binary=process.env.CONNECT_CHROME_BINARY;
 const modulePath=process.env.CONNECT_PLAYWRIGHT_MODULE;
 if(!output.startsWith(root+path.sep+'.local'+path.sep)||!path.isAbsolute(modulePath??''))
@@ -56,7 +60,7 @@ try{
     const pages=await Promise.all([0,1].map(async index=>{
         const context=await browser.newContext();contexts.push(context);const page=await context.newPage();
         await page.setContent('<!doctype html><body></body>');
-        await page.evaluate(async({index,cells,pulses})=>{
+        await page.evaluate(async({index,cells,pulses,mode,pixelsPerSide})=>{
             const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
             const paint=canvas.getContext('2d');let n=0,ordinal=0,draws=0;
             const began=performance.now();
@@ -69,26 +73,29 @@ try{
                     paint.fillRect((i%2)*80,Math.floor(i/2)*45,80,45);});
                 if(elapsed>=pulses[ordinal]&&elapsed<pulses[ordinal]+.1){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
             };
-            draw();const timer=setInterval(draw,1000/30),stream=canvas.captureStream(30);
+            draw();const timer=setInterval(draw,1000/30),stream=mode==='quality'?canvas.captureStream():canvas.captureStream(30);
             const video=document.createElement('video');video.muted=true;video.autoplay=true;
-            video.width=640;video.height=360;document.body.append(video);video.srcObject=stream;await video.play();
-            const sample=document.createElement('canvas');sample.width=8;sample.height=8;
+            video.width=640;video.height=360;video.style.cssText='position:fixed;inset:0;width:640px;height:360px;z-index:10000';
+            document.body.append(video);video.srcObject=stream;await video.play();
+            const [width,height]=pixelsPerSide;
+            const sample=document.createElement('canvas');sample.width=width;sample.height=height;
             const pixels=sample.getContext('2d',{willReadFrequently:true});pixels.imageSmoothingEnabled=false;
             let callbacks=0,changing=0,raf=0,last,closed=false;
             const decoded=()=>{
-                if(closed)return;callbacks++;pixels.drawImage(video,0,0,8,8);
-                const key=Array.from(pixels.getImageData(0,0,8,8).data).join(',');
-                if(last!==undefined&&key!==last)changing++;last=key;video.requestVideoFrameCallback(decoded);
+                if(closed)return;callbacks++;pixels.drawImage(video,0,0,width,height);
+                const bytes=pixels.getImageData(0,0,width,height).data;
+                if(last!==undefined&&bytes.some((value,index)=>value!==last[index]))changing++;
+                last=bytes;video.requestVideoFrameCallback(decoded);
             };
             const animation=()=>{if(!closed){raf++;requestAnimationFrame(animation);}};
             video.requestVideoFrameCallback(decoded);requestAnimationFrame(animation);
             window.observer={snapshot:()=>({index,draws,callbacks,changing,raf,time:performance.now(),visibility:document.visibilityState}),
                 close:()=>{closed=true;clearInterval(timer);for(const track of stream.getTracks())track.stop();video.srcObject=null;}};
-        },{index,cells:markerCells(index),pulses:markerFrames().map(frame=>frame/30)});
+        },{index,cells:markerCells(index),pulses:markerFrames().map(frame=>frame/30),mode,pixelsPerSide});
         return page;
     }));
     const initial=await Promise.all(pages.map(page=>page.evaluate(()=>window.observer.snapshot())));
-    await new Promise(resolve=>setTimeout(resolve,8000));
+    await new Promise(resolve=>setTimeout(resolve,seconds*1000));
     rows=await Promise.all(pages.map(async(page,index)=>{
         const end=await page.evaluate(()=>window.observer.snapshot()),start=initial[index],seconds=(end.time-start.time)/1000;
         await page.evaluate(()=>window.observer.close());
@@ -102,7 +109,8 @@ finally{
     if(owner){ownership=await owner.close();joined=ownership.original_process_joined&&!ownership.forced_kill&&ownership.exit?.code===0;}
 }
 const after=await inputs(),changed=Object.keys(before).filter(file=>before[file]!==after[file]);
-const report={scope:'Two owned local canvas/capture/video observers for8seconds. Same synthetic motion/identity/cadence and independent8x8pixel comparison as browser quality fixture. No RTC, transport, Core, audio, remote host or account qualification.',
+const report={scope:'Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.',
+    mode,requested_seconds:seconds,motion_sample_pixels:pixelsPerSide,
     os:process.platform,architecture:process.arch,node:process.version,browser:version,source_count:Object.keys(before).length,
     source_manifest_sha256:await hash(path.join(output,'source-inputs.json')),sources_unchanged:changed.length===0,changed_inputs:changed,
     minimum_callback_and_changing_fps:24,rows,original_browser_joined:joined,ownership,error:failure??null,

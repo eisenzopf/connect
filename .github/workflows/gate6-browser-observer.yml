@@ -52,6 +52,16 @@ jobs:
                 --playwright-module /work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
                 --renderer-manifest .local/gate6-browser-observer/evidence/run/source-inputs.json
             '
+      - name: Check the full 60-second motion observer without RTC
+        run: |
+          docker run --rm --network none --shm-size=1g --platform linux/amd64 \
+            --mount "type=bind,source=$PWD,target=/work,readonly" \
+            --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
+            --workdir /work \
+            --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
+            --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
+            mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8 \
+            node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/quality quality
       - name: Return only owned fixture files to the runner
         if: always()
         run: |
@@ -67,6 +77,8 @@ jobs:
             .local/gate6-browser-observer/evidence/run/summary.json
             .local/gate6-browser-observer/evidence/run/source-inputs.json
             .local/gate6-browser-observer/evidence/run/image-browser.json
+            .local/gate6-browser-observer/evidence/quality/summary.json
+            .local/gate6-browser-observer/evidence/quality/source-inputs.json
             .local/gate6-browser-observer/evidence/trust/summary.json
           include-hidden-files: true
           retention-days: 7
