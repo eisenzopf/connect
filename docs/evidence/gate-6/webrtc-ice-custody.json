@@ -1,7 +1,7 @@
 {
   "task": "G6-054",
   "status": "in-progress",
-  "checked_at": "2026-10-30T06:28:49.215908+00:00",
+  "checked_at": "2026-10-30T06:50:51.987186+00:00",
   "base_revision": "d35600f712eccfcb09495c99c4c1ca25bc12f360",
   "scope": "Store-only current source/engine outcome metadata and protocol validation. Internal native intent and trusted Store APIs only; canonical wire action, physical restart, HTTP/OpenAPI and SDK remain unregistered.",
   "implementation": {
@@ -109,6 +109,19 @@
         "passed": 63,
         "failed": 0,
         "ignored": 0
+      },
+      {
+        "label": "store-regression",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/connect_store-961aa8a648dc8e41",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "seconds": 1313.6192322920542,
+        "log_sha256": "43f08970581cae31e768b839c2cad2814876399fa95f2f00352680fccea46954",
+        "passed": 1284,
+        "failed": 1,
+        "ignored": 3
       }
     ],
     "source_count": 637,
@@ -116,9 +129,28 @@
     "source_manifest_sha256": "dfbfdee97b9272320950b60249c6c05ef1ea42cf56a82fff81938dc1f6535797"
   },
   "full_store_regression": {
-    "status": "running",
+    "status": "failed-with-one-scoped-test-correction",
     "qualified": false,
-    "scope": "All current Store unit functions with the same freshly compiled executable; not yet counted as a pass."
+    "passed": 1284,
+    "failed": 1,
+    "ignored": 3,
+    "seconds": 1313.6192322920542,
+    "failure": "Enrollment backup assertion expected115 while the current schema and returned backup are116.",
+    "correction": {
+      "test": "enrollment::tests::snapshot_includes_enrollment_and_unsupported_schema_is_never_implicitly_upgraded",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "change": "approved.schema ==115 becomes approved.schema ==SCHEMA_VERSION; explicit current116 and incompatible114 refusal checks retained.",
+      "log_sha256": "0a8dd99299917dcbeb671abae1ea3edb22246b47fe21cd29623cdf6d264f1b56",
+      "test_file_sha256": "68dfbcfdf7ee4a9eebe1f45c0e59e1cd55efb6b5ea5f15540208291c948f27f4",
+      "executable_sha256": "e96abc0c50573544213662de5021ec9c664d39e4ee25bb92e13d2db31842447f",
+      "applicability_sha256": "a3259d929d0def855020a2f44f77a1f55c5cc9f303a934beb19a6c861072052d"
+    },
+    "production_inputs_unchanged_across_correction": true,
+    "other_test_bodies_unchanged": true,
+    "applicable_current_ordinary_functions_across_runs": 1285,
+    "scope": "1284 ordinary functions passed the original full run on unchanged production inputs; the one corrected function passes separately. Three ignored entries are subprocess worker entrypoints. The original full run remains failed; no successful monolithic rerun after correction is claimed."
   },
   "controlled_cases": [
     "Private answer recovery while operation remains Preparing/counter0; repeated original request cannot allocate a second effect.",
@@ -143,6 +175,15 @@
       "reason": "Test-local SQLite count handle was retained across another method on the same Store. Confirmed owned hung fixture was terminated; the handle is now dropped before reentry. No production fix or timeout increase claimed.",
       "log_sha256": "91b85e8a9b97d31e24f723db7c4768a32b8a577366a884a857e10c24e0fa3528",
       "diagnosis_sha256": "86cd7e48d47dfd3b30ce3a63370cacced1529cde2e5ca2c27cd17cb54f487524"
+    },
+    {
+      "run": "ice-store-final-store-regression",
+      "passed": 1284,
+      "failed": 1,
+      "ignored": 3,
+      "reason": "Stale enrollment schema115 backup assertion; current backup correctly116. Exact assertion corrected and its function passes separately.",
+      "log_sha256": "43f08970581cae31e768b839c2cad2814876399fa95f2f00352680fccea46954",
+      "original_executable_sha256": "41e6f5d632affee7511c55bc41e709b8084cc5514b0793c916ccf64ffb18148a"
     }
   ],
   "sources": {
@@ -153,14 +194,15 @@
     "crates/connect-store/src/transitions/native_streams/outcomes.rs": "622c7fc485cedf012bc1462ae740d1e6ea815d571392ce82dca06fffb605de7b",
     "crates/connect-store/src/recovery.rs": "8ba256849624e1292e247845344414a669659bd2effdcec9a361749c61c5d257",
     "crates/connect-store/src/lib.rs": "ee352bad5fac81679fc5bd0b3389fb6dd9551d1dcb61cd5c98da68564349a1ac",
-    "crates/connect-store/src/connection_control/tests/native_wire/webrtc_ice.rs": "1903ab724bb3ac0bbe0c0dd9fb7d45774a16593fe83a676c2874010f9c868dac"
+    "crates/connect-store/src/connection_control/tests/native_wire/webrtc_ice.rs": "1903ab724bb3ac0bbe0c0dd9fb7d45774a16593fe83a676c2874010f9c868dac",
+    "crates/connect-store/src/enrollment/tests.rs": "68dfbcfdf7ee4a9eebe1f45c0e59e1cd55efb6b5ea5f15540208291c948f27f4"
   },
   "limits": [
     "Source/engine outcomes in Store tests are explicitly controlled metadata; no real signed wire exchange, RTC generation or decoded media is inferred.",
-    "Broader full Store regression is running and is not counted as a pass.",
     "The production service check in webrtc-ice-generation.json applies to the preceding schema115 baseline; no production binary/native schema116 runtime qualification yet.",
     "Raw SDP/credentials, keys, backup state and logs remain ignored under .local.",
-    "No G6-054 closure or acceptance promotion; all105 tasks remain the goal."
+    "No G6-054 closure or acceptance promotion; all105 tasks remain the goal.",
+    "Original full Store run remains failed at one stale schema assertion; corrected exact test passes with all production inputs and other test bodies unchanged. Coverage is composite, not a fresh full-suite pass."
   ],
   "gate_progress": {
     "done": 68,

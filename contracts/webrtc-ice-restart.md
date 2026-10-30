@@ -113,7 +113,10 @@ current source authorization and the exact retained request. Backup digests
 cover both private tables. Older live schema paths are refused unchanged; use
 the preserved matching binary/backup and explicitly initialize a new path.
 The Store tests control source and engine-outcome metadata; they are not actual
-RTC or decoded-media qualification. The broader Store regression is pending.
+RTC or decoded-media qualification. The broader Store run passes1284functions with3ignored worker entrypoints and
+one stale enrollment schema assertion. That assertion is corrected and its
+exact function passes on unchanged production inputs; the original full run
+remains failed. This is composite coverage, not a fresh full-suite pass.
 
 ## Required physical execution
 
