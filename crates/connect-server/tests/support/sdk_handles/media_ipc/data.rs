@@ -23,6 +23,13 @@ fn payload(format: &str) -> (Vec<u8>, DataPayload) {
         }
     }
 }
+fn valid_live_revocation(refused: &Value) -> bool {
+    matches!(
+        (refused["kind"].as_str(), refused["certainty"].as_str()),
+        (Some("authentication"), Some("refused" | "uncertain"))
+            | (Some("transport-uncertain"), Some("uncertain"))
+    )
+}
 #[tokio::test]
 async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_authority() {
     for algorithm in ["EdDSA", "ES256"] {
@@ -274,10 +281,7 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
             assert_eq!(kind, wire::Kind::Failure);
             // Revocation may retire the authenticated peer before its reply.
             // Preserve uncertainty rather than inventing a refusal receipt.
-            if !((refused["kind"] == "authentication" && refused["certainty"] == "refused")
-                || (refused["kind"] == "transport-uncertain"
-                    && refused["certainty"] == "uncertain"))
-            {
+            if !valid_live_revocation(&refused) {
                 let kind = match refused["kind"].as_str() {
                     Some(
                         value @ ("authentication"
@@ -303,13 +307,9 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
                     json!({"kind":kind,"certainty":certainty,"original_operation_matches":refused["operation"]["operationId"] == "ipc-data-send"})
                 );
             }
-            assert!(
-                (refused["kind"] == "authentication" && refused["certainty"] == "refused")
-                    || (refused["kind"] == "transport-uncertain"
-                        && refused["certainty"] == "uncertain"),
-                "{refused}"
-            );
+            assert!(valid_live_revocation(&refused), "{refused}");
             let live_revocation_outcome = refused["kind"].clone();
+            let live_revocation_certainty = refused["certainty"].clone();
             assert_eq!(refused["operation"]["operationId"], "ipc-data-send");
             let result = observer
                 .execute(request(
@@ -321,6 +321,7 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
             assert!(matches!(
                 (result.kind, result.certainty),
                 (sdk::ErrorKind::Authentication, sdk::Certainty::Refused)
+                    | (sdk::ErrorKind::Authentication, sdk::Certainty::ReadOnly)
                     | (sdk::ErrorKind::TransportUncertain, sdk::Certainty::ReadOnly)
             ));
             let Err(rejected) =
@@ -370,7 +371,7 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
                 json!({"profile":media::PROFILE,"algorithm":algorithm,"format":format,
                 "payload_bytes":65536,"binary_both_directions":true,"original_control_recovery":true,"one_effect_replay":true,
                 "changed_intent_refused":true,"invalid_audience_original_id":true,"foreign_custody_refused":true,
-                "current_revocation_refused":true,"live_revocation_outcome":live_revocation_outcome,"original_owners_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+                "current_revocation_refused":true,"live_revocation_outcome":live_revocation_outcome,"live_revocation_certainty":live_revocation_certainty,"original_owners_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
             );
         }
     }

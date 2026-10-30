@@ -39,8 +39,13 @@
     "reason": "Owned UDP bind127.0.0.2 refused with macOS errno49/EADDRNOTAVAIL. No host network configuration change or media execution."
   },
   "linux_runtime": {
-    "status": "Not dispatched yet",
-    "workflow": ".github/workflows/gate6-browser-media.yml"
+    "status": "in_progress",
+    "phase": "full-release-opt3-producer-build",
+    "run_id": 41058262859,
+    "job_id": 124071197045,
+    "source_revision": "41f4d7b323cea7545c0581e0faf86316a99103bf",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41058262859",
+    "observed_at": "2026-10-30T12:55:28.203935+00:00"
   },
   "full_task_qualified": false,
   "acceptance_qualified": false

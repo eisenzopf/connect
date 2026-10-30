@@ -312,5 +312,137 @@
     "privacy_unit_functions": 14,
     "privacy_log_sha256": "a8fd90262eadf078eb98761df470a540029be90687b30b97d7d569c84a2b7dbe",
     "linux_execution": "Pending; local native2 and mediaIPC2 pass. No changed production behavior or timeout allowance."
+  },
+  "ipc_authentication_certainty_correction": {
+    "ci_failure": {
+      "revision": "6e77e49a94b81bec567b2a77f17cf19bd2c7ea28",
+      "run_id": 41056115095,
+      "job_id": 124069417001,
+      "artifact_id": 12977152515,
+      "zip_sha256": "639d294a3018ec9804b734923cb00f7758b649a01da8a5498b7d6885509ff984",
+      "tracked_git_inputs_verified": 4463,
+      "source_count": 8559,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "12f4e83935af7bc72831988ed3ccbb8cbee5efa05cf322288da19b896a6fe7ec",
+      "failures": [
+        {
+          "name": "sdk-media-ipc-runtime",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 13.647581349000006,
+          "log_sha256": "4203f180c50cc4e6e489bacb7db3b2968622467542bd1f238b51e97ce40059be",
+          "test_results": [
+            "test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 426 filtered out; finished in 13.61s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/sdk_handles/media_ipc/data.rs",
+              "line": 306,
+              "column": 13
+            }
+          ],
+          "rtc_operation_failures": [],
+          "ipc_data_revocation_failures": [
+            {
+              "certainty": "uncertain",
+              "kind": "authentication",
+              "original_operation_matches": true
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "python_movement_phases": [],
+          "python_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_phases": [],
+          "python_consultation_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "python_administrative_phases": [],
+          "python_administrative_failures": [],
+          "python_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ]
+    },
+    "diagnosis": "A live submitted original data operation can encounter Authentication as the authenticated transport retires. Existing Error::transport maps this to Authentication/Uncertain while retaining the original OperationKey; read-only transport status failure remains Authentication/ReadOnly. The fixture overconstrained these combinations.",
+    "production_behavior_changed": false,
+    "fixture_change": "Allow exactly Authentication/{Refused,Uncertain} or TransportUncertain/Uncertain for the live send; Authentication/{Refused,ReadOnly} or TransportUncertain/ReadOnly for status. No automatic replay, fresh intent or certainty downgrade.",
+    "retained_assertions": [
+      "Original IPC request correlation and original operation ID",
+      "One original durable data effect and zero changed-message mutation",
+      "Current revoked status refusal and fresh owner authentication denial",
+      "Owned readers/peers/helpers/server joins"
+    ],
+    "local_regression": {
+      "scope": "Local serial same-source actual native ICE and managed data IPC regression with bounded failure-only telemetry. No new Linux/remote/full task qualification.",
+      "source_inputs": 5919,
+      "source_manifest_sha256": "616fac1b718da408a34288afeadb1d9c65363b73d496f7d44ce1a334fb297a58",
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "binaries": [
+        {
+          "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+          "sha256": "b4bf9d363527b31232f66ccd940b7b2a2b73f177631c02ac562c823e1a2da10b"
+        },
+        {
+          "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-8eb24ba3458c350e",
+          "sha256": "101c4121145b24e54d5b48f93b9ffb4029224ab76dc2c567eedadc613aaf7c01"
+        }
+      ],
+      "steps": [
+        {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 9.683926665922627,
+          "log_sha256": "7de3dc152ae33a2447bd3b00394c50029474943094d3f4fa716285079325a33a",
+          "name": "native-ice",
+          "command": [
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+            "signed_rtc_ice_restart",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "diagnostics": {
+            "rtc_operation_failure_diagnostic": [],
+            "ipc_data_revocation_failure_diagnostic": []
+          }
+        },
+        {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 9.408698000013828,
+          "log_sha256": "7ffcb4c90ada87768650e97005ad77db3fc7889b72e54542d691f9e1f963633a",
+          "name": "media-ipc",
+          "command": [
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-8eb24ba3458c350e",
+            "sdk_handles::media_ipc::",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "diagnostics": {
+            "rtc_operation_failure_diagnostic": [],
+            "ipc_data_revocation_failure_diagnostic": []
+          }
+        }
+      ],
+      "passed": true
+    },
+    "local_summary_sha256": "3a6acaca841cad32b95881cf6ed58bd2c29d464087677e4fa5704d9bfa9dbd79",
+    "linux_verification": "Pending a new source run; no full Linux qualification."
   }
 }
