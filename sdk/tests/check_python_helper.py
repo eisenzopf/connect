@@ -56,7 +56,28 @@ def main():
     # passed. Splitting modules preserves every test and caller/worker deadline.
     # The two deliberately stalled
     # lifetime tests have their own10s bound and2s actual caller deadlines.
-    run_suite='''import sys,unittest,json
+    run_suite='''import sys,unittest,json,asyncio,signal
+def stalled_tasks(signum,frame):
+ try:tasks=asyncio.all_tasks()
+ except RuntimeError:tasks=[]
+ stacks=[]
+ for task in list(tasks)[:32]:
+  current=task.get_coro();frames=[]
+  for _ in range(24):
+   frame=getattr(current,"cr_frame",None) or getattr(current,"gi_frame",None)
+   if frame is not None:
+    name=frame.f_code.co_filename.replace(chr(92),"/")
+    if "/sdk/" in name:name="sdk/"+name.rsplit("/sdk/",1)[1]
+    elif "/asyncio/" in name:name="asyncio/"+name.rsplit("/asyncio/",1)[1]
+    else:name=None
+    if name is not None:frames.append({"file":name,"line":frame.f_lineno})
+   current=getattr(current,"cr_await",None) or getattr(current,"gi_yieldfrom",None)
+   if current is None:break
+  if frames:stacks.append(frames)
+ print("connect-python-stalled-tasks "+json.dumps(stacks,separators=(",",":")),flush=True)
+if sys.argv[1]=="http":
+ signal.signal(signal.SIGALRM,stalled_tasks)
+ signal.setitimer(signal.ITIMER_REAL,25)
 suite=unittest.defaultTestLoader.discover("sdk/tests",pattern="test_*.py")
 def leaves(suite):
  for item in suite:
@@ -107,6 +128,18 @@ raise SystemExit(not result.wasSuccessful())
         if match:
             lifecycle[json.loads(match[2])['test']]=match[1]
     unfinished_functions=sorted(name for name,state in lifecycle.items() if state=='start')
+    stalled_task_stacks=[]
+    for line in log.splitlines():
+        if line.startswith('connect-python-stalled-tasks '):
+            stacks=json.loads(line.split(' ',1)[1])
+            assert isinstance(stacks,list) and len(stacks)<=32
+            for stack in stacks:
+                assert isinstance(stack,list) and len(stack)<=24
+                for frame in stack:
+                    assert set(frame)=={'file','line'}
+                    assert re.fullmatch(r'(?:sdk/(?:tests|python/connect_sdk)|asyncio)/[A-Za-z0-9_/]+\.py',frame['file'])
+                    assert type(frame['line']) is int and 1<=frame['line']<=100000
+            stalled_task_stacks.extend(stacks)
     # Exact unittest result IDs remain independent of interleaved asyncio
     # debug text. Missing/mismatched inventories cannot become a passing scope.
     records=[json.loads(line.split(' ',1)[1]) for line in log.splitlines()
@@ -183,6 +216,7 @@ raise SystemExit(not result.wasSuccessful())
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':next((phase['exit_code'] for phase in phases.values() if phase['exit_code']),0),'timed_out':timed,'forced_cleanup':forced,'phases':phases,
             'unfinished_functions':unfinished_functions,
+            'stalled_task_stacks':stalled_task_stacks,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
             'log_sha256':digest(private/'tests.log'),'unexpected_async_diagnostics':unsafe,

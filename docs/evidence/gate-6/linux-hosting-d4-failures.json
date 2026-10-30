@@ -1035,7 +1035,7 @@
       "python": "3.14.9",
       "http_phase_seconds": 30.008281257999997,
       "http_timed_out": true,
-      "http_functions_completed": 2
+      "http_final_inventory_missing": true
     },
     "local_check": {
       "passed": false,
@@ -1098,6 +1098,22 @@
         }
       ]
     },
-    "local_note": "HTTP19, HTTPS4 and HTTP lifetime2 pass. Whole local component check fails one existing raw synchronous validation function with configuration/not-submitted while compilation is active; failure retained. Linux HTTP hang is not reproduced or resolved."
+    "local_note": "HTTP19, HTTPS4 and HTTP lifetime2 pass. Whole local component check fails one existing raw synchronous validation function with configuration/not-submitted while compilation is active; failure retained. Linux HTTP hang is not reproduced or resolved.",
+    "continuation_e521": {
+      "run_id": 41078091442,
+      "python": "3.14.9",
+      "unfinished_functions": [
+        "test_python_http.TypedPythonHttp.test_terminal_error_frames_are_typed_and_read_errors_remain_read_only"
+      ],
+      "http_seconds": 30.007984109999995,
+      "http_timed_out": true,
+      "other_component_phases_passed": [
+        "core",
+        "https",
+        "http-lifetime"
+      ],
+      "interpretation": "The reported204 functions exclude the interrupted HTTP phase because its final inventory is absent; they do not establish that the phase stopped after its first two tests. No specific cleanup cause inferred."
+    },
+    "next_snapshot": "At25seconds in only the HTTP phase, a signal captures at most32 coroutine await chains with at most24 repository/asyncio file and line pairs. No task values, arguments, locals or messages are captured. Existing30second timeout remains unchanged. Private accelerated owned-await probe captured asyncio/locks.py; actual Linux stalled stack remains pending."
   }
 }
