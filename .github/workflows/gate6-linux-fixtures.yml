@@ -88,7 +88,9 @@ jobs:
           python3 -m pip install --disable-pip-version-check mypy==2.4.0
           python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
       - name: Bounded synthetic Python helper and SDK regression checks
-        run: python3 sdk/tests/check_python_helper.py --output .local/gate6-python-ci/evidence --types-python "$(command -v python3)"
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_python_import_boundary.py
+          python3 sdk/tests/check_python_helper.py --output .local/gate6-python-ci/evidence --types-python "$(command -v python3)"
       - name: Prepare pinned sources and check isolated Python wheel installation
         if: ${{ !cancelled() }}
         run: |

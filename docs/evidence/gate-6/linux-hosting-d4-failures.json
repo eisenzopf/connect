@@ -1200,5 +1200,133 @@
       true
     ],
     "scope": "Current macOS arm64 local optimization exceptions; no Linux failure-resolution claim."
+  },
+  "python_worker_import_boundary": {
+    "implementation": "Load public SDK exports on request, with explicit static imports and the same148 ordered exports. One-shot HTTP workers import8SDK modules instead of36; unrelated transports/controllers are not initialized. Caller deadlines and phase budgets are unchanged.",
+    "linux_trigger": {
+      "run_id": 41082995945,
+      "source_revision": "eea683e31b0ad7f969d8770d7a6a5a868cd8b968",
+      "snapshot_test": "test_python_http.py:87",
+      "unfinished_function": "test_python_http.TypedPythonHttp.test_structured_status_refusals_keep_original_scope_and_actual_problem",
+      "interpretation": "The25second coroutine snapshot is in a different earlier test than the30second unfinished test. This demonstrates progress across exchanges, rather than one30second stuck request. No raw frame values were captured."
+    },
+    "cold_import_observation": {
+      "scope": "Ten fresh Python3.14 macOS worker-module imports with bytecode writes disabled. Import observation only; no HTTP or deadline qualification.",
+      "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+      "before_modules": 36,
+      "after_modules": 8,
+      "before_median_seconds": 0.25493981258478016,
+      "after_median_seconds": 0.21718037500977516,
+      "before_init_sha256": "034b019772c7cd020cafc40db67003119d909fbe2bf9e3ba1dcca84d7b0c60d1",
+      "after_init_sha256": "7f1f79ccb3046c79cba70c8baceff116b3d80511708b7713bfa68b48ccb6a887",
+      "samples_each": 10,
+      "limits": "Local macOS import observation only; actual Linux bounded suite must be rerun."
+    },
+    "guards": {
+      "import_boundary_functions": 3,
+      "public_ordered_exports_preserved": 148,
+      "unknown_public_attribute_remains_mypy_attr_defined": true
+    },
+    "local_component": {
+      "passed": true,
+      "functions_passed": 223,
+      "source_inputs_unchanged": true,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "phases": {
+        "core": {
+          "exit_code": 0,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 50.98504029097967,
+          "log_sha256": "223458831aa4d2378a29d8aa00125b625674f95523770b192b0f79f8469fc3eb"
+        },
+        "http": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 10.65639999997802,
+          "log_sha256": "d5329cd0e7d5502b81d912b275d53de18cfe4fb03704a891bfc8928629257827"
+        },
+        "https": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 3.1262839999981225,
+          "log_sha256": "a9bb27dedbae4aca1114cc053be0e7868eb131a428439415cc3f82bd8525974d"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 4.671804958023131,
+          "log_sha256": "c98532bfa72beec3c25221d7c0c1c5d5a25ab0090ce8e4ed2e2edab15c40b19b"
+        }
+      },
+      "public_type_checks": {
+        "passed": true,
+        "checks": {
+          "positive": {
+            "exit_code": 0,
+            "log_sha256": "3253c7a5a8535995ce0dc8b25611174b1763d2c9ff1bbb0a29e2e90cca3ca91e",
+            "negative_error_codes": []
+          },
+          "negative": {
+            "exit_code": 1,
+            "log_sha256": "efe3feeb0795d04c3db74791bd25260416e6f3990b4348697bf9d6a2d701da66",
+            "negative_error_codes": [
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type"
+            ]
+          }
+        }
+      }
+    },
+    "remaining": "Run the same isolated Linux Python3.14 suite. Existing failed local cohorts and Linux HTTP timeouts remain recorded; no full task/acceptance promotion."
   }
 }
