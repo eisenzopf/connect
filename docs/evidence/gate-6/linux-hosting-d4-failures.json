@@ -1114,6 +1114,25 @@
       ],
       "interpretation": "The reported204 functions exclude the interrupted HTTP phase because its final inventory is absent; they do not establish that the phase stopped after its first two tests. No specific cleanup cause inferred."
     },
-    "next_snapshot": "At25seconds in only the HTTP phase, a signal captures at most32 coroutine await chains with at most24 repository/asyncio file and line pairs. No task values, arguments, locals or messages are captured. Existing30second timeout remains unchanged. Private accelerated owned-await probe captured asyncio/locks.py; actual Linux stalled stack remains pending."
+    "next_snapshot": "At25seconds in only the HTTP phase, a signal captures at most32 coroutine await chains with at most24 repository/asyncio file and line pairs. No task values, arguments, locals or messages are captured. Existing30second timeout remains unchanged. Private accelerated owned-await probe captured asyncio/locks.py; actual Linux stalled stack remains pending.",
+    "local_raw_followup": {
+      "function": "test_python_raw.TypedPythonRaw.test_bad_signed_batch_fences_and_preserves_submitted_original_mutation_uncertainty",
+      "passed": true,
+      "seconds": 5.964,
+      "note": "Isolated follow-up only. Earlier full component failure retained; no cause inferred."
+    }
+  },
+  "initial_admission_diagnostic_local_verification": {
+    "producer_source_count": 5921,
+    "sources_unchanged": true,
+    "binary_sha256": "7320243138afa01ae569e8154d2078de18fcd4aeee1611ccb5e0ae67b8daa4f3",
+    "native_ice_functions_passed": 2,
+    "seconds": 8.766632334096357,
+    "admission_failure_observations": [],
+    "trace_enabled": [
+      true,
+      true
+    ],
+    "scope": "Current macOS arm64 local optimization exceptions; no Linux failure-resolution claim."
   }
 }
