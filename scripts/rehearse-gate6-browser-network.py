@@ -103,6 +103,14 @@ async def run(args):
         raw = (output / "test.log").read_text(errors="replace")
         report["test_log_sha256"] = digest(output / "test.log")
         report["test_results"] = re.findall(r"^test result:.*$", raw, re.M)
+        report['panic_locations']=[dict(file=name,line=int(line),column=int(column))
+            for name,line,column in re.findall(r'panicked at (crates/[A-Za-z0-9_/.-]+\.rs):(\d+):(\d+)',raw)[:8]]
+        result_path=browser/'browser-result.jsonl'
+        if result_path.is_file():
+            value=json.loads(result_path.read_text())
+            states=runpy.run_path(str(ROOT/'scripts/check-gate6-browser-media.py'))['browser_participation_states']
+            report['browser_failure']=dict(status=value.get('status'),phase=value.get('phase'),
+                error_class=value.get('error_class'),peer_states=states(value))
         active = [proxy for proxy in report["proxies"]
                   if all(proxy["directions"][direction]["forwarded"] > 0 for direction in ("to_server", "to_client"))]
         report["active_bidirectional_proxies"] = len(active)

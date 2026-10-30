@@ -56,6 +56,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
+    assert os.getuid() != 0, 'Run the owned fixture as the non-root host operator'
     assert re.search(r'^vendor_id\s*:', Path('/proc/cpuinfo').read_text(), re.M)
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', args.image)
     image = json.loads(command(['docker', 'image', 'inspect', args.image]))[0]
@@ -87,9 +88,14 @@ def main():
     network = None
     server = browser = None
     forced = False
-    stage = 'bridge-create'
+    stage = 'browser-discovery'
     cidfile = fixture/'container-id'
     try:
+        chrome = command(['docker','run','--rm','--read-only','--network','none',
+            '--env','PYTHONDONTWRITEBYTECODE=1',args.image,'python3','-c',
+            'import glob; p=glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome")+glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux/chrome"); assert len(p)==1; print(p[0])'])
+        assert re.fullmatch(r'/ms-playwright/chromium-[0-9]+/(?:chrome-linux64|chrome-linux)/chrome',chrome)
+        stage = 'bridge-create'
         network = command(['docker', 'network', 'create', '--internal', '--driver', 'bridge', name])
         info = json.loads(command(['docker', 'network', 'inspect', network]))[0]
         assert info['Id'] == network and info['Internal'] and info['Driver'] == 'bridge' and not info['Containers']
@@ -112,30 +118,26 @@ def main():
             assert ready['media_public_ip'] == ip and ready['media_port_start'] == port and ready['media_port_end'] == port+15
             module = ROOT/'scripts/video/observer-tools/node_modules/playwright/index.mjs'
             assert module.is_file()
-            docker = ['docker', 'run', '--rm', '--cidfile', str(cidfile), '--read-only', '--network', network,
+            docker = ['docker', 'run', '--rm', '--cidfile', str(cidfile), '--user',f'{os.getuid()}:{os.getgid()}',
+                '--read-only', '--network', network,
                 '--platform', 'linux/amd64', '--cpus', '4', '--memory', '6g', '--shm-size', '1g',
-                '--cap-drop', 'ALL', '--cap-add', 'DAC_OVERRIDE', '--security-opt', 'no-new-privileges',
-                '--tmpfs', '/tmp:rw,nosuid,nodev,size=1g',
+                '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+                '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=1g',
                 '--add-host', 'connect.fixture.internal:'+ip,
                 '--mount', f'type=bind,source={ROOT},target={ROOT},readonly',
                 '--mount', f'type=bind,source={fixture},target={fixture}',
                 '--mount', f'type=bind,source={fixture},target=/fixture', '--workdir', str(ROOT)]
             for key,value in dict(CONNECT_GATE6_OWNED_BROWSER_CONTAINER='1', CONNECT_PLAYWRIGHT_MODULE=str(module),
                 PYTHONDONTWRITEBYTECODE='1', GIT_CONFIG_COUNT='1', GIT_CONFIG_KEY_0='safe.directory',
-                GIT_CONFIG_VALUE_0=str(ROOT), TMPDIR='/tmp/connect-fixtures', CONNECT_G6_BRIDGE_OUTPUT=str(fixture)).items():
+                GIT_CONFIG_VALUE_0=str(ROOT), TMPDIR='/tmp', CONNECT_GATE6_CHROME=chrome).items():
                 docker += ['--env', key+'='+value]
-            docker += [args.image, 'sh', '-eu', '-c',
-                'mkdir -p "$TMPDIR"; CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-*/chrome-linux64/chrome\"); assert len(p)==1; print(p[0])")"; export CONNECT_GATE6_CHROME; python3 scripts/video/owned_pulse_audio.py --output "$CONNECT_G6_BRIDGE_OUTPUT/audio" -- node scripts/video/owned_bridge_browser.mjs "$CONNECT_G6_BRIDGE_OUTPUT"']
+            docker += [args.image,'python3','scripts/video/owned_pulse_audio.py','--output',str(fixture/'audio'),
+                '--','node','scripts/video/owned_bridge_browser.mjs',str(fixture)]
             browser = subprocess.Popen(docker, cwd=ROOT, stdout=browser_log, stderr=subprocess.STDOUT, start_new_session=True)
             stage = 'browser-container'
             browser_exit = browser.wait(timeout=140)
             report['browser_exit_code'] = browser_exit
-            # Root in the isolated browser image writes private0600/0700 files.
-            # Return only this fresh fixture to its host owner before reading;
-            # never relax modes or recursively follow browser profile symlinks.
-            if os.getuid() != 0:
-                subprocess.run(['sudo', '-n', 'chown', '--recursive', '--no-dereference', '--',
-                    f'{os.getuid()}:{os.getgid()}', str(fixture)], check=True, timeout=30)
+            # Host and container share the same non-root fixture owner.
             report['startup_browser_summary_present'] = (fixture/'browser-summary.json').is_file()
             report['startup_audio_summary_present'] = (fixture/'audio/summary.json').is_file()
             if not report['startup_browser_summary_present']:
@@ -144,8 +146,10 @@ def main():
                     ('permission','permission denied'),('read-only-filesystem','read-only file system'),
                     ('audio-startup','owned audio startup failed'),('browser-version','current pinned cft required')]
                     if pattern in text]
+                report['startup_source_sites'] = [dict(file=name,line=int(line))
+                    for name,line in re.findall(r'File "[^"\n]*/(scripts/[A-Za-z0-9_/.-]+\.py)", line (\d+)',text)[-8:]]
             assert (fixture/'browser-summary.json').stat().st_uid == os.getuid()
-            report['private_fixture_ownership_normalized'] = True
+            report['private_fixture_same_uid'] = True
             browser_summary = json.loads((fixture/'browser-summary.json').read_text())
             audio_summary = json.loads((fixture/'audio/summary.json').read_text())
             media = browser_summary.get('media')

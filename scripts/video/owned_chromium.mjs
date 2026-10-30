@@ -10,7 +10,8 @@ export async function launchOwnedChromium(chromium,binary,profile,environment=pr
         '--remote-debugging-port=0','--no-first-run','--no-default-browser-check',
         '--disable-background-networking','--disable-sync','--disable-breakpad','--disable-crash-reporter',
         '--autoplay-policy=no-user-gesture-required','--disable-background-timer-throttling',
-        '--disable-renderer-backgrounding',...(process.platform==='linux'&&process.getuid()===0?['--no-sandbox']:[]),
+        '--disable-renderer-backgrounding',...(process.platform==='linux'&&(process.getuid()===0
+            ||process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER==='1')?['--no-sandbox']:[]),
         `--user-data-dir=${profile}`],{stdio:'ignore',env:environment});
     const exited=new Promise(resolve=>{
         child.once('exit',(code,signal)=>resolve({code,signal}));

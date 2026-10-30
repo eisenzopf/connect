@@ -19,13 +19,10 @@ the configured gateway and port range from both original peers' `getStats()`.
 The host and browser namespace hashes must differ. Original server, browser,
 audio and container processes must join; routes, capacity and the created
 bridge must drain. Forced cleanup cannot count as success.
-The Ubuntu runner returns only its freshly created fixture directory from the
-root container to the runner UID with noninteractive sudo. Private modes remain
-unchanged and recursive ownership changes do not follow profile symlinks.
-The root fixture container retains only `DAC_OVERRIDE` so it can access the
-runner-owned0700/0600 fixture while the host server is using it. All other
-capabilities are dropped; the source/root filesystem stays read-only and the
-network stays internal. This is an owned test profile, not deployment guidance.
+The browser container uses the host operator's non-root UID/GID. Private0700/0600
+fixture modes remain unchanged, all Linux capabilities are dropped, and no
+ownership conversion is needed. The source/root filesystem stays read-only and
+the network stays internal. This is an owned test profile, not deployment guidance.
 
 Only numeric summaries, finite failure stages and source metadata are uploaded.
 Keys, configs, full media observations and raw process logs remain under ignored

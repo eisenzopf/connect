@@ -1,10 +1,16 @@
 name: Gate 6 isolated Linux browser media
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: 'Full matrix, baseline plus bridge, bridge only, or one fault diagnostic'
+        type: choice
+        options: [full, diagnostic, bridge, fault]
+        default: full
 permissions:
   contents: read
 concurrency:
-  group: gate6-browser-media-library-driver0-${{ github.ref }}
+  group: gate6-browser-media-library-driver0-${{ github.ref }}${{ inputs.lane == 'fault' && '-fault' || '' }}
   cancel-in-progress: false
 jobs:
   linux-x86-browser-media:
@@ -77,6 +83,7 @@ jobs:
           (base/'image.json').write_text(json.dumps({k:image[k] for k in ['Id','Os','Architecture','RepoDigests']},indent=2)+'\n')
           PY
       - name: Run independent bounded media and network cases
+        if: ${{ inputs.lane != 'bridge' }}
         run: |
           docker run --rm --read-only --network none --platform linux/amd64 --cpus 4 --memory 6g --shm-size 1g \
             --tmpfs /tmp:rw,nosuid,nodev,size=1g \
@@ -96,10 +103,10 @@ jobs:
               CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome\")+glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux/chrome\"); assert len(p)==1; print(p[0])")"
               export CONNECT_GATE6_CHROME
               python3 scripts/video/owned_pulse_audio.py --output .local/gate6-browser-media/evidence/audio -- \
-                python3 scripts/check-gate6-browser-media.py run
+                python3 scripts/check-gate6-browser-media.py run ${{ inputs.lane == 'diagnostic' && '--component baseline' || inputs.lane == 'fault' && '--component impairment-eddsa' || '' }}
             '
       - name: Run owned distinct-network browser bridge cases
-        if: always() && steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success' && inputs.lane != 'fault'
         run: |
           python3 - <<'PY'
           from pathlib import Path

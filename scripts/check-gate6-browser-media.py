@@ -39,6 +39,27 @@ def browser_participation_states(value):
     return result
 
 
+def cpu_snapshot():
+    result = dict(logical_cpus=os.cpu_count(), affinity_cpus=len(os.sched_getaffinity(0)))
+    try:
+        quota,period=Path('/sys/fs/cgroup/cpu.max').read_text().split()
+        result['quota_cores']=None if quota=='max' else int(quota)/int(period)
+        result['cpu_stat']={key:int(value) for key,value in
+            (line.split() for line in Path('/sys/fs/cgroup/cpu.stat').read_text().splitlines())
+            if key in {'usage_usec','user_usec','system_usec','nr_periods','nr_throttled','throttled_usec'}}
+    except (OSError,ValueError):
+        result['available']=False
+    return result
+
+
+def cpu_measurement(before,after,seconds):
+    delta={key:after['cpu_stat'][key]-value for key,value in before.get('cpu_stat',{}).items()
+        if key in after.get('cpu_stat',{}) and after['cpu_stat'][key]>=value}
+    return dict(profile={key:before.get(key) for key in ['logical_cpus','affinity_cpus','quota_cores']},
+        cpu_stat_delta=delta,average_cores_used=delta['usage_usec']/1_000_000/seconds
+        if 'usage_usec' in delta and seconds>0 else None)
+
+
 def runtime_library_profiles(rows):
     profiles = {}
     artifacts = 0
@@ -138,7 +159,7 @@ def build():
     assert report['passed'], 'Source-bound browser producer failed; private build.log retained'
 
 
-def runtime():
+def runtime(component=None):
     assert os.environ.get('CONNECT_GATE6_OWNED_BROWSER_CONTAINER') == '1' and os.environ.get('PULSE_SERVER')
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', os.environ.get('CONNECT_GATE6_BROWSER_IMAGE_ID', ''))
     output = BASE / 'evidence/runtime'
@@ -183,12 +204,16 @@ def runtime():
             ('unreachable-eddsa', 'canonical_webrtc_browser::canonical_chrome_unreachable_turn_eddsa', True, 1),
             ('unreachable-es256', 'canonical_webrtc_browser::canonical_chrome_unreachable_turn_es256', True, 1),
         ]
+        if component:
+            cases=[case for case in cases if case[0]==component]
         for name, case, ignored, count in cases:
             directory = output / name
             directory.mkdir()
             command = [str(binary), case] + (['--exact', '--ignored'] if ignored else []) + ['--test-threads=1']
+            cpu_before=cpu_snapshot()
             step = BOUNDED(command, dict(env, CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(directory)),
                 output / (name + '.log'), 120)
+            step['cpu']=cpu_measurement(cpu_before,cpu_snapshot(),step['seconds'])
             raw = (output / (name + '.log')).read_text(errors='replace')
             step['rtc_admission_observations'] = admission_diagnostic(raw) if step['exit_code'] else []
             step.update(name=name, passed=step['exit_code'] == 0 and not step['timed_out'] and not step['forced_kill'] and re.findall(
@@ -210,6 +235,13 @@ def runtime():
                             peer_states=peer_states,
                             unreachable_relay=value.get('unreachable_relay'), observations=[dict(
                                 decoded_fps=o['decoded']/o['elapsed_seconds'], changing_fps=o['changing']/o['elapsed_seconds'],
+                                source_draw_fps=o.get('source_observation',{}).get('draws_per_second'),
+                                encoded_fps=o.get('outbound_observation',{}).get('frames')/o['elapsed_seconds']
+                                    if isinstance(o.get('outbound_observation',{}).get('frames'),(int,float)) else None,
+                                packets=o.get('packets'),lost=o.get('lost'),jitter=o.get('jitter'),
+                                audio_coverage_complete=o['audio_profile'].get('coverage_complete'),
+                                audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
+                                audio_bad_samples=o['audio_profile'].get('bad_unexcepted_samples'),
                                 audio=o['audio_profile']['status'], motion=o['motion_profile']['status'],
                                 source_identity=o['source_identity']['status'], av_sync=o['av_sync']['status'],
                                 av_acceptance=o['av_acceptance']) for o in value.get('observations', [])])
@@ -218,10 +250,14 @@ def runtime():
             print(json.dumps(dict(name=name, passed=step['passed'])), flush=True)
         for algorithm in ['EdDSA', 'ES256']:
             name = 'impairment-' + algorithm.lower()
+            if component and component!=name:
+                continue
             command = ['python3', 'scripts/rehearse-gate6-browser-network.py', '--binary', str(binary),
                 '--source-manifest', str(output / 'repository-inputs.json'), '--algorithm', algorithm,
                 '--output', str(output / name)]
+            cpu_before=cpu_snapshot()
             step = BOUNDED(command, env, output / (name + '.log'), 140)
+            step['cpu']=cpu_measurement(cpu_before,cpu_snapshot(),step['seconds'])
             step.update(name=name, passed=step['exit_code'] == 0 and not step['timed_out'] and not step['forced_kill'])
             path = output / name / 'summary.json'
             if path.exists():
@@ -232,10 +268,13 @@ def runtime():
         changed = [name for name, value in repository.items() if not (ROOT / name).is_file() or digest(ROOT / name) != value]
         changed += [name for name, value in tools.items() if digest(name) != value]
         report = dict(scope='Native Linux x86_64 anonymous network-disabled container: production runtime opt3 with explicitly recorded integration-driver optimization, normal private CA, original browser ICE, decoded clean/impairment media and owned UDP faults. No distinct-network, provider, installation or acceptance qualification.',
+            lane=component or 'full',full_matrix=component is None,
             browser=version, image_id=os.environ.get('CONNECT_GATE6_BROWSER_IMAGE_ID'),
             producer=producer, source_count=len(repository), tool_count=len(tools),
             sources_unchanged=not changed, changed_inputs=changed, steps=steps,
-            passed=len(steps) == 8 and all(step['passed'] for step in steps) and not changed)
+            passed=len(steps) == (1 if component else 8) and all(step['passed'] for step in steps) and not changed)
+        if component:
+            report['scope']='Single diagnostic component only: '+component+'. Native Linux x86 CFT156 with opt3 runtime libraries. No full-matrix, installation or acceptance qualification.'
         save(output / 'summary.json', report)
     assert report['passed'], 'One or more required browser media cases failed; independent results retained'
 
@@ -243,8 +282,11 @@ def runtime():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('build', 'run'))
+    parser.add_argument('--component',choices=('native-ice','baseline','ice-eddsa','ice-es256',
+        'unreachable-eddsa','unreachable-es256','impairment-eddsa','impairment-es256'))
     args = parser.parse_args()
     assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
     assert re.search(r'^vendor_id\s*:', Path('/proc/cpuinfo').read_text(), re.M)
     os.chdir(ROOT)
-    build() if args.mode == 'build' else runtime()
+    assert not args.component or args.mode=='run'
+    build() if args.mode == 'build' else runtime(args.component)

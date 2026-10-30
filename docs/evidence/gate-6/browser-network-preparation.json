@@ -668,5 +668,1859 @@
       "syntax_and_format": true
     },
     "remaining": "Current Linux browser clean/ICE/fault and both distinct-network bridge scenes. All previous quality/setup failures remain retained; no whole G6-054 or acceptance qualification."
+  },
+  "linux_permission_followup_and_diagnostic_lanes": {
+    "run_id": 41086327828,
+    "source_revision": "150981286ca44197a84029ae5103e3487052bb4f",
+    "artifact_sha256": "0b668ce5bd1562a408722f2a8824c4be360a74f2b4c5619ab31b310a36e540ff",
+    "git_sources_independently_verified": 2850,
+    "prepared_dependency_files_matching": 3087,
+    "producer_passed": true,
+    "runtime": {
+      "passed": false,
+      "source_count": 5937,
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "steps": [
+        {
+          "name": "native-ice",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 12.19473570400001
+        },
+        {
+          "name": "baseline",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 68.62288438299998,
+          "browser-result.jsonl": {
+            "status": "failed",
+            "phase": null,
+            "error_class": null,
+            "ice_restarts": null,
+            "peer_states": [],
+            "unreachable_relay": null,
+            "observations": [
+              {
+                "decoded_fps": 18.377636197058703,
+                "changing_fps": 15.17862790165048,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              },
+              {
+                "decoded_fps": 17.244941466732524,
+                "changing_fps": 14.279144770038428,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ice-eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 76.072416535,
+          "browser-result.jsonl": {
+            "status": "failed",
+            "phase": null,
+            "error_class": null,
+            "ice_restarts": {
+              "status": "passed",
+              "profile": "original-browser-ice/1",
+              "results": [
+                {
+                  "participant": 0,
+                  "operation_id": "browser-ice-0-0",
+                  "ice_generation": 1,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 1,
+                  "signed_requests": 2,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.2535,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 5,
+                      "maximum_audio_gap_seconds": 0.10809993743896484
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.7582999999999883,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 6,
+                      "maximum_audio_gap_seconds": 0.09999990463256836
+                    }
+                  ]
+                },
+                {
+                  "participant": 1,
+                  "operation_id": "browser-ice-1-0",
+                  "ice_generation": 1,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 1,
+                  "signed_requests": 2,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.6322000000000116,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10050010681152344
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.578600000000035,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.0999000072479248
+                    }
+                  ]
+                },
+                {
+                  "participant": 0,
+                  "operation_id": "browser-ice-0-1",
+                  "ice_generation": 2,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 0,
+                  "signed_requests": 1,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.9095999999999768,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10000014305114746
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 1.5214000000000232,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10019993782043457
+                    }
+                  ]
+                },
+                {
+                  "participant": 1,
+                  "operation_id": "browser-ice-1-1",
+                  "ice_generation": 2,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 0,
+                  "signed_requests": 1,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.25620000000001164,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 7,
+                      "maximum_audio_gap_seconds": 0.10759973526000977
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 1.0575999999999768,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10970020294189453
+                    }
+                  ]
+                }
+              ],
+              "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+            },
+            "peer_states": [],
+            "unreachable_relay": null,
+            "observations": [
+              {
+                "decoded_fps": 15.458473667465476,
+                "changing_fps": 13.05974499492773,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              },
+              {
+                "decoded_fps": 13.576431941155846,
+                "changing_fps": 10.944436546428701,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              }
+            ]
+          },
+          "ice-restart-oracle.json": {
+            "original_allocations": 2,
+            "passed": true,
+            "records": [
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-0-0",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-0",
+                  "ice_generation": 1,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-0-1",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-0",
+                  "ice_generation": 2,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-1-0",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-1",
+                  "ice_generation": 1,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-1-1",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-1",
+                  "ice_generation": 2,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ice-es256",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 77.852115502,
+          "browser-result.jsonl": {
+            "status": "failed",
+            "phase": null,
+            "error_class": null,
+            "ice_restarts": {
+              "status": "passed",
+              "profile": "original-browser-ice/1",
+              "results": [
+                {
+                  "participant": 0,
+                  "operation_id": "browser-ice-0-0",
+                  "ice_generation": 1,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 1,
+                  "signed_requests": 2,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 1.7985,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 5,
+                      "maximum_audio_gap_seconds": 0.10989999771118164
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.40420000000001166,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10010004043579102
+                    }
+                  ]
+                },
+                {
+                  "participant": 1,
+                  "operation_id": "browser-ice-1-0",
+                  "ice_generation": 1,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 1,
+                  "signed_requests": 2,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.28229999999998834,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 4,
+                      "maximum_audio_gap_seconds": 0.10990023612976074
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.579600000000035,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10000014305114746
+                    }
+                  ]
+                },
+                {
+                  "participant": 0,
+                  "operation_id": "browser-ice-0-1",
+                  "ice_generation": 2,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 0,
+                  "signed_requests": 1,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 1.5115,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10010027885437012
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.22730000000004658,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 6,
+                      "maximum_audio_gap_seconds": 0.10039997100830078
+                    }
+                  ]
+                },
+                {
+                  "participant": 1,
+                  "operation_id": "browser-ice-1-1",
+                  "ice_generation": 2,
+                  "stream_revision": 2,
+                  "connection_generation": 1,
+                  "discarded_answers": 0,
+                  "signed_requests": 1,
+                  "ownership": {
+                    "peer_count": 1,
+                    "worker_count": 1,
+                    "gathering": [
+                      "complete"
+                    ],
+                    "original_video_workers_unchanged": true,
+                    "original_media_unchanged": true
+                  },
+                  "decoded_recovery": [
+                    {
+                      "status": "passed",
+                      "seconds": 0.6809000000000233,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 1,
+                      "maximum_audio_gap_seconds": 0.10000014305114746
+                    },
+                    {
+                      "status": "passed",
+                      "seconds": 0.45309999999997674,
+                      "limit_seconds": 2,
+                      "fresh_audio_samples": 3,
+                      "fresh_changing_frames": 2,
+                      "maximum_audio_gap_seconds": 0.10039973258972168
+                    }
+                  ]
+                }
+              ],
+              "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+            },
+            "peer_states": [],
+            "unreachable_relay": null,
+            "observations": [
+              {
+                "decoded_fps": 17.411037063257545,
+                "changing_fps": 14.262055240333455,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              },
+              {
+                "decoded_fps": 15.17860263777061,
+                "changing_fps": 12.162875878784352,
+                "audio": "failed",
+                "motion": "passed",
+                "source_identity": "passed",
+                "av_sync": "failed",
+                "av_acceptance": {
+                  "policy": "connect-media-acceptance/2",
+                  "scenario": "clean",
+                  "status": "failed",
+                  "quality_status": "failed",
+                  "reason": "strict-quality-not-met"
+                }
+              }
+            ]
+          },
+          "ice-restart-oracle.json": {
+            "original_allocations": 2,
+            "passed": true,
+            "records": [
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-0-0",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-0",
+                  "ice_generation": 1,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-0-1",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-0",
+                  "ice_generation": 2,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-1-0",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-1",
+                  "ice_generation": 1,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              },
+              {
+                "attempt": 1,
+                "effects": 1,
+                "operation_id": "browser-ice-1-1",
+                "result": {
+                  "action": "ice-restart",
+                  "connection_generation": 1,
+                  "connection_id": "browser-connection-1",
+                  "ice_generation": 2,
+                  "resources_changed": false,
+                  "stream_revision": 2
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "unreachable-eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 18.615207381999994,
+          "browser-result.jsonl": {
+            "status": "passed",
+            "phase": null,
+            "error_class": null,
+            "ice_restarts": null,
+            "peer_states": [],
+            "unreachable_relay": {
+              "status": "passed",
+              "reason": "unreachable",
+              "results": [
+                {
+                  "participant": 0,
+                  "error_code": "timeout",
+                  "seconds": 8.004399999999965,
+                  "limit_seconds": 8,
+                  "logical_offers": 0,
+                  "submission_attempted": false,
+                  "owned_peer_closed": true,
+                  "owned_audio_tracks_ended": true,
+                  "remote_description_set": false
+                },
+                {
+                  "participant": 1,
+                  "error_code": "timeout",
+                  "seconds": 8.003599999999977,
+                  "limit_seconds": 8,
+                  "logical_offers": 0,
+                  "submission_attempted": false,
+                  "owned_peer_closed": true,
+                  "owned_audio_tracks_ended": true,
+                  "remote_description_set": false
+                }
+              ],
+              "original_contexts_closed": 2
+            },
+            "observations": []
+          },
+          "unreachable-turn.json": {
+            "actual_unanswered_allocate_requests": 12,
+            "original_address_reclaimed": true,
+            "owned_listener_joined": true,
+            "owned_loopback_only": true
+          }
+        },
+        {
+          "name": "unreachable-es256",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 18.61290564799998,
+          "browser-result.jsonl": {
+            "status": "passed",
+            "phase": null,
+            "error_class": null,
+            "ice_restarts": null,
+            "peer_states": [],
+            "unreachable_relay": {
+              "status": "passed",
+              "reason": "unreachable",
+              "results": [
+                {
+                  "participant": 0,
+                  "error_code": "timeout",
+                  "seconds": 8.005799999999988,
+                  "limit_seconds": 8,
+                  "logical_offers": 0,
+                  "submission_attempted": false,
+                  "owned_peer_closed": true,
+                  "owned_audio_tracks_ended": true,
+                  "remote_description_set": false
+                },
+                {
+                  "participant": 1,
+                  "error_code": "timeout",
+                  "seconds": 8.003700000000011,
+                  "limit_seconds": 8,
+                  "logical_offers": 0,
+                  "submission_attempted": false,
+                  "owned_peer_closed": true,
+                  "owned_audio_tracks_ended": true,
+                  "remote_description_set": false
+                }
+              ],
+              "original_contexts_closed": 2
+            },
+            "observations": []
+          },
+          "unreachable-turn.json": {
+            "actual_unanswered_allocate_requests": 12,
+            "original_address_reclaimed": true,
+            "owned_listener_joined": true,
+            "owned_loopback_only": true
+          }
+        },
+        {
+          "name": "impairment-eddsa",
+          "passed": false,
+          "exit_code": 1,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 10.156277826000007,
+          "network": {
+            "scope": "Owned loopback port-preserving NAT, browser UDP loss/jitter and burst recovery.\n\nUses the existing impairment observer/policy. No clean-profile, distinct-network,\nprovider or account qualification. All raw state stays in a fresh .local folder.\n",
+            "passed": false,
+            "test": "canonical_webrtc_browser::canonical_chrome_owned_udp_impairment_eddsa",
+            "source_count": 5937,
+            "source_manifest_sha256": "cbaa152ef04a03510e1f87a9cd1dca8d147dee22f5095364e0cd933b3b4c6ae4",
+            "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+            "runner_sha256": "8cecb791773ae35de937528364a7328a5ddd4139e18c18186d9e5f46ff7127ee",
+            "profile": "impairment",
+            "configured_random_drop_probability": 0.03,
+            "configured_delay_ms": [
+              0,
+              100
+            ],
+            "configured_burst_seconds": 3,
+            "proxies": [
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890265416000034,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": 26.226902400003382,
+                  "to_client": 68.11389424998993
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 543.51583151879,
+                  "to_client": 395.93868521236357
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 3712,
+                  "to_client": 2784
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 2,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 1,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 5,
+                    "dropped": 0,
+                    "forwarded": 5,
+                    "received_bytes": 464,
+                    "forwarded_bytes": 464,
+                    "received_network_bytes": 604,
+                    "forwarded_network_bytes": 604,
+                    "maximum_planned_delay_ms": 81.08291777036125,
+                    "random_drop_decisions": 5,
+                    "dispatch_delay_samples": 5,
+                    "dispatch_delay_total_ms": 131.1345120000169,
+                    "maximum_observed_dispatch_delay_ms": 81.20165799999768
+                  },
+                  "to_client": {
+                    "received": 4,
+                    "dropped": 0,
+                    "forwarded": 4,
+                    "received_bytes": 328,
+                    "forwarded_bytes": 328,
+                    "received_network_bytes": 440,
+                    "forwarded_network_bytes": 440,
+                    "maximum_planned_delay_ms": 87.89856969261801,
+                    "random_drop_decisions": 4,
+                    "dispatch_delay_samples": 4,
+                    "dispatch_delay_total_ms": 272.4555769999597,
+                    "maximum_observed_dispatch_delay_ms": 88.68505999998888
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.89029018299999,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": 34.45631525001147,
+                  "to_client": 67.33008466668859
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 543.5143173661247,
+                  "to_client": 313.15063318445596
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 3712,
+                  "to_client": 2048
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.2,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 2,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 1,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 5,
+                    "dropped": 1,
+                    "forwarded": 4,
+                    "received_bytes": 464,
+                    "forwarded_bytes": 352,
+                    "received_network_bytes": 604,
+                    "forwarded_network_bytes": 464,
+                    "maximum_planned_delay_ms": 52.09907767000032,
+                    "random_drop_decisions": 5,
+                    "random_dropped": 1,
+                    "dispatch_delay_samples": 4,
+                    "dispatch_delay_total_ms": 137.82526100004588,
+                    "maximum_observed_dispatch_delay_ms": 52.661161000003176
+                  },
+                  "to_client": {
+                    "received": 3,
+                    "dropped": 0,
+                    "forwarded": 3,
+                    "received_bytes": 264,
+                    "forwarded_bytes": 264,
+                    "received_network_bytes": 348,
+                    "forwarded_network_bytes": 348,
+                    "maximum_planned_delay_ms": 92.74720968574916,
+                    "random_drop_decisions": 3,
+                    "dispatch_delay_samples": 3,
+                    "dispatch_delay_total_ms": 201.99025400006576,
+                    "maximum_observed_dispatch_delay_ms": 93.67893600000343
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890301222999994,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890316251000002,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890322523000009,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890327843000023,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890332832000013,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 8.890337712000019,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376618.6447124,
+                    "end_unix_seconds": 1793376621.6447124,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              }
+            ],
+            "exit_code": 101,
+            "original_proxy_addresses_reclaimed": 10,
+            "owned_proxies_closed": 8,
+            "test_log_sha256": "a13938eaa4db687918d4d63063c3e76619b8b390e59ec504ee2ae818eeb0db81",
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 105 filtered out; finished in 8.88s"
+            ],
+            "active_bidirectional_proxies": 2,
+            "changed_source_inputs": []
+          }
+        },
+        {
+          "name": "impairment-es256",
+          "passed": false,
+          "exit_code": 1,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 8.460235888999932,
+          "network": {
+            "scope": "Owned loopback port-preserving NAT, browser UDP loss/jitter and burst recovery.\n\nUses the existing impairment observer/policy. No clean-profile, distinct-network,\nprovider or account qualification. All raw state stays in a fresh .local folder.\n",
+            "passed": false,
+            "test": "canonical_webrtc_browser::canonical_chrome_owned_udp_impairment_es256",
+            "source_count": 5937,
+            "source_manifest_sha256": "cbaa152ef04a03510e1f87a9cd1dca8d147dee22f5095364e0cd933b3b4c6ae4",
+            "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+            "runner_sha256": "8cecb791773ae35de937528364a7328a5ddd4139e18c18186d9e5f46ff7127ee",
+            "profile": "impairment",
+            "configured_random_drop_probability": 0.03,
+            "configured_delay_ms": [
+              0,
+              100
+            ],
+            "configured_burst_seconds": 3,
+            "proxies": [
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197822267999982,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": 26.515992199995253,
+                  "to_client": 68.78241875001834
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 671.3141586563015,
+                  "to_client": 489.03680431916007
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 2592,
+                  "to_client": 2048
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 2,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 1,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 5,
+                    "dropped": 0,
+                    "forwarded": 5,
+                    "received_bytes": 464,
+                    "forwarded_bytes": 464,
+                    "received_network_bytes": 604,
+                    "forwarded_network_bytes": 604,
+                    "maximum_planned_delay_ms": 81.08291777036125,
+                    "random_drop_decisions": 5,
+                    "dispatch_delay_samples": 5,
+                    "dispatch_delay_total_ms": 132.57996099997627,
+                    "maximum_observed_dispatch_delay_ms": 81.6046159999928
+                  },
+                  "to_client": {
+                    "received": 4,
+                    "dropped": 0,
+                    "forwarded": 4,
+                    "received_bytes": 328,
+                    "forwarded_bytes": 328,
+                    "received_network_bytes": 440,
+                    "forwarded_network_bytes": 440,
+                    "maximum_planned_delay_ms": 87.89856969261801,
+                    "random_drop_decisions": 4,
+                    "dispatch_delay_samples": 4,
+                    "dispatch_delay_total_ms": 275.12967500007335,
+                    "maximum_observed_dispatch_delay_ms": 89.82184000001325
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197846474000016,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": 34.97247599997877,
+                  "to_client": 66.9034103333388
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 671.3119010601432,
+                  "to_client": 386.78235359094344
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 2976,
+                  "to_client": 2048
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.2,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 2,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 1,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 5,
+                    "dropped": 1,
+                    "forwarded": 4,
+                    "received_bytes": 464,
+                    "forwarded_bytes": 352,
+                    "received_network_bytes": 604,
+                    "forwarded_network_bytes": 464,
+                    "maximum_planned_delay_ms": 52.09907767000032,
+                    "random_drop_decisions": 5,
+                    "random_dropped": 1,
+                    "dispatch_delay_samples": 4,
+                    "dispatch_delay_total_ms": 139.88990399991508,
+                    "maximum_observed_dispatch_delay_ms": 53.26477899996007
+                  },
+                  "to_client": {
+                    "received": 3,
+                    "dropped": 0,
+                    "forwarded": 3,
+                    "received_bytes": 264,
+                    "forwarded_bytes": 264,
+                    "received_network_bytes": 348,
+                    "forwarded_network_bytes": 348,
+                    "maximum_planned_delay_ms": 92.74720968574916,
+                    "random_drop_decisions": 3,
+                    "dispatch_delay_samples": 3,
+                    "dispatch_delay_total_ms": 200.7102310000164,
+                    "maximum_observed_dispatch_delay_ms": 93.24091899998166
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197858064999991,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197871941000017,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.1978789139999435,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197885066000026,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197890656000027,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              },
+              {
+                "scope": "owned opaque UDP packets, bidirectional; enclosing hop report identifies QUIC or WebRTC transport",
+                "elapsed_seconds": 7.197895656000014,
+                "configured_drop_probability": 0.03,
+                "drop_method": "fixed-seed Bernoulli configured probability per eligible opaque UDP packet; actual realized fraction is reported separately from stall/overflow drops",
+                "configured_delay_range_ms": [
+                  0,
+                  100.0
+                ],
+                "dispatch_delay_boundary": "owned proxy datagram receipt to sendto return, including backend setup and event-loop scheduling; no receiver arrival or network delay claim",
+                "mean_observed_dispatch_delay_ms": {
+                  "to_server": null,
+                  "to_client": null
+                },
+                "stall_bursts": [
+                  {
+                    "start_unix_seconds": 1793376628.7985134,
+                    "end_unix_seconds": 1793376631.7985134,
+                    "duration_seconds": 3
+                  }
+                ],
+                "received_wire_bitrate_bits_per_second": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "maximum_one_second_received_wire_bits": {
+                  "to_server": 0,
+                  "to_client": 0
+                },
+                "wire_peak_method": "nonoverlapping one-second bins anchored to proxy start; encrypted UDP payload plus ordinary IPv4/UDP headers (28 bytes per packet); loopback has no Ethernet framing",
+                "measured_random_drop_fraction": {
+                  "to_server": 0.0,
+                  "to_client": 0.0
+                },
+                "pending_datagrams_high_water": 0,
+                "pending_datagrams_bound": 512,
+                "backend_sockets": 0,
+                "backend_sockets_bound": 128,
+                "startup_queue_datagrams_per_backend_bound": 64,
+                "errors": [],
+                "directions": {
+                  "to_server": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  },
+                  "to_client": {
+                    "received": 0,
+                    "dropped": 0,
+                    "forwarded": 0,
+                    "received_bytes": 0,
+                    "forwarded_bytes": 0,
+                    "received_network_bytes": 0,
+                    "forwarded_network_bytes": 0,
+                    "maximum_planned_delay_ms": 0
+                  }
+                }
+              }
+            ],
+            "exit_code": 101,
+            "original_proxy_addresses_reclaimed": 10,
+            "owned_proxies_closed": 8,
+            "test_log_sha256": "ce998c7deb12807086bfa4e8848e3a84e3fa4cbedbe9fd2d4ced01c7370a0566",
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 105 filtered out; finished in 7.19s"
+            ],
+            "active_bidirectional_proxies": 2,
+            "changed_source_inputs": []
+          }
+        }
+      ]
+    },
+    "bridges": {
+      "bridge-eddsa": {
+        "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+        "algorithm": "EdDSA",
+        "passed": false,
+        "image_id": "sha256:f7fe4516e41a382c15c65027a22807ba15808dd60f1fac4cb37d26b6af1ced46",
+        "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+        "source_count": 5926,
+        "source_manifest_sha256": "9eeab3cd968f4c2260ee842300b3ccb77138fce373fb7a891013b97eba082b0b",
+        "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+        "browser_exit_code": 1,
+        "startup_browser_summary_present": false,
+        "startup_audio_summary_present": false,
+        "startup_error_categories": [],
+        "failure": {
+          "stage": "browser-container",
+          "error_class": "FileNotFoundError"
+        },
+        "bridge_containers_drained": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true,
+        "tools_unchanged": true,
+        "tool_count": 71
+      },
+      "bridge-es256": {
+        "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+        "algorithm": "ES256",
+        "passed": false,
+        "image_id": "sha256:f7fe4516e41a382c15c65027a22807ba15808dd60f1fac4cb37d26b6af1ced46",
+        "binary_sha256": "d7856291cfd3503d60dab5efc2f2aa439c885c0ae3f51777a5427673cd08d768",
+        "source_count": 5926,
+        "source_manifest_sha256": "9eeab3cd968f4c2260ee842300b3ccb77138fce373fb7a891013b97eba082b0b",
+        "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+        "browser_exit_code": 1,
+        "startup_browser_summary_present": false,
+        "startup_audio_summary_present": false,
+        "startup_error_categories": [],
+        "failure": {
+          "stage": "browser-container",
+          "error_class": "FileNotFoundError"
+        },
+        "bridge_containers_drained": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true,
+        "tools_unchanged": true,
+        "tool_count": 71
+      }
+    },
+    "conclusion": "Synthetic-origin permission permits the full60second media window. Native ICE and both unreachable-relay cases pass; baseline and both ICE profiles fail video/audio quality, both impairment cases fail early, and both bridges fail before audio/browser summary creation. No full-task or acceptance pass.",
+    "next_diagnostics": [
+      "One baseline records source draw, encoder, receiver, audio coverage and cgroup CPU counters without weakening thresholds.",
+      "One independent EdDSA fault case records bounded panic source sites and sanitized peer states.",
+      "Bridge runs as the host non-root UID/GID with all capabilities dropped and direct argv; no shell discovery, chown or permission widening. Local LinuxARM Pulse16.1 and Chrome151 component probes passed with private HOME, but are not native Linuxx86 media qualification."
+    ]
   }
 }
