@@ -54,7 +54,8 @@ pub struct ConnectionSnapshot {
     pub device_id: DeviceId,
     pub generation: u64,
     pub revision: ConnectionRevision,
-    /// Absent from the current journal snapshot; never inferred from revision.
+    /// Server-recorded committed control observation; never inferred from the
+    /// resource revision and never a local physical media grant.
     pub stream_revision: Option<StreamRevision>,
     pub state: String,
     pub replaces: Option<ConnectionId>,
@@ -65,7 +66,7 @@ impl ConnectionSnapshot {
         cid: &ConversationId,
     ) -> Result<Self> {
         let fail = || Error::request(ErrorKind::Protocol, None, false);
-        if v.generation == 0 || v.membership_epoch == 0 {
+        if v.generation == 0 || v.membership_epoch == 0 || v.stream_revision == Some(0) {
             return Err(fail());
         }
         Ok(Self {
@@ -78,7 +79,11 @@ impl ConnectionSnapshot {
             device_id: v.device_id.parse().map_err(|_| fail())?,
             generation: v.generation,
             revision: ConnectionRevision::try_from(v.revision).map_err(|_| fail())?,
-            stream_revision: None,
+            stream_revision: v
+                .stream_revision
+                .map(StreamRevision::try_from)
+                .transpose()
+                .map_err(|_| fail())?,
             state: v.state,
             replaces: v
                 .replaces
@@ -86,6 +91,38 @@ impl ConnectionSnapshot {
                 .transpose()
                 .map_err(|_| fail())?,
         })
+    }
+}
+#[cfg(test)]
+mod snapshot_tests {
+    use super::*;
+    #[test]
+    fn current_control_revision_is_an_independent_bounded_server_observation() {
+        let base = serde_json::json!({"connection_id":"connection","session_id":"session","participant_id":"participant","membership_epoch":1,"endpoint_id":"endpoint","device_id":"device","generation":1,"revision":9,"stream_revision":3,"state":"ready","replaces":null});
+        let conversation = "room".parse().unwrap();
+        let read = |value| {
+            ConnectionSnapshot::from_wire(serde_json::from_value(value).unwrap(), &conversation)
+        };
+        let value = read(base.clone()).unwrap();
+        assert_eq!(
+            value.stream_revision,
+            Some(StreamRevision::try_from(3_u64).unwrap())
+        );
+        assert_eq!(value.revision, ConnectionRevision::try_from(9_u64).unwrap());
+        for revision in [
+            serde_json::Value::Null,
+            serde_json::json!(0),
+            serde_json::json!(9007199254740992_u64),
+        ] {
+            let mut input = base.clone();
+            input["stream_revision"] = revision.clone();
+            let result = read(input);
+            if revision.is_null() {
+                assert_eq!(result.unwrap().stream_revision, None);
+            } else {
+                assert!(result.is_err());
+            }
+        }
     }
 }
 #[derive(Clone)]

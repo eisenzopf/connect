@@ -340,7 +340,10 @@ impl Runtime {
             .as_ref()
             .ok_or_else(Error::storage)?;
         let observed = serde_json::json!({"operation_id":outcome.media.operation_id,"audience_revision":outcome.media.audience_revision,"receiver_revisions":outcome.media.receiver_revisions.iter().map(|(id,r)|(id.as_str(),*r)).collect::<BTreeMap<_,_>>(),"restored":outcome.media.restored,"departed_connections":outcome.media.departed_connections.iter().map(|id|id.as_str()).collect::<Vec<_>>(),"participant_replacement":null,"participant_handoff":{"session":p.session.as_str(),"operation_id":p.operation_id,"correlation_id":p.correlation_id,"revision":p.revision,"outgoing":p.outgoing.as_str(),"outgoing_epoch":p.outgoing_epoch,"incoming":p.incoming.as_str(),"incoming_epoch":p.incoming_epoch,"outgoing_role":p.outgoing_role.as_ref().map(role),"incoming_role":role(&p.incoming_role),"retained":p.retained.as_str(),"admitted":p.admitted.as_str(),"retired":p.retired.iter().map(|id|id.as_str()).collect::<Vec<_>>()}});
-        let receipt = Arc::new(attempt.applied(observed)?);
+        let receipt = Arc::new(attempt.applied(
+            observed,
+            crate::canonical_runtime::capture_audience_metadata(handle.audience().commit())?,
+        )?);
         let mut carry_failed = false;
         for id in handle.audience().commit().connections() {
             if !outcome.retiring.contains(id)

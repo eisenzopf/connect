@@ -155,7 +155,7 @@ impl Scene {
             .iter()
             .map(|(id, n)| (id.clone(), json!(n.as_u64().unwrap() + 1)))
             .collect::<serde_json::Map<_, _>>();
-        let receipt = attempt.applied(json!({"operation_id":self.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).unwrap();
+        let receipt = attempt.applied((json!({"operation_id":self.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).clone(), crate::native_stream_projection::unchanged_audience_metadata_for_test(&(json!({"operation_id":self.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})))).unwrap();
         self.f
             .store
             .record_native_consultation_applied(&receipt)
@@ -387,7 +387,7 @@ fn sip_primary_captured_audience_records_its_generation_and_establishes_current_
         .iter()
         .map(|(id, n)| (id.clone(), json!(n.as_u64().unwrap() + 1)))
         .collect::<serde_json::Map<_, _>>();
-    let receipt=attempt.applied(json!({"operation_id":s.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).unwrap();
+    let receipt=attempt.applied((json!({"operation_id":s.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).clone(), crate::native_stream_projection::unchanged_audience_metadata_for_test(&(json!({"operation_id":s.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})))).unwrap();
     s.f.store
         .record_native_consultation_applied(&receipt)
         .unwrap();

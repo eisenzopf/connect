@@ -249,6 +249,60 @@ pub(crate) fn gates(
     value["stream_metadata_revision"] = json!(revision);
     save(c, connection, generation, revision, &value)
 }
+/// Carry unchanged descriptors only through a captured route commit on the
+/// exact still-ready incarnation. Gate states come from that atomic commit.
+pub(crate) fn audience(
+    c: &Connection,
+    connection: &str,
+    generation: u64,
+    expected: u64,
+    revision: u64,
+    gates: &[connect_protocol::native_audience::AudienceStreamState],
+) -> Result<()> {
+    if expected.checked_add(1) != Some(revision) || revision > MAX_REV {
+        return Err(invalid());
+    }
+    let raw: Option<String> = c.query_row(
+        "SELECT s.projection_json FROM native_stream_snapshots s JOIN connections p ON p.id=s.connection_id WHERE s.connection_id=?1 AND s.generation=?2 AND s.stream_revision=?3 AND s.available=1 AND p.generation=?2 AND p.state IN ('ready','active') AND json_extract(p.readiness_json,'$.stream_revision')=?4",
+        params![connection,generation,expected,revision], |r|r.get(0),
+    ).optional().map_err(|_|Error::storage())?;
+    let Some(raw) = raw else {
+        return Ok(());
+    };
+    let mut value: Value = serde_json::from_str(&raw).map_err(|_| Error::storage())?;
+    if value["stream_metadata_generation"] != generation
+        || value["stream_metadata_revision"] != expected
+    {
+        return Err(invalid());
+    }
+    let mut out = records(&value)?;
+    if !gates.is_empty() {
+        let counter = bump(
+            value["stream_metadata_counter"]
+                .as_u64()
+                .ok_or_else(invalid)?,
+        )?;
+        for gate in gates {
+            let Some(record) = out.iter_mut().find(|r| {
+                r.id == gate.stream_id
+                    && r.generation == gate.stream_generation
+                    && r.medium == "audio"
+                    && (r.state != "ended" || gate.state == "ended")
+            }) else {
+                // Preserve known effect attribution, but never relabel an
+                // incomplete descriptor set as the current actual resources.
+                c.execute("UPDATE native_stream_snapshots SET available=0 WHERE connection_id=?1 AND generation=?2 AND stream_revision=?3",params![connection,generation,expected]).map_err(|_|Error::storage())?;
+                return Ok(());
+            };
+            record.state = gate.state.clone();
+            record.revision = counter;
+        }
+        value["stream_metadata_counter"] = json!(counter);
+        value["stream_metadata"] = serde_json::to_value(out).map_err(|_| invalid())?;
+    }
+    value["stream_metadata_revision"] = json!(revision);
+    save(c, connection, generation, revision, &value)
+}
 pub(crate) fn snapshot(c: &Connection, parent: &ConnectionState) -> Result<Vec<StreamState>> {
     let row:Option<(u64,u64,bool,String)>=c.query_row("SELECT generation,stream_revision,available,projection_json FROM native_stream_snapshots WHERE connection_id=?1",[&parent.connection_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional().map_err(|_|Error::storage())?;
     let Some((generation, revision, available, raw)) = row else {
@@ -295,6 +349,16 @@ pub(crate) fn snapshot(c: &Connection, parent: &ConnectionState) -> Result<Vec<S
         .collect()
 }
 
+/// Store control-plane fixtures do not run Core or claim gate/media evidence.
+#[cfg(test)]
+pub(crate) fn unchanged_audience_metadata_for_test(
+    observation: &Value,
+) -> connect_protocol::native_audience::AudienceMetadata {
+    observation["receiver_revisions"]
+        .as_object()
+        .map(|values| values.keys().map(|id| (id.clone(), Vec::new())).collect())
+        .unwrap_or_default()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -347,6 +411,137 @@ mod tests {
             stream_revision: Some(1),
             state: "ready".into(),
             replaces: None,
+        }
+    }
+    fn audience_database() -> Connection {
+        let mut value = json!({"stream_revision":1});
+        replace(
+            &mut value,
+            1,
+            None,
+            1,
+            &[binding("voice", 1), binding("other", 1)],
+        )
+        .unwrap();
+        let c = database(&value);
+        c.execute_batch("ALTER TABLE connections ADD COLUMN state TEXT NOT NULL DEFAULT 'ready'")
+            .unwrap();
+        c
+    }
+    fn audience_revision(c: &Connection, revision: u64) {
+        c.execute(
+            "UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?1)",
+            [revision],
+        )
+        .unwrap();
+    }
+    #[test]
+    fn audience_carries_exact_descriptors_and_only_captured_gate_resource_versions() {
+        use connect_protocol::native_audience::AudienceStreamState;
+        let c = audience_database();
+        let original = snapshot(&c, &parent()).unwrap();
+        audience_revision(&c, 2);
+        assert!(
+            snapshot(&c, &parent()).unwrap().is_empty(),
+            "an uncarried control revision cannot label old resources as current"
+        );
+        audience(&c, "connection", 1, 1, 2, &[]).unwrap();
+        assert_eq!(
+            snapshot(&c, &parent()).unwrap(),
+            original,
+            "route-only carry changes no resource state or version"
+        );
+        audience_revision(&c, 3);
+        audience(
+            &c,
+            "connection",
+            1,
+            2,
+            3,
+            &[AudienceStreamState {
+                stream_id: "voice".into(),
+                stream_generation: 1,
+                state: "paused".into(),
+            }],
+        )
+        .unwrap();
+        let observed = snapshot(&c, &parent()).unwrap();
+        let voice = observed.iter().find(|s| s.stream_id == "voice").unwrap();
+        let other = observed.iter().find(|s| s.stream_id == "other").unwrap();
+        assert_eq!(voice.state, "paused");
+        assert_eq!(voice.revision, 2);
+        assert_eq!(
+            other,
+            original.iter().find(|s| s.stream_id == "other").unwrap()
+        );
+        let saved = load(&c, "connection").unwrap();
+        audience(&c, "connection", 1, 2, 3, &[]).unwrap();
+        assert_eq!(
+            load(&c, "connection").unwrap(),
+            saved,
+            "original replay must not bump observations again"
+        );
+        assert!(records(&saved).unwrap().iter().all(|s| s.generation == 1));
+        assert!(audience(&c, "connection", 1, 3, 5, &[]).is_err());
+    }
+    #[test]
+    fn audience_never_revives_retired_unavailable_replaced_or_newer_descriptions() {
+        for case in ["retired", "unavailable", "replaced", "newer"] {
+            let c = audience_database();
+            audience_revision(&c, 2);
+            match case {
+                "retired" => {
+                    c.execute("UPDATE connections SET state='retired'", [])
+                        .unwrap();
+                }
+                "unavailable" => {
+                    c.execute("UPDATE native_stream_snapshots SET available=0", [])
+                        .unwrap();
+                }
+                "replaced" => {
+                    c.execute("UPDATE connections SET generation=2", [])
+                        .unwrap();
+                }
+                "newer" => {
+                    let mut value = load(&c, "connection").unwrap();
+                    replace(&mut value, 1, Some(1), 3, &[binding("voice", 1)]).unwrap();
+                    save(&c, "connection", 1, 3, &value).unwrap();
+                }
+                _ => unreachable!(),
+            }
+            let before:(u64,u64,bool,String)=c.query_row("SELECT generation,stream_revision,available,projection_json FROM native_stream_snapshots",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+            audience(&c, "connection", 1, 1, 2, &[]).unwrap();
+            let after:(u64,u64,bool,String)=c.query_row("SELECT generation,stream_revision,available,projection_json FROM native_stream_snapshots",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+            assert_eq!(before, after, "{case}");
+        }
+    }
+    #[test]
+    fn audience_missing_or_wrong_stream_incarnation_makes_metadata_unavailable() {
+        use connect_protocol::native_audience::AudienceStreamState;
+        for (id, generation) in [("missing", 1), ("voice", 2)] {
+            let c = audience_database();
+            let before = load(&c, "connection").unwrap();
+            audience_revision(&c, 2);
+            audience(
+                &c,
+                "connection",
+                1,
+                1,
+                2,
+                &[AudienceStreamState {
+                    stream_id: id.into(),
+                    stream_generation: generation,
+                    state: "active".into(),
+                }],
+            )
+            .unwrap();
+            assert_eq!(load(&c, "connection").unwrap(), before);
+            assert!(!c
+                .query_row("SELECT available FROM native_stream_snapshots", [], |r| {
+                    r.get::<_, bool>(0)
+                })
+                .unwrap());
+            assert!(snapshot(&c, &parent()).unwrap().is_empty());
         }
     }
     fn update(c: &Connection, value: &Value) {

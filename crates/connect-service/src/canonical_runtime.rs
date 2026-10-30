@@ -1,5 +1,7 @@
 //! Disposable Core views use durable Session IDs and the dispatcher's real peer.
+mod audience_metadata;
 use crate::StoreInvocationAuthority;
+pub(crate) use audience_metadata::capture_audience_metadata;
 use connect_protocol::{Error, Result};
 use connect_store::PeerSessionProjection;
 use rvoip_core::peer_admission::PeerAdmission;

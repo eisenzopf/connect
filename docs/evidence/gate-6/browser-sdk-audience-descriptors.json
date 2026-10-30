@@ -1,0 +1,455 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "3b426d763a0d2bd3feeb6ba2cbfb7766625f5dea",
+  "passed": false,
+  "component_status": "WT descriptor behavior passed; complete cohort14pass/1fail; WSS original handoff unknown before descriptor checks",
+  "full_task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Current implementation with passing Core/protocol/projection/Store/Rust and SDK regressions plus actual WT descriptor continuity. Complete browser cohort has14passes/1failure: original WSS handoff reachedunknown before new descriptor checks. WSS descriptor behavior and fulltask are not qualified.",
+  "implementation": [
+    "The sealed atomic Core AudioAudienceCommit retains immutable actual touched logical gate facts. Empty facts mean no gate changed; later live confirmation still requires current credentials, unchanged ports and exact revision. Historical metadata grants no media IO.",
+    "A separately bounded typed metadata sidecar binds every actual receiver and unique bounded logical Stream incarnation. It does not inflate the public32KiB outcome or expose codec/port handles.",
+    "Original handoff, consultation and return attribution carries descriptors only after an exact guarded readiness update for the same ready/active incarnation and contiguous control revision. Missing, unavailable, retired, replaced or newer snapshots are never relabeled as fresh. Missing or wrong gate descriptors make metadata unavailable without inventing resources.",
+    "Route-only carry preserves Stream IDs and resource revisions. Actual touched gates update only matching audio Stream states/resource counters. Effect attribution and projection occur in the same original transaction.",
+    "Rust ConnectionSnapshot now consumes the declared independent optional bounded stream_revision observation. Browser and shared native facade observation paths retain their existing behavior.",
+    "Application HTTP/OpenAPI/dispatch and endpoint source inventories refreshed; Store schema remains115."
+  ],
+  "verification": {
+    "passed": false,
+    "results": [
+      {
+        "phase": "sdk",
+        "command": [
+          "npm",
+          "test",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          842
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.714298208011314,
+        "log_sha256": "57b273931a4856ff7f859d381f376b670227f4806b995c454ce17c4b803b27ce"
+      },
+      {
+        "phase": "types",
+        "command": [
+          "sdk/typescript/node_modules/.bin/tsc",
+          "--noEmit",
+          "--strict",
+          "--target",
+          "ES2022",
+          "--module",
+          "NodeNext",
+          "--moduleResolution",
+          "NodeNext",
+          "--lib",
+          "ES2022,DOM,DOM.Iterable",
+          "--types",
+          "node",
+          "--typeRoots",
+          "sdk/typescript/node_modules/@types",
+          "sdk/tests/browser_sdk_types.mts",
+          "sdk/tests/node_sdk_types.mts"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3614021248649806,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/node_sdk.test.mjs",
+          "sdk/tests/node_sessions.test.mjs",
+          "sdk/tests/node_incoming.test.mjs"
+        ],
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.397681124974042,
+        "log_sha256": "44f5be39e27fd742b8de112d1c6d1be10abc802205a437b29210a68d6b3bc196"
+      },
+      {
+        "phase": "enrollment",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_enrollment-aaef4384bdcdf571",
+          "--include-ignored",
+          "--test-threads=1"
+        ],
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 178.8965510840062,
+        "log_sha256": "53afc335eb8ef8626e48106f65b0ccc58bb752bc61f62de416cf3888f3ad0162"
+      }
+    ],
+    "source_inputs": 2796
+  },
+  "component_verification": {
+    "core": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/audience-projection/core-final-cases.log",
+      "sha256": "92ebd5ae629a4ef6f790479a941cfd39c8179e582f4a9c94c51f8cb426e95f22",
+      "scope": "Selected component regression."
+    },
+    "protocol": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/audience-projection/protocol.log",
+      "sha256": "835c3ce46fa42ca9b825864c19cbaf447c50ebead0b09a59e01120f97b165fa8",
+      "scope": "Selected component regression."
+    },
+    "projection": {
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/audience-projection/store-corrected.log",
+      "sha256": "c7ced18604c9555960804cdd015995ccf5fbce8b9925ff25496116697c1f7ab4",
+      "scope": "Selected component regression."
+    },
+    "client": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/audience-projection/client-snapshot.log",
+      "sha256": "3c4fb1b3ae9194c866be07f5c7bcbb1c5fe65c731879580cfa14bd2dd6e03ad8",
+      "scope": "Selected component regression."
+    },
+    "store_attribution": {
+      "passed": 652,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/audience-projection/store-attribution-external.log",
+      "sha256": "8525c2187084f1762418d1af9ffbaa1fec647cf97861163f3d257f5f2f4332f6",
+      "scope": "Control-only Store fixtures do not claim Core/media evidence."
+    }
+  },
+  "source_inputs": 2796,
+  "source_manifest_sha256": "5e4bba104519f0378c9e98c8ebcbc0e52ca2d1d02882e166dc7d99dd7d8e3b48",
+  "dependency_patch_count": 245,
+  "dependency_patch": {
+    "path": "patches/rvoip/gate6-audience-stream-metadata.patch",
+    "source": "G6-061 retain immutable actual changed-gate facts inside sealed atomic AudioAudienceCommit, separately from live unchanged-port/credential confirmation. Endpoint preparation alone changes no gates. Real legacy/no-change and muted-endpoint unmute/later-mute tests keep historical facts distinct from current confirmation.",
+    "sha256": "aa810657c262786e28985742c3f0f1a23dcb24a280dc24e10a543784b1c2a6a2"
+  },
+  "prepared_root": "v55",
+  "behavior": {
+    "completed_post_handoff_gates": 2,
+    "selected_ignored": 0,
+    "selected_excluded": 0,
+    "handoff_artifact_sha256": "ebb9fb28055dcd9bcf35a09887028a39a40cdee888589b6697350cf738d22b3f",
+    "reports": [
+      {
+        "path": "webtransport",
+        "postHandoffRevisions": [
+          3,
+          3
+        ],
+        "postControlRevisions": [
+          4,
+          5
+        ],
+        "gateResourceRevisions": [
+          3,
+          4
+        ],
+        "descriptorContinuity": [
+          {
+            "actor": 1,
+            "id": "handoff-audio-1-e1a0ada2f2784c98b624900e1bbc8540-webtransport",
+            "beforeResourceRevision": 1,
+            "afterResourceRevision": 1,
+            "state": "negotiated"
+          },
+          {
+            "actor": 2,
+            "id": "handoff-audio-2-e1a0ada2f2784c98b624900e1bbc8540-webtransport",
+            "beforeResourceRevision": 1,
+            "afterResourceRevision": 2,
+            "state": "active"
+          }
+        ],
+        "foreignCaptureRefused": true,
+        "outgoingCaptureRetired": true,
+        "recoveredOriginal": true,
+        "observations": [
+          {
+            "label": "public-owner",
+            "source": 0,
+            "allowed": [
+              1
+            ],
+            "max": [
+              2.0345869483764863e-34,
+              0.14378555807736307,
+              0
+            ],
+            "counts": [
+              26,
+              25,
+              0
+            ]
+          },
+          {
+            "label": "public-remote",
+            "source": 1,
+            "allowed": [
+              0
+            ],
+            "max": [
+              0.14311274290690598,
+              2.0345887850864095e-34,
+              0
+            ],
+            "counts": [
+              26,
+              25,
+              0
+            ]
+          },
+          {
+            "label": "prepared-target-isolated",
+            "source": 2,
+            "allowed": [],
+            "max": [
+              2.0345869483764863e-34,
+              2.0345887850864095e-34,
+              0
+            ],
+            "counts": [
+              25,
+              25,
+              0
+            ]
+          },
+          {
+            "label": "refused-policy-preserves-public-audio",
+            "source": 0,
+            "allowed": [
+              1
+            ],
+            "max": [
+              2.0345869483764863e-34,
+              0.14294910581802084,
+              0
+            ],
+            "counts": [
+              26,
+              26,
+              0
+            ]
+          },
+          {
+            "label": "handoff-target-to-remote",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.14429421358844133,
+              2.0345869483764863e-34
+            ],
+            "counts": [
+              0,
+              25,
+              26
+            ]
+          },
+          {
+            "label": "handoff-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              2.0345887850864095e-34,
+              0.14344968890301385
+            ],
+            "counts": [
+              0,
+              22,
+              25
+            ]
+          },
+          {
+            "label": "post-handoff-mute",
+            "source": 2,
+            "allowed": [],
+            "max": [
+              0,
+              0,
+              2.0345887850864095e-34
+            ],
+            "counts": [
+              0,
+              0,
+              25
+            ]
+          },
+          {
+            "label": "post-handoff-unmute",
+            "source": 2,
+            "allowed": [
+              1
+            ],
+            "max": [
+              0,
+              0.14323517989231763,
+              2.0345887850864095e-34
+            ],
+            "counts": [
+              0,
+              25,
+              25
+            ]
+          },
+          {
+            "label": "post-controls-remote-to-target",
+            "source": 1,
+            "allowed": [
+              2
+            ],
+            "max": [
+              0,
+              2.0345869483764863e-34,
+              0.1437483106363207
+            ],
+            "counts": [
+              0,
+              25,
+              25
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "preserved_failures": [
+    {
+      "log": ".local/gate-6/audience-projection/core.log",
+      "sha256": "20eef7c6f34d16f79c7b9db86a76df96338756006375544a32d40792f8fcd066",
+      "finding": "Compile E0063 missed the separate no-gate preparation constructor; no runtime pass."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/core-corrected.log",
+      "sha256": "95b5411aaa8332510e6ca84e20497ca72f571fe0ba6a81c745c9f7dae58d8b71",
+      "finding": "An initial test assumed that legacy isolation touched a gate that was already unmuted. Split the real no-change legacy case from a genuinely muted endpoint; both final actual Core cases pass."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/store.log",
+      "sha256": "4e604f1efa193f8d06eccb57d7131ba923b899f88001382ccf9d611aec77da21",
+      "finding": "Projection fixture omitted its initial readiness stream revision. Corrected the fixture; no product fix inferred."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/store-attribution.log",
+      "sha256": "83fbaea0f12a2e54b0baeb459d3e91b0967b4756c366193036cb55d0a68b96d2",
+      "finding": "Compile E0061 found four additional existing SIP fixtures needing the required explicit metadata argument; no runtime."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/store-attribution-corrected.log",
+      "sha256": "299b4bfe307e4472c60ae8d072e7a35a0872985a9337e87b66253ec21988539c",
+      "finding": "Successfully compiled Store test began running but internal stdout exhausted disk. Interrupted; excluded from passes. Final unchanged-source direct run uses external scratch and passes all652."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/enrollment-build.log",
+      "sha256": "f17710bde9983d3d39a88b1ecd355225d13cf09839e0f6361f4fa7cf5cf36ef6",
+      "finding": "Test linked successfully; subsequent extra bin connect link failed ENOSPC. No installed/CLI qualification. The current newly linked test artifact is verified and run directly; the overall cargo build is not called a pass."
+    },
+    {
+      "log": ".local/gate-6/audience-projection/qualification/enrollment-frozen.log",
+      "sha256": "53afc335eb8ef8626e48106f65b0ccc58bb752bc61f62de416cf3888f3ad0162",
+      "finding": "Complete normal cohort14passed/1failed/0ignored. Main typed WT/WSS permissions/Screen/invitation/recovery workflow passed. WT handoff descriptor/gate checks passed. WSS original handoff becameunknown before descriptor checks; read-only original status and SQL show exactly1started attempt, unknowneffect and noapplied receipt. No retry or cause/fix is claimed."
+    }
+  ],
+  "limitations": [
+    "Replacement activation/commit audience descriptor carriers remain unwired in this increment.",
+    "Successful live browser consultation/return and device movement workflows, then the full frozen-contract audit remain open. No such pass is inferred from Store or native tests.",
+    "Previous ordinary WT handoff wait deadline, separate authority-busy/status-uncertainty case and synthetic SIP unknown iteration remain unresolved; later successes do not establish their cause.",
+    "No installed CLI/release, Linux, remote/provider/model/account or independent acceptance qualification. Cached CLI strip-ENOSPC artifact is not a verification oracle."
+  ],
+  "task_progress": {
+    "done": 65,
+    "in_progress": 2,
+    "not_started": 38,
+    "acceptance_qualified": 0
+  },
+  "test_artifact": {
+    "path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_enrollment-aaef4384bdcdf571",
+    "sha256": "a18f74bfb872cb0465383f6bd9ddf4a8c88adb94abba5064c3b466ccc45e4b92",
+    "bytes": 370021728,
+    "mode": 493,
+    "mtime_ns": 1793327596491833684,
+    "test_artifact": "Newly linked actual Mach-O arm64; old qualified raw artifact was removed after verified archive before this build.",
+    "cargo_build_exit": 101,
+    "cargo_build_limitation": "Test linked successfully; subsequent extra bin connect link failed ENOSPC. No installed/CLI qualification.",
+    "build_log_sha256": "f17710bde9983d3d39a88b1ecd355225d13cf09839e0f6361f4fa7cf5cf36ef6"
+  },
+  "qualified_unit_executable_archives": {
+    "record_sha256": "8ac89031d085a28368df141a37c2f7d00d36692df21447562e11ca885f777a8e",
+    "artifacts": [
+      {
+        "sha256": "26c555e86712b817b6eeb08637e95ed0009f40538884e50c35163ff199596c61",
+        "bytes": 75376480,
+        "mode": 493,
+        "compressed_bytes": 16918835
+      },
+      {
+        "sha256": "72abb92a7f3469f1f1e4c99f7d1abaa8eb6280c4d7e8ff80f5b23acdcdd3fdea",
+        "bytes": 74192864,
+        "mode": 493,
+        "compressed_bytes": 15780492
+      },
+      {
+        "sha256": "480c55f58adc4ee0e9fc03da5a50700cb77457d5737a1be15fbafc99a1b3b02d",
+        "bytes": 73816560,
+        "mode": 493,
+        "compressed_bytes": 12726770
+      }
+    ],
+    "scope": "Completed unit executables were losslessly archived and decoded-hash verified before pruning only their raw cache copies; no source or state removed."
+  },
+  "http_reference_verification": {
+    "scope": "Synthetic real serde/schema/dispatch agreement only; no service authorization/media/profile qualification",
+    "codec_sha256": "14d23cb867c6f7c608e6978a4e2e1f2ea012d8ecebea1f1f216f7f7d5b19bbe8",
+    "source_unchanged": true,
+    "schemas": 227,
+    "dispatch_cases": 69,
+    "task_cases": 16,
+    "openapi_sha256": "cd75f98c59603e0929ea82b3e6889644f179c211508d399aa0b13f173b0fc70d",
+    "catalog_sha256": "a4b10742b17cec5e9c2b5b45d322d29cc27f2024020640ae95a830490d06e98d",
+    "checks": 98,
+    "summary_sha256": "9027f4bccd4bb75628830ffecf5c61334d0fe124ae65d2c77ee4eef579ff11d0"
+  },
+  "current_handoff_failure": {
+    "original_status": "unknown",
+    "started": true,
+    "attempt": 1,
+    "effect_state": "unknown",
+    "applied": false,
+    "sql_artifact_sha256": "9cff5652f2569d5eed8d6d00c103733c555118520d91081caa16a630a4786438",
+    "phase": "Core commit before descriptor metadata capture",
+    "cause": "Unresolved; error-only scoped diagnostic is running on unchanged inputs."
+  }
+}

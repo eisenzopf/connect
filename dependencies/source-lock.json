@@ -1331,6 +1331,11 @@
       "path": "patches/rvoip/gate6-subscription-source-preflight.patch",
       "source": "G6-061 read-only exact subscription source validation before durable attempt start. Share logical participant owner/epoch and wildcard semantics with actual commit; validate opaque current binding snapshots without ports, quiescence, mutation or media grants. Final current authorization remains mandatory.",
       "sha256": "6ba2e57a32d69a0fb1b9deceda7a2eda5bdc956da504be2647b02c303adec308"
+    },
+    {
+      "path": "patches/rvoip/gate6-audience-stream-metadata.patch",
+      "source": "G6-061 retain immutable actual changed-gate facts inside sealed atomic AudioAudienceCommit, separately from live unchanged-port/credential confirmation. Endpoint preparation alone changes no gates. Real legacy/no-change and muted-endpoint unmute/later-mute tests keep historical facts distinct from current confirmation.",
+      "sha256": "aa810657c262786e28985742c3f0f1a23dcb24a280dc24e10a543784b1c2a6a2"
     }
   ]
 }

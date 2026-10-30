@@ -14589,11 +14589,12 @@
     "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
     "crates/connect-protocol/src/events.rs": "1341260e990dc5d91d5ff3a5697c7e01c0ef54de59598086e4fa1bfcb9b6c298",
     "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
-    "crates/connect-protocol/src/lib.rs": "6eee92b5f6bd9f944958333db0dd2ed2e988b5d97b06318e9f0bf730e36b1ce6",
+    "crates/connect-protocol/src/lib.rs": "1f5db833846536221c78021eeeca6dda626304f2d1e90703fad787e12adde2ac",
     "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
     "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
     "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
     "crates/connect-protocol/src/messages.rs": "bcd8a68ef8d6d60e9798688730c7466074d55b01270928523b847f5b7362dba3",
+    "crates/connect-protocol/src/native_audience.rs": "29a8733e02f6b24365e7528dcb54f87cf919b44fdea224f89c6f3a35ab8dacd1",
     "crates/connect-protocol/src/native_capabilities.rs": "caf76d22b5d28a0124116ffd309195ad2a1782f59539a42dc7d7335f70458d1d",
     "crates/connect-protocol/src/native_data.rs": "e5120aeb30ee6458a86f917305a0041e820575f5a01a356d85273016c353afbe",
     "crates/connect-protocol/src/native_dtmf.rs": "9f4cd77bd13c53cf2cb5bd65bed19629b5217b928ea5809d12cb899c402eb691",
@@ -14629,7 +14630,7 @@
     "crates/connect-protocol/tests/enrollment.rs": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
-    "dependencies/source-lock.json": "a66db2bd17d09f3cc1f2e7e55eb76211beac9cdc8804f782b4d5b15de577bc1e",
+    "dependencies/source-lock.json": "910068124b8db13802d4341c5e6410cc41eed2cf64038ddf9f3563d02026fe5a",
     "scripts/generate-application-http-openapi.py": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f"
   },
   "x-connect-generation-refinements": [

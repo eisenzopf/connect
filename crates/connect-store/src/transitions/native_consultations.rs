@@ -26,6 +26,7 @@ pub struct NativeConsultationApplied {
     effect: String,
     hash: String,
     observation: String,
+    metadata: connect_protocol::native_audience::AudienceMetadata,
 }
 impl std::fmt::Debug for NativeConsultationLease {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -69,7 +70,11 @@ impl NativeConsultationAttempt {
     }
     /// Trusted runtime boundary only after actual Core audience application
     /// returned this observation. It is not decoded consulting media readiness.
-    pub fn applied(self, observation: serde_json::Value) -> Result<NativeConsultationApplied> {
+    pub fn applied(
+        self,
+        observation: serde_json::Value,
+        metadata: connect_protocol::native_audience::AudienceMetadata,
+    ) -> Result<NativeConsultationApplied> {
         let plan = self.lease.plan()?;
         let revisions = plan["expected_receiver_revisions"]
             .as_object()
@@ -96,6 +101,12 @@ impl NativeConsultationAttempt {
         {
             return Err(conflict());
         }
+        connect_protocol::native_audience::validate(
+            &metadata,
+            observation["receiver_revisions"]
+                .as_object()
+                .ok_or_else(invalid)?,
+        )?;
         let encoded = crate::provisioning::canonical_json(&observation)?;
         if encoded.len() > 32768 {
             return Err(invalid());
@@ -109,6 +120,7 @@ impl NativeConsultationAttempt {
             effect: self.lease.effect,
             hash: self.lease.hash,
             observation: encoded,
+            metadata,
         })
     }
 }
@@ -720,18 +732,37 @@ impl Store {
                     .as_u64()
                     .ok_or_else(Error::storage)?;
                 if binding.get("source_kind").is_some() {
-                    self.record_sip_audience_revision(
+                    if self.record_sip_audience_revision(
                         &tx,
                         binding,
                         &receipt.runtime,
                         previous,
                         revision,
-                    )?;
+                    )? {
+                        crate::native_stream_projection::audience(
+                            &tx,
+                            id,
+                            generation,
+                            previous,
+                            revision,
+                            receipt.metadata.get(runtime).ok_or_else(invalid)?,
+                        )?;
+                    }
                     continue;
                 }
                 // Historical metadata never revives a retired/replaced generation
                 // or rewrites a later native observation.
-                tx.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0)",params![id,generation,receipt.runtime,revision,previous]).map_err(|_|Error::storage())?;
+                let changed=tx.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0)",params![id,generation,receipt.runtime,revision,previous]).map_err(|_|Error::storage())?;
+                if changed == 1 {
+                    crate::native_stream_projection::audience(
+                        &tx,
+                        id,
+                        generation,
+                        previous,
+                        revision,
+                        receipt.metadata.get(runtime).ok_or_else(invalid)?,
+                    )?;
+                }
             }
             if let Some(sips) = selected.get("outside_sip") {
                 for binding in sips.as_array().ok_or_else(Error::storage)? {
@@ -744,13 +775,27 @@ impl Store {
                     let revision = observed["receiver_revisions"][runtime_id]
                         .as_u64()
                         .ok_or_else(Error::storage)?;
-                    self.record_sip_audience_revision(
+                    if self.record_sip_audience_revision(
                         &tx,
                         binding,
                         &receipt.runtime,
                         previous,
                         revision,
-                    )?;
+                    )? {
+                        let connection = binding["connection_id"]
+                            .as_str()
+                            .ok_or_else(Error::storage)?;
+                        let generation =
+                            binding["generation"].as_u64().ok_or_else(Error::storage)?;
+                        crate::native_stream_projection::audience(
+                            &tx,
+                            connection,
+                            generation,
+                            previous,
+                            revision,
+                            receipt.metadata.get(runtime_id).ok_or_else(invalid)?,
+                        )?;
+                    }
                 }
             }
             touch(&tx, &receipt.record, self)?;

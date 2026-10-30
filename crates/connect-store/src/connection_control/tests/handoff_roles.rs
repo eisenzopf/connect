@@ -16,7 +16,12 @@ pub(super) fn capture(
     let p = lease.plan().unwrap();
     let attempt = handoff_custody::begin(f, lease);
     let receipt = attempt
-        .applied(handoff_custody::observation(sources, origin, &p))
+        .applied(
+            (handoff_custody::observation(sources, origin, &p)).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(handoff_custody::observation(sources, origin, &p)),
+            ),
+        )
         .unwrap();
     f.store.record_native_handoff_applied(&receipt).unwrap();
     receipt

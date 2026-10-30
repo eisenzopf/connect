@@ -1166,3 +1166,28 @@ fences late results; late tracks are stopped and late profiles cannot open
 another physical or submit work. Owned HTTP requests and browser resource
 cleanup remain joined, and a stalled host resource can therefore exhaust the
 shutdown wait. Logs and browser profiles for local verification stay ignored.
+
+
+## Stream observations across audience changes
+
+A Connection snapshot’s nullable `streamRevision` is the current server-observed
+control version for its physical generation. A Stream snapshot’s
+`resourceRevision` versions that logical Stream’s observed state. Use the
+Connection control version for a new control assertion; retain the original
+operation ID and intent when acceptance or completion is uncertain. Neither
+version grants capture or renderer ownership.
+
+An attributed handoff, consultation or return carries existing Stream
+descriptors only when the same live Connection generation advances by exactly
+one control version. A route-only change preserves Stream IDs and resource
+versions. If the actual atomic Core commit changes a gate, the matching audio
+Stream receives that captured state and a new resource version. A missing or
+wrong Stream incarnation makes the descriptor snapshot unavailable; it does
+not create a substitute Stream. Retired, replaced, unavailable or newer
+snapshots cannot be revived by a historical commit.
+
+The browser handoff fixture checks these observations over WT and WSS alongside
+decoded media and original-operation recovery. Replacement descriptor carry
+and successful live browser consultation/return and device movement remain
+open. See [audience descriptor evidence](../evidence/gate-6/browser-sdk-audience-descriptors.json)
+for the bounded verification scope.

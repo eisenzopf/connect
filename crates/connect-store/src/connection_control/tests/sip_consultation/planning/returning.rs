@@ -159,9 +159,11 @@ impl Returning {
             .iter()
             .map(|(id, n)| (id.clone(), json!(n.as_u64().unwrap() + 1)))
             .collect::<serde_json::Map<_, _>>();
-        attempt.applied(json!({"operation_id":self.origin.record_id(),"audience_revision":2,
+        attempt.applied((json!({"operation_id":self.origin.record_id(),"audience_revision":2,
             "receiver_revisions":revisions,"restored":true,"departed_connections":plan["known_departed_connections"],
-            "participant_handoff":null,"participant_replacement":null})).unwrap()
+            "participant_handoff":null,"participant_replacement":null})).clone(), crate::native_stream_projection::unchanged_audience_metadata_for_test(&(json!({"operation_id":self.origin.record_id(),"audience_revision":2,
+            "receiver_revisions":revisions,"restored":true,"departed_connections":plan["known_departed_connections"],
+            "participant_handoff":null,"participant_replacement":null})))).unwrap()
     }
 }
 

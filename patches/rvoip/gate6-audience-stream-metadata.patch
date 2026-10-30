@@ -1,0 +1,155 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -174,10 +174,19 @@
+     previous: u64,
+     revision: u64,
+     ports: Vec<Weak<Port>>,
++    gates: Vec<LogicalStream>,
+ }
+ impl AudioAudienceCommit {
+     pub fn connections(&self) -> impl Iterator<Item = &ConnectionId> {
+         self.targets.keys()
++    }
++    /// Historical gate facts captured inside the atomic route commit. These
++    /// contain no live ports and grant no media or credential authority. A later
++    /// retirement cannot rewrite this original observation.
++    pub fn captured_gates(&self, connection: &ConnectionId) -> Option<&[LogicalStream]> {
++        self.targets
++            .get(connection)
++            .map(|target| target.gates.as_slice())
+     }
+     pub fn revisions_for(&self, controller: &Arc<StreamController>) -> ControlResult<(u64, u64)> {
+         let target = self
+@@ -506,6 +515,7 @@
+                         previous: state.model.revision(),
+                         revision: state.model.revision(),
+                         ports: vec![Arc::downgrade(port)],
++                        gates: Vec::new(),
+                     },
+                 )]),
+             },
+@@ -1323,6 +1333,23 @@
+                                 previous: plan.expected[&id],
+                                 revision: state.model.revision(),
+                                 ports: state.active.values().map(Arc::downgrade).collect(),
++                                gates: state
++                                    .model
++                                    .streams()
++                                    .iter()
++                                    .filter(|(id, _)| {
++                                        if let Some((changed, _)) = &target.inherited_gate {
++                                            *id == changed
++                                        } else {
++                                            target.gate.is_some()
++                                                && target.ports.iter().any(|(port, _, _)| {
++                                                    &port.binding.negotiated.requested.logical_id
++                                                        == *id
++                                                })
++                                        }
++                                    })
++                                    .map(|(_, stream)| stream.clone())
++                                    .collect(),
+                             },
+                         )
+                     })
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs
+@@ -322,3 +322,33 @@
+         p.original().await;
+     }
+ }
++
++#[tokio::test]
++async fn audience_commit_metadata_legacy_isolation_has_no_gate_mutation() {
++    let mut p = Prepared::new(false).await;
++    p.ready().await;
++    let controller = p.room.nodes["fresh"].controller.clone();
++    assert!(
++        !controller.state.lock().unwrap().model.streams()[&desired(Medium::Audio).logical_id]
++            .source_muted
++    );
++    let plan = p.plan(OldHandoffDisposition::Leave).unwrap();
++    let (_, handle) = p.room.handoff(plan).await.unwrap();
++    assert!(handle
++        .audience()
++        .commit()
++        .captured_gates(&ConnectionId::from_string("fresh"))
++        .unwrap()
++        .is_empty());
++    assert!(handle
++        .audience()
++        .commit()
++        .captured_gates(&ConnectionId::from_string("bob"))
++        .unwrap()
++        .is_empty());
++    assert!(handle
++        .audience()
++        .commit()
++        .revisions_for(&controller)
++        .is_ok());
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+@@ -342,3 +342,59 @@
+         assert!(!target.preparation.has_duplex_io());
+     }
+ }
++
++#[tokio::test]
++async fn audience_commit_metadata_endpoint_gate_facts_do_not_extend_live_confirmation() {
++    let mut t = Target::new(false).await;
++    t.room.publish("fresh", 12000).unwrap();
++    t.queue();
++    t.room.heard("fresh", 0).await;
++    let controller = t.room.nodes["fresh"].controller.clone();
++    assert!(
++        controller.state.lock().unwrap().model.streams()[&desired(Medium::Audio).logical_id]
++            .source_muted
++    );
++    let plan = t.plan().unwrap();
++    let (_, handle) = t.room.handoff(plan).await.unwrap();
++    let incoming = ConnectionId::from_string("fresh");
++    let commit = handle.audience().commit();
++    let facts = commit.captured_gates(&incoming).unwrap().to_vec();
++    assert_eq!(facts.len(), 1);
++    assert_eq!(
++        facts[0].negotiated.requested.logical_id,
++        desired(Medium::Audio).logical_id
++    );
++    assert_eq!(
++        facts[0].state,
++        crate::stream_lifecycle::LogicalStreamState::Active
++    );
++    assert!(!facts[0].source_muted);
++    assert!(commit
++        .captured_gates(&ConnectionId::from_string("bob"))
++        .unwrap()
++        .is_empty());
++    assert!(commit
++        .captured_gates(&ConnectionId::from_string("foreign"))
++        .is_none());
++    assert!(commit.revisions_for(&controller).is_ok());
++    t.room.publish("fresh", 7600).unwrap();
++    t.room.tick();
++    t.room.heard("bob", 7600).await;
++    let (_, changed) = controller
++        .set_media_gate(
++            controller.revision(),
++            &BTreeSet::from([desired(Medium::Audio).logical_id]),
++            StreamGateAction::Mute,
++            deadline(),
++        )
++        .await
++        .unwrap();
++    assert!(changed[0].source_muted);
++    assert_eq!(changed[0].generation, facts[0].generation);
++    assert_eq!(changed[0].stream_local_id, facts[0].stream_local_id);
++    assert_eq!(commit.captured_gates(&incoming), Some(facts.as_slice()));
++    assert!(
++        commit.revisions_for(&controller).is_err(),
++        "historical facts must not confirm a later physical revision"
++    );
++}

@@ -433,7 +433,14 @@ fn native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_
         .store
         .try_native_media_read(&sources[1], Some(&sources[0]))
         .is_err());
-    let receipt = attempt.applied(observation(&plan)).unwrap();
+    let receipt = attempt
+        .applied(
+            (observation(&plan)).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(observation(&plan)),
+            ),
+        )
+        .unwrap();
     let admin = f.store.revalidate(&f.admin).unwrap();
     f.store.revoke(&admin, &key).unwrap();
     assert!(f
@@ -639,7 +646,12 @@ fn return_after_source_departure(index: usize) {
     drop(read);
     let mut applied = observation(&plan);
     applied["departed_connections"] = plan["known_departed_connections"].clone();
-    let receipt = attempt.applied(applied).unwrap();
+    let receipt = attempt
+        .applied(
+            (applied).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(&(applied)),
+        )
+        .unwrap();
     f.store
         .record_native_consultation_return_applied(&receipt)
         .unwrap();
@@ -705,7 +717,7 @@ fn native_return_restart_preserves_private_floor_and_never_reuses_predecessor_re
                 drop(read);
                 // Controlled captured metadata, not an actual Core application.
                 let receipt = if stage == "captured" {
-                    Some(attempt.applied(observation(&plan)).unwrap())
+                    Some(attempt.applied((observation(&plan)).clone(), crate::native_stream_projection::unchanged_audience_metadata_for_test(&(observation(&plan)))).unwrap())
                 } else {
                     drop(attempt);
                     None

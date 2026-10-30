@@ -101,6 +101,8 @@ async fn run_handoff(audio_probe: bool, privacy_probe: bool) {
             for report in result["result"]["reports"].as_array().unwrap() {
                 assert_eq!(report["foreignCaptureRefused"], true);
                 assert_eq!(report["postControlRevisions"].as_array().unwrap().len(), 2);
+                assert_eq!(report["descriptorContinuity"].as_array().unwrap().len(), 2);
+                assert_eq!(report["gateResourceRevisions"].as_array().unwrap().len(), 2);
             }
             let db = rusqlite::Connection::open(&h.f.config.database).unwrap();
             let count = |sql| db.query_row(sql, [], |r| r.get::<_, u64>(0)).unwrap();

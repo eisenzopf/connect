@@ -6,6 +6,7 @@ pub mod connection_control;
 pub mod conversations;
 pub mod credential_issuance;
 pub mod enrollment;
+pub mod native_audience;
 pub mod native_capabilities;
 pub mod native_data;
 pub mod native_dtmf;

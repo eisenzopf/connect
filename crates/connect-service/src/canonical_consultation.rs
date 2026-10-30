@@ -409,7 +409,10 @@ impl Runtime {
         };
         let (outcome, handle) = applied;
         let observation = serde_json::json!({"operation_id":outcome.operation_id,"audience_revision":outcome.audience_revision,"receiver_revisions":outcome.receiver_revisions.iter().map(|(k,v)|(k.as_str().to_owned(),*v)).collect::<BTreeMap<_,_>>(),"restored":outcome.restored,"departed_connections":outcome.departed_connections.iter().map(|c|c.as_str()).collect::<Vec<_>>(),"participant_handoff":null,"participant_replacement":null});
-        let receipt = Arc::new(attempt.applied(observation)?);
+        let receipt = Arc::new(attempt.applied(
+            observation,
+            crate::canonical_runtime::capture_audience_metadata(handle.audience().commit())?,
+        )?);
         self.consultation_audiences
             .lock()
             .unwrap_or_else(|p| p.into_inner())

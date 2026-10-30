@@ -218,7 +218,14 @@ fn handoff_custody_sql_keeps_attempt_source_plan_and_applied_history_immutable()
             [origin.record_id()]
         )
         .is_err());
-    let receipt = attempt.applied(observation(&sources, &origin, &p)).unwrap();
+    let receipt = attempt
+        .applied(
+            (observation(&sources, &origin, &p)).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(observation(&sources, &origin, &p)),
+            ),
+        )
+        .unwrap();
     f.store.record_native_handoff_applied(&receipt).unwrap();
     assert!(f
         .store
@@ -302,7 +309,14 @@ fn handoff_custody_captures_an_attributed_outcome_after_cancel_or_revocation_wit
         let lease = prepare(&f, &sources, &origin, disposition);
         let p = lease.plan().unwrap();
         let attempt = begin(&f, lease);
-        let receipt = attempt.applied(observation(&sources, &origin, &p)).unwrap();
+        let receipt = attempt
+            .applied(
+                (observation(&sources, &origin, &p)).clone(),
+                crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                    &(observation(&sources, &origin, &p)),
+                ),
+            )
+            .unwrap();
         cancel(&f, &origin);
         let admin = f.store.revalidate(&f.admin).unwrap();
         f.store.revoke(&admin, &f.keys[0]).unwrap();
@@ -334,7 +348,14 @@ fn handoff_custody_restart_never_borrows_predecessor_native_attempts() {
             let p = lease.plan().unwrap();
             let attempt = begin(&f, lease);
             if phase == "captured" {
-                let receipt = attempt.applied(observation(&sources, &origin, &p)).unwrap();
+                let receipt = attempt
+                    .applied(
+                        (observation(&sources, &origin, &p)).clone(),
+                        crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                            &(observation(&sources, &origin, &p)),
+                        ),
+                    )
+                    .unwrap();
                 f.store.record_native_handoff_applied(&receipt).unwrap();
             } else {
                 drop(attempt);
@@ -405,7 +426,15 @@ fn handoff_custody_rejects_unattributed_role_epochs_and_media_results() {
             }
             _ => unreachable!(),
         }
-        assert!(attempt.applied(o).is_err(), "{change}");
+        assert!(
+            attempt
+                .applied(
+                    (o).clone(),
+                    crate::native_stream_projection::unchanged_audience_metadata_for_test(&(o))
+                )
+                .is_err(),
+            "{change}"
+        );
         assert_eq!(
             status(&f, &origin).effects[0].state,
             EffectState::Submitting

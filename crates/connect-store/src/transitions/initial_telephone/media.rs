@@ -479,7 +479,7 @@ impl Store {
         runtime: &str,
         previous: u64,
         revision: u64,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         if !Self::initial_sip_snapshot_kind_matches(c, binding)?
             || binding["generation"] != 1
             || previous.checked_add(1) != Some(revision)
@@ -495,8 +495,8 @@ impl Store {
             .as_str()
             .ok_or_else(Error::storage)?;
         let call = binding["sip_call_id"].as_str().ok_or_else(Error::storage)?;
-        c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?5) WHERE id=?1 AND generation=1 AND observed_runtime_id=?2 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?6 AND EXISTS(SELECT 1 FROM initial_telephone_operations p JOIN operations o ON o.record_id=p.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=p.operation_record_id WHERE p.operation_record_id=?3 AND o.connection_id=connections.id AND p.attempt_runtime=?2 AND p.runtime_connection_id=?4 AND p.sip_call_id=?7 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL)", params![id,runtime,parent,core_id,revision,previous,call]).map_err(|_|Error::storage())?;
-        Ok(())
+        let changed=c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?5) WHERE id=?1 AND generation=1 AND observed_runtime_id=?2 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?6 AND EXISTS(SELECT 1 FROM initial_telephone_operations p JOIN operations o ON o.record_id=p.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=p.operation_record_id WHERE p.operation_record_id=?3 AND o.connection_id=connections.id AND p.attempt_runtime=?2 AND p.runtime_connection_id=?4 AND p.sip_call_id=?7 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL)", params![id,runtime,parent,core_id,revision,previous,call]).map_err(|_|Error::storage())?;
+        Ok(changed == 1)
     }
     pub(crate) fn initial_telephone_media_in(
         &self,

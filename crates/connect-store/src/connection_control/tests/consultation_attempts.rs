@@ -79,7 +79,12 @@ fn capture(
     origin: &NativeConsultationOrigin,
 ) -> NativeConsultationApplied {
     begin(f, prepare(f, sources, origin))
-        .applied(observed(&plan(sources, origin)))
+        .applied(
+            (observed(&plan(sources, origin))).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(observed(&plan(sources, origin))),
+            ),
+        )
         .unwrap()
 }
 fn status(f: &Fixture) -> connect_protocol::transitions::OperationRecord {
@@ -351,7 +356,14 @@ fn native_consultation_exact_plan_precedes_one_attempt_without_broad_worker_perm
             None
         )
         .is_err());
-    let receipt = attempt.applied(observed(&plan(&sources, &origin))).unwrap();
+    let receipt = attempt
+        .applied(
+            (observed(&plan(&sources, &origin))).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(observed(&plan(&sources, &origin))),
+            ),
+        )
+        .unwrap();
     let applied = f
         .store
         .record_native_consultation_applied(&receipt)
@@ -487,7 +499,12 @@ fn native_consultation_restart_distinguishes_unstarted_from_possible_native_appl
         let receipt = if started {
             Some(
                 begin(&f, lease)
-                    .applied(observed(&plan(&sources, &origin)))
+                    .applied(
+                        (observed(&plan(&sources, &origin))).clone(),
+                        crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                            &(observed(&plan(&sources, &origin))),
+                        ),
+                    )
                     .unwrap(),
             )
         } else {
@@ -574,7 +591,12 @@ fn native_consultation_application_observation_must_match_every_pinned_receiver_
             "receiver" => o["receiver_revisions"][sources[1].runtime_connection_id()] = json!(1),
             _ => o["restored"] = json!(true),
         }
-        assert!(attempt.applied(o).is_err());
+        assert!(attempt
+            .applied(
+                (o).clone(),
+                crate::native_stream_projection::unchanged_audience_metadata_for_test(&(o))
+            )
+            .is_err());
         assert_eq!(status(&f).effects[0].state, EffectState::Submitting);
     }
 }
@@ -618,7 +640,12 @@ fn native_consultation_scene_fences_outside_routes_without_issuing_private_recei
     let read = f.store.native_consultation_attempt_read(&lease).unwrap();
     let (attempt, read) = f.store.begin_native_consultation(lease, read).unwrap();
     drop(read);
-    let receipt = attempt.applied(observed(&p)).unwrap();
+    let receipt = attempt
+        .applied(
+            (observed(&p)).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(&(observed(&p))),
+        )
+        .unwrap();
     f.store
         .record_native_consultation_applied(&receipt)
         .unwrap();

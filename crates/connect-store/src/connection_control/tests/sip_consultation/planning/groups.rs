@@ -257,7 +257,7 @@ impl Groups {
             .into_iter()
             .map(|(id, v)| (id, json!(v.as_u64().unwrap() + 1)))
             .collect::<serde_json::Map<_, _>>();
-        let receipt=attempt.applied(json!({"operation_id":self.root.record_id(),"audience_revision":2,"receiver_revisions":after,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).unwrap();
+        let receipt=attempt.applied((json!({"operation_id":self.root.record_id(),"audience_revision":2,"receiver_revisions":after,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).clone(), crate::native_stream_projection::unchanged_audience_metadata_for_test(&(json!({"operation_id":self.root.record_id(),"audience_revision":2,"receiver_revisions":after,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})))).unwrap();
         self.old
             .f
             .store

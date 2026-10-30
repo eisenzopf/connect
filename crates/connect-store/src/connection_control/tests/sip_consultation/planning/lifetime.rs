@@ -37,9 +37,15 @@ impl Scene {
             .collect::<serde_json::Map<_, _>>();
         attempt
             .applied(
-                json!({"operation_id":self.root.record_id(),"audience_revision":1,
+                (json!({"operation_id":self.root.record_id(),"audience_revision":1,
             "receiver_revisions":revisions,"restored":false,"departed_connections":[],
-            "participant_handoff":null,"participant_replacement":null}),
+            "participant_handoff":null,"participant_replacement":null}))
+                .clone(),
+                crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                    &(json!({"operation_id":self.root.record_id(),"audience_revision":1,
+            "receiver_revisions":revisions,"restored":false,"departed_connections":[],
+            "participant_handoff":null,"participant_replacement":null})),
+                ),
             )
             .unwrap()
     }

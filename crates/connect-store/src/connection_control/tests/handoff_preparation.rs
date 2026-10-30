@@ -317,7 +317,12 @@ fn handoff_preparation_metadata_is_target_only_until_attributed_handoff_without_
         .unwrap();
     let attempt = handoff_custody::begin(&f, lease);
     let receipt = attempt
-        .applied(handoff_custody::observation(&next_sources, &origin, &plan))
+        .applied(
+            (handoff_custody::observation(&next_sources, &origin, &plan)).clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(
+                &(handoff_custody::observation(&next_sources, &origin, &plan)),
+            ),
+        )
         .unwrap();
     f.store.record_native_handoff_applied(&receipt).unwrap();
     f.store.complete_native_handoff(&receipt).unwrap().unwrap();
