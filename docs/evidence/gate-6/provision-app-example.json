@@ -1,0 +1,180 @@
+{
+  "task": "G6-066",
+  "date": "2026-10-29",
+  "base_commit": "98cacafa7ab8a4eaaa9b3a849e01a907854a7396",
+  "status": "done",
+  "passed": true,
+  "full_task_complete": true,
+  "acceptance_qualified": false,
+  "scope": "Exact approved trusted backend provisioning/embedding example clauses, isolated local macOS arm64. No installed package, full browser app, provider/media, Linux/remote or acceptance qualification.",
+  "implementation": [
+    "Public ApplicationClient provisioning/issuance creates app/System, Human and Ai identities, native/browser endpoint bindings, verification evidence, public signing keys and scoped credentials. The plan accepts no private signing keys.",
+    "The private journal fsyncs each complete original request before IO. Explicit rerun reauthorizes exact saved IDs, revision assertions and absolute expiry. Installation/immutable-plan binding and a private file lock protect rerun.",
+    "Each grant has33 explicit current operations and the other2 exact identities. No administrator, wildcard, consent delegation or provider secrets are issued. Revoked/expired resources are not revived.",
+    "Protected journal/enrollment files use0600 within private state. Public contacts contain only key, label and Identity ID; native buttons use textContent and immutable selection callbacks.",
+    "Runnable canonical embedding uses public configuration/start/owned shutdown, including SIGINT/SIGTERM selection. Administrative/provider configuration remains backend-only; app code opens no Store/Core."
+  ],
+  "verification": {
+    "runtime": {
+      "passed": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 6.010547041893005,
+      "source_inputs": 2801,
+      "source_inputs_unchanged": true,
+      "binary_sha256": "78c8255546ebd758e54f22f36d6791f5aa9c49dc226a8f1ca4c1107bfed2d3bb",
+      "binary_unchanged": true,
+      "log_sha256": "6bf5db6cda0ae62bbe9c60114a265daa6c86c85eab8461e4e2f86e73690fd0cd",
+      "scenes": [
+        {
+          "algorithm": "EdDSA",
+          "browser_origin_provisioning_refused": true,
+          "changed_plan_refused": true,
+          "complete_rerun_identical": true,
+          "contact_choice_opened_conversation": true,
+          "explicit_recipient_count": 2,
+          "lost_identity_responses": 1,
+          "ordinary_client_provisioning_refused": true,
+          "original_setup_operations": 15,
+          "private_file_mode": "0600",
+          "proxy_and_server_joined": true,
+          "revoked_endpoint_not_revived": true,
+          "same_request_pending_before_recovery": true
+        },
+        {
+          "algorithm": "ES256",
+          "browser_origin_provisioning_refused": true,
+          "changed_plan_refused": true,
+          "complete_rerun_identical": true,
+          "contact_choice_opened_conversation": true,
+          "explicit_recipient_count": 2,
+          "lost_identity_responses": 1,
+          "ordinary_client_provisioning_refused": true,
+          "original_setup_operations": 15,
+          "private_file_mode": "0600",
+          "proxy_and_server_joined": true,
+          "revoked_endpoint_not_revived": true,
+          "same_request_pending_before_recovery": true
+        }
+      ]
+    },
+    "functions_passed": 1,
+    "signature_scenes": 2,
+    "ignored": 0,
+    "filtered_out": 0,
+    "source_inputs": 2801,
+    "source_manifest_sha256": "649d65bfa8d0c3da48268f6f7a9baeaea8650b2db7f360a15b00dc73fd972a61",
+    "normal_executable": {
+      "build_passed": true,
+      "build_log_sha256": "ef511c149613b2c402f3422d515ae572c80df07007fad9f84c3b47c3056d7300",
+      "binary": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/examples/provision_app",
+      "binary_sha256": "83efb5b25a4314f28fecb78aff19351e17e030783375c35c2152951e97974251",
+      "bytes": 364733088,
+      "argument_refusal_exit": 1,
+      "argument_refusal_seconds": 0.16859362507238984,
+      "timed_out": false,
+      "stderr_sha256": "31147ed2ea916ebee6927fb471047ea558241776b760bfc1ea0f604b1acb0809",
+      "stdout_bytes": 0,
+      "expected_usage_observed": true,
+      "source_inputs_unchanged": true,
+      "prior_smoke": "Initial five-second execution timed out and is not a pass; no cause inferred. This subsequent smoke uses an explicit30second startup budget, not a performance qualification.",
+      "passed": true
+    },
+    "qualified_test_archive": {
+      "original": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/examples/provision_app-e33c77a9416613bf",
+      "archive": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/retained-qualified-binaries/provision_app-e33c77a9416613bf-verified-setup.gz",
+      "sha256": "78c8255546ebd758e54f22f36d6791f5aa9c49dc226a8f1ca4c1107bfed2d3bb",
+      "bytes": 365164304,
+      "mode": 493,
+      "compressed_bytes": 69950265,
+      "scope": "One successful real public setup test with EdDSA and ES256 scenes; original requests/recovery/refusal/cleanup proofs passed. Decoded archive hash verified before raw ignored cache removal."
+    },
+    "test_build_log_sha256": "df319b06b4645bac1f2d7484add6d37fef895e983762fee4fff8b8fcfa798775",
+    "format_check_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "contact_component_syntax": "node --check passed",
+    "http_source_inventory": {
+      "operations": 29,
+      "declarations": 28,
+      "uncovered": 0,
+      "new_routes": 0
+    }
+  },
+  "tested_sources": {
+    "examples/provision-app/setup.rs": "51fa4b43e3a97f5415cbb5c1e8d17729d43db8ffcfe4da7e5c2f3e4aec54612a",
+    "examples/provision-app/tests.rs": "b67409587fe1d093500c57c6bf389d2ae9154bb140deb04241f1735cccca5520",
+    "examples/provision-app/contacts.mjs": "f564f373ba2488727b36effda4feb058b7b694a736173e62217bd5c77a524c65",
+    "examples/provision-app/plan.example.json": "9d02e0d03b447182661bd23e7ab3c62bc28db69bb50174c176d7cbd260e88fb1",
+    "crates/connect-server/examples/provision_app.rs": "d892a1e4261b2fc3e96fd4af7a2878aa2039990d27d723608dbbfb0d23e4a63d"
+  },
+  "clause_audit": [
+    {
+      "clause": "Documented backend creates app/human/AI identities, endpoint bindings and scoped credentials",
+      "evidence": "Both actual signature scenes provision all3 actors over public HTTP, bind client-owned public keys and retain15 original setup operations per installation."
+    },
+    {
+      "clause": "Public composition and backend-only administrative/provider capability",
+      "evidence": "The executable links using public canonical load/start/shutdown APIs. Both isolated fixtures start and join the same public host API with providers disabled. Public contacts contain no administrator or scoped credential secret."
+    },
+    {
+      "clause": "Fresh setup/rerun idempotency and recovery",
+      "evidence": "Proxy drops the first successful Identity response. The exact request is durable with no outcome. Explicit rerun recovers it, then all15 originals replay with identical protected output, credentials and expiry. Changed-plan and revoked-Endpoint reruns refuse."
+    },
+    {
+      "clause": "Untrusted browser credentials cannot provision",
+      "evidence": "The actual issued Human credential receives forbidden through ApplicationClient and an HTTP request carrying browser Origin. That client has no privileged fallback credential."
+    },
+    {
+      "clause": "Users select contacts without editing routes or copying internal IDs",
+      "evidence": "Named browser buttons pass returned public IDs to the typed client. The actual scoped signed child selects the returned assistant contact and creates a Conversation containing that Identity. This increment does not requalify browser DOM clicks."
+    }
+  ],
+  "preserved_failures": [
+    {
+      "log": ".local/gate-6/provision-app/build-example-test.log",
+      "sha256": "3e8ebb57feb7c29831af809534c2a8323d94ac55fda3168a4be1739a7b3d00ed",
+      "finding": "Invocation redundantly passed --test; Cargo had already selected the test example. No runtime."
+    },
+    {
+      "log": ".local/gate-6/provision-app/build-example-test-corrected.log",
+      "sha256": "5ddaa74833372ed0ca9dd3f9adcd0a7ca959fff1d917054b6caa5941ca7e0e68",
+      "finding": "Example needed recursion_limit256, as do the canonical server fixtures. Added the local crate attribute. No dependency changes."
+    },
+    {
+      "log": ".local/gate-6/provision-app/runtime.log",
+      "sha256": "cf248ac72d0ba902767bc7bc1ef018adb29073e4b0087b477c862b8637f88da5",
+      "finding": "Owned loss proxy forwarded its own Host. Protected issuance correctly refused;0passed/1failed. Corrected only the test proxy upstream authority."
+    },
+    {
+      "log": ".local/gate-6/provision-app/runtime-stage-errors.log",
+      "sha256": "d82cec77806b5c4f67cc183204b4899f3018d8638f3e404ab45d4d711ebd3624",
+      "finding": "Safe stage context identified the same proxy Host refusal at app.credential;0passed/1failed. No authority check relaxed."
+    },
+    {
+      "log": ".local/gate-6/provision-app/stable/runtime.log",
+      "sha256": "cbdc5746e8958001c1115afa0872b5989b62479e4c6aade11001bbabaf962d14",
+      "finding": "The raw signed contact fixture omitted its explicit tenant. Corrected the test to use the known isolated deployment tenant;0passed/1failed."
+    },
+    {
+      "log": ".local/gate-6/provision-app/stable2/runtime.log",
+      "sha256": "41f6d51e8d237705cecb358e1cc3aaee33bdcaa6e4e2a53699662961c7acc1d0",
+      "finding": "A hardcoded test Endpoint revision conflicted. Final fixture observes the current version through the exact saved public request;0passed/1failed."
+    }
+  ],
+  "limitations": [
+    "Initial executable smoke exceeded5seconds; later explicit30second smoke returns expected usage/exit1 in0.169seconds. Cause remains unknown; no cold-start/performance claim.",
+    "No provider/model/account/PSTN/SMS or named remote execution. Ai identity metadata starts no model.",
+    "Contact component syntax/source composition is checked; full browser app/journey, installed parity and complete network/quality profiles remain their approved tasks. No publication or acceptance pass."
+  ],
+  "existing_http_reference": {
+    "path": "contracts/openapi-provisioning.json",
+    "sha256": "7ea2ba5731c65bb70b1b4fff124a2e6b68ce400cb43cd1eeb8b08f7475722a09",
+    "scope": "Existing API reused without route/wire changes."
+  },
+  "dependency_patch_count": 245,
+  "task_progress": {
+    "done": 67,
+    "in_progress": 1,
+    "not_started": 37,
+    "acceptance_qualified": 0
+  }
+}

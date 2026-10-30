@@ -1168,7 +1168,7 @@
         "G6-075",
         "G6-096"
       ],
-      "observation": "12/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "13/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-03"
       ],
@@ -1197,6 +1197,7 @@
         "crates/connect-protocol/src/native_data.rs",
         "crates/connect-protocol/src/native_streams.rs",
         "crates/connect-protocol/src/session_control.rs",
+        "crates/connect-server/examples/provision_app.rs",
         "crates/connect-server/src/canonical_provider_voice.rs",
         "crates/connect-server/src/canonical_provider_voice/incoming.rs",
         "crates/connect-server/src/canonical_telephone.rs",
@@ -1336,6 +1337,7 @@
         "docs/evidence/gate-6/native-replacement-movement.json",
         "docs/evidence/gate-6/native-replacement-private-readiness.json",
         "docs/evidence/gate-6/participant-orchestration.json",
+        "docs/evidence/gate-6/provision-app-example.json",
         "docs/evidence/gate-6/provisioning.json",
         "docs/evidence/gate-6/relationships.json",
         "docs/evidence/gate-6/replacement-confirmation.json",
@@ -1359,6 +1361,9 @@
         "docs/evidence/gate-6/telephone-streams.json",
         "docs/index.html",
         "docs/roadmap.json",
+        "examples/provision-app/README.md",
+        "examples/provision-app/contacts.mjs",
+        "examples/provision-app/setup.rs",
         "patches/rvoip/gate6-established-invite-authority.patch",
         "patches/rvoip/gate6-logical-replacement-retarget.patch",
         "patches/rvoip/gate6-native-data-terminal-refusal.patch",
@@ -5623,7 +5628,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "7/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "8/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-12"
       ],
@@ -5636,6 +5641,7 @@
         "crates/connect-protocol/src/canonical_discovery.rs",
         "crates/connect-protocol/src/enrollment.rs",
         "crates/connect-protocol/src/native_network.rs",
+        "crates/connect-server/examples/provision_app.rs",
         "crates/connect-server/src/canonical_webtransport.rs",
         "crates/connect-server/tests/fixtures/gate6-webtransport-browser/peer.mjs",
         "crates/connect-server/tests/gate6_canonical_webtransport.rs",
@@ -5667,6 +5673,7 @@
         "docs/evidence/gate-6/live-controller-recovery.json",
         "docs/evidence/gate-6/native-remote-audit.json",
         "docs/evidence/gate-6/native-remote-profile.json",
+        "docs/evidence/gate-6/provision-app-example.json",
         "docs/evidence/gate-6/provisioning.json",
         "docs/evidence/gate-6/snapshot-refusal-boundary.json",
         "docs/evidence/gate-6/tls-certificate-rotation.json",
@@ -5677,6 +5684,9 @@
         "docs/evidence/gate-6/transport-reconnect-owner.json",
         "docs/evidence/gate-6/webtransport-composition-audit.json",
         "docs/evidence/gate-6/webtransport-composition.json",
+        "examples/provision-app/README.md",
+        "examples/provision-app/contacts.mjs",
+        "examples/provision-app/setup.rs",
         "patches/web-transport-proto/preserve-repeated-origin-headers.patch",
         "scripts/fixtures/native-remote/README.md",
         "scripts/rehearse-gate6-native-remote.py",
@@ -7283,7 +7293,7 @@
         "G6-101",
         "G6-102"
       ],
-      "observation": "13/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "14/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-13"
       ],
@@ -7337,6 +7347,7 @@
         "crates/connect-protocol/examples/application_http_schema.rs",
         "crates/connect-protocol/src/credential_issuance.rs",
         "crates/connect-protocol/src/enrollment.rs",
+        "crates/connect-server/examples/provision_app.rs",
         "crates/connect-server/src/canonical.rs",
         "crates/connect-server/src/cli/agent_access/",
         "crates/connect-server/src/cli/credential_installation.rs",
@@ -7588,6 +7599,7 @@
         "docs/evidence/gate-6/node-startup-context.json",
         "docs/evidence/gate-6/node-typed-sdk.json",
         "docs/evidence/gate-6/protected-http.json",
+        "docs/evidence/gate-6/provision-app-example.json",
         "docs/evidence/gate-6/provisioning.json",
         "docs/evidence/gate-6/python-implementation.json",
         "docs/evidence/gate-6/python-installed-administration-local.json",
@@ -7645,6 +7657,9 @@
         "docs/evidence/gate-6/subscription-reconciliation-journal.json",
         "docs/evidence/gate-6/task-fixture-authority-deadline.json",
         "examples/media-connector-template/",
+        "examples/provision-app/README.md",
+        "examples/provision-app/contacts.mjs",
+        "examples/provision-app/setup.rs",
         "examples/rust-sdk-journey/",
         "examples/sdk-media/README.md",
         "scripts/check-application-http-schema.py",
@@ -7696,13 +7711,14 @@
         "G6-101",
         "G6-103"
       ],
-      "observation": "5/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "6/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-14"
       ],
       "implementation_evidence": [
         "contracts/connect-uctp.md",
         "contracts/uctp-vectors/",
+        "crates/connect-server/examples/provision_app.rs",
         "docs/decisions/016-gate-6-sdk.md",
         "docs/developer/browser-sdk.md",
         "docs/evidence/gate-6/browser-sdk-audience-descriptors.json",
@@ -7736,9 +7752,13 @@
         "docs/evidence/gate-6/browser-sdk-wss-owners.json",
         "docs/evidence/gate-6/contract-checks.json",
         "docs/evidence/gate-6/developer-documentation-structure.json",
+        "docs/evidence/gate-6/provision-app-example.json",
         "docs/evidence/gate-6/reference-scenario-shared-path.json",
         "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/test-design.json",
+        "examples/provision-app/README.md",
+        "examples/provision-app/contacts.mjs",
+        "examples/provision-app/setup.rs",
         "scripts/check-gate6-contracts.py",
         "sdk/typescript/src/browser_sdk.ts"
       ]

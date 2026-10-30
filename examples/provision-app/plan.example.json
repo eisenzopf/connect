@@ -1,0 +1,62 @@
+{
+  "setup_id": "example-app-setup-001",
+  "not_before": 0,
+  "expires_at": 0,
+  "app": {
+    "alias": "example-app",
+    "display_name": "Example app",
+    "device": {
+      "id": "example-app-device",
+      "kind": "service",
+      "platform": "your-owned-client"
+    },
+    "transport": "quic",
+    "address": "quic://localhost:4433/app",
+    "capabilities": [
+      "data",
+      "audio"
+    ],
+    "key_id": "example-app-key",
+    "algorithm": "EdDSA",
+    "public_key": "REPLACE_WITH_CLIENT_PUBLIC_KEY",
+    "enrollment_evidence": "REPLACE_WITH_VERIFIED_ENROLLMENT_EVIDENCE"
+  },
+  "human": {
+    "alias": "example-human",
+    "display_name": "Example person",
+    "device": {
+      "id": "example-human-device",
+      "kind": "browser",
+      "platform": "your-owned-client"
+    },
+    "transport": "webtransport",
+    "address": "https://localhost:4443/connect",
+    "capabilities": [
+      "data",
+      "audio"
+    ],
+    "key_id": "example-human-key",
+    "algorithm": "EdDSA",
+    "public_key": "REPLACE_WITH_CLIENT_PUBLIC_KEY",
+    "enrollment_evidence": "REPLACE_WITH_VERIFIED_ENROLLMENT_EVIDENCE"
+  },
+  "assistant": {
+    "alias": "example-assistant",
+    "display_name": "Example assistant",
+    "device": {
+      "id": "example-assistant-device",
+      "kind": "service",
+      "platform": "your-owned-client"
+    },
+    "transport": "quic",
+    "address": "quic://localhost:4433/assistant",
+    "capabilities": [
+      "data",
+      "audio"
+    ],
+    "key_id": "example-assistant-key",
+    "algorithm": "EdDSA",
+    "public_key": "REPLACE_WITH_CLIENT_PUBLIC_KEY",
+    "enrollment_evidence": "REPLACE_WITH_VERIFIED_ENROLLMENT_EVIDENCE"
+  }
+}
