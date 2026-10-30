@@ -1,0 +1,64 @@
+{
+  "task": "G6-073",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T04:00:25.084168+00:00",
+  "base_revision": "89dbd1438529a2d8884fb3d231559b78ac10dd20",
+  "scope": "Local macOS arm64 Node26.7; durable application worker, policy and public Node SDK with synthetic helper. No native integration or actual model.",
+  "runtime": {
+    "node": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "verification": {
+    "command": [
+      "npm",
+      "test",
+      "--prefix",
+      "examples/parley-on-connect"
+    ],
+    "exit_code": 0,
+    "seconds": 0.7664030829910189,
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0,
+    "worker_checks": 36,
+    "existing_fixture_checks": 19,
+    "source_count": 306,
+    "changed_inputs": [],
+    "input_manifest_sha256": "373a04b707aed3698341d5944a4cc5e06b39b3957641e993e59d786a7b93a96a",
+    "log_sha256": "387b76e9589e0b292566b1cfc06df298c9ef60547e9f319771d5615f8219ceec"
+  },
+  "behavior": [
+    "One private app journal and live process owner; exact pending intent survives actual process exit and new process ownership.",
+    "Original model request saved before invocation; unknown requests use read-only original recovery and never generate a replacement.",
+    "Exact original Connect reference and intent saved before submission. Lost response, repeated hints, unknown status and restart issue no replacement mutation.",
+    "Current authorized event reference reread before content reuse; lost visibility prevents status/model/effect access.",
+    "Fresh application approval binds current actor membership epoch, exact intent digest, business plan version and scope. Incoming content and model authority fields refuse.",
+    "Speech still playing waits on the existing proposal; stale Session/model/owner context refuses; SDK completion does not advance business stage.",
+    "All eight adapter variants pass actual public Node SDK reference validation and typed method framing with an explicitly synthetic helper; owned helper processes and readers close."
+  ],
+  "worker_sources": {
+    "examples/parley-on-connect/worker/README.md": "459b9d30462c1d52a4205e5f2798dc08b52d49c5b8f532612fa99165c50819d0",
+    "examples/parley-on-connect/worker/connect.mjs": "be70b87f1daafde4e625fa667564b8b46f84cdd7cb3f33881516144b08773054",
+    "examples/parley-on-connect/worker/connect.test.mjs": "304dd35b297f9070e93e18c9e3564bd0eb5207d6f53a709c78e5ac57e6e2299f",
+    "examples/parley-on-connect/worker/engine.mjs": "9c55f92d56b3057822fb02611f4a72d693ed45916d4eca69b74f980a9bf435c9",
+    "examples/parley-on-connect/worker/engine.test.mjs": "31ca038d22b5120ffd43542efaa1dc87086ab218f6036d90b651941a39ff28dc",
+    "examples/parley-on-connect/worker/policy.mjs": "9984a05540a70b5da4accce45504b462b6267a4c2a267627c746d69d6e33d1a4",
+    "examples/parley-on-connect/worker/policy.test.mjs": "a7599c0ba389846c3152eecedbdea8b2733ab31844d368624d9d68fa38fa4115",
+    "examples/parley-on-connect/worker/state.mjs": "8a982b0effa2f33e8395fab440cba4197484ddd7802512653ca0e0ddab4249e1",
+    "examples/parley-on-connect/worker/state.test.mjs": "5e138c96013244dc0386106049f2994f70aada47e48389c0dcfe731f0c58c6d6"
+  },
+  "remaining": [
+    "Concrete scenario/model adapter and reviewed actual-model host configuration",
+    "Native public SDK/server behavior integration with real journal and current authorization",
+    "Separate explicit human authorization for actual-model mode; prior G6-065 bounded run already consumed",
+    "All actual-model repeated/invalid/speech/stale/restart cases; no full task or acceptance qualification yet"
+  ],
+  "limits": [
+    "No model/account/provider/PSTN/SMS/remote rehearsal executed.",
+    "Node minimum declared22.16; only actual Node26.7 on local macOS arm64 qualified.",
+    "Public SDK helper tests are protocol fixtures, not native server or media proof.",
+    "Gate6 remains67done/2in-progress/36not-started/0acceptance-qualified."
+  ],
+  "private_evidence": ".local/gate-6/transport-reconnect-owner/decision-worker-initial*"
+}
