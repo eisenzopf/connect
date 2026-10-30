@@ -11,7 +11,7 @@ import {launchOwnedChromium} from './owned_chromium.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const [directory,mode='calibration']=process.argv.slice(2);
-if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality','rtc','rtc-buffer'].includes(mode))
+if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality','rtc','rtc-buffer','rtc-content'].includes(mode))
     throw Error('One fresh .local output directory and optional quality mode required');
 // Retain the original calibration. The separate quality control matches the
 // actual fixture's 60-second window, native canvas capture and 128x72 observer.
@@ -42,6 +42,7 @@ const files=[fileURLToPath(import.meta.url),path.join(root,'scripts/video/marker
     path.join(root,'scripts/video/source_identity.mjs'),binary,
     path.join(root,'scripts/video/observer-tools/package.json'),path.join(root,'scripts/video/observer-tools/package-lock.json'),
     path.join(root,'scripts/video/owned_chromium.mjs'),path.join(root,'.github/workflows/gate6-browser-observer.yml')];
+files.push(path.join(root,'scripts/video/decoded_video_frames.mjs'));
 async function frameworkFiles(directory){
     for(const entry of await fs.readdir(directory,{withFileTypes:true})){
         const file=path.join(directory,entry.name);
@@ -58,7 +59,13 @@ const {chromium}=await import(pathToFileURL(modulePath).href);
 let browser,owner,ownership,assets;const contexts=[];let rows=[],failure,joined=false,version;
 try{
     if(rtcControl){
-        assets=http.createServer((_request,response)=>response.end('<!doctype html><body></body>'));
+        const observerModule=await fs.readFile(path.join(root,'scripts/video/decoded_video_frames.mjs'));
+        assets=http.createServer((request,response)=>{
+            if(request.method==='GET'&&request.url==='/decoded-video-frames.mjs'){
+                response.writeHead(200,{'Content-Type':'text/javascript'});response.end(observerModule);
+            }else if(request.method==='GET'&&request.url==='/')response.end('<!doctype html><body></body>');
+            else{response.writeHead(404);response.end();}
+        });
         await new Promise((resolve,reject)=>{assets.once('error',reject);assets.listen(0,'127.0.0.1',resolve);});
     }
     owner=await launchOwnedChromium(chromium,binary,path.join(output,'profile'));browser=owner.browser;
@@ -133,6 +140,21 @@ try{
             };
             const animation=()=>{if(!closed){raf++;requestAnimationFrame(animation);}};
             video.requestVideoFrameCallback(decoded);requestAnimationFrame(animation);
+            let contentObserver,contentLast,contentChanging=0;
+            let contentStatus=mode==='rtc-content'?'unsupported':'not-requested';
+            if(mode==='rtc-content'&&typeof globalThis.MediaStreamTrackProcessor==='function'){
+                const {observeDecodedVideoFrames}=await import('/decoded-video-frames.mjs');
+                const contentCanvas=document.createElement('canvas');contentCanvas.width=width;contentCanvas.height=height;
+                const contentPixels=contentCanvas.getContext('2d',{willReadFrequently:true});contentPixels.imageSmoothingEnabled=false;
+                contentObserver=observeDecodedVideoFrames(received.getVideoTracks()[0],frame=>{
+                    if(frame.displayWidth!==640||frame.displayHeight!==360)throw Error('Unexpected decoded dimensions');
+                    contentPixels.drawImage(frame,0,0,width,height);
+                    const bytes=contentPixels.getImageData(0,0,width,height).data;
+                    if(contentLast!==undefined&&bytes.some((value,index)=>value!==contentLast[index]))contentChanging++;
+                    contentLast=bytes;
+                });
+                contentStatus='observing';
+            }
             window.observer={snapshot:async()=>{
                 let decoded;const rtp={};
                 if(receiver)(await receiver.getStats()).forEach(stat=>{
@@ -142,9 +164,13 @@ try{
                         'jitterBufferEmittedCount','totalDecodeTime','totalProcessingDelay','totalInterFrameDelay'])
                         if(Number.isFinite(stat[key])&&stat[key]>=0)rtp[key]=stat[key];
                 });
-                return {index,draws,callbacks,changing,raf,decoded,rtp,presented,time:performance.now(),visibility:document.visibilityState};
-            },close:()=>{closed=true;clearInterval(timer);sender?.close();receiver?.close();
-                for(const track of [...stream.getTracks(),...received.getTracks()])track.stop();video.srcObject=null;}};
+                return {index,draws,callbacks,changing,raf,decoded,rtp,presented,
+                    content:{status:contentStatus,changing:contentChanging,...contentObserver?.snapshot()},
+                    time:performance.now(),visibility:document.visibilityState};
+            },close:async()=>{closed=true;clearInterval(timer);
+                const contentJoined=await contentObserver?.close();sender?.close();receiver?.close();
+                for(const track of [...stream.getTracks(),...received.getTracks()])track.stop();video.srcObject=null;
+                return contentJoined;}};
         },{index,cells:markerCells(index),pulses:markerFrames().map(frame=>frame/30),mode,pixelsPerSide,rtcControl});
         return page;
     }));
@@ -153,7 +179,7 @@ try{
     await new Promise(resolve=>setTimeout(resolve,seconds*1000));
     rows=await Promise.all(pages.map(async(page,index)=>{
         const end=await page.evaluate(()=>window.observer.snapshot()),start=initial[index],seconds=(end.time-start.time)/1000;
-        await page.evaluate(()=>window.observer.close());
+        const contentJoined=await page.evaluate(()=>window.observer.close());
         return {index,seconds,draw_fps:(end.draws-start.draws)/seconds,callback_fps:(end.callbacks-start.callbacks)/seconds,
             changing_fps:(end.changing-start.changing)/seconds,raf_fps:(end.raf-start.raf)/seconds,
             presented_counter_fps:Number.isSafeInteger(end.presented)&&Number.isSafeInteger(start.presented)
@@ -162,6 +188,11 @@ try{
                 receiver_target_ms:mode==='rtc-buffer'&&index===1?0:80,
                 rtp_deltas:Object.fromEntries(Object.entries(end.rtp).map(([key,value])=>[key,
                     Number.isFinite(start.rtp[key])&&value>=start.rtp[key]?value-start.rtp[key]:null]))}:{}),
+            ...(mode==='rtc-content'?{decoded_content:{status:end.content.status,
+                frames_fps:Number.isFinite(end.content.frames)&&Number.isFinite(start.content.frames)
+                    ?(end.content.frames-start.content.frames)/seconds:null,
+                changing_fps:(end.content.changing-start.content.changing)/seconds,
+                failed:end.content.failed??null,reader_joined:contentJoined?.joined??null}}:{}),
             visibility:end.visibility,passed:end.visibility==='visible'&&(end.callbacks-start.callbacks)/seconds>=24
                 &&(end.changing-start.changing)/seconds>=24&&(!rtcControl||(end.decoded-start.decoded)/seconds>=24)};
     }));

@@ -6,6 +6,8 @@ on:
     paths:
       - 'scripts/video/check-renderer.mjs'
       - 'scripts/video/owned_chromium.mjs'
+      - 'scripts/video/decoded_video_frames.mjs'
+      - 'scripts/video/decoded-video-frames.test.mjs'
       - 'scripts/video/marker_calibration.mjs'
       - 'scripts/video/source_identity.mjs'
       - 'scripts/video/observer-tools/**'
@@ -33,6 +35,8 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check decoded-frame ownership and observer cleanup
+        run: node --test scripts/video/decoded-video-frames.test.mjs
       - name: Calibrate observers and prove candidate normal private TLS trust
         run: |
           test "$(uname -m)" = x86_64
@@ -76,7 +80,7 @@ jobs:
           }
           trap cleanup_observer_network EXIT
           observer_failed=0
-          for observer_mode in rtc rtc-buffer; do
+          for observer_mode in rtc rtc-buffer rtc-content; do
           docker run --rm --network "$observer_network" --shm-size=1g --platform linux/amd64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
@@ -108,6 +112,8 @@ jobs:
             .local/gate6-browser-observer/evidence/rtc/source-inputs.json
             .local/gate6-browser-observer/evidence/rtc-buffer/summary.json
             .local/gate6-browser-observer/evidence/rtc-buffer/source-inputs.json
+            .local/gate6-browser-observer/evidence/rtc-content/summary.json
+            .local/gate6-browser-observer/evidence/rtc-content/source-inputs.json
             .local/gate6-browser-observer/evidence/rtc-network.json
             .local/gate6-browser-observer/evidence/trust/summary.json
           include-hidden-files: true
