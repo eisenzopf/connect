@@ -21,7 +21,9 @@ on:
       - 'sdk/tests/**'
       - 'scripts/check-gate6-linux-hosting.py'
       - 'scripts/lib/source_build_cache.py'
+      - 'scripts/lib/ci_dependency_cache.py'
       - 'scripts/tests/test_source_build_cache.py'
+      - 'scripts/tests/test_ci_dependency_cache.py'
       - 'scripts/tests/test_gate6_linux_diagnostics.py'
       - 'scripts/tests/test_python_*.py'
       - '.github/workflows/gate6-linux-fixtures.yml'
@@ -168,14 +170,17 @@ jobs:
           key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
             g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            g6-linux-${{ steps.native.outputs.native_key }}-
       - name: Preserve times only for identical source contents and modes
         run: python3 scripts/lib/source_build_cache.py restore
       - name: Prepare pinned sources and locked registry dependencies
         run: |
-          bash scripts/prepare-dependencies.sh
+          python3 scripts/lib/ci_dependency_cache.py
           cargo fetch --locked
       - name: Check source-cache correctness
-        run: python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
+          python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
       - name: Run isolated source-bound fixtures
         id: fixtures
         run: python3 scripts/check-gate6-linux-hosting.py --node-sdk --python-sdk
