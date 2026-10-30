@@ -49,6 +49,22 @@ audio failures. Sources, observers, thresholds, 60-second windows and independen
 AV-sync checks remain unchanged. The target is a preference, not a hard latency
 guarantee. Unsupported or ignored native control refuses before signaling.
 
+October 30 candidate browser target update, before the next qualification:
+select Chrome156.0.8078.48 for the local macOS arm64 fallback runner and Chrome
+for Testing156.0.8078.4 for the isolated Linux x86_64 runner. The Linux browser
+comes from `mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8`;
+its observed executable SHA256 is
+`377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025`.
+The native Ubuntu24.04 host preflight records the actual kernel and native ABI;
+the media image separately records its pinned paced-audio additions. Each run
+still requires the exact installed version and its own source/executable guard.
+The earlier 155 targets and source-bound exploratory 156 observations retain
+their recorded scopes; this update grants no retrospective qualification.
+Firefox158.0.1, the source/codec/packet bounds, 80 ms preferred receiver target,
+60-second window, moving-frame/audio/AV limits and recovery rules are unchanged.
+Browser-only receiver comparisons are diagnostics and cannot change the
+production preference or qualify a Connect transport cell.
+
 Native endpoint TLS verifies configured server identity and trust. Hosted HTTP
 requires HTTPS, WSS and HTTP/3 with declared origins and trusted proxy policy.
 Provision short-lived scoped participant/device credentials through a trusted
