@@ -1,6 +1,6 @@
 # External decision worker
 
-G6-073 is in progress. This directory is application-owned business logic;
+G6-073 is complete for its recorded local implementation scope. This directory is application-owned business logic;
 Connect remains responsible for its own journal and current authorization.
 
 The private WorkerState journal uses a fixed decision-worker.sqlite3 filename in
@@ -81,15 +81,15 @@ reference validators with an explicitly synthetic helper; they do not qualify
 a native server, real media, Linux, remote hosts or actual-model execution.
 The existing19 Parley fixture checks also pass (55 combined).
 
-G6-073 remains in progress pending the separately authorized actual-model
-rehearsal below. Existing G6-065 model execution authorization has already been
-consumed. See the source-bound
+The earlier component increments remain recorded in the source-bound
 [increment evidence](../../../docs/evidence/gate-6/decision-worker-initial.json).
+The completed authorized model and original-response recovery are recorded in
+[actual-model evidence](../../../docs/evidence/gate-6/decision-worker-model-authorized.json).
 
 `RecordedProposalModel` now supplies the durable model-response boundary. It
 fsyncs an immutable original request before calling a trusted model callback,
-then saves its response independently of the worker's journal. `recover()` only
-reads that original response. An unknown request, partial file or changed
+then saves its response independently of the worker's journal. `recover()` reads
+that original response or a trusted read-only observer of the original request. An unknown request, partial file or changed
 request/source binding never invokes a replacement. `scriptedModel` exercises
 this same path with explicitly simulated, application-configured proposals.
 It owns no Connect client or communication credential. An external callback's
@@ -140,3 +140,33 @@ for a different request. Recovery only reads retained output; unknown remains
 pending. See the [bounded rehearsal review](../../../docs/developer/decision-worker-rehearsal.md)
 before authorizing this separate action. Default npm and native runs start no
 model/account/provider call.
+
+The owner separately authorized one 60-second pinned model proposal rehearsal.
+That single turn completed, but its initial audit rejected two nonfatal startup
+diagnostics. The failed run remains retained. A read-only observer recovered
+that exact completed trace without starting, probing or resuming a model. A new
+worker process resumed the original private app and Connect journals, submitted
+one exactly approved proposal and recovered its lost SDK reply. Current membership
+withdrawal refused replay. All76 component checks pass (57 worker/19 existing).
+
+The auditor permits only the two exact pinned diagnostics before the turn, once
+each; unknown, duplicate and post-start errors and all tool items still refuse.
+The original host PID/exit/forced-cleanup metadata was missing before its failed
+audit and remains explicitly unknown. Future launches persist it before audit.
+
+`model-host.py --recover --config PRIVATE_CONFIG --request ORIGINAL_REQUEST`
+checks the retained request, configuration, launch, authorization consumption
+and completed JSONL. It performs no host invocation. `recover-native-rehearsal.py`
+can resume one retained isolated native fixture with the original executable:
+
+```sh
+python3 examples/parley-on-connect/worker/recover-native-rehearsal.py \
+  --original /absolute/checkout/.local/original-native-worker-run \
+  --executable /absolute/source-target/debug/connect \
+  --expected-sha256 ORIGINAL_SOURCE_BINARY_SHA256
+```
+
+It refuses an existing recovery directory; it never resets pending state or
+consumes a second model authorization. A failed or unknown original remains
+pending for inspection. This local implementation result does not qualify
+physical speech, whole-app continuity, providers or Gate6 acceptance.

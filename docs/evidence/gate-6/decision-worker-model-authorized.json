@@ -1,0 +1,181 @@
+{
+  "task": "G6-073",
+  "status": "done",
+  "checked_at": "2026-10-30T05:35:53.138636+00:00",
+  "base_revision": "fe86cf09355ee8f1f456066685f7ba4cde11a604",
+  "scope": "Local macOS arm64 signed native EdDSA SDK and one actual pinned model proposal, followed by read-only original model recovery and a new worker process on the same retained application/Connect journals. Controlled speech/stale-Session snapshots qualify policy only.",
+  "authorization": {
+    "source": "Direct human reply to request_user_input_async/call_6b7c172398574e12a903f005a068935f/0",
+    "answer": "Authorize this G6-073 rehearsal",
+    "maximum_model_invocations": 1,
+    "host_budget_seconds": 60,
+    "consumed": true,
+    "new_model_invocations_during_recovery": 0,
+    "configuration_sha256": "187d5a06108254e686998cdebe8e184298ccb33215eb8f2ba208983d2763a080",
+    "consumption_sha256": "08909b83d2de5c42672b9cb9fd2c99670dcc2ae74e22ca78f0b6bfcb6c2864d6"
+  },
+  "actual_model": {
+    "profile": "parley-model-host-recovery/1",
+    "actual_model": true,
+    "event_count": 6,
+    "tool_items": 0,
+    "startup_diagnostics": [
+      "unstable-skill-discovery-flag",
+      "code-mode-disabled"
+    ],
+    "request_file_sha256": "abfb5baf8dacdad1cc6ba6eab2d8cc653da4d70bc14315d83a86e970611f63bc",
+    "events_sha256": "664eff81df8ae7b05ae55da328d7abc754d48327c29b1fb132d586c8fe53752b",
+    "new_host_invocations": 0,
+    "matching_live_original_commands": 0,
+    "original_host_pid": null,
+    "original_exit_code": null,
+    "process_evidence_limit": "Original PID/exit/forced-cleanup metadata was not persisted before the failed audit; not reconstructed from model output."
+  },
+  "original_failed_run": {
+    "profile": "parley-worker-native-summary/1",
+    "runtime_exit": 1,
+    "server_exit": 0,
+    "forced_server_cleanup": false,
+    "forced_worker_group_cleanup": false,
+    "helpers_joined": true,
+    "listener_reclaimed": true,
+    "seconds": 18.952220249921083,
+    "source_count": 2960,
+    "changed_inputs": [],
+    "binary_sha256": "cc4f34787065d99b94b10104193b6a0faa83f8cd45a7ab9b7667a0401732e1b9",
+    "binary_unchanged": true,
+    "error": null,
+    "actual_model_requested": true,
+    "scope": "Local signed EdDSA native messages/events, app approval and original operation recovery; model result requires its separately retained host outcome. No media qualification."
+  },
+  "original_driver": {
+    "exit_code": 1,
+    "seconds": 24.202827374916524,
+    "output": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/decision-worker-model-authorized-20261030",
+    "consumption_exists": true,
+    "source_cli_unchanged": true,
+    "automatic_retry": false
+  },
+  "failure_and_repair": {
+    "failure": "One real turn completed with a valid bounded proposal, but the strict host auditor rejected two pre-turn diagnostics emitted by the intentionally restricted pinned host. The native worker stopped before approval/submission. The failed original run remains failed.",
+    "repair": "Recognize only the two exact pinned pre-turn messages, once each; unknown, duplicate, post-start errors and all tool/action items still refuse. Read-only recovery binds original request/config/launch/consumption and completed trace; it never starts, probes, retries or resumes Codex. Future launches persist exit/forced-cleanup before auditing.",
+    "process_evidence_limit": "Original PID/exit/forced-cleanup metadata was not persisted before the failed audit; not reconstructed from model output."
+  },
+  "native_original_recovery": {
+    "profile": "parley-worker-native-recovery-summary/1",
+    "runtime_exit": 0,
+    "server_exit": 0,
+    "forced_worker_cleanup": false,
+    "forced_server_cleanup": false,
+    "helpers_joined": true,
+    "listener_reclaimed": true,
+    "seconds": 1.9395373750012368,
+    "source_count": 2961,
+    "changed_inputs": [],
+    "binary_unchanged": true,
+    "original_request_unchanged": true,
+    "authorization_consumption_unchanged": true,
+    "new_model_invocations": 0,
+    "same_original_fixture": true,
+    "error": null,
+    "binary_producer_commit": "852e4528572a535283fd1eb56c06f276458a86c1",
+    "scope": "Current worker recovery code with the preserved source-bound native fixture; no new model turn or media qualification."
+  },
+  "native_outcome": {
+    "profile": "parley-worker-native-outcome/1",
+    "actualModelRequested": true,
+    "realSignedNativeJournal": true,
+    "ownerAttributionAndExactApproval": true,
+    "modelCalls": 0,
+    "resumedOriginal": true,
+    "retainedLogicalModelRequests": 1,
+    "submissions": 1,
+    "originalStatusReads": 1,
+    "restartRecoveredOriginal": true,
+    "currentMembershipReplayRefused": true,
+    "businessStageUnchanged": true,
+    "policyCases": [
+      {
+        "case": "invalid-action",
+        "result": "invalid-model-action",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      },
+      {
+        "case": "speech-playing",
+        "result": "speech-in-progress",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      },
+      {
+        "case": "stale-session",
+        "result": "stale-action-context",
+        "retainedModelAnswer": true,
+        "injectedMetadata": true
+      }
+    ]
+  },
+  "components": {
+    "exit_code": 0,
+    "seconds": 1.6356416249182075,
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0,
+    "source_count": 467,
+    "changed_inputs": [],
+    "log_sha256": "1efd8b321b18f91ebda5c586f4b2d950a05b51e9503342bcc86079b13bfaee76"
+  },
+  "clause_audit": {
+    "authorized_events_and_business_plan": "engine.mjs re-reads correlated original facts under current SDK authority and persists bounded app-owned plan/request/intent before external IO.",
+    "bounded_model_and_approval": "policy.mjs rejects model-selected resource/authority fields. Signed native owner approval is exact to the prepared proposal; incoming approved:true content supplies no authority.",
+    "stable_effect_and_restart": "Original application and Connect journals retained across an actual worker process replacement; one proposal submission, lost-response journal reopen, one original status read, repeated-event suppression and membership-withdrawal refusal pass.",
+    "invalid_action_speech_stale_session": "Both simulated and actual retained answers use explicit controlled app-context snapshots. Invalid-action, speech-playing and stale-session refuse before Connect effects or extra model calls. These are not native media/Session rehearsals.",
+    "no_communications_provider_api": "Closed public NodeClient adapter exposes eight reviewed SDK variants; model callback has no Connect/provider credentials or tools. No provider/PSTN/SMS call configured or made."
+  },
+  "private_artifact_sha256": {
+    "summary.json": "652f7aaae1778e19805ee477013117646c3ef293d918a10f045a9c604aa1c315",
+    "runtime.log": "b02809823f4730a8874a9498817730a765c6919703db144aa52d3eb6318c0399",
+    "recovery/summary.json": "57184be99132c5dcdd74c22a81dece78d1c0db65793f93fed5fa829cdc1d3b2e",
+    "recovery/runtime.log": "d5266f4480a05ea1f638bbb675ba8c12b9dd8eaef9e1ffcf3fa8810421c2d030",
+    "recovery/server.log": "ecacb95e2a018f7afc45beb96767e43476d46318e503abf366b08949f9ab82c8",
+    "recovery/source-inputs.json": "650b7420065821fc9dc8c63a34ba4dd19abe8ad4348cb447ad6cddd7a1cfa555",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/request.json": "abfb5baf8dacdad1cc6ba6eab2d8cc653da4d70bc14315d83a86e970611f63bc",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/response.json": "9e7c477940c88881add83a0362e21ee5891db3fdde46c5ae5549957aaa793d4f",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/host/events.jsonl": "664eff81df8ae7b05ae55da328d7abc754d48327c29b1fb132d586c8fe53752b",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/host/launch.json": "2f82a0122206bc059e6beede6c0e806ec85efa0e99cb897c19ad5ed9410aa5c1",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/host/argv.json": "85b76ce08f7ab61566e5301b54a76b078348c385558ddb4d6c14a7ba2750c648",
+    "model/model-0f2825d71a5a90731eba23b22538b98c24ebcb80da2643f3/host/recovered-outcome.json": "fdc1f3f84437093a70f06748b41df5f177fbff1480287c49a0da275e8cab7de6"
+  },
+  "sources": {
+    "examples/parley-on-connect/worker/README.md": "cb52604e1db327c961f3d09b1d33441f0750bafcc07fb6277e413b82f6169c14",
+    "examples/parley-on-connect/worker/connect.mjs": "36e558f90e7b0434ba26a15a8b2033ccf117cd95137dead0e1451fbd38d55185",
+    "examples/parley-on-connect/worker/connect.test.mjs": "f101c47505058d1644fa638b3320ea5b57e70089afe7bb34ec25f9b7ae8b7d18",
+    "examples/parley-on-connect/worker/engine.mjs": "fdd9daef5f6e8b71b205abd849b0ec3b7e55b4ef68221cc36ce3fee06b358c11",
+    "examples/parley-on-connect/worker/engine.test.mjs": "dc17f60ee9ba6527bdf44177cb1b83399fb912f2fec93f66ba96a64493c374fa",
+    "examples/parley-on-connect/worker/model-host.example.json": "fcc300351574bf3d71e5daa795304a7db90e3b989f8c7dad37dfc7d0bb44cd8d",
+    "examples/parley-on-connect/worker/model-host.py": "dea7c21b6a01b300cddde4b7747848cdbbcbe446a073bd53570dfb676f459e69",
+    "examples/parley-on-connect/worker/model-host.test.mjs": "da65d562568b76b78f9bc680a3d2b2737736012d07c2ca1f65f9303362663936",
+    "examples/parley-on-connect/worker/model.mjs": "14533064352ca49a88c4b02ac16234bbd17f04bf30a454f161531c2f74c4bcee",
+    "examples/parley-on-connect/worker/model.test.mjs": "2cfa58aacf9d34bb1c56b063502e9c536813bef62191d3e0b94f76c3e5fffb21",
+    "examples/parley-on-connect/worker/native-rehearsal.mjs": "6c8f645b41fc20911bec13b721c66a3458a6cfffb5c7416c9e74dc4e7bffdf2f",
+    "examples/parley-on-connect/worker/native-rehearsal.py": "b6da4403d949f562e025e1d65164decfa021dbcd7fb28a63d5403941f479d204",
+    "examples/parley-on-connect/worker/policy.mjs": "9984a05540a70b5da4accce45504b462b6267a4c2a267627c746d69d6e33d1a4",
+    "examples/parley-on-connect/worker/policy.test.mjs": "a7599c0ba389846c3152eecedbdea8b2733ab31844d368624d9d68fa38fa4115",
+    "examples/parley-on-connect/worker/recover-native-rehearsal.py": "04ce4a4ff1fe50b6143b30304582c5d8e18c8188ae5fc5604fe048c43d09f8b5",
+    "examples/parley-on-connect/worker/state.mjs": "8a982b0effa2f33e8395fab440cba4197484ddd7802512653ca0e0ddab4249e1",
+    "examples/parley-on-connect/worker/state.test.mjs": "5e138c96013244dc0386106049f2994f70aada47e48389c0dcfe731f0c58c6d6"
+  },
+  "limits": [
+    "The original model supervisor PID/exit/forced-cleanup metadata was not persisted before the failed audit. Current no-live-command observation and a completed trace do not reconstruct those missing original values.",
+    "One authorized model turn only; no additional turn or ordinary successful fresh-host launch after the parser correction is claimed.",
+    "Speech/stale Session tests inject metadata; physical speech/media and complete Parley application remain separate tasks.",
+    "Linux, other authentication profiles, remote/browser/provider, packages, latency/capacity and independent Gate6 acceptance are not qualified.",
+    "Raw private state, signed identities, session mapping, model request/output and logs remain ignored under .local."
+  ],
+  "gate_progress": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  }
+}

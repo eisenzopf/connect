@@ -23,11 +23,12 @@ async function privateJson(path) {
  * caller must separately authorize/configure any actual model execution.
  * recover() reads the original result; it never invokes or resumes a model. */
 export class RecordedProposalModel {
-    #directory; #invoke; #source;
-    constructor({ directory, source, invoke }) {
+    #directory; #invoke; #source; #observe;
+    constructor({ directory, source, invoke, recoverOriginal }) {
         if (!isAbsolute(directory) || !resolve(directory).split(sep).includes(".local") ||
             typeof invoke !== "function" || !source || typeof source.mode !== "string") fail("invalid-model-adapter");
-        this.#directory = directory; this.#invoke = invoke; this.#source = copy(source);
+        if (recoverOriginal !== undefined && typeof recoverOriginal !== "function") fail("invalid-model-adapter");
+        this.#directory = directory; this.#invoke = invoke; this.#source = copy(source); this.#observe = recoverOriginal;
     }
     async #path(request, create) {
         if (!/^model-[a-f0-9]{48}$/.test(request.requestId) || request.output !== null ||
@@ -80,7 +81,23 @@ export class RecordedProposalModel {
         if (!owned) return { state: "unknown" };
         let result;
         try { result = await privateJson(join(owned.directory, "response.json")); }
-        catch (error) { if (error.code === "ENOENT") return { state: "unknown" }; throw error; }
+        catch (error) {
+            if (error.code !== "ENOENT") throw error;
+            if (!this.#observe) return { state: "unknown" };
+            // Trusted app callback observes the original provider/host only.
+            // It must never generate/resume a replacement model request.
+            const observed = await this.#observe(copy(request));
+            if (observed.state !== "completed") return { state: "unknown" };
+            const output = copy(observed.output);
+            if (Buffer.byteLength(stateJson(output)) > 8192) fail("model-result-capacity");
+            result = { profile: "parley-model-response/1", requestDigest: owned.requestDigest, output };
+            try { await exclusiveJson(join(owned.directory, "response.json"), result); await syncDirectory(owned.directory); }
+            catch (writeError) {
+                if (writeError.code !== "EEXIST") throw writeError;
+                const existing = await privateJson(join(owned.directory, "response.json"));
+                if (digest(existing) !== digest(result)) fail("different-model-response");
+            }
+        }
         if (result.profile !== "parley-model-response/1" || result.requestDigest !== owned.requestDigest ||
             !result.output || Buffer.byteLength(stateJson(result.output)) > 8192) fail("different-model-response");
         return { state: "completed", output: copy(result.output) };

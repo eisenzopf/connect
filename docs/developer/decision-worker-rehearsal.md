@@ -1,14 +1,15 @@
 # Bounded G6-073 decision-worker rehearsal
 
-The implementation and account-free native lane are ready. Actual-model
-execution is **not authorized by this document**. The prior G6-065 authorization
-was consumed by its one handoff run lasting 47.6 seconds and cannot cover this new action.
+The owner directly authorized the reviewed G6-073 action, and that one model
+invocation is consumed. Its completed original proposal has been recovered
+without another model turn. The original failed audit remains recorded.
+See [actual-model and recovery evidence](../evidence/gate-6/decision-worker-model-authorized.json).
+This document grants no further execution authorization.
 
 The approved [product plan](../connect-gate-6-plan.html) states: “The plans do not
 authorize agents, live calls, deployment or publication by themselves.”
 [G6-093](../connect-gate-6-implementation.html#G6-093) requires concrete reviewed
 resources and use of existing authorization where it covers those resources.
-Only a new owner authorization for this exact model turn is missing here.
 
 ## Reviewed action
 
@@ -79,9 +80,21 @@ approval, one original submission/status recovery, controlled policy replays,
 membership refusal and owned cleanup. Earlier failed runs are retained.
 See [native worker evidence](../evidence/gate-6/decision-worker-native.json).
 
-The 72 component checks include real process exits after pending effect and
+The 76 component checks include real process exits after pending effect and
 model-response fsync, output/resource/approval refusal, bounded process input,
 unexpected host tool rejection and unapproved-host refusal before execution.
-Actual-model qualification is still pending. Linux, remote/provider/media
+One real model turn completed within the bound. Its strict auditor initially
+rejected two exact pre-turn startup diagnostics from the restricted host. The
+corrected auditor accepts only those fixed messages in that position, once each;
+all tool items and other errors still refuse. The read-only recovery binds the
+original request/configuration/consumption/trace and checks no matching original
+host is live. No model probe, retry or resume occurs. A new native worker process
+then reused the retained journals, submitted one approved proposal, recovered its
+lost reply and refused current membership withdrawal. The original host PID/exit
+metadata was not saved before the failed audit and remains unknown; current
+cleanup observations do not reconstruct it. Future launches save process outcome
+before auditing.
+
+G6-073 is complete in this local implementation scope. Linux, remote/provider/media
 profiles, the complete Parley application and Gate6 acceptance retain their
 separate approved tasks.

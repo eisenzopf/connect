@@ -3297,7 +3297,7 @@
         "G6-088",
         "G6-096"
       ],
-      "observation": "24/32 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "25/32 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-09"
       ],
@@ -3583,6 +3583,7 @@
         "docs/developer/conversation-control.md",
         "docs/developer/crash-recovery.md",
         "docs/developer/credential-revocation.md",
+        "docs/developer/decision-worker-rehearsal.md",
         "docs/developer/es256.md",
         "docs/developer/events.md",
         "docs/developer/incoming-contact-routing.md",
@@ -3692,6 +3693,10 @@
         "docs/evidence/gate-6/crash-recovery-audit.json",
         "docs/evidence/gate-6/crash-recovery-scope.json",
         "docs/evidence/gate-6/credential-revocation.json",
+        "docs/evidence/gate-6/decision-worker-initial.json",
+        "docs/evidence/gate-6/decision-worker-model-authorized.json",
+        "docs/evidence/gate-6/decision-worker-model-recovery.json",
+        "docs/evidence/gate-6/decision-worker-native.json",
         "docs/evidence/gate-6/device-replacement.json",
         "docs/evidence/gate-6/direct-source-metadata-contention.json",
         "docs/evidence/gate-6/direct-source-signed-runtime.json",
@@ -4010,7 +4015,7 @@
         "G6-097",
         "G6-100"
       ],
-      "observation": "15/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "16/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-10"
       ],
@@ -4226,6 +4231,7 @@
         "docs/developer/canonical-node-http.md",
         "docs/developer/canonical-provider-messages.md",
         "docs/developer/credential-installation.md",
+        "docs/developer/decision-worker-rehearsal.md",
         "docs/developer/events.md",
         "docs/developer/general-sessions.md",
         "docs/developer/initial-telephone-admission.md",
@@ -4281,6 +4287,10 @@
         "docs/evidence/gate-6/consultation-sql-contention.json",
         "docs/evidence/gate-6/context-outcomes.json",
         "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/decision-worker-initial.json",
+        "docs/evidence/gate-6/decision-worker-model-authorized.json",
+        "docs/evidence/gate-6/decision-worker-model-recovery.json",
+        "docs/evidence/gate-6/decision-worker-native.json",
         "docs/evidence/gate-6/events.json",
         "docs/evidence/gate-6/facade-completion.json",
         "docs/evidence/gate-6/facade-scope-audit.json",
@@ -7791,7 +7801,7 @@
         "G6-099",
         "G6-100"
       ],
-      "observation": "6/19 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "7/19 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-14"
       ],
@@ -7845,6 +7855,7 @@
         "docs/developer/agent-observations.md",
         "docs/developer/assistant-context.md",
         "docs/developer/browser-sdk.md",
+        "docs/developer/decision-worker-rehearsal.md",
         "docs/evidence/gate-6/agent-observation-decoder.json",
         "docs/evidence/gate-6/agent-observation-live-projection.json",
         "docs/evidence/gate-6/agent-observation-private-custody.json",
@@ -7883,6 +7894,10 @@
         "docs/evidence/gate-6/browser-sdk-wss-owners.json",
         "docs/evidence/gate-6/context-outcomes.json",
         "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/decision-worker-initial.json",
+        "docs/evidence/gate-6/decision-worker-model-authorized.json",
+        "docs/evidence/gate-6/decision-worker-model-recovery.json",
+        "docs/evidence/gate-6/decision-worker-native.json",
         "docs/evidence/gate-6/native-assistant-context-phases.json",
         "docs/evidence/gate-6/native-assistant-provider.json",
         "docs/evidence/gate-6/native-assistant-receipts-audio.json",

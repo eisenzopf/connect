@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { homedir } from "node:os";
 const run = promisify(execFile), directories = [];
 const base = new URL("../../../.local/gate-6/decision-worker-host-tests/", import.meta.url);
 const host = fileURLToPath(new URL("./model-host.py", import.meta.url));
@@ -69,4 +70,61 @@ print('synthetic process custody only')
 `;
     const result = await run("python3", ["-c", code, host, join(dir, "stdin.log"), join(dir, "group.log")], { timeout: 10000 });
     assert.equal(result.stdout.trim(), "synthetic process custody only");
+});
+const startupWarnings = () => [
+    "Under-development features enabled: skip_host_skill_discovery. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in " + join(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "config.toml") + ".",
+    "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`.",
+];
+test("the pinned profile recognizes exactly its two nonfatal pre-turn diagnostics without admitting tool items", async () => {
+    const events = valid();
+    events.splice(1, 0, ...startupWarnings().map((message, index) => ({ type: "item.completed", item: { id: "diagnostic-" + index, type: "error", message } })));
+    const result = JSON.parse((await parse(events)).stdout);
+    assert.deepEqual(result.startup_diagnostics, ["unstable-skill-discovery-flag", "code-mode-disabled"]);
+    assert.equal(result.tool_items, 0); assert.equal(result.output.action, "propose");
+});
+test("unknown, repeated and post-start error diagnostics still refuse", async () => {
+    for (const message of ["Authentication failed", startupWarnings()[0] + " extra", "Under-development features enabled: other-feature."]) {
+        const events = valid(); events.splice(1, 0, { type: "item.completed", item: { id: "bad", type: "error", message } });
+        await assert.rejects(parse(events));
+    }
+    const postStart = valid(); postStart.splice(2, 0, { type: "item.completed", item: { id: "late", type: "error", message: startupWarnings()[1] } });
+    await assert.rejects(parse(postStart));
+    const duplicate = valid(); duplicate.splice(1, 0, ...["a", "b"].map(id => ({ type: "item.completed", item: { id, type: "error", message: startupWarnings()[1] } })));
+    await assert.rejects(parse(duplicate));
+});
+test("read-only host recovery binds the original request/config and refuses changed custody without invoking a host", async () => {
+    const dir = await directory();
+    const code = prefix + `
+import pathlib
+root=pathlib.Path(sys.argv[2]); directory=root/'host'; directory.mkdir(mode=0o700)
+config=root/'config.json'; request=root/'request.json'
+put=lambda path,value: host.native.private(path,json.dumps(value)+'\\n')
+put(config,{'profile':'parley-worker-model-rehearsal/1','task':'G6-073','approved_model_execution':True,'codex_sha256':host.SHA256,'codex_binary':'/nonexistent-host-must-never-execute'})
+put(request,{'profile':'parley-model-request/1','request':{'requestId':'original','output':None}})
+put(directory/'launch.json',{'profile':'parley-model-host-launch/1','maximum_invocations':1,'request_file_sha256':host.native.sha(request),'config_file_sha256':host.native.sha(config),'binary_sha256':host.SHA256,'request_id':'original'})
+put(config.with_suffix('.invocation.json'),{'profile':'parley-model-authorization-consumed/1','maximum_invocations':1,'request_sha256':host.native.sha(request),'config_sha256':host.native.sha(config),'request_id':'original'})
+put(directory/'argv.json',['/nonexistent-host-must-never-execute','exec','--output-schema',str(directory/'schema.json'),'--disable','code_mode_host','--enable','skip_host_skill_discovery','-'])
+events=directory/'events.jsonl'; host.native.private(events,sys.argv[3])
+result=host.recover(config,request)
+assert result['new_host_invocations']==0 and result['original_exit_code'] is None
+assert host.recover(config,request)==result
+for path in [config,request,config.with_suffix('.invocation.json'),events]:
+    original=path.read_bytes()
+    if path==config.with_suffix('.invocation.json'):
+        changed=json.loads(original); changed['request_id']='substituted'; path.write_text(json.dumps(changed))
+    else:
+        path.write_bytes(original+b' ')
+    try:
+        host.recover(config,request)
+    except (AssertionError,ValueError):
+        pass
+    else:
+        raise AssertionError('Changed original custody accepted')
+    finally:
+        path.write_bytes(original)
+print('read-only synthetic recovery; zero executable invocations')
+`;
+    const events = valid().map(x => JSON.stringify(x)).join("\n") + "\n";
+    const result = await run("python3", ["-c", code, host, dir, events], { timeout: 10000 });
+    assert.match(result.stdout, /zero executable invocations/);
 });

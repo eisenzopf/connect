@@ -71,3 +71,19 @@ test("real process exits after model response fsync; replacement reads the origi
     assert.deepEqual(await scriptedModel({ directory: dir, responses: responses() }).recover(original),
         { state: "completed", output: responses().proposal });
 });
+test("read-only original-host recovery fills a lost response without another model invocation", async () => {
+    const dir = await directory(); let invokes = 0, observes = 0;
+    const source = { mode: "synthetic-completed-host" };
+    const first = new RecordedProposalModel({ directory: dir, source,
+        invoke: async () => { invokes++; throw Error("completed output retained by original host; callback audit failed"); } });
+    await assert.rejects(first.generate(request()));
+    const restarted = new RecordedProposalModel({ directory: dir, source,
+        invoke: async () => assert.fail("No second model invocation"),
+        recoverOriginal: async original => {
+            observes++; assert.deepEqual(original, request());
+            return { state: "completed", output: responses().proposal };
+        } });
+    assert.deepEqual(await restarted.recover(request()), { state: "completed", output: responses().proposal });
+    assert.deepEqual(await restarted.recover(request()), { state: "completed", output: responses().proposal });
+    assert.equal(invokes, 1); assert.equal(observes, 1);
+});
