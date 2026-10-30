@@ -1,0 +1,129 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T05:42:22.155312+00:00",
+  "base_revision": "1356a421228454f13be8a59559b6b8df777ed116",
+  "scope": "Conservative restart-only comparison against retained trusted original-peer SDP; still no canonical restart dispatch, Store admission or physical restart execution.",
+  "behavior": {
+    "both_effective_ice_credentials_must_change": true,
+    "origin_version_must_increase": true,
+    "immutable_projection": "DTLS fingerprint/setup, MID/BUNDLE, media/protocol/format, active/disabled state, codec/source/track/direction and unknown extension lines retain their order and content.",
+    "allowed_transport_changes": "Numeric c=/RTCP address/active ports, bounded candidates and end-of-candidates.",
+    "limits": {
+      "media_sections": 32,
+      "candidate_lines": 128,
+      "line_bytes": 8192,
+      "sdp_bytes": 524288
+    },
+    "candidate_grammar_validation": "Deferred to RTC engine; this guard provides no authority or readiness."
+  },
+  "protocol_tests": {
+    "runs": [
+      {
+        "profile": "default",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 8.229897416895255,
+        "log_sha256": "e5970f29d1da58a97d367160f77b5e28c0fb4e6c03f4ab3118e742ebfb6bd503",
+        "passed": 61,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "profile": "schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--features",
+          "schema",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 8.125106666004285,
+        "log_sha256": "b99802c80ed13939e6a677db3c5df35a505408c80ebad640ac0821d94f0e2ca5",
+        "passed": 62,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "source_count": 62,
+    "changed_inputs": [],
+    "source_manifest_sha256": "6485538acd490e1a334d839a1d71dce71ec7723ad84115488232e4794db6f761"
+  },
+  "actual_browser_comparison": {
+    "scope": "Actual Chrome initial/restart SDP against current protocol helper; no native/remote/relay/decoded-media or readiness qualification",
+    "browser": {
+      "browser": "156.0.8078.48",
+      "scope": "Actual local browser-generated initial and restart SDP only; no server restart, decoded media, remote/relay or ICE-readiness qualification",
+      "profiles": [
+        {
+          "profile": "audio",
+          "closed": true,
+          "signaling": "have-local-offer"
+        },
+        {
+          "profile": "audio+video",
+          "closed": true,
+          "signaling": "have-local-offer"
+        }
+      ]
+    },
+    "runs": [
+      {
+        "profile": "audio",
+        "exit_code": 0,
+        "stdout": "Restart-only offer comparison passed; ICE readiness is unqualified",
+        "stderr": ""
+      },
+      {
+        "profile": "audio+video",
+        "exit_code": 0,
+        "stdout": "Restart-only offer comparison passed; ICE readiness is unqualified",
+        "stderr": ""
+      }
+    ],
+    "source_count": 68,
+    "changed_inputs": []
+  },
+  "browser_input_custody": "Initial browser generation was explicit and isolated, with no concurrent script edits. The retained generated SDP, helper binary and current source inputs are hash-fenced before/after the comparison. No before/after full browser/runtime inventory is claimed for generation.",
+  "helper_build": {
+    "exit_code": 0,
+    "log_sha256": "376aa285123a2fc1535c77201c3f91a6ff60edbc9a19ea05500f6992183e55e4",
+    "binary_sha256": "336dff63f9830ea7b651a1b9e1734472395fbba7b83d174e2bf6b9a5c1df3909"
+  },
+  "private_comparison_manifest_sha256": "f297b404f1c3464b7d1670cfd97b85efbbe4ed59a34006fee4781949b5a9c652",
+  "sources": {
+    "crates/connect-protocol/src/webrtc_ice_restart.rs": "48bd4be42e353512013bbc9eebb6922660f42461623c591d0f7f9de3b33ec24c",
+    "crates/connect-protocol/src/webrtc_ice_restart/offer.rs": "93a6991bf6c4ac8f8600532ac7756ccf5204893852a394ce7c026636a4fa5f48",
+    "crates/connect-protocol/examples/check_ice_restart_offer.rs": "25d6d67af68fd2686491810ca6976f6a5cf07f29c00eae0d5903315b4a116382",
+    "scripts/video/browser-ice-restart-offer.mjs": "eb152c1cfc81bde221b68543786a9f2f49e12fc18e7c4a42772ce9b97a042902"
+  },
+  "remaining": [
+    "Persist original intent/attempt/ICE counter and answer with current Store authority, exact original replay and same physical owner.",
+    "Add guarded canonical RTC restart with generation-specific observation. Existing connected_flag is latched after original connection and cannot prove a restarted generation.",
+    "Register canonical action/schema, public HTTP/OpenAPI and SDK methods only with complete durable execution.",
+    "Qualify distinct-network direct/relay, expired credentials, loss/refusal/replay/decoded duplex and original allocation/peer cleanup; remaining video/network/telephone matrix remains open."
+  ],
+  "qualification_limits": [
+    "Trusted baseline must come from the retained original peer; caller-supplied previous SDP grants nothing.",
+    "No actual Connect peer restart or decoded media, ICE readiness, remote/provider/TURN, Linux, package or acceptance qualification.",
+    "No task closure or additional model execution; Gate6 remains68done/1in-progress/36not-started/0acceptance-qualified."
+  ],
+  "private_evidence": ".local/gate-6/transport-reconnect-owner/ice-offer-*"
+}

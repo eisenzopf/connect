@@ -5,6 +5,8 @@
 use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+mod offer;
+pub use offer::validate_offer_change;
 
 pub const MAX_SDP_BYTES: usize = 512 * 1024;
 pub const MAX_UPDATE_BYTES: usize = 544 * 1024;

@@ -34,6 +34,35 @@ representable by browser JSON numbers. Unknown/mixed codec, gate, routing,
 resource and approval fields refuse. SDP and ICE credentials are redacted from
 Debug output. This boundary does not parse SDP semantics or establish readiness.
 
+## Restart-only offer comparison
+
+`validate_offer_change(previous, proposed)` compares the complete proposed offer
+with trusted retained SDP from the same peer's last accepted remote offer. Both
+ICE credentials must change for every active media section, including inherited
+session credentials, and the numeric origin version must increase. Numeric
+connection/RTCP addresses, active transport ports and bounded candidate lines
+may change. Every other line and its order must remain unchanged: DTLS
+fingerprint/setup, MID/BUNDLE, codecs, directions, source/track IDs and unknown
+extensions. Active media cannot become disabled or vice versa. Duplicate ICE
+credentials, identity/setup attributes, ambiguous line endings, invalid address
+families and bounded-count/line overflows refuse. The guard never returns SDP
+or credentials in diagnostics.
+
+This is a conservative comparison, not a general SDP or candidate parser. The
+RTC engine must still parse the complete offer before applying it. A trusted
+previous offer is required; a caller cannot supply its own comparison baseline.
+Status/replay must recover the original operation before this fresh-attempt
+check, since unchanged original credentials deliberately refuse a new restart.
+
+The local `check_ice_restart_offer` Cargo example compares two retained private
+SDP files without printing their contents. The explicit
+`scripts/video/browser-ice-restart-offer.mjs` fixture creates isolated headless
+Chrome peers without ICE servers, captures full gathered initial/restart offers
+for audio and audio/video and closes those peers. Both generated shapes pass
+the current comparison. This fixture uses no Connect server and does not prove
+restart application, ICE connectivity, decoded media, remote/relay behavior or
+allocation cleanup in the canonical host.
+
 ## Required durable execution
 
 Before physical IO, save the complete original payload, caller, scope, current
