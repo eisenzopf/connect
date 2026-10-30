@@ -628,7 +628,10 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         output.join("browser-profile.json"),
         serde_json::to_vec(&json!({
             "normal_certificate_verification":true,
-            "isolated_firefox_loopback_ice":browser_kind == "firefox"
+            "isolated_firefox_loopback_ice":browser_kind == "firefox",
+            "isolated_chromium_loopback_ice":browser_kind == "chrome"
+                && cfg!(target_os = "linux")
+                && std::env::var("CONNECT_GATE6_OWNED_BROWSER_CONTAINER").as_deref() == Ok("1")
         }))
         .unwrap(),
     )
@@ -654,7 +657,10 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
             && std::env::var("CONNECT_GATE6_OWNED_BROWSER_CONTAINER").as_deref() == Ok("1")
         {
             // Only the explicit anonymous, network-isolated CI container.
-            command.arg("--no-sandbox");
+            // With Docker --network none, loopback is the only interface.
+            // Chromium otherwise omits it from ICE's network list, so even an
+            // owned loopback TURN server receives no Allocate requests.
+            command.args(["--no-sandbox", "--allow-loopback-in-peer-connection"]);
         }
         command.arg(format!("--user-data-dir={}", profile.display()));
     } else {

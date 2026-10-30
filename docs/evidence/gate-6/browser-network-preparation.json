@@ -236,5 +236,122 @@
       "scope": "macOS arm64 default CLI, retained local store/service/server opt0 exceptions; no Linux runtime qualification."
     },
     "remaining": "Rerun actual Linux x86 clock and all eight bounded media cases. G6-054 and acceptance remain open."
+  },
+  "isolated_chromium_loopback_ice_fix": {
+    "run_id": 41077685499,
+    "source_revision": "6bff6dcbf6bbc84661a1cafe240a0e01c2eaee4f",
+    "artifact_id": 12987917455,
+    "artifact_sha256": "e6c1ba09890770a9ac3fa64d019a0d8467d6708f717792ae483e8128f40dbf1e",
+    "linux_runtime": {
+      "sources_unchanged": true,
+      "source_count": 5932,
+      "tool_count": 76,
+      "clock": {
+        "scope": "Software clock pacing only; no RTC or decoded media.",
+        "result": {
+          "startup_audio_seconds": 0.25541950113378686,
+          "wall_seconds": 1.2002000000000117,
+          "audio_seconds": 1.2074376417233559,
+          "ratio": 1.0060303630422798,
+          "passed": true
+        },
+        "ownership": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "passed": true
+      },
+      "cases": [
+        {
+          "name": "native-ice",
+          "passed": true,
+          "seconds": 13.248044571000008,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "baseline",
+          "passed": false,
+          "seconds": 17.67382278300002,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "ice-eddsa",
+          "passed": false,
+          "seconds": 17.206627459000003,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "ice-es256",
+          "passed": false,
+          "seconds": 17.256894122999995,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "unreachable-eddsa",
+          "passed": false,
+          "seconds": 18.30809781000005,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "unreachable-es256",
+          "passed": false,
+          "seconds": 18.25295561599995,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "impairment-eddsa",
+          "passed": false,
+          "seconds": 18.155236064999997,
+          "timed_out": false,
+          "forced_kill": false
+        },
+        {
+          "name": "impairment-es256",
+          "passed": false,
+          "seconds": 18.25749608999996,
+          "timed_out": false,
+          "forced_kill": false
+        }
+      ],
+      "unreachable_turn_allocate_requests": [
+        0,
+        0
+      ]
+    },
+    "controlled_probe": {
+      "scope": "Owned Linux arm64 Chromium151 network-disabled loopback TURN candidate probe only; no media or x86 qualification.",
+      "reports": [
+        {
+          "loopback_interface_enabled": false,
+          "allocate_requests": 0,
+          "state": "gathering",
+          "peer_closed": true,
+          "original_browser_closed": true,
+          "owned_udp_joined": true
+        },
+        {
+          "loopback_interface_enabled": true,
+          "allocate_requests": 5,
+          "state": "gathering",
+          "peer_closed": true,
+          "original_browser_closed": true,
+          "owned_udp_joined": true
+        }
+      ]
+    },
+    "probe_log_sha256": "845492273c9f48bea9e1b42553ac615c538adb666213a90437373ed86c080e3e",
+    "chromium_switch_source": "https://chromium.googlesource.com/chromium/chromium/+/HEAD/content/public/common/content_switches.cc",
+    "fix": "Enable --allow-loopback-in-peer-connection only for Chromium in the explicitly owned Linux browser container. Preserve Docker network none and normal certificate verification. Record the selected isolated profile.",
+    "remaining": "Actual current CFT156 Linux x86 browser/media replay remains required. The older ARM Chromium151 probe proves only the loopback TURN reachability difference. No full task or acceptance qualification."
   }
 }
