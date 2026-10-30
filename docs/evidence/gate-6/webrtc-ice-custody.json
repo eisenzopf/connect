@@ -1,0 +1,172 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T06:28:49.215908+00:00",
+  "base_revision": "d35600f712eccfcb09495c99c4c1ca25bc12f360",
+  "scope": "Store-only current source/engine outcome metadata and protocol validation. Internal native intent and trusted Store APIs only; canonical wire action, physical restart, HTTP/OpenAPI and SDK remain unregistered.",
+  "implementation": {
+    "schema": 116,
+    "patches": 246,
+    "tables": [
+      "native_webrtc_ice_state",
+      "native_webrtc_ice_operations"
+    ],
+    "custody": "One original native_stream_operations control slot/effect; exact private previous/proposed remote offer and local baseline/answer; independent monotonic ICE counter.",
+    "private_answer": "Current original request/authority lookup returns retained answer without allocation or new effect. Baseline/answer capture is trusted host metadata, never a ready/media grant.",
+    "completion": "A consumed original lease/captured runtime receipt settles the original operation and ICE generation atomically; old receipt replay cannot reset newer state.",
+    "preserved": "Connection/Stream ownership generations, stream revision, readiness and common stream projection remain unchanged by the transport-only metadata commit.",
+    "refusals": [
+      "Changed original request or answer",
+      "Competing control, stale ICE generation, changed media shape",
+      "Premature/forged SQL completion and original-identity replacement/deletion",
+      "Current membership withdrawal and old runtime lease",
+      "No-effect reinterpretation after answer capture"
+    ],
+    "backup": "Schema116 snapshot digest covers both private tables; older live schema paths are refused without conversion."
+  },
+  "verification": {
+    "runs": [
+      {
+        "label": "targeted",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-store",
+          "--lib",
+          "native_wire::webrtc_ice",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 29.77183087496087,
+        "log_sha256": "76832568933461b86ad08348ef535dc0d2a88ad95d665c24df34b857db71460b",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "label": "schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-store",
+          "--test",
+          "gate6_schema",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 98.87271249992773,
+        "log_sha256": "66b5a78ea2d8bee32819b087dd5231dbc5f4e0f07012b46226a4bfe3b27dfc1e",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "label": "protocol-default",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 7.752271708101034,
+        "log_sha256": "d26f3af3ce9dbe7adf5cad05a459ba43008fd655dcca23a419944f592bc9d290",
+        "passed": 62,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "label": "protocol-schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--features",
+          "schema",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 8.217944792006165,
+        "log_sha256": "9bed8a557081e153c983b41778a287e146927fa76ceb4d5c9ad7ed511aad1f2f",
+        "passed": 63,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "source_count": 637,
+    "changed_inputs": [],
+    "source_manifest_sha256": "dfbfdee97b9272320950b60249c6c05ef1ea42cf56a82fff81938dc1f6535797"
+  },
+  "full_store_regression": {
+    "status": "running",
+    "qualified": false,
+    "scope": "All current Store unit functions with the same freshly compiled executable; not yet counted as a pass."
+  },
+  "controlled_cases": [
+    "Private answer recovery while operation remains Preparing/counter0; repeated original request cannot allocate a second effect.",
+    "Two successive captured original completions advance only ICE; first receipt replay preserves counter2 and its own original answer.",
+    "Unknown original retains answer and cannot begin again; attributed original completion settles it.",
+    "Restored Store runtime reads original unknown operation/answer with one retained effect; old runtime lease cannot capture or submit.",
+    "Changed request, competing operation, stale generation and changed media refuse/rollback without new ledger/effect rows.",
+    "SQL constraints/triggers reserve original identity and confirmed generation; no-effect cannot erase a retained answer.",
+    "Backup digest changes if private negotiation bytes change.",
+    "Controlled current membership withdrawal denies answer read even with the old proof."
+  ],
+  "preserved_failures": [
+    {
+      "run": "ice-store-tests-01",
+      "tests_executed": false,
+      "reason": "rust-objcopy disk exhaustion produced a nonexecutable1808-byte stub; Cargo never ran the tests. Stub/hash/mode and log retained. Obsolete generated rlibs were losslessly archived with decoded SHA verification before rebuilding.",
+      "log_sha256": "f5bf7c5d9df350463d46f0565082e5e5a4729d6dff323b46d09c9c0e4053f468",
+      "stub_record_sha256": "7df26cc575eec3c3617cb98f6de6577cb4fb6be2b615e02ecea1dd07ab6d959c"
+    },
+    {
+      "run": "ice-store-tests-03",
+      "reason": "Test-local SQLite count handle was retained across another method on the same Store. Confirmed owned hung fixture was terminated; the handle is now dropped before reentry. No production fix or timeout increase claimed.",
+      "log_sha256": "91b85e8a9b97d31e24f723db7c4768a32b8a577366a884a857e10c24e0fa3528",
+      "diagnosis_sha256": "86cd7e48d47dfd3b30ce3a63370cacced1529cde2e5ca2c27cd17cb54f487524"
+    }
+  ],
+  "sources": {
+    "crates/connect-protocol/src/native_streams.rs": "f632f2874a01bcc6a480428cba33bc384cb963eb87f7fbc6c287298a43983cf4",
+    "crates/connect-store/migrations/116_webrtc_ice_custody.sql": "0fd2c22159c9bb763108d3b643b1b9f470e09b38f0d0aede24b70150e9fcb3e8",
+    "crates/connect-store/src/transitions/native_streams/ice.rs": "c753a848be8b6bba213bc78d991678dbaa23c588ec5d6eabcc3314f37c3ba5a4",
+    "crates/connect-store/src/transitions/native_streams.rs": "7b770d7057449d7dbceea2701e00913f505ba2cc62c65f25ccf74078d6114568",
+    "crates/connect-store/src/transitions/native_streams/outcomes.rs": "622c7fc485cedf012bc1462ae740d1e6ea815d571392ce82dca06fffb605de7b",
+    "crates/connect-store/src/recovery.rs": "8ba256849624e1292e247845344414a669659bd2effdcec9a361749c61c5d257",
+    "crates/connect-store/src/lib.rs": "ee352bad5fac81679fc5bd0b3389fb6dd9551d1dcb61cd5c98da68564349a1ac",
+    "crates/connect-store/src/connection_control/tests/native_wire/webrtc_ice.rs": "1903ab724bb3ac0bbe0c0dd9fb7d45774a16593fe83a676c2874010f9c868dac"
+  },
+  "limits": [
+    "Source/engine outcomes in Store tests are explicitly controlled metadata; no real signed wire exchange, RTC generation or decoded media is inferred.",
+    "Broader full Store regression is running and is not counted as a pass.",
+    "The production service check in webrtc-ice-generation.json applies to the preceding schema115 baseline; no production binary/native schema116 runtime qualification yet.",
+    "Raw SDP/credentials, keys, backup state and logs remain ignored under .local.",
+    "No G6-054 closure or acceptance promotion; all105 tasks remain the goal."
+  ],
+  "gate_progress": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  },
+  "private_evidence": ".local/gate-6/transport-reconnect-owner/ice-store-*"
+}

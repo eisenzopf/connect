@@ -106,6 +106,7 @@ impl Store {
             quality_interval_ms: None,
             gate_payload: None,
             capability_payload: None,
+            ice_restart: None,
         };
         tx.commit().map_err(|_| Error::storage())?;
         Ok(lease)

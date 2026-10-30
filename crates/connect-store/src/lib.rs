@@ -59,7 +59,7 @@ pub use transitions::{
     NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
     NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeHandoffApplied,
     NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease, NativeHandoffOrigin,
-    NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
+    NativeIceRestart, NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
     NativeOfferRecoveryObservation, NativeOfferRuntimeObservation, NativeReadyObservation,
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
     NativeReplacementAllocationRead, NativeReplacementAudienceCapture, NativeReplacementCandidate,
@@ -189,7 +189,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 115;
+pub const SCHEMA_VERSION: u32 = 116;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -558,6 +558,8 @@ impl Store {
         ))
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/115_client_enrollment.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/116_webrtc_ice_custody.sql"))
             .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

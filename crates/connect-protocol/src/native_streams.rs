@@ -111,6 +111,9 @@ impl std::fmt::Debug for Intent {
     }
 }
 impl Intent {
+    pub fn is_ice_restart(&self) -> bool {
+        self.command == Command::Update && self.payload["action"] == "ice-restart"
+    }
     /// Exact local quality update; the original payload remains ledger identity.
     pub fn quality_interval_ms(&self) -> Option<u64> {
         (self.command == Command::Update && self.payload["action"] == "quality")
@@ -130,6 +133,11 @@ impl Intent {
             id(by)?;
         }
         let payload = self.payload.as_object().ok_or_else(invalid)?;
+        // Reject unknown/oversized ICE fields while borrowing the caller's
+        // tree, before serializing an unbounded extension into a new buffer.
+        if self.is_ice_restart() {
+            crate::webrtc_ice_restart::parse_update(&self.payload)?;
+        }
         if self
             .expected_revision
             .is_some_and(|r| r > 9_007_199_254_740_991)
@@ -138,6 +146,8 @@ impl Intent {
             || serde_json::to_vec(payload).map_err(|_| invalid())?.len()
                 > if self.command == Command::Data {
                     crate::MAX_PAGE_BYTES
+                } else if self.is_ice_restart() {
+                    crate::webrtc_ice_restart::MAX_UPDATE_BYTES
                 } else {
                     32 * 1024
                 }
@@ -158,6 +168,7 @@ impl Intent {
         }
         let mut seen = BTreeSet::new();
         match self.command {
+            Command::Update if self.is_ice_restart() => {}
             Command::Dtmf => crate::native_dtmf::validate_payload(&self.payload)?,
             Command::Advertise => crate::native_capabilities::validate_payload(&self.payload)?,
             Command::Update if payload.get("action").and_then(Value::as_str) == Some("quality") => {
@@ -584,6 +595,28 @@ mod tests {
             command: Command::Subscribe,
             payload,
         }
+    }
+    #[test]
+    fn ice_intent_retains_the_exact_bounded_request_and_does_not_widen_other_controls() {
+        let mut value = intent(
+            json!({"action":"ice-restart","details":{"expected_ice_generation":0,"setup":{"kind":"websocket+webrtc","sdp":"v=0\r\n".to_owned()+&"x".repeat(40*1024)}}}),
+        );
+        value.command = Command::Update;
+        value.validate().unwrap();
+        assert_eq!(
+            serde_json::from_value::<Intent>(serde_json::to_value(&value).unwrap()).unwrap(),
+            value
+        );
+        let mut extra = value.clone();
+        extra.payload["approved"] = json!(true);
+        assert!(extra.validate().is_err());
+        extra = value.clone();
+        extra.payload["details"]["setup"]["sdp"] =
+            json!("v=0\r\n".to_owned() + &"x".repeat(crate::webrtc_ice_restart::MAX_SDP_BYTES));
+        assert!(extra.validate().is_err());
+        value.payload =
+            json!({"action":"quality","quality_interval_ms":1000,"extension":"x".repeat(40*1024)});
+        assert!(value.validate().is_err());
     }
     #[test]
     fn server_reconciliation_retains_exact_selector_record_plan_and_required_permission() {

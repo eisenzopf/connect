@@ -1,9 +1,9 @@
 # Canonical WebRTC ICE restart
 
 G6-054 implementation is in progress. The bounded request types are implemented
-in `connect-protocol::webrtc_ice_restart`. Canonical dispatch, durable Store
-admission, physical execution, SDK methods and HTTP/OpenAPI registration are
-still pending. This document does not advertise a working public restart API.
+in `connect-protocol::webrtc_ice_restart`. Private Store custody is implemented
+in schema116. Canonical dispatch, physical execution, SDK methods and
+HTTP/OpenAPI registration are still pending. This document does not advertise a working public restart API.
 
 The intended mutation is `connection.update` with the original Conversation,
 Session and Connection scope, a new logical operation ID saved before IO, and
@@ -88,7 +88,34 @@ closure and historical Connected metadata. No sockets/providers/media sources
 are created by that packet fixture. The Store operation and canonical restart
 worker are not installed by this read-only engine API.
 
-## Required durable execution
+## Private Store custody
+
+The Store admits a strict bounded ICE intent only against its current original
+WebRTC source, exact media revision and separate expected ICE counter. The
+existing native control slot excludes competing attempts. Schema116 retains
+an immutable per-operation previous/proposed offer and actual local
+baseline/answer, plus an independent committed counter for the original parent.
+Unknown outcomes retain that same slot and operation; no lease is reconstructed
+and no second effect is begun on retry or after runtime restoration.
+
+Trusted host capture methods save the actual original peer's baseline before
+IO and its gathered answer before delivery. Repeated capture must match the
+same bytes. An answer does not advance the counter or complete the operation,
+and cannot later be described as a no-effect outcome. A captured, attributed
+engine completion consumes the original lease and atomically advances only the
+ICE counter with the common operation completion. Replaying an old receipt
+cannot reset a newer counter. The original stream revision, bindings and
+readiness projection remain unchanged by this transport-only metadata commit.
+
+SDP and credentials stay in dedicated private tables. Operation results and
+shared stream projections carry no SDP. Reading the original answer requires
+current source authorization and the exact retained request. Backup digests
+cover both private tables. Older live schema paths are refused unchanged; use
+the preserved matching binary/backup and explicitly initialize a new path.
+The Store tests control source and engine-outcome metadata; they are not actual
+RTC or decoded-media qualification. The broader Store regression is pending.
+
+## Required physical execution
 
 Before physical IO, save the complete original payload, caller, scope, current
 Endpoint/membership, Connection ownership generation, expected media revision

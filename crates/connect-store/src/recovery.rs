@@ -160,6 +160,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 115 {
         tables.push("client_enrollments");
     }
+    if schema >= 116 {
+        tables.extend(["native_webrtc_ice_state", "native_webrtc_ice_operations"]);
+    }
     if schema >= 114 {
         tables.push("native_replacement_candidates");
     }

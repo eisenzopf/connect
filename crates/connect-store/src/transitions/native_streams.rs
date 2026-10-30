@@ -4,7 +4,9 @@ mod data;
 pub(crate) mod dtmf;
 pub use dtmf::{NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget};
 pub use dtmf::{NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget};
+mod ice;
 mod outcomes;
+pub use ice::NativeIceRestart;
 mod reconciliation;
 mod session_codecs;
 use super::*;
@@ -31,6 +33,7 @@ pub struct NativeStreamLease {
     quality_interval_ms: Option<u64>,
     gate_payload: Option<serde_json::Value>,
     capability_payload: Option<serde_json::Value>,
+    ice_restart: Option<NativeIceRestart>,
 }
 impl std::fmt::Debug for NativeStreamLease {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -404,6 +407,9 @@ impl Store {
         tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,expected_revision,intent_json,state,created_at,updated_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'accepted',?12,?12,?13)",params![record,tenant,actor.identity_id,wire.operation_id,hash,wire.command.name(),wire.conversation_id,wire.session_id,wire.connection_id,wire.expected_revision,json,crate::now(),expires]).map_err(|_|Error::storage())?;
         let connection = &source.connection.connection;
         tx.execute("INSERT INTO native_stream_operations(operation_record_id,parent_record_id,credential_id,key_id,device_id,participant_id,membership_epoch,generation,resources_json,source_expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",params![record,source.parent_record_id,credential,proof.request.key_id,proof.key.device_id,connection.participant_id,connection.membership_epoch,connection.generation,resources,source_expiry]).map_err(|_|Error::storage())?;
+        if wire.is_ice_restart() {
+            ice::accept(&tx, wire, &record, &source)?;
+        }
         tx.execute("INSERT INTO operation_members(operation_record_id,participant_id,identity_id,membership_epoch) VALUES(?1,?2,?3,?4)",params![record,connection.participant_id,actor.identity_id,connection.membership_epoch]).map_err(|_|Error::storage())?;
         if wire.command == Command::Data {
             data::accept(&tx, self, &actor, wire, &record, &source)?;
@@ -485,6 +491,11 @@ impl Store {
                 && connect_protocol::native_gates::is_gate(&wire.payload))
             .then(|| wire.payload.clone()),
             capability_payload: (wire.command == Command::Advertise).then(|| wire.payload.clone()),
+            ice_restart: if wire.is_ice_restart() {
+                Some(ice::load(&tx, &row.record.record_id)?)
+            } else {
+                None
+            },
             data_message: if wire.command == Command::Data {
                 Some(
                     tx.query_row(

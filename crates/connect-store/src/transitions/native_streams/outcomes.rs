@@ -38,6 +38,9 @@ enum CommittedOutcome {
     Quality {
         interval_ms: u64,
     },
+    Ice {
+        generation: u64,
+    },
     Advertisement {
         payload: serde_json::Value,
     },
@@ -52,6 +55,24 @@ impl std::fmt::Debug for NativeStreamCommitted {
     }
 }
 impl NativeStreamLease {
+    /// Trusted host boundary after this original attempt's live ICE generation
+    /// was observed on the same physical peer under current authorization.
+    /// The retained answer alone can never justify this receipt.
+    pub fn ice_committed(self, generation: u64) -> Result<NativeStreamCommitted> {
+        let ice = self.ice_restart.as_ref().ok_or_else(conflict)?;
+        if self.command != Command::Update
+            || generation != ice.expected_generation() + 1
+            || generation > connect_protocol::webrtc_ice_restart::MAX_ICE_GENERATION
+            || ice.previous_local_answer().is_none()
+            || ice.answer().is_none()
+        {
+            return Err(conflict());
+        }
+        Ok(NativeStreamCommitted {
+            lease: self,
+            outcome: CommittedOutcome::Ice { generation },
+        })
+    }
     /// Trusted host boundary after the actual native runtime control returned.
     /// Captured states are historical; retry records them without running Core.
     pub fn gates_committed(
@@ -110,6 +131,7 @@ impl NativeStreamLease {
     ) -> Result<NativeStreamCommitted> {
         connect_protocol::native_streams::validate_codec_bindings(&bindings)?;
         if self.command != Command::Update
+            || self.ice_restart.is_some()
             || self.quality_interval_ms.is_some()
             || self.gate_payload.is_some()
             || revision != self.expected_revision.saturating_add(1)
@@ -140,6 +162,7 @@ impl NativeStreamLease {
     ) -> Result<NativeStreamCommitted> {
         connect_protocol::native_streams::validate_codec_bindings(&bindings)?;
         if self.command != Command::Update
+            || self.ice_restart.is_some()
             || self.quality_interval_ms.is_some()
             || self.gate_payload.is_some()
             || revision != self.expected_revision + u64::from(resources_changed)
@@ -317,6 +340,9 @@ impl Store {
             CommittedOutcome::Quality { interval_ms } => {
                 serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":lease.expected_revision,"resources_changed":false,"quality_interval_ms":interval_ms})
             }
+            CommittedOutcome::Ice { generation } => {
+                serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":lease.expected_revision,"resources_changed":false,"action":"ice-restart","ice_generation":generation})
+            }
             CommittedOutcome::Advertisement { payload } => {
                 serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":lease.expected_revision,"resources_changed":false,"by_participant":payload["by_participant"],"capabilities":payload["capabilities"],"trigger":payload["trigger"],"advertisement_record_id":lease.record})
             }
@@ -430,6 +456,9 @@ impl Store {
                     }
                 }
             }
+            if let CommittedOutcome::Ice { generation } = &receipt.outcome {
+                ice::complete(&tx, lease, *generation)?;
+            }
             if let CommittedOutcome::Advertisement { payload } = &receipt.outcome {
                 if live {
                     let descriptor = serde_json::json!({"by_participant":payload["by_participant"],"capabilities":payload["capabilities"],"trigger":payload["trigger"],"operation_record_id":lease.record});
@@ -506,6 +535,9 @@ impl Store {
             if frozen {
                 return Err(conflict());
             }
+        }
+        if lease.ice_restart.is_some() && ice::load(&tx, &lease.record)?.answer().is_some() {
+            return Err(conflict());
         }
         if row.record.state == OperationState::Failed
             && row.record.problem.as_ref()
