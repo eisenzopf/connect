@@ -959,5 +959,145 @@
     },
     "local_passed": true,
     "linux_initial_admission_resolution": false
+  },
+  "continuation_cedd": {
+    "run_id": 41073539750,
+    "source_revision": "cedd9c92300c421e064d8b346579b8888b1b7348",
+    "cases": [
+      {
+        "source_revision": "cedd9c92300c421e064d8b346579b8888b1b7348",
+        "run_id": 41073539750,
+        "artifact_id": 12987230983,
+        "zip_sha256": "e44977becd388ee10617700aa1c9ff2a5688e46bf8d0c04946b556a436de24f0",
+        "tracked_sources_verified": 4475,
+        "source_count": 8571,
+        "source_inputs_unchanged": true,
+        "source_manifest_sha256": "f8e91f73a733dd3664b14cba9d11a1f9a291e12b1d3eacbfa3d8d0cdb80ef8a3",
+        "steps": 23,
+        "failed_steps": [
+          {
+            "name": "native-ice-restart",
+            "exit_code": 101,
+            "seconds": 19.449829609999938,
+            "log_sha256": "6afce7783c6c00081830a9cd9ced09855afa0d5492dc5c460be138459ccc0380",
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+                "line": 72,
+                "column": 13
+              }
+            ],
+            "node_failures": [],
+            "node_consultation_failures": [],
+            "python_native_failures": []
+          }
+        ],
+        "passed": false
+      },
+      {
+        "source_revision": "cedd9c92300c421e064d8b346579b8888b1b7348",
+        "run_id": 41073539750,
+        "artifact_id": 12985264285,
+        "zip_sha256": "97269655f5d09c578f72c1ce28d9ca4f33a30b3c95efa8961bbacd3d71022bbc",
+        "tracked_sources_verified": 4475,
+        "source_count": 8571,
+        "source_inputs_unchanged": true,
+        "source_manifest_sha256": "f8e91f73a733dd3664b14cba9d11a1f9a291e12b1d3eacbfa3d8d0cdb80ef8a3",
+        "steps": 23,
+        "failed_steps": [
+          {
+            "name": "native-ice-restart",
+            "exit_code": 101,
+            "seconds": 19.455666057999906,
+            "log_sha256": "28a77de294b7569142854207608d58bd380441a9c0eb2bad8e2120502f5ec864",
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+                "line": 72,
+                "column": 13
+              }
+            ],
+            "node_failures": [],
+            "node_consultation_failures": [],
+            "python_native_failures": []
+          }
+        ],
+        "passed": false
+      }
+    ],
+    "observation": "Both Linux Node22/26 jobs pass managed IPC runtime and one native ICE function, but fail the other at initial-offer: initial-admission/authority-busy, one failed original effect, no result. The new trace is enabled. Further SDK integration cases after this fail-fast boundary remain unrun.",
+    "next_diagnostic": "Separate initial-authority acquisition from initial-receipt persistence using finite code/phase debug messages. Privacy/schema functions16 pass. Current local native build is still running; no new native behavior or failure-resolution claim."
+  },
+  "python_unfinished_function_diagnostic": {
+    "change": "Record source-defined unittest start/stop IDs and publish only unfinished_functions. Keep the same60/30/30/10second phase caps and all223 functions. No raw logs or payloads in artifacts.",
+    "linux_trigger": {
+      "run_id": 41073539750,
+      "python": "3.14.9",
+      "http_phase_seconds": 30.008281257999997,
+      "http_timed_out": true,
+      "http_functions_completed": 2
+    },
+    "local_check": {
+      "passed": false,
+      "functions_passed": 222,
+      "unfinished_functions": [],
+      "timed_out": false,
+      "forced_cleanup": false,
+      "phases": {
+        "core": {
+          "exit_code": 1,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 48.8645093748346,
+          "log_sha256": "6606b1bfa6547a0ec2e9d04c100ebc7b84e2718ba69f717c354891e7b987a803"
+        },
+        "http": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 12.929540124954656,
+          "log_sha256": "8df0ac5fcfb313421eb172ae63aa85a9a33f852995f09921eb505698b3d7c5ae"
+        },
+        "https": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 3.2730498341843486,
+          "log_sha256": "02604de5ac9a11cd771dccb135883c0a04a841d1e6d3174d9bb1336ab1880815"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 4.709858875023201,
+          "log_sha256": "9b55b3faa8b0524a4ba78da7b7b8e76c1344006e6e875f934a839d2a4bae4539"
+        }
+      },
+      "failed_functions": [
+        [
+          "test_python_raw.TypedPythonRaw.test_bad_signed_batch_fences_and_preserves_submitted_original_mutation_uncertainty",
+          "ERROR"
+        ]
+      ],
+      "failure_sites": [
+        {
+          "file": "sdk/python/connect_sdk/_sdk_validation.py",
+          "line": 54
+        },
+        {
+          "file": "sdk/python/connect_sdk/sdk_raw.py",
+          "line": 175
+        },
+        {
+          "file": "sdk/tests/test_python_raw.py",
+          "line": 140
+        }
+      ]
+    },
+    "local_note": "HTTP19, HTTPS4 and HTTP lifetime2 pass. Whole local component check fails one existing raw synchronous validation function with configuration/not-submitted while compilation is active; failure retained. Linux HTTP hang is not reproduced or resolved."
   }
 }

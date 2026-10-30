@@ -36,6 +36,9 @@ class InstalledFailureDiagnostics(unittest.TestCase):
         self.assertNotIn('private',json.dumps(result))
         self.assertEqual(len(check(source*20)),16)
         self.assertEqual(check('unrelated private diagnostic'),[])
+        self.assertEqual(check('RTC initial authority observation refused code=authority-busy private=secret\nRTC initial receipt persistence refused code=storage-unavailable private=secret'), [
+            dict(phase='initial-authority',code='authority-busy',flags={}),
+            dict(phase='initial-receipt',code='storage-unavailable',flags={})])
 
     def test_ice_worker_failure_preserves_boundary_without_authority_or_transport_secrets(self):
         validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_ice_worker_failure_diagnostic']

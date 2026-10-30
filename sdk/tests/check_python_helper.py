@@ -70,6 +70,12 @@ def phase(case):
 selected=[case for case in leaves(suite) if phase(case)==sys.argv[1]]
 class RecordingResult(unittest.TextTestResult):
  def __init__(self,*args,**kwargs):super().__init__(*args,**kwargs);self.passed=[]
+ def startTest(self,test):
+  super().startTest(test)
+  print("connect-python-component-start "+json.dumps({"test":test.id()},separators=(",",":")),flush=True)
+ def stopTest(self,test):
+  print("connect-python-component-stop "+json.dumps({"test":test.id()},separators=(",",":")),flush=True)
+  super().stopTest(test)
  def addSuccess(self,test):super().addSuccess(test);self.passed.append(test.id())
 result=unittest.TextTestRunner(verbosity=2,resultclass=RecordingResult).run(unittest.TestSuite(selected))
 print("connect-python-component-result "+json.dumps({"phase":sys.argv[1],"selected":[t.id() for t in selected],"passed":result.passed,"tests_run":result.testsRun,"failures":len(result.failures),"errors":len(result.errors),"skipped":len(result.skipped)},separators=(",",":")),flush=True)
@@ -92,6 +98,15 @@ raise SystemExit(not result.wasSuccessful())
         timed=timed or phase_timed;forced=forced or phase_forced
     (private/'tests.log').write_bytes(b'\n'.join((private/(label+'-tests.log')).read_bytes() for label in phases))
     log=(private/'tests.log').read_text(errors='replace')
+    # A phase killed at its original bound has no final unittest record. Keep
+    # only source-defined test IDs so its unfinished function remains visible
+    # without exporting assertions, payloads or the private worker log.
+    lifecycle={}
+    for line in log.splitlines():
+        match=re.search(r'connect-python-component-(start|stop) (\{"test":"[A-Za-z0-9_.]+"\})$',line)
+        if match:
+            lifecycle[json.loads(match[2])['test']]=match[1]
+    unfinished_functions=sorted(name for name,state in lifecycle.items() if state=='start')
     # Exact unittest result IDs remain independent of interleaved asyncio
     # debug text. Missing/mismatched inventories cannot become a passing scope.
     records=[json.loads(line.split(' ',1)[1]) for line in log.splitlines()
@@ -167,6 +182,7 @@ raise SystemExit(not result.wasSuccessful())
                           and re.search(r'^OK$',log,re.M)),
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':next((phase['exit_code'] for phase in phases.values() if phase['exit_code']),0),'timed_out':timed,'forced_cleanup':forced,'phases':phases,
+            'unfinished_functions':unfinished_functions,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
             'log_sha256':digest(private/'tests.log'),'unexpected_async_diagnostics':unsafe,

@@ -228,6 +228,8 @@ def rtc_admission_observations(text):
     messages = {'RTC actual admission boundary refused':'actual-boundary',
         'RTC original resource observation refused':'resource-observation',
         'RTC original Session observation refused':'session-observation',
+        'RTC initial authority observation refused':'initial-authority',
+        'RTC initial receipt persistence refused':'initial-receipt',
         'RTC original media admission refused':'initial-admission',
         'RTC idle observation retired original media':'idle-retirement'}
     codes = {'forbidden','conflict','timeout','closed','authority-busy','storage','storage-unavailable'}

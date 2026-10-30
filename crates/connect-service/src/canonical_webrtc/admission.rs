@@ -195,7 +195,11 @@ impl Runtime {
             }
         })
         .await
-        .map_err(denied)??;
+        .map_err(denied)?
+        .map_err(|error| {
+            tracing::debug!(code=%error.code, "RTC initial authority observation refused");
+            error
+        })?;
         if self.stop.is_cancelled() || physical.lifetime.is_cancelled() {
             return Err(Error::forbidden());
         }
@@ -386,7 +390,10 @@ impl Runtime {
                 {
                     tokio::time::sleep(Duration::from_millis(5)).await
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    tracing::debug!(code=%e.code, "RTC initial receipt persistence refused");
+                    return Err(e);
+                }
             }
         }
         // All newly acquired readers disappear here, before idle monitoring.
