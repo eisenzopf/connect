@@ -329,7 +329,7 @@ try {
     })));
     const relayBefore=spec.requireRelay?await relayPath():undefined;
     const proxyBefore=spec.ownedMediaProxy?await observedProxyPaths(pages,spec.ownedMediaProxy):undefined;
-    const iceRestarts=spec.iceRestart?await restartOriginalBrowsers(pages,spec.participants,process.env.CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS):undefined;
+    const iceRestarts=spec.iceRestart?await restartOriginalBrowsers(pages,spec.participants,process.env.CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS,spec.expectedToneHz):undefined;
     const relayAfter=spec.requireRelay?await relayPath():undefined;
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,

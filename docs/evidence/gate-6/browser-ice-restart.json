@@ -2687,5 +2687,587 @@
       "next_source_pulse_seconds_later": 0.7429,
       "cause": "Unresolved; do not infer a transport or codec cause solely from the extra edge."
     }
+  },
+  "optimized_es256_before_decoded_recovery_check": {
+    "passed": false,
+    "source_inputs": 6008,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "eab03b15558354df4c2d7bb935e7aa065c5e8422ccaea5ef0e9f28d926d08e37",
+    "execution": {
+      "name": "es256",
+      "command": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+        "--exact",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "passed": false,
+      "seconds": 70.000613,
+      "log_sha256": "c4ebec417621b090e4621b895323c916d1ab56ca4db8dbff237d38734fade1fd"
+    },
+    "bad_audio_observations": [
+      {
+        "seconds_into_window": 0.06859970092773438,
+        "rms": 0.0009998883768096995,
+        "frequency_hz": 0
+      }
+    ],
+    "observed": "Both ICE generations, frame rates, source identity, motion, AV calibration and cleanup passed; one decoded audio sample at beginning of clean window failed. Prior fixture readiness preceded all ICE restarts. This failed run remains separate from later evidence."
+  },
+  "fresh_decoded_recovery_then_clean_window": {
+    "scope": "Controlled local optimized-dependency producer: real signed native two-generation/revocation regressions, fresh decoded duplex recovery within2s after each of4original ICE completions, then unchanged clean60 for both algorithms independently. Root store/service/server retain recorded opt0 exceptions. No remote/provider/full-task/acceptance qualification.",
+    "fixture_change": "Each captured ICE completion now requires both receivers to observe three fresh correctly identified audio samples and fresh changing decoded video within the original two-second recovery limit. Negotiation receipts and pre-restart observations cannot pass this boundary. The following full clean60 window retains every-sample audio,24fps,identity,motion and AV calibration requirements.",
+    "source_inputs": 6009,
+    "source_manifest_sha256": "22c4fff80485622cb1ce1f0ee22decd6b560d5151e63ad679cba0cb8b328b143",
+    "sources_unchanged": true,
+    "producer_sha256": "338ffbd25684169d927c5d93215b3873c07b73f2bc6c17aacdeaebc2f9b92e82",
+    "negative_guard_functions": 6,
+    "measurement_functions_after_wiring_guard": 58,
+    "cases": [
+      {
+        "algorithm": "eddsa",
+        "execution": {
+          "name": "eddsa",
+          "command": [
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+            "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+            "--exact",
+            "--ignored",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 69.56261,
+          "log_sha256": "04dfaac12402687708503ed02d4266b70062f12e08b880f63acb0dca6c8834b6"
+        },
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.23630000019073485,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10010027885437012
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.47940000009536743,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10030007362365723
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.8920999999046326,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 2,
+                  "maximum_audio_gap_seconds": 0.10049986839294434
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.5539000000953674,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10789990425109863
+                }
+              ]
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.4482999999523163,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.0996999740600586
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.36610000014305116,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 10,
+                  "maximum_audio_gap_seconds": 0.10049986839294434
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.8678999998569489,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 3,
+                  "maximum_audio_gap_seconds": 0.10890007019042969
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8922999999523162,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.1081998348236084
+                }
+              ]
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.39642336731321,
+            "changing_fps": 25.41357462310241,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "motion_status": "passed",
+            "identity_status": "passed",
+            "av_status": "passed",
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.27991735786745,
+            "changing_fps": 25.047077853656678,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "motion_status": "passed",
+            "identity_status": "passed",
+            "av_status": "passed",
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "browser_report_sha256": "e31e96de6f6eff3da1fa9c48754c61e182293fa17414645f15bd0dcce02754c1"
+      },
+      {
+        "algorithm": "es256",
+        "execution": {
+          "name": "es256",
+          "command": [
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+            "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+            "--exact",
+            "--ignored",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "seconds": 69.733617,
+          "log_sha256": "eb87c8dab2785e81781f7e7e3a2cb07301a8567ac3d72b629eb1d52bc49193c1"
+        },
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.5277000000476837,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10060000419616699
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8145999999046326,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.09999990463256836
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.7626999998092652,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 2,
+                  "maximum_audio_gap_seconds": 0.10889983177185059
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.31709999990463256,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10029983520507812
+                }
+              ]
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.6071000001430511,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.1006002426147461
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.236,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 6,
+                  "maximum_audio_gap_seconds": 0.10989975929260254
+                }
+              ]
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              },
+              "decoded_recovery": [
+                {
+                  "status": "passed",
+                  "seconds": 0.7616999998092652,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10980010032653809
+                },
+                {
+                  "status": "passed",
+                  "seconds": 0.8155999999046326,
+                  "limit_seconds": 2,
+                  "fresh_audio_samples": 3,
+                  "fresh_changing_frames": 1,
+                  "maximum_audio_gap_seconds": 0.10100007057189941
+                }
+              ]
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.080619154045223,
+            "changing_fps": 25.11432267343619,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "motion_status": "passed",
+            "identity_status": "passed",
+            "av_status": "passed",
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 28.913871654845288,
+            "changing_fps": 24.730942671925305,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "motion_status": "passed",
+            "identity_status": "passed",
+            "av_status": "passed",
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "browser_report_sha256": "f1fb3b0a7115bc0faa849fcc77258eaeee5dfc25d5f9c44cded3c97fd96cb87d"
+      }
+    ],
+    "passed": true,
+    "limits": "Local macOS installed Chrome156 only. Earlier mid-window extra-edge failure and Linux/distinct-network/full task acceptance remain unresolved; these passes do not establish their cause or resolution."
   }
 }

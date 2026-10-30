@@ -35,6 +35,8 @@ jobs:
       - name: Bind exact native ABI and host
         id: native
         run: python3 scripts/check-gate6-linux-hosting.py --preflight
+      - name: Reject stale or missing decoded ICE recovery proof
+        run: node --test scripts/tests/browser_ice_recovery.test.mjs
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:

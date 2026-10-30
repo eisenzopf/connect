@@ -25,6 +25,14 @@ FIXTURE = importlib.util.module_from_spec(FIXTURE_SPEC); FIXTURE_SPEC.loader.exe
 
 
 class MediaMeasurements(unittest.TestCase):
+    def test_browser_ice_recovery_requires_fresh_decoded_duplex_media(self):
+        script = pathlib.Path(__file__).with_name('browser_ice_recovery.test.mjs')
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'),
+            '--test', '--test-reporter=tap', str(script)], capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for count in ('# tests 6', '# pass 6', '# fail 0', '# cancelled 0', '# skipped 0'):
+            self.assertIn(count + '\n', result.stdout)
+
     def test_decoded_audio_envelope_runs_all_thirteen_adversarial_guards(self):
         script = pathlib.Path(__file__).with_name('audio_envelope.test.mjs')
         result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'),

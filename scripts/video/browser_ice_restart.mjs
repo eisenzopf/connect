@@ -2,6 +2,31 @@
  * SDP, network addresses, credentials or raw track identifiers. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
+/** Executed in the receiver page after the captured restart completes. A
+ * negotiation receipt and observations from before it cannot prove recovery. */
+export async function observeFreshIceMedia({expectedHz}) {
+    if(!Number.isFinite(expectedHz)||expectedHz<100||expectedHz>3000)
+        throw Error("Explicit expected decoded tone required");
+    const f=window.videoFixture,started=performance.now();
+    const after=(performance.timeOrigin+started)/1000;
+    while(performance.now()-started<2000){
+        const now=(performance.timeOrigin+performance.now())/1000;
+        const samples=f.observation.audioSamples.filter(row=>row.unix_seconds>=after).slice(-3);
+        const gaps=samples.slice(1).map((row,index)=>row.unix_seconds-samples[index].unix_seconds);
+        const changing=f.observation.changingTimes.filter(at=>at>=after&&at<=now);
+        if(samples.length===3&&samples.every(row=>Number.isFinite(row.rms)&&row.rms>.001
+            &&Number.isFinite(row.frequency_hz)&&Math.abs(row.frequency_hz-expectedHz)<35
+            &&row.unix_seconds<=now)&&gaps.every(gap=>gap>0&&gap<=.2)
+            &&now-samples.at(-1).unix_seconds<=.2&&changing.length>0&&now-changing.at(-1)<=.2)
+            return {status:"passed",seconds:(performance.now()-started)/1000,limit_seconds:2,
+                fresh_audio_samples:3,fresh_changing_frames:changing.length,
+                maximum_audio_gap_seconds:Math.max(...gaps)};
+        await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    throw Error("Fresh duplex decoded media did not recover within two seconds after ICE completion");
+}
+
 export function installIceOwnership() {
     const NativePeer=globalThis.RTCPeerConnection, peers=[];
     const NativeWorker=globalThis.Worker,workers=[];
@@ -36,11 +61,11 @@ export function installIceOwnership() {
 
 /** Actual browser SDK and signed wire; discard one verified original reply,
  * then recover the SAME request on the same peer before measuring fresh AV. */
-export async function restartOriginalBrowsers(pages,participants,privateDirectory) {
+export async function restartOriginalBrowsers(pages,participants,privateDirectory,expectedTones) {
     const results=[];
     try {
     for(let generation=0;generation<2;generation++)for(let index=0;index<pages.length;index++){
-        results.push(await pages[index].evaluate(async({generation,index,selection})=>{
+        const result=await pages[index].evaluate(async({generation,index,selection})=>{
             const f=window.videoFixture,{client,options}=f.control;
             const ownership=()=>{
                 const value=globalThis.connectIceOwnership();
@@ -94,10 +119,13 @@ export async function restartOriginalBrowsers(pages,participants,privateDirector
             return {participant:index,operation_id:operationId,ice_generation:receipt.iceGeneration,
                 stream_revision:revision,connection_generation:receipt.connectionGeneration,
                 discarded_answers:discarded,signed_requests:requests,ownership:ownership()};
-        },{generation,index,selection:participants[index].subscribe}));
+        },{generation,index,selection:participants[index].subscribe});
+        result.decoded_recovery=await Promise.all(pages.map((page,receiver)=>page.evaluate(observeFreshIceMedia,
+            {expectedHz:expectedTones?.[receiver]??(receiver===0?660:440)})));
+        results.push(result);
     }
     return {status:"passed",profile:"original-browser-ice/1",results,
-        scope:"Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."};
+        scope:"Two original peers, two generations each and discarded original answers. Each completion requires fresh decoded audio/video within two seconds, followed by the unchanged clean window."};
     } catch(error) {
         if(privateDirectory&&path.resolve(privateDirectory).split(path.sep).includes('.local')){
             await fs.writeFile(path.join(privateDirectory,'ice-error-private.json'),JSON.stringify({
