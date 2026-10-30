@@ -77,6 +77,16 @@ def audio_observation(content, expected_hz, mode='clean', transitions=(), bursts
         return (any(start <= row['unix_seconds'] < stop for start, stop in exceptions)
             and (mode != 'impairment' or attenuated(row)))
     bad = [row for row in samples if not excepted(row) and not identified(row)]
+    def diagnostic_phase(row):
+        if mode != 'impairment': return mode
+        if any(b['start_unix_seconds'] <= row['unix_seconds'] <= b['end_unix_seconds'] for b in bursts): return 'burst'
+        if any(b['end_unix_seconds'] < row['unix_seconds'] <= b['end_unix_seconds'] + 2 for b in bursts): return 'recovery'
+        return 'outside-burst'
+    result['bad_sample_diagnostics'] = {'limit': 16, 'omitted': max(0, len(bad) - 16), 'samples': [
+        {'elapsed_seconds': row['unix_seconds'] - began,
+            'rms': row['rms'] if math.isfinite(row['rms']) else None,
+            'frequency_hz': row['frequency_hz'] if math.isfinite(row['frequency_hz']) else None,
+            'phase': diagnostic_phase(row)} for row in bad[:16]]}
     if mode == 'impairment':
         result.update(observed_bad_samples=sum(not identified(row) for row in samples),
             excepted_attenuation_samples=sum(excepted(row) for row in samples),

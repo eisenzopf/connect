@@ -5627,5 +5627,10 @@
     "evidence": "docs/evidence/gate-6/linux-browser-relay-scope.json",
     "status": "x86 portable startup component passed; all four media cells failed before allocation; scope correction guarded, current Linux execution pending",
     "full_task_qualified": false
+  },
+  "linux_94_metadata_fault_followup": {
+    "evidence": "docs/evidence/gate-6/linux-media-metadata-observers.json",
+    "status": "Actual3.002sburst; bothvideo returns1.078/1.128s and bothmotion/sourceidentity pass; oneaudio window2badsamples remainsfailed; finite bounded diagnostics prepared",
+    "full_task_qualified": false
   }
 }

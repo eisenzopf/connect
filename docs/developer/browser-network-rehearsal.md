@@ -84,3 +84,5 @@ permission. A controlled owned Linux probe showed pending host gathering without
 permission and completed gathering with two host candidates after the grant.
 The fixture captures no physical device and does not disable address obfuscation
 or certificate checks. Actual current Linux x86 media results remain required.
+
+Failed decoded-audio observations retain at most sixteen numeric sample measurements: elapsed time within the measured window, finite RMS and frequency (otherwise null), and a fixed phase label. The count of omitted failures stays explicit. These observations contain no raw audio, peer identifiers, addresses or private fixture fields. They explain an existing failure without changing identity, coverage, burst exception or recovery rules.

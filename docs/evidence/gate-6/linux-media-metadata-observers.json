@@ -147,5 +147,130 @@
       "summary_sha256": "25a27373d1acc316da88150f3ca6c51c488d87d523a293e7c8b084d3c1b1bb2d"
     },
     "retention": "Six unused owned compiled files were compressed, decoded and digest-verified before unlinking their unused originals. No source, private daemon or user browser changed."
+  },
+  "linux_fault_followup": {
+    "run_id": 41101379991,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41101379991",
+    "revision": "94da15a6d906e0d5c7120073fa42f3695478b270",
+    "artifact_id": 13000276947,
+    "artifact_zip_sha256": "0853cc01546e1ea635ab716da28f3f0e541d0da6f1d65686c353b4ad8c509351",
+    "git_sources_verified": 2856,
+    "prepared_dependencies_verified": 3087,
+    "dependency_differences": [],
+    "producer_profiles_passed": true,
+    "binary_sha256": "deae291c3509376c3acb3fb4698432412313ecb6677b7ac470886b0b4d5add9f",
+    "sources_unchanged": true,
+    "actual_burst_seconds": 3.0019226990000334,
+    "observations": [
+      {
+        "decoded_fps": 10.281722507980179,
+        "changing_fps": 8.548660691400052,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.11010003089904785,
+        "audio_bad_unexcepted_samples": 2,
+        "maximum_unexcluded_motion_gap_seconds": 1.4337999820709229,
+        "motion": "passed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793383750.8137934,
+              "end_unix_seconds": 1793383753.8157163,
+              "duration_seconds": 3.0019226990000334
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793383753.7917,
+              "sampled_interval_end_unix_seconds": 1793383755.2918,
+              "before": 23,
+              "after": 24,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 1.0780837535858154,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      },
+      {
+        "decoded_fps": 10.315153813314058,
+        "changing_fps": 8.515417768341655,
+        "audio": "passed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1101999282836914,
+        "audio_bad_unexcepted_samples": 0,
+        "maximum_unexcluded_motion_gap_seconds": 1.7024998664855957,
+        "motion": "passed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793383750.8137934,
+              "end_unix_seconds": 1793383753.8157163,
+              "duration_seconds": 3.0019226990000334
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793383753.7923,
+              "sampled_interval_end_unix_seconds": 1793383755.2923,
+              "before": 23,
+              "after": 24,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 1.1282837390899658,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      }
+    ],
+    "cleanup": {
+      "original_process_joined": true,
+      "owned_qdiscs_removed": true,
+      "original_media_addresses_reclaimed": 8
+    },
+    "cpu": {
+      "profile": {
+        "logical_cpus": 4,
+        "affinity_cpus": 4,
+        "quota_cores": 4.0
+      },
+      "cpu_stat_delta": {
+        "usage_usec": 61135896,
+        "user_usec": 36966880,
+        "system_usec": 24169015,
+        "nr_periods": 662,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      },
+      "average_cores_used": 0.9242519568076771
+    },
+    "passed": false,
+    "result": "Both video returns pass in1.078/1.128seconds and both motion/source identity pass. One audio window has2bad samples; the other passes. Complete sampling coverage and normal qdisc/port cleanup do not turn this into a profile pass. No resolved Linux media claim."
+  },
+  "bounded_audio_failure_followup": {
+    "reason": "Current public reports omit the actual failed samples, preventing a distinction between attenuation, shifted frequency and failure timing.",
+    "change": "Retain at most16finite numeric bad-sample observations with relative elapsed time and a fixed clean/mute/burst/recovery/outside-burst phase. Unknown fields and nonfinite values cannot leak into these observations. Classifier acceptance and exact fault exceptions remain unchanged.",
+    "measurement_functions": 60,
+    "passed": true,
+    "log_sha256": "87bad93b55a2ab854ba3919b97e9d19abbe48ab4f35c0d32ce313bb5d7644673",
+    "linux_execution": "not yet run"
   }
 }

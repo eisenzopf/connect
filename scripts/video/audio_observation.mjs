@@ -53,6 +53,13 @@ export function audioObservation(content,expectedHz,mode="clean",transitions=[],
     function attenuated(row){return Number.isFinite(row.rms)&&row.rms>=0&&row.rms<=.001&&Number.isFinite(row.frequency_hz);}
     const excepted=row=>exceptions.some(([start,stop])=>row.unix_seconds>=start&&row.unix_seconds<stop)&&(mode!=="impairment"||attenuated(row));
     const bad=samples.filter(row=>!excepted(row)&&!identified(row));
+    // Only bounded numeric observations leave the private synthetic fixture.
+    const finite=value=>Number.isFinite(value)?value:null;
+    result.bad_sample_diagnostics={limit:16,omitted:Math.max(0,bad.length-16),samples:bad.slice(0,16).map(row=>({
+        elapsed_seconds:row.unix_seconds-began,rms:finite(row.rms),frequency_hz:finite(row.frequency_hz),
+        phase:mode!=="impairment"?mode:bursts.some(b=>b.start_unix_seconds<=row.unix_seconds&&row.unix_seconds<=b.end_unix_seconds)?"burst":
+            bursts.some(b=>b.end_unix_seconds<row.unix_seconds&&row.unix_seconds<=b.end_unix_seconds+2)?"recovery":"outside-burst",
+    }))};
     if(mode==="impairment")Object.assign(result,{observed_bad_samples:samples.filter(row=>!identified(row)).length,
         excepted_attenuation_samples:samples.filter(excepted).length,
         recovery_method:"last finite near-silence in the observed two-second aftermath, then identified return and covered continuation; wrong tone is never excepted"});

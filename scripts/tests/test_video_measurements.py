@@ -452,6 +452,31 @@ class MediaMeasurements(unittest.TestCase):
         content = self.audio_content_fixture(); content['samples'][50]['unix_seconds'] = content['samples'][49]['unix_seconds']
         self.assertFalse(observe(content, 660)['coverage_complete'])
 
+    def test_bad_audio_diagnostics_are_bounded_numeric_and_preserve_refusal(self):
+        content = self.audio_content_fixture()
+        for row in content['samples'][1:21]:
+            row.update(frequency_hz=440, private='private-secret')
+        content['samples'][1]['rms'] = math.inf
+        result = MEDIA.decoder.audio_observer.audio_observation(content, 660)
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['bad_unexcepted_samples'], 20)
+        diagnostic = result['bad_sample_diagnostics']
+        self.assertEqual((diagnostic['limit'], diagnostic['omitted'], len(diagnostic['samples'])), (16, 4, 16))
+        self.assertIsNone(diagnostic['samples'][0]['rms'])
+        self.assertNotIn('private', json.dumps(diagnostic))
+        self.assertTrue(all(set(row) == {'elapsed_seconds', 'rms', 'frequency_hz', 'phase'}
+            and row['phase'] == 'clean' for row in diagnostic['samples']))
+
+    def test_bad_audio_diagnostics_locate_burst_recovery_and_outside_failures(self):
+        content = self.audio_content_fixture()
+        for index in [40, 52, 65, 90]: content['samples'][index]['frequency_hz'] = 440
+        result = MEDIA.decoder.audio_observer.audio_observation(content, 660, 'impairment', bursts=[
+            {'start_unix_seconds': 5, 'end_unix_seconds': 6}])
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['bad_unexcepted_samples'], 4)
+        self.assertEqual([row['phase'] for row in result['bad_sample_diagnostics']['samples']],
+            ['outside-burst', 'burst', 'recovery', 'outside-burst'])
+
     def test_browser_audio_fault_exceptions_use_actual_mute_burst_and_observed_recovery_only(self):
         observe = MEDIA.decoder.audio_observer.audio_observation
         muted = self.audio_content_fixture()

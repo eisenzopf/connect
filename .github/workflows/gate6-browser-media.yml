@@ -48,6 +48,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_gate6_browser_build_profiles.py
           python3 -m unittest discover -s scripts/tests -p test_owned_netem.py
           python3 -m unittest discover -s scripts/tests -p test_owned_bridge_turn.py
+          python3 -m unittest discover -s scripts/tests -p test_video_measurements.py
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:
