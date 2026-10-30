@@ -1,0 +1,374 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -294,6 +294,18 @@
+     },
+ }
+ pub trait MediaPolicy: Send + Sync {
++    /// Separate exact current transport-update permission. Ordinary media
++    /// ownership/control does not authorize SDP or ICE mutation. No reader may
++    /// be retained while the transport custodian waits for a remote endpoint.
++    fn current_transport_update(
++        &self,
++        _scope: &MediaScope<'_>,
++        _expected: u64,
++        _held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Err(StreamControlError::Unsupported)
++    }
++
+     /// Current authority for one authenticated endpoint event, separately from
+     /// ordinary routing/publication. Reuse the actual supplied signal grant;
+     /// never reacquire it or substitute source/target credential incarnations.
+@@ -3328,3 +3340,6 @@
+ 
+ mod video_repair;
+ pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
++
++mod transport_update;
++pub use transport_update::TransportUpdateSlot;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2825,3 +2825,5 @@
+ mod ingress_policy_snapshot;
+ 
+ mod fresh_metadata_recovery;
++
++mod transport_update;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/transport_update.rs
+@@ -0,0 +1,108 @@
++//! Exclusive transport negotiation custody without changing any media resource.
++//! Holding this slot is not authority and retains no policy/Store reader.
++use super::*;
++
++pub struct TransportUpdateSlot {
++    controller: Weak<StreamController>,
++    expected: u64,
++    credential_revision: u64,
++    deadline: tokio::time::Instant,
++    original: Vec<(StreamId, Weak<Port>)>,
++    _flight: OwnedSemaphorePermit,
++}
++impl TransportUpdateSlot {
++    /// Obtain fresh exact control only for the bounded local operation about to
++    /// run. Drop this reader before any idle/network/remote-answer observation.
++    pub fn current_with_held(
++        &self,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let credential = controller.credential_snapshot();
++        if credential.revision != self.credential_revision || controller.shutdown.is_cancelled() {
++            return Err(StreamControlError::Authority);
++        }
++        let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++        let lease = controller
++            .policy
++            .current_transport_update(&scope, self.expected, held)?;
++        let owner = lease.authority();
++        StreamController::check(&scope, owner)?;
++        if !owner.may_control {
++            return Err(StreamControlError::Authority);
++        }
++        let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.closed
++            || state.model.revision() != self.expected
++            || state.active.len() != self.original.len()
++            || self.original.iter().any(|(id, original)| {
++                state
++                    .active
++                    .get(id)
++                    .is_none_or(|p| !Weak::ptr_eq(original, &Arc::downgrade(p)))
++            })
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        drop(state);
++        controller.check_credential_snapshot(&credential)?;
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(lease)
++    }
++    pub fn deadline(&self) -> tokio::time::Instant {
++        self.deadline
++    }
++}
++impl StreamController {
++    /// Reserve the same slot used by stream/gate/audience/credential changes.
++    /// No proposal, revision, generation, gate, source or port changes here.
++    /// A separate default-deny transport policy must recognize the exact held
++    /// invocation; an ordinary current media owner does not grant this action.
++    pub fn reserve_transport_update_with_held(
++        self: &Arc<Self>,
++        expected: u64,
++        deadline: tokio::time::Instant,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<TransportUpdateSlot> {
++        let credential = self.credential_snapshot();
++        let deadline = Self::command_deadline(&credential.principal, deadline)
++            .min(tokio::time::Instant::now() + Duration::from_secs(30));
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
++        let flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let original = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.closed || state.model.revision() != expected || state.active.is_empty() {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            state
++                .active
++                .iter()
++                .map(|(id, p)| (id.clone(), Arc::downgrade(p)))
++                .collect()
++        };
++        let slot = TransportUpdateSlot {
++            controller: Arc::downgrade(self),
++            expected,
++            credential_revision: credential.revision,
++            deadline,
++            original,
++            _flight: flight,
++        };
++        drop(slot.current_with_held(held)?);
++        Ok(slot)
++    }
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/transport_update.rs
+@@ -0,0 +1,113 @@
++//! Transport custody excludes media changes without retaining domain readers.
++use super::*;
++struct Invocation;
++struct TransportPolicy(Arc<Policy>);
++impl MediaPolicy for TransportPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++    fn current_transport_update(
++        &self,
++        scope: &MediaScope<'_>,
++        expected: u64,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if !held.is::<Invocation>() || expected != 1 {
++            return Err(StreamControlError::Authority);
++        }
++        self.0.current(scope)
++    }
++}
++fn fixture() -> Fixture {
++    Fixture::with_policy(
++        8,
++        Some(Box::new(|policy| Arc::new(TransportPolicy(policy)))),
++    )
++}
++#[tokio::test]
++async fn ordinary_media_authority_cannot_reserve_a_transport_update() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    assert!(matches!(
++        f.a.reserve_transport_update_with_held(1, deadline(), &Invocation),
++        Err(StreamControlError::Unsupported)
++    ));
++    assert!(f.a.inflight.clone().try_acquire_owned().is_ok());
++    assert_eq!(f.a.revision(), 1);
++}
++#[tokio::test]
++async fn transport_slot_excludes_gate_changes_and_preserves_original_ports() {
++    let f = fixture();
++    f.start(&[Medium::Audio]).await;
++    let id = desired(Medium::Audio).logical_id;
++    let original = f.a.state.lock().unwrap().active.get(&id).unwrap().clone();
++    let binding = original.binding.clone();
++    let slot =
++        f.a.reserve_transport_update_with_held(1, deadline(), &Invocation)
++            .unwrap();
++    assert!(
++        f.a.reserve_transport_update_with_held(1, deadline(), &Invocation)
++            .is_err()
++    );
++    assert!(slot.current_with_held(&()).is_err());
++    drop(slot.current_with_held(&Invocation).unwrap());
++    let ids = [id.clone()].into_iter().collect();
++    let mut gate = Box::pin(f.a.set_media_gate(1, &ids, StreamGateAction::Mute, deadline()));
++    assert!(
++        std::future::poll_fn(|cx| std::task::Poll::Ready(gate.as_mut().poll(cx)))
++            .await
++            .is_pending()
++    );
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(original.binding.transport_id, binding.transport_id);
++    assert_eq!(original.binding.stream_local_id, binding.stream_local_id);
++    assert!(Arc::ptr_eq(
++        &original,
++        f.a.state.lock().unwrap().active.get(&id).unwrap()
++    ));
++    drop(slot);
++    assert_eq!(gate.await.unwrap().0, 2);
++}
++#[tokio::test]
++async fn idle_transport_slot_does_not_block_current_revocation() {
++    let f = fixture();
++    f.start(&[Medium::Audio]).await;
++    let slot =
++        f.a.reserve_transport_update_with_held(1, deadline(), &Invocation)
++            .unwrap();
++    f.policy
++        .0
++        .try_write()
++        .unwrap()
++        .revoked
++        .insert("alice".into());
++    assert!(matches!(
++        slot.current_with_held(&Invocation),
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(f.a.revision(), 1);
++}
++#[tokio::test]
++async fn transport_slot_checks_deadline_shutdown_and_credential_incarnation() {
++    for reason in 0..3 {
++        let f = fixture();
++        f.start(&[Medium::Audio]).await;
++        let bound = if reason == 0 {
++            tokio::time::Instant::now() + Duration::from_millis(20)
++        } else {
++            deadline()
++        };
++        let slot =
++            f.a.reserve_transport_update_with_held(1, bound, &Invocation)
++                .unwrap();
++        match reason {
++            0 => tokio::time::sleep_until(bound).await,
++            1 => f.a.shutdown.cancel(),
++            _ => f.a.credential.lock().unwrap().revision += 1,
++        }
++        assert!(slot.current_with_held(&Invocation).is_err());
++        assert_eq!(f.a.revision(), 1);
++        drop(slot);
++        assert!(f.a.inflight.clone().try_acquire_owned().is_ok());
++    }
++}
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+@@ -727,6 +727,23 @@
+             && remote_pwd == remote.password
+     }
+ 
++    /// Exact committed descriptions and their live ICE generation, observed
++    /// together. A matching password/fragment alone cannot substitute another
++    /// SDP identity or a stale gathered answer. No mutation or authority grant.
++    pub fn ice_descriptions_ready(&self, local_sdp: &str, remote_sdp: &str) -> bool {
++        let Some(local) = self.local_description() else { return false; };
++        let Some(remote) = self.current_remote_description() else { return false; };
++        if local.sdp != local_sdp || remote.sdp != remote_sdp {
++            return false;
++        }
++        let (Some(local), Some(remote)) = (local.parsed.as_ref(), remote.parsed.as_ref()) else { return false; };
++        let (Ok((lu, lp, _)), Ok((ru, rp, _))) = (extract_ice_details(local), extract_ice_details(remote)) else { return false; };
++        self.ice_generation_ready(
++            &RTCIceParameters { username_fragment: lu, password: lp, ..Default::default() },
++            &RTCIceParameters { username_fragment: ru, password: rp, ..Default::default() },
++        )
++    }
++
+     /// Creates an SDP offer to start a new WebRTC connection to a remote peer.
+     ///
+     /// The offer includes information about the attached media tracks, codecs and options supported
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -441,6 +441,8 @@
+         init: Option<RTCRtpTransceiverInit>,
+     ) -> Result<Arc<dyn RtpTransceiver>>;
+     /// Observe the live agent under the peer's core lock; no authority grant.
++    /// Exact original SDP and its live ICE generation, under one core lock.
++    async fn ice_descriptions_ready(&self, local_sdp: &str, remote_sdp: &str) -> bool;
+     async fn ice_generation_ready(
+         &self,
+         local: &RTCIceParameters,
+@@ -989,6 +991,10 @@
+         Ok(rtp_transceiver.clone() as Arc<dyn RtpTransceiver>)
+     }
+ 
++    async fn ice_descriptions_ready(&self, local_sdp: &str, remote_sdp: &str) -> bool {
++        self.inner.core.lock().await.ice_descriptions_ready(local_sdp, remote_sdp)
++    }
++
+     async fn ice_generation_ready(
+         &self,
+         local: &RTCIceParameters,
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -322,6 +322,33 @@
+             lifecycle: Default::default(),
+         })
+     }
++    /// Borrow only the existing allocation bound to this original admitted
++    /// peer and live route. This never constructs/replaces a peer or starts an
++    /// allocation. Recheck the same route and physical lifetime after waiting.
++    pub async fn original_peer(
++        &self,
++        id: &ConnectionId,
++        peer: &Arc<PeerAdmission>,
++        deadline: tokio::time::Instant,
++    ) -> Result<Arc<RvoipPeerConnection>> {
++        let route = self.routes.get(id).map(|r| r.value().clone())
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        let current = || {
++            !route.cancel.is_cancelled()
++                && Weak::ptr_eq(&route.peer, &Arc::downgrade(peer))
++                && route.binding.current(peer, id)
++                && self.routes.get(id).is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++        };
++        if !current() {
++            return Err(RvoipError::AdmissionRejected("Original WebRTC peer retired"));
++        }
++        let original = route.binding.peer(deadline).await?;
++        if !current() {
++            return Err(RvoipError::AdmissionRejected("Original WebRTC peer retired"));
++        }
++        Ok(original)
++    }
++
+     /// Install one controller/backend on the exact already-reserved route.
+     /// Its actual RTC resources are prepared later, after signed SDP delivery.
+     pub fn configure_media(
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/ice_generation_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/ice_generation_tests.rs
+@@ -94,7 +94,15 @@
+     let old_b = params(&b);
+     assert!(!a.ice_generation_ready(&old_a, &old_b));
+     drive(&mut a, &mut b, &old_a, &old_b);
++    let old_local = a.local_description().unwrap().sdp;
++    let old_remote = a.current_remote_description().unwrap().sdp.clone();
++    assert!(a.ice_descriptions_ready(&old_local, &old_remote));
++    assert!(!a.ice_descriptions_ready(&(old_local.clone() + "a=x-other:1\r\n"), &old_remote));
+     signal(&mut a, &mut b, true);
++    let new_local = a.local_description().unwrap().sdp;
++    let new_remote = a.current_remote_description().unwrap().sdp.clone();
++    assert!(!a.ice_descriptions_ready(&old_local, &old_remote));
++    assert!(!a.ice_descriptions_ready(&new_local, &new_remote));
+     let fresh_a = params(&a);
+     let fresh_b = params(&b);
+     assert!(
+@@ -113,6 +121,8 @@
+     assert!(!b.ice_generation_ready(&fresh_b, &fresh_a));
+     drive(&mut a, &mut b, &fresh_a, &fresh_b);
+     assert!(!a.ice_generation_ready(&old_a, &old_b));
++    assert!(a.ice_descriptions_ready(&new_local, &new_remote));
++    assert!(!a.ice_descriptions_ready(&old_local, &old_remote));
+     a.close().unwrap();
+     b.close().unwrap();
+     assert!(!a.ice_generation_ready(&fresh_a, &fresh_b));

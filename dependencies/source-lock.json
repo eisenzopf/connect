@@ -1341,6 +1341,11 @@
       "path": "patches/rvoip/gate6-webrtc-live-ice-generation.patch",
       "source": "G6-054 read-only exact-credential ICE generation readiness from live sans-I/O agent/current selected pair and DTLS/stable signaling; async stack observes under the same core lock. Historical connection flags/statistics supply no proof or authority. Declares the async stack Tokio macros feature used by its existing select paths, avoiding reliance on workspace feature unification. Includes real synthetic ICE/DTLS packet restart/loss/stale/password/closed negative tests; no canonical execution or media claim.",
       "sha256": "945fde3e00ae9af0f40b5e97f76148441e66d874871745b747ba14ab382dfe20"
+    },
+    {
+      "path": "patches/rvoip/gate6-exclusive-rtc-transport-update.patch",
+      "source": "G6-054 exclusive transport-only Core custody using the existing media control slot, no retained policy readers or media revision/port changes; separate default-deny exact transport policy. Borrow only the original canonical RTC allocation and read exact SDP plus live selected ICE generation under one core lock. Public restart wire action remains unregistered pending complete worker/HTTP/SDK integration.",
+      "sha256": "70b40e1aa42184f152ebfa89bd214f1b9eba31da511850545d5e9f9b8ee757db"
     }
   ]
 }

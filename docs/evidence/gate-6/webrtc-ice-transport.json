@@ -1,0 +1,115 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T07:20:41.912311+00:00",
+  "base_revision": "3132af4d",
+  "scope": "Upstream exclusive transport custody and read-only exact-SDP generation query; original canonical allocation lookup compiles in the normal upstream dependency graph. No canonical restart wire or decoded-media runtime claim.",
+  "implementation": {
+    "schema": 116,
+    "patches": 247,
+    "patch": "patches/rvoip/gate6-exclusive-rtc-transport-update.patch",
+    "patch_sha256": "70b40e1aa42184f152ebfa89bd214f1b9eba31da511850545d5e9f9b8ee757db",
+    "core_slot": "Same exclusive inflight semaphore as media/gate/audience/credential changes; no proposal/revision/port/source/gate mutation, separate default-deny exact held transport policy, original credential incarnation/deadline/port-pointer checks, no idle policy reader.",
+    "canonical_allocation": "Borrow only the exact existing route/physical binding/PeerAdmission allocation; verify the same route before and after awaiting, no allocation start/replacement or legacy adapter fallback. Compiled, not separately runtime qualified.",
+    "live_query": "Under one core lock, compare exact current SDP strings and full credential generation/live selected pair/DTLS/stable signaling. Caller parameters/history cannot substitute another SDP identity."
+  },
+  "verification": {
+    "runs": [
+      {
+        "label": "core",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-core",
+          "--lib",
+          "staged_streams::tests::transport_update",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 26.42186183296144,
+        "log_sha256": "eb3830d8b76cb31af40be6b6cd8cd30976970c5cbf46e397f8022020933d63fc",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "label": "gates",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-core",
+          "--lib",
+          "staged_streams::tests::gate_slot",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 0.5594975422136486,
+        "log_sha256": "4abb8ff98bda05f5a67d2f18ecab9df6f18ecfe688b311da2e16738edbaffbb0",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "label": "rtc",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "ice_generation_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 6.230162708088756,
+        "log_sha256": "bccfa3d9fa1739e50ebd3e0c56b62f58d7d82353c4a008193bc3972a122e370e",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "upstream_guarded_inputs": 4351,
+    "upstream_changed_inputs": [],
+    "full_manifest_sha256": "79e384fee5e190c438bee5d8c31f57089653686a051436557b9dc6f1aac32f84",
+    "behavior": "Four default-deny/idle revocation/deadline-shutdown-credential/gate exclusion-original port functions, three related gate-slot regressions, three actual synthetic sans-I/O ICE/DTLS packet functions including exact/stale/changed SDP and packet-loss restart readiness. No sockets/provider/media payload proof.",
+    "service": "Production service worker integration verification pending at this checkpoint."
+  },
+  "unqualified_attempts": [
+    {
+      "scope": "First Core test compile",
+      "result": "3 E0599 diagnostics from test-only Arc<Port>.binding() method access; production code compiled. Corrected test to existing private binding field; prepared a new verified source root; original failure retained."
+    },
+    {
+      "scope": "First corrected Core link",
+      "result": "LLVM objcopy ENOSPC left nonexecutable 2112-byte data stub; tests never executed. Original log/stub mode/hash preserved. Losslessly verified archival of closed generated caches preceded successful unchanged-source rerun."
+    }
+  ],
+  "remaining": [
+    "Tracked canonical worker/answer delivery/uncertainty and original cleanup integration",
+    "Public wire/HTTP/OpenAPI/SDK integration",
+    "Actual distinct-network direct/relay/expiry/restart/loss/unreachable decoded-duplex and cleanup qualification"
+  ],
+  "gate_counts": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  }
+}
