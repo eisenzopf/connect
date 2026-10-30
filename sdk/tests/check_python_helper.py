@@ -49,9 +49,12 @@ def main():
     before=sources()
     (directory/'source-inputs.json').write_text(json.dumps(before,indent=2)+'\n')
     started=time.monotonic();timed=False;forced=False;phases={}
-    # Discover the complete suite in both children; partition by module so no
+    # Discover the complete suite in each child; partition by module so no
     # nested/failed discovery test is silently omitted. Core keeps its original
-    # 60s bound; HTTP/TLS protocol keeps30s. The two deliberately stalled
+    # 60s bound; HTTP and verified TLS each have a separate30s fixture lane.
+    # Python3.13/3.14 exceeded the combined lane in CI after all core tests
+    # passed. Splitting modules preserves every test and caller/worker deadline.
+    # The two deliberately stalled
     # lifetime tests have their own10s bound and2s actual caller deadlines.
     run_suite='''import sys,unittest,json
 suite=unittest.defaultTestLoader.discover("sdk/tests",pattern="test_*.py")
@@ -60,6 +63,7 @@ def leaves(suite):
   if isinstance(item,unittest.TestSuite):yield from leaves(item)
   else:yield item
 def phase(case):
+ if case.__class__.__module__=="test_python_https":return "https"
  if case.__class__.__module__ not in ("test_python_http","test_python_https"):return "core"
  if case._testMethodName in ("test_deadline_and_cancel_close_original_socket_and_keep_uncertain_mutation_key","test_deadline_terminates_and_joins_a_worker_blocked_inside_its_resolver"):return "http-lifetime"
  return "http"
@@ -71,7 +75,7 @@ result=unittest.TextTestRunner(verbosity=2,resultclass=RecordingResult).run(unit
 print("connect-python-component-result "+json.dumps({"phase":sys.argv[1],"selected":[t.id() for t in selected],"passed":result.passed,"tests_run":result.testsRun,"failures":len(result.failures),"errors":len(result.errors),"skipped":len(result.skipped)},separators=(",",":")),flush=True)
 raise SystemExit(not result.wasSuccessful())
 '''
-    for label,budget in [('core',60),('http',30),('http-lifetime',10)]:
+    for label,budget in [('core',60),('http',30),('https',30),('http-lifetime',10)]:
         phase_started=time.monotonic();phase_timed=False;phase_forced=False
         with (private/(label+'-tests.log')).open('wb') as stream:
             child=subprocess.Popen([sys.executable,'-c',run_suite,label],cwd=ROOT,env=environment,
@@ -92,7 +96,7 @@ raise SystemExit(not result.wasSuccessful())
     # debug text. Missing/mismatched inventories cannot become a passing scope.
     records=[json.loads(line.split(' ',1)[1]) for line in log.splitlines()
              if line.startswith('connect-python-component-result ')]
-    inventories=len(records)==3 and {r['phase'] for r in records}==set(phases)
+    inventories=len(records)==4 and {r['phase'] for r in records}==set(phases)
     for record in records:
         assert set(record)=={'phase','selected','passed','tests_run','failures','errors','skipped'}
         assert len(set(record['selected']))==len(record['selected'])==record['tests_run']
@@ -158,7 +162,7 @@ raise SystemExit(not result.wasSuccessful())
     unchanged=unchanged and sources()==before
     result={'passed':bool(inventories and all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
                           and len(functions)==223 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==12 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12 and len(data)==12
-                          and re.search(r'^Ran 198 tests in ',log,re.M) and re.search(r'^Ran 23 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
+                          and re.search(r'^Ran 198 tests in ',log,re.M) and re.search(r'^Ran 19 tests in ',log,re.M) and re.search(r'^Ran 4 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',

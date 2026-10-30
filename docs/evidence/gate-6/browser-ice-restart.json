@@ -2421,5 +2421,48 @@
       "passed": false,
       "disposition": "Store effects audit now runs after successful restart even if subsequent quality fails; both algorithms one effect per original operation and two original allocations; full quality still failed."
     }
-  ]
+  ],
+  "ordinary_browser_baseline": {
+    "checked_at": "2026-10-30T11:08:10.264914+00:00",
+    "source_revision": "d4f0352580e5e07d8644f40e74bd93a42adbda5c",
+    "scope": "One current source-bound ordinary two-peer EdDSA Chrome clean60AV baseline, without restart; unchanged quality thresholds and ordinary test runner cap.",
+    "passed": false,
+    "seconds": 66.215618,
+    "binary_sha256": "35b3c3bc216d8446d09b8282963f15a8f5d6bd34b51a3cd8e8e124e59fc5b6af",
+    "source_manifest_sha256": "6a3a5106635043aa4b90b2f021f03cc5effdc9e75c9ef7cbceab489c4001199a",
+    "sources_unchanged": true,
+    "report_sha256": "567e5e3721ae99a11f43a971b503a2e2241deb3389ac5fc762754f7ccfb3d93a",
+    "test_log_sha256": "08af3c26a77d24916720b266422d97e5c51ba4a653d2e4ec6e56d52e51540300",
+    "ownership": {
+      "browser_kind": "chrome",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    },
+    "measurements": [
+      {
+        "participant": 0,
+        "decoded_fps": 21.547881158720838,
+        "changing_fps": 18.2815356775845,
+        "audio_status": "passed",
+        "bad_audio_samples": 0,
+        "av_sync": "failed",
+        "audio_calibration": "missing-proof"
+      },
+      {
+        "participant": 1,
+        "decoded_fps": 22.014501941740313,
+        "changing_fps": 18.864811656358846,
+        "audio_status": "failed",
+        "bad_audio_samples": 3,
+        "av_sync": "failed",
+        "audio_calibration": "missing-proof"
+      }
+    ],
+    "finding": "Same current ordinary WSS/browser path fails decoded throughput/audio/AV calibration without any restart. This is not evidence that ICE caused the quality failure. Existing Linux renderer-calibration limitations remain open; no source/threshold change or media fix is inferred.",
+    "prior_renderer_evidence": "docs/evidence/gate-6/browser-observer-calibration.json"
+  }
 }

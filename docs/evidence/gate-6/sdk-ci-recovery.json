@@ -152,5 +152,145 @@
   "earlier_failures": {
     "frozen08": "Both native completion waits timed out while browser and SDK fixtures ran concurrently. Retained failed, cause not attributed; current serial frozen09 independently reruns unchanged budgets.",
     "python223": "222 passed, administrative malformed-response test observed deadline instead of protocol under concurrent workload. Retained failure; full serial rerun uses unchanged deadlines."
+  },
+  "d4_ci_followup": {
+    "checked_at": "2026-10-30T11:08:10.264914+00:00",
+    "run_id": 41045185397,
+    "source_revision": "d4f0352580e5e07d8644f40e74bd93a42adbda5c",
+    "job_reported_success": [
+      "Node22",
+      "Node26",
+      "Python3.11",
+      "Python3.12"
+    ],
+    "artifacts_verified": false,
+    "python_313_314": "Both core198 and lifetime2 pass; combined HTTP/TLS phase exceeds original30second outer fixture cap. No failed function or unexpected async diagnostic. These CI runs remain failed.",
+    "runner_change": "Partition the same discovered inventory into core198/HTTP19/HTTPS4/lifetime2. HTTP and TLS retain separate explicit30second fixture caps, core60/lifetime10. No individual caller/worker deadline or production operating-profile threshold changes; no omitted test.",
+    "local_verification": {
+      "passed": true,
+      "scope": "Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.",
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "phases": {
+        "core": {
+          "exit_code": 0,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 50.93642070796341,
+          "log_sha256": "7603c29b3b58c753877bdf13d9599b7f1f7b3e967dc8ca25e57166912968fea0"
+        },
+        "http": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 12.27636570809409,
+          "log_sha256": "c1ba58889dca7df42595a000d4ee38e82f79e8df392e36ea0b1e5152dc49a1cc"
+        },
+        "https": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 3.2596954579930753,
+          "log_sha256": "0e24a69202c355975b26cd09dee4119b2d5bb90effd6b51cc8a9b24e5af4ef71"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 4.746940250042826,
+          "log_sha256": "05d5c1bb6b48c71c0b6875f6c6cfa999aca92de1be44c182922ce14d315d18cc"
+        }
+      },
+      "source_inputs_unchanged": true,
+      "source_count": 99,
+      "source_inputs_sha256": "02c3ee36b03160c0792f090faf4f70f4e7d15d7f5d939f914b35e21ae58d4600",
+      "log_sha256": "bd09bc4679216a30c924f0b8f33b52a88b87fc7fc961bc020b8074fbe94371df",
+      "unexpected_async_diagnostics": false,
+      "failed_functions": [],
+      "failure_sites": [],
+      "raw_logs_and_temporary_state_excluded_from_artifact": true,
+      "functions_passed": 223,
+      "owned_sdk_helper_functions_passed": 17,
+      "typed_public_sdk_functions_passed": 16,
+      "typed_session_functions_passed": 8,
+      "typed_connection_functions_passed": 12,
+      "typed_movement_functions_passed": 12,
+      "typed_reader_functions_passed": 20,
+      "typed_raw_functions_passed": 19,
+      "typed_administrative_functions_passed": 17,
+      "synchronous_functions_passed": 13,
+      "typed_programmatic_media_functions_passed": 12,
+      "typed_reliable_data_functions_passed": 12,
+      "typed_http_functions_passed": 21,
+      "typed_https_functions_passed": 4,
+      "public_type_checks": {
+        "passed": true,
+        "checks": {
+          "positive": {
+            "exit_code": 0,
+            "log_sha256": "3253c7a5a8535995ce0dc8b25611174b1763d2c9ff1bbb0a29e2e90cca3ca91e",
+            "negative_error_codes": []
+          },
+          "negative": {
+            "exit_code": 1,
+            "log_sha256": "efe3feeb0795d04c3db74791bd25260416e6f3990b4348697bf9d6a2d701da66",
+            "negative_error_codes": [
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type"
+            ]
+          }
+        }
+      },
+      "python_version": "3.14.7",
+      "node_version": "v26.7.0",
+      "seconds": 72.51122908410616,
+      "finished_at": "2026-10-30T11:07:33.176903+00:00"
+    }
   }
 }
