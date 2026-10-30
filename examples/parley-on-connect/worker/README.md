@@ -74,7 +74,7 @@ try {
 }
 ```
 
-The current36 worker checks cover repeated facts, invalid actions, current
+The initial36 worker checks cover repeated facts, invalid actions, current
 approval/session/speech gates, uncertain model and Connect calls, restart and
 real process exit. The public Node SDK tests run its actual typed methods and
 reference validators with an explicitly synthetic helper; they do not qualify
@@ -100,3 +100,8 @@ Six additional model-boundary checks pass, bringing the combined local suite
 to61 (42 worker plus19 existing fixtures). They include concurrent callers,
 lost response, source substitution and a real process exit after response fsync.
 See [model recovery evidence](../../../docs/evidence/gate-6/decision-worker-model-recovery.json).
+
+The engine also retains its last committed journal revision across external
+awaits. An unexpected write by another application component refuses with
+`stale-business-state` before submission, preserving that component's state.
+This regression brings the current combined suite to62 (43 worker/19 existing).

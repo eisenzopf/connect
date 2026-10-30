@@ -17,7 +17,7 @@ export function initialPlan({ planId, planVersion, stage }) {
  * external call is persisted BEFORE invocation and can only be observed after
  * uncertainty/restart. No automatic resubmission or second model request. */
 export class DecisionWorker {
-    #state; #sdk; #app; #model; #bindings; #queue = Promise.resolve();
+    #state; #revision; #sdk; #app; #model; #bindings; #queue = Promise.resolve();
     constructor({ state, sdk, app, model, bindings }) {
         this.#state = state; this.#sdk = sdk; this.#app = app; this.#model = model;
         // Copy configuration so callers cannot swap a gate during an await.
@@ -25,10 +25,12 @@ export class DecisionWorker {
             .map(([name, value]) => [name, Object.freeze({ ...value,
                 scope: Object.freeze(copy(value.scope)),
                 ...(value.approval ? { approval: Object.freeze(copy(value.approval)) } : {}) })])));
-        if (this.snapshot().profile !== "parley-worker-engine/1") fail("different-worker-engine");
+        const original = state.read();
+        if (original.value.profile !== "parley-worker-engine/1") fail("different-worker-engine");
+        this.#revision = original.revision;
     }
     snapshot() { return this.#state.read().value; }
-    #save(value) { this.#state.write(this.#state.read().revision, value); }
+    #save(value) { this.#revision = this.#state.write(this.#revision, value).revision; }
     #serial(work) {
         const next = this.#queue.then(work);
         this.#queue = next.catch(() => {});

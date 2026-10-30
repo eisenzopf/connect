@@ -198,3 +198,15 @@ test("oversized event content refuses before a model request is persisted or lau
         assert.equal(f.calls.generate.length, 0); assert.equal(f.calls.submit.length, 0);
     } finally { f.close(); }
 });
+test("an unexpected app-journal write during a model await cannot be silently overwritten", async () => {
+    const f = await fixture(); try {
+        f.model.generate = async () => {
+            const saved = f.state().read();
+            f.state().write(saved.revision, { ...saved.value, attention: "retain-other-component-state" });
+            return { action: "notify", text: "bounded answer" };
+        };
+        await assert.rejects(f.worker().accept(event()), { code: "stale-business-state" });
+        assert.equal(f.worker().snapshot().attention, "retain-other-component-state");
+        assert.equal(f.calls.submit.length, 0);
+    } finally { f.close(); }
+});

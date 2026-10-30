@@ -40,5 +40,29 @@
     "Native fixture prepared but not yet run. Its source syntax checks are not runtime qualification.",
     "External model callback remains trusted application code, requires separately bounded owner authorization and host setup.",
     "G6-073 not complete; Gate6 remains67/105done and0acceptance-qualified."
-  ]
+  ],
+  "engine_revision_fence": {
+    "checked_at": "2026-10-30T04:18:25.539980+00:00",
+    "command": [
+      "npm",
+      "test",
+      "--prefix",
+      "examples/parley-on-connect"
+    ],
+    "exit_code": 0,
+    "seconds": 0.7831791250500828,
+    "passed": 62,
+    "worker_checks": 43,
+    "existing_checks": 19,
+    "failed": 0,
+    "skipped": 0,
+    "changed_inputs": [],
+    "sources": {
+      "examples/parley-on-connect/worker/engine.mjs": "78b24cd1ebf5bd39ced2d31eb8d9aa0804bf64ee9fa20cf4e05509418c337e51",
+      "examples/parley-on-connect/worker/engine.test.mjs": "c5bbed4122450144ab00ffc254d9594b8419287c8a75ff3d06cc1f085a328f59"
+    },
+    "log_sha256": "d11a5b5f48c1b63e4a8dd763cfbe4a990e37aad6243315f890244322292f53cc",
+    "behavior": "Engine CAS uses its own last committed journal revision across awaits. Another component's intervening write refuses before SDK submission and remains intact.",
+    "native_runtime": "Prepared only; still unqualified pending source CLI build."
+  }
 }
