@@ -51,6 +51,7 @@ for(const port of [spec.assetPort,spec.debugPort])if(port!==undefined&&(!Number.
     throw Error("Use an explicit bounded local fixture port");
 spec.browser??="chrome";
 if(!["chrome","firefox"].includes(spec.browser))throw Error("Unknown designated installed browser");
+const videoObserver=spec.browser==="chrome"?"native-decoded-frames/1":"render-callback/1";
 const chromium=spec.browser==="firefox"?undefined:(await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright")).chromium;
 spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
@@ -79,6 +80,10 @@ if(spec.root) {
             if(request.method==="GET"&&url.pathname==="/_qualification/audio-spectrum.mjs"){
                 response.writeHead(200,{"Content-Type":"text/javascript"});
                 response.end(await fs.readFile(new URL("./audio_spectrum.mjs",import.meta.url)));return;
+            }
+            if(request.method==="GET"&&url.pathname==="/_qualification/decoded-video-frames.mjs"){
+                response.writeHead(200,{"Content-Type":"text/javascript"});
+                response.end(await fs.readFile(new URL("./decoded_video_frames.mjs",import.meta.url)));return;
             }
             if(request.method==="GET"&&url.pathname==="/_qualification/audio-sample-clock.mjs"){
                 response.writeHead(200,{"Content-Type":"text/javascript"});
@@ -154,7 +159,7 @@ try {
         await page.goto(spec.baseURL + "/examples/conversation-client/");
         // Exercise normal sticky user activation for AudioContext in both runtimes.
         await page.mouse.click(1,1);
-        await page.evaluate(async ({ configuration, frequency, sourceId }) => {
+        await page.evaluate(async ({ configuration, frequency, sourceId, videoObserver }) => {
             const { BrowserVideoSession, BrowserClient } = await import("/sdk/typescript/dist/browser.js");
             const {canonicalMediaClient}=await import("/examples/conversation-client/canonical-media.js");
             let fallback=null;
@@ -242,14 +247,19 @@ try {
             const sample=document.createElement("canvas"); sample.width=128;sample.height=72;
             const pixels=sample.getContext("2d",{willReadFrequently:true});
             pixels.imageSmoothingEnabled=false; // Sample uniform marker centres, without neighboring background blend.
-            const observation={rendered:0,changing:0,last:null,videoEdges:[],audioEdges:[],changingTimes:[],audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{}};
-            const decoded=()=>{
+            const observation={rendered:0,changing:0,last:null,renderLast:null,renderChanging:0,presentedFrames:null,
+                nativeFrames:videoObserver==="native-decoded-frames/1",videoEdges:[],audioEdges:[],changingTimes:[],
+                audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{}};
+            const decoded=(_now,metadata)=>{
                 observation.rendered++;
+                if(Number.isSafeInteger(metadata.presentedFrames)&&metadata.presentedFrames>=0)
+                    observation.presentedFrames=metadata.presentedFrames;
                 pixels.drawImage(video,0,0,8,8);
                 const bytes=pixels.getImageData(0,0,8,8).data;
                 const gray=Array.from({length:64},(_,index)=>.299*bytes[index*4]+.587*bytes[index*4+1]+.114*bytes[index*4+2]);
                 const sourceKind=classifySourceFrame(gray);
-                if(observation.recordIdentity)observation.sourceIdentityCounts[sourceKind]=(observation.sourceIdentityCounts[sourceKind]??0)+1;
+                if(observation.recordIdentity&&!observation.nativeFrames)
+                    observation.sourceIdentityCounts[sourceKind]=(observation.sourceIdentityCounts[sourceKind]??0)+1;
                 const white=Array.from(bytes).filter((_,index)=>index%4!==3).every(value=>value>240);
                 if(white&&observation.white===false)observation.videoEdges.push(performance.now());
                 observation.white=white;
@@ -258,15 +268,22 @@ try {
                 // moves seven pixels/frame, below the old 80px sample stride.
                 pixels.drawImage(video,0,0,128,72);
                 const motionBytes=pixels.getImageData(0,0,128,72).data;
-                if(observation.last!==null && motionBytes.some((value,index)=>value!==observation.last[index])) {
-                    observation.changing++;observation.changingTimes.push((performance.timeOrigin+performance.now())/1000);
+                if(observation.renderLast!==null&&motionBytes.some((value,index)=>value!==observation.renderLast[index]))
+                    observation.renderChanging++;
+                observation.renderLast=motionBytes;
+                if(!observation.nativeFrames){
+                    if(observation.last!==null && motionBytes.some((value,index)=>value!==observation.last[index])) {
+                        observation.changing++;observation.changingTimes.push((performance.timeOrigin+performance.now())/1000);
+                    }
+                    observation.last=motionBytes;
                 }
-                observation.last=motionBytes; video.requestVideoFrameCallback(decoded);
+                video.requestVideoFrameCallback(decoded);
             };
             video.requestVideoFrameCallback(decoded);
-            window.videoFixture={session,control,video,fallback,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
+            window.videoFixture={session,control,video,fallback,videoObserver,observation,sourceObservation,
+                classifySourceFrame,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
         }, { configuration,frequency:spec.sourceToneHz?.[index]??440+index*220,
-            sourceId:spec.sourceIds?.[index]??index });
+            sourceId:spec.sourceIds?.[index]??index,videoObserver });
         return page;
     }));
     const visibility=await Promise.all(pages.map(page=>page.evaluate(()=>document.visibilityState)));
@@ -288,7 +305,38 @@ try {
     await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.control.receive())));
     // The canonical route has explicit receive admission; playback can become
     // ready only after those original selections have completed.
-    await Promise.all(pages.map(page=>page.evaluate(()=>{const f=window.videoFixture;return f.session.attach(f.video)})));
+    await Promise.all(pages.map(page=>page.evaluate(async()=>{
+        const f=window.videoFixture;await f.session.attach(f.video);
+        if(!f.observation.nativeFrames)return;
+        const tracks=f.session.remoteStream.getVideoTracks();
+        if(tracks.length!==1||typeof globalThis.MediaStreamTrackProcessor!=="function")
+            throw Error("Native decoded-frame observer unavailable");
+        const {observeDecodedVideoFrames}=await import("/_qualification/decoded-video-frames.mjs");
+        const canvas=document.createElement("canvas");canvas.width=128;canvas.height=72;
+        const pixels=canvas.getContext("2d",{willReadFrequently:true});pixels.imageSmoothingEnabled=false;
+        f.nativeContent={observedFrames:0,dimensionsRefused:0,lastDimensions:null};
+        f.nativeObserver=observeDecodedVideoFrames(tracks[0],frame=>{
+            const observation=f.observation;
+            f.nativeContent.lastDimensions=[frame.displayWidth,frame.displayHeight].map(value=>
+                Number.isSafeInteger(value)&&value>=0&&value<=16384?value:null);
+            // Identify every decoded source, including a size-refused frame.
+            pixels.drawImage(frame,0,0,8,8);
+            const bytes=pixels.getImageData(0,0,8,8).data;
+            const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
+            const kind=f.classifySourceFrame(gray);
+            if(observation.recordIdentity)observation.sourceIdentityCounts[kind]=(observation.sourceIdentityCounts[kind]??0)+1;
+            if(frame.displayWidth!==640||frame.displayHeight!==360){
+                f.nativeContent.dimensionsRefused++;observation.last=null;return;
+            }
+            pixels.drawImage(frame,0,0,128,72);
+            const motionBytes=pixels.getImageData(0,0,128,72).data;
+            if(observation.last!==null&&motionBytes.some((value,i)=>value!==observation.last[i])){
+                if(observation.changingTimes.length>=10000)throw Error("Decoded motion observation exceeded bound");
+                observation.changing++;observation.changingTimes.push((performance.timeOrigin+performance.now())/1000);
+            }
+            observation.last=motionBytes;f.nativeContent.observedFrames++;
+        });
+    })));
     // Initial negotiation does not count toward the clean 60-second window.
     await new Promise(resolve=>setTimeout(resolve,1500));
     await Promise.all(pages.map(page=>page.evaluate(async()=>{
@@ -346,6 +394,10 @@ try {
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,
         rtpFeedback:await globalThis.connectPeerMediaDiagnostics(),
         changing:window.videoFixture.observation.changing,
+        renderChanging:window.videoFixture.observation.renderChanging,
+        presentedFrames:window.videoFixture.observation.presentedFrames,
+        nativeContent:window.videoFixture.nativeObserver?{...window.videoFixture.nativeContent,
+            ...window.videoFixture.nativeObserver.snapshot()}:null,
         source:{...window.videoFixture.sourceObservation},markerStart:performance.now(),markerStartUnix:(performance.timeOrigin+performance.now())/1000 }))));
     await Promise.all(pages.map((page,index)=>page.evaluate(({initialStats})=>{
         const f=window.videoFixture;f.observation.recordIdentity=true;f.iceSamples=[];f.outboundSamples=[];f.iceErrors=0;f.iceBusy=false;
@@ -412,6 +464,8 @@ try {
         outbound:f.outboundMetadata(stats),source:{...f.sourceObservation},muteTransitions:f.muteTransitions,
         audioEnvelope:f.audioEnvelope.report(markerStart),audioSamples:f.observation.audioSamples,rendered:window.videoFixture.observation.rendered,
         changing:window.videoFixture.observation.changing,
+        renderChanging:f.observation.renderChanging,presentedFrames:f.observation.presentedFrames,
+        nativeContent:f.nativeObserver?{...f.nativeContent,...f.nativeObserver.snapshot()}:null,
         videoEdges:window.videoFixture.observation.videoEdges,audioEdges:window.videoFixture.observation.audioEdges,
         changingTimes:window.videoFixture.observation.changingTimes,
         audio:(()=>{const f=window.videoFixture;const samples=new Float32Array(f.frequencyAnalyser.fftSize);
@@ -472,7 +526,14 @@ try {
                 fresh_decoded_content_after_end_seconds:delay,status:observedWindow&&before&&delay!==null&&delay<=2?"passed":"failed"};
         });
         const videoBytes=delta("bytes");
-        return {stats_available:Boolean(inbound&&before),source_identity:end.sourceIdentity,
+        return {stats_available:Boolean(inbound&&before),source_identity:end.sourceIdentity,video_observer:videoObserver,
+            render_callback_changing:end.renderChanging-initial[index].renderChanging,
+            presentation_counter_frames:Number.isSafeInteger(end.presentedFrames)&&Number.isSafeInteger(initial[index].presentedFrames)
+                ?end.presentedFrames-initial[index].presentedFrames:null,
+            native_decoded_observer:end.nativeContent?{received_frames:end.nativeContent.frames-initial[index].nativeContent.frames,
+                observed_frames:end.nativeContent.observedFrames-initial[index].nativeContent.observedFrames,
+                dimension_refusals:end.nativeContent.dimensionsRefused-initial[index].nativeContent.dimensionsRefused,
+                last_dimensions:end.nativeContent.lastDimensions,failed:end.nativeContent.failed}:null,
             rtp_feedback:{before:initial[index].rtpFeedback,after:end.rtpFeedback},
             audio_readiness:audioReadiness[index],audio_content:audioContent,audio_profile:audioProof,motion_content:motionContent,motion_profile:motionProof,
             worker_pipeline:workerPipeline(outgoingBefore?.worker,end.outbound?.worker,end.outboundSamples,initial[index].markerStartUnix,end.markerEndUnix),
@@ -508,8 +569,11 @@ try {
     const bridgeFinal=spec.ownedContainerBridge?await observedBridgePaths(pages,spec.ownedContainerBridge):undefined;
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
-        const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
-        return f.session.localPreview.getTracks().every(t=>t.readyState==="ended");
+        const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);
+        f.nativeObserverClosed=await f.nativeObserver?.close();
+        f.oscillator.stop();await f.audio.close();await f.session.close();
+        return f.session.localPreview.getTracks().every(t=>t.readyState==="ended")
+            &&(!f.observation.nativeFrames||f.nativeObserverClosed?.joined&&!f.nativeObserverClosed.failed);
     });
     // End the durable Session explicitly; local capture close is not a peer end.
     await pages[0].evaluate(async terminal=>{
@@ -532,16 +596,21 @@ try {
             method:"first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"};
         ended.push(await release(pages[1]));
     }
+    const decoderRetirements=await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.nativeObserverClosed??null)));
+    observations.forEach((row,index)=>{if(row.native_decoded_observer)row.native_decoded_observer.retirement=decoderRetirements[index];});
     await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.control.client.close())));
     await cleanup();
     const teardown=(performance.now()-closeAt)/1000;
     const passed=observations.every(o=>o.worker_pipeline.status==="passed"&&(o.motion_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.motion_profile.status==="requires-counterpart-setter-binding"))&&(o.audio_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.audio_profile.status==="requires-counterpart-setter-binding"))&&o.source_identity.status==="passed"&&o.stats_available&&o.decoded!==null&&o.codec?.toLowerCase()==="video/vp8"&&o.width===640&&o.height===360
         &&o.decoded/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.changing/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.audio_rms>0.001
         &&Math.abs(o.audio_frequency_hz-o.expected_audio_frequency_hz)<35
+        &&(!o.native_decoded_observer||!o.native_decoded_observer.failed
+            &&o.native_decoded_observer.observed_frames/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)
+            &&o.native_decoded_observer.retirement?.joined&&!o.native_decoded_observer.retirement.failed)
         &&o.av_sync.audio_envelope?.status==="observer-valid"&&o.av_acceptance.status==="passed"
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
-        browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,
+        browser:browser.version(),video_observer:videoObserver,fallback,observations,ice_restarts:iceRestarts,
         relay_path:spec.requireRelay?{before:relayBefore,after:relayAfter,final:relayFinal}:undefined,
         owned_media_proxy:spec.ownedMediaProxy?{before:proxyBefore,final:proxyFinal}:undefined,
         owned_container_bridge:bridgeFinal,

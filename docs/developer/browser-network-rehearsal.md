@@ -88,3 +88,13 @@ or certificate checks. Actual current Linux x86 media results remain required.
 Failed decoded-audio observations retain at most sixteen numeric sample measurements: elapsed time within the measured window, finite RMS and frequency (otherwise null), and a fixed phase label. The count of omitted failures stays explicit. These observations contain no raw audio, peer identifiers, addresses or private fixture fields. They explain an existing failure without changing identity, coverage, burst exception or recovery rules.
 
 The independent browser observer also saves before/after RTP counter snapshots from `getStats`: at most four owned peer objects and eight allowlisted numeric RTP/media rows per peer. Packet loss, NACK/PLI/FIR, retransmission, audio concealment and jitter-buffer counters explain transport behavior; they are not a substitute for decoded audio/video or a routing diagnosis. Unknown fields, transport addresses, track identifiers and nonfinite or negative counters are excluded.
+
+Chrome reports `native-decoded-frames/1` for its identified moving-pixel count.
+The observer owns a cloned received track and a two-frame queue, samples actual
+decoded pixels, records frames refused for dimensions, closes borrowed frames and
+joins before teardown. Source identity covers all decoded frames. The original
+render callback pixel counts and composition counters remain visible separately;
+rendered AV-marker timing keeps its existing observer. Firefox retains its
+declared render-callback measurement. The operating profile records the controlled
+callback undercount and the unchanged quality limits. A missing or failed native
+observer cannot qualify a Chrome cell.

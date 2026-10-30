@@ -260,6 +260,11 @@ def runtime(component=None):
                             unreachable_relay=value.get('unreachable_relay'), observations=[dict(
                                 decoded_fps=o['decoded']/o['elapsed_seconds'], changing_fps=o['changing']/o['elapsed_seconds'],
                                 rendered_fps=o['rendered']/o['elapsed_seconds'],
+                                video_observer=o.get('video_observer'),native_decoded_observer=o.get('native_decoded_observer'),
+                                render_callback_changing_fps=o['render_callback_changing']/o['elapsed_seconds']
+                                    if isinstance(o.get('render_callback_changing'),(int,float)) else None,
+                                presentation_counter_fps=o['presentation_counter_frames']/o['elapsed_seconds']
+                                    if isinstance(o.get('presentation_counter_frames'),(int,float)) else None,
                                 motion_sample_pixels=o.get('motion_sample_pixels'),identity_sample_pixels=o.get('identity_sample_pixels'),
                                 source_draw_fps=o.get('source_observation',{}).get('draws_per_second'),
                                 encoded_fps=o.get('outbound_observation',{}).get('frames')/o['elapsed_seconds']

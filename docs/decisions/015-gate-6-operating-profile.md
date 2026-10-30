@@ -65,6 +65,25 @@ Firefox158.0.1, the source/codec/packet bounds, 80 ms preferred receiver target,
 Browser-only receiver comparisons are diagnostics and cannot change the
 production preference or qualify a Connect transport cell.
 
+October 30 Chrome decoded-pixel observation correction, before the next run:
+select `native-decoded-frames/1` for the Chrome fallback fixture. Source-bound
+Linux native RTC controls at `a7d87fe8` measured about 25.6 changing 640x360
+decoded frames/s while frame callbacks observed only 22; the public composition
+counter was also higher than the callback count. The new observer reads actual
+borrowed VideoFrames from a cloned received track, identifies every decoded
+source, counts only matching 640x360 pixels and records size refusals. It retains
+at most two queued frames, closes every borrowed frame and joins its owned reader
+and clone. Four ownership/error tests and separate Mac/Linux direct-pixel controls
+support this measurement change; they do not qualify a Connect path.
+Render callback counts, composition counters and the existing rendered AV-marker
+observer remain separately reported. Firefox retains its declared render-callback
+observer. Chrome refuses unsupported direct-frame observation rather than
+silently changing methods. The 24 independently decoded moving frames/s limit,
+60-second window, source, codecs, receiver preference, audio identity, AV sync,
+freshness/recovery and teardown rules are unchanged. Earlier callback-based
+failures retain their original result. Actual Connect execution under the new
+identified observer is still required.
+
 Native endpoint TLS verifies configured server identity and trust. Hosted HTTP
 requires HTTPS, WSS and HTTP/3 with declared origins and trusted proxy policy.
 Provision short-lived scoped participant/device credentials through a trusted

@@ -2391,5 +2391,106 @@
     "revision": "22bca3d33ddf969e7e23f83a2067056153ee0524",
     "status": "cancelled during producer build; all runtime cells unrun",
     "reason": "Released a worker for the queued independent decoded-pixel control; the original fault run continued. No runtime or qualification credit."
+  },
+  "chrome_native_decoded_pixel_observer": {
+    "source_revision": "a7d87fe8f15f80a5340b3a7ce2e16c164282620b",
+    "run_id": 41123495356,
+    "artifact_id": 13009258178,
+    "zip_sha256": "c6e5a102869e38f8484251fe10ebc3b91e9d836226ae9d4d106a0543e097bf48",
+    "scope": "Native RTC video-only observer control. No Connect route, audio, hosting or acceptance qualification. Original callback predicate result retained.",
+    "status": "source-verified native RTC observer component; actual Connect run pending",
+    "source_count": 80,
+    "git_sources_verified": 8,
+    "source_manifest_sha256": "abf98bcb355442d6e2ed2638b8cfbb1e4ebb7524c63c2639d2a460192307ed3b",
+    "sources_unchanged": true,
+    "original_browser_joined": true,
+    "original_callback_predicate_passed": false,
+    "rows": [
+      {
+        "index": 0,
+        "seconds": 60.006600000000034,
+        "draw_fps": 30.29666736658966,
+        "callback_fps": 23.64739878613351,
+        "changing_fps": 21.780937430215996,
+        "raf_fps": 41.645419003909545,
+        "presented_counter_fps": 28.396876343602187,
+        "decoded_fps": 29.996700362960055,
+        "receiver_target_ms": 80,
+        "rtp_deltas": {
+          "framesDropped": 0,
+          "packetsLost": 0,
+          "jitterBufferDelay": 110.07751999999999,
+          "jitterBufferTargetDelay": 124.33699999999999,
+          "jitterBufferEmittedCount": 1800,
+          "totalDecodeTime": 1.132089,
+          "totalProcessingDelay": 111.373172,
+          "totalInterFrameDelay": 60.001000000000005
+        },
+        "decoded_content": {
+          "status": "observing",
+          "frames_fps": 27.730283002203077,
+          "received_frames_fps": 29.996700362960055,
+          "changing_fps": 25.580519476190936,
+          "dimension_refusals": 136,
+          "last_dimensions": [
+            640,
+            360
+          ],
+          "pixel_failure": false,
+          "failed": false,
+          "reader_joined": true
+        },
+        "visibility": "visible",
+        "passed": false
+      },
+      {
+        "index": 1,
+        "seconds": 60.0065,
+        "draw_fps": 30.296717855565646,
+        "callback_fps": 24.713989317823902,
+        "changing_fps": 22.797530267554347,
+        "raf_fps": 41.062218259688535,
+        "presented_counter_fps": 29.163507286710605,
+        "decoded_fps": 29.996750352045193,
+        "receiver_target_ms": 80,
+        "rtp_deltas": {
+          "framesDropped": 0,
+          "packetsLost": 0,
+          "jitterBufferDelay": 110.34185299999999,
+          "jitterBufferTargetDelay": 124.338,
+          "jitterBufferEmittedCount": 1800,
+          "totalDecodeTime": 1.125133,
+          "totalProcessingDelay": 111.615276,
+          "totalInterFrameDelay": 60.001000000000005
+        },
+        "decoded_content": {
+          "status": "observing",
+          "frames_fps": 27.73032921433511,
+          "received_frames_fps": 29.996750352045193,
+          "changing_fps": 25.613891828385256,
+          "dimension_refusals": 136,
+          "last_dimensions": [
+            640,
+            360
+          ],
+          "pixel_failure": false,
+          "failed": false,
+          "reader_joined": true
+        },
+        "visibility": "visible",
+        "passed": false
+      }
+    ],
+    "selection": "Chrome native-decoded-frames/1; Firefox retains render-callback/1. Separate render callback, composition and rendered AV-marker observations remain.",
+    "limits": "640x360 matching pixels and at least 24 independently decoded moving frames/s over the original clean 60 seconds; size-refused frames never count; source identity covers all frames.",
+    "unchanged": "Source, codecs, receiver preference, audio identity, AV sync, freshness/recovery and teardown. Historical failures retained.",
+    "checks": {
+      "javascript_functions_passed": 26,
+      "python_build_profile_checks_passed": 10,
+      "python_measurement_checks_passed": 60,
+      "syntax_and_diff": "passed"
+    },
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }
