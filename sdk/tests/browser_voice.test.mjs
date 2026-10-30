@@ -31,7 +31,7 @@ async function withBrowser(mode,run){
             this.transceivers.push({receiver});}
         getTransceivers(){return this.transceivers;}
         createDataChannel(){throw Error('Unoffered datachannel must never be created');}
-        async createOffer(){assert.ok(this.getTransceivers().every(t=>t.receiver.jitterBufferTarget===80));if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp};}
+        async createOffer(){assert.ok(this.getTransceivers().every(t=>t.receiver.jitterBufferTarget===80));if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp+(this.getConfiguration().iceTransportPolicy==='relay'?'a=candidate:1 1 udp 1 127.0.0.1 10000 typ relay\r\n':'')};}
         async setLocalDescription(offer){this.localDescription=offer;}
         async setRemoteDescription(answer){state.answer=answer;this.remoteDescription=answer;}
         close(){state.peerClosed=true;state.peerCloses++;}

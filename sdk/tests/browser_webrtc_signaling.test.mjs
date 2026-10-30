@@ -56,6 +56,23 @@ test('complete ICE gathering precedes submission, including asynchronous gatheri
     f.peer.iceGatheringState='complete';f.peer.localDescription.sdp=sdp+'a=end-of-candidates\r\n';f.peer.dispatchEvent(new Event('icegatheringstatechange'));
     await result;assert.match(f.client.requests[0][1].substrate_setup.sdp,/end-of-candidates/);f.owner.close();
 });
+test('relay-only gathering without exclusively real relay candidates refuses before logical submission',async()=>{
+    const relay='a=candidate:1 1 udp 1 127.0.0.1 10000 typ relay\r\n';
+    const host='a=candidate:2 1 udp 1 127.0.0.1 10002 typ host\r\n';
+    for(const candidates of ['',host,relay+host]){
+        const peer=new Peer(),client=new Client();
+        peer.getConfiguration=()=>({iceTransportPolicy:'relay'});
+        peer.createOffer=async()=>({type:'offer',sdp:sdp+candidates});
+        const owner=new CanonicalWebRtcSignaling(client,peer,options());
+        await assert.rejects(owner.offer(),{code:'unsupported-media-profile'});
+        assert.equal(client.requests.length,0);assert.equal(peer.closed,1);
+        assert.equal(owner.savedOffer,undefined);assert.equal(client.events.size,0);assert.equal(client.lifetimes.size,0);
+    }
+    const peer=new Peer(),client=new Client();peer.getConfiguration=()=>({iceTransportPolicy:'relay'});
+    peer.createOffer=async()=>({type:'offer',sdp:sdp+relay});
+    const owner=new CanonicalWebRtcSignaling(client,peer,options());await owner.offer();
+    assert.equal(client.requests.length,1);owner.close();
+});
 test('ICE before answer waits, serializes after answer, and refuses foreign scope or operation',async()=>{
     const f=fixture();let release;f.client.response=()=>new Promise(r=>{release=r;});const result=f.owner.offer();
     while(!release)await wait(1);

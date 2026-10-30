@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "checked_at": "2026-10-30T12:13:12.088731+00:00",
+  "checked_at": "2026-10-30T12:21:52.006192+00:00",
   "scope": "Actual owned loopback coturn/browser/server relay-only audio/video and two-generation original-peer ICE recovery. Synthetic signed identities, normal private CA verification; unchanged clean60 media bounds. No distinct-network or full task/acceptance qualification.",
   "implementation": "The public conversation example now forwards iceTransportPolicy. Browser and server explicitly select relay-only policy. Actual browser getStats nominated remote candidates must be relay before/after restart and after the measured window; SDK refuses absent relay gathering. Same-peer/track/Worker and original Store effects are checked independently. Coturn zero-allocation drain and original-process join run even if media quality fails.",
   "cases": [
@@ -258,15 +258,766 @@
         }
       ],
       "passed": true
+    },
+    {
+      "name": "browser-tcp-es256-01",
+      "summary": {
+        "format": 1,
+        "passed": false,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_original_peer_ice_restart_clean_es256",
+        "transport": "tcp",
+        "ice_policy": "relay",
+        "client": "browser",
+        "scope": "Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification.",
+        "source_manifest_sha256": "b2a5211fc3502da6914f90b35359412fd4f34261d7bd9dae61880cd92ad59c7a",
+        "source_count": 5923,
+        "coturn_version": "4.18.0",
+        "binary_sha256": "4082a9359fb5950f6b0f2dbb072df2c6e8225132b0f5cf3c75d03bd34e143975",
+        "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "runner_sha256": "52b1981aea8c60b1b2d344e3e80c9d7cc35aa64b1139e16443fe8e7bf4c32a36",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "server_pid": 49461,
+        "udp_listener_unreachable": true,
+        "execution": {
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 67.39460537489504,
+          "log_sha256": "af1b84a933abcac3b43c86b689da486ed56ccbe2413cb4451d41809140cf1786",
+          "results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 98 filtered out; finished in 67.34s"
+          ],
+          "panic_locations": [
+            "crates/connect-server/tests/support/canonical_webrtc_browser.rs:872:5:"
+          ]
+        },
+        "drain_observation_version": 2,
+        "allocation_drain_limit_seconds": 10,
+        "post_drain_join_limit_seconds": 10,
+        "allocation_drain_seconds": 2.2970158748794347,
+        "post_drain_join_seconds": 5.440862542018294,
+        "drain_exit_code": 0,
+        "coturn_log_sha256": "bb900fa508c33d96945707f599959e707664bb83aabfe90e97658da7007bd72f",
+        "allocation_successes": 10,
+        "server_joined": true,
+        "changed_source_inputs": []
+      },
+      "summary_sha256": "1b9d94f6be1ab8555dd6274c444f2c23a72ca105ba21aac6b5671aab1b30bd2b",
+      "tool_inputs": 79,
+      "tools_unchanged": true,
+      "tool_manifest_sha256": "15ca51def01ddb43e3d40007006560a64e908bf1cdbafb6c09490db8e02e0a0d",
+      "browser_report_sha256": "a8701ad149c08a29ca5f86909b1cf8370c304f3773d32616f1255240fa672059",
+      "relay_path": {
+        "before": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "after": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "final": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ]
+      },
+      "ice_restarts": {
+        "status": "passed",
+        "profile": "original-browser-ice/1",
+        "results": [
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          }
+        ],
+        "scope": "Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."
+      },
+      "store_oracle": {
+        "original_allocations": 2,
+        "passed": true,
+        "records": [
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          }
+        ]
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "quality": [
+        {
+          "participant": 0,
+          "decoded_fps": 26.78110163020179,
+          "changing_fps": 22.78143492749586,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 20.900000095366522,
+          "p95_abs_skew_ms": 88.90000009536791
+        },
+        {
+          "participant": 1,
+          "decoded_fps": 25.66457073586081,
+          "changing_fps": 21.8648810424996,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 18.600000143052853,
+          "p95_abs_skew_ms": 79.40000009536874
+        }
+      ],
+      "passed": false
+    },
+    {
+      "name": "browser-udp-es256-01",
+      "summary": {
+        "format": 1,
+        "passed": false,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_original_peer_ice_restart_clean_es256",
+        "transport": "udp",
+        "ice_policy": "relay",
+        "client": "browser",
+        "browser_expired": false,
+        "scope": "Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification.",
+        "source_manifest_sha256": "00616f6b613c1df5205458444c873ffceb14d073c814c1313ee805b2b0798e4d",
+        "source_count": 5924,
+        "coturn_version": "4.18.0",
+        "binary_sha256": "d92d2250a6bc371c4bd65d2eeaab77560d3ef483d39c563f1d57f3518160f1b1",
+        "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "runner_sha256": "0de7a264372eb630a8bf134c96c59709a2a6a9d1d4563b97733a3ea387565e06",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "server_pid": 51557,
+        "execution": {
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 67.24360933387652,
+          "log_sha256": "e7977b6411efae2ba8ae27e69811799f5282e4583cc3cd28e8b3edf5ba0032ff",
+          "results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 100 filtered out; finished in 67.20s"
+          ],
+          "panic_locations": [
+            "crates/connect-server/tests/support/canonical_webrtc_browser.rs:904:5:"
+          ]
+        },
+        "drain_observation_version": 2,
+        "allocation_drain_limit_seconds": 10,
+        "post_drain_join_limit_seconds": 10,
+        "allocation_drain_seconds": 2.5424375000875443,
+        "post_drain_join_seconds": 5.434637458063662,
+        "drain_exit_code": 0,
+        "coturn_log_sha256": "6f5b401516bf2b82a729a63108750d6679727a6846b4242e5c6bb07e9644e517",
+        "allocation_successes": 10,
+        "server_joined": true,
+        "changed_source_inputs": []
+      },
+      "summary_sha256": "9efbcb9232e498c774ec527a49a60c349d7e362ea99409a8e59649af75c9f10d",
+      "tool_inputs": 79,
+      "tools_unchanged": true,
+      "tool_manifest_sha256": "9d54f80ca19848a2063e9f9c33cc48653be5a33bed5c43f7055d7c99330d1b7d",
+      "browser_report_sha256": "74da163e7e3338c53cd67d933ff223d833f8b46f9d536bcff3c2c89eb23a13c7",
+      "relay_path": {
+        "before": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "after": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "final": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ]
+      },
+      "ice_restarts": {
+        "status": "passed",
+        "profile": "original-browser-ice/1",
+        "results": [
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          }
+        ],
+        "scope": "Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."
+      },
+      "store_oracle": {
+        "original_allocations": 2,
+        "passed": true,
+        "records": [
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          }
+        ]
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "quality": [
+        {
+          "participant": 0,
+          "decoded_fps": 27.714680393633923,
+          "changing_fps": 23.781628936690083,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 18.799999952317847,
+          "p95_abs_skew_ms": 64.50000000000244
+        },
+        {
+          "participant": 1,
+          "decoded_fps": 28.331302867815797,
+          "changing_fps": 24.331589521771214,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 28.20000004768275,
+          "p95_abs_skew_ms": 67.59999990463328
+        }
+      ],
+      "passed": false
     }
   ],
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "remaining": [
-    "Actual browser expired credentials/no logical or physical admission",
+    "Retained ES256 UDP and TCP full-profile changing-fps failures, despite relay/ICE/audio/AV/Store/cleanup proof. No threshold change or full-quality pass inferred.",
     "Distinct-network current browser and approved Linux full media profile",
     "Browser loss/unreachable-port media matrix",
     "Retained direct optimized EdDSA audio extra-edge calibration failure",
     "Current Linux hosting/installed-SDK regression failures"
+  ],
+  "expired_credentials": {
+    "scope": "Actual installed Chrome with normal signed WSS; fresh expired synthetic REST values for both participants in each algorithm. Explicit coturn expiry/401 proof, zero logical submission, Store/host/relay allocations, owned capture/peer/context close, daemon drain and join. No media-quality or distinct-network claim.",
+    "cases": [
+      {
+        "name": "browser-expired-eddsa-03",
+        "summary": {
+          "format": 1,
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+          "transport": "udp",
+          "ice_policy": "relay",
+          "client": "browser",
+          "browser_expired": true,
+          "scope": "Owned loopback expired browser REST credentials: no logical offer, physical allocation or retained capture/peer; no media quality/distinct-network qualification.",
+          "source_manifest_sha256": "00616f6b613c1df5205458444c873ffceb14d073c814c1313ee805b2b0798e4d",
+          "source_count": 5924,
+          "coturn_version": "4.18.0",
+          "binary_sha256": "d92d2250a6bc371c4bd65d2eeaab77560d3ef483d39c563f1d57f3518160f1b1",
+          "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+          "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+          "runner_sha256": "0de7a264372eb630a8bf134c96c59709a2a6a9d1d4563b97733a3ea387565e06",
+          "fixtures_sha256": {
+            "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+            "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+          },
+          "server_pid": 51443,
+          "execution": {
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 1.6387661250773817,
+            "log_sha256": "83852943d39337d416f93b5f0bb9836cb4a2b52bfb4a5c7b9957e41f0452d804",
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 100 filtered out; finished in 1.57s"
+            ],
+            "panic_locations": []
+          },
+          "drain_observation_version": 2,
+          "allocation_drain_limit_seconds": 10,
+          "post_drain_join_limit_seconds": 10,
+          "allocation_drain_seconds": 3.156450374983251,
+          "post_drain_join_seconds": 5.038685959065333,
+          "drain_exit_code": 0,
+          "coturn_log_sha256": "e48c7e8599c8c45c6068e2a805d10f191ef97012e8add0b888e8a9cde4aa1442",
+          "allocation_successes": 0,
+          "unauthorized_responses": 2,
+          "expired_credential_refusals": 2,
+          "server_joined": true,
+          "changed_source_inputs": []
+        },
+        "summary_sha256": "868284bc835023cfa7541e77c743326d4497721275d56f41e70c0f63dc1e21b7",
+        "tool_inputs": 79,
+        "tools_unchanged": true,
+        "tool_manifest_sha256": "8c1a8e004daf6eec4b9e43373faaa794dbe761f82c1fcf01a883cd4e4bf5504c",
+        "browser_report": {
+          "status": "passed",
+          "browser": "156.0.8078.48",
+          "expired_relay": {
+            "status": "passed",
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.19040000009536742,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.12129999995231629,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ],
+            "original_contexts_closed": 2
+          }
+        },
+        "browser_report_sha256": "14669d48f9ddf3aaace9ca740b28dadb978c21da2ea49b8f458e8c55086cd07a",
+        "store_oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "passed": true
+      },
+      {
+        "name": "browser-expired-es256-02",
+        "summary": {
+          "format": 1,
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+          "transport": "udp",
+          "ice_policy": "relay",
+          "client": "browser",
+          "browser_expired": true,
+          "scope": "Owned loopback expired browser REST credentials: no logical offer, physical allocation or retained capture/peer; no media quality/distinct-network qualification.",
+          "source_manifest_sha256": "00616f6b613c1df5205458444c873ffceb14d073c814c1313ee805b2b0798e4d",
+          "source_count": 5924,
+          "coturn_version": "4.18.0",
+          "binary_sha256": "d92d2250a6bc371c4bd65d2eeaab77560d3ef483d39c563f1d57f3518160f1b1",
+          "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+          "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+          "runner_sha256": "0de7a264372eb630a8bf134c96c59709a2a6a9d1d4563b97733a3ea387565e06",
+          "fixtures_sha256": {
+            "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+            "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+          },
+          "server_pid": 51499,
+          "execution": {
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 1.5013248340692371,
+            "log_sha256": "22d405e69bf057899d544828e98ac84af4ea41c2e54c9ae11a1e347d21f14cf6",
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 100 filtered out; finished in 1.45s"
+            ],
+            "panic_locations": []
+          },
+          "drain_observation_version": 2,
+          "allocation_drain_limit_seconds": 10,
+          "post_drain_join_limit_seconds": 10,
+          "allocation_drain_seconds": 3.2534523748327047,
+          "post_drain_join_seconds": 5.0696338750422,
+          "drain_exit_code": 0,
+          "coturn_log_sha256": "f2a651aa0012716ea4665c404a9d83e66f90d0f328ade48afc4ad3af2196c861",
+          "allocation_successes": 0,
+          "unauthorized_responses": 2,
+          "expired_credential_refusals": 2,
+          "server_joined": true,
+          "changed_source_inputs": []
+        },
+        "summary_sha256": "5624df3c9b42d493a074b8216356f665e050a2b026b32fc3e6b31a720a9aaa55",
+        "tool_inputs": 79,
+        "tools_unchanged": true,
+        "tool_manifest_sha256": "17ee063392b98112ab461f93c53fa8f4f83b9f21e7aff6426ad658f2c96743a5",
+        "browser_report": {
+          "status": "passed",
+          "browser": "156.0.8078.48",
+          "expired_relay": {
+            "status": "passed",
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.18439999985694885,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.121,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ],
+            "original_contexts_closed": 2
+          }
+        },
+        "browser_report_sha256": "d4fa2fd5294bb1c196a36a252d1bc0fa2625bc5e9ecc23625abfc9044c239092",
+        "store_oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "passed": true
+      }
+    ]
+  },
+  "component_regression": {
+    "before_log_sha256": "5ef143be840d6072131aac855560f663c7d2a797ec7307ff35e4de02d44de1dc",
+    "before": "New component proves empty relay-only offer was incorrectly submitted before the guard.",
+    "after_log_sha256": "05e40961634de33be87a681c70524b820cfc057cbc9fe387c140b7a09369749d",
+    "functions": 128,
+    "passed": true,
+    "positive_fixture_correction": "Existing fake relay-only capture snapshot now supplies a synthetic relay candidate instead of an impossible empty successful gather.",
+    "sdk_contract_passed": true,
+    "sdk_outlines_passed": true
+  },
+  "retained_expiry_attempts": [
+    {
+      "name": "browser-expired-eddsa-01",
+      "summary_sha256": "1d66473fb6fd4c82ec7c88ad1e3277367ebdf728a868d3cd525b8bce9932231e",
+      "passed": false,
+      "disposition": "Probe retained a video stream ID with audio-only capture. Refused before TURN; no expiry qualification."
+    },
+    {
+      "name": "browser-expired-eddsa-02",
+      "summary_sha256": "6a3027188c5f104674a5474756ef0d3c57fe8964d49a5dcf1afca38105787b41",
+      "passed": false,
+      "disposition": "Actual expiry/SDK/Store/cleanup behavior passes, but runner authentication-log label mismatched real coturn text."
+    },
+    {
+      "name": "browser-expired-es256-01",
+      "summary_sha256": "4b5c27013114bc0aa2a1f902a1c8ebdd57e5722bdd73dce8a0119032c9e2d1a9",
+      "passed": false,
+      "disposition": "Same stale authentication-log label; retained failed. Corrected runner requires explicit credential-expiry AND actual401 messages."
+    }
   ]
 }

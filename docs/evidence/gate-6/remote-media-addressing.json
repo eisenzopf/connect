@@ -356,6 +356,15 @@
     "passed_cases": [
       "browser-udp-01"
     ],
-    "full_task_qualified": false
+    "full_task_qualified": false,
+    "expired_credentials_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "expiry_passed": true,
+    "retained_quality_failures": [
+      "ES256 TCP changingfps22.8/21.9",
+      "Current SDK ES256 UDP changingfps23.78/24.33"
+    ]
   }
 }

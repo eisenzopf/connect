@@ -17,6 +17,7 @@ import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
 import { installPeerDiagnostics, installControlDiagnostics, browserFailure } from "./browser_failure.mjs";
 import { installIceOwnership, restartOriginalBrowsers } from "./browser_ice_restart.mjs";
+import { expiredRelay } from "./browser_relay_expiry.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 
 let input = "";
@@ -124,6 +125,14 @@ try {
         spec.debugPort!==undefined?await chromium.connectOverCDP(`http://127.0.0.1:${spec.debugPort}`):
         await chromium.launch({headless:true,executablePath:process.env.CONNECT_CHROME_BINARY,
             args:["--autoplay-policy=no-user-gesture-required","--disable-background-timer-throttling","--disable-renderer-backgrounding"]});
+    if(spec.expiredRelayOnly) {
+        if(spec.requireRelay||spec.iceRestart||spec.designatedRemoteHost
+            ||spec.participants.some(p=>p.connection?.iceTransportPolicy!=="relay"))
+            throw Error('Expired relay probe requires its separate owned loopback relay-only scene');
+        const expired=await expiredRelay(browser,spec);
+        const version=browser.version();await cleanup();
+        console.log(JSON.stringify({status:'passed',browser:version,expired_relay:expired}));
+    } else {
     const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
         const context = await browser.newContext(); contexts.push(context);
         const page = await context.newPage();
@@ -505,6 +514,7 @@ try {
         teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;
+    }
 } catch (error) {
     console.log(JSON.stringify(await browserFailure(observedPages, error)));
     throw error;

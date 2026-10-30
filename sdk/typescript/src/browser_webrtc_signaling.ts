@@ -84,6 +84,7 @@ export class CanonicalWebRtcSignaling {
     private rejectFinished!: (error: Error) => void;
     private readonly scope: Scope;
     private readonly template: JsonObject;
+    private readonly relayOnly: boolean;
     private attempted = false;
     private stopped = false;
     private failure?: Error;
@@ -116,6 +117,9 @@ export class CanonicalWebRtcSignaling {
         private readonly peer: RTCPeerConnection,
         options: WebRtcSignalingOptions,
     ) {
+        this.relayOnly =
+            typeof peer.getConfiguration === "function" &&
+            peer.getConfiguration().iceTransportPolicy === "relay";
         if (client.controlTransport !== "websocket")
             throw new ConnectError(
                 "unsupported-transport",
@@ -376,6 +380,25 @@ export class CanonicalWebRtcSignaling {
             const sdp = this.peer.localDescription?.sdp;
             if (!validSdp(sdp))
                 throw protocol("Invalid bounded complete WebRTC offer");
+            if (this.relayOnly) {
+                const candidates = sdp
+                    .split("\r\n")
+                    .filter((line) => line.startsWith("a=candidate:"))
+                    .map((line) => line.split(/\s+/));
+                if (
+                    this.peer.getConfiguration().iceTransportPolicy !==
+                        "relay" ||
+                    !candidates.length ||
+                    candidates.some(
+                        (fields) =>
+                            fields[6] !== "typ" || fields[7] !== "relay",
+                    )
+                )
+                    throw new ConnectError(
+                        "unsupported-media-profile",
+                        "Relay-only ICE gathering produced no exclusive relay path",
+                    );
+            }
             this.original = {
                 ...snapshot(this.template),
                 substrate_setup: { kind: "websocket+webrtc", sdp },

@@ -617,5 +617,39 @@
     "original_servers_joined": 2,
     "sources_unchanged": true,
     "passed": true
+  },
+  "enabled_mac_profile_pin_verification": {
+    "browser_version": "Google Chrome 156.0.8078.48",
+    "helper_file_unchanged": true,
+    "sources_unchanged": true,
+    "observations": {
+      "passed": true,
+      "results": [
+        {
+          "trusted": false,
+          "expected": "ERR_CERT_AUTHORITY_INVALID",
+          "error": "ERR_CERT_AUTHORITY_INVALID",
+          "status": null
+        },
+        {
+          "trusted": true,
+          "expected": "accepted",
+          "error": null,
+          "status": 200
+        },
+        {
+          "trusted": true,
+          "expected": "ERR_CERT_COMMON_NAME_INVALID",
+          "error": "ERR_CERT_COMMON_NAME_INVALID",
+          "status": null
+        }
+      ],
+      "normal_certificate_verification": true,
+      "original_contexts_closed": 2
+    },
+    "original_servers_joined": 2,
+    "original_root_retained": true,
+    "passed": true,
+    "summary_sha256": "cf04425a7c0fc3272ad4c51ebf03ce8722345d4231f6f8762b1a3648ecfcd6eb"
   }
 }

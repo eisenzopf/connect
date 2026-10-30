@@ -61,9 +61,19 @@ after the unchanged clean 60-second decoded audio/video window, and checks
 original Peer/transceiver/track/Worker identities and one Store effect per
 logical operation. Its outer process limit is 120 seconds; coturn's existing
 drain/join bounds remain unchanged. Zero-allocation drain is checked even when
-the media function fails. This scene does not exercise expired browser
-credentials or establish distinct-network reachability. See
+the media function fails. This scene does not establish distinct-network
+reachability. See
 [browser relay evidence](../evidence/gate-6/browser-relay-ice-restart.json).
+
+Add `--browser-expired` with `--client browser` for the separate refusal scene.
+It opens two normal signed WSS clients with expired synthetic TURN REST values,
+uses only generated audio, and requires zero logical offers, no submitted saved
+offer, closed original peers/tracks, zero Store operations and host allocations,
+and zero coturn allocations. Coturn must observe both the explicit expired-user
+refusal and an Unauthorized response. This scene has no decoded-media quality
+claim. The SDK snapshots relay-only policy and rejects absent or nonexclusive
+relay candidates before logical offer submission; retained policy alone does
+not establish that TURN gathering succeeded.
 
 
 For the explicit shared-endpoint All-policy lane, add `--ice-policy all` to the

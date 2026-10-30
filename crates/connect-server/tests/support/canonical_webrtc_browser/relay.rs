@@ -45,12 +45,12 @@ impl Fixture {
             }],
         }
     }
-    pub(super) fn configure(&self, participant: &mut Value) {
+    pub(super) fn configure(&self, participant: &mut Value, expired: bool) {
         participant["connection"]["iceTransportPolicy"] = json!("relay");
         participant["connection"]["iceServers"] = json!([{
             "urls":self.url,
-            "username":std::env::var("CONNECT_GATE6_TURN_USER").unwrap(),
-            "credential":std::env::var("CONNECT_GATE6_TURN_PASSWORD").unwrap(),
+            "username":std::env::var(if expired { "CONNECT_GATE6_TURN_EXPIRED_USER" } else { "CONNECT_GATE6_TURN_USER" }).unwrap(),
+            "credential":std::env::var(if expired { "CONNECT_GATE6_TURN_EXPIRED_PASSWORD" } else { "CONNECT_GATE6_TURN_PASSWORD" }).unwrap(),
         }]);
     }
 }

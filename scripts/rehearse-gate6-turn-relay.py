@@ -117,8 +117,10 @@ def run(args):
     assert args.ice_policy != "all" or args.transport == "udp", "Shared STUN/TURN lane requires UDP control"
     if args.client == "browser":
         assert args.ice_policy == "relay", "Browser fixture requires explicit relay-only policy"
-        test = "canonical_webrtc_browser::canonical_chrome_relay_original_peer_ice_restart_clean_" + args.algorithm.lower()
+        test = "canonical_webrtc_browser::canonical_chrome_relay_" + (
+            "expired_credentials_" if args.browser_expired else "original_peer_ice_restart_clean_") + args.algorithm.lower()
     else:
+        assert not args.browser_expired, "Expired browser lane requires --client browser"
         test = PREFIX + ("configured_all_shared_stun_turn_decoded_duplex" if args.ice_policy == "all"
                          else f"configured_relay_{args.transport}_expiry_and_decoded_duplex")
     listing = subprocess.check_output([str(binary), "--list"], text=True)
@@ -127,7 +129,9 @@ def run(args):
     assert version == "4.18.0", "Requalify allocation-drain oracle for another coturn version"
     report = {"format": 1, "passed": False, "test": test, "transport": args.transport, "ice_policy": args.ice_policy,
               "client": args.client,
-              "scope": ("Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification."
+              "browser_expired": args.browser_expired,
+              "scope": ("Owned loopback expired browser REST credentials: no logical offer, physical allocation or retained capture/peer; no media quality/distinct-network qualification."
+                        if args.browser_expired else "Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification."
                         if args.client == "browser" else "Owned loopback TURN REST expiry and signed WSS/Store/Core Opus/VP8 duplex under the explicit All/shared-STUN-TURN or relay-only policy; no distinct-network/browser/SIP/remote qualification."),
               "source_manifest_sha256": digest(manifest_path), "source_count": len(source_inputs),
               "coturn_version": version, "binary_sha256": digest(binary),
@@ -229,7 +233,13 @@ def run(args):
         coturn = (base / "coturn.log").read_text(errors="replace")
         report["coturn_log_sha256"] = digest(base / "coturn.log")
         report["allocation_successes"] = len(re.findall(r"ALLOCATE processed, success", coturn))
-        assert report["allocation_successes"] >= 4, "Missing four actual client/server TURN allocations"
+        if args.browser_expired:
+            assert report["allocation_successes"] == 0, "Expired credentials allocated a relay"
+            report["unauthorized_responses"] = len(re.findall(r"incoming packet message processed, error 401: Unauthorized", coturn))
+            report["expired_credential_refusals"] = len(re.findall(r"credentials of user <[^>]+> have expired", coturn))
+            assert report["unauthorized_responses"] > 0 and report["expired_credential_refusals"] > 0, "No actual expired TURN authentication refusal observed"
+        else:
+            assert report["allocation_successes"] >= 4, "Missing four actual client/server TURN allocations"
         assert "drain" in coturn.lower(), "Missing allocation drain observation"
         assert step["exit_code"] == 0 and not step["timed_out"] and not step["forced_kill"], "Relay fixture failed; private test.log retained; zero-allocation drain checked separately"
         assert len(step["results"]) == 1 and "1 passed; 0 failed; 0 ignored;" in step["results"][0]
@@ -264,6 +274,7 @@ if __name__ == "__main__":
     parser.add_argument("--ice-policy", choices=("all", "relay"), default="relay")
     parser.add_argument("--client", choices=("native", "browser"), default="native")
     parser.add_argument("--algorithm", choices=("EdDSA", "ES256"), default="EdDSA")
+    parser.add_argument("--browser-expired", action="store_true")
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--turnserver", default="turnserver")
     run(parser.parse_args())

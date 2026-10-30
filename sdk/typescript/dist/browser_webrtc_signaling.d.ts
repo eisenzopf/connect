@@ -40,6 +40,7 @@ export declare class CanonicalWebRtcSignaling {
     private rejectFinished;
     private readonly scope;
     private readonly template;
+    private readonly relayOnly;
     private attempted;
     private stopped;
     private failure?;

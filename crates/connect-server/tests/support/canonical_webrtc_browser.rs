@@ -309,6 +309,7 @@ struct Profile {
     transport_recovery: bool,
     transport_faults: bool,
     ice_restart: bool,
+    expired_relay: bool,
     relay: Option<relay::Fixture>,
 }
 
@@ -330,6 +331,7 @@ async fn run_full_profile(
             transport_recovery,
             transport_faults,
             ice_restart,
+            expired_relay: false,
             relay: None,
         },
     ))
@@ -343,8 +345,13 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         transport_recovery,
         transport_faults,
         ice_restart,
+        expired_relay,
         relay,
     } = profile;
+    assert!(
+        !expired_relay
+            || (relay.is_some() && !ice_restart && !transition_control && !forced_fallback)
+    );
     assert!(
         !ice_restart
             || (!forced_fallback
@@ -652,7 +659,7 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
     ];
     if let Some(relay) = &relay {
         for participant in &mut participants {
-            relay.configure(participant);
+            relay.configure(participant, expired_relay);
         }
     }
     if let Some(stun) = &stun {
@@ -676,8 +683,11 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
     if ice_restart {
         spec["iceRestart"] = json!(true);
     }
-    if relay.is_some() {
+    if relay.is_some() && !expired_relay {
         spec["requireRelay"] = json!(true);
+    }
+    if expired_relay {
+        spec["expiredRelayOnly"] = json!(true);
     }
     if transition_control {
         spec["controlOnly"] = json!(true);
@@ -724,6 +734,28 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         }
     };
     drop(browser);
+    if expired_relay && !runner_timed_out && status.success() {
+        assert_eq!(host.adapter().total_allocations(), 0);
+        let report: Value =
+            serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
+                .unwrap();
+        assert_eq!(report["expired_relay"]["status"], "passed");
+        let db = rusqlite::Connection::open_with_flags(
+            f.server.store.path(),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let operations: i64 = db.query_row("SELECT count(*) FROM operations WHERE operation_id IN ('browser-expired-relay-0', 'browser-expired-relay-1')", [], |row| row.get(0)).unwrap();
+        assert_eq!(operations, 0);
+        std::fs::write(
+            output.join("expired-relay-oracle.json"),
+            serde_json::to_vec(
+                &json!({"passed":true,"logical_operations":operations,"physical_allocations":0}),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    }
     let mut blackhole_packets = Vec::new();
     for hole in blackholes {
         blackhole_packets.push(hole.close().await);
@@ -924,6 +956,36 @@ async fn canonical_chrome_relay_original_peer_ice_restart_clean_es256() {
         "chrome",
         Profile {
             ice_restart: true,
+            relay: Some(relay::Fixture::load()),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned coturn, expired synthetic REST credentials, installed Chrome; no provider"]
+async fn canonical_chrome_relay_expired_credentials_eddsa() {
+    Box::pin(run_configured_profile(
+        "EdDSA",
+        "chrome",
+        Profile {
+            expired_relay: true,
+            relay: Some(relay::Fixture::load()),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned coturn, expired synthetic REST credentials, installed Chrome; no provider"]
+async fn canonical_chrome_relay_expired_credentials_es256() {
+    Box::pin(run_configured_profile(
+        "ES256",
+        "chrome",
+        Profile {
+            expired_relay: true,
             relay: Some(relay::Fixture::load()),
             ..Profile::default()
         },
