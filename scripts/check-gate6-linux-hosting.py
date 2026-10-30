@@ -193,6 +193,28 @@ def language_av_diagnostic(values, frequencies, channels):
     return values
 
 
+def rtc_operation_failure_diagnostic(value):
+    assert type(value) is dict and set(value)=={'checkpoint','state','problem_code','result_present','cancel_requested','effects'}
+    assert value['checkpoint'] in {'initial-offer','restart-0','restart-1','other'}
+    assert value['state'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
+    assert value['problem_code'] in {'none','other','forbidden','conflict','reconciliation-required','authority-busy','storage','unsupported-media-profile','webrtc-failed'}
+    assert type(value['result_present']) is bool and type(value['cancel_requested']) is bool
+    assert type(value['effects']) is list and len(value['effects'])<=4
+    for effect in value['effects']:
+        assert type(effect) is dict and set(effect)=={'state','attempt'}
+        assert effect['state'] in {'prepared','submitting','confirmed','failed','cancelled','unknown'}
+        assert type(effect['attempt']) is int and 0<=effect['attempt']<=64
+    return value
+
+
+def ipc_data_revocation_failure_diagnostic(value):
+    assert type(value) is dict and set(value)=={'kind','certainty','original_operation_matches'}
+    assert value['kind'] in {'authentication','transport-uncertain','closed','deadline','forbidden','backpressure','protocol','unsupported','other'}
+    assert value['certainty'] in {'refused','not-submitted','uncertain','read-only','confirmed','other'}
+    assert type(value['original_operation_matches']) is bool
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -270,6 +292,13 @@ def run(node_sdk=False, python_sdk=False):
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
             for location in re.findall(r"thread '[^']+'(?: \([0-9]+\))? panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
+        for key, prefix, validate in (
+            ('rtc_operation_failures', 'rtc-operation-failure ', rtc_operation_failure_diagnostic),
+            ('ipc_data_revocation_failures', 'ipc-data-revocation-failure ', ipc_data_revocation_failure_diagnostic),
+        ):
+            values = [validate(json.loads(line[len(prefix):])) for line in text.splitlines() if line.startswith(prefix)]
+            assert len(values)<=16, 'Bounded native failure diagnostics exceeded'
+            step[key] = values
         step["local_schema_mismatches"] = []
         for line in text.splitlines():
             if line.startswith('sdk-local-schema-mismatch '):

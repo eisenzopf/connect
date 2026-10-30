@@ -53,6 +53,22 @@ async fn completed(
             if r.state == OperationState::Completed {
                 return r;
             }
+            if !matches!(r.state, OperationState::Accepted | OperationState::Preparing) {
+                let checkpoint = match op {
+                    "rtc-ice-restart-0" => "restart-0",
+                    "rtc-ice-restart-1" => "restart-1",
+                    "rtc-offer-0" | "rtc-offer-1" => "initial-offer",
+                    _ => "other",
+                };
+                let code = r.problem.as_ref().and_then(|p| p.get("code")).and_then(Value::as_str);
+                let code = match code {
+                    None => "none",
+                    Some(code @ ("forbidden" | "conflict" | "reconciliation-required" | "authority-busy" | "storage" | "unsupported-media-profile" | "webrtc-failed")) => code,
+                    _ => "other",
+                };
+                let effects: Vec<_> = r.effects.iter().take(4).map(|effect| json!({"state":effect.state.as_str(),"attempt":effect.attempt})).collect();
+                eprintln!("rtc-operation-failure {}", json!({"checkpoint":checkpoint,"state":r.state.as_str(),"problem_code":code,"result_present":r.result.is_some(),"cancel_requested":r.cancel_requested,"effects":effects}));
+            }
             assert!(
                 matches!(
                     r.state,

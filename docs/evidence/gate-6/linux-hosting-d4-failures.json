@@ -186,5 +186,131 @@
       "passed": false
     }
   ],
-  "remaining": "Diagnose media IPC Node26, Node22 movement candidates/consultation return, and installed native SDK capability assertions without weakening deadlines or treating sibling passes as qualification."
+  "remaining": "Diagnose media IPC Node26, Node22 movement candidates/consultation return, and installed native SDK capability assertions without weakening deadlines or treating sibling passes as qualification.",
+  "continuation_bd": {
+    "task": "G6-054",
+    "scope": "Required Linux x86_64 source-bound SDK/media regression failures; retained separately from local browser/relay evidence. No Linux hosting or acceptance qualification.",
+    "cases": [
+      {
+        "source_revision": "bd1413ff75589388d028c824f130a14b1b9a6566",
+        "run_id": 41053807179,
+        "artifact_id": 12976401322,
+        "zip_sha256": "ae588c7973cc013a58843d48d89fc8a3ff712642be3c3823870f4243c732a0b2",
+        "tracked_sources_verified": 4461,
+        "source_count": 8557,
+        "source_inputs_unchanged": true,
+        "source_manifest_sha256": "2c3d737dc33211d1f4839980a2e6e0bd7f605d02be1fb868cf07cf1c613c10a8",
+        "steps": 15,
+        "failed_steps": [
+          {
+            "name": "sdk-media-ipc-runtime",
+            "exit_code": 101,
+            "seconds": 14.148593290000008,
+            "log_sha256": "b35f08b90327bea678ae3ca15444c8d352b7a8ac914db5fcd964d6f28ca315af",
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/sdk_handles/media_ipc/data.rs",
+                "line": 277,
+                "column": 13
+              }
+            ],
+            "node_failures": [],
+            "node_consultation_failures": [],
+            "python_native_failures": []
+          }
+        ],
+        "passed": false
+      },
+      {
+        "source_revision": "bd1413ff75589388d028c824f130a14b1b9a6566",
+        "run_id": 41053807179,
+        "artifact_id": 12975487745,
+        "zip_sha256": "740c5eb3d5c734413f508a645c729d166d839761f076428e0ca466de194aea5d",
+        "tracked_sources_verified": 4461,
+        "source_count": 8557,
+        "source_inputs_unchanged": true,
+        "source_manifest_sha256": "2c3d737dc33211d1f4839980a2e6e0bd7f605d02be1fb868cf07cf1c613c10a8",
+        "steps": 23,
+        "failed_steps": [
+          {
+            "name": "native-ice-restart",
+            "exit_code": 101,
+            "seconds": 18.24074375799995,
+            "log_sha256": "33d64d582abb9932f9eee709c55650960e7fa1829a9a14ee4536673c05f18c91",
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+                "line": 56,
+                "column": 13
+              }
+            ],
+            "node_failures": [],
+            "node_consultation_failures": [],
+            "python_native_failures": []
+          }
+        ],
+        "passed": false
+      }
+    ],
+    "remaining": "Node22 fails media IPC current-revocation result category at data.rs277; Node26 reaches native ICE and one operation reports a state outside Accepted/Preparing/Completed at subscriptions.rs56. No actual cause is asserted from panic locations alone. Bounded failure-state diagnostics added; new Linux execution pending."
+  },
+  "bounded_telemetry_preparation": {
+    "scope": "Local serial same-source actual native ICE and managed data IPC regression with bounded failure-only telemetry. No new Linux/remote/full task qualification.",
+    "passed": true,
+    "source_inputs": 5912,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "98b9792ddce1224118d8e92005c6f494a5cfb53da56d4965ac9d2fb0346081c5",
+    "summary_sha256": "e6a11cb8401f554c7bc016dc1f53d2bd79eea34070b5a49df5077d24010485e0",
+    "binaries": [
+      {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "sha256": "b8c28aedf795dd88b91910f3e407a7612f36e501e8ac4c0675ff139eaff74f8c"
+      },
+      {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-8eb24ba3458c350e",
+        "sha256": "171c194ca7638ad0b66bbaeebf7bdba9c2f2308af99baa738d63caae9e5f0db5"
+      }
+    ],
+    "steps": [
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 9.447752584004775,
+        "log_sha256": "d8fcf7ebafe6d09c05b454c3b10801acf23ffd51ad291a5f0afa2bbba6e96da8",
+        "name": "native-ice",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+          "signed_rtc_ice_restart",
+          "--test-threads=1"
+        ],
+        "passed": true,
+        "diagnostics": {
+          "rtc_operation_failure_diagnostic": [],
+          "ipc_data_revocation_failure_diagnostic": []
+        }
+      },
+      {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 9.460841207997873,
+        "log_sha256": "513ae8f77458d907b302701a51f1db2f7269f6ab4f6cb795eae3d29bb09762dc",
+        "name": "media-ipc",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-8eb24ba3458c350e",
+          "sdk_handles::media_ipc::",
+          "--test-threads=1"
+        ],
+        "passed": true,
+        "diagnostics": {
+          "rtc_operation_failure_diagnostic": [],
+          "ipc_data_revocation_failure_diagnostic": []
+        }
+      }
+    ],
+    "privacy_unit_functions": 14,
+    "privacy_log_sha256": "a8fd90262eadf078eb98761df470a540029be90687b30b97d7d569c84a2b7dbe",
+    "linux_execution": "Pending; local native2 and mediaIPC2 pass. No changed production behavior or timeout allowance."
+  }
 }

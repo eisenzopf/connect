@@ -25,6 +25,20 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_rtc_operation_failure_excludes_private_record_and_transport_values(self):
+        validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_operation_failure_diagnostic']
+        value=dict(checkpoint='restart-1',state='unknown',problem_code='reconciliation-required',result_present=False,cancel_requested=False,effects=[dict(state='unknown',attempt=1)])
+        self.assertEqual(validate(value),value)
+        for invalid in [dict(value,problem={'private':'body'}),dict(value,checkpoint='private id'),dict(value,problem_code='private-secret'),dict(value,result_present=1),dict(value,effects=[dict(state='unknown',attempt=True)]),dict(value,effects=[dict(state='private',attempt=1)]),dict(value,effects=value['effects']*5)]:
+            with self.assertRaises(AssertionError):validate(invalid)
+
+    def test_ipc_revocation_failure_excludes_command_receipt_and_payload(self):
+        validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['ipc_data_revocation_failure_diagnostic']
+        value=dict(kind='closed',certainty='not-submitted',original_operation_matches=True)
+        self.assertEqual(validate(value),value)
+        for invalid in [dict(value,operation={'credential':'private'}),dict(value,kind='private'),dict(value,certainty='private'),dict(value,original_operation_matches=1)]:
+            with self.assertRaises(AssertionError):validate(invalid)
+
     def test_language_av_requires_independent_expected_sources_and_bounded_counts(self):
         first=dict(identified_audio_hz=660,decoded_audio_samples=4800,audio_rms=2800.0,source_energy_ratio=100.0,identified_video_high_channels=[False,False,True],decoded_video_frames=6,decoded_rgb_bytes=4147200,decoder_children_joined=2)
         second=dict(first,identified_audio_hz=440,identified_video_high_channels=[True,False,False])

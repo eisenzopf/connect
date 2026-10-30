@@ -274,6 +274,35 @@ async fn managed_typed_data_preserves_full_payload_original_ids_recovery_and_aut
             assert_eq!(kind, wire::Kind::Failure);
             // Revocation may retire the authenticated peer before its reply.
             // Preserve uncertainty rather than inventing a refusal receipt.
+            if !((refused["kind"] == "authentication" && refused["certainty"] == "refused")
+                || (refused["kind"] == "transport-uncertain"
+                    && refused["certainty"] == "uncertain"))
+            {
+                let kind = match refused["kind"].as_str() {
+                    Some(
+                        value @ ("authentication"
+                        | "transport-uncertain"
+                        | "closed"
+                        | "deadline"
+                        | "forbidden"
+                        | "backpressure"
+                        | "protocol"
+                        | "unsupported"),
+                    ) => value,
+                    _ => "other",
+                };
+                let certainty = match refused["certainty"].as_str() {
+                    Some(
+                        value @ ("refused" | "not-submitted" | "uncertain" | "read-only"
+                        | "confirmed"),
+                    ) => value,
+                    _ => "other",
+                };
+                eprintln!(
+                    "ipc-data-revocation-failure {}",
+                    json!({"kind":kind,"certainty":certainty,"original_operation_matches":refused["operation"]["operationId"] == "ipc-data-send"})
+                );
+            }
             assert!(
                 (refused["kind"] == "authentication" && refused["certainty"] == "refused")
                     || (refused["kind"] == "transport-uncertain"
