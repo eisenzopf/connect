@@ -69,4 +69,3 @@ permission. A controlled owned Linux probe showed pending host gathering without
 permission and completed gathering with two host candidates after the grant.
 The fixture captures no physical device and does not disable address obfuscation
 or certificate checks. Actual current Linux x86 media results remain required.
-
