@@ -176,6 +176,15 @@ impl Service {
             .get()
             .map(|runtime| runtime.snapshot())
     }
+    /// Bounded observations from this installed Core, for trusted server
+    /// composition. The counter source retains no route or permission grant.
+    pub fn canonical_runtime_media_diagnostics(
+        &self,
+    ) -> Option<Arc<rvoip_core::media_diagnostics::MediaDiagnostics>> {
+        self.canonical_runtime
+            .get()
+            .map(|runtime| runtime.core.media_diagnostics())
+    }
     /// Drop only eligible dedicated routing hints on this actual physical source.
     /// The counter proves loss; journal, native IO and authorization are untouched.
     #[cfg(feature = "test-support")]

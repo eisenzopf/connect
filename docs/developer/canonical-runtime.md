@@ -395,3 +395,5 @@ SQL custody nor executable authority; packet IO reacquires its complete current
 file interval. Projection copies run after SQL and cache-mutex release. The
 controlled regression and its Linux qualification limits are recorded in
 [the metadata-observer evidence](../evidence/gate-6/linux-media-metadata-observers.json).
+
+The canonical server connects its installed Core counter source to the existing bounded `OperationalReadiness` media snapshot provider. The provider retains numeric counters, not the Core owner or a permission grant. Empty queue/forwarding observations are unmeasured stages, not proof of zero loss or latency. Browser fixtures retain this domain snapshot independently from decoded-content and network-path evidence; it does not change the HTTP health surface.

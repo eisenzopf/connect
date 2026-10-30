@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Resolve actual native Linuxx86 media loss and audio/freshness failures. Full run41095499407 retains nativeICE2 and unreachableTURN passes but fails all clean/ICE/fault quality scenes. Focused41096295382 traverses the measured3.003second kernel burst and bothvideo recoveries pass.265/.664seconds; audio identity and one outside-burst motion gap fail, with complete queue/port cleanup.",
-    "Complete distinct-network direct/relay and fault coverage. Both current bridge algorithms prove selected private duplex paths and decoded source content, while strict quality remains failed in the full recheck. A third owned namespace with pinned coturn4.18, UDP/TCP control, protected REST references and original-browser ICE is prepared but x86 runtime unrun. Local loopback relay and ARM tool probes do not inherit this result.",
+    "Current Linuxfull41101375461 has normal/ICE decode29.626\u201329.975fps,0\u20131lostpackets and0bad audio samples; strict changing22.359\u201323.028fps stillfails24fps. NativeICE2 and bothunreachableTURN pass. Loss runs41105238086/41106763766 retain isolated outside-burst audio invalid samples and video freshness gaps; no fault-profile pass.",
+    "Actual distinct-network UDP/TCP and EdDSA/ES256 relay run41106953334 proves duplex decoded identity, all32fresh original-ICE recoveries and40total allocations drained tozero without force. Strict changing22.744\u201323.791fps fails24fps; UDP/EdDSA additionally lacks the final normal server witness. See linux-browser-relay-scope.json; no whole relay profile passes.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
@@ -427,6 +427,13 @@
       "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
       "documentation": "docs/developer/browser-bridge-rehearsal.md",
       "limits": "Both EdDSA/ES256 prove normal-CA signedWSS, private gateway/range nominated UDP duplex, opposite-source audio/video, two durable offers, original joins and reclaimed routes/capacity. Changing21.97\u201322.23fps fails strict24fps and ES256AVquality fails. No relay, WAN, full matrix or acceptance inference."
+    },
+    {
+      "profile": "native Linuxx86 distinct-network relay UDP/TCP, EdDSA/ES256 and original ICE",
+      "status": "functional media/recovery/drain components observed; all4strictprofiles failed",
+      "run_id": 41106953334,
+      "evidence": "docs/evidence/gate-6/linux-browser-relay-scope.json",
+      "limits": "Actual allocated relay paths and32fresh media recoveries do not remove sub24changing-fps failures or the missing UDP/EdDSA server witness."
     }
   ]
 }

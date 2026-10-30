@@ -292,9 +292,10 @@ async fn distinct_network_browser_server_child() {
         2
     );
     drop(db);
+    let media_diagnostics = f.server.service.readiness.snapshot().media;
     f.server.shutdown().await.unwrap();
     eprintln!(
         "remote-browser-server-witness {}",
-        json!({"algorithm":algorithm,"durable_offers":2,"physical_routes_drained":true,"capacity_reclaimed":2,"server_shutdown_joined":true})
+        json!({"algorithm":algorithm,"durable_offers":2,"physical_routes_drained":true,"capacity_reclaimed":2,"server_shutdown_joined":true,"media_diagnostics":media_diagnostics})
     );
 }

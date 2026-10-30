@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "status": "partial; current corrected fixture execution pending",
+  "status": "actual relay media/recovery/drain components observed; strict profiles remain failed",
   "scope": "Owned isolated synthetic Linux x86 Docker bridge; no provider, named remote or publication qualification.",
   "linux_attempt": {
     "run_id": 41100747477,
@@ -101,5 +101,382 @@
     "scripts/video/owned_bridge_browser.mjs": "af450db0f1d2fdd6cf259a719678513d8060f612adb48f36863b5d65b9456f8e"
   },
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "current_linux_execution": {
+    "run_id": 41106953334,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41106953334",
+    "revision": "93a8b8d453862393b91628eb4f539f43aef42c55",
+    "artifact_id": 13002596970,
+    "zip_sha256": "d0868eb000b7cf1745e7b34686fa90bc353a21c59d7d6ffd7fb4d2a39ac1b588",
+    "git_sources_verified": 2847,
+    "prepared_dependencies_verified": 3087,
+    "dependency_differences": [],
+    "producer_all_runtime_libraries_opt3": true,
+    "cases": [
+      {
+        "case": "bridge-relay-tcp-eddsa",
+        "passed": false,
+        "browser_exit_code": 1,
+        "server_exit_code": 0,
+        "failure": null,
+        "owned_path": {
+          "participants": 2,
+          "selected_paths": 2,
+          "expected_private_gateway": false,
+          "expected_private_relay": true,
+          "expected_port_range": true,
+          "nominated_udp_duplex": true,
+          "observation_source": "RTCPeerConnection.getStats"
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.658214146157142,
+            "changing_fps": 22.79350390558594,
+            "rendered_fps": 25.292791614531765,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 18.799999999991712,
+              "p95_abs_skew_ms": 70.09999999996808
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.724713153478884,
+            "changing_fps": 23.026655593109762,
+            "rendered_fps": 25.209355942384278,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 14.400000000023283,
+              "p95_abs_skew_ms": 106.29999999998851
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "original_ice_steps": 4,
+        "decoded_recoveries": 8,
+        "maximum_recovery_seconds": 0.7282000000000116,
+        "original_peers_and_workers_unchanged": true,
+        "allocation_successes": 10,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 0.7669277720000309,
+        "turn_passed": true,
+        "original_turn_joined": true,
+        "turn_exit_code": 0,
+        "owned_turn_removed": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true
+      },
+      {
+        "case": "bridge-relay-tcp-es256",
+        "passed": false,
+        "browser_exit_code": 1,
+        "server_exit_code": 0,
+        "failure": null,
+        "owned_path": {
+          "participants": 2,
+          "selected_paths": 2,
+          "expected_private_gateway": false,
+          "expected_private_relay": true,
+          "expected_port_range": true,
+          "nominated_udp_duplex": true,
+          "observation_source": "RTCPeerConnection.getStats"
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.231194613742968,
+            "changing_fps": 22.951900955975958,
+            "rendered_fps": 25.233766290496067,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 18.799999999991712,
+              "p95_abs_skew_ms": 67.90000000002294
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.930694531333366,
+            "changing_fps": 23.051798125412006,
+            "rendered_fps": 25.333659645051778,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 22.299999999987108,
+              "p95_abs_skew_ms": 72.49999999999979
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "original_ice_steps": 4,
+        "decoded_recoveries": 8,
+        "maximum_recovery_seconds": 0.7785,
+        "original_peers_and_workers_unchanged": true,
+        "allocation_successes": 10,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 1.0298496419999879,
+        "turn_passed": true,
+        "original_turn_joined": true,
+        "turn_exit_code": 0,
+        "owned_turn_removed": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true
+      },
+      {
+        "case": "bridge-relay-udp-eddsa",
+        "passed": false,
+        "browser_exit_code": 1,
+        "server_exit_code": null,
+        "failure": {
+          "stage": "server-retirement",
+          "error_class": "AssertionError",
+          "owned_startup_reason": null
+        },
+        "owned_path": {
+          "participants": 2,
+          "selected_paths": 2,
+          "expected_private_gateway": false,
+          "expected_private_relay": true,
+          "expected_port_range": true,
+          "nominated_udp_duplex": true,
+          "observation_source": "RTCPeerConnection.getStats"
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.605959107160345,
+            "changing_fps": 23.174951670264512,
+            "rendered_fps": 25.457459491131686,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 18.199999999986005,
+              "p95_abs_skew_ms": 79.1999999999824
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.522557512748673,
+            "changing_fps": 23.791316099438546,
+            "rendered_fps": 26.10713748446793,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 16.800000000010584,
+              "p95_abs_skew_ms": 80.79999999998755
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "original_ice_steps": 4,
+        "decoded_recoveries": 8,
+        "maximum_recovery_seconds": 0.7306999999999826,
+        "original_peers_and_workers_unchanged": true,
+        "allocation_successes": 10,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 0.26962256900000625,
+        "turn_passed": true,
+        "original_turn_joined": true,
+        "turn_exit_code": 0,
+        "owned_turn_removed": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true
+      },
+      {
+        "case": "bridge-relay-udp-es256",
+        "passed": false,
+        "browser_exit_code": 1,
+        "server_exit_code": 0,
+        "failure": null,
+        "owned_path": {
+          "participants": 2,
+          "selected_paths": 2,
+          "expected_private_gateway": false,
+          "expected_private_relay": true,
+          "expected_port_range": true,
+          "nominated_udp_duplex": true,
+          "observation_source": "RTCPeerConnection.getStats"
+        },
+        "observations": [
+          {
+            "decoded_fps": 29.942514319068653,
+            "changing_fps": 22.744313881763336,
+            "rendered_fps": 24.860451510323,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 16.60000000002171,
+              "p95_abs_skew_ms": 59.80000000001873
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.25847421334011,
+            "changing_fps": 23.510083778486845,
+            "rendered_fps": 25.64281993982371,
+            "motion_sample_pixels": [
+              128,
+              72
+            ],
+            "identity_sample_pixels": [
+              8,
+              8
+            ],
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 19.999999999999574,
+              "p95_abs_skew_ms": 52.299999999988245
+            },
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ],
+        "original_ice_steps": 4,
+        "decoded_recoveries": 8,
+        "maximum_recovery_seconds": 0.8306000000000058,
+        "original_peers_and_workers_unchanged": true,
+        "allocation_successes": 10,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 0.9103701779999938,
+        "turn_passed": true,
+        "original_turn_joined": true,
+        "turn_exit_code": 0,
+        "owned_turn_removed": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true
+      }
+    ],
+    "passed": false,
+    "result": "All4actual distinct-network relay cases prove exact nominated duplex relay paths, source audio/video identity, normal CA, AV sync and32fresh ICE decoded recoveries within.251\u2013.831s. Every daemon observes10allocations and drains tozero without forced cleanup. All4profiles still fail strict24changing-fps with22.744\u201323.791observed; UDP/EdDSA also lacks the final normal server witness. No whole-profile, full-task or acceptance pass.",
+    "superseded_unrun": {
+      "run_id": 41104221649,
+      "source": "76f6d43d",
+      "status": "completed/cancelled before a job started; replaced by current-source independently isolated work-branch run"
+    }
+  },
+  "retirement_diagnostic_followup": "Retain the joined server exit code and at most8known source panic locations before checking its normal witness. Missing witnesses still fail; no raw log, private operation ID or transport address enters the summary."
 }

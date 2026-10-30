@@ -403,5 +403,711 @@
     "passed": true,
     "linux_execution": "not yet run",
     "limitation": "Counters show aggregate transport observations; they do not by themselves identify a failure cause or prove independent decoded media."
+  },
+  "linux_full_followup": {
+    "run_id": 41101375461,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41101375461",
+    "revision": "94da15a6d906e0d5c7120073fa42f3695478b270",
+    "artifact_id": 13002555819,
+    "zip_sha256": "780f1e7e0582d2471d179566a7744b6d39befcfe2c76c4462ef81717736aea28",
+    "git_sources_verified": 2856,
+    "prepared_dependencies_verified": 3087,
+    "dependency_differences": [],
+    "producer_all_runtime_libraries_opt3": true,
+    "producer_seconds": 1707.094942209,
+    "profiles": [
+      {
+        "name": "native-ice",
+        "passed": true,
+        "seconds": 8.930942651999885,
+        "observations": []
+      },
+      {
+        "name": "baseline",
+        "passed": false,
+        "seconds": 66.98191008700019,
+        "observations": [
+          {
+            "decoded_fps": 29.95578271171241,
+            "changing_fps": 22.358543047340408,
+            "source_draw_fps": 30.305655590992696,
+            "encoded_fps": 30.00576455160959,
+            "lost": 0,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.95678083604625,
+            "changing_fps": 22.692511400831474,
+            "source_draw_fps": 30.306665373063478,
+            "encoded_fps": 30.006764341334424,
+            "lost": 0,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ice-eddsa",
+        "passed": false,
+        "seconds": 71.53889702299989,
+        "observations": [
+          {
+            "decoded_fps": 29.626074976608127,
+            "changing_fps": 23.027691573494057,
+            "source_draw_fps": 30.29257835066005,
+            "encoded_fps": 29.992651832336687,
+            "lost": 1,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.84214168831689,
+            "changing_fps": 22.793997671478227,
+            "source_draw_fps": 30.29202322130659,
+            "encoded_fps": 29.992102199313457,
+            "lost": 1,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ]
+      },
+      {
+        "name": "ice-es256",
+        "passed": false,
+        "seconds": 71.0449939079997,
+        "observations": [
+          {
+            "decoded_fps": 29.974590782469775,
+            "changing_fps": 22.99329365192234,
+            "source_draw_fps": 30.30782692235271,
+            "encoded_fps": 30.00791439645807,
+            "lost": 0,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "decoded_fps": 29.958877256486232,
+            "changing_fps": 22.710761791207304,
+            "source_draw_fps": 30.308786278947974,
+            "encoded_fps": 30.008864259695052,
+            "lost": 0,
+            "audio": "passed",
+            "audio_bad_samples": 0,
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ]
+      },
+      {
+        "name": "unreachable-eddsa",
+        "passed": true,
+        "seconds": 17.860766288999912,
+        "observations": []
+      },
+      {
+        "name": "unreachable-es256",
+        "passed": true,
+        "seconds": 17.954855246999614,
+        "observations": []
+      },
+      {
+        "name": "impairment-eddsa",
+        "passed": false,
+        "seconds": 67.90806704400029,
+        "observations": []
+      },
+      {
+        "name": "impairment-es256",
+        "passed": false,
+        "seconds": 67.81221511899957,
+        "observations": []
+      }
+    ],
+    "passed": false,
+    "result": "Current normal and ICE scenes decode29.626\u201329.975fps with0\u20131lostpackets and0bad audio samples; nativeICE2 and bothunreachableTURN cases pass. Clean changing22.359\u201323.028fps remains below24, and bothfault scenes fail audio/motion checks. Same-source direct bridges have clean audio/identity/motion but changing22.257\u201323.436fps fails. Relay attempts here predate the scope fix and fail before allocation; use current93relay evidence separately. No whole Linux profile or causal performance claim."
+  },
+  "linux_rtp_feedback_followup": {
+    "run_id": 41106763766,
+    "revision": "93a8b8d453862393b91628eb4f539f43aef42c55",
+    "artifact_id": 13003415342,
+    "zip_sha256": "039aeed4f63a7cca9e772610d0c4c61096df506db3336c8771ecee59dd4bad44",
+    "git_sources_verified": 2858,
+    "prepared_dependencies_verified": 3087,
+    "dependency_differences": [],
+    "observations": [
+      {
+        "decoded_fps": 4.365546164022395,
+        "changing_fps": 3.9156616356689424,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1100001335144043,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 42.47950005531311,
+              "rms": 0.0005061605634435484,
+              "frequency_hz": 0,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "rtp_feedback": {
+          "before": [
+            [
+              {
+                "type": "inbound-rtp",
+                "kind": "audio",
+                "packetsReceived": 88,
+                "bytesReceived": 9214,
+                "totalSamplesReceived": 100320,
+                "totalAudioEnergy": 0,
+                "totalSamplesDuration": 2.1199999999999988,
+                "audioLevel": 0,
+                "packetsLost": 0,
+                "concealedSamples": 19557,
+                "silentConcealedSamples": 0,
+                "concealmentEvents": 12,
+                "jitterBufferDelay": 4435.2,
+                "jitterBufferEmittedCount": 79680
+              },
+              {
+                "type": "inbound-rtp",
+                "kind": "video",
+                "packetsReceived": 113,
+                "bytesReceived": 82472,
+                "framesDecoded": 27,
+                "framesReceived": 18,
+                "framesDropped": 31,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "packetsLost": 5,
+                "nackCount": 27,
+                "pliCount": 2,
+                "firCount": 0,
+                "jitterBufferDelay": 2.1345099999999997,
+                "jitterBufferEmittedCount": 27
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "audio",
+                "packetsSent": 138,
+                "bytesSent": 10991,
+                "nackCount": 0,
+                "retransmittedPacketsSent": 0,
+                "retransmittedBytesSent": 0
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "video",
+                "packetsSent": 456,
+                "bytesSent": 401833,
+                "framesEncoded": 119,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "nackCount": 20,
+                "pliCount": 0,
+                "firCount": 0,
+                "retransmittedPacketsSent": 44,
+                "retransmittedBytesSent": 36263
+              },
+              {
+                "type": "media-source",
+                "kind": "audio",
+                "totalAudioEnergy": 0.4480512605974105,
+                "totalSamplesDuration": 2.769999999999985,
+                "audioLevel": 0.0499893185216834
+              },
+              {
+                "type": "media-source",
+                "kind": "video"
+              }
+            ]
+          ],
+          "after": [
+            [
+              {
+                "type": "inbound-rtp",
+                "kind": "audio",
+                "packetsReceived": 2306,
+                "bytesReceived": 241150,
+                "totalSamplesReceived": 2981760,
+                "totalAudioEnergy": 0,
+                "totalSamplesDuration": 62.149999999996204,
+                "audioLevel": 0,
+                "packetsLost": 68,
+                "concealedSamples": 734179,
+                "silentConcealedSamples": 142664,
+                "concealmentEvents": 358,
+                "jitterBufferDelay": 152102.4,
+                "jitterBufferEmittedCount": 2210880
+              },
+              {
+                "type": "inbound-rtp",
+                "kind": "video",
+                "packetsReceived": 676,
+                "bytesReceived": 430689,
+                "framesDecoded": 289,
+                "framesReceived": 246,
+                "framesDropped": 162,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "packetsLost": 45,
+                "nackCount": 234,
+                "pliCount": 3,
+                "firCount": 0,
+                "jitterBufferDelay": 34.365296,
+                "jitterBufferEmittedCount": 289
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "audio",
+                "packetsSent": 3140,
+                "bytesSent": 254166,
+                "nackCount": 0,
+                "retransmittedPacketsSent": 0,
+                "retransmittedBytesSent": 0
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "video",
+                "packetsSent": 2591,
+                "bytesSent": 1731343,
+                "framesEncoded": 1073,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "nackCount": 468,
+                "pliCount": 0,
+                "firCount": 0,
+                "retransmittedPacketsSent": 376,
+                "retransmittedBytesSent": 285787
+              },
+              {
+                "type": "media-source",
+                "kind": "audio",
+                "totalAudioEnergy": 9.431752401444095,
+                "totalSamplesDuration": 62.80999999999607,
+                "audioLevel": 0.7000030518509476
+              },
+              {
+                "type": "media-source",
+                "kind": "video"
+              }
+            ]
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 2.6001999378204346,
+        "motion": "failed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793384845.2952654,
+              "end_unix_seconds": 1793384848.2983806,
+              "duration_seconds": 3.003114929999981
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793384848.2831001,
+              "sampled_interval_end_unix_seconds": 1793384849.2833998,
+              "before": 20,
+              "after": 21,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 0.9019193649291992,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      },
+      {
+        "decoded_fps": 8.564368571119028,
+        "changing_fps": 7.464663657317752,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1101999282836914,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 57.079699993133545,
+              "rms": 0.2137378869091178,
+              "frequency_hz": 387.59765625,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "rtp_feedback": {
+          "before": [
+            [
+              {
+                "type": "inbound-rtp",
+                "kind": "audio",
+                "packetsReceived": 73,
+                "bytesReceived": 7939,
+                "totalSamplesReceived": 101760,
+                "totalAudioEnergy": 0,
+                "totalSamplesDuration": 2.1199999999999988,
+                "audioLevel": 0,
+                "packetsLost": 2,
+                "concealedSamples": 31803,
+                "silentConcealedSamples": 0,
+                "concealmentEvents": 17,
+                "jitterBufferDelay": 4204.8,
+                "jitterBufferEmittedCount": 70080
+              },
+              {
+                "type": "inbound-rtp",
+                "kind": "video",
+                "packetsReceived": 181,
+                "bytesReceived": 158378,
+                "framesDecoded": 13,
+                "framesReceived": 9,
+                "framesDropped": 28,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "packetsLost": 10,
+                "nackCount": 56,
+                "pliCount": 3,
+                "firCount": 0,
+                "jitterBufferDelay": 0.836359,
+                "jitterBufferEmittedCount": 13
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "audio",
+                "packetsSent": 138,
+                "bytesSent": 11112,
+                "nackCount": 0,
+                "retransmittedPacketsSent": 0,
+                "retransmittedBytesSent": 0
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "video",
+                "packetsSent": 300,
+                "bytesSent": 177321,
+                "framesEncoded": 117,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "nackCount": 19,
+                "pliCount": 0,
+                "firCount": 0,
+                "retransmittedPacketsSent": 38,
+                "retransmittedBytesSent": 26005
+              },
+              {
+                "type": "media-source",
+                "kind": "audio",
+                "totalAudioEnergy": 0.4480262712777479,
+                "totalSamplesDuration": 2.759999999999985,
+                "audioLevel": 0.0499893185216834
+              },
+              {
+                "type": "media-source",
+                "kind": "video"
+              }
+            ]
+          ],
+          "after": [
+            [
+              {
+                "type": "inbound-rtp",
+                "kind": "audio",
+                "packetsReceived": 2310,
+                "bytesReceived": 228019,
+                "totalSamplesReceived": 2983200,
+                "totalAudioEnergy": 0,
+                "totalSamplesDuration": 62.149999999996204,
+                "audioLevel": 0,
+                "packetsLost": 85,
+                "concealedSamples": 741551,
+                "silentConcealedSamples": 132476,
+                "concealmentEvents": 370,
+                "jitterBufferDelay": 170649.6,
+                "jitterBufferEmittedCount": 2214720
+              },
+              {
+                "type": "inbound-rtp",
+                "kind": "video",
+                "packetsReceived": 1784,
+                "bytesReceived": 1369198,
+                "framesDecoded": 527,
+                "framesReceived": 397,
+                "framesDropped": 367,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "packetsLost": 124,
+                "nackCount": 655,
+                "pliCount": 4,
+                "firCount": 0,
+                "jitterBufferDelay": 62.637971,
+                "jitterBufferEmittedCount": 527
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "audio",
+                "packetsSent": 3139,
+                "bytesSent": 249830,
+                "nackCount": 0,
+                "retransmittedPacketsSent": 0,
+                "retransmittedBytesSent": 0
+              },
+              {
+                "type": "outbound-rtp",
+                "kind": "video",
+                "packetsSent": 1194,
+                "bytesSent": 588718,
+                "framesEncoded": 575,
+                "frameWidth": 640,
+                "frameHeight": 360,
+                "nackCount": 386,
+                "pliCount": 0,
+                "firCount": 0,
+                "retransmittedPacketsSent": 146,
+                "retransmittedBytesSent": 93119
+              },
+              {
+                "type": "media-source",
+                "kind": "audio",
+                "totalAudioEnergy": 9.554993195839659,
+                "totalSamplesDuration": 62.78999999999608,
+                "audioLevel": 0.7000030518509476
+              },
+              {
+                "type": "media-source",
+                "kind": "video"
+              }
+            ]
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 2.15120005607605,
+        "motion": "failed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793384845.2952654,
+              "end_unix_seconds": 1793384848.2983806,
+              "duration_seconds": 3.003114929999981
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793384848.2832,
+              "sampled_interval_end_unix_seconds": 1793384849.2845,
+              "before": 23,
+              "after": 24,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 0.8857195377349854,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      }
+    ],
+    "passed": false,
+    "result": "Measured audio concealment and video NACK/retransmission counters are present. Each audio receiver retains one outside-burst invalid sample; both video freshness maxima exceed2seconds. These observations do not identify a single cause. No repair/authorization/threshold changes have been made."
+  },
+  "canonical_health_counter_wiring": {
+    "problem": "Canonical server startup installs a separate Core but omitted the numeric media snapshot provider registered by the older runtime.",
+    "controlled_before": {
+      "producer": 38,
+      "producer_passed": true,
+      "source_inputs": 5934,
+      "sources_unchanged": true,
+      "execution": {
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 67.67967483401299,
+        "log_sha256": "04e371ffee0f734e9a949cc061b21becf5e68afda8f908518da48ceafbfb6c76"
+      },
+      "passed": false,
+      "failure": "canonical runtime media diagnostics absent",
+      "independent_decoded_media": [
+        {
+          "decoded_fps": 29.98003545871733,
+          "changing_fps": 26.13045892121666,
+          "rendered_fps": 28.18023344118455,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        },
+        {
+          "decoded_fps": 29.980185427587276,
+          "changing_fps": 26.48055288740199,
+          "rendered_fps": 28.48034291036501,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        }
+      ],
+      "summary_sha256": "d2ffab4a211c9bccaf4c05ff15a2698cbb8298877ccf809ddeaf85826b3e3ae7"
+    },
+    "change": "Expose the exact installed canonical Core counter source to trusted server composition and register the existing bounded numeric mapper with OperationalReadiness. Retain the mapped snapshot in browser fixture outputs and bridge retirement witnesses.",
+    "limits": "This does not change HTTP response formats, authority, capture or acceptance. Empty or absent metric observations must remain unmeasured; connecting the provider does not prove every canonical staged path has instrumentation.",
+    "current_after": {
+      "producer": 39,
+      "producer_passed": true,
+      "build_seconds": 702.024639,
+      "binary_sha256": "478c740b35b9f4c503093567bc00c433faf8517a2aec02e4e18fa26adb2303ca",
+      "source_manifest_sha256": "66cc627336ff3146bc9f422250f2adf43ce1916b5c123d1a12dc163fc6db040b",
+      "source_inputs": 5934,
+      "sources_unchanged": true,
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 67.50343866716139,
+        "log_sha256": "c7868be3c8e0cff1b8d79fdcd25ce2ea66bb23e4abaa37b97cd698dd797a13c3"
+      },
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.51312509034235,
+          "changing_fps": 25.99688037319823,
+          "rendered_fps": 28.02996973571758,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        },
+        {
+          "decoded_fps": 29.92979170772527,
+          "changing_fps": 26.496864596482837,
+          "rendered_fps": 28.5132926569699,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        }
+      ],
+      "health_snapshot": {
+        "present": true,
+        "scope": "server-process",
+        "queue_stages": 0,
+        "forwarding_stages": 0,
+        "webrtc_video_input_present": false
+      },
+      "limitation": "Mapped snapshot present, but queue/forwarding arrays empty and no WebRTC-input observations. These canonical staged paths remain unmeasured by the older collectors; this is not zero-loss/zero-latency evidence.",
+      "summary_sha256": "81206818ed0b1ed11733111eea163e516369419a541d4776d390dce754fb9ac7"
+    },
+    "full_task_qualified": false
   }
 }

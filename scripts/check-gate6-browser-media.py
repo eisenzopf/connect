@@ -249,7 +249,7 @@ def runtime(component=None):
                 if line.startswith('rtc-ice-worker-failure ')]
             assert len(step['rtc_ice_worker_failures']) <= 16
             for filename in ['browser-result.jsonl', 'browser-profile.json', 'ownership.json', 'ice-restart-oracle.json',
-                             'unreachable-relay-oracle.json', 'unreachable-turn.json']:
+                             'unreachable-relay-oracle.json', 'unreachable-turn.json', 'media-diagnostics.json']:
                 path = directory / filename
                 if path.is_file() and path.stat().st_size:
                     value = json.loads(path.read_text())

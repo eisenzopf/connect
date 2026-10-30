@@ -1001,6 +1001,18 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         f.server.websocket_address.unwrap(),
         f.server.http_address.unwrap(),
     ];
+    let media_diagnostics = f
+        .server
+        .service
+        .readiness
+        .snapshot()
+        .media
+        .expect("canonical runtime media diagnostics");
+    std::fs::write(
+        output.join("media-diagnostics.json"),
+        serde_json::to_vec(&media_diagnostics).unwrap(),
+    )
+    .unwrap();
     f.server.shutdown().await.unwrap();
     let udp = std::net::UdpSocket::bind(addresses[0]).unwrap();
     let tcp = std::net::TcpListener::bind(addresses[1]).unwrap();

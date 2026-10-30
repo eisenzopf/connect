@@ -121,6 +121,9 @@ async def run(args):
         report['panic_locations']=[dict(file=name,line=int(line),column=int(column))
             for name,line,column in re.findall(r'panicked at (crates/[A-Za-z0-9_/.-]+\.rs):(\d+):(\d+)',raw)[:8]]
         result_path=browser/'browser-result.jsonl'
+        diagnostics_path=browser/'media-diagnostics.json'
+        if diagnostics_path.is_file():
+            report['server_media_diagnostics']=json.loads(diagnostics_path.read_text())
         if result_path.is_file():
             value=json.loads(result_path.read_text())
             states=runpy.run_path(str(ROOT/'scripts/check-gate6-browser-media.py'))['browser_participation_states']

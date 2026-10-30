@@ -358,6 +358,12 @@ impl RunningCanonicalServer {
         let service = Service::with_runtime(store.clone(), runtime);
         service.install_canonical_assurance(config.user_assurance.clone())?;
         service.install_canonical_runtime()?;
+        let media_diagnostics = service
+            .canonical_runtime_media_diagnostics()
+            .context("Canonical Core media diagnostics unavailable")?;
+        service.readiness.set_media_snapshot(Arc::new(move || {
+            crate::media_diagnostics::snapshot(media_diagnostics.snapshot())
+        }));
         if let Some(host) = &webrtc_host {
             service.install_canonical_webrtc(host.clone())?;
         }

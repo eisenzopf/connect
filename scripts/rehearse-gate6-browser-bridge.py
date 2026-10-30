@@ -191,12 +191,16 @@ def main():
             (fixture/'done').touch()
             stage = 'server-retirement'
             server_exit = server.wait(timeout=20)
+            report.update(server_exit_code=server_exit, original_server_joined=True,
+                original_container_joined=browser.poll() is not None)
             text = (fixture/'server.log').read_text(errors='replace')
+            report['server_panic_locations'] = [dict(file=name,line=int(line),column=int(column))
+                for name,line,column in re.findall(
+                    r'panicked at (crates/[A-Za-z0-9_/.-]+\.rs):(\d+):(\d+)',text)[:8]]
             witnesses = [json.loads(line.split('remote-browser-server-witness ',1)[1]) for line in text.splitlines()
                 if 'remote-browser-server-witness ' in line]
             assert len(witnesses) == 1
-            report.update(server_exit_code=server_exit, server_witness=witnesses[0],
-                original_server_joined=True, original_container_joined=browser.poll() is not None)
+            report['server_witness'] = witnesses[0]
             report['passed'] = browser_exit == server_exit == 0 and browser_summary['passed'] and audio_summary['passed']
             report['passed'] = report['passed'] and report['different_network_namespaces']
     except Exception as error:
