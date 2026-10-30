@@ -1,0 +1,1032 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "passed": false,
+  "actual_browser_restart_qualified": false,
+  "acceptance_qualified": false,
+  "base_revision": "b21c568d100dcc64341aa993940adf4d01f69f2d",
+  "checked_at": "2026-10-30T10:21:12.966755+00:00",
+  "implementation": {
+    "browser_video": "Public BrowserVideoSession restartIce/savedIceRestart delegates to its original audio/video owner; frozen SDK contract revision5.",
+    "gathering": "Install gathering listener before setLocalDescription and require a fresh gathering-to-complete cycle after application. A latched previous complete state cannot send the restart. Original preparation remains once-owned through observer timeout/cancellation.",
+    "fixture": "Two original synthetic canvas/audio browser participants, two planned generations each, discarded original replies and ownership/Worker observations, followed by the unchanged clean60second AV profile. Uses public client APIs; raw private diagnostic SDP is written only under ignored .local.",
+    "trust": "Exact normal private-profile helper pin updated to installed Chrome156.0.8078.48 after independent untrusted/trusted HTTPS proof. No system/personal profile trust or certificate bypass."
+  },
+  "verification": {
+    "sdk_component_passed": true,
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.12543,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/dependencies.log",
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 2.680329,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/format.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "envelope",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-gate6-schemas.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.035723,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/envelope.log",
+        "log_sha256": "79927eef239ca53c8a837d16ab000ebaa535e295a67a6fd6d0f9bf9480829bbd"
+      },
+      {
+        "name": "browser-schema",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-browser-canonical.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.121046,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/browser-schema.log",
+        "log_sha256": "a56b27ba417e8145cba581792900228df7ddf76c816ba6acccca2dab91bd8da5"
+      },
+      {
+        "name": "http-reference",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.031961,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/http-reference.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "transport-only-sdp",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "transport_restart",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 0.493578,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/transport-only-sdp.log",
+        "log_sha256": "d00902e284d3dfe819c8e07ff9b2182ded15284724222906ba04eb8c4fece6e5"
+      },
+      {
+        "name": "live-ice-generation",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "ice_generation_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 3,
+        "actual_tests": 3,
+        "seconds": 0.435251,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/live-ice-generation.log",
+        "log_sha256": "64268e46533948419856e95b8088e4a9d5d7b540ae7e2be68806a45e94f4282f"
+      },
+      {
+        "name": "protocol",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-protocol",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 64,
+        "actual_tests": 64,
+        "seconds": 0.243284,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/protocol.log",
+        "log_sha256": "a9900e8b5e1f77a5a0a4ad7a41aeef93999d3c1100e1bccefbfd98c04eb82e2c"
+      },
+      {
+        "name": "protocol-schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-protocol",
+          "--features",
+          "schema",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 65,
+        "actual_tests": 65,
+        "seconds": 0.210934,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/protocol-schema.log",
+        "log_sha256": "049f94bce5efc6c44578c353f41cbfab4208ebe9758950e1f8830736603e6685"
+      },
+      {
+        "name": "sdk-receipts",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-client",
+          "--lib",
+          "ice_receipt_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 0.302052,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/sdk-receipts.log",
+        "log_sha256": "d610b0e450f2c215b37e2ae35b0b623351614c17de878a500c205e3cefaaedba"
+      },
+      {
+        "name": "sdk-oracle",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-client",
+          "--test",
+          "gate6_browser_canonical",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 1,
+        "actual_tests": 1,
+        "seconds": 0.273782,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/sdk-oracle.log",
+        "log_sha256": "556d01309f37757862511f29ee99eab5b40b66892d5a3ba5f901c9779fe34ee1"
+      },
+      {
+        "name": "store-original-custody",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-store",
+          "--lib",
+          "connection_control::tests::native_wire::webrtc_ice",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 13,
+        "actual_tests": 13,
+        "seconds": 5.710518,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/store-original-custody.log",
+        "log_sha256": "530fb3a635c0064d05eb99aed9b81e2ee1f99fe5bde5556a7eaab9a0052defb6"
+      },
+      {
+        "name": "signed-rtc",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_webtransport",
+          "signed_rtc_ice_restart",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 13.631598,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/signed-rtc.log",
+        "log_sha256": "c31400445abcfab2f2c02713f08f9c2b4b463d08b3a27bb9adcd8f4b99f63493"
+      },
+      {
+        "name": "typescript",
+        "command": [
+          "sdk/typescript/node_modules/.bin/tsc",
+          "-p",
+          "sdk/typescript/tsconfig.json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.247804,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/typescript.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "sdk-components",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/browser_webrtc_restart.test.mjs",
+          "sdk/tests/browser_webrtc_signaling.test.mjs",
+          "sdk/tests/browser_sdk_webrtc.test.mjs",
+          "sdk/tests/browser_voice.test.mjs",
+          "sdk/tests/browser_sdk_streams.test.mjs",
+          "sdk/tests/node_connections.test.mjs",
+          "sdk/tests/browser_canonical.test.mjs"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.485491,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/sdk-components.log",
+        "log_sha256": "e8451ec15bc65e928d8eb03f0fd72402abc2e74ebf6178053fefd4f9919cde6b"
+      },
+      {
+        "name": "python-receipts",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "-m",
+          "unittest",
+          "test_python_connections"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.667587,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/python-receipts.log",
+        "log_sha256": "381394e30a4d59e65266db62adacddd49513fa92c005c8b2545361ccef2b301b"
+      },
+      {
+        "name": "contracts",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-contracts.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-07/contracts.json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.30793,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/contracts.log",
+        "log_sha256": "17d76379b9e47c89912878d0d4aa36b46eae24597642006707eeaee46a0cbadb"
+      },
+      {
+        "name": "sdk-contract",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-sdk-contract.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-07/sdk-contract"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.181445,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/sdk-contract.log",
+        "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+      },
+      {
+        "name": "sdk-outlines",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-sdk-outlines.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-07/sdk-outlines"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 3.946024,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/sdk-outlines.log",
+        "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+      },
+      {
+        "name": "diff",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.051335,
+        "log": ".local/gate-6/ice-dispatch/frozen-07/diff.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "guarded_inputs": 5905,
+    "sources_unchanged": true,
+    "source_manifest": ".local/gate-6/ice-dispatch/frozen-07/inputs-before.json",
+    "source_manifest_sha256": "1cc0cc00e20551cd14f13f8595359e0a69075e749ce741bf6ead76798158ed76",
+    "summary_sha256": "eda3b9d303a82bdc4f43f0db00b05a8ba6f5c55d412dc17daa1589d1c7cf3a0c",
+    "typescript_functions": 125,
+    "python_functions": 12,
+    "fresh_gathering_regression": "A prior complete state cannot send; delayed fresh gathering starts, remains unsent until complete, then exactly one gathered immutable original request is sent.",
+    "normal_trust_probe": {
+      "passed": true,
+      "browser": "156.0.8078.48",
+      "schema": [
+        [
+          "certificates",
+          "CREATE TABLE certificates(sha256hash_hex TEXT PRIMARY KEY,\n                    der_cert BLOB NOT NULL,trust_settings BLOB NOT NULL)"
+        ],
+        [
+          "meta",
+          "CREATE TABLE meta(key LONGVARCHAR NOT NULL UNIQUE PRIMARY KEY,value LONGVARCHAR)"
+        ]
+      ],
+      "metadata": [
+        [
+          "last_compatible_version",
+          "1"
+        ],
+        [
+          "mmap_status",
+          "-1"
+        ],
+        [
+          "version",
+          "1"
+        ]
+      ],
+      "original_root_retained": true,
+      "trust_proto_hex": "0a020803",
+      "normal_tls": {
+        "passed": true,
+        "results": [
+          {
+            "trusted": false,
+            "refused": true,
+            "error": "ERR_CERT_AUTHORITY_INVALID"
+          },
+          {
+            "trusted": true,
+            "refused": false,
+            "status": 200
+          }
+        ],
+        "normal_certificate_verification": true,
+        "original_contexts_joined": 2
+      },
+      "server_joined": true,
+      "helper_input_sha256": "b222950c9d4166158300ab3a5142d0c9b5b71fb4375ff1c736fb2084631e8627"
+    },
+    "normal_trust_probe_sha256": "3f04c8cabf80bb694d6338ed496598ca55df4d13f055c64e7c1b6797908e4919"
+  },
+  "actual_browser": {
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "profiles": [
+      {
+        "profile": 1,
+        "passed": false,
+        "guarded_inputs": 5925,
+        "sources_unchanged": true,
+        "summary": ".local/gate-6/ice-browser/profile-01/summary.json",
+        "summary_sha256": "bb984bd3d67823fd673bcb81226389681029b7757415afe1d9c044ab37a5c0ff",
+        "results": [
+          {
+            "algorithm": "eddsa",
+            "passed": false,
+            "artifacts_sha256": {
+              "eddsa/trust-import.log": "fa3ab333df059f01607cfb4ca70b1dd0d44bf4d7830e54979400980948a42a0d"
+            }
+          },
+          {
+            "algorithm": "es256",
+            "passed": false,
+            "artifacts_sha256": {
+              "es256/trust-import.log": "fa3ab333df059f01607cfb4ca70b1dd0d44bf4d7830e54979400980948a42a0d"
+            }
+          }
+        ],
+        "steps": [
+          {
+            "name": "dependencies",
+            "command": [
+              "bash",
+              "scripts/prepare-dependencies.sh"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.130423,
+            "log": ".local/gate-6/ice-browser/profile-01/dependencies.log",
+            "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+          },
+          {
+            "name": "format",
+            "command": [
+              "bash",
+              "scripts/format.sh",
+              "--check"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 2.670407,
+            "log": ".local/gate-6/ice-browser/profile-01/format.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "sdk-build",
+            "command": [
+              "sdk/typescript/node_modules/.bin/tsc",
+              "-p",
+              "sdk/typescript/tsconfig.json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.242197,
+            "log": ".local/gate-6/ice-browser/profile-01/sdk-build.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "build",
+            "command": [
+              "cargo",
+              "test",
+              "--offline",
+              "--locked",
+              "-j1",
+              "-p",
+              "connect-server",
+              "--features",
+              "test-support",
+              "--test",
+              "gate6_canonical_webtransport",
+              "--no-run",
+              "--message-format=json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 9.259603,
+            "log": ".local/gate-6/ice-browser/profile-01/build.log",
+            "log_sha256": "44114269bfbe19b049e90e0c2bdf7d86656cfeba5d9dbe67bf11b8c5b92e4169"
+          },
+          {
+            "name": "eddsa",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 3.989257,
+            "log": ".local/gate-6/ice-browser/profile-01/eddsa.log",
+            "log_sha256": "c398221343a28b0d96f7fca563840862b6e118193b5ded70ab8e71e701007fa6"
+          },
+          {
+            "name": "es256",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 0.61489,
+            "log": ".local/gate-6/ice-browser/profile-01/es256.log",
+            "log_sha256": "c27e290098ab09a61036e6f2b7a7cb3a5017b6467c8df3d2c50888bdb25ebae2"
+          }
+        ]
+      },
+      {
+        "profile": 2,
+        "passed": false,
+        "guarded_inputs": 5925,
+        "sources_unchanged": true,
+        "summary": ".local/gate-6/ice-browser/profile-02/summary.json",
+        "summary_sha256": "dc565aa3891a5bbf895ac612e0cba14f1604ca5740c0e5975e32bff8bd4a399b",
+        "results": [
+          {
+            "algorithm": "eddsa",
+            "passed": false,
+            "artifacts_sha256": {
+              "eddsa/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "eddsa/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "eddsa/trust-import.json": "82a85b69275d70afced156e6581d39701cf2d454382893370fb7d2ccc9fe1a57",
+              "eddsa/runner.log": "92a9e143f35169ccf3fda5957a8ba32c34b81d586090c1b48a8b280cdb92a8bb",
+              "eddsa/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "eddsa/chrome.log": "64900fd58068d266c247e396695938c30495581f0de8fac6b8313b853eae8e57",
+              "eddsa/browser-result.jsonl": "9364c839164e0a2c2a10ed69f82b95ce202f1a868d0192145709776fe57c04cf",
+              "eddsa/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "eddsa/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          },
+          {
+            "algorithm": "es256",
+            "passed": false,
+            "artifacts_sha256": {
+              "es256/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "es256/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "es256/trust-import.json": "95d58a00e9c2e760e0ca5ca3f6d25ae8aa4686aeee4e8a25f3e86022e37e13f3",
+              "es256/runner.log": "18f0583fb3e05ddd353622c8e0126b527b7375d4cfbac83f756dc9d6a296e255",
+              "es256/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "es256/chrome.log": "0b6fd69e82785e9353570cb2d80984a490574633ef4238322ff657ab724a3c90",
+              "es256/browser-result.jsonl": "6b668c7e85b4caa72fc77e5254b5f238820dcaf68d19903b1713dcc42f129d39",
+              "es256/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "es256/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          }
+        ],
+        "steps": [
+          {
+            "name": "dependencies",
+            "command": [
+              "bash",
+              "scripts/prepare-dependencies.sh"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.124977,
+            "log": ".local/gate-6/ice-browser/profile-02/dependencies.log",
+            "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+          },
+          {
+            "name": "format",
+            "command": [
+              "bash",
+              "scripts/format.sh",
+              "--check"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 2.66815,
+            "log": ".local/gate-6/ice-browser/profile-02/format.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "sdk-build",
+            "command": [
+              "sdk/typescript/node_modules/.bin/tsc",
+              "-p",
+              "sdk/typescript/tsconfig.json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.244685,
+            "log": ".local/gate-6/ice-browser/profile-02/sdk-build.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "build",
+            "command": [
+              "cargo",
+              "test",
+              "--offline",
+              "--locked",
+              "-j1",
+              "-p",
+              "connect-server",
+              "--features",
+              "test-support",
+              "--test",
+              "gate6_canonical_webtransport",
+              "--no-run",
+              "--message-format=json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.238009,
+            "log": ".local/gate-6/ice-browser/profile-02/build.log",
+            "log_sha256": "ccd3c3df502969c1c620efb92b605c2da0d9a65962bb877f850fe18039ae216f"
+          },
+          {
+            "name": "eddsa",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 6.06868,
+            "log": ".local/gate-6/ice-browser/profile-02/eddsa.log",
+            "log_sha256": "fc4c4e481cec9d56be88e9461f04437086e7c128e20a8818c8f9dcfdf0b674c2"
+          },
+          {
+            "name": "es256",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 5.946237,
+            "log": ".local/gate-6/ice-browser/profile-02/es256.log",
+            "log_sha256": "054576f900e9259709c6d46c2e819646e170377e320563c365cc7c157fe286b9"
+          }
+        ]
+      },
+      {
+        "profile": 3,
+        "passed": false,
+        "guarded_inputs": 5925,
+        "sources_unchanged": true,
+        "summary": ".local/gate-6/ice-browser/profile-03/summary.json",
+        "summary_sha256": "6ae8d7e1479358a71077514a727e5fb437a1490676e1a85c630e76f6a206b8b6",
+        "results": [
+          {
+            "algorithm": "eddsa",
+            "passed": false,
+            "artifacts_sha256": {
+              "eddsa/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "eddsa/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "eddsa/trust-import.json": "134616ccffc43aa591accb41462dcf327f39ebcaf1f3d4c85a180bb0bc78b12b",
+              "eddsa/runner.log": "70f11749e9ff5f949f844f424a8c96c4d32e96f2a0c457a7d9b4b52319071a6e",
+              "eddsa/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "eddsa/chrome.log": "9e6ff384976265f3152774d79aec2e6855ad21844419d44bc1d4789ec0294ce4",
+              "eddsa/ice-descriptions-private.json": "9a8b205781de545cfe1756856581fbe7f2e995479eab64e0223155eb95cab4f5",
+              "eddsa/browser-result.jsonl": "2babbec1ddab1fe4a4a0babfee3a49f3335911c45578dcdaf7c8d6fa57346844",
+              "eddsa/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "eddsa/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          },
+          {
+            "algorithm": "es256",
+            "passed": false,
+            "artifacts_sha256": {
+              "es256/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "es256/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "es256/trust-import.json": "c0abdf1cfaf4aa205d3d1a6f18a1e7cd9a99fb47ffc801c8ca636c27db5196f1",
+              "es256/runner.log": "239ed5c0f296d27618dd790e10d60d94d82c1a11ada011f18d22677f66f0e694",
+              "es256/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "es256/chrome.log": "e3c46bf810b2c0536b6c3175dad7b48927db8c8b75735d3a89675a31ef7963c3",
+              "es256/ice-descriptions-private.json": "1340417d4c32f91065b30b064a2411d880acf9cc5da2791ae3b46c0970d07016",
+              "es256/browser-result.jsonl": "f10a37dbe8f1c8beb5b109f0658d58393f768ebac5658032738f490b25880044",
+              "es256/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "es256/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          }
+        ],
+        "steps": [
+          {
+            "name": "dependencies",
+            "command": [
+              "bash",
+              "scripts/prepare-dependencies.sh"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.138678,
+            "log": ".local/gate-6/ice-browser/profile-03/dependencies.log",
+            "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+          },
+          {
+            "name": "format",
+            "command": [
+              "bash",
+              "scripts/format.sh",
+              "--check"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 2.684012,
+            "log": ".local/gate-6/ice-browser/profile-03/format.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "sdk-build",
+            "command": [
+              "sdk/typescript/node_modules/.bin/tsc",
+              "-p",
+              "sdk/typescript/tsconfig.json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.246185,
+            "log": ".local/gate-6/ice-browser/profile-03/sdk-build.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "build",
+            "command": [
+              "cargo",
+              "test",
+              "--offline",
+              "--locked",
+              "-j1",
+              "-p",
+              "connect-server",
+              "--features",
+              "test-support",
+              "--test",
+              "gate6_canonical_webtransport",
+              "--no-run",
+              "--message-format=json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.221123,
+            "log": ".local/gate-6/ice-browser/profile-03/build.log",
+            "log_sha256": "515ca37c33137a2fb44c84a10efc49c50916b773975a49873bebcd5e58a155d3"
+          },
+          {
+            "name": "eddsa",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 6.015261,
+            "log": ".local/gate-6/ice-browser/profile-03/eddsa.log",
+            "log_sha256": "2810cfdb3fb514bcea4e49919124867a069c4fa51e8b94fa1be067da2cdaba1b"
+          },
+          {
+            "name": "es256",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 5.961966,
+            "log": ".local/gate-6/ice-browser/profile-03/es256.log",
+            "log_sha256": "0ded7b3773914a445ac9aa9caef19dae778c0d76e4470a6f29fe80428685d322"
+          }
+        ]
+      },
+      {
+        "profile": 4,
+        "passed": false,
+        "guarded_inputs": 5925,
+        "sources_unchanged": true,
+        "summary": ".local/gate-6/ice-browser/profile-04/summary.json",
+        "summary_sha256": "fff47c15eec8a28926204641de2f5ac035ee7b6d6c5137573abf76a24ae7ebf0",
+        "results": [
+          {
+            "algorithm": "eddsa",
+            "passed": false,
+            "artifacts_sha256": {
+              "eddsa/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "eddsa/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "eddsa/trust-import.json": "8d0c0c490eb361e3d0c44b5de843a2bae2b8c39fba74e85ba245025f7868ab13",
+              "eddsa/runner.log": "5ef096d1f1a03307fa705f1ca46d0dcf280b9a676c71e49ffcd1e2c5f6f48b49",
+              "eddsa/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "eddsa/chrome.log": "4789289c1b9b6e6e947eb2ffdbf835131c92707e2ce70071b4a3a46de3533526",
+              "eddsa/ice-descriptions-private.json": "b0ce154adf2f54b9d0103d67b66958be28a21c5f06f63a5eff269e5c421a943e",
+              "eddsa/browser-result.jsonl": "619dbb6201897d07546984476e04a4eba38aaf54ec255953f3a5e143e854ca4a",
+              "eddsa/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "eddsa/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          },
+          {
+            "algorithm": "es256",
+            "passed": false,
+            "artifacts_sha256": {
+              "es256/browser-profile.json": "1936cfa17bab8628ed1872a87dbfb9ccea983d6917ee982504864215decc93b2",
+              "es256/ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+              "es256/trust-import.json": "a72df953f4e67ba1a59c19f3fed3faf5d11a73635c832c36752b423a7dea98eb",
+              "es256/runner.log": "7b97354ee5426356773d30df40369c72e31492c225408a92717ee6d7bbb3fc2b",
+              "es256/trust-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "es256/chrome.log": "6c19fd435c2526542d737ebea46d84efa0b75c6bc150ab02bc8b8cbc64245ca1",
+              "es256/ice-descriptions-private.json": "95acd99d40c529b94a66d77f918b95397dcd59d72d40443f7c85f511e5ca40b8",
+              "es256/browser-result.jsonl": "1526bfb0b47ebc0aeae504e11600a05ba7c1c725ba55df00e81d236e6ce96cd6",
+              "es256/stun.json": "308268fbb2ed1b68ac32a25bf8498d5b34cb4786c2339f17d5db9c24f4bc1ca8",
+              "es256/transport-switch.json": "a99d94a033e3f00057175a20175d8e3cbfd49762da01545d7bbc84db8fde09db"
+            }
+          }
+        ],
+        "steps": [
+          {
+            "name": "dependencies",
+            "command": [
+              "bash",
+              "scripts/prepare-dependencies.sh"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.142728,
+            "log": ".local/gate-6/ice-browser/profile-04/dependencies.log",
+            "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+          },
+          {
+            "name": "format",
+            "command": [
+              "bash",
+              "scripts/format.sh",
+              "--check"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 2.681888,
+            "log": ".local/gate-6/ice-browser/profile-04/format.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "sdk-build",
+            "command": [
+              "sdk/typescript/node_modules/.bin/tsc",
+              "-p",
+              "sdk/typescript/tsconfig.json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.24301,
+            "log": ".local/gate-6/ice-browser/profile-04/sdk-build.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "build",
+            "command": [
+              "cargo",
+              "test",
+              "--offline",
+              "--locked",
+              "-j1",
+              "-p",
+              "connect-server",
+              "--features",
+              "test-support",
+              "--test",
+              "gate6_canonical_webtransport",
+              "--no-run",
+              "--message-format=json"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "seconds": 0.222779,
+            "log": ".local/gate-6/ice-browser/profile-04/build.log",
+            "log_sha256": "440aa5ce95653262ede9fe9e0b1038dc2c67edb8d331be3292f3c106216c7332"
+          },
+          {
+            "name": "eddsa",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 6.028261,
+            "log": ".local/gate-6/ice-browser/profile-04/eddsa.log",
+            "log_sha256": "3cd6cc29be9a1ed715f39aa1cf1ca77368e873b9fb653f68228f43a8edbaf3e9"
+          },
+          {
+            "name": "es256",
+            "command": [
+              "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+              "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+              "--exact",
+              "--ignored",
+              "--test-threads=1"
+            ],
+            "exit_code": 101,
+            "passed": false,
+            "seconds": 6.208871,
+            "log": ".local/gate-6/ice-browser/profile-04/es256.log",
+            "log_sha256": "dcc0a3093d4215e39496b7e4cb01172fac15e483ca843ee9226db10262d29996"
+          }
+        ]
+      }
+    ],
+    "completed_restart_generations": 0,
+    "failure": "Both current browser profiles reach their first signed ICE request and are refused invalid_request before applying an answer. Full clean60 measurement never starts.",
+    "earlier_failures": "Profile01: stale155 trust-helper pin refused before browser setup. Profiles02/03 expose historical gathering-complete race and removal of six initially offered but unnegotiated video extmaps.",
+    "current_observation": "Profile04 after gathering fix has one original Peer and Worker, unchanged actual media object identities, fresh gathering complete and two new host candidates at wire submission; restart still refuses on extmap projection.",
+    "removed_unnegotiated_extmaps": [
+      "a=extmap:14 urn:ietf:params:rtp-hdrext:toffset",
+      "a=extmap:13 urn:3gpp:video-orientation",
+      "a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay",
+      "a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type",
+      "a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing",
+      "a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space"
+    ],
+    "trusted_baseline_caveat": "These diagnostics identify the omission relative to the actual original answer. A future server grant must derive that answer from the same current admitted server peer; caller-provided negotiation metadata cannot grant authority.",
+    "owned_cleanup": "Both failed current profiles retain ownership.json confirming joined browser/Node/server, original physical routes/slots retired and three original listener addresses reclaimed. No success/measurement inference.",
+    "ownership": {
+      "eddsa": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "es256": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    }
+  },
+  "next": "Validate transport-only removal of declined header extensions against the actual trusted original answer before physical RTC submission. Preserve all negotiated bindings, codecs, DTLS identity, MIDs, sources, directions and unknown attributes. Re-run actual browser generations and unchanged decoded AV/cleanup profile.",
+  "not_qualified": [
+    "Actual completed browser ICE restart or post-restart audio/video",
+    "Distinct-network, relay, expiry, loss and full G6-054 matrix",
+    "Linux, model/provider/named remote, deployment/publication or acceptance"
+  ],
+  "gate_counts": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  }
+}

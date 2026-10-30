@@ -16,6 +16,7 @@ import { acceptancePolicy, audioVideoAcceptance } from "./acceptance_policy.mjs"
 import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
 import { installPeerDiagnostics, installControlDiagnostics, browserFailure } from "./browser_failure.mjs";
+import { installIceOwnership, restartOriginalBrowsers } from "./browser_ice_restart.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 
 let input = "";
@@ -51,6 +52,8 @@ spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
 if(Boolean(spec.muteRecovery)!==(spec.profileMode==="mute") || (spec.muteRecovery&&spec.seconds<20))
     throw Error("Mute measurement requires its separate scenario and at least 20 seconds");
+if(spec.iceRestart&&(spec.profileMode!=="clean"||spec.participants.length!==2||spec.designatedRemoteHost))
+    throw Error("ICE restart qualification requires two owned loopback clean-profile participants");
 let assets;
 if(spec.root) {
     const root=await fs.realpath(spec.root);
@@ -125,6 +128,7 @@ try {
         observedPages[index]=page;
         await page.addInitScript(installPeerDiagnostics);
         await page.addInitScript(installControlDiagnostics);
+        if(spec.iceRestart)await page.addInitScript(installIceOwnership);
         await page.goto(spec.baseURL + "/examples/conversation-client/");
         // Exercise normal sticky user activation for AudioContext in both runtimes.
         await page.mouse.click(1,1);
@@ -301,6 +305,7 @@ try {
         }
         throw Error("Identifiable duplex decoded audio did not become ready within five seconds");
     },{expected:spec.expectedToneHz?.[index]??(index===0?660:440)})));
+    const iceRestarts=spec.iceRestart?await restartOriginalBrowsers(pages,spec.participants,process.env.CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS):undefined;
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,
         changing:window.videoFixture.observation.changing,
@@ -483,7 +488,7 @@ try {
         &&o.av_sync.audio_envelope?.status==="observer-valid"&&o.av_acceptance.status==="passed"
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
-        browser:browser.version(),fallback,observations,teardown_seconds:teardown,paired_termination:pairedTermination,
+        browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;
 } catch (error) {

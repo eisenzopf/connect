@@ -444,7 +444,7 @@
     "command_kind_must_match": true,
     "restore_performs_io": false
   },
-  "revision": 4,
+  "revision": 5,
   "review_corrections": [
     "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added.",
     {
@@ -458,6 +458,12 @@
       "task": "G6-054",
       "source": "Canonical original-peer ICE restart and historical receipt recovery",
       "correction": "Add browser same-peer restartIce and a historical IceRestart connection-update outcome across Rust/Node/Python/browser decoders. The ICE counter is independent of media revisions/ownership generations. Status restoration never allocates RTC, changes owned gates/bindings or resubmits a transport effect. Browser mutation retains exact original SDP and application promises; network/media qualification remains explicit."
+    },
+    {
+      "date": "2026-10-30",
+      "task": "G6-054",
+      "source": "Actual browser audio/video restart qualification",
+      "correction": "Expose the existing same-peer ICE restart/recovery through BrowserVideoSession without replacing capture, transceivers or its encoded-video worker. A captured ICE receipt remains separate from decoded audio/video readiness."
     }
   ],
   "existing_session_invitation": {
@@ -475,6 +481,7 @@
     "browser_voice": "BrowserVoiceSession.restartIce(operationId, expectedStreamRevision, expectedIceGeneration, requestOptions)",
     "result": "Historical WebRtcIceRestartReceipt containing operationId, iceGeneration, streamRevision and connectionGeneration; not decoded-media readiness.",
     "other_targets": "Decode historical ConnectionUpdateOutcome::IceRestart / kind:ice-restart without native media allocation. Mutation requires the original canonical WSS/WebRTC owner; native QUIC/WT and HTTP cannot substitute.",
-    "recovery": "Same original operation, gathered offer, peer and description-application promises. Unknown cannot create a replacement attempt. Standard operation restoration remains current-authorized metadata only."
+    "recovery": "Same original operation, gathered offer, peer and description-application promises. Unknown cannot create a replacement attempt. Standard operation restoration remains current-authorized metadata only.",
+    "browser_video": "BrowserVideoSession.restartIce(operationId, expectedStreamRevision, expectedIceGeneration, requestOptions) delegates to its same original audio/video owner; savedIceRestart preserves its original recovery snapshot."
   }
 }

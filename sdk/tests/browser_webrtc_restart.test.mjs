@@ -9,7 +9,14 @@ class Peer extends EventTarget {
     signalingState='stable'; iceGatheringState='complete'; localDescription; remoteDescription;
     offers=[]; local=[]; answers=[];
     async createOffer(options) { this.offers.push(options); return {type:'offer',sdp}; }
-    async setLocalDescription(value) { this.local.push(value); this.localDescription={...value}; this.signalingState='have-local-offer'; }
+    async setLocalDescription(value) {
+        const manual=this.iceGatheringState==='gathering'||this.holdGather;
+        this.local.push(value); this.localDescription={...value}; this.signalingState='have-local-offer';
+        if(!manual){
+            this.iceGatheringState='gathering';this.dispatchEvent(new Event('icegatheringstatechange'));
+            this.iceGatheringState='complete';this.dispatchEvent(new Event('icegatheringstatechange'));
+        }
+    }
     async setRemoteDescription(value) { this.answers.push(value); this.remoteDescription={...value}; this.signalingState='stable'; }
 }
 function fixture() {
@@ -49,6 +56,18 @@ test('discarded reply recovers exact original request without another offer, pee
     assert.throws(()=>f.owner.restart('original-restart',3,0,{}),{code:'conflict'});
     const result=await f.owner.restart('original-restart',2,0,{});assert.equal(result.iceGeneration,1);
     assert.deepEqual(f.requests[0],f.requests[1]);assert.equal(f.peer.offers.length,1);assert.equal(f.peer.answers.length,1);assert.equal(f.failures.length,0);
+});
+test('historical complete cannot send before the new gathering cycle starts and completes',async()=>{
+    const f=fixture();f.peer.holdGather=true;
+    const pending=f.owner.restart('restart',2,0,{});
+    while(!f.peer.localDescription)await delay(1);
+    await delay(2);assert.equal(f.requests.length,0);
+    f.peer.iceGatheringState='gathering';f.peer.dispatchEvent(new Event('icegatheringstatechange'));
+    await delay(2);assert.equal(f.requests.length,0);
+    f.peer.localDescription.sdp=sdp+'a=end-of-candidates\r\n';
+    f.peer.iceGatheringState='complete';f.peer.dispatchEvent(new Event('icegatheringstatechange'));
+    await pending;assert.equal(f.peer.offers.length,1);assert.equal(f.requests.length,1);
+    assert.match(f.requests[0].payload.details.setup.sdp,/end-of-candidates/);
 });
 test('cancelled gathering wait rejoins original preparation and retains newly gathered candidate bytes',async()=>{
     const f=fixture();f.peer.iceGatheringState='gathering';const stop=new AbortController();

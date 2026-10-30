@@ -289,6 +289,33 @@ async fn run_profile(
     transport_recovery: bool,
     transport_faults: bool,
 ) {
+    Box::pin(run_full_profile(
+        algorithm,
+        browser_kind,
+        forced_fallback,
+        transition_control,
+        transport_recovery,
+        transport_faults,
+        false,
+    ))
+    .await;
+}
+async fn run_full_profile(
+    algorithm: &str,
+    browser_kind: &str,
+    forced_fallback: bool,
+    transition_control: bool,
+    transport_recovery: bool,
+    transport_faults: bool,
+    ice_restart: bool,
+) {
+    assert!(
+        !ice_restart
+            || (!forced_fallback
+                && !transition_control
+                && !transport_recovery
+                && !transport_faults)
+    );
     assert!(!transport_faults || transport_recovery);
     assert!(!transport_recovery || transition_control);
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -599,6 +626,9 @@ async fn run_profile(
         }
     }
     let mut spec = json!({"browser":browser_kind,"root":root,"assetPort":asset_port,"debugPort":debug_port,"seconds":60,"profileMode":"clean","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],"participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
+    if ice_restart {
+        spec["iceRestart"] = json!(true);
+    }
     if transition_control {
         spec["controlOnly"] = json!(true);
         spec["transportRecovery"] = json!(transport_recovery);
@@ -702,6 +732,62 @@ async fn run_profile(
         )
         .unwrap();
     }
+    if ice_restart && !runner_timed_out && status.success() {
+        use connect_protocol::transitions::{OperationAction, OperationState};
+        let report: Value =
+            serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
+                .unwrap();
+        assert_eq!(report["ice_restarts"]["status"], "passed");
+        assert_eq!(
+            report["ice_restarts"]["results"].as_array().unwrap().len(),
+            4
+        );
+        assert_eq!(host.adapter().total_allocations(), 2);
+        let mut records = Vec::new();
+        for (index, configuration) in [&f.client, &other].into_iter().enumerate() {
+            let credential = f
+                .server
+                .store
+                .authenticate(&configuration.credential)
+                .unwrap()
+                .credential_id;
+            for generation in 0..2 {
+                let operation = format!("browser-ice-{index}-{generation}");
+                let record = f
+                    .server
+                    .store
+                    .execute_operation_action(
+                        &credential,
+                        OperationAction::Get {
+                            operation_id: operation.clone(),
+                        },
+                    )
+                    .unwrap();
+                assert_eq!(record.state, OperationState::Completed);
+                assert_eq!(record.effects.len(), 1);
+                assert_eq!(record.effects[0].attempt, 1);
+                let result = record.result.as_ref().unwrap();
+                assert_eq!(result["ice_generation"], generation + 1);
+                assert_eq!(result["stream_revision"], 2);
+                assert_eq!(result["connection_generation"], 1);
+                assert_eq!(
+                    result["connection_id"],
+                    format!("browser-connection-{index}")
+                );
+                assert_eq!(result["resources_changed"], false);
+                assert!(!result.to_string().contains("a=ice-pwd:"));
+                records.push(
+                    json!({"operation_id":operation,"effects":1,"attempt":1,"result":result}),
+                );
+            }
+        }
+        std::fs::write(
+            output.join("ice-restart-oracle.json"),
+            serde_json::to_vec(&json!({"passed":true,"original_allocations":2,"records":records}))
+                .unwrap(),
+        )
+        .unwrap();
+    }
     let cleanup = tokio::time::timeout(Duration::from_secs(5), async {
         while host.available_slots() != 2 || host.adapter().route_count() != 0 {
             tokio::time::sleep(Duration::from_millis(20)).await;
@@ -743,6 +829,23 @@ async fn run_profile(
 #[ignore = "explicit installed Chrome, private normal CA trust, synthetic AV; no device/provider"]
 async fn canonical_chrome_signed_av_normal_trust_clean_eddsa() {
     Box::pin(run("EdDSA", "chrome", false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit installed Chrome, owned loopback same-peer ICE recovery and unchanged clean AV profile"]
+async fn canonical_chrome_original_peer_ice_restart_clean_eddsa() {
+    Box::pin(run_full_profile(
+        "EdDSA", "chrome", false, false, false, false, true,
+    ))
+    .await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit installed Chrome, owned loopback same-peer ICE recovery and unchanged clean AV profile"]
+async fn canonical_chrome_original_peer_ice_restart_clean_es256() {
+    Box::pin(run_full_profile(
+        "ES256", "chrome", false, false, false, false, true,
+    ))
+    .await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

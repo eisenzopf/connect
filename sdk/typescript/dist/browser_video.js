@@ -16,6 +16,14 @@ export class BrowserVideoSession {
     get savedEnd() {
         return this.session.savedEnd;
     }
+    /** Restart transport on this same audio/video peer, preserving its capture
+     * and encoded video worker. Completion is separate from decoded readiness. */
+    restartIce(operationId, expectedStreamRevision, expectedIceGeneration, request = {}) {
+        return this.session.restartIce(operationId, expectedStreamRevision, expectedIceGeneration, request);
+    }
+    get savedIceRestart() {
+        return this.session.savedIceRestart;
+    }
     end(operationId, expectedRevision, request = {}) {
         return this.session.end(operationId, expectedRevision, request);
     }

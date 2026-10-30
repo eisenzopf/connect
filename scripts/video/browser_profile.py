@@ -9,7 +9,7 @@ import sqlite3
 import subprocess
 
 
-CHROME_VERSION = '155.0.8059.85'
+CHROME_VERSION = '156.0.8078.48'
 NSS_VERSION = '3.130'
 
 
@@ -108,7 +108,7 @@ def create_profile(browser, binary, profile, root_der):
             db.executemany('INSERT INTO meta VALUES(?,?)', [
                 ('version', 1), ('last_compatible_version', 1), ('mmap_status', -1),
             ])
-            # Chromium 155 CertificateMetadata.trust (field 1) contains
+            # Chromium 156 CertificateMetadata.trust (field 1) contains
             # CertificateTrust.trust_type (field 1), TRUSTED enum value 3.
             db.execute('INSERT INTO certificates VALUES(?,?,?)', (
                 hashlib.sha256(certificate).hexdigest(), certificate, bytes.fromhex('0a020803')))

@@ -114,8 +114,7 @@ export class BrowserIceRestart {
         this.check();
         const offer = await this.peer.createOffer({ iceRestart: true });
         this.check();
-        await this.peer.setLocalDescription(offer);
-        await this.gather();
+        await this.gather(offer);
         this.check();
         const sdp = this.peer.localDescription?.sdp;
         if (!validSdp(sdp))
@@ -132,32 +131,57 @@ export class BrowserIceRestart {
             throw new ConnectError("invalid-request", "ICE intent exceeds its bounded profile");
         return a.payload;
     }
-    gather() {
+    gather(offer) {
         if (this.lifetime.aborted)
             return Promise.reject(unresolved());
-        if (this.peer.iceGatheringState === "complete")
-            return Promise.resolve();
         return new Promise((resolve, reject) => {
+            // Chrome can resolve setLocalDescription while gathering still
+            // reports the PREVIOUS generation as complete. Install listeners
+            // before submission and require this restart's gathering cycle.
+            let started = this.peer.iceGatheringState === "gathering";
+            let applied = false;
+            let done = false;
             const cleanup = () => {
                 this.peer.removeEventListener("icegatheringstatechange", changed);
                 this.lifetime.removeEventListener("abort", aborted);
             };
             const changed = () => {
-                if (this.peer.iceGatheringState === "complete") {
+                if (done)
+                    return;
+                if (this.peer.iceGatheringState === "gathering")
+                    started = true;
+                if (applied &&
+                    started &&
+                    this.peer.iceGatheringState === "complete") {
+                    done = true;
                     cleanup();
                     resolve();
                 }
             };
-            const aborted = () => {
+            const failed = (error) => {
+                if (done)
+                    return;
+                done = true;
                 cleanup();
-                reject(unresolved());
+                reject(error);
             };
+            const aborted = () => failed(unresolved());
             this.peer.addEventListener("icegatheringstatechange", changed);
             this.lifetime.addEventListener("abort", aborted, { once: true });
             if (this.lifetime.aborted)
                 aborted();
             else
-                changed();
+                void Promise.resolve()
+                    .then(() => {
+                    if (!done)
+                        return this.peer.setLocalDescription(offer);
+                })
+                    .then(() => {
+                    if (done)
+                        return;
+                    applied = true;
+                    changed();
+                }, failed);
         });
     }
     async run(a, budget, caller) {
