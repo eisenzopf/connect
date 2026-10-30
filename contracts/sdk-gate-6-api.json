@@ -444,7 +444,7 @@
     "command_kind_must_match": true,
     "restore_performs_io": false
   },
-  "revision": 3,
+  "revision": 4,
   "review_corrections": [
     "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added.",
     {
@@ -452,6 +452,12 @@
       "task": "G6-060",
       "source": "Implemented native public SDK audit",
       "correction": "Connection.update returns the captured ConnectionUpdateReceipt; stream subscribe/unsubscribe return StreamSelectionReceipt with explicitly nullable historical captures, not invented Stream handles. Typed stream/Participant selector sets and optional codec stream targets match the current canonical intent. Connection.end requires its reason and an optional native StreamRevision. All three target declarations and operation witnesses use these results. Observations never grant physical custody."
+    },
+    {
+      "date": "2026-10-30",
+      "task": "G6-054",
+      "source": "Canonical original-peer ICE restart and historical receipt recovery",
+      "correction": "Add browser same-peer restartIce and a historical IceRestart connection-update outcome across Rust/Node/Python/browser decoders. The ICE counter is independent of media revisions/ownership generations. Status restoration never allocates RTC, changes owned gates/bindings or resubmits a transport effect. Browser mutation retains exact original SDP and application promises; network/media qualification remains explicit."
     }
   ],
   "existing_session_invitation": {
@@ -462,5 +468,13 @@
     "result": "Operation<Session>",
     "inputs": "Nonempty current Conversation Participants, current media, unchanged original intent/capability offer and explicit topology revision.",
     "incoming_outline": "An accepted Session can have a newly invited Participant; only terminal Session states are skipped locally. Current actor appearance and authorization are checked by the server."
+  },
+  "webrtc_ice_restart": {
+    "contract": "contracts/webrtc-ice-restart.md",
+    "browser_connection": "BrowserConnection.restartIce(expectedStreamRevision, expectedIceGeneration, mutationOptions)",
+    "browser_voice": "BrowserVoiceSession.restartIce(operationId, expectedStreamRevision, expectedIceGeneration, requestOptions)",
+    "result": "Historical WebRtcIceRestartReceipt containing operationId, iceGeneration, streamRevision and connectionGeneration; not decoded-media readiness.",
+    "other_targets": "Decode historical ConnectionUpdateOutcome::IceRestart / kind:ice-restart without native media allocation. Mutation requires the original canonical WSS/WebRTC owner; native QUIC/WT and HTTP cannot substitute.",
+    "recovery": "Same original operation, gathered offer, peer and description-application promises. Unknown cannot create a replacement attempt. Standard operation restoration remains current-authorized metadata only."
   }
 }

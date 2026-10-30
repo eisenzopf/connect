@@ -484,6 +484,25 @@ export class BrowserVoiceSession {
     get savedOffer(): SavedWebRtcOffer | undefined {
         return this.signaling?.savedOffer;
     }
+    /** Same original peer and logical request through uncertain ICE recovery. */
+    restartIce(
+        operationId: string,
+        expectedStreamRevision: number,
+        expectedIceGeneration: number,
+        options: RequestOptions = {},
+    ) {
+        if (!this.signaling)
+            throw new ConnectError("closed", "WebRTC owner is unavailable");
+        return this.signaling.restartIce(
+            operationId,
+            expectedStreamRevision,
+            expectedIceGeneration,
+            options,
+        );
+    }
+    get savedIceRestart() {
+        return this.signaling?.savedIceRestart;
+    }
     get savedEnd(): SavedWebRtcEnd | undefined {
         return this.endIntent
             ? {

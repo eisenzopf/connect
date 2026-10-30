@@ -1,0 +1,292 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+@@ -242,6 +242,7 @@
+ pub mod event;
+ pub(crate) mod handler;
+ mod internal;
++mod transport_restart;
+ pub mod message;
+ pub mod sdp;
+ pub mod state;
+@@ -744,6 +745,29 @@
+         )
+     }
+ 
++    /// Restart transport without reoffering media/codec/session ownership.
++    /// Credentials and candidates come from this same live ICE agent.
++    pub fn create_transport_restart_offer(&mut self) -> Result<RTCSessionDescription> {
++        if self.signaling_state != RTCSignalingState::Stable {
++            return Err(Error::ErrIncorrectSignalingState);
++        }
++        let previous = self.current_local_description().ok_or(Error::ErrIncorrectSignalingState)?;
++        let generated = self.create_offer(Some(RTCOfferOptions { ice_restart: true }))?;
++        let offer = transport_restart::preserve(&previous, generated)?;
++        self.last_offer.clone_from(&offer.sdp);
++        Ok(offer)
++    }
++
++    /// Answer an already validated transport-only remote restart while retaining
++    /// the original local media contract. This does not authorize a request.
++    pub fn create_transport_restart_answer(&mut self) -> Result<RTCSessionDescription> {
++        let previous = self.current_local_description().ok_or(Error::ErrIncorrectSignalingState)?;
++        let generated = self.create_answer(None)?;
++        let answer = transport_restart::preserve(&previous, generated)?;
++        self.last_answer.clone_from(&answer.sdp);
++        Ok(answer)
++    }
++
+     /// Creates an SDP offer to start a new WebRTC connection to a remote peer.
+     ///
+     /// The offer includes information about the attached media tracks, codecs and options supported
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/transport_restart.rs
+@@ -0,0 +1,182 @@
++//! Build transport-only SDP from this peer's previous local contract and the
++//! ICE agent's newly generated credentials/candidates. Generic renegotiation
++//! deliberately remains free to change codec offers and session attributes.
++use super::sdp::{RTCSdpType, RTCSessionDescription};
++use shared::error::{Error, Result};
++
++fn invalid() -> Error {
++    Error::Other("Original transport restart description cannot be preserved".into())
++}
++fn sections(s: &str) -> Result<Vec<Vec<&str>>> {
++    if s.len() > 524_288 || !s.starts_with("v=0\r\n") || s.contains('\0') {
++        return Err(invalid());
++    }
++    let mut out = vec![vec![]];
++    for line in s.split_terminator("\r\n") {
++        if line.starts_with("m=") {
++            out.push(vec![]);
++        }
++        out.last_mut().unwrap().push(line);
++    }
++    Ok(out)
++}
++fn attr<'a>(section: &[&'a str], prefix: &str) -> Result<Option<&'a str>> {
++    let mut values = section.iter().filter_map(|s| s.strip_prefix(prefix));
++    let value = values.next();
++    if values.next().is_some() {
++        return Err(invalid());
++    }
++    Ok(value)
++}
++fn effective<'a>(sections: &[Vec<&'a str>], index: usize, prefix: &str) -> Result<Option<&'a str>> {
++    Ok(attr(&sections[index], prefix)?.or(attr(&sections[0], prefix)?))
++}
++fn candidate(s: &str) -> bool {
++    s.starts_with("a=candidate:")
++        || s == "a=end-of-candidates"
++        || s.starts_with("a=remote-candidates:")
++}
++
++pub(super) fn preserve(
++    previous: &RTCSessionDescription,
++    generated: RTCSessionDescription,
++) -> Result<RTCSessionDescription> {
++    let old = sections(&previous.sdp)?;
++    let new = sections(&generated.sdp)?;
++    if old.len() != new.len() || old.len() < 2 {
++        return Err(invalid());
++    }
++    let mut result = Vec::new();
++    for index in 0..old.len() {
++        if index > 0 {
++            let a: Vec<_> = old[index][0].split_whitespace().collect();
++            let b: Vec<_> = new[index][0].split_whitespace().collect();
++            if a.len() < 4
++                || b.len() < 4
++                || a[0] != b[0]
++                || a[2] != b[2]
++                || (a[1] == "0") != (b[1] == "0")
++                || attr(&old[index], "a=mid:")? != attr(&new[index], "a=mid:")?
++            {
++                return Err(invalid());
++            }
++            for name in ["a=fingerprint:", "a=setup:"] {
++                if effective(&old, index, name)? != effective(&new, index, name)? {
++                    return Err(invalid());
++                }
++            }
++            if a[1] != "0" {
++                for name in ["a=ice-ufrag:", "a=ice-pwd:"] {
++                    let prior = effective(&old, index, name)?.ok_or_else(invalid)?;
++                    let next = effective(&new, index, name)?.ok_or_else(invalid)?;
++                    if prior.is_empty() || next.is_empty() || prior == next {
++                        return Err(invalid());
++                    }
++                }
++            }
++        }
++        for line in &old[index] {
++            if candidate(line) {
++                continue;
++            }
++            let value = if let Some(origin) = line.strip_prefix("o=") {
++                let mut fields: Vec<_> = origin.split_whitespace().map(str::to_owned).collect();
++                if index != 0 || fields.len() != 6 {
++                    return Err(invalid());
++                }
++                fields[2] = fields[2]
++                    .parse::<u64>()
++                    .map_err(|_| invalid())?
++                    .checked_add(1)
++                    .ok_or_else(invalid)?
++                    .to_string();
++                format!("o={}", fields.join(" "))
++            } else if line.starts_with("m=") {
++                let mut fields: Vec<_> = line.split_whitespace().collect();
++                fields[1] = new[index][0]
++                    .split_whitespace()
++                    .nth(1)
++                    .ok_or_else(invalid)?;
++                fields.join(" ")
++            } else if line.starts_with("c=") {
++                attr(&new[index], "c=")?
++                    .map(|s| format!("c={s}"))
++                    .ok_or_else(invalid)?
++            } else if let Some(name) = ["a=ice-ufrag:", "a=ice-pwd:"]
++                .into_iter()
++                .find(|p| line.starts_with(p))
++            {
++                format!(
++                    "{name}{}",
++                    effective(&new, index, name)?.ok_or_else(invalid)?
++                )
++            } else {
++                (*line).to_owned()
++            };
++            result.push(value);
++        }
++        result.extend(
++            new[index]
++                .iter()
++                .filter(|line| candidate(line))
++                .map(|s| (*s).to_owned()),
++        );
++    }
++    let text = result.join("\r\n") + "\r\n";
++    match generated.sdp_type {
++        RTCSdpType::Offer => RTCSessionDescription::offer(text),
++        RTCSdpType::Answer => RTCSessionDescription::answer(text),
++        _ => Err(invalid()),
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn sdp(version: u64, creds: &str, attrs: &str) -> RTCSessionDescription {
++        RTCSessionDescription::offer(format!("v=0\r\no=- 123 {version} IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=fingerprint:sha-256 11:22\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0 101\r\nc=IN IP4 0.0.0.0\r\na=mid:0\r\na=setup:actpass\r\na=ice-ufrag:{creds}\r\na=ice-pwd:{creds}password\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\n{attrs}")).unwrap()
++    }
++    #[test]
++    fn transport_restart_preserves_original_media_and_advances_original_origin() {
++        let before = sdp(
++            1000,
++            "old",
++            "a=extmap:2 urn:original\r\na=candidate:old 1 udp 1 127.0.0.1 123 typ host\r\n",
++        );
++        let mut generated = sdp(
++            3,
++            "fresh",
++            "a=extmap:7 urn:changed\r\na=candidate:new 1 udp 1 127.0.0.1 456 typ host\r\n",
++        );
++        generated.sdp = generated
++            .sdp
++            .replace(" 0 101\r\n", " 0\r\n")
++            .replace("a=rtpmap:101 telephone-event/8000\r\n", "");
++        let after = preserve(&before, generated).unwrap();
++        assert!(after.sdp.contains("o=- 123 1001 IN IP4 0.0.0.0\r\n"));
++        assert!(after.sdp.contains("m=audio 9 UDP/TLS/RTP/SAVPF 0 101\r\n"));
++        assert!(after.sdp.contains("a=rtpmap:101 telephone-event/8000\r\n"));
++        assert!(after.sdp.contains("a=extmap:2 urn:original\r\n"));
++        assert!(!after.sdp.contains("urn:changed"));
++        assert!(!after.sdp.contains("candidate:old"));
++        assert!(after.sdp.contains("candidate:new"));
++        assert!(after.sdp.contains("a=ice-pwd:freshpassword\r\n"));
++    }
++    #[test]
++    fn transport_restart_refuses_unchanged_credentials_identity_mid_and_media_changes() {
++        let before = sdp(1, "old", "");
++        for change in [
++            None,
++            Some(("11:22", "22:33")),
++            Some(("a=mid:0", "a=mid:1")),
++            Some(("m=audio", "m=video")),
++            Some(("a=ice-pwd:freshpassword", "a=ice-pwd:oldpassword")),
++        ] {
++            let mut next = sdp(2, if change.is_none() { "old" } else { "fresh" }, "");
++            if let Some((a, b)) = change {
++                next.sdp = next.sdp.replace(a, b);
++            }
++            assert!(preserve(&before, next).is_err());
++        }
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -386,6 +386,14 @@
+         &self,
+         options: Option<RTCAnswerOptions>,
+     ) -> Result<RTCSessionDescription>;
++    /// Transport-only restart on the same original peer. Default deny.
++    async fn create_transport_restart_offer(&self) -> Result<RTCSessionDescription> {
++        Err(Error::Other("Transport-only restart is not installed".into()))
++    }
++    /// Answer a prevalidated transport-only restart; no new media ownership.
++    async fn create_transport_restart_answer(&self) -> Result<RTCSessionDescription> {
++        Err(Error::Other("Transport-only restart is not installed".into()))
++    }
+     /// Set the local description
+     async fn set_local_description(&self, desc: RTCSessionDescription) -> Result<()>;
+     /// Get the local description
+@@ -712,6 +720,16 @@
+         core.create_answer(options)
+     }
+ 
++    async fn create_transport_restart_offer(&self) -> Result<RTCSessionDescription> {
++        let mut core = self.inner.core.lock().await;
++        core.create_transport_restart_offer()
++    }
++
++    async fn create_transport_restart_answer(&self) -> Result<RTCSessionDescription> {
++        let mut core = self.inner.core.lock().await;
++        core.create_transport_restart_answer()
++    }
++
+     async fn set_local_description(&self, desc: RTCSessionDescription) -> Result<()> {
+         {
+             let mut core = self.inner.core.lock().await;
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1178,15 +1178,26 @@
+         self.create_answer_and_gather().await
+     }
+ 
++    /// Answer only an already validated original transport restart. Existing
++    /// tracks, DTLS identity and negotiated media/session attributes remain.
++    pub async fn restart_ice_as_answerer(self: &Arc<Self>, remote_sdp: &str) -> Result<String> {
++        self.require_role(PeerRole::Answerer)?;
++        self.pc.set_remote_description(parse_sdp(remote_sdp, RTCSdpType::Offer)?).await?;
++        let answer = self.pc.create_transport_restart_answer().await?;
++        self.final_outbound_dtmf_state(remote_sdp, &sdp_to_string(&answer)?, false)?;
++        self.pc.set_local_description(answer).await?;
++        self.wait_gather().await?;
++        let desc = self.pc.local_description().await
++            .ok_or_else(|| WebRtcError::Sdp("no original restart answer after gather".into()))?;
++        sdp_to_string(&desc)
++    }
++
+     /// Offerer transport-only restart on this same peer. Existing tracks,
+     /// codec selection and source identity are retained; the owner must still
+     /// authorize signaling and verify its captured generation separately.
+     pub async fn restart_ice_and_gather(self: &Arc<Self>) -> Result<String> {
+         self.require_role(PeerRole::Offerer)?;
+-        let offer = self.pc.create_offer(Some(rtc::peer_connection::configuration::RTCOfferOptions {
+-            ice_restart: true,
+-            ..Default::default()
+-        })).await?;
++        let offer = self.pc.create_transport_restart_offer().await?;
+         self.pc.set_local_description(offer).await?;
+         self.wait_gather().await?;
+         let desc = self.pc.local_description().await

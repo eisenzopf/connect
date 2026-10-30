@@ -228,6 +228,15 @@ export class BrowserRtcConnection {
     onClose(fn) {
         return this.onRetire(fn);
     }
+    restartIce(operationId, expectedStreamRevision, expectedIceGeneration, options = {}) {
+        this.check();
+        if (!this.signaling)
+            throw closed();
+        return this.signaling.restartIce(operationId, expectedStreamRevision, expectedIceGeneration, options);
+    }
+    get savedIceRestart() {
+        return this.signaling?.savedIceRestart;
+    }
     onRetire(fn) {
         this.check();
         if (this.retired.size >= 16)

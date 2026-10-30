@@ -248,6 +248,9 @@ pub struct StreamGateObservation {
     pub held_direction: Option<Direction>,
 }
 pub enum ConnectionUpdateOutcome {
+    IceRestart {
+        ice_generation: u64,
+    },
     Codecs {
         resources_changed: bool,
         streams: Vec<CodecObservation>,

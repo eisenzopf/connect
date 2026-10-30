@@ -5488,6 +5488,345 @@
         },
         "operation_id": "op_vector_22"
       }
+    },
+    {
+      "id": "ice-restart-original-shape",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-largest-successor",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 9007199254740990,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-missing-details",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart"
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-missing-generation",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-negative",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": -1,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-unsafe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 9007199254740991,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-fractional",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0.5,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-kind",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "native-prepared/1",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-streams",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          },
+          "streams": [
+            "stream-example"
+          ]
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-codecs",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          },
+          "codec_preferences": [
+            "opus"
+          ]
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-quality",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            }
+          },
+          "quality_interval_ms": 1000
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-endpoint",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            },
+            "endpoint_id": "untrusted-endpoint"
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "ice-restart-ready",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "ice-restart",
+          "details": {
+            "expected_ice_generation": 0,
+            "setup": {
+              "kind": "websocket+webrtc",
+              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
+            },
+            "ready": true
+          }
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
     }
   ]
 }

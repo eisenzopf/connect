@@ -1962,6 +1962,47 @@ export class BrowserConnection {
     sessionId;
     id;
     receiptStreamRevision;
+    /** Restart only this physical's original WebRTC peer. The operation ID,
+     * complete offer and pending application stay with that owner on timeout.
+     * Completion records server-observed ICE; decoded media remains separate. */
+    async restartIce(expectedStreamRevision, expectedIceGeneration, options) {
+        fields(options, ["timeoutMs", "signal", "operationId"], invalid);
+        const revision = sdkRevision(expectedStreamRevision);
+        const key = {
+            operationId: options.operationId,
+            command: "connection.update",
+            scope: {
+                conversationId: this.conversationId,
+                sessionId: this.sessionId,
+                connectionId: this.id,
+            },
+        };
+        let rtc;
+        let recorded = false;
+        try {
+            const { native, local, s, peer, epoch } = await this.native(options);
+            if (!(native instanceof BrowserRtcConnection))
+                throw new BrowserSdkError("unsupported", "not-submitted", key);
+            rtc = native;
+            const receipt = await rtc.restartIce(options.operationId, revision, expectedIceGeneration, options);
+            recorded = true;
+            s.observe(peer, epoch);
+            if (s.local.get(this.id) !== local ||
+                receipt.connectionGeneration !== local.generation)
+                throw new BrowserSdkError("receipt-unavailable", "recorded", key);
+            return receipt;
+        }
+        catch (error) {
+            throw translated(error, recorded
+                ? "recorded"
+                : error instanceof ConnectError &&
+                    error.code === "operation-failed"
+                    ? "refused"
+                    : rtc?.savedIceRestart?.submissionAttempted
+                        ? "uncertain"
+                        : "not-submitted", key);
+        }
+    }
     streams = {
         subscribe: (input, options) => {
             if (!input)

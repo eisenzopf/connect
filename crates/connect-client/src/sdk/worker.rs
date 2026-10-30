@@ -477,6 +477,9 @@ impl Shared {
         key: &OperationKey,
         observed: &connection_updates::Observed,
     ) -> Result<()> {
+        if observed.ice.is_some() {
+            return Ok(());
+        }
         controls::record(&self.native, &self.media, key, observed)
     }
     pub(super) fn fail_connection_update(&self, key: &OperationKey) -> Result<()> {

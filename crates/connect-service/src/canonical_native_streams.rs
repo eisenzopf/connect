@@ -15,7 +15,7 @@ pub(crate) fn intent(e: &Envelope) -> Result<Intent> {
         "dtmf.send" => Command::Dtmf,
         "connection.update" => {
             if !matches!(e.payload(),rvoip_uctp::v2::Payload::ConnectionUpdate(u)
-                if matches!(u.action, rvoip_uctp::v2::payloads::ConnectionUpdateAction::CodecRenegotiate | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Quality | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Hold | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Resume | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Mute | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Unmute))
+                if matches!(u.action, rvoip_uctp::v2::payloads::ConnectionUpdateAction::CodecRenegotiate | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Quality | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Hold | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Resume | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Mute | rvoip_uctp::v2::payloads::ConnectionUpdateAction::Unmute | rvoip_uctp::v2::payloads::ConnectionUpdateAction::IceRestart))
             {
                 return Err(Error::new(
                     "unsupported-media-profile",
@@ -209,6 +209,12 @@ impl Runtime {
     ) -> Result<crate::canonical_native::Reply> {
         if physical.binding.transport() == rvoip_core::Transport::WebSocket {
             return self.webrtc_stream(a, physical, credential).await;
+        }
+        if a.envelope().original()["payload"]["action"] == "ice-restart" {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "ICE restart requires the original WebRTC peer",
+            ));
         }
         let (tx, rx) = tokio::sync::oneshot::channel();
         let runtime = self.clone();

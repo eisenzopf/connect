@@ -394,6 +394,10 @@ export declare class BrowserConnection {
     readonly sessionId: SessionId;
     readonly id: ConnectionId;
     readonly receiptStreamRevision?: SdkRevision<"stream"> | undefined;
+    /** Restart only this physical's original WebRTC peer. The operation ID,
+     * complete offer and pending application stay with that owner on timeout.
+     * Completion records server-observed ICE; decoded media remains separate. */
+    restartIce(expectedStreamRevision: SdkRevision<"stream">, expectedIceGeneration: number, options: BrowserSdkMutationOptions): Promise<import("./browser_webrtc_restart.js").WebRtcIceRestartReceipt>;
     readonly streams: {
         subscribe: (input: {
             readonly selectors: BrowserNonEmpty<BrowserStreamSelector>;

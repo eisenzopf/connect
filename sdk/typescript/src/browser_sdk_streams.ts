@@ -77,7 +77,8 @@ export interface BrowserConnectionUpdateReceipt {
               readonly action: "hold" | "resume" | "mute" | "unmute";
               readonly streams: readonly BrowserStreamGateObservation[];
           }
-        | { readonly kind: "quality"; readonly intervalMs: number };
+        | { readonly kind: "quality"; readonly intervalMs: number }
+        | { readonly kind: "ice-restart"; readonly iceGeneration: number };
 }
 export interface BrowserStreamSelectionReceipt {
     readonly connection: BrowserConnection;
@@ -321,7 +322,25 @@ export function updateResult(
     )
         return bad();
     let generation: number, outcome: BrowserConnectionUpdateReceipt["outcome"];
-    if (Object.hasOwn(value, "quality_interval_ms")) {
+    if (value.action === "ice-restart") {
+        if (
+            !positive(value.connection_generation) ||
+            !positive(value.ice_generation) ||
+            value.resources_changed !== false ||
+            [
+                "codec_bindings",
+                "gate_streams",
+                "quality_interval_ms",
+                "setup",
+                "sdp",
+            ].some((k) => Object.hasOwn(value, k))
+        )
+            return bad();
+        generation = value.connection_generation;
+        outcome = { kind: "ice-restart", iceGeneration: value.ice_generation };
+    } else if (Object.hasOwn(value, "ice_generation")) {
+        return bad();
+    } else if (Object.hasOwn(value, "quality_interval_ms")) {
         if (
             !positive(value.connection_generation) ||
             !Number.isInteger(value.quality_interval_ms) ||

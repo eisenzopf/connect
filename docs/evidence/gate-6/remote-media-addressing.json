@@ -339,5 +339,10 @@
     "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
     "status": "protocol-and-owned-telephone-component-passed",
     "result": "Final patch239/v43 passes73local session/UDP/allocator functions, four complete actual telephone direct/loss profiles,4SIPintegration/4configuration functions, and5direct/relay/shared-STUN-TURN AV regressions.12realTURNallocations drain/join. Whole G6-054 remains open."
+  },
+  "canonical_ice_restart": {
+    "evidence": "docs/evidence/gate-6/webrtc-ice-dispatch.json",
+    "component_passed": true,
+    "scope": "Actual signed local WSS/Rvoip/Core PCMU original-peer two-generation restart, lost-answer and historical replay, fresh decoded duplex and current-revocation/Unknown cleanup for both algorithms. SDK metadata/recovery and schema/reference checks pass; full network/browser/video matrix remains open."
   }
 }

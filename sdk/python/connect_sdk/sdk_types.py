@@ -292,7 +292,12 @@ class QualityOutcome:
     interval_ms: int
 
 
-ConnectionUpdateOutcome: TypeAlias = CodecOutcome | GateOutcome | QualityOutcome
+@dataclass(frozen=True)
+class IceRestartOutcome:
+    ice_generation: int
+
+
+ConnectionUpdateOutcome: TypeAlias = CodecOutcome | GateOutcome | QualityOutcome | IceRestartOutcome
 
 
 @dataclass(frozen=True, repr=False)

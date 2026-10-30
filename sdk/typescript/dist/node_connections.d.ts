@@ -49,6 +49,9 @@ export type SdkConnectionUpdateOutcome = {
 } | {
     readonly kind: "quality";
     readonly intervalMs: number;
+} | {
+    readonly kind: "ice-restart";
+    readonly iceGeneration: number;
 };
 export interface SdkConnectionUpdateReceipt {
     readonly connection: SdkConnection;

@@ -4,10 +4,13 @@ use super::*;
 mod av;
 #[path = "gates.rs"]
 mod gates;
+#[path = "ice.rs"]
+mod ice;
 #[path = "opus.rs"]
 mod opus;
 use rvoip_core::participant::ParticipantRole;
 use rvoip_core::{adapter::ConnectionAdapter, ids::StreamId, stream::MediaStream};
+use std::sync::atomic::{AtomicU8, Ordering};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -176,6 +179,13 @@ fn publish(
     peer: &Arc<RvoipPeerConnection>,
     marker: u8,
 ) -> (CancellationToken, tokio::task::JoinHandle<u64>) {
+    publish_marked(peer, Arc::new(AtomicU8::new(marker)), false)
+}
+fn publish_marked(
+    peer: &Arc<RvoipPeerConnection>,
+    marker: Arc<AtomicU8>,
+    retry: bool,
+) -> (CancellationToken, tokio::task::JoinHandle<u64>) {
     let track = peer.local_audio_track().unwrap();
     let ssrc = peer.local_audio_ssrc().unwrap();
     let stop = CancellationToken::new();
@@ -189,7 +199,7 @@ fn publish(
             let mut packet =
                 rvoip_webrtc::media::opus_rtp_packet_for_ssrc(ssrc, seq, u32::from(seq) * 160);
             packet.header.payload_type = 0;
-            packet.payload = vec![marker; 160].into();
+            packet.payload = vec![marker.load(Ordering::Relaxed); 160].into();
             if !matches!(
                 tokio::time::timeout(
                     Duration::from_millis(500),
@@ -198,9 +208,12 @@ fn publish(
                 .await,
                 Ok(Ok(()))
             ) {
-                break;
+                if !retry {
+                    break;
+                }
+            } else {
+                sent += 1;
             }
-            sent += 1;
             seq = seq.wrapping_add(1);
         }
         sent
@@ -272,7 +285,7 @@ async fn inaudible(rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>) {
         }
     }
 }
-async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
+async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool, ice: bool) {
     if roles || gates {
         let _ = tracing_subscriber::fmt()
             .with_env_filter(
@@ -297,13 +310,14 @@ async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
     } else {
         canonical_webtransport_media::other(&f)
     };
-    provision_config(&f, &f.client, 0).await;
+    let first_endpoint = provision_config(&f, &f.client, 0).await;
     let endpoint = provision_config(&f, &other, 1).await;
     let (cid, initiator, recipient) = canonical_webtransport_media::accepted(&f, &other).await;
     let mut first = Peer::open(&f).await;
     let mut second = Peer::open_config(&f, &other).await;
     let mut peers = Vec::new();
     let mut senders = Vec::new();
+    let mut markers = Vec::new();
     for (i, ws, config) in [(0, &mut first, &f.client), (1, &mut second, &other)] {
         let peer = RvoipPeerConnection::new(&audio_config(), PeerRole::Offerer)
             .await
@@ -348,7 +362,9 @@ async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
         } else {
             None
         };
-        senders.push(publish(&peer, if i == 0 { 0x80 } else { 0x00 }));
+        let marker = Arc::new(AtomicU8::new(if i == 0 { 0x80 } else { 0x00 }));
+        senders.push(publish_marked(&peer, marker.clone(), ice));
+        markers.push(marker);
         if let Some((release, owner)) = held_registry {
             tokio::time::sleep(Duration::from_millis(200)).await;
             let waiting = record(&f, config, &format!("rtc-offer-{i}"));
@@ -655,7 +671,21 @@ async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
         .await;
     }
     let final_revision = controllers[0].revision();
-    if end {
+    if ice {
+        ice::run(
+            &f,
+            &host,
+            &mut first,
+            &cid,
+            &first_endpoint,
+            &peers,
+            &controllers,
+            &markers,
+            &mut audio_a,
+            &mut audio_b,
+        )
+        .await;
+    } else if end {
         let request = scoped(
             &cid,
             0,
@@ -767,34 +797,43 @@ async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_eddsa() {
-    scenario("EdDSA", false, false, false).await;
+    scenario("EdDSA", false, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_es256() {
-    scenario("ES256", false, false, false).await;
+    scenario("ES256", false, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_eddsa() {
-    scenario("EdDSA", true, false, false).await;
+    scenario("EdDSA", true, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_es256() {
-    scenario("ES256", true, false, false).await;
+    scenario("ES256", true, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_eddsa() {
-    scenario("EdDSA", false, true, false).await;
+    scenario("EdDSA", false, true, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_es256() {
-    scenario("ES256", false, true, false).await;
+    scenario("ES256", false, true, false, false).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_runtime_gates_fence_decoded_duplex_and_replay_eddsa() {
-    scenario("EdDSA", true, false, true).await;
+    scenario("EdDSA", true, false, true, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_runtime_gates_fence_decoded_duplex_and_replay_es256() {
-    scenario("ES256", true, false, true).await;
+    scenario("ES256", true, false, true, false).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa() {
+    scenario("EdDSA", true, false, false, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256() {
+    scenario("ES256", true, false, false, true).await;
 }

@@ -1,3 +1,4 @@
+import { type WebRtcIceRestartReceipt } from "./browser_webrtc_restart.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { type JsonObject } from "./uctp_json.js";
 import { type Scope } from "./uctp_wire.js";
@@ -31,6 +32,8 @@ export interface SavedWebRtcOffer {
 export declare class CanonicalWebRtcSignaling {
     private readonly client;
     private readonly peer;
+    private readonly restartStop;
+    private restarts?;
     private readonly tasks;
     readonly finished: Promise<void>;
     private resolveFinished;
@@ -54,6 +57,12 @@ export declare class CanonicalWebRtcSignaling {
     constructor(client: BrowserClient, peer: RTCPeerConnection, options: WebRtcSignalingOptions);
     /** Save this exact original intent for status recovery, never synthesize a replacement offer. */
     get savedOffer(): SavedWebRtcOffer | undefined;
+    get savedIceRestart(): {
+        scope: Scope;
+        payload?: JsonObject;
+        submissionAttempted: boolean;
+    } | undefined;
+    restartIce(operationId: string, expectedStreamRevision: number, expectedIceGeneration: number, options?: RequestOptions): Promise<WebRtcIceRestartReceipt>;
     private check;
     private matches;
     private receive;

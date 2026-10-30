@@ -1,4 +1,8 @@
 import { BrowserTasks } from "./browser_tasks.js";
+import {
+    BrowserIceRestart,
+    type WebRtcIceRestartReceipt,
+} from "./browser_webrtc_restart.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { ConnectError } from "./errors.js";
 import {
@@ -72,6 +76,8 @@ function candidate(value: JsonObject): RTCIceCandidateInit {
  * alone does not establish Core readiness or decoded playback.
  */
 export class CanonicalWebRtcSignaling {
+    private readonly restartStop = new AbortController();
+    private restarts?: BrowserIceRestart;
     private readonly tasks = new BrowserTasks();
     readonly finished: Promise<void>;
     private resolveFinished!: () => void;
@@ -195,6 +201,36 @@ export class CanonicalWebRtcSignaling {
                   submissionAttempted: this.submitted,
               }
             : undefined;
+    }
+    get savedIceRestart() {
+        return this.restarts?.saved;
+    }
+    restartIce(
+        operationId: string,
+        expectedStreamRevision: number,
+        expectedIceGeneration: number,
+        options: RequestOptions = {},
+    ): Promise<WebRtcIceRestartReceipt> {
+        this.check();
+        if (!this.remoteApplied)
+            throw new ConnectError(
+                "conflict",
+                "Initial WebRTC answer is not applied",
+            );
+        this.restarts ??= new BrowserIceRestart(
+            this.client,
+            this.peer,
+            { ...this.scope },
+            this.restartStop.signal,
+            () => this.check(),
+            (error) => this.die(error),
+        );
+        return this.restarts.restart(
+            operationId,
+            expectedStreamRevision,
+            expectedIceGeneration,
+            options,
+        );
     }
     private check(): void {
         if (this.stopped)
@@ -453,6 +489,7 @@ export class CanonicalWebRtcSignaling {
     }
     private retire(): void {
         this.stopped = true;
+        this.restartStop.abort();
         this.peer.removeEventListener(
             "connectionstatechange",
             this.peerStateChanged,
@@ -478,6 +515,7 @@ export class CanonicalWebRtcSignaling {
     }
     async shutdown(): Promise<void> {
         this.close();
+        await this.restarts?.shutdown();
         await this.tasks.join();
     }
 }

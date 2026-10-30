@@ -448,6 +448,7 @@ def run(node_sdk=False, python_sdk=False):
             ("store", "connect_store", ["--offline", "-p", "connect-store", "--lib"]),
             ("library", "connect_server", ["--offline", "-p", "connect-server", "--features", "test-support", "--lib"]),
             ("hosting", "gate6_canonical_runtime", ["--offline", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_runtime"]),
+            ("webtransport", "gate6_canonical_webtransport", ["--offline", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_webtransport"]),
             # Targeted locked upstream compilation may fetch its registry-only
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
@@ -486,6 +487,7 @@ def run(node_sdk=False, python_sdk=False):
         for name, binary, pattern, expected in (
             ("sdk-event-delivery", "client", "sdk::events::helper_delivery_tests::", 3),
             ("sdk-events", "client", "canonical::tests::sdk_events::", 10),
+            ("sdk-ice-receipts", "client", "sdk::connection_updates::ice_receipt_tests::", 2),
             ("sdk-managed-delivery", "client", "sdk::helper::managed::tests::", 3),
             ("sdk-media-ipc-framing", "client", "sdk::helper::media_ipc::tests::", 6),
             ("sdk-media-ipc-routing", "client", "sdk::helper::media::", 6),
@@ -496,6 +498,8 @@ def run(node_sdk=False, python_sdk=False):
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
             ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_", 2),
+            ("native-ice-custody", "store", "connection_control::tests::native_wire::webrtc_ice::", 13),
+            ("native-ice-restart", "webtransport", "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_", 2),
             ("native-candidate-retirement", "store", "connection_control::tests::replacement_sources::candidate::", 8),
             ("native-endpoint-reservation-contention", "store", "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect", 1),
             ("native-return-reservation-contention", "store", "connection_control::tests::consultation_returns::native_return_reservation_refuses_contended_sql_or_authority_without_effect", 1),

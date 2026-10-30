@@ -1,0 +1,499 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "checked_at": "2026-10-30T09:52:14.818851+00:00",
+  "base_revision": "c2dd7377a86fe4877b157a855644d8ae4d6b4981",
+  "scope": "Local signed WSS original-peer PCMU restart, private answer recovery, two generations, current authority withdrawal and original close; typed SDK component/metadata restoration and schema/reference checks.",
+  "patches": [
+    {
+      "path": "patches/rvoip/gate6-canonical-ice-restart-dispatch.patch",
+      "source": "G6-054 register bounded restart-only WebRTC update and strict schema; cleanup captures and joins only the exact original canonical allocation/route, preserving conditional removal and terminal event identity. Public service/SDK/HTTP integration and behavioral qualification recorded separately.",
+      "sha256": "192359f2ae910f997ce4ea3ae35f4261c07b211687826e9c21ba40dfba0a24ed"
+    },
+    {
+      "path": "patches/rvoip/gate6-transport-only-ice-descriptions.patch",
+      "source": "G6-054 actual native restart offers changed codecs and session attributes. Add explicit same-peer transport-only SDP generation from real fresh ICE credentials/candidates while preserving the original local media/DTLS contract; generic renegotiation remains separate. Includes refusal and preservation tests.",
+      "sha256": "a83982a25b0d9992cb54fc6deac16885ead46eb41342ee9c1d23b21ecf0eebba"
+    }
+  ],
+  "implementation": {
+    "action": "connection.update/ice-restart on the original signed WSS WebRTC owner",
+    "worker": "Tracked bounded original attempt: same held authority for negotiation, fresh original authority per subsequent observation, no idle readers, no second physical invocation on recovery.",
+    "answer": "Private correlated signed ACK proposes the original successor; SDP never enters shared operation result or journal. Only the live exact-SDP/full-credential selected-pair observation captures completion.",
+    "transport": "Explicit same-peer transport-only offer/answer uses actual fresh agent credentials/candidates and preserves original codecs, DTLS, MIDs, source/track identity, session attributes and increasing original origin version.",
+    "recovery": "Immutable original request and answer, one effect; old completed replay cannot reset the latest generation; Unknown never remints an effect. Actual original allocation close/join follows current revocation.",
+    "sdk": "Browser same-peer restart saves intent before IO, joins original gathering/application on timeout, and requires the captured server receipt. Rust/browser/Node/Python restore historical ICE metadata without adopting media or allocating another peer.",
+    "references": "Canonical envelope/schema/vectors, bounded HTTP/OpenAPI profile, frozen SDK revision4 extension and endpoint inventory updated; HTTP/QUIC/WT cannot perform this WSS-owned mutation."
+  },
+  "behavior": {
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "completed_generations_per_function": 2,
+    "original_allocations_per_function": 2,
+    "new_restart_allocations": 0,
+    "assertions": [
+      "Same original Core ports/codecs/SSRC bindings, media revision, Connection generation and stream budget through both completed restarts.",
+      "First private answer deliberately discarded, exact original answer recovered under a fresh signed envelope with the same logical operation and SDP; one effect attempt.",
+      "Old generation1 answer/receipt replayed after generation2 without rolling back current counter or changing ports.",
+      "Both live PCMU source markers flipped after captured completion; opposite signs independently decoded in both directions after each restart.",
+      "Changed fingerprint, foreign physical source and stale counter refused.",
+      "Third restart answer deliberately not applied; actual Endpoint revocation obtains the writer within3seconds, operation becomes Unknown with one effect, exact original route closes/joins within5seconds; other original route/ports remain.",
+      "Owned source tasks, streams, peers, WSS sockets and server are explicitly closed/joined."
+    ]
+  },
+  "verification": {
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.123303,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/dependencies.log",
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 2.69148,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/format.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "envelope",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-gate6-schemas.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.035885,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/envelope.log",
+        "log_sha256": "79927eef239ca53c8a837d16ab000ebaa535e295a67a6fd6d0f9bf9480829bbd"
+      },
+      {
+        "name": "browser-schema",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-browser-canonical.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.115221,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/browser-schema.log",
+        "log_sha256": "a56b27ba417e8145cba581792900228df7ddf76c816ba6acccca2dab91bd8da5"
+      },
+      {
+        "name": "http-reference",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.031952,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/http-reference.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "transport-only-sdp",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "transport_restart",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 0.184686,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/transport-only-sdp.log",
+        "log_sha256": "7a1041e8f7359368af93d191a1b0a8cbcc99cf9d2a6d06e7c6d307e3f68e9146"
+      },
+      {
+        "name": "live-ice-generation",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "ice_generation_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 3,
+        "actual_tests": 3,
+        "seconds": 0.426642,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/live-ice-generation.log",
+        "log_sha256": "64268e46533948419856e95b8088e4a9d5d7b540ae7e2be68806a45e94f4282f"
+      },
+      {
+        "name": "protocol",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-protocol",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 64,
+        "actual_tests": 64,
+        "seconds": 0.178471,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/protocol.log",
+        "log_sha256": "050b741b1e4a66e84c446df234d78c946b88a3f186dfde5ac2ca0b75ec845bf4"
+      },
+      {
+        "name": "protocol-schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-protocol",
+          "--features",
+          "schema",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 65,
+        "actual_tests": 65,
+        "seconds": 0.16653,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/protocol-schema.log",
+        "log_sha256": "f4cbc01d9dd655616ba1f1a699ef1257a618ac93ae27ce31bb8cdd8814c230b4"
+      },
+      {
+        "name": "sdk-receipts",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-client",
+          "--lib",
+          "ice_receipt_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 0.167543,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/sdk-receipts.log",
+        "log_sha256": "debce694d97249721347877067f7d01d561255ffa6f8bcfcafd4cabdb314cf96"
+      },
+      {
+        "name": "sdk-oracle",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-client",
+          "--test",
+          "gate6_browser_canonical",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 1,
+        "actual_tests": 1,
+        "seconds": 0.25379,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/sdk-oracle.log",
+        "log_sha256": "48fe282e8062e1e07e9e2e3fd395c0dbb44696558e9a4216155f28d03ddc03a9"
+      },
+      {
+        "name": "store-original-custody",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-store",
+          "--lib",
+          "connection_control::tests::native_wire::webrtc_ice",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 13,
+        "actual_tests": 13,
+        "seconds": 5.529696,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/store-original-custody.log",
+        "log_sha256": "1a45fafbbaddf7547cfdea0622a0aacbe979ee9dc8670d845f148c6b8f455443"
+      },
+      {
+        "name": "signed-rtc",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_webtransport",
+          "signed_rtc_ice_restart",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": 2,
+        "actual_tests": 2,
+        "seconds": 13.244557,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/signed-rtc.log",
+        "log_sha256": "084bbbe59f9d4f0ce200ada457c8cbdf0c25e0c4caa170fe404afd796ba60b8f"
+      },
+      {
+        "name": "typescript",
+        "command": [
+          "sdk/typescript/node_modules/.bin/tsc",
+          "-p",
+          "sdk/typescript/tsconfig.json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.244344,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/typescript.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "sdk-components",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/browser_webrtc_restart.test.mjs",
+          "sdk/tests/browser_webrtc_signaling.test.mjs",
+          "sdk/tests/browser_sdk_webrtc.test.mjs",
+          "sdk/tests/browser_voice.test.mjs",
+          "sdk/tests/browser_sdk_streams.test.mjs",
+          "sdk/tests/node_connections.test.mjs",
+          "sdk/tests/browser_canonical.test.mjs"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.4834,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/sdk-components.log",
+        "log_sha256": "d54f780085612f8bcdf9be66af319a5fe66e42e9ab70325986958210c734721c"
+      },
+      {
+        "name": "python-receipts",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "-m",
+          "unittest",
+          "test_python_connections"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.639341,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/python-receipts.log",
+        "log_sha256": "ceca9bd9e9c0a5a8ea5a0d764cc2a4c1586bda25a8e60010287f600ebedd114b"
+      },
+      {
+        "name": "contracts",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-contracts.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-06/contracts.json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.283435,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/contracts.log",
+        "log_sha256": "17d76379b9e47c89912878d0d4aa36b46eae24597642006707eeaee46a0cbadb"
+      },
+      {
+        "name": "sdk-contract",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-sdk-contract.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-06/sdk-contract"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.179536,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/sdk-contract.log",
+        "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+      },
+      {
+        "name": "sdk-outlines",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+          "scripts/check-gate6-sdk-outlines.py",
+          "--output",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-06/sdk-outlines"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 3.703051,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/sdk-outlines.log",
+        "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+      },
+      {
+        "name": "diff",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_tests": null,
+        "actual_tests": 0,
+        "seconds": 0.031127,
+        "log": ".local/gate-6/ice-dispatch/frozen-06/diff.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "source_inputs": 5903,
+    "sources_unchanged": true,
+    "source_manifest": ".local/gate-6/ice-dispatch/frozen-06/inputs-before.json",
+    "source_manifest_sha256": "0b966670c3d96da03b747bb31aed837f5efc318090319b421c5bf63731d20ea4",
+    "summary": ".local/gate-6/ice-dispatch/frozen-06/summary.json",
+    "summary_sha256": "c412e2919de3c1dc3552b60ec5f0c1dbf97511f43670674e825f0991baa99384",
+    "binaries_sha256": {
+      "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/connect": "1b2e4c9bccaccedfdd391a9af8f9c62940b26f0a7221850743c042b37cd52b14",
+      "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51": "a768ceefa30820d2a4b2bb2439b74e988731cc27a367029e86d44e5a547b5529"
+    },
+    "typescript_component_functions": 124,
+    "python_receipt_functions": 12,
+    "shared_schema_vectors": 352,
+    "envelope_contract_vectors": 267,
+    "sdk_static_targets": 4,
+    "expected_negative_cases_per_target": 6,
+    "http_inventory": {
+      "declarations": 28,
+      "explicit_operations": 29,
+      "uncovered": 0
+    },
+    "reference_refresh": "Application artifacts changed only provenance maps; endpoint inventory changed only two reference hashes. Final frozen06 rechecks the refreshed inputs. All five OpenAPI generators and endpoint --check pass."
+  },
+  "earlier_attempts": [
+    {
+      "log": ".local/gate-6/ice-dispatch/signed-ice-01.log",
+      "disposition": "No runtime: test-support fixture feature omitted; corrected."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/signed-ice-02.log",
+      "disposition": "Both native functions failed before wire restart because generic RTC offers changed media/session SDP. Preserved private synthetic descriptions; fixed by recorded patch249 without weakening guard."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/signed-ice-03.log",
+      "disposition": "Both functions received the first answer, then the fixture reused a signed envelope ID. Replay protection correctly refused; fixture now refreshes transport envelope ID/timestamp while preserving logical intent."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/frozen-04/signed-rtc.log",
+      "disposition": "No native functions executed: LLVM stripping ENOSPC left an unexecutable2784byte stub. Preserved stub/log, archived closed diagnostics with decoded SHA verification, pruned obsolete compiler libraries and forced a legitimate rebuild."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/frozen-05/summary.json",
+      "disposition": "All20checks passed/5903unchanged inputs before endpoint provenance refresh; final frozen06 independently passes all20checks after it."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/sdk-outlines-01.log",
+      "disposition": "Format check failed; scripts/format.sh correction and final outlines pass."
+    },
+    {
+      "log": ".local/gate-6/ice-dispatch/sdk-contract-01.log",
+      "disposition": "Initial global Python lacked jsonschema; a second attempt omitted --output. Final verification Python invocation passes."
+    }
+  ],
+  "remaining": [
+    "Distinct-network, TURN/expiry/relay and fault matrix",
+    "Actual browser engine restart and audio/video quality matrix",
+    "Linux hosting, named remote/provider or full Gate 6 acceptance",
+    "Existing distinct-network browser video changing-frame-rate failure remains open at unchanged24fps minimum; no threshold lowered.",
+    "Linux lane now selects two signed restart, thirteen Store and two SDK receipt functions, but no new Linux result is claimed before the source-bound CI artifact is inspected.",
+    "No new model, communications provider, named remote rehearsal, deployment or publication."
+  ],
+  "gate_counts": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  }
+}

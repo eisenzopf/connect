@@ -217,7 +217,8 @@ createInterface({input:process.stdin}).on('line',line=>{
      } else if(a.kind==='connection_offer'||a.kind==='connection_end')actual=conn(a,a.kind==='connection_offer'?1:null);
      else if(a.kind==='connection_update'){
       const u=intents.get(a.reference.operation_id)?.update??{action:'quality',interval_ms:250};let outcome;
-      if(u.action==='quality')outcome={kind:'quality',intervalMs:u.interval_ms};
+      if(config.iceReceipt!==undefined)outcome={kind:'ice-restart',iceGeneration:config.iceReceipt};
+      else if(u.action==='quality')outcome={kind:'quality',intervalMs:u.interval_ms};
       else if(u.action==='codec-renegotiate')outcome={kind:'codecs',resourcesChanged:true,streams:[binding()]};
       else outcome={kind:'gates',action:u.action,streams:[{...binding(),state:u.action==='hold'?'paused':'active',sourceMuted:u.action==='mute',heldDirection:null}]};
       actual={connection:conn(a),connectionGeneration:1,streamRevision:2,outcome};

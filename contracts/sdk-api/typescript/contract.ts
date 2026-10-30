@@ -180,7 +180,8 @@ export interface StreamGateObservation extends CodecObservation {
 export type ConnectionUpdateOutcome =
     | { readonly kind: "codecs"; readonly resourcesChanged: boolean; readonly streams: readonly CodecObservation[] }
     | { readonly kind: "gates"; readonly action: "hold" | "resume" | "mute" | "unmute"; readonly streams: readonly StreamGateObservation[] }
-    | { readonly kind: "quality"; readonly intervalMs: number };
+    | { readonly kind: "quality"; readonly intervalMs: number }
+    | { readonly kind: "ice-restart"; readonly iceGeneration: number };
 export interface ConnectionUpdateReceipt {
     readonly connection: Connection;
     readonly connectionGeneration: number;

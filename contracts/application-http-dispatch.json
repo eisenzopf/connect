@@ -995,9 +995,10 @@
   "inputs": {
     "Cargo.lock": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
     "Cargo.toml": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
-    "contracts/openapi-canonical-http.json": "4df8d1464aa1a131d2744aeafe97afbf29e04d16c2e00dea94d69f4d7c748cbe",
+    "contracts/openapi-canonical-http.json": "bffab2eeee802221493ef98b7102b307a7be46286154af4a4cf2d331e5b1ccee",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
     "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
+    "crates/connect-protocol/examples/check_ice_restart_offer.rs": "25d6d67af68fd2686491810ca6976f6a5cf07f29c00eae0d5903315b4a116382",
     "crates/connect-protocol/examples/enrollment_schema.rs": "a7538cdfa8560bb67582a571f70ee6a2796e1e3765b2fb99b27e6217d815ca3f",
     "crates/connect-protocol/src/application_api.rs": "92f9ceebc43320e807845d7b47db6a3495134444ed21f3735da0d838a57efec7",
     "crates/connect-protocol/src/attachments.rs": "77ab58a48700c9950f936314c097dd2c20a82c32b74e8468e5891b759412b7cb",
@@ -1013,7 +1014,7 @@
     "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
     "crates/connect-protocol/src/events.rs": "1341260e990dc5d91d5ff3a5697c7e01c0ef54de59598086e4fa1bfcb9b6c298",
     "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
-    "crates/connect-protocol/src/lib.rs": "1f5db833846536221c78021eeeca6dda626304f2d1e90703fad787e12adde2ac",
+    "crates/connect-protocol/src/lib.rs": "f2d3129ae057748e3fd50dcbd264b1a66e6405da403f3880e2d9665267cc11aa",
     "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
     "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
     "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
@@ -1024,7 +1025,7 @@
     "crates/connect-protocol/src/native_dtmf.rs": "9f4cd77bd13c53cf2cb5bd65bed19629b5217b928ea5809d12cb899c402eb691",
     "crates/connect-protocol/src/native_gates.rs": "e34a887a3ee5debdd5069c1628b77df2a426206b594b219c1eef89e2e14915b7",
     "crates/connect-protocol/src/native_network.rs": "660942bd63592c76352c04ea7f63005505985b9d1fb897078c9ecd9c6a0c0baf",
-    "crates/connect-protocol/src/native_streams.rs": "ac0716a053e299867925012a1f28211447083a3b6e102d38f369fa6561224007",
+    "crates/connect-protocol/src/native_streams.rs": "f632f2874a01bcc6a480428cba33bc384cb963eb87f7fbc6c287298a43983cf4",
     "crates/connect-protocol/src/provisioning.rs": "60114420e0ae7fe3e52bb77d011194cec681e87f151ebd7d9f59c36d87e33ab8",
     "crates/connect-protocol/src/readiness.rs": "dd9ffed3628f76e17d7c23b8e5f0cd28cabd3f6f81fe016677d267a9d22da0aa",
     "crates/connect-protocol/src/readiness_tests.rs": "a44649daab4711d37d5391759e34c14ac34aba886afe88eacec767b12247557d",
@@ -1047,6 +1048,8 @@
     "crates/connect-protocol/src/transitions.rs": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
     "crates/connect-protocol/src/user_delegation.rs": "208746e9ffac0bae03bdd6fa2177a9801d7dca273f56458c820e2e656e22b35a",
     "crates/connect-protocol/src/video_profile.rs": "d1b626fb37196a0c4eb974d7db12aa6c11031a94a51bddca478d388cd65c356c",
+    "crates/connect-protocol/src/webrtc_ice_restart/offer.rs": "93a6991bf6c4ac8f8600532ac7756ccf5204893852a394ce7c026636a4fa5f48",
+    "crates/connect-protocol/src/webrtc_ice_restart.rs": "4a8b5ce7becf63e112f1c8e53ec769fe5fa698a8c6efd1ffc4bf86077f7b0431",
     "crates/connect-protocol/tests/connector_endpoint.rs": "2b7cd8c308f2eabb72a212f7bdb916a1f0c5b6e704bbcbf9df9084494e23cfd3",
     "crates/connect-protocol/tests/contact_debug.rs": "d9dbf2f6e645b4f9077d4a4d83da5d94478d5e0ab5d5ba5921ed4a4902093265",
     "crates/connect-protocol/tests/contact_response.rs": "9fa647ae3d0efa1a47b597f64a6fd87fc2e3d1288b981070447b6865bf7ec94d",
@@ -1054,7 +1057,7 @@
     "crates/connect-protocol/tests/enrollment.rs": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
-    "dependencies/source-lock.json": "910068124b8db13802d4341c5e6410cc41eed2cf64038ddf9f3563d02026fe5a",
+    "dependencies/source-lock.json": "602900a454a5dca2bfa44e46c83c3176b94a846aa86b9ae655309246c59353f0",
     "scripts/generate-application-http-openapi.py": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f"
   }
 }

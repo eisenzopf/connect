@@ -3,7 +3,7 @@ from dataclasses import FrozenInstanceError
 from connect_sdk import (
     CodecOutcome, Connection, ConnectionCodecRenegotiate, ConnectionId,
     GateOutcome, HoldConnection, Mute, MutationOptions, NonEmpty, OfferedStream,
-    OperationId, ParticipantId, ParticipantStreams, Quality, QualityOutcome,
+    OperationId, ParticipantId, ParticipantStreams, Quality, QualityOutcome, IceRestartOutcome,
     RequestOptions, ResumeConnection, SdkError, StreamId, StreamRevision, StreamTarget, MediaConnection,
 )
 from _python_sdk_fixture import PythonSdkFixture
@@ -22,6 +22,14 @@ def reference(command='connection.offer',scope=None):
 
 
 class TypedPythonConnections(PythonSdkFixture):
+    async def test_historical_ice_recovery_is_metadata_without_native_control(self):
+        client=self.client({'iceReceipt':3})
+        op=client.operations.restore(reference('connection.update'),client.operation_kinds.connection_update)
+        value=(await op.wait(OPTIONS)).value
+        self.assertIsInstance(value.outcome,IceRestartOutcome)
+        self.assertEqual(value.outcome.ice_generation,3)
+        self.assertEqual(value.connection_generation,1)
+        self.assertTrue(all(r['request']['action']['type']=='operation' for r in self.calls()))
     def connection(self,client):
         return client.conversations.by_id('room').sessions.by_id('session').connections.by_id('connection')
 

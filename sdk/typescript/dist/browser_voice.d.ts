@@ -66,6 +66,13 @@ export declare class BrowserVoiceSession {
     static open(client: BrowserClient, options: BrowserVoiceOptions, request?: RequestOptions): Promise<BrowserVoiceSession>;
     /** A private snapshot of original SDP/operation intent, including uncertain submission. */
     get savedOffer(): SavedWebRtcOffer | undefined;
+    /** Same original peer and logical request through uncertain ICE recovery. */
+    restartIce(operationId: string, expectedStreamRevision: number, expectedIceGeneration: number, options?: RequestOptions): Promise<import("./browser_webrtc_restart.js").WebRtcIceRestartReceipt>;
+    get savedIceRestart(): {
+        scope: Scope;
+        payload?: JsonObject;
+        submissionAttempted: boolean;
+    } | undefined;
     get savedEnd(): SavedWebRtcEnd | undefined;
     /** Local capture for a muted preview; this session still owns its tracks. */
     get localPreview(): MediaStream;

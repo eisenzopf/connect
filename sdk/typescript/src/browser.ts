@@ -1,4 +1,5 @@
 /** Browser-only Connect surface. This entry point imports no Node modules. */
+export type { WebRtcIceRestartReceipt } from "./browser_webrtc_restart.js";
 export {
     BrowserMediaRenderer,
     type BrowserMediaRendererOptions,

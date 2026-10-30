@@ -51,7 +51,7 @@ enum RtcOutcome {
     Gates(u64, Vec<rvoip_core::stream_lifecycle::LogicalStream>),
 }
 impl Runtime {
-    fn rtc_stream_source(
+    pub(super) fn rtc_stream_source(
         &self,
         a: &AuthorizedEnvelope,
         physical: &Physical,
@@ -230,6 +230,9 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: String,
     ) -> Result<Reply> {
+        if a.envelope().original()["payload"]["action"] == "ice-restart" {
+            return self.ice_stream(a, physical, credential).await;
+        }
         let gates = a.envelope().kind() == "connection.update"
             && connect_protocol::native_gates::is_gate(&a.envelope().original()["payload"]);
         if !gates

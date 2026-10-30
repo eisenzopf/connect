@@ -356,6 +356,24 @@
           "client": "A hint is never authorization or completion evidence. The owned SDK verifies its original selector, performs current operation.get and matches announced immutable IDs/counters before applying a captured observation. Unsettled preparation recovery cannot be overwritten. Null captures only advance an exact installed predecessor when the journal proves no physical resources changed.",
           "recovery": "One bounded observation job per owned Connection shares explicit command capacity and original deadlines. Stale/foreign/unissued/malformed hints cannot acquire custody. Hint delivery is advisory; durable journal/cursor catch-up and wider backpressure profiles remain separate qualification."
         },
+        "x-webrtc-ice-restart": {
+          "transport": "Current signed original WebSocket/WebRTC physical owner. HTTP, native QUIC and WebTransport mutations refuse this action; HTTP operation.get/cancel retain current metadata authority.",
+          "command": "connection.update / ice-restart",
+          "required-scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id",
+            "expected_revision"
+          ],
+          "intent": "Exact complete gathered offer, expected media revision and independent expected_ice_generation. No Stream/Connection ownership generation, codec, gate, new Endpoint or authority assertion is accepted in the body. SDP max512KiB bytes; serialized intent max544KiB.",
+          "answer": "Correlated signed ACK details.ice_restart contains proposed_ice_generation=expected+1 and setup={kind:websocket+webrtc,sdp:original gathered answer}; reply_complete:true terminates this response only. The actual reply writer retains the current original command lease through IO. Private SDP never enters operation.updated/results or shared journal projections.",
+          "completion": "A tracked original worker reserves the existing exclusive Core slot without changing ports, gates or media revision; after answer delivery it releases originating readers, then freshly authorizes each same-peer exact-SDP/live-selected-ICE-generation observation. Only an attributed observation completes the operation with action, independent ice_generation, unchanged Connection generation/stream revision and resources_changed:false. This is not decoded-media readiness.",
+          "recovery": "Persist exact request/answer under the original logical operation. Lost responses recover original bytes/status without another RTC allocation, offer or physical restart. Timeout/revocation/possible effects remain Unknown; exact original-allocation close/join and parent retirement cannot close another peer or become a no-effect receipt.",
+          "browser-sdk": "BrowserConnection.restartIce and BrowserVoiceSession.restartIce retain the same original RTCPeerConnection, gathered intent and description-application promises across uncertain waits. They require the original operation completion before returning an ICE receipt; decoded audio/video remain separate.",
+          "qualification": "Implementation/profile evidence is tracked in G6-054; the description does not qualify distinct-network, TURN expiry/relay, browser engines or decoded video.",
+          "reference": "contracts/webrtc-ice-restart.md"
+        },
         "x-native-runtime-controls": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",
           "command": "connection.update",
@@ -1361,7 +1379,8 @@
               "mute",
               "unmute",
               "codec-renegotiate",
-              "quality"
+              "quality",
+              "ice-restart"
             ]
           },
           "streams": {
@@ -1435,6 +1454,64 @@
                   "quality_interval_ms"
                 ]
               }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "action"
+              ],
+              "properties": {
+                "action": {
+                  "const": "ice-restart"
+                }
+              }
+            },
+            "then": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "const": "ice-restart"
+                },
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "expected_ice_generation": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740990
+                    },
+                    "setup": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "websocket+webrtc"
+                        },
+                        "sdp": {
+                          "type": "string",
+                          "minLength": 5,
+                          "maxLength": 524288
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "sdp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "expected_ice_generation",
+                    "setup"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "action",
+                "details"
+              ],
+              "additionalProperties": false
             }
           }
         ]

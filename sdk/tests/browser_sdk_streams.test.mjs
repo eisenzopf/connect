@@ -4,6 +4,13 @@ import {BrowserSdkClient,browserOperationKinds,sdkId,sdkRevision} from '../types
 import {fixture} from './fixtures/browser_control_peer.mjs';
 const opts={timeoutMs:300},one=first=>({first,rest:[]});
 const binding=(extra={})=>({stream_id:'screen',medium:'screen',direction:'sendrecv',codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}},stream_local_id:2,stream_generation:1,connection_generation:1,...extra});
+test('historical ICE receipt restores without a local WebRTC peer or control mutation',()=>scenario(async({client,f,records})=>{
+ records.set('ice-original',{operation_id:'ice-original',command_type:'connection.update',state:'completed',revision:2,record_id:'ice-record',result:{action:'ice-restart',connection_id:'connection',connection_generation:4,stream_revision:7,resources_changed:false,ice_generation:3}});
+ const op=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'ice-original',command:'connection.update',scope:{conversation_id:'room',session_id:'session',connection_id:'connection'}},browserOperationKinds.connectionUpdate);
+ const value=(await op.wait(opts)).value;assert.deepEqual(value.outcome,{kind:'ice-restart',iceGeneration:3});assert.equal(value.connectionGeneration,4);assert.equal(value.streamRevision,7);
+ assert.equal(f.sent.filter(v=>v.type==='connection.offer'||v.type==='connection.update').length,0);
+ await assert.rejects(()=>value.connection.capture({audio:true},opts),{kind:'receipt-unavailable'});
+}));
 async function scenario(run,{fault,large=false}={}){
  const records=new Map();let mode=fault;
  return fixture(async f=>{

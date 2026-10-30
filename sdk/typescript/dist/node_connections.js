@@ -419,11 +419,18 @@ export function connectionUpdate(v, ctx, id) {
             "streams",
             "action",
             "intervalMs",
+            "iceGeneration",
         ]))
         return protocol();
     const connection = connectionHandle(v.connection, ctx, id), o = v.outcome;
     let outcome;
-    if (o.kind === "quality") {
+    if (o.kind === "ice-restart") {
+        if (!positive(o.iceGeneration) ||
+            Object.keys(o).some((k) => !["kind", "iceGeneration"].includes(k)))
+            return protocol();
+        outcome = { kind: "ice-restart", iceGeneration: o.iceGeneration };
+    }
+    else if (o.kind === "quality") {
         if (!positive(o.intervalMs) ||
             Object.keys(o).some((k) => !["kind", "intervalMs"].includes(k)))
             return protocol();

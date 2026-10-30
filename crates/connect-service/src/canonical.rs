@@ -545,6 +545,13 @@ impl AuthenticatedHandler for CanonicalHandler {
             return match result {
                 Ok(value) if value.answered => a.finish_answered_offer(),
                 Ok(value) => {
+                    let details =
+                        match crate::canonical_webrtc::ice_ack_details(&self.service.store, &a) {
+                            Ok(details) => details,
+                            Err(error) => {
+                                return HandlerReplies::new(vec![problem(a.envelope(), error)?])
+                            }
+                        };
                     let refusal = if a.envelope().kind() == "stream.subscribe"
                         && value.record.state
                             == connect_protocol::transitions::OperationState::Failed
@@ -574,12 +581,8 @@ impl AuthenticatedHandler for CanonicalHandler {
                         if let Some(error) = refusal {
                             problem(a.envelope(), error)?
                         } else {
-                            reply(
-                                a.envelope(),
-                                "ack",
-                                json!({"details":{"reply_complete":true}}),
-                            )
-                            .map_err(|_| DispatchError::Closed)?
+                            reply(a.envelope(), "ack", json!({"details":details}))
+                                .map_err(|_| DispatchError::Closed)?
                         },
                     ])
                 }

@@ -1,4 +1,5 @@
 import { BrowserTasks } from "./browser_tasks.js";
+import { BrowserIceRestart, } from "./browser_webrtc_restart.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -38,6 +39,8 @@ function candidate(value) {
 export class CanonicalWebRtcSignaling {
     client;
     peer;
+    restartStop = new AbortController();
+    restarts;
     tasks = new BrowserTasks();
     finished;
     resolveFinished;
@@ -138,6 +141,16 @@ export class CanonicalWebRtcSignaling {
                 submissionAttempted: this.submitted,
             }
             : undefined;
+    }
+    get savedIceRestart() {
+        return this.restarts?.saved;
+    }
+    restartIce(operationId, expectedStreamRevision, expectedIceGeneration, options = {}) {
+        this.check();
+        if (!this.remoteApplied)
+            throw new ConnectError("conflict", "Initial WebRTC answer is not applied");
+        this.restarts ??= new BrowserIceRestart(this.client, this.peer, { ...this.scope }, this.restartStop.signal, () => this.check(), (error) => this.die(error));
+        return this.restarts.restart(operationId, expectedStreamRevision, expectedIceGeneration, options);
     }
     check() {
         if (this.stopped)
@@ -334,6 +347,7 @@ export class CanonicalWebRtcSignaling {
     }
     retire() {
         this.stopped = true;
+        this.restartStop.abort();
         this.peer.removeEventListener("connectionstatechange", this.peerStateChanged);
         this.peer.removeEventListener("iceconnectionstatechange", this.peerStateChanged);
         this.gatheringCleanup?.();
@@ -352,6 +366,7 @@ export class CanonicalWebRtcSignaling {
     }
     async shutdown() {
         this.close();
+        await this.restarts?.shutdown();
         await this.tasks.join();
     }
 }

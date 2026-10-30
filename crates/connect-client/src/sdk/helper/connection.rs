@@ -240,6 +240,9 @@ fn codec(v: CodecObservation) -> Value {
 }
 pub(super) fn update_json(v: ConnectionUpdateReceipt) -> Value {
     let outcome = match v.outcome {
+        ConnectionUpdateOutcome::IceRestart { ice_generation } => {
+            json!({"kind":"ice-restart","iceGeneration":ice_generation})
+        }
         ConnectionUpdateOutcome::Quality { interval_ms } => {
             json!({"kind":"quality","intervalMs":interval_ms})
         }

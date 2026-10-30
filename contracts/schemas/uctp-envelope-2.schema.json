@@ -506,7 +506,8 @@
             "mute",
             "unmute",
             "codec-renegotiate",
-            "quality"
+            "quality",
+            "ice-restart"
           ]
         },
         "streams": {
@@ -580,6 +581,64 @@
                 "quality_interval_ms"
               ]
             }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "const": "ice-restart"
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "ice-restart"
+              },
+              "details": {
+                "type": "object",
+                "properties": {
+                  "expected_ice_generation": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740990
+                  },
+                  "setup": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "websocket+webrtc"
+                      },
+                      "sdp": {
+                        "type": "string",
+                        "minLength": 5,
+                        "maxLength": 524288
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sdp"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "expected_ice_generation",
+                  "setup"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "action",
+              "details"
+            ],
+            "additionalProperties": false
           }
         }
       ]

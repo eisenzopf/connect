@@ -2,12 +2,12 @@
 
 G6-054 implementation is in progress. The bounded request types are implemented
 in `connect-protocol::webrtc_ice_restart`. Private Store custody is implemented
-in schema116. An internal physical custodian and separate Core transport slot
-are implemented; public dispatch, answer delivery, cleanup integration, SDK
-methods and HTTP/OpenAPI registration remain pending. This document does not
-advertise a working public restart API.
+in schema116. Signed WSS dispatch, private answer delivery, tracked original-peer
+custody/cleanup and browser SDK handling are implemented. The generated server
+HTTP/OpenAPI reference includes the action and its physical transport restriction.
+Behavioral qualification and the full G6-054 network/media matrix remain separate.
 
-The intended mutation is `connection.update` with the original Conversation,
+The mutation is `connection.update` with the original Conversation,
 Session and Connection scope, a new logical operation ID saved before IO, and
 the current media revision assertion. Its payload is:
 
@@ -146,10 +146,41 @@ offer/answer and their live ICE generation together under one core lock.
 Only that observed completion consumes the original lease into a receipt.
 Metadata persistence can retry with that receipt without invoking RTC again.
 
-This custodian is not yet connected to public dispatch. Its caller still needs
-tracked worker custody, protected correlated answer delivery and original-peer
-cleanup/join handling. Source compilation and component tests do not establish
-actual canonical restart, network recovery or decoded-media qualification.
+The signed WSS handler runs this custodian in the Runtime's tracked worker set.
+Initial negotiation derives authority from the handler's already-held interval,
+without acquiring another reader behind a waiting writer. It returns the stored
+answer in a correlated signed ACK:
+
+```json
+{"details":{"reply_complete":true,"ice_restart":{"proposed_ice_generation":1,"setup":{"kind":"websocket+webrtc","sdp":"v=0\r\n...original answer...\r\n"}}}}
+```
+
+The ordinary reply writer owns the actual original command authority through its
+write. The worker drops its handler reference and originating readers before
+waiting or observing ICE. A reply or proposed counter is not completion. Only
+the original operation's captured result contains `ice_generation`. Possible
+effects stay Unknown on cancellation, expiry or authority withdrawal. Cleanup
+matches the original admitted peer and actual RTC allocation, releases the Core
+slot and joins that exact route's original close. The parent custodian records
+its own attributed retirement; another Connection or the shared WSS control
+peer is not closed by this ICE cleanup capability.
+
+`BrowserConnection.restartIce(streamRevision, expectedIceGeneration, options)`
+and `BrowserVoiceSession.restartIce(operationId, streamRevision,
+expectedIceGeneration, options)` use the same original `RTCPeerConnection`.
+The operation ID is installed before gathering; the complete gathered offer is
+saved before submission. Repeated uncertain waits join the original preparation
+and answer-application promises and resend only the same original payload. A new
+operation cannot replace an unresolved one. They wait for the original operation
+completion before returning a historical `WebRtcIceRestartReceipt`; it carries
+the operation ID, ICE counter and unchanged media/Connection generations, and
+does not prove independently decoded media. No capture, transceiver or new RTC
+peer is allocated by this operation. The explicit private `savedIceRestart`
+snapshot on the voice/signaling owner supports attribution during recovery.
+
+Source compilation and component tests alone do not establish actual canonical
+restart, network recovery or decoded-media qualification. Consult the task's
+current evidence for the exact qualified profiles and unresolved checks.
 
 ## Required public execution and qualification
 
@@ -181,7 +212,8 @@ authority, lost/repeated responses, independently decoded duplex media and
 original allocation/peer cleanup. Browser compositor quality and other remaining
 G6-054 matrix requirements remain open; thresholds are unchanged.
 
-The public HTTP reference and shared OpenAPI schema must be updated with the
-new action when canonical dispatch is installed. Until then the existing public
-decoder continues to refuse this action; no compatibility or legacy route is
-added.
+The public decoder/schema recognizes this action. HTTP and native QUIC or
+WebTransport cannot restart a canonical WebRTC peer: mutation requires the
+original signed WSS physical owner. HTTP status/cancellation remain separately
+current-authorized metadata operations. See `x-webrtc-ice-restart` in
+`contracts/openapi-canonical-http.json`. No compatibility or legacy route is used.

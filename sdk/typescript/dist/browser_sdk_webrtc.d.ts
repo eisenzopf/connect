@@ -41,6 +41,12 @@ export declare class BrowserRtcConnection {
     private check;
     private connected;
     onClose(fn: (error?: Error) => void): () => void;
+    restartIce(operationId: string, expectedStreamRevision: number, expectedIceGeneration: number, options?: RequestOptions): Promise<import("./browser_webrtc_restart.js").WebRtcIceRestartReceipt>;
+    get savedIceRestart(): {
+        scope: import("./uctp_wire.js").Scope;
+        payload?: import("./uctp_json.js").JsonObject;
+        submissionAttempted: boolean;
+    } | undefined;
     private onRetire;
     capture(input: BrowserRtcCaptureInput, options: RequestOptions): Promise<BrowserCaptureHandle>;
     render(input: {

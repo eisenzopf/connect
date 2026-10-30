@@ -183,7 +183,11 @@ class GateOutcome:
 class QualityOutcome:
     interval_ms: int
 
-type ConnectionUpdateOutcome = CodecOutcome | GateOutcome | QualityOutcome
+@dataclass(frozen=True)
+class IceRestartOutcome:
+    ice_generation: int
+
+type ConnectionUpdateOutcome = CodecOutcome | GateOutcome | QualityOutcome | IceRestartOutcome
 
 @dataclass(frozen=True)
 class ConnectionUpdateReceipt:

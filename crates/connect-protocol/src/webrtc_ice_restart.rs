@@ -57,6 +57,51 @@ pub struct IceRestartUpdate {
     pub details: IceRestartDetails,
 }
 
+/// Private correlated ACK data. This proposes an ICE generation; it is never
+/// a completed-generation receipt and never belongs in shared operation data.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IceRestartAnswer {
+    #[cfg_attr(
+        feature = "schema",
+        schemars(range(min = 1, max = 9_007_199_254_740_991_u64))
+    )]
+    pub proposed_ice_generation: u64,
+    pub setup: WebRtcSdpSetup,
+}
+impl std::fmt::Debug for IceRestartAnswer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("IceRestartAnswer(redacted)")
+    }
+}
+impl IceRestartAnswer {
+    pub fn new(expected: u64, sdp: String) -> Result<Self> {
+        if expected >= MAX_ICE_GENERATION {
+            return Err(invalid());
+        }
+        let value = Self {
+            proposed_ice_generation: expected + 1,
+            setup: WebRtcSdpSetup {
+                kind: WebRtcSetupKind::WebSocketWebRtc,
+                sdp,
+            },
+        };
+        value.validate(expected)?;
+        Ok(value)
+    }
+    pub fn validate(&self, expected: u64) -> Result<()> {
+        validate_sdp(&self.setup.sdp)?;
+        if expected >= MAX_ICE_GENERATION
+            || self.proposed_ice_generation != expected + 1
+            || serde_json::to_vec(self).map_err(|_| invalid())?.len() > MAX_UPDATE_BYTES
+        {
+            return Err(invalid());
+        }
+        Ok(())
+    }
+}
+
 impl std::fmt::Debug for WebRtcSdpSetup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("WebRtcSdpSetup(redacted)")
@@ -118,6 +163,30 @@ mod tests {
     fn request() -> Value {
         json!({"action":"ice-restart","details":{"expected_ice_generation":0,
             "setup":{"kind":"websocket+webrtc","sdp":"v=0\r\na=ice-ufrag:abcd\r\na=ice-pwd:PRIVATE-FIXTURE-PASSWORD\r\n"}}})
+    }
+    #[test]
+    fn private_answer_proposes_only_original_successor_without_claiming_ready() {
+        let sdp = "v=0\r\na=ice-pwd:PRIVATE-ANSWER\r\n".to_owned();
+        let answer = IceRestartAnswer::new(7, sdp.clone()).unwrap();
+        assert_eq!(answer.proposed_ice_generation, 8);
+        assert_eq!(answer.setup.sdp, sdp);
+        assert!(answer.validate(6).is_err());
+        assert!(!format!("{answer:?}").contains("PRIVATE"));
+        let json = serde_json::to_value(&answer).unwrap();
+        assert!(json.get("ice_generation").is_none());
+        assert!(json.get("ready").is_none());
+        let mut changed = json;
+        changed["ready"] = json!(true);
+        assert!(serde_json::from_value::<IceRestartAnswer>(changed).is_err());
+    }
+    #[test]
+    fn private_answer_rejects_overflow_oversize_and_unknown_substrate() {
+        assert!(IceRestartAnswer::new(MAX_ICE_GENERATION, "v=0\r\n".into()).is_err());
+        assert!(
+            IceRestartAnswer::new(0, "v=0\r\n".to_owned() + &"x".repeat(MAX_SDP_BYTES)).is_err()
+        );
+        assert!(IceRestartAnswer::new(0, "v=0\r\n\0".into()).is_err());
+        assert!(serde_json::from_value::<IceRestartAnswer>(json!({"proposed_ice_generation":1,"setup":{"kind":"native-prepared/1","sdp":"v=0\r\n"}})).is_err());
     }
     #[test]
     fn original_sdp_and_generation_round_trip_without_normalization_or_authority_fields() {

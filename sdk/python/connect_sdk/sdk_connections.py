@@ -15,7 +15,7 @@ from .sdk_types import (
     ConnectionSnapshot, ConnectionUpdate, ConnectionUpdateOutcome, ConnectionUpdateReceipt,
     ConversationId, Direction, GateOutcome, HoldConnection, MediaFormat, Medium,
     Mute, MutationOptions, NegotiatedStream, NonEmpty, OfferedStream, OperationKey,
-    ParticipantStreams, Quality, QualityOutcome, RequestOptions, ResumeConnection,
+    ParticipantStreams, Quality, QualityOutcome, IceRestartOutcome, RequestOptions, ResumeConnection,
     Scope, SessionId, SourceClock, StreamGateObservation, StreamId, StreamResourceRevision,
     StreamRevision, StreamSelectionReceipt, StreamSelector, StreamSnapshot, StreamTarget,
     freeze, identifier,
@@ -65,7 +65,11 @@ def connection_update(value: Any, client: Client, key: OperationKey) -> Connecti
     connection = connection_handle(value["connection"], client, key)
     o = value["outcome"]
     outcome: ConnectionUpdateOutcome
-    if o.get("kind") == "quality":
+    if o.get("kind") == "ice-restart":
+        if not _object(o,("kind", "iceGeneration")) or not _natural(o["iceGeneration"],1) or o["iceGeneration"] >= 2**53:
+            return _bad()
+        outcome = IceRestartOutcome(o["iceGeneration"])
+    elif o.get("kind") == "quality":
         if not _object(o,("kind", "intervalMs")) or not _natural(o["intervalMs"]) or o["intervalMs"] >= 2**32:
             return _bad()
         outcome = QualityOutcome(o["intervalMs"])

@@ -98,6 +98,10 @@ pub struct CodecObservation {
 }
 #[derive(Clone, Debug)]
 pub enum ConnectionUpdateOutcome {
+    /// Historical server-observed transport generation; no local media grant.
+    IceRestart {
+        ice_generation: u64,
+    },
     Codecs {
         resources_changed: bool,
         streams: Vec<CodecObservation>,
@@ -203,6 +207,7 @@ impl Connection {
     }
 }
 pub(super) struct Observed {
+    pub ice: Option<u64>,
     pub generation: u64,
     pub revision: StreamRevision,
     pub action: Option<GateAction>,
@@ -223,6 +228,37 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
         || value["connection_id"].as_str()
             != key.scope.connection_id.as_ref().map(ConnectionId::as_str)
     {
+        return Err(fail());
+    }
+    if value["action"] == "ice-restart" {
+        if value["resources_changed"] != false
+            || [
+                "codec_bindings",
+                "gate_streams",
+                "quality_interval_ms",
+                "setup",
+                "sdp",
+            ]
+            .iter()
+            .any(|k| value.get(k).is_some())
+        {
+            return Err(fail());
+        }
+        return Ok(Observed {
+            generation: positive(&value["connection_generation"]).ok_or_else(fail)?,
+            revision: StreamRevision::try_from(
+                positive(&value["stream_revision"]).ok_or_else(fail)?,
+            )
+            .map_err(|_| fail())?,
+            ice: Some(positive(&value["ice_generation"]).ok_or_else(fail)?),
+            action: None,
+            gates: vec![],
+            quality: None,
+            codecs: None,
+            resources_changed: false,
+        });
+    }
+    if value.get("ice_generation").is_some() {
         return Err(fail());
     }
     if let Some(bindings) = value.get("codec_bindings") {
@@ -246,6 +282,7 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
             StreamRevision::try_from(positive(&value["stream_revision"]).ok_or_else(fail)?)
                 .map_err(|_| fail())?;
         return Ok(Observed {
+            ice: None,
             generation,
             revision,
             action: None,
@@ -270,6 +307,7 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
             return Err(fail());
         }
         return Ok(Observed {
+            ice: None,
             generation,
             revision,
             action: None,
@@ -305,6 +343,7 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
         return Err(fail());
     }
     Ok(Observed {
+        ice: None,
         generation,
         revision,
         action: Some(action),
@@ -321,7 +360,15 @@ pub(super) fn validate_intent(
     key: &OperationKey,
 ) -> Result<()> {
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
-    if payload["action"] == "codec-renegotiate" {
+    if payload["action"] == "ice-restart" {
+        let intent =
+            connect_protocol::webrtc_ice_restart::parse_update(payload).map_err(|_| fail())?;
+        if observed.ice != Some(intent.details.expected_ice_generation + 1)
+            || observed.revision.get() != expected
+        {
+            return Err(fail());
+        }
+    } else if payload["action"] == "codec-renegotiate" {
         if observed.codecs.is_none()
             || !observed.resources_changed
             || expected.checked_add(1) != Some(observed.revision.get())
@@ -356,7 +403,9 @@ pub(super) fn decode(
     let observed = parse(&value, key)?;
     client.shared.record_connection_update(key, &observed)?;
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
-    let outcome = if let Some(bindings) = observed.codecs {
+    let outcome = if let Some(ice_generation) = observed.ice {
+        ConnectionUpdateOutcome::IceRestart { ice_generation }
+    } else if let Some(bindings) = observed.codecs {
         let mut streams = Vec::new();
         for binding in bindings {
             let data = binding.medium == "data";
@@ -425,4 +474,64 @@ pub(super) fn decode(
         stream_revision: observed.revision,
         outcome,
     })
+}
+
+#[cfg(test)]
+mod ice_receipt_tests {
+    use super::*;
+    fn key() -> OperationKey {
+        OperationKey {
+            operation_id: "original-ice".parse().unwrap(),
+            command: "connection.update".into(),
+            scope: OperationScope {
+                conversation_id: Some("conversation".parse().unwrap()),
+                session_id: Some("session".parse().unwrap()),
+                connection_id: Some("connection".parse().unwrap()),
+            },
+        }
+    }
+    fn receipt() -> Value {
+        json!({"connection_id":"connection","connection_generation":7,"stream_revision":4,"resources_changed":false,"action":"ice-restart","ice_generation":3})
+    }
+    #[test]
+    fn historical_ice_counter_decodes_without_any_local_gate_codec_or_resource_effect() {
+        let key = key();
+        let observed = parse(&receipt(), &key).unwrap();
+        assert_eq!(observed.ice, Some(3));
+        assert_eq!(observed.revision.get(), 4);
+        assert_eq!(observed.generation, 7);
+        assert!(
+            observed.action.is_none()
+                && observed.gates.is_empty()
+                && observed.codecs.is_none()
+                && observed.quality.is_none()
+                && !observed.resources_changed
+        );
+        let intent = json!({"action":"ice-restart","details":{"expected_ice_generation":2,"setup":{"kind":"websocket+webrtc","sdp":"v=0\r\n"}}});
+        validate_intent(&observed, &intent, 4, &key).unwrap();
+        assert!(validate_intent(&observed, &intent, 3, &key).is_err());
+        let mut wrong = intent;
+        wrong["details"]["expected_ice_generation"] = json!(1);
+        assert!(validate_intent(&observed, &wrong, 4, &key).is_err());
+    }
+    #[test]
+    fn historical_ice_receipts_refuse_unsafe_mixed_or_foreign_metadata() {
+        for (field, value) in [
+            ("ice_generation", json!(0)),
+            ("ice_generation", json!(1u64 << 53)),
+            ("connection_id", json!("foreign")),
+            ("resources_changed", json!(true)),
+            ("gate_streams", json!([])),
+            ("codec_bindings", json!([])),
+            ("quality_interval_ms", json!(1000)),
+            ("setup", json!({"sdp":"PRIVATE"})),
+        ] {
+            let mut bad = receipt();
+            bad[field] = value;
+            assert!(parse(&bad, &key()).is_err(), "{field}");
+        }
+        let mut bad = receipt();
+        bad["action"] = json!("quality");
+        assert!(parse(&bad, &key()).is_err());
+    }
 }

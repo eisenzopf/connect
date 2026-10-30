@@ -1,0 +1,245 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -1268,6 +1268,8 @@
+     CodecRenegotiate,
+     #[serde(rename = "quality")]
+     Quality,
++    #[serde(rename = "ice-restart")]
++    IceRestart,
+ }
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -506,7 +506,8 @@
+             "mute",
+             "unmute",
+             "codec-renegotiate",
+-            "quality"
++            "quality",
++            "ice-restart"
+           ]
+         },
+         "streams": {
+@@ -580,6 +581,64 @@
+                 "quality_interval_ms"
+               ]
+             }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "action"
++            ],
++            "properties": {
++              "action": {
++                "const": "ice-restart"
++              }
++            }
++          },
++          "then": {
++            "type": "object",
++            "properties": {
++              "action": {
++                "const": "ice-restart"
++              },
++              "details": {
++                "type": "object",
++                "properties": {
++                  "expected_ice_generation": {
++                    "type": "integer",
++                    "minimum": 0,
++                    "maximum": 9007199254740990
++                  },
++                  "setup": {
++                    "type": "object",
++                    "properties": {
++                      "kind": {
++                        "const": "websocket+webrtc"
++                      },
++                      "sdp": {
++                        "type": "string",
++                        "minLength": 5,
++                        "maxLength": 524288
++                      }
++                    },
++                    "required": [
++                      "kind",
++                      "sdp"
++                    ],
++                    "additionalProperties": false
++                  }
++                },
++                "required": [
++                  "expected_ice_generation",
++                  "setup"
++                ],
++                "additionalProperties": false
++              }
++            },
++            "required": [
++              "action",
++              "details"
++            ],
++            "additionalProperties": false
+           }
+         }
+       ]
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -322,6 +322,82 @@
+             lifecycle: Default::default(),
+         })
+     }
++    /// Close only the captured original allocation, even after its authority
++    /// or signaling lifetime expires. A replacement at the same ID cannot be
++    /// selected by this historical cleanup capability.
++    pub async fn end_original(
++        &self,
++        id: ConnectionId,
++        peer: &Arc<PeerAdmission>,
++        original: &Arc<RvoipPeerConnection>,
++        reason: EndReason,
++    ) -> Result<()> {
++        let Some(route) = self.routes.get(&id).map(|r| r.value().clone()) else {
++            return Ok(());
++        };
++        let same = Weak::ptr_eq(&route.peer, &Arc::downgrade(peer))
++            && route
++                .binding
++                .allocation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .and_then(|f| f.peek())
++                .is_some_and(|r| r.as_ref().is_ok_and(|p| Arc::ptr_eq(p, original)));
++        if !same {
++            return Err(RvoipError::AdmissionRejected(
++                "Original WebRTC cleanup allocation differs",
++            ));
++        }
++        self.end_route(id, route, reason).await
++    }
++    async fn end_route(
++        &self,
++        id: ConnectionId,
++        route: Arc<Route>,
++        reason: EndReason,
++    ) -> Result<()> {
++        route.cancel.cancel();
++        let installation = route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .map(|i| (i.controller.clone(), i.backend.clone()));
++        // Parent transport destruction also resolves port IO whose original
++        // driver receipt was lost; outcome uncertainty remains historical.
++        route.binding.shutdown().await?;
++        if let Some((controller, backend)) = installation {
++            backend
++                .close()
++                .await
++                .map_err(|_| RvoipError::InvalidState("RTC port cleanup unconfirmed"))?;
++            if controller
++                .shutdown(tokio::time::Instant::now() + std::time::Duration::from_secs(1))
++                .await
++                != 0
++            {
++                return Err(RvoipError::InvalidState("RTC Core cleanup unconfirmed"));
++            }
++        }
++        self.capacity_release(&route.binding);
++        if self
++            .routes
++            .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
++            .is_some()
++        {
++            self.lifecycle
++                .queue_or_deliver_orchestrator_terminal(
++                    &self.events,
++                    AdapterEvent::Ended {
++                        connection_id: id,
++                        reason,
++                    },
++                )
++                .await;
++        }
++        Ok(())
++    }
+     /// Borrow only the existing allocation bound to this original admitted
+     /// peer and live route. This never constructs/replaces a peer or starts an
+     /// allocation. Recheck the same route and physical lifetime after waiting.
+@@ -557,45 +633,7 @@
+     async fn end(&self, id: ConnectionId, reason: EndReason) -> Result<()> {
+         let route = self.routes.get(&id).map(|r| r.value().clone());
+         if let Some(route) = route {
+-            route.cancel.cancel();
+-            let installation = route
+-                .installation
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .as_ref()
+-                .map(|i| (i.controller.clone(), i.backend.clone()));
+-            // Parent transport destruction also resolves port IO whose original
+-            // driver receipt was lost; outcome uncertainty remains historical.
+-            route.binding.shutdown().await?;
+-            if let Some((controller, backend)) = installation {
+-                backend
+-                    .close()
+-                    .await
+-                    .map_err(|_| RvoipError::InvalidState("RTC port cleanup unconfirmed"))?;
+-                if controller
+-                    .shutdown(tokio::time::Instant::now() + std::time::Duration::from_secs(1))
+-                    .await
+-                    != 0
+-                {
+-                    return Err(RvoipError::InvalidState("RTC Core cleanup unconfirmed"));
+-                }
+-            }
+-            self.capacity_release(&route.binding);
+-            if self
+-                .routes
+-                .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
+-                .is_some()
+-            {
+-                self.lifecycle
+-                    .queue_or_deliver_orchestrator_terminal(
+-                        &self.events,
+-                        AdapterEvent::Ended {
+-                            connection_id: id,
+-                            reason,
+-                        },
+-                    )
+-                    .await;
+-            }
++            self.end_route(id, route, reason).await?;
+         }
+         Ok(())
+     }
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1176,6 +1176,22 @@
+         let remote = parse_sdp(remote_sdp, RTCSdpType::Offer)?;
+         self.pc.set_remote_description(remote).await?;
+         self.create_answer_and_gather().await
++    }
++
++    /// Offerer transport-only restart on this same peer. Existing tracks,
++    /// codec selection and source identity are retained; the owner must still
++    /// authorize signaling and verify its captured generation separately.
++    pub async fn restart_ice_and_gather(self: &Arc<Self>) -> Result<String> {
++        self.require_role(PeerRole::Offerer)?;
++        let offer = self.pc.create_offer(Some(rtc::peer_connection::configuration::RTCOfferOptions {
++            ice_restart: true,
++            ..Default::default()
++        })).await?;
++        self.pc.set_local_description(offer).await?;
++        self.wait_gather().await?;
++        let desc = self.pc.local_description().await
++            .ok_or_else(|| WebRtcError::Sdp("no original restart offer after gather".into()))?;
++        sdp_to_string(&desc)
+     }
+ 
+     /// Offerer: ICE restart — create a fresh offer SDP after the session is up.

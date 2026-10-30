@@ -314,6 +314,24 @@ export class BrowserRtcConnection {
     onClose(fn: (error?: Error) => void): () => void {
         return this.onRetire(fn);
     }
+    restartIce(
+        operationId: string,
+        expectedStreamRevision: number,
+        expectedIceGeneration: number,
+        options: RequestOptions = {},
+    ) {
+        this.check();
+        if (!this.signaling) throw closed();
+        return this.signaling.restartIce(
+            operationId,
+            expectedStreamRevision,
+            expectedIceGeneration,
+            options,
+        );
+    }
+    get savedIceRestart() {
+        return this.signaling?.savedIceRestart;
+    }
     private onRetire(fn: (error?: Error) => void): () => void {
         this.check();
         if (this.retired.size >= 16) throw unsupported();

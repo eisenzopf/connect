@@ -61,7 +61,8 @@ export type SdkConnectionUpdateOutcome =
           readonly action: "hold" | "resume" | "mute" | "unmute";
           readonly streams: readonly SdkStreamGateObservation[];
       }
-    | { readonly kind: "quality"; readonly intervalMs: number };
+    | { readonly kind: "quality"; readonly intervalMs: number }
+    | { readonly kind: "ice-restart"; readonly iceGeneration: number };
 export interface SdkConnectionUpdateReceipt {
     readonly connection: SdkConnection;
     readonly connectionGeneration: number;
@@ -705,13 +706,21 @@ export function connectionUpdate(
             "streams",
             "action",
             "intervalMs",
+            "iceGeneration",
         ])
     )
         return protocol();
     const connection = connectionHandle(v.connection, ctx, id),
         o = v.outcome;
     let outcome: SdkConnectionUpdateOutcome;
-    if (o.kind === "quality") {
+    if (o.kind === "ice-restart") {
+        if (
+            !positive(o.iceGeneration) ||
+            Object.keys(o).some((k) => !["kind", "iceGeneration"].includes(k))
+        )
+            return protocol();
+        outcome = { kind: "ice-restart", iceGeneration: o.iceGeneration };
+    } else if (o.kind === "quality") {
         if (
             !positive(o.intervalMs) ||
             Object.keys(o).some((k) => !["kind", "intervalMs"].includes(k))

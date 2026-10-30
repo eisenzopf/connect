@@ -25,6 +25,7 @@ use tokio_util::sync::CancellationToken;
 mod admission;
 mod gates;
 mod ice;
+pub(crate) use ice::ack_details as ice_ack_details;
 mod streams;
 
 /// One original Store-issued attempt; the host must take custody synchronously.

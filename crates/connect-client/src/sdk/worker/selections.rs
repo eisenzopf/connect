@@ -280,6 +280,7 @@ pub(super) fn record(
             media,
             key,
             &connection_updates::Observed {
+                ice: None,
                 generation: out.connection_generation,
                 revision: StreamRevision::try_from(out.stream_revision).map_err(|_| bad())?,
                 action: None,

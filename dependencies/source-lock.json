@@ -1346,6 +1346,16 @@
       "path": "patches/rvoip/gate6-exclusive-rtc-transport-update.patch",
       "source": "G6-054 exclusive transport-only Core custody using the existing media control slot, no retained policy readers or media revision/port changes; separate default-deny exact transport policy. Borrow only the original canonical RTC allocation and read exact SDP plus live selected ICE generation under one core lock. Public restart wire action remains unregistered pending complete worker/HTTP/SDK integration.",
       "sha256": "70b40e1aa42184f152ebfa89bd214f1b9eba31da511850545d5e9f9b8ee757db"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-ice-restart-dispatch.patch",
+      "source": "G6-054 register bounded restart-only WebRTC update and strict schema; cleanup captures and joins only the exact original canonical allocation/route, preserving conditional removal and terminal event identity. Public service/SDK/HTTP integration and behavioral qualification recorded separately.",
+      "sha256": "192359f2ae910f997ce4ea3ae35f4261c07b211687826e9c21ba40dfba0a24ed"
+    },
+    {
+      "path": "patches/rvoip/gate6-transport-only-ice-descriptions.patch",
+      "source": "G6-054 actual native restart offers changed codecs and session attributes. Add explicit same-peer transport-only SDP generation from real fresh ICE credentials/candidates while preserving the original local media/DTLS contract; generic renegotiation remains separate. Includes refusal and preservation tests.",
+      "sha256": "a83982a25b0d9992cb54fc6deac16885ead46eb41342ee9c1d23b21ecf0eebba"
     }
   ]
 }

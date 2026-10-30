@@ -1,4 +1,3 @@
-/** Browser-only Connect surface. This entry point imports no Node modules. */
 export { BrowserMediaRenderer, } from "./browser_media_renderer.js";
 export { BrowserMediaCapture, browserCaptureSupport, } from "./browser_media_capture.js";
 export { BrowserMediaPeer, BrowserMediaConnection, } from "./browser_media.js";

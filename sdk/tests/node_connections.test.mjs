@@ -11,6 +11,14 @@ const offer=()=>({connectionId:'connection',streams:{first:{id:'audio',kind:'aud
 const calls=async dir=>(await readFile(join(dir,'requests.jsonl'),'utf8').catch(()=>'')).trim().split('\n').filter(Boolean).map(JSON.parse);
 const error=(kind,certainty)=>e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,kind);assert.equal(e.certainty,certainty);return true;};
 const session=client=>client.conversations.byId('room').sessions.byId('session');
+test('historical ICE receipt recovery has no native control or media effect',async()=>{
+ await fixture({iceReceipt:3},async(client,dir)=>{
+  const op=client.operations.restore(reference('connection.update'),client.operationKinds.connection_update);
+  const value=(await op.wait(opts)).value;
+  assert.deepEqual(value.outcome,{kind:'ice-restart',iceGeneration:3});assert.equal(value.connection.id,'connection');assert.equal(value.connectionGeneration,1);
+  assert.ok((await calls(dir)).every(r=>r.request.action.type==='operation'));
+ });
+});
 async function fixture(config,run){
  const base=join(root,'.local/gate-6/node-connection-unit');await mkdir(base,{recursive:true,mode:0o700});const dir=await mkdtemp(join(base,'unit-')),path=join(dir,'config.json');await writeFile(path,JSON.stringify(config),{mode:0o600});const client=new NodeClient({config:path,executable});
  try{await run(client,dir);}finally{await client.close(opts);const pid=Number(await readFile(join(dir,'pid'),'utf8').catch(()=>'0'));if(pid)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');await rm(dir,{recursive:true,force:true});}

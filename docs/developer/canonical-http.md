@@ -5,6 +5,15 @@ same service command parsers, durable operation engine, reply builders and
 bounded error mapping as the signed native listener. See the generated
 [OpenAPI reference](../../contracts/openapi-canonical-http.json).
 
+`connection.update` with `action:"ice-restart"` belongs to the original signed
+WebSocket/WebRTC physical owner. HTTP can read or cancel its original operation;
+it cannot apply that transport mutation. Its private correlated ACK carries the
+original gathered answer and a proposed ICE counter. Only the later captured
+operation result contains the completed ICE counter, with unchanged media
+revision and Connection/Stream ownership generations. See the
+[restart contract](../../contracts/webrtc-ice-restart.md) and the OpenAPI
+`x-webrtc-ice-restart` profile for bounds, SDK recovery and qualification scope.
+
 HTTP uses an explicit current bearer and `connect/2` response profile. It does
 not invent native signature, Device or physical-peer evidence. The native path
 still requires its enrolled Device/key, signatures and retained peer authority.

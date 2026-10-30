@@ -107,8 +107,12 @@ def build():
   definitions['SessionUpdate']['allOf'].append({'if':{'properties':{'kind':{'const':kind}}},'then':{'properties':{'details':obj(fields)}}})
  definitions['ConnectionUpdate']['properties']['action']={'enum':['hold','resume','mute','unmute','codec-renegotiate']}
  definitions['ConnectionUpdate']['properties']['action']['enum'].append('quality')
+ definitions['ConnectionUpdate']['properties']['action']['enum'].append('ice-restart')
  definitions['ConnectionUpdate']['properties']['quality_interval_ms']={'type':'integer','minimum':100,'maximum':60000}
  definitions['ConnectionUpdate']['allOf']=[{'if':{'required':['action'],'properties':{'action':{'const':'quality'}}},'then':{'required':['quality_interval_ms'],'not':{'anyOf':[{'required':[key]} for key in ['streams','codec_preferences','details']]}},'else':{'not':{'required':['quality_interval_ms']}}}]
+ ice_setup={'type':'object','properties':{'kind':{'const':'websocket+webrtc'},'sdp':{'type':'string','minLength':5,'maxLength':524288}},'required':['kind','sdp'],'additionalProperties':False}
+ ice_details={'type':'object','properties':{'expected_ice_generation':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1},'setup':ice_setup},'required':['expected_ice_generation','setup'],'additionalProperties':False}
+ definitions['ConnectionUpdate']['allOf'].append({'if':{'required':['action'],'properties':{'action':{'const':'ice-restart'}}},'then':{'type':'object','properties':{'action':{'const':'ice-restart'},'details':ice_details},'required':['action','details'],'additionalProperties':False}})
  definitions['ConnectionQuality']['properties']['interval_ms']['minimum']=1
  # An absent measurement is unavailable, never a fabricated zero. Packets count
  # accepted/submitted RTP datagrams, not reliable data messages or remote playout.
@@ -364,6 +368,25 @@ def main():
   elif label=='one-way':p['streams_offered'][0]['direction']='sendonly'
   else:p['streams_offered'].append({**p['streams_offered'][0],'id':'second'})
   vectors.append(dict(id='handoff-preparation-'+label,scope='schema-only',valid=False,envelope=invalid))
+ ice=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.update')
+ ice['payload']={'action':'ice-restart','details':{'expected_ice_generation':0,'setup':{'kind':'websocket+webrtc','sdp':'v=0\r\na=ice-ufrag:synthetic\r\n'}}}
+ vectors.append(dict(id='ice-restart-original-shape',scope='schema-only',valid=True,envelope=copy.deepcopy(ice)))
+ largest=copy.deepcopy(ice);largest['payload']['details']['expected_ice_generation']=SAFE_INTEGER-1
+ vectors.append(dict(id='ice-restart-largest-successor',scope='schema-only',valid=True,envelope=largest))
+ for label in ['missing-details','missing-generation','negative','unsafe','fractional','kind','streams','codecs','quality','endpoint','ready']:
+  invalid=copy.deepcopy(ice);p=invalid['payload']
+  if label=='missing-details':p.pop('details')
+  elif label=='missing-generation':p['details'].pop('expected_ice_generation')
+  elif label=='negative':p['details']['expected_ice_generation']=-1
+  elif label=='unsafe':p['details']['expected_ice_generation']=SAFE_INTEGER
+  elif label=='fractional':p['details']['expected_ice_generation']=0.5
+  elif label=='kind':p['details']['setup']['kind']='native-prepared/1'
+  elif label=='streams':p['streams']=['stream-example']
+  elif label=='codecs':p['codec_preferences']=['opus']
+  elif label=='quality':p['quality_interval_ms']=1000
+  elif label=='endpoint':p['details']['endpoint_id']='untrusted-endpoint'
+  else:p['details']['ready']=True
+  vectors.append(dict(id='ice-restart-'+label,scope='schema-only',valid=False,envelope=invalid))
  directory=ROOT/'contracts/uctp-vectors';directory.mkdir(exist_ok=True)
  emit(directory/'gate6-envelope.json', json.dumps(dict(format=1,scope='Schema vectors; no runtime/authorization/media claim.',vectors=vectors),indent=2)+'\n')
  emit(directory/'operation-transitions.json', json.dumps(dict(format=1,states=STATES,edges=EDGES,terminal=['completed','cancelled','failed'],conditional_edges={'interrupted->preparing':'Only after attributed reconciliation proves re-dispatch safe.','unknown->completed':'Requires attributed authorized reconciliation evidence.','unknown->cancelled':'Requires attributed authorized reconciliation evidence.','unknown->failed':'Requires attributed authorized reconciliation evidence.'}),indent=2)+'\n')
