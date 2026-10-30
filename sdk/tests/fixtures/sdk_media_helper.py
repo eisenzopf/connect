@@ -54,6 +54,9 @@ async def media(id,value,payload):
     capture({'channel':'media','id':id,'request':value,'payload':base64.b64encode(payload).decode()})
     mode=config.get('mode','normal')
     if mode=='die-media':os._exit(3)
+    if mode=='die-media-before-control':
+        writer.close();await writer.wait_closed()
+        await released();os._exit(3)
     if action=='describe':
         result={'type':'negotiation','binding':command['binding'],'source_clock':True,'stream_revision':1,
             'streams':[{'id':'audio','medium':'audio','direction':'sendrecv','codec':{'name':'pcmu','params':{'sample_rate':8000,'channels':1}},'stream_local_id':7}]}
@@ -153,6 +156,7 @@ async def main():
                 actor=asyncio.create_task(serve_media(peer))
                 result={'profile':PROFILE,'attached':True,'window':16,'header_bytes':17,'metadata_max_bytes':16384,'payload_max_bytes':65536}
             elif kind=='media_detach':
+                if config.get('mode')=='die-media-before-control':await released();os._exit(3)
                 await detach();result={'profile':PROFILE,'closed':True}
             elif kind=='operation':
                 assert action['kind']=='data_send' and action['reference']==data_saved

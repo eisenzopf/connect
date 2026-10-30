@@ -498,7 +498,7 @@ def run(node_sdk=False, python_sdk=False):
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
             ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_", 2),
-            ("native-ice-custody", "store", "connection_control::tests::native_wire::webrtc_ice::", 13),
+            ("native-ice-custody", "store", "connection_control::tests::native_wire::webrtc_ice::", 15),
             ("native-ice-restart", "webtransport", "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_", 2),
             ("native-candidate-retirement", "store", "connection_control::tests::replacement_sources::candidate::", 8),
             ("native-endpoint-reservation-contention", "store", "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect", 1),

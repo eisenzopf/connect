@@ -157,8 +157,8 @@ raise SystemExit(not result.wasSuccessful())
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(inventories and all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==217 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12 and len(data)==11
-                          and re.search(r'^Ran 192 tests in ',log,re.M) and re.search(r'^Ran 23 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
+                          and len(functions)==223 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==12 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12 and len(data)==12
+                          and re.search(r'^Ran 198 tests in ',log,re.M) and re.search(r'^Ran 23 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',

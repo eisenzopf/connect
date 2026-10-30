@@ -623,9 +623,9 @@
     }
   ],
   "inputs": {
-    "contracts/openapi-application-http.json": "56a65206ccdf20edb4bce861ead45ff4c304b2f1e1a2c7d8f8a83ff8119b7dc0",
+    "contracts/openapi-application-http.json": "cf321fecab16d8fe3d1e1c78e615afd0bb0abd9bdb6d3e95f70e66d8b17fc2e0",
     "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
-    "contracts/openapi-canonical-http.json": "bffab2eeee802221493ef98b7102b307a7be46286154af4a4cf2d331e5b1ccee",
+    "contracts/openapi-canonical-http.json": "e5c4786071851ab7c5cb626c3459c0799e60b01bbbd70d035045721724186bba",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
     "contracts/openapi-conversations.json": "91c85900303ff4dca6cc41941dc7366fc06284af8f134057dba4b93fcb032d0c",
     "contracts/openapi-enrollment.json": "ad188b86f94575a6f3d9d5b087e645abe7332717604d63c25ac120d35609b268",

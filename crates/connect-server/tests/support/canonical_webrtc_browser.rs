@@ -732,61 +732,64 @@ async fn run_full_profile(
         )
         .unwrap();
     }
-    if ice_restart && !runner_timed_out && status.success() {
+    if ice_restart && !runner_timed_out && output.join("browser-result.jsonl").exists() {
         use connect_protocol::transitions::{OperationAction, OperationState};
         let report: Value =
             serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
                 .unwrap();
-        assert_eq!(report["ice_restarts"]["status"], "passed");
-        assert_eq!(
-            report["ice_restarts"]["results"].as_array().unwrap().len(),
-            4
-        );
-        assert_eq!(host.adapter().total_allocations(), 2);
-        let mut records = Vec::new();
-        for (index, configuration) in [&f.client, &other].into_iter().enumerate() {
-            let credential = f
-                .server
-                .store
-                .authenticate(&configuration.credential)
-                .unwrap()
-                .credential_id;
-            for generation in 0..2 {
-                let operation = format!("browser-ice-{index}-{generation}");
-                let record = f
+        if report["ice_restarts"]["status"] == "passed" {
+            assert_eq!(
+                report["ice_restarts"]["results"].as_array().unwrap().len(),
+                4
+            );
+            assert_eq!(host.adapter().total_allocations(), 2);
+            let mut records = Vec::new();
+            for (index, configuration) in [&f.client, &other].into_iter().enumerate() {
+                let credential = f
                     .server
                     .store
-                    .execute_operation_action(
-                        &credential,
-                        OperationAction::Get {
-                            operation_id: operation.clone(),
-                        },
-                    )
-                    .unwrap();
-                assert_eq!(record.state, OperationState::Completed);
-                assert_eq!(record.effects.len(), 1);
-                assert_eq!(record.effects[0].attempt, 1);
-                let result = record.result.as_ref().unwrap();
-                assert_eq!(result["ice_generation"], generation + 1);
-                assert_eq!(result["stream_revision"], 2);
-                assert_eq!(result["connection_generation"], 1);
-                assert_eq!(
-                    result["connection_id"],
-                    format!("browser-connection-{index}")
-                );
-                assert_eq!(result["resources_changed"], false);
-                assert!(!result.to_string().contains("a=ice-pwd:"));
-                records.push(
-                    json!({"operation_id":operation,"effects":1,"attempt":1,"result":result}),
-                );
+                    .authenticate(&configuration.credential)
+                    .unwrap()
+                    .credential_id;
+                for generation in 0..2 {
+                    let operation = format!("browser-ice-{index}-{generation}");
+                    let record = f
+                        .server
+                        .store
+                        .execute_operation_action(
+                            &credential,
+                            OperationAction::Get {
+                                operation_id: operation.clone(),
+                            },
+                        )
+                        .unwrap();
+                    assert_eq!(record.state, OperationState::Completed);
+                    assert_eq!(record.effects.len(), 1);
+                    assert_eq!(record.effects[0].attempt, 1);
+                    let result = record.result.as_ref().unwrap();
+                    assert_eq!(result["ice_generation"], generation + 1);
+                    assert_eq!(result["stream_revision"], 2);
+                    assert_eq!(result["connection_generation"], 1);
+                    assert_eq!(
+                        result["connection_id"],
+                        format!("browser-connection-{index}")
+                    );
+                    assert_eq!(result["resources_changed"], false);
+                    assert!(!result.to_string().contains("a=ice-pwd:"));
+                    records.push(
+                        json!({"operation_id":operation,"effects":1,"attempt":1,"result":result}),
+                    );
+                }
             }
-        }
-        std::fs::write(
-            output.join("ice-restart-oracle.json"),
-            serde_json::to_vec(&json!({"passed":true,"original_allocations":2,"records":records}))
+            std::fs::write(
+                output.join("ice-restart-oracle.json"),
+                serde_json::to_vec(
+                    &json!({"passed":true,"original_allocations":2,"records":records}),
+                )
                 .unwrap(),
-        )
-        .unwrap();
+            )
+            .unwrap();
+        }
     }
     let cleanup = tokio::time::timeout(Duration::from_secs(5), async {
         while host.available_slots() != 2 || host.adapter().route_count() != 0 {

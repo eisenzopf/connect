@@ -344,5 +344,11 @@
     "evidence": "docs/evidence/gate-6/webrtc-ice-dispatch.json",
     "component_passed": true,
     "scope": "Actual signed local WSS/Rvoip/Core PCMU original-peer two-generation restart, lost-answer and historical replay, fresh decoded duplex and current-revocation/Unknown cleanup for both algorithms. SDK metadata/recovery and schema/reference checks pass; full network/browser/video matrix remains open."
+  },
+  "browser_ice_continuation": {
+    "evidence": "docs/evidence/gate-6/browser-ice-restart.json",
+    "signed_original_restart_recovery_passed": true,
+    "quality_passed": false,
+    "full_task_qualified": false
   }
 }

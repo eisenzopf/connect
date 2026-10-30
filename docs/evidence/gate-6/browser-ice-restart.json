@@ -1028,5 +1028,1398 @@
     "in_progress": 1,
     "not_started": 36,
     "acceptance_qualified": 0
-  }
+  },
+  "current_continuation": {
+    "checked_at": "2026-10-30T11:02:27.174871+00:00",
+    "base_revision": "088b552a35b0f6ed705a7072bdbbd806c52dd0ba",
+    "passed": false,
+    "actual_signed_restart_recovery_passed": true,
+    "clean_audio_video_qualified": false,
+    "acceptance_qualified": false,
+    "implementation": "Original trusted-answer extmap proof before physical IO; signed immutable wire answer retained independently from the browser-installed SDP serialization. Once-owned application snapshot is compared on recovery; replacement still refused. Private errors and submitted SDP diagnostics remain ignored.",
+    "summary": ".local/gate-6/ice-browser/profile-10/summary.json",
+    "summary_sha256": "6dc4360f1985417a16727a63117492d1df5f5ff7d8781c72f5a6ea525a34a788",
+    "source_inputs": 5926,
+    "sources_unchanged": true,
+    "binary_sha256": "35b3c3bc216d8446d09b8282963f15a8f5d6bd34b51a3cd8e8e124e59fc5b6af",
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.128026,
+        "log": ".local/gate-6/ice-browser/profile-10/dependencies.log",
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 2.778451,
+        "log": ".local/gate-6/ice-browser/profile-10/format.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "sdk-build",
+        "command": [
+          "sdk/typescript/node_modules/.bin/tsc",
+          "-p",
+          "sdk/typescript/tsconfig.json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.251446,
+        "log": ".local/gate-6/ice-browser/profile-10/sdk-build.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-j1",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 14.59824,
+        "log": ".local/gate-6/ice-browser/profile-10/build.log",
+        "log_sha256": "69306b1b5a575c40490af2b0f2dd21904bc45e11f80e180e7ce96d00d9876647"
+      },
+      {
+        "name": "eddsa",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+          "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+          "--exact",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "passed": false,
+        "seconds": 82.822064,
+        "log": ".local/gate-6/ice-browser/profile-10/eddsa.log",
+        "log_sha256": "29b7d96a95081416d490d3453e9e068f142bba75101d75f752fd818b084eae17"
+      },
+      {
+        "name": "es256",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/store-cleanup-target/debug/deps/gate6_canonical_webtransport-bffd09915d397a51",
+          "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_es256",
+          "--exact",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "passed": false,
+        "seconds": 72.932612,
+        "log": ".local/gate-6/ice-browser/profile-10/es256.log",
+        "log_sha256": "fc0533636c3063e72d0345f48398ef5947b495a08a62cde726a196e28902b879"
+      }
+    ],
+    "measurements": [
+      {
+        "algorithm": "eddsa",
+        "whole_function_passed": false,
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "quality": [
+          {
+            "participant": 0,
+            "elapsed_seconds": 60.004300117492676,
+            "decoded_frames": 837,
+            "changing_frames": 714,
+            "decoded_frames_per_second": 13.949000294330483,
+            "changing_frames_per_second": 11.899147204482635,
+            "source_identity": "passed",
+            "audio": "failed",
+            "audio_bad_unexcepted_samples": 24,
+            "av_sync": "failed",
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "video_calibration": {
+              "status": "calibrated",
+              "ordinals": [
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                41,
+                42,
+                44,
+                45,
+                46,
+                58,
+                61,
+                63,
+                66,
+                67,
+                72,
+                77,
+                79,
+                80,
+                81,
+                85,
+                87,
+                90,
+                91,
+                92,
+                93,
+                94,
+                95,
+                97,
+                98,
+                99,
+                100,
+                102,
+                103,
+                104,
+                105,
+                106,
+                107
+              ],
+              "edges_seconds": [
+                20.5855,
+                21.052099999904634,
+                21.552099999904634,
+                22.052099999904634,
+                22.568700000047684,
+                23.81859999990463,
+                25.135200000047682,
+                25.652200000047685,
+                27.552099999904634,
+                28.06890000009537,
+                29.435400000095367,
+                29.918700000047682,
+                30.418099999904634,
+                38.868200000047686,
+                41.95159999990463,
+                42.984900000095365,
+                45.68490000009537,
+                46.5515,
+                50.31670000004768,
+                54.38440000009537,
+                55.76779999995232,
+                56.23390000009537,
+                56.73320000004768,
+                60.400599999904635,
+                61.39940000009537,
+                64.10070000004768,
+                64.9995,
+                65.46659999990463,
+                65.98259999990464,
+                66.484,
+                67.76720000004768,
+                69.98379999995231,
+                70.4835,
+                70.99959999990463,
+                71.50009999990463,
+                74.06679999995232,
+                74.96670000004768,
+                75.48190000009537,
+                75.966,
+                76.46659999990463,
+                77.767
+              ],
+              "source_offset_interval_seconds": [
+                0.26670000004768324,
+                0.46809999990463214
+              ],
+              "candidate_peak": 372,
+              "candidate_bound": 1024,
+              "missing_internal_markers": 36
+            },
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "failed",
+              "quality_status": "failed",
+              "reason": "strict-quality-not-met"
+            }
+          },
+          {
+            "participant": 1,
+            "elapsed_seconds": 60.00419998168945,
+            "decoded_frames": 956,
+            "changing_frames": 829,
+            "decoded_frames_per_second": 15.932218082929655,
+            "changing_frames_per_second": 13.81569957191285,
+            "source_identity": "passed",
+            "audio": "failed",
+            "audio_bad_unexcepted_samples": 36,
+            "av_sync": "failed",
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "video_calibration": {
+              "status": "calibrated",
+              "ordinals": [
+                31,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                41,
+                45,
+                48,
+                51,
+                58,
+                64,
+                69,
+                73,
+                74,
+                76,
+                78,
+                79,
+                80,
+                81,
+                84,
+                85,
+                86,
+                87,
+                89,
+                90,
+                91,
+                92,
+                93,
+                94,
+                95,
+                96,
+                98,
+                99,
+                100,
+                101,
+                102,
+                104,
+                105,
+                106
+              ],
+              "edges_seconds": [
+                20.533299999952316,
+                21.566200000047683,
+                22.06660000014305,
+                22.55,
+                23.833200000047682,
+                25.18290000009537,
+                25.665799999952316,
+                26.14960000014305,
+                27.565799999952315,
+                29.949200000047682,
+                31.882700000047684,
+                34.166100000143054,
+                38.815700000047684,
+                43.432200000047686,
+                47.53220000004768,
+                51.51620000004768,
+                52.01570000004769,
+                53.032,
+                54.84970000004768,
+                55.71579999995232,
+                56.19870000004769,
+                56.74820000004768,
+                59.03190000009537,
+                60.38170000004769,
+                60.847799999952315,
+                61.348,
+                63.14740000009537,
+                64.0645,
+                64.96440000009537,
+                65.464,
+                65.948,
+                66.4645,
+                67.74760000014305,
+                68.6645,
+                70.48079999995231,
+                70.98120000004768,
+                71.49729999995232,
+                72.7645,
+                74.09779999995231,
+                75.46460000014305,
+                75.96410000014305,
+                76.4635
+              ],
+              "source_offset_interval_seconds": [
+                0.24779999995231208,
+                0.4487000000476883
+              ],
+              "candidate_peak": 372,
+              "candidate_bound": 1024,
+              "missing_internal_markers": 34
+            },
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "failed",
+              "quality_status": "failed",
+              "reason": "strict-quality-not-met"
+            }
+          }
+        ],
+        "report_sha256": "cd8e4c4fa2f1bcc57a4160de2b011fa71f48d1f3a6a8b9e01cf382466e5e6a8c",
+        "oracle_sha256": "25947e1c3ecea5925d87157fefbe447583c07413f5bef68195404baf1d78f603",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd"
+      },
+      {
+        "algorithm": "es256",
+        "whole_function_passed": false,
+        "ice_restarts": {
+          "status": "passed",
+          "profile": "original-browser-ice/1",
+          "results": [
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-0",
+              "ice_generation": 1,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 1,
+              "signed_requests": 2,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 0,
+              "operation_id": "browser-ice-0-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            },
+            {
+              "participant": 1,
+              "operation_id": "browser-ice-1-1",
+              "ice_generation": 2,
+              "stream_revision": 2,
+              "connection_generation": 1,
+              "discarded_answers": 0,
+              "signed_requests": 1,
+              "ownership": {
+                "peer_count": 1,
+                "worker_count": 1,
+                "gathering": [
+                  "complete"
+                ],
+                "original_video_workers_unchanged": true,
+                "original_media_unchanged": true
+              }
+            }
+          ],
+          "scope": "Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."
+        },
+        "store_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "quality": [
+          {
+            "participant": 0,
+            "elapsed_seconds": 60.00600004196167,
+            "decoded_frames": 1204,
+            "changing_frames": 1026,
+            "decoded_frames_per_second": 20.064660186615562,
+            "changing_frames_per_second": 17.098290159026217,
+            "source_identity": "passed",
+            "audio": "passed",
+            "audio_bad_unexcepted_samples": 0,
+            "av_sync": "failed",
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "video_calibration": {
+              "status": "calibrated",
+              "ordinals": [
+                19,
+                20,
+                21,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                32,
+                33,
+                36,
+                38,
+                39,
+                41,
+                44,
+                45,
+                46,
+                47,
+                49,
+                50,
+                51,
+                53,
+                54,
+                55,
+                57,
+                58,
+                60,
+                61,
+                62,
+                63,
+                66,
+                69,
+                73,
+                75,
+                76,
+                77,
+                79,
+                80,
+                81,
+                82,
+                83,
+                84,
+                85,
+                87,
+                89,
+                90,
+                91,
+                92,
+                93,
+                94,
+                95,
+                96,
+                99
+              ],
+              "edges_seconds": [
+                12.119599999904633,
+                12.602299999952317,
+                13.118700000047683,
+                14.101700000047684,
+                14.985900000095368,
+                16.317900000095367,
+                16.785,
+                17.284099999904633,
+                17.801,
+                18.285900000095367,
+                19.6195,
+                21.003,
+                21.5025,
+                23.800700000047684,
+                25.60240000009537,
+                26.1015,
+                27.502,
+                29.417,
+                29.935700000047685,
+                30.418900000095366,
+                31.30040000009537,
+                33.167799999952315,
+                33.617299999952316,
+                34.100099999904636,
+                35.48379999995232,
+                36.41890000009537,
+                37.33490000009537,
+                38.335099999904635,
+                38.8,
+                40.649799999952315,
+                41.934,
+                42.417200000047686,
+                42.93359999990463,
+                45.618200000047686,
+                47.5495,
+                51.534700000047685,
+                52.55129999995231,
+                53.04940000009537,
+                54.31759999990463,
+                55.71720000004768,
+                56.249799999952316,
+                56.76720000004769,
+                57.233599999904634,
+                58.500200000047684,
+                59.04929999995232,
+                60.349400000095365,
+                61.33340000009537,
+                63.15079999995232,
+                64.0165,
+                64.93320000004768,
+                65.4165,
+                65.93420000004768,
+                66.44940000009537,
+                67.73370000004769,
+                68.63379999995232,
+                70.9495
+              ],
+              "source_offset_interval_seconds": [
+                0.21779999995231805,
+                0.4337999999523149
+              ],
+              "candidate_peak": 372,
+              "candidate_bound": 1024,
+              "missing_internal_markers": 25
+            },
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "failed",
+              "quality_status": "failed",
+              "reason": "strict-quality-not-met"
+            }
+          },
+          {
+            "participant": 1,
+            "elapsed_seconds": 60.00599980354309,
+            "decoded_frames": 1214,
+            "changing_frames": 1028,
+            "decoded_frames_per_second": 20.23131026854949,
+            "changing_frames_per_second": 17.131620227404344,
+            "source_identity": "passed",
+            "audio": "failed",
+            "audio_bad_unexcepted_samples": 2,
+            "av_sync": "failed",
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "video_calibration": {
+              "status": "calibrated",
+              "ordinals": [
+                19,
+                21,
+                24,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                35,
+                36,
+                38,
+                40,
+                41,
+                42,
+                44,
+                46,
+                47,
+                48,
+                49,
+                51,
+                53,
+                55,
+                56,
+                57,
+                58,
+                59,
+                60,
+                61,
+                62,
+                63,
+                65,
+                66,
+                67,
+                68,
+                69,
+                70,
+                71,
+                72,
+                77,
+                78,
+                79,
+                80,
+                81,
+                82,
+                83,
+                84,
+                85,
+                86,
+                88,
+                89,
+                90,
+                91,
+                92,
+                96
+              ],
+              "edges_seconds": [
+                12.084,
+                13.067,
+                14.98460000014305,
+                16.783800000190734,
+                17.283800000190734,
+                17.784200000047683,
+                18.2845,
+                19.584600000143052,
+                20.4835,
+                21.000800000190736,
+                21.5015,
+                22.483900000095367,
+                23.834,
+                25.63440000009537,
+                26.600400000095366,
+                27.500700000047683,
+                28.0165,
+                29.4165,
+                30.417,
+                31.3,
+                31.817,
+                33.100200000047685,
+                34.1165,
+                35.500200000047684,
+                37.29940000009537,
+                37.783300000190735,
+                38.2835,
+                38.7835,
+                39.66670000004768,
+                40.6495,
+                41.8675,
+                42.36660000014305,
+                42.89980000019074,
+                44.299700000047686,
+                45.58310000014305,
+                46.46670000004768,
+                47.016,
+                47.499900000095366,
+                47.982700000047686,
+                48.8825,
+                50.232800000190736,
+                54.2995,
+                54.79920000004768,
+                55.69920000004768,
+                56.216,
+                56.66530000019073,
+                57.19880000019074,
+                58.48210000014305,
+                58.981900000095365,
+                60.2995,
+                60.79940000009537,
+                61.7995,
+                63.08330000019073,
+                63.9985,
+                64.915,
+                65.3985,
+                68.59930000019074
+              ],
+              "source_offset_interval_seconds": [
+                0.19950000000000614,
+                0.41530000019073443
+              ],
+              "candidate_peak": 372,
+              "candidate_bound": 1024,
+              "missing_internal_markers": 21
+            },
+            "acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "failed",
+              "quality_status": "failed",
+              "reason": "strict-quality-not-met"
+            }
+          }
+        ],
+        "report_sha256": "8f2bba4e048607de65ed08ecb356bdb8eeb4eceefa26224ab7031e563db64d76",
+        "oracle_sha256": "25947e1c3ecea5925d87157fefbe447583c07413f5bef68195404baf1d78f603",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd"
+      }
+    ],
+    "component_verification": {
+      "checked_at": "2026-10-30T11:02:27.174871+00:00",
+      "base_revision": "088b552a35b0f6ed705a7072bdbbd806c52dd0ba",
+      "scope": "Local signed WSS original-peer PCMU restart, private answer recovery, two generations, current authority withdrawal and original close; typed SDK component/metadata restoration and schema/reference checks.",
+      "passed": true,
+      "steps": [
+        {
+          "name": "dependencies",
+          "command": [
+            "bash",
+            "scripts/prepare-dependencies.sh"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.126335,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/dependencies.log",
+          "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+        },
+        {
+          "name": "format",
+          "command": [
+            "bash",
+            "scripts/format.sh",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 2.697298,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/format.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "envelope",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-gate6-schemas.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.036152,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/envelope.log",
+          "log_sha256": "79927eef239ca53c8a837d16ab000ebaa535e295a67a6fd6d0f9bf9480829bbd"
+        },
+        {
+          "name": "browser-schema",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-browser-canonical.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.116145,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/browser-schema.log",
+          "log_sha256": "a56b27ba417e8145cba581792900228df7ddf76c816ba6acccca2dab91bd8da5"
+        },
+        {
+          "name": "http-reference",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-canonical-http-openapi.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.032103,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/http-reference.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "transport-only-sdp",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "--manifest-path",
+            ".deps/rvoip/Cargo.toml",
+            "-p",
+            "rvoip-rtc",
+            "--lib",
+            "transport_restart",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 0.26216,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/transport-only-sdp.log",
+          "log_sha256": "8c6031065e549e38c643d1ffa9b153bc966e82683b2f797377d9c2327ced26ee"
+        },
+        {
+          "name": "live-ice-generation",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "--manifest-path",
+            ".deps/rvoip/Cargo.toml",
+            "-p",
+            "rvoip-rtc",
+            "--lib",
+            "ice_generation_tests",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 3,
+          "actual_tests": 3,
+          "seconds": 0.437116,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/live-ice-generation.log",
+          "log_sha256": "6443dac8a80d0a812d0db96def71bbc03d8545ea18bd4f77c7d8511c45c91605"
+        },
+        {
+          "name": "protocol",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-protocol",
+            "--lib",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 68,
+          "actual_tests": 68,
+          "seconds": 0.180843,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/protocol.log",
+          "log_sha256": "4ee51be789220829d0ec361afaa7473bc1cddc51f1054757fe90dedd7cbd1a30"
+        },
+        {
+          "name": "protocol-schema",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-protocol",
+            "--features",
+            "schema",
+            "--lib",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 69,
+          "actual_tests": 69,
+          "seconds": 0.171987,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/protocol-schema.log",
+          "log_sha256": "6c0910c0625cd0a8896630fbbff0c2c9c786c385928df646bd8a9dbc210fa676"
+        },
+        {
+          "name": "sdk-receipts",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-client",
+            "--lib",
+            "ice_receipt_tests",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 0.181343,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-receipts.log",
+          "log_sha256": "849d0bbe891935d92cb54f38aedaafa02409323abc6553dc0974ad2a901a07fd"
+        },
+        {
+          "name": "sdk-oracle",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-client",
+            "--test",
+            "gate6_browser_canonical",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 1,
+          "actual_tests": 1,
+          "seconds": 0.273114,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-oracle.log",
+          "log_sha256": "03f9d53a82471e090fb50e8b7efa6a620a7efe59230a51325d2e9117c29798bf"
+        },
+        {
+          "name": "store-original-custody",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-store",
+            "--lib",
+            "connection_control::tests::native_wire::webrtc_ice",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 15,
+          "actual_tests": 15,
+          "seconds": 6.191529,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/store-original-custody.log",
+          "log_sha256": "70b8eeb5157da4367ca9b92e9cbb282213fd7daf0bdfab39bd501f43d7378dc7"
+        },
+        {
+          "name": "signed-rtc",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-server",
+            "--features",
+            "test-support",
+            "--test",
+            "gate6_canonical_webtransport",
+            "signed_rtc_ice_restart",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 13.826789,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/signed-rtc.log",
+          "log_sha256": "7bf0e441cb8a3edb38970543eb2df7ad826fd454f7d0e8f170d131fb8e70197f"
+        },
+        {
+          "name": "typescript",
+          "command": [
+            "sdk/typescript/node_modules/.bin/tsc",
+            "-p",
+            "sdk/typescript/tsconfig.json"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.252317,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/typescript.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "sdk-components",
+          "command": [
+            "node",
+            "--test",
+            "sdk/tests/browser_webrtc_restart.test.mjs",
+            "sdk/tests/browser_webrtc_signaling.test.mjs",
+            "sdk/tests/browser_sdk_webrtc.test.mjs",
+            "sdk/tests/browser_voice.test.mjs",
+            "sdk/tests/browser_sdk_streams.test.mjs",
+            "sdk/tests/node_connections.test.mjs",
+            "sdk/tests/browser_canonical.test.mjs"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.487114,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-components.log",
+          "log_sha256": "bde98e0335fbfcda2aa7f9f37a2a488324b4a923b4357d100a5db71d87d30bd6"
+        },
+        {
+          "name": "python-receipts",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "-m",
+            "unittest",
+            "test_python_connections"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.642014,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/python-receipts.log",
+          "log_sha256": "4547c6fa835ac1f797d2cb5c64b1c8fd5a14659a2d02bfd0f9ee17c52d15bb62"
+        },
+        {
+          "name": "contracts",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-contracts.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/contracts.json"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.313534,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/contracts.log",
+          "log_sha256": "17d76379b9e47c89912878d0d4aa36b46eae24597642006707eeaee46a0cbadb"
+        },
+        {
+          "name": "sdk-contract",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-sdk-contract.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/sdk-contract"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.180457,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-contract.log",
+          "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+        },
+        {
+          "name": "sdk-outlines",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-sdk-outlines.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/sdk-outlines"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 3.778785,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-outlines.log",
+          "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+        },
+        {
+          "name": "diff",
+          "command": [
+            "git",
+            "diff",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.027861,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/diff.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inputs": 5906,
+      "sources_unchanged": true,
+      "source_manifest": ".local/gate-6/ice-dispatch/frozen-09/inputs-before.json",
+      "source_manifest_sha256": "78fde54e17669ce924450a4f55127634f9493cbc46759f950ec3ee51737be52e",
+      "summary_sha256": "772cc9ab77b9762203dbedea751f3c734c1334b33ddc709968b0f2835d517680",
+      "typescript_functions": 127,
+      "python_receipt_functions": 12
+    },
+    "remaining": "Both clean60second audio/video functions fail unchanged thresholds; no browser full-profile, distinct-network/relay/expiry/loss or Gate6 acceptance credit."
+  },
+  "current_attempts": [
+    {
+      "profile": "05",
+      "summary_sha256": "16cdc261333974451489ab07f974c33ad4276eada3a2b6c25c40162b3ae47ffa",
+      "passed": false,
+      "disposition": "Negotiated omission guard passes actual request; SDK rejects browser-serialized remote description after applying answer."
+    },
+    {
+      "profile": "06",
+      "summary_sha256": "a7b1e73e9a225b84fc4f815e39f44c4547ec6d5ce70e3a4e72058d63106f77ab",
+      "passed": false,
+      "disposition": "Same failure with private error recording."
+    },
+    {
+      "profile": "07",
+      "summary_sha256": "13563d6c3f2ccf042e3acaf6e87caf3a3d3bc446acda868c27b80d186340e0a2",
+      "passed": false,
+      "disposition": "Format preflight failed; no runtime."
+    },
+    {
+      "profile": "08",
+      "summary_sha256": "998ab3a02cd966fc5f5ed7fb319c9c831ff7fd886e4abe6fdbb6609158c65b47",
+      "passed": false,
+      "disposition": "Private submitted-vs-installed SDP snapshot proves browser serialization differences."
+    },
+    {
+      "profile": "09",
+      "summary_sha256": "af0f936700819e919f472aa3aa7fb8a93bea5e037c7a4040d7d2bc06df176543",
+      "passed": false,
+      "disposition": "Both algorithms complete four original restart/recovery operations, then fail unchanged clean60 AV. Cleanup passes; Store audit previously gated behind full quality success."
+    },
+    {
+      "profile": "10",
+      "summary_sha256": "6dc4360f1985417a16727a63117492d1df5f5ff7d8781c72f5a6ea525a34a788",
+      "passed": false,
+      "disposition": "Store effects audit now runs after successful restart even if subsequent quality fails; both algorithms one effect per original operation and two original allocations; full quality still failed."
+    }
+  ]
 }

@@ -60,7 +60,7 @@ pub(super) fn accept(
     if generation != update.details.expected_ice_generation {
         return Err(conflict());
     }
-    wire::validate_offer_change(&previous, &update.details.setup.sdp)?;
+    wire::validate_restart_candidate(&previous, &update.details.setup.sdp)?;
     c.execute("INSERT INTO native_webrtc_ice_operations(operation_record_id,parent_record_id,expected_ice_generation,previous_remote_offer,proposed_remote_offer) VALUES(?1,?2,?3,?4,?5)", params![record,source.parent_record_id,generation,previous,update.details.setup.sdp]).map_err(|_|Error::storage())?;
     Ok(())
 }
@@ -85,6 +85,11 @@ impl Store {
         if remote != ice.previous || ice.local.as_deref().is_some_and(|v| v != local) {
             return Err(conflict());
         }
+        // The trusted runtime captures this from the same admitted original
+        // RTC peer under its exclusive slot BEFORE any restart engine IO.
+        // Candidate admission alone never authorizes removing a mapping that
+        // was actually negotiated in this original answer.
+        wire::validate_negotiated_offer_change(&ice.previous, local, &ice.proposed)?;
         let owner = self.require_runtime_owner()?;
         let mut c = self.connection()?;
         let tx = c

@@ -50,6 +50,22 @@ credentials, identity/setup attributes, ambiguous line endings, invalid address
 families and bounded-count/line overflows refuse. The guard never returns SDP
 or credentials in diagnostics.
 
+Canonical candidate admission uses `validate_restart_candidate`. It additionally
+permits omission of media-level `extmap` lines, which Chrome removes when the
+original answer declined them. Candidate admission retains intent; it grants no
+RTC IO and does not prove that any omitted mapping was declined.
+
+Before physical submission, `validate_negotiated_offer_change(previous,
+trusted_answer, proposed)` checks the actual local answer captured from that
+same admitted original RTC peer under current authority and its exclusive
+control slot. An omitted mapping must be absent by **both ID and URI** from the
+answer for the same MID, including session-level mappings. Negotiated mappings,
+all retained mapping lines/order and every other non-transport field remain
+unchanged. Missing/foreign/duplicate MID, ambiguous IDs and omissions with
+unknown extension parameters refuse. The requester cannot supply this answer.
+The strict two-description comparison remains the check on the host's new
+local answer, whose negotiated media must stay identical to its old answer.
+
 This is a conservative comparison, not a general SDP or candidate parser. The
 RTC engine must still parse the complete offer before applying it. A trusted
 previous offer is required; a caller cannot supply its own comparison baseline.
@@ -102,7 +118,11 @@ and no second effect is begun on retry or after runtime restoration.
 
 Trusted host capture methods save the actual original peer's baseline before
 IO and its gathered answer before delivery. Repeated capture must match the
-same bytes. An answer does not advance the counter or complete the operation,
+same bytes. Baseline capture must validate any candidate header omissions
+against that actual answer before saving it or invoking RTC. Removing a
+negotiated mapping fails the original candidate without saving an answer or
+advancing its counter; candidate admission is never an IO grant. An answer does
+not advance the counter or complete the operation,
 and cannot later be described as a no-effect outcome. A captured, attributed
 engine completion consumes the original lease and atomically advances only the
 ICE counter with the common operation completion. Replaying an old receipt

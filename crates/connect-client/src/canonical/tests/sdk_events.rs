@@ -187,6 +187,24 @@ pub(super) async fn emit(
     let mut subscriptions = 1;
     while let Some(request) = read(reader).await {
         if request.kind() == "conversation.subscribe" {
+            if request.original()["payload"]["live"] == false {
+                // Returning a queued fact rechecks current journal authority;
+                // this finite read does not replace or renew the live source.
+                assert_eq!(request.original()["payload"]["limit"], 1);
+                assert!(request.original()["payload"]["after"].is_string());
+                write(
+                    writer,
+                    signer,
+                    &request,
+                    "ack",
+                    json!({"details":{
+                        "cursor":request.original()["payload"]["after"],"has_more":false,
+                        "resync_required":false,"live":false
+                    }}),
+                )
+                .await;
+                continue;
+            }
             subscriptions += 1;
             if matches!(case, Case::Renew) {
                 assert_eq!(subscriptions, 2);

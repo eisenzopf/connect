@@ -57,6 +57,23 @@ class PythonData(unittest.IsolatedAsyncioTestCase):
                 else:self.fail('Original data helper still exists')
         self.temporary.cleanup()
 
+    async def test_media_eof_before_control_exit_during_detach_joins_original_owners(self):
+        client=self.client('die-media-before-control')
+        with self.assertRaises(SdkError) as caught:
+            await self.stream(client).send_data(MessageId('message'),AUDIENCE,BinaryData(b'original'),self.mutation())
+        self.assertEqual((caught.exception.kind,caught.exception.certainty,caught.exception.operation.operation_id),
+                         ('transport-uncertain','uncertain','data-operation'))
+        closing=asyncio.create_task(client.close(RequestOptions(2000)))
+        try:
+            async with asyncio.timeout(1):
+                while not any(r['channel']=='control' and r['action']['type']=='media_detach' for r in self.captures()):
+                    await asyncio.sleep(.005)
+        finally:
+            self.release.touch()
+            await closing
+        self.assertTrue(all(task.done() for task in client._helper._tasks))
+        self.assertTrue(all(task.done() for task in client.media._owner.opening.result().tasks))
+
     async def test_three_full_64k_payloads_empty_values_and_frozen_json_keep_original_control_recovery(self):
         client=self.client();stream=self.stream(client)
         source={'data':'x'*(65536-11)};captured=JsonData(source);source['data']='changed'

@@ -84,6 +84,25 @@ test('pending original setRemoteDescription is joined once after observer timeou
     const recovered=f.owner.restart('restart',2,0,{});release();await recovered;
     assert.equal(calls,1);assert.equal(f.requests.length,1);assert.equal(f.peer.offers.length,1);
 });
+test('browser serialization of the applied answer is retained without changing signed bytes or reapplying on recovery',async()=>{
+    const f=fixture(),apply=f.peer.setRemoteDescription.bind(f.peer);
+    const normalized=sdp+'a=answer:browser-serialization\r\n';
+    f.peer.setRemoteDescription=async value=>{await apply(value);f.peer.remoteDescription.sdp=normalized;};
+    let reads=0;const status=f.client.operationStatus;
+    f.client.operationStatus=async(...args)=>++reads===1?{operation_id:'restart',state:'unknown'}:status(...args);
+    await assert.rejects(f.owner.restart('restart',2,0,{}),{code:'unresolved-operation'});
+    assert.equal(f.peer.answers[0].sdp,sdp+'a=answer:original\r\n');
+    await f.owner.restart('restart',2,0,{});
+    assert.equal(f.peer.remoteDescription.sdp,normalized);assert.equal(f.peer.answers.length,1);assert.equal(f.requests.length,1);
+});
+test('a description replaced after the original application is refused on recovery',async()=>{
+    const f=fixture(),status=f.client.operationStatus;let reads=0;
+    f.client.operationStatus=async(...args)=>++reads===1?{operation_id:'restart',state:'unknown'}:status(...args);
+    await assert.rejects(f.owner.restart('restart',2,0,{}),{code:'unresolved-operation'});
+    f.peer.remoteDescription.sdp+='a=foreign:replacement\r\n';
+    await assert.rejects(f.owner.restart('restart',2,0,{}),{code:'protocol'});
+    assert.equal(f.peer.answers.length,1);assert.equal(f.requests.length,1);
+});
 test('proposed answer alone cannot become ready when original operation is unknown',async()=>{
     const f=fixture();f.client.operationStatus=async()=>({operation_id:'restart',state:'unknown'});
     await assert.rejects(f.owner.restart('restart',2,0,{}),{code:'unresolved-operation'});

@@ -10,11 +10,12 @@ export function installIceOwnership() {
     };
     globalThis.RTCPeerConnection=class extends NativePeer {
         constructor(...args){super(...args);peers.push(this);}
+        setRemoteDescription(...args){this.connectAppliedRemote=args[0]?.sdp;return super.setRemoteDescription(...args);}
     };
     // Explicit synthetic-fixture diagnostic: only the private catch path below
     // writes these bytes to ignored storage; public reports omit them.
     globalThis.connectIcePrivateDescriptions=()=>peers.map(peer=>({
-        local:peer.localDescription?.sdp,remote:peer.remoteDescription?.sdp,
+        local:peer.localDescription?.sdp,remote:peer.remoteDescription?.sdp,applied_remote:peer.connectAppliedRemote,
     }));
     let original,originalWorkerCount;
     const sample=()=>peers.map(peer=>({peer,transceivers:peer.getTransceivers(),
@@ -99,6 +100,9 @@ export async function restartOriginalBrowsers(pages,participants,privateDirector
         scope:"Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."};
     } catch(error) {
         if(privateDirectory&&path.resolve(privateDirectory).split(path.sep).includes('.local')){
+            await fs.writeFile(path.join(privateDirectory,'ice-error-private.json'),JSON.stringify({
+                name:error?.name,message:error?.message,stack:error?.stack,
+            }),{flag:'wx',mode:0o600});
             const descriptions=await Promise.all(pages.map(page=>page.evaluate(()=>({
                 original:window.videoFixture?.session.savedOffer?.payload?.substrate_setup?.sdp,
                 proposed:window.videoFixture?.session.savedIceRestart?.payload?.details?.setup?.sdp,

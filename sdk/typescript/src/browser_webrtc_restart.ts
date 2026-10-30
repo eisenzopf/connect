@@ -23,6 +23,7 @@ interface Attempt {
     payload?: JsonObject;
     submitted: boolean;
     answer?: string;
+    appliedAnswer?: string;
     application?: Promise<void>;
     receipt?: WebRtcIceRestartReceipt;
 }
@@ -344,6 +345,14 @@ export class BrowserIceRestart {
                 this.peer.setRemoteDescription({
                     type: "answer",
                     sdp: a.answer,
+                }).then(() => {
+                    // The browser serializes its parsed description (including
+                    // BUNDLE addresses and SDP ordering). Retain that installed
+                    // value while the signed wire answer remains immutable.
+                    const installed = this.peer.remoteDescription;
+                    if (installed?.type !== "answer" || !validSdp(installed.sdp))
+                        throw new ConnectError("protocol", "Original ICE answer was not installed");
+                    a.appliedAnswer = installed.sdp;
                 }),
             );
         }
@@ -353,7 +362,7 @@ export class BrowserIceRestart {
             !jsonObject(payload.details) ||
             !jsonObject(payload.details.setup) ||
             this.peer.localDescription?.sdp !== payload.details.setup.sdp ||
-            this.peer.remoteDescription?.sdp !== a.answer ||
+            this.peer.remoteDescription?.sdp !== a.appliedAnswer ||
             this.peer.signalingState !== "stable"
         )
             throw new ConnectError(

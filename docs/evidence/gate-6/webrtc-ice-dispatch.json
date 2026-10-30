@@ -488,12 +488,418 @@
     "Linux hosting, named remote/provider or full Gate 6 acceptance",
     "Existing distinct-network browser video changing-frame-rate failure remains open at unchanged24fps minimum; no threshold lowered.",
     "Linux lane now selects two signed restart, thirteen Store and two SDK receipt functions, but no new Linux result is claimed before the source-bound CI artifact is inspected.",
-    "No new model, communications provider, named remote rehearsal, deployment or publication."
+    "No new model, communications provider, named remote rehearsal, deployment or publication.",
+    "Current source-bound browser restarts and original Store effects pass; unchanged clean60second decoded audio/video quality remains failed. See browser-ice-restart.json. Linux088 failed before ICE groups; repaired CI components require new Linux run."
   ],
   "gate_counts": {
     "done": 68,
     "in_progress": 1,
     "not_started": 36,
     "acceptance_qualified": 0
+  },
+  "negotiated_header_continuation": {
+    "implementation": "Candidate admission permits only omission of media extmap lines. Before RTC IO, the actual original peer answer captured under held current authority must prove each removed ID AND URI absent for the same MID, including session mappings. Retained mappings/order, codecs, DTLS, sources and unknown fields remain immutable; no caller-supplied answer or new schema.",
+    "verification": {
+      "checked_at": "2026-10-30T11:02:27.174871+00:00",
+      "base_revision": "088b552a35b0f6ed705a7072bdbbd806c52dd0ba",
+      "scope": "Local signed WSS original-peer PCMU restart, private answer recovery, two generations, current authority withdrawal and original close; typed SDK component/metadata restoration and schema/reference checks.",
+      "passed": true,
+      "steps": [
+        {
+          "name": "dependencies",
+          "command": [
+            "bash",
+            "scripts/prepare-dependencies.sh"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.126335,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/dependencies.log",
+          "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+        },
+        {
+          "name": "format",
+          "command": [
+            "bash",
+            "scripts/format.sh",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 2.697298,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/format.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "envelope",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-gate6-schemas.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.036152,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/envelope.log",
+          "log_sha256": "79927eef239ca53c8a837d16ab000ebaa535e295a67a6fd6d0f9bf9480829bbd"
+        },
+        {
+          "name": "browser-schema",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-browser-canonical.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.116145,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/browser-schema.log",
+          "log_sha256": "a56b27ba417e8145cba581792900228df7ddf76c816ba6acccca2dab91bd8da5"
+        },
+        {
+          "name": "http-reference",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/generate-canonical-http-openapi.py",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.032103,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/http-reference.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "transport-only-sdp",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "--manifest-path",
+            ".deps/rvoip/Cargo.toml",
+            "-p",
+            "rvoip-rtc",
+            "--lib",
+            "transport_restart",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 0.26216,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/transport-only-sdp.log",
+          "log_sha256": "8c6031065e549e38c643d1ffa9b153bc966e82683b2f797377d9c2327ced26ee"
+        },
+        {
+          "name": "live-ice-generation",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "--manifest-path",
+            ".deps/rvoip/Cargo.toml",
+            "-p",
+            "rvoip-rtc",
+            "--lib",
+            "ice_generation_tests",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 3,
+          "actual_tests": 3,
+          "seconds": 0.437116,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/live-ice-generation.log",
+          "log_sha256": "6443dac8a80d0a812d0db96def71bbc03d8545ea18bd4f77c7d8511c45c91605"
+        },
+        {
+          "name": "protocol",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-protocol",
+            "--lib",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 68,
+          "actual_tests": 68,
+          "seconds": 0.180843,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/protocol.log",
+          "log_sha256": "4ee51be789220829d0ec361afaa7473bc1cddc51f1054757fe90dedd7cbd1a30"
+        },
+        {
+          "name": "protocol-schema",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-protocol",
+            "--features",
+            "schema",
+            "--lib",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 69,
+          "actual_tests": 69,
+          "seconds": 0.171987,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/protocol-schema.log",
+          "log_sha256": "6c0910c0625cd0a8896630fbbff0c2c9c786c385928df646bd8a9dbc210fa676"
+        },
+        {
+          "name": "sdk-receipts",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-client",
+            "--lib",
+            "ice_receipt_tests",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 0.181343,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-receipts.log",
+          "log_sha256": "849d0bbe891935d92cb54f38aedaafa02409323abc6553dc0974ad2a901a07fd"
+        },
+        {
+          "name": "sdk-oracle",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-client",
+            "--test",
+            "gate6_browser_canonical",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 1,
+          "actual_tests": 1,
+          "seconds": 0.273114,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-oracle.log",
+          "log_sha256": "03f9d53a82471e090fb50e8b7efa6a620a7efe59230a51325d2e9117c29798bf"
+        },
+        {
+          "name": "store-original-custody",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-store",
+            "--lib",
+            "connection_control::tests::native_wire::webrtc_ice",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 15,
+          "actual_tests": 15,
+          "seconds": 6.191529,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/store-original-custody.log",
+          "log_sha256": "70b8eeb5157da4367ca9b92e9cbb282213fd7daf0bdfab39bd501f43d7378dc7"
+        },
+        {
+          "name": "signed-rtc",
+          "command": [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-j1",
+            "-p",
+            "connect-server",
+            "--features",
+            "test-support",
+            "--test",
+            "gate6_canonical_webtransport",
+            "signed_rtc_ice_restart",
+            "--",
+            "--test-threads=1"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": 2,
+          "actual_tests": 2,
+          "seconds": 13.826789,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/signed-rtc.log",
+          "log_sha256": "7bf0e441cb8a3edb38970543eb2df7ad826fd454f7d0e8f170d131fb8e70197f"
+        },
+        {
+          "name": "typescript",
+          "command": [
+            "sdk/typescript/node_modules/.bin/tsc",
+            "-p",
+            "sdk/typescript/tsconfig.json"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.252317,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/typescript.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "sdk-components",
+          "command": [
+            "node",
+            "--test",
+            "sdk/tests/browser_webrtc_restart.test.mjs",
+            "sdk/tests/browser_webrtc_signaling.test.mjs",
+            "sdk/tests/browser_sdk_webrtc.test.mjs",
+            "sdk/tests/browser_voice.test.mjs",
+            "sdk/tests/browser_sdk_streams.test.mjs",
+            "sdk/tests/node_connections.test.mjs",
+            "sdk/tests/browser_canonical.test.mjs"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.487114,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-components.log",
+          "log_sha256": "bde98e0335fbfcda2aa7f9f37a2a488324b4a923b4357d100a5db71d87d30bd6"
+        },
+        {
+          "name": "python-receipts",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "-m",
+            "unittest",
+            "test_python_connections"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.642014,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/python-receipts.log",
+          "log_sha256": "4547c6fa835ac1f797d2cb5c64b1c8fd5a14659a2d02bfd0f9ee17c52d15bb62"
+        },
+        {
+          "name": "contracts",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-contracts.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/contracts.json"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.313534,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/contracts.log",
+          "log_sha256": "17d76379b9e47c89912878d0d4aa36b46eae24597642006707eeaee46a0cbadb"
+        },
+        {
+          "name": "sdk-contract",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-sdk-contract.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/sdk-contract"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.180457,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-contract.log",
+          "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+        },
+        {
+          "name": "sdk-outlines",
+          "command": [
+            "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+            "scripts/check-gate6-sdk-outlines.py",
+            "--output",
+            "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ice-dispatch/frozen-09/sdk-outlines"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 3.778785,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/sdk-outlines.log",
+          "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+        },
+        {
+          "name": "diff",
+          "command": [
+            "git",
+            "diff",
+            "--check"
+          ],
+          "exit_code": 0,
+          "passed": true,
+          "expected_tests": null,
+          "actual_tests": 0,
+          "seconds": 0.027861,
+          "log": ".local/gate-6/ice-dispatch/frozen-09/diff.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inputs": 5906,
+      "sources_unchanged": true,
+      "source_manifest": ".local/gate-6/ice-dispatch/frozen-09/inputs-before.json",
+      "source_manifest_sha256": "78fde54e17669ce924450a4f55127634f9493cbc46759f950ec3ee51737be52e",
+      "summary_sha256": "772cc9ab77b9762203dbedea751f3c734c1334b33ddc709968b0f2835d517680",
+      "typescript_functions": 127,
+      "python_receipt_functions": 12
+    },
+    "component_tests": {
+      "protocol": 68,
+      "schema": 69,
+      "store": 15
+    },
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }

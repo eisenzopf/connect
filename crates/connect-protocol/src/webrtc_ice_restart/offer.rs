@@ -3,6 +3,8 @@
 use super::{invalid, validate_sdp};
 use crate::Result;
 use std::net::IpAddr;
+mod negotiated;
+pub use negotiated::{validate_negotiated_offer_change, validate_restart_candidate};
 
 const MAX_MEDIA: usize = 32;
 const MAX_CANDIDATES: usize = 128;

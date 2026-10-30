@@ -249,7 +249,15 @@ class _Owner:
                         if value != {'profile':'connect-sdk-media/2','closed':True}:
                             raise error('protocol')
                     if not self.helper._closed:
-                        await self.helper.request({'type':'media_detach'},RequestOptions(4000),closed)
+                        try:
+                            await self.helper.request({'type':'media_detach'},RequestOptions(4000),closed)
+                        except SdkError as failure:
+                            # The media socket can report process death before
+                            # the control reader does. A dead original helper
+                            # cannot acknowledge detach; local owners still
+                            # join below and Client.close joins the process.
+                            if failure.kind != 'transport-uncertain' or not self.helper._closed:
+                                raise
                 finally:
                     await channel.close()
                     flights=[s.flight for s in self.slots.values() if s.flight is not None]

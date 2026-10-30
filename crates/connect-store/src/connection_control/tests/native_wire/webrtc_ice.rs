@@ -13,6 +13,9 @@ fn local(version: u64, tag: &str) -> String {
         .replace("setup:actpass", "setup:active")
 }
 fn fixture() -> (Fixture, PeerAuthorityRequest, String) {
+    fixture_offer(&offer(1, "old"))
+}
+fn fixture_offer(original: &str) -> (Fixture, PeerAuthorityRequest, String) {
     let mut f = Fixture::new();
     let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
@@ -32,7 +35,7 @@ fn fixture() -> (Fixture, PeerAuthorityRequest, String) {
     let PeerCommand::NativeConnectionOffer(wire) = &mut request.command else {
         panic!()
     };
-    wire.offer["substrate_setup"]["sdp"] = json!(offer(1, "old"));
+    wire.offer["substrate_setup"]["sdp"] = json!(original);
     let proof = f.admit(&request);
     f.store
         .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(EndpointTransport::Webrtc))
@@ -112,6 +115,67 @@ fn prepare(
         .capture_native_ice_baseline(lease, old_local, remote)
         .unwrap();
     f.store.capture_native_ice_answer(lease, answer).unwrap();
+}
+#[test]
+fn declined_header_candidate_requires_same_original_answer_before_any_receipt() {
+    let active = "a=extmap:3 urn:negotiated\r\n";
+    let original = offer(1, "old") + active + "a=extmap:14 urn:declined\r\n";
+    let (f, mut request, parent) = fixture_offer(&original);
+    let PeerCommand::NativeStream(intent) = &mut request.command else {
+        panic!()
+    };
+    intent.payload["details"]["setup"]["sdp"] = json!(offer(2, "new") + active);
+    let mut lease = begin(&f, &request);
+    f.store
+        .capture_native_ice_baseline(&mut lease, &(local(1, "server") + active), &original)
+        .unwrap();
+    assert_eq!(counter(&f, &parent), 0);
+    f.store
+        .capture_native_ice_answer(&mut lease, &(local(2, "next") + active))
+        .unwrap();
+    assert_eq!(counter(&f, &parent), 0); // Answer/decline metadata is not ICE-ready evidence.
+    let completed = f
+        .store
+        .complete_native_stream(&lease.ice_committed(1).unwrap())
+        .unwrap();
+    assert_eq!(completed.state, OperationState::Completed);
+    assert_eq!(completed.effects.len(), 1);
+    assert_eq!(completed.effects[0].attempt, 1);
+    assert_eq!(completed.result.as_ref().unwrap()["ice_generation"], 1);
+    assert_eq!(
+        completed.result.as_ref().unwrap()["resources_changed"],
+        false
+    );
+}
+#[test]
+fn removing_negotiated_header_fails_original_candidate_without_saving_answer_or_advancing_counter()
+{
+    let active = "a=extmap:3 urn:negotiated\r\n";
+    let original = offer(1, "old") + active + "a=extmap:14 urn:declined\r\n";
+    // This candidate removes both mappings. Candidate admission alone grants
+    // no RTC IO; actual original answer capture must reject the active one.
+    let (f, request, parent) = fixture_offer(&original);
+    let mut lease = begin(&f, &request);
+    let error = f
+        .store
+        .capture_native_ice_baseline(&mut lease, &(local(1, "server") + active), &original)
+        .unwrap_err();
+    assert_eq!(error.code, "invalid-request");
+    assert!(lease
+        .ice_restart()
+        .unwrap()
+        .previous_local_answer()
+        .is_none());
+    assert!(lease.ice_restart().unwrap().answer().is_none());
+    assert_eq!(counter(&f, &parent), 0);
+    let failed = f
+        .store
+        .fail_native_stream_without_effect(lease, error)
+        .unwrap();
+    assert_eq!(failed.state, OperationState::Failed);
+    assert!(failed.result.is_none());
+    assert_eq!(failed.effects.len(), 1);
+    assert_eq!(counter(&f, &parent), 0);
 }
 #[test]
 fn answer_is_private_original_replay_metadata_and_does_not_complete_a_generation() {
