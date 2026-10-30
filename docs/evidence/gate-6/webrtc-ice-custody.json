@@ -150,7 +150,13 @@
     "production_inputs_unchanged_across_correction": true,
     "other_test_bodies_unchanged": true,
     "applicable_current_ordinary_functions_across_runs": 1285,
-    "scope": "1284 ordinary functions passed the original full run on unchanged production inputs; the one corrected function passes separately. Three ignored entries are subprocess worker entrypoints. The original full run remains failed; no successful monolithic rerun after correction is claimed."
+    "scope": "1284 ordinary functions passed the original full run on unchanged production inputs; the one corrected function passes separately. Three ignored entries are subprocess worker entrypoints. The original full run remains failed; no successful monolithic rerun after correction is claimed.",
+    "ignored_worker_entrypoints": [
+      "authority_fences::tests::process_worker",
+      "installation_ownership::tests::process_worker",
+      "transitions::tests::crash_worker"
+    ],
+    "ignored_scope": "These three functions are explicitly invoked as subprocess fixtures by passing cross-process ownership/crash parent tests; they are not skipped provider/media lanes."
   },
   "controlled_cases": [
     "Private answer recovery while operation remains Preparing/counter0; repeated original request cannot allocate a second effect.",
