@@ -1017,7 +1017,7 @@
       }
     }
   },
-  "next": "Validate transport-only removal of declined header extensions against the actual trusted original answer before physical RTC submission. Preserve all negotiated bindings, codecs, DTLS identity, MIDs, sources, directions and unknown attributes. Re-run actual browser generations and unchanged decoded AV/cleanup profile.",
+  "next": "Complete actual browser relay/expiry/fault and distinct-network matrix; localize the retained optimized ICE audio calibration failure. Keep unchanged quality thresholds and separate task/acceptance credit.",
   "not_qualified": [
     "Actual completed browser ICE restart or post-restart audio/video",
     "Distinct-network, relay, expiry, loss and full G6-054 matrix",
@@ -2488,5 +2488,204 @@
     "burst_trim_events": 181,
     "trimmed_chunks": 249,
     "finding": "Original queued-audio source/target admission repeatedly reports NotReady and retries within its existing deadline; pending bursts are trimmed. These attempt counts do not by themselves prove lost chunks or a specific cause. Correlate packet/output windows before changing custody, authority or deadlines. This diagnostic uses the current unoptimized test producer, not a qualified performance build."
+  },
+  "optimized_producer_continuation": {
+    "scope": "Controlled local optimized-dependency producer: real signed native two-generation/revocation regressions, ordinary Chrome clean60 baseline then original-peer ICE clean60 for both algorithms, serially. Root store/service/server retain recorded opt0 exceptions. No remote/provider/full-task/acceptance qualification.",
+    "passed": false,
+    "source_inputs": 5999,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "289b3fefd13ccba284fa156dedd89f94a4fde4954ca1def28fca564a44d43055",
+    "summary_sha256": "13769e13e82d580324d59b15f84b12b7453e3d0a7ab30429ec1465e11617e5ab",
+    "producer_binary_sha256": "b0bfcd27bd40bfd9e390103fd1c6059b529ccad89c2ac1e587e07fc0f7f15d24",
+    "producer_build_seconds": 1513.997506,
+    "producer_source_manifest_sha256": "8573142872579d94d25dbd5243a57d405251e89bc2730ffc12373254046c478b",
+    "steps": [
+      {
+        "name": "native",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+          "signed_rtc_ice_restart",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 9.1532,
+        "log_sha256": "f8537a0b0ea049e7ab572bfcb60e858893a02ec0f2fd0a05bb9d6aa4280d4186"
+      },
+      {
+        "name": "baseline",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+          "canonical_webrtc_browser::canonical_chrome_signed_av_normal_trust_clean_eddsa",
+          "--exact",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 64.727683,
+        "log_sha256": "23cacbae1c496f99a03a273636324079c4335eac1e105d7349eeae2c7645bfbe"
+      },
+      {
+        "name": "eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+          "canonical_webrtc_browser::canonical_chrome_original_peer_ice_restart_clean_eddsa",
+          "--exact",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "passed": false,
+        "seconds": 66.529954,
+        "log_sha256": "e98f5d5074a4fd1b8c8f9e937d945558f8638dfbba62f8ac926168a5dd64d563"
+      }
+    ],
+    "observations": {
+      "baseline": {
+        "status": "passed",
+        "report_sha256": "2edb447c75cda8accc83897521b6478b5ab48eecfa29a37b1233a62e76056192",
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "measurements": [
+          {
+            "participant": 0,
+            "decoded_fps": 28.663418062488326,
+            "changing_fps": 24.413899686944998,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "av_sync": "passed",
+            "audio_calibration": "calibrated",
+            "median_abs_skew_ms": 20.450000047684824,
+            "p95_abs_skew_ms": 75.10000014305174
+          },
+          {
+            "participant": 1,
+            "decoded_fps": 28.830065841921396,
+            "changing_fps": 24.63054180020799,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "av_sync": "passed",
+            "audio_calibration": "calibrated",
+            "median_abs_skew_ms": 28.699999928475606,
+            "p95_abs_skew_ms": 76.09999990463123
+          }
+        ]
+      },
+      "eddsa": {
+        "status": "failed",
+        "report_sha256": "33938094b60e970ace30780bab43ac8a30bc6f813a018e707871652543f82abd",
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "measurements": [
+          {
+            "participant": 0,
+            "decoded_fps": 29.41372527356849,
+            "changing_fps": 25.347465235749393,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "av_sync": "failed",
+            "audio_calibration": "missing-proof",
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null
+          },
+          {
+            "participant": 1,
+            "decoded_fps": 29.24702646565775,
+            "changing_fps": 24.93079862827578,
+            "audio_status": "passed",
+            "bad_audio_samples": 0,
+            "av_sync": "passed",
+            "audio_calibration": "calibrated",
+            "median_abs_skew_ms": 34.79999995231253,
+            "p95_abs_skew_ms": 76.79999995231768
+          }
+        ],
+        "ice_restart_oracle": {
+          "original_allocations": 2,
+          "passed": true,
+          "records": [
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-0-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-0",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-0",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 1,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            },
+            {
+              "attempt": 1,
+              "effects": 1,
+              "operation_id": "browser-ice-1-1",
+              "result": {
+                "action": "ice-restart",
+                "connection_generation": 1,
+                "connection_id": "browser-connection-1",
+                "ice_generation": 2,
+                "resources_changed": false,
+                "stream_revision": 2
+              }
+            }
+          ]
+        }
+      }
+    },
+    "es256": "Not run: cohort stopped on EdDSA full-profile failure.",
+    "finding": "Optimized ordinary direct clean60 baseline passes unchanged thresholds in both directions. EdDSA original-peer ICE operations and Store effects all pass; both directions pass decoded motion/audio, but participant0 has an extra audio rising edge that prevents unique coded A/V calibration. Full ICE quality remains failed. No edge removal, threshold widening or source/media changes were applied.",
+    "diagnostic_localization": {
+      "scope": "Offline localization of the retained failed observation, not a modified calibration or passing profile.",
+      "first_unique_audio_edges": 21,
+      "extra_audio_edge_page_seconds": 18.6585,
+      "window_elapsed_seconds": 13.3865,
+      "preceding_audio_edge_page_seconds": 18.309,
+      "nearest_source_pulse_seconds_earlier": 0.5438,
+      "next_source_pulse_seconds_later": 0.7429,
+      "cause": "Unresolved; do not infer a transport or codec cause solely from the extra edge."
+    }
   }
 }

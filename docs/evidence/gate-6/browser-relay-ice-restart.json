@@ -1,0 +1,272 @@
+{
+  "task": "G6-054",
+  "checked_at": "2026-10-30T12:13:12.088731+00:00",
+  "scope": "Actual owned loopback coturn/browser/server relay-only audio/video and two-generation original-peer ICE recovery. Synthetic signed identities, normal private CA verification; unchanged clean60 media bounds. No distinct-network or full task/acceptance qualification.",
+  "implementation": "The public conversation example now forwards iceTransportPolicy. Browser and server explicitly select relay-only policy. Actual browser getStats nominated remote candidates must be relay before/after restart and after the measured window; SDK refuses absent relay gathering. Same-peer/track/Worker and original Store effects are checked independently. Coturn zero-allocation drain and original-process join run even if media quality fails.",
+  "cases": [
+    {
+      "name": "browser-udp-01",
+      "summary": {
+        "format": 1,
+        "passed": true,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_original_peer_ice_restart_clean_eddsa",
+        "transport": "udp",
+        "ice_policy": "relay",
+        "client": "browser",
+        "scope": "Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification.",
+        "source_manifest_sha256": "b2a5211fc3502da6914f90b35359412fd4f34261d7bd9dae61880cd92ad59c7a",
+        "source_count": 5923,
+        "coturn_version": "4.18.0",
+        "binary_sha256": "4082a9359fb5950f6b0f2dbb072df2c6e8225132b0f5cf3c75d03bd34e143975",
+        "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "runner_sha256": "52b1981aea8c60b1b2d344e3e80c9d7cc35aa64b1139e16443fe8e7bf4c32a36",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "server_pid": 48901,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 67.43915087496862,
+          "log_sha256": "4c5289257995999e451267952ff26ea53fbc7e90aecebf5779edc8748898aff9",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 98 filtered out; finished in 67.40s"
+          ],
+          "panic_locations": []
+        },
+        "drain_observation_version": 2,
+        "allocation_drain_limit_seconds": 10,
+        "post_drain_join_limit_seconds": 10,
+        "allocation_drain_seconds": 2.3732551669236273,
+        "post_drain_join_seconds": 5.4095189999789,
+        "drain_exit_code": 0,
+        "coturn_log_sha256": "e5ee04075381dc6fdee510369d84e79bcb1ff49fa2875055bf05c409df36c11d",
+        "allocation_successes": 10,
+        "server_joined": true,
+        "changed_source_inputs": []
+      },
+      "summary_sha256": "50bf04db5767930deb57a22041e23784c37fa21fdf3c5ac5c4ae9a6b7e9849d9",
+      "tool_inputs": 79,
+      "tools_unchanged": true,
+      "tool_manifest_sha256": "29cb37430431b62633c0c13b09e2851d5eada75f70e9e6122ecf572d041621a1",
+      "browser_report_sha256": "c464e227877dd863d9f0e2cd17277d78688bab412ded1d3fc75c0d53cddc7638",
+      "relay_path": {
+        "before": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "after": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ],
+        "final": [
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          },
+          {
+            "candidate_type": "relay",
+            "observation_source": "stats"
+          }
+        ]
+      },
+      "ice_restarts": {
+        "status": "passed",
+        "profile": "original-browser-ice/1",
+        "results": [
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-0",
+            "ice_generation": 1,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 1,
+            "signed_requests": 2,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 0,
+            "operation_id": "browser-ice-0-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          },
+          {
+            "participant": 1,
+            "operation_id": "browser-ice-1-1",
+            "ice_generation": 2,
+            "stream_revision": 2,
+            "connection_generation": 1,
+            "discarded_answers": 0,
+            "signed_requests": 1,
+            "ownership": {
+              "peer_count": 1,
+              "worker_count": 1,
+              "gathering": [
+                "complete"
+              ],
+              "original_video_workers_unchanged": true,
+              "original_media_unchanged": true
+            }
+          }
+        ],
+        "scope": "Two original peers, two generations each and discarded original answers. Fresh decoded AV is measured separately in the unchanged following clean window."
+      },
+      "store_oracle": {
+        "original_allocations": 2,
+        "passed": true,
+        "records": [
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-0-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-0",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-0",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 1,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          },
+          {
+            "attempt": 1,
+            "effects": 1,
+            "operation_id": "browser-ice-1-1",
+            "result": {
+              "action": "ice-restart",
+              "connection_generation": 1,
+              "connection_id": "browser-connection-1",
+              "ice_generation": 2,
+              "resources_changed": false,
+              "stream_revision": 2
+            }
+          }
+        ]
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "quality": [
+        {
+          "participant": 0,
+          "decoded_fps": 28.747221097756842,
+          "changing_fps": 24.44763672487495,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 32.200000047684085,
+          "p95_abs_skew_ms": 82.20000004768302
+        },
+        {
+          "participant": 1,
+          "decoded_fps": 29.397207327542386,
+          "changing_fps": 24.947630027965392,
+          "source_identity": "passed",
+          "audio_status": "passed",
+          "bad_audio_samples": 0,
+          "motion_status": "passed",
+          "av_status": "passed",
+          "median_abs_skew_ms": 24.949999928475464,
+          "p95_abs_skew_ms": 87.2999999523163
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "remaining": [
+    "Actual browser expired credentials/no logical or physical admission",
+    "Distinct-network current browser and approved Linux full media profile",
+    "Browser loss/unreachable-port media matrix",
+    "Retained direct optimized EdDSA audio extra-edge calibration failure",
+    "Current Linux hosting/installed-SDK regression failures"
+  ]
+}

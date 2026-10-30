@@ -115,14 +115,20 @@ def run(args):
     assert base.is_relative_to(ROOT / ".local"), "Private output must be under repository .local"
     base.mkdir(parents=True, mode=0o700, exist_ok=False)
     assert args.ice_policy != "all" or args.transport == "udp", "Shared STUN/TURN lane requires UDP control"
-    test = PREFIX + ("configured_all_shared_stun_turn_decoded_duplex" if args.ice_policy == "all"
-                     else f"configured_relay_{args.transport}_expiry_and_decoded_duplex")
+    if args.client == "browser":
+        assert args.ice_policy == "relay", "Browser fixture requires explicit relay-only policy"
+        test = "canonical_webrtc_browser::canonical_chrome_relay_original_peer_ice_restart_clean_" + args.algorithm.lower()
+    else:
+        test = PREFIX + ("configured_all_shared_stun_turn_decoded_duplex" if args.ice_policy == "all"
+                         else f"configured_relay_{args.transport}_expiry_and_decoded_duplex")
     listing = subprocess.check_output([str(binary), "--list"], text=True)
     assert f"{test}: test" in listing, "Wrong integration test partition or stale executable"
     version = subprocess.check_output([str(turnserver), "--version"], text=True).strip()
     assert version == "4.18.0", "Requalify allocation-drain oracle for another coturn version"
     report = {"format": 1, "passed": False, "test": test, "transport": args.transport, "ice_policy": args.ice_policy,
-              "scope": "Owned loopback TURN REST expiry and signed WSS/Store/Core Opus/VP8 duplex under the explicit All/shared-STUN-TURN or relay-only policy; no distinct-network/browser/SIP/remote qualification.",
+              "client": args.client,
+              "scope": ("Owned loopback browser relay-only same-peer ICE recovery with unchanged clean60 AV quality; no distinct-network/SIP/remote qualification."
+                        if args.client == "browser" else "Owned loopback TURN REST expiry and signed WSS/Store/Core Opus/VP8 duplex under the explicit All/shared-STUN-TURN or relay-only policy; no distinct-network/browser/SIP/remote qualification."),
               "source_manifest_sha256": digest(manifest_path), "source_count": len(source_inputs),
               "coturn_version": version, "binary_sha256": digest(binary),
               "turnserver_sha256": digest(turnserver), "decoder_sha256": digest(decoder),
@@ -156,7 +162,7 @@ def run(args):
     manifest = base / "fixture.json"
     private_write(manifest, json.dumps({"listener_port": port,
         "media_port_start": media_start, "media_port_end": media_start + 7,
-        "all_policy": args.ice_policy == "all"}) + "\n")
+        "all_policy": args.ice_policy == "all", "transport":args.transport}) + "\n")
     env = os.environ.copy()
     refs = base / "secret-references.toml"
     private_write(refs, 'version = 1\n' + ''.join(
@@ -166,6 +172,10 @@ def run(args):
                CONNECT_GATE6_TURN_USER=user, CONNECT_GATE6_TURN_PASSWORD=password,
                CONNECT_GATE6_TURN_EXPIRED_USER=expired_user, CONNECT_GATE6_TURN_EXPIRED_PASSWORD=expired_password,
                CONNECT_GATE6_AV_FIXTURE_DIR=str(fixtures), CONNECT_GATE6_FFMPEG=str(decoder))
+    if args.client == "browser":
+        browser_output = base / "browser"
+        browser_output.mkdir(mode=0o700)
+        env["CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS"] = str(browser_output)
     owned = None
     held = [listener, *media, *relay]
     try:
@@ -186,13 +196,11 @@ def run(args):
                     except TimeoutError:
                         report["udp_listener_unreachable"] = True
             step = bounded_child([str(binary), test, "--exact", "--ignored", "--nocapture", "--test-threads=1"],
-                                 env, base / "test.log", 90)
+                                 env, base / "test.log", 120 if args.client == "browser" else 90)
             text = (base / "test.log").read_text(errors="replace")
             step["results"] = re.findall(r"^test result:.*$", text, re.M)
             step["panic_locations"] = re.findall(r"panicked at ([^\n]+)", text)
             report["execution"] = step
-            assert step["exit_code"] == 0 and not step["timed_out"] and not step["forced_kill"], "Relay fixture failed; private test.log retained"
-            assert len(step["results"]) == 1 and "1 passed; 0 failed; 0 ignored;" in step["results"][0]
             # Coturn exits drain mode only when its active allocation count is zero.
             # Do this while the daemon still owns its sockets, before killing it.
             report["drain_observation_version"] = 2
@@ -223,6 +231,8 @@ def run(args):
         report["allocation_successes"] = len(re.findall(r"ALLOCATE processed, success", coturn))
         assert report["allocation_successes"] >= 4, "Missing four actual client/server TURN allocations"
         assert "drain" in coturn.lower(), "Missing allocation drain observation"
+        assert step["exit_code"] == 0 and not step["timed_out"] and not step["forced_kill"], "Relay fixture failed; private test.log retained; zero-allocation drain checked separately"
+        assert len(step["results"]) == 1 and "1 passed; 0 failed; 0 ignored;" in step["results"][0]
         report["passed"] = True
     finally:
         for sock in held:
@@ -252,6 +262,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--transport", choices=("udp", "tcp"), required=True)
     parser.add_argument("--ice-policy", choices=("all", "relay"), default="relay")
+    parser.add_argument("--client", choices=("native", "browser"), default="native")
+    parser.add_argument("--algorithm", choices=("EdDSA", "ES256"), default="EdDSA")
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--turnserver", default="turnserver")
     run(parser.parse_args())

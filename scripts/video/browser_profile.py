@@ -4,12 +4,15 @@ import argparse
 import ctypes
 import hashlib
 import json
+import platform
 from pathlib import Path
 import sqlite3
 import subprocess
+import sys
 
 
 CHROME_VERSION = '156.0.8078.48'
+LINUX_CHROME_VERSION = '156.0.8078.4'
 NSS_VERSION = '3.130'
 
 
@@ -91,8 +94,14 @@ def create_profile(browser, binary, profile, root_der):
         raise ValueError('Expected one bounded DER CA certificate')
     if browser == 'chrome':
         version = subprocess.check_output([str(binary), '--version'], text=True).strip()
-        if version != 'Google Chrome ' + CHROME_VERSION:
-            raise ValueError(f'Qualification database schema is pinned to Chrome {CHROME_VERSION}')
+        if sys.platform == 'darwin':
+            expected = 'Google Chrome ' + CHROME_VERSION
+        elif sys.platform == 'linux' and platform.machine() == 'x86_64':
+            expected = 'Google Chrome for Testing ' + LINUX_CHROME_VERSION
+        else:
+            raise ValueError('Use a verified macOS or Linux x86 qualification profile')
+        if version != expected:
+            raise ValueError(f'Qualification database schema requires {expected}')
     elif browser != 'firefox':
         raise ValueError('Use the designated chrome or firefox runtime')
     profile.mkdir(mode=0o700)

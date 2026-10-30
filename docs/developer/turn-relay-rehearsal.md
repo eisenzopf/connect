@@ -51,6 +51,20 @@ forced termination is recorded separately and cannot count as an allocation
 cleanup pass. The runner reports hashes and counts only. Keep raw logs,
 credentials, generated decoder output and synthetic state under ignored `.local/`.
 
+For an installed Chrome scene, add `--client browser --algorithm EdDSA` or
+`--algorithm ES256`, and select absolute `CONNECT_GATE6_CHROME`,
+`CONNECT_GATE6_NODE` and `CONNECT_PLAYWRIGHT_MODULE` paths. Include the example
+assets in the original input manifest and separately fence browser/automation
+runtime hashes. This lane requires relay-only policy on both sides, observes
+the actual nominated relay candidate before and after two ICE generations and
+after the unchanged clean 60-second decoded audio/video window, and checks
+original Peer/transceiver/track/Worker identities and one Store effect per
+logical operation. Its outer process limit is 120 seconds; coturn's existing
+drain/join bounds remain unchanged. Zero-allocation drain is checked even when
+the media function fails. This scene does not exercise expired browser
+credentials or establish distinct-network reachability. See
+[browser relay evidence](../evidence/gate-6/browser-relay-ice-restart.json).
+
 
 For the explicit shared-endpoint All-policy lane, add `--ice-policy all` to the
 UDP command and use a fresh output directory. It publishes host and relay

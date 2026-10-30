@@ -41,7 +41,8 @@ The candidate evidence probe `docs/evidence/gate-6/chrome-current-trust-probe.py
 separately tests untrusted-CA refusal, trusted-CA acceptance and trusted
 wrong-host refusal with new loopback HTTPS servers and private profiles. It
 records the exact browser label, retained fixture root and unchanged helper.
-Its version selector changes only in memory for this diagnostic; production
-profile pins remain unchanged until the target-platform proof passes. The CI
+Its initial version selector changed only in memory for the diagnostic. Verified
+Linux x86_64 CI now passes all three cases on CFT156.0.8078.4, so the profile
+helper explicitly permits that platform/version alongside macOS Chrome156.0.8078.48. The CI
 probe also rechecks the preceding renderer source/tool manifest. Only its
 redacted summary is uploaded; keys, profiles and raw logs stay private.

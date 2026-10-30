@@ -3,6 +3,8 @@
 mod audio_trace;
 #[path = "canonical_webrtc_browser/recovery.rs"]
 mod recovery;
+#[path = "canonical_webrtc_browser/relay.rs"]
+mod relay;
 #[path = "canonical_webrtc_browser/remote.rs"]
 mod remote;
 #[path = "canonical_webrtc_browser/transitions.rs"]
@@ -300,6 +302,16 @@ async fn run_profile(
     ))
     .await;
 }
+#[derive(Default)]
+struct Profile {
+    forced_fallback: bool,
+    transition_control: bool,
+    transport_recovery: bool,
+    transport_faults: bool,
+    ice_restart: bool,
+    relay: Option<relay::Fixture>,
+}
+
 async fn run_full_profile(
     algorithm: &str,
     browser_kind: &str,
@@ -309,6 +321,30 @@ async fn run_full_profile(
     transport_faults: bool,
     ice_restart: bool,
 ) {
+    Box::pin(run_configured_profile(
+        algorithm,
+        browser_kind,
+        Profile {
+            forced_fallback,
+            transition_control,
+            transport_recovery,
+            transport_faults,
+            ice_restart,
+            relay: None,
+        },
+    ))
+    .await;
+}
+
+async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Profile) {
+    let Profile {
+        forced_fallback,
+        transition_control,
+        transport_recovery,
+        transport_faults,
+        ice_restart,
+        relay,
+    } = profile;
     assert!(
         !ice_restart
             || (!forced_fallback
@@ -378,7 +414,7 @@ async fn run_full_profile(
     f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
         profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
         max_peers: 2,
-        addressing: None,
+        addressing: relay.as_ref().map(relay::Fixture::addressing),
     });
     f.server = RunningCanonicalServer::start(f.config.clone())
         .await
@@ -542,6 +578,12 @@ async fn run_full_profile(
             "--disable-background-timer-throttling",
             "--disable-renderer-backgrounding",
         ]);
+        if cfg!(target_os = "linux")
+            && std::env::var("CONNECT_GATE6_OWNED_BROWSER_CONTAINER").as_deref() == Ok("1")
+        {
+            // Only the explicit anonymous, network-isolated CI container.
+            command.arg("--no-sandbox");
+        }
         command.arg(format!("--user-data-dir={}", profile.display()));
     } else {
         command
@@ -608,6 +650,11 @@ async fn run_full_profile(
         participant(&f, &f.client, &room.id, mine, theirs, 0),
         participant(&f, &other, &room.id, theirs, mine, 1),
     ];
+    if let Some(relay) = &relay {
+        for participant in &mut participants {
+            relay.configure(participant);
+        }
+    }
     if let Some(stun) = &stun {
         for participant in &mut participants {
             participant["connection"]["iceServers"] =
@@ -628,6 +675,9 @@ async fn run_full_profile(
     let mut spec = json!({"browser":browser_kind,"root":root,"assetPort":asset_port,"debugPort":debug_port,"seconds":60,"profileMode":"clean","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],"participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
     if ice_restart {
         spec["iceRestart"] = json!(true);
+    }
+    if relay.is_some() {
+        spec["requireRelay"] = json!(true);
     }
     if transition_control {
         spec["controlOnly"] = json!(true);
@@ -847,6 +897,36 @@ async fn canonical_chrome_original_peer_ice_restart_clean_eddsa() {
 async fn canonical_chrome_original_peer_ice_restart_clean_es256() {
     Box::pin(run_full_profile(
         "ES256", "chrome", false, false, false, false, true,
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned coturn, installed Chrome, relay-only original-peer ICE restart and unchanged clean AV profile"]
+async fn canonical_chrome_relay_original_peer_ice_restart_clean_eddsa() {
+    Box::pin(run_configured_profile(
+        "EdDSA",
+        "chrome",
+        Profile {
+            ice_restart: true,
+            relay: Some(relay::Fixture::load()),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned coturn, installed Chrome, relay-only original-peer ICE restart and unchanged clean AV profile"]
+async fn canonical_chrome_relay_original_peer_ice_restart_clean_es256() {
+    Box::pin(run_configured_profile(
+        "ES256",
+        "chrome",
+        Profile {
+            ice_restart: true,
+            relay: Some(relay::Fixture::load()),
+            ..Profile::default()
+        },
     ))
     .await;
 }

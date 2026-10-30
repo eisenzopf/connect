@@ -22,7 +22,7 @@ export async function canonicalMediaClient(configuration, selection = {}) {
     const options = Object.fromEntries([
         "conversationId", "sessionId", "connectionId", "operationId", "expectedRevision",
         "participantId", "audioStreamId", "videoStreamId",
-        "iceServers",
+        "iceServers", "iceTransportPolicy",
     ].filter(name => connection[name] !== undefined).map(name => [name, connection[name]]));
     const end = {operationId: configuration.end.operationId, expectedRevision: configuration.end.expectedRevision};
     if (typeof end.operationId !== "string" || !end.operationId || end.operationId === options.operationId ||

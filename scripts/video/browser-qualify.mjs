@@ -54,6 +54,8 @@ if(Boolean(spec.muteRecovery)!==(spec.profileMode==="mute") || (spec.muteRecover
     throw Error("Mute measurement requires its separate scenario and at least 20 seconds");
 if(spec.iceRestart&&(spec.profileMode!=="clean"||spec.participants.length!==2||spec.designatedRemoteHost))
     throw Error("ICE restart qualification requires two owned loopback clean-profile participants");
+if(spec.requireRelay&&(!spec.iceRestart||spec.participants.some(p=>p.connection?.iceTransportPolicy!=="relay")))
+    throw Error("Owned relay qualification requires explicit relay-only original-peer ICE recovery");
 let assets;
 if(spec.root) {
     const root=await fs.realpath(spec.root);
@@ -305,7 +307,16 @@ try {
         }
         throw Error("Identifiable duplex decoded audio did not become ready within five seconds");
     },{expected:spec.expectedToneHz?.[index]??(index===0?660:440)})));
+    const relayPath=async()=>Promise.all(pages.map(page=>page.evaluate(async()=>{
+        const stats=await window.videoFixture.session.diagnostics();
+        const incoming=stats.find(row=>row.direction==="inbound");
+        if(incoming?.selectedCandidateType!=="relay"||incoming.selectedCandidatePairSource!=="stats")
+            throw Error("Actual nominated relay candidate pair is missing");
+        return {candidate_type:incoming.selectedCandidateType,observation_source:incoming.selectedCandidatePairSource};
+    })));
+    const relayBefore=spec.requireRelay?await relayPath():undefined;
     const iceRestarts=spec.iceRestart?await restartOriginalBrowsers(pages,spec.participants,process.env.CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS):undefined;
+    const relayAfter=spec.requireRelay?await relayPath():undefined;
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,
         changing:window.videoFixture.observation.changing,
@@ -453,6 +464,7 @@ try {
             av_acceptance:audioVideoAcceptance(sync,spec.profileMode,spec.seconds),recovery,elapsed_seconds:observedElapsed};
     });
     const fallback=await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.fallback)));
+    const relayFinal=spec.requireRelay?await relayPath():undefined;
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
         const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
@@ -488,7 +500,9 @@ try {
         &&o.av_sync.audio_envelope?.status==="observer-valid"&&o.av_acceptance.status==="passed"
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
-        browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,teardown_seconds:teardown,paired_termination:pairedTermination,
+        browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,
+        relay_path:spec.requireRelay?{before:relayBefore,after:relayAfter,final:relayFinal}:undefined,
+        teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;
 } catch (error) {

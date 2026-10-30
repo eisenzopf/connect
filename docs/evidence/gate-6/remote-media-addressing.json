@@ -350,5 +350,12 @@
     "signed_original_restart_recovery_passed": true,
     "quality_passed": false,
     "full_task_qualified": false
+  },
+  "browser_relay_continuation": {
+    "evidence": "docs/evidence/gate-6/browser-relay-ice-restart.json",
+    "passed_cases": [
+      "browser-udp-01"
+    ],
+    "full_task_qualified": false
   }
 }

@@ -513,7 +513,7 @@
       ]
     }
   },
-  "current_status": "Current MacChrome156 and Linuxx86Chromium156 isolated renderers pass; historical Chromium151 VM profiles and full RTC/media operating profiles remain unqualified.",
+  "current_status": "Linux x86_64 CFT156 passes independent renderer and normal private TLS positive/negative cases. Full RTC/audio/video matrix remains open.",
   "candidate_trust_preparation": {
     "recorded_at": "2026-10-30T11:42:05.463258+00:00",
     "source": "docs/evidence/gate-6/chrome-current-trust-probe.py",
@@ -568,5 +568,54 @@
       "passed": true
     },
     "linux_result": "Pending exact same three normalTLS cases on the pinned Linux browser. Candidate mutates only in-memory version selector; tracked profile helper remains unchanged. No normal Linux TLS or RTC claim before proof."
+  },
+  "linux_x86_normal_trust": {
+    "run_id": 41049969811,
+    "job_id": 124043307519,
+    "artifact_id": 12973369068,
+    "zip_sha256": "74feae359df2f0ac8048ecdbca233807197ec06b5eefe7512399e18ba92029ff",
+    "tracked_sources_verified_against_git": [
+      ".github/workflows/gate6-browser-observer.yml",
+      "docs/evidence/gate-6/chrome-current-trust-probe.py",
+      "scripts/video/browser_profile.py",
+      "scripts/video/check-renderer.mjs",
+      "scripts/video/marker_calibration.mjs",
+      "scripts/video/observer-tools/package-lock.json",
+      "scripts/video/observer-tools/package.json",
+      "scripts/video/owned_chromium.mjs",
+      "scripts/video/source_identity.mjs"
+    ],
+    "source_revision": "0b184f3ef2329ffbf4c80490c9be13af6de1eb84",
+    "scope": "Ephemeral Linux x86_64 CI, pinned CFT156 image, two owned loopback HTTPS listeners and fresh private profiles. No full RTC/media qualification.",
+    "browser_version": "Google Chrome for Testing 156.0.8078.4",
+    "observations": {
+      "passed": true,
+      "results": [
+        {
+          "trusted": false,
+          "expected": "ERR_CERT_AUTHORITY_INVALID",
+          "error": "ERR_CERT_AUTHORITY_INVALID",
+          "status": null
+        },
+        {
+          "trusted": true,
+          "expected": "accepted",
+          "error": null,
+          "status": 200
+        },
+        {
+          "trusted": true,
+          "expected": "ERR_CERT_COMMON_NAME_INVALID",
+          "error": "ERR_CERT_COMMON_NAME_INVALID",
+          "status": null
+        }
+      ],
+      "normal_certificate_verification": true,
+      "original_contexts_closed": 2
+    },
+    "original_root_retained": true,
+    "original_servers_joined": 2,
+    "sources_unchanged": true,
+    "passed": true
   }
 }
