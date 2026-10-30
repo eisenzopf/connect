@@ -1,7 +1,7 @@
 {
   "task": "G6-054",
   "status": "in-progress",
-  "checked_at": "2026-10-30T06:00:33.169552+00:00",
+  "checked_at": "2026-10-30T06:05:30.519909+00:00",
   "base_revision": "b2a2f42d7023abe7a9b4780964c551139843cad9",
   "scope": "Read-only generation-specific live engine observation, compiled async wrapper and actual synthetic sans-I/O ICE/DTLS packet tests. No canonical restart operation/execution, physical media or network qualification.",
   "upstream_patch": {
@@ -89,8 +89,8 @@
     ]
   },
   "production_service_check": {
-    "status": "running",
-    "qualified": false,
+    "status": "passed",
+    "qualified": true,
     "command": [
       "cargo",
       "check",
@@ -100,6 +100,12 @@
       "connect-service",
       "--lib"
     ],
+    "exit_code": 0,
+    "seconds": 609.5302397499327,
+    "source_count": 5628,
+    "changed_inputs": [],
+    "source_manifest_sha256": "78e2c2c0fcfbd5bb7eb49316dbd7a522005248bd501c1695083f5109cdd52959",
+    "log_sha256": "22ba5d44cb462aa861b9834db71b08f2f9b77adbdc742283c3bde6599b5eb710",
     "scope": "Production feature/API compilation only; not runtime qualification."
   },
   "preserved_failures": [
@@ -131,7 +137,6 @@
   "limits": [
     "Packet tests exercise the actual engine with synthetic in-memory datagrams; they are not browser/native stock, decoded media, NAT, TURN or real-network proof.",
     "Async wrapper qualification is a standalone default-feature library check; no async socket runtime claim.",
-    "Broader production service compilation remains pending and is not counted as a pass.",
     "No task closure, acceptance promotion, provider/model call or publication. Gate6 remains68done/1in-progress/36not-started/0acceptance-qualified."
   ],
   "private_evidence": ".local/gate-6/transport-reconnect-owner/ice-generation-*"
