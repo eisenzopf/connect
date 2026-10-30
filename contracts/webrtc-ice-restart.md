@@ -63,6 +63,31 @@ the current comparison. This fixture uses no Connect server and does not prove
 restart application, ICE connectivity, decoded media, remote/relay behavior or
 allocation cleanup in the canonical host.
 
+## Observing the current engine generation
+
+The recorded upstream `ice_generation_ready(local, remote)` query checks the
+live ICE agent's complete local and remote credentials and current nominated
+pair, current ICE/DTLS state and stable signaling under the same RTC core lock.
+It rejects pending signaling, empty/mismatched credentials and closed peers.
+Its async wrapper acquires that lock; it reads no historical statistics as
+readiness evidence. The existing sticky `is_connected` observation must not
+substitute for this generation-specific check.
+
+The expected parameters must come from the original attempt's retained actual
+local answer and remote offer. A caller-supplied counter, SDP answer or boolean
+is not execution proof. This query supplies no current membership, Endpoint,
+physical-owner or media permission; canonical execution must enforce those
+independently before and after observation. It also does not prove decoded
+media, direction/gate changes or full end-to-end reconnection.
+
+The local engine tests exchange actual synthetic sans-I/O ICE/DTLS packets on
+two retained peers, restart both credentials, drop the first restart flight,
+then require a new selected pair before either peer reports ready. They also
+refuse stale generations, same-fragment wrong passwords, empty parameters,
+closure and historical Connected metadata. No sockets/providers/media sources
+are created by that packet fixture. The Store operation and canonical restart
+worker are not installed by this read-only engine API.
+
 ## Required durable execution
 
 Before physical IO, save the complete original payload, caller, scope, current

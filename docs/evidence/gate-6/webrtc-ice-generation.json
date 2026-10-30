@@ -1,0 +1,138 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T06:00:33.169552+00:00",
+  "base_revision": "b2a2f42d7023abe7a9b4780964c551139843cad9",
+  "scope": "Read-only generation-specific live engine observation, compiled async wrapper and actual synthetic sans-I/O ICE/DTLS packet tests. No canonical restart operation/execution, physical media or network qualification.",
+  "upstream_patch": {
+    "number": 246,
+    "path": "patches/rvoip/gate6-webrtc-live-ice-generation.patch",
+    "source": "G6-054 read-only exact-credential ICE generation readiness from live sans-I/O agent/current selected pair and DTLS/stable signaling; async stack observes under the same core lock. Historical connection flags/statistics supply no proof or authority. Declares the async stack Tokio macros feature used by its existing select paths, avoiding reliance on workspace feature unification. Includes real synthetic ICE/DTLS packet restart/loss/stale/password/closed negative tests; no canonical execution or media claim.",
+    "sha256": "945fde3e00ae9af0f40b5e97f76148441e66d874871745b747ba14ab382dfe20"
+  },
+  "prepared_sources": {
+    "patch_count": 246,
+    "schema_version": 115,
+    "prepare_exit_code": 0,
+    "prepare_log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+    "previous_snapshots_retained": true
+  },
+  "implementation": {
+    "query": "RTCPeerConnection::ice_generation_ready(local,remote), forwarded by async PeerConnection under the original RTC core lock",
+    "required_live_facts": [
+      "Stable signaling and no pending description",
+      "Current peer and DTLS Connected",
+      "Live ICE agent Connected/Completed and a current selected pair",
+      "Exact nonempty local and remote username fragments AND passwords"
+    ],
+    "not_authority": [
+      "No membership/Endpoint/physical-owner grant",
+      "No counter, historical connection callback or accumulated statistics as readiness",
+      "No decoded-media or gate/source observation"
+    ],
+    "standalone_dependency_fix": "Declare Tokio macros used by existing select paths instead of relying on another workspace member to activate that feature."
+  },
+  "verification": {
+    "runs": [
+      {
+        "label": "packet-tests",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-rtc",
+          "--lib",
+          "ice_generation_tests",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "seconds": 4.298280250048265,
+        "log_sha256": "ca0eb48978f003159280ad460d06e50da06a6094b91f82086177edd8389eaa32"
+      },
+      {
+        "label": "async-stack",
+        "command": [
+          "cargo",
+          "check",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-webrtc-stack",
+          "--lib"
+        ],
+        "exit_code": 0,
+        "seconds": 3.1725685000419617,
+        "log_sha256": "721642fcf752372ea44103bf70070cdfac575b4db8cfa2fffcc15573ff8f6d6f"
+      }
+    ],
+    "source_count": 4094,
+    "changed_inputs": [],
+    "source_manifest_sha256": "0ea435b7d89562ab9467acb97770484c5b16b9a23399241534b5e0f76e9fbceb"
+  },
+  "packet_cases": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "unrelated_functions_filtered": 215,
+    "profile": "Actual synthetic sans-I/O ICE/STUN/DTLS packets, no OS sockets/media/providers",
+    "cases": [
+      "Two retained peers connect, restart both credential pairs, drop first restart flight, refuse old/new readiness before actual new nomination, then connect the new generation; old generation and closed peer refuse.",
+      "A live positive control refuses unchanged fragments with wrong local/remote passwords and empty parameters.",
+      "Controlled historical Connected fields do not produce readiness for an unconnected live agent."
+    ]
+  },
+  "production_service_check": {
+    "status": "running",
+    "qualified": false,
+    "command": [
+      "cargo",
+      "check",
+      "--offline",
+      "--locked",
+      "-p",
+      "connect-service",
+      "--lib"
+    ],
+    "scope": "Production feature/API compilation only; not runtime qualification."
+  },
+  "preserved_failures": [
+    {
+      "run": "root-workspace upstream package test",
+      "exit_code": 101,
+      "reason": "Cargo cannot test a nonmember dependency with dev-dependencies; rerouted to its actual upstream workspace without changing source/test scope.",
+      "log_sha256": "bfb9d5efec401d72a02fb1d696b8f6db82e89925caad3c7ff03e477167c1254d"
+    },
+    {
+      "run": "initial standalone async-stack check",
+      "exit_code": 101,
+      "reason": "Existing select paths lacked an explicit Tokio macros feature. The recorded package manifest correction passes the final standalone check.",
+      "log_sha256": "aa321aa6166b110956add8761593e539458fd0810fc70fcf89a88cc70dbdf801"
+    }
+  ],
+  "files": {
+    "patch_sha256": "945fde3e00ae9af0f40b5e97f76148441e66d874871745b747ba14ab382dfe20",
+    "source_lock_sha256": "b9cccd6c15f5ee1644d0a8972f5080cd3efd192573eb8c4dd8282a8f490cbe89",
+    "test_executable_sha256": "9902b18f323545f177d7efd3da6253d935303e858f9d8a10daec9284ea2194fe",
+    "format_check_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remaining": [
+    "Durable Store exact original intent/attempt/ICE counter/answer custody with current authorization and original replay.",
+    "Guarded restart worker on the same Core-reserved physical peer, preserving streams/source IDs/gates/DTLS and using this generation query.",
+    "Register action/schema, HTTP/OpenAPI and SDK only with complete durable execution.",
+    "Distinct-network direct/relay/loss/expiry/refusal/decoded-duplex/cleanup and remaining G6-054 matrix."
+  ],
+  "limits": [
+    "Packet tests exercise the actual engine with synthetic in-memory datagrams; they are not browser/native stock, decoded media, NAT, TURN or real-network proof.",
+    "Async wrapper qualification is a standalone default-feature library check; no async socket runtime claim.",
+    "Broader production service compilation remains pending and is not counted as a pass.",
+    "No task closure, acceptance promotion, provider/model call or publication. Gate6 remains68done/1in-progress/36not-started/0acceptance-qualified."
+  ],
+  "private_evidence": ".local/gate-6/transport-reconnect-owner/ice-generation-*"
+}

@@ -1,0 +1,253 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+@@ -695,6 +695,38 @@
+             && self.supports_owned_dtmf_io()
+     }
+ 
++    /// Observe the live ICE agent for these exact negotiated credentials.
++    /// Accumulated statistics and prior connection callbacks are not proof of
++    /// this generation. This read grants no owner, media or application authority.
++    pub fn ice_generation_ready(
++        &self,
++        local: &RTCIceParameters,
++        remote: &RTCIceParameters,
++    ) -> bool {
++        use crate::peer_connection::transport::{RTCDtlsTransportState, RTCIceTransportState};
++        let ice = self.ice_transport();
++        let (local_ufrag, local_pwd) = ice.get_local_user_credentials();
++        let (remote_ufrag, remote_pwd) = ice.get_remote_user_credentials();
++        self.signaling_state == RTCSignalingState::Stable
++            && self.pending_local_description.is_none()
++            && self.pending_remote_description.is_none()
++            && self.peer_connection_state == RTCPeerConnectionState::Connected
++            && self.dtls_transport().state == RTCDtlsTransportState::Connected
++            && matches!(
++                ice.state(),
++                RTCIceTransportState::Connected | RTCIceTransportState::Completed
++            )
++            && ice.agent.get_selected_candidate_pair().is_some()
++            && !local_ufrag.is_empty()
++            && !local_pwd.is_empty()
++            && !remote_ufrag.is_empty()
++            && !remote_pwd.is_empty()
++            && local_ufrag == local.username_fragment
++            && local_pwd == local.password
++            && remote_ufrag == remote.username_fragment
++            && remote_pwd == remote.password
++    }
++
+     /// Creates an SDP offer to start a new WebRTC connection to a remote peer.
+     ///
+     /// The offer includes information about the attached media tracks, codecs and options supported
+@@ -2324,3 +2356,6 @@
+         Ok(())
+     }
+ }
++
++#[cfg(test)]
++mod ice_generation_tests;
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -59,7 +59,9 @@
+     state::{
+         RTCIceConnectionState, RTCIceGatheringState, RTCPeerConnectionState, RTCSignalingState,
+     },
+-    transport::{RTCIceCandidate, RTCIceCandidateInit, RTCIceCandidateType, RTCIceProtocol},
++    transport::{
++        RTCIceCandidate, RTCIceCandidateInit, RTCIceCandidateType, RTCIceParameters, RTCIceProtocol,
++    },
+ };
+ 
+ const INVALID_UDP_PORT_RANGE: &str = "invalid-udp-port-range";
+@@ -438,6 +440,12 @@
+         kind: RtpCodecKind,
+         init: Option<RTCRtpTransceiverInit>,
+     ) -> Result<Arc<dyn RtpTransceiver>>;
++    /// Observe the live agent under the peer's core lock; no authority grant.
++    async fn ice_generation_ready(
++        &self,
++        local: &RTCIceParameters,
++        remote: &RTCIceParameters,
++    ) -> bool;
+     /// Get a snapshot of accumulated statistics.
+     async fn get_stats(&self, now: Instant, selector: StatsSelector) -> RTCStatsReport;
+ }
+@@ -981,6 +989,18 @@
+         Ok(rtp_transceiver.clone() as Arc<dyn RtpTransceiver>)
+     }
+ 
++    async fn ice_generation_ready(
++        &self,
++        local: &RTCIceParameters,
++        remote: &RTCIceParameters,
++    ) -> bool {
++        self.inner
++            .core
++            .lock()
++            .await
++            .ice_generation_ready(local, remote)
++    }
++
+     /// Get a snapshot of accumulated statistics.
+     async fn get_stats(&self, now: Instant, selector: StatsSelector) -> RTCStatsReport {
+         let mut core = self.inner.core.lock().await;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/ice_generation_tests.rs
+@@ -0,0 +1,147 @@
++//! Actual sans-I/O ICE/DTLS packets. No sockets, provider or media proof.
++use super::*;
++use crate::peer_connection::transport::{CandidateConfig, CandidateHostConfig, RTCIceCandidate};
++use sansio::Protocol;
++use std::time::{Duration, Instant};
++
++fn candidate(peer: &mut RTCPeerConnection, port: u16) {
++    let host = CandidateHostConfig {
++        base_config: CandidateConfig {
++            network: "udp".into(),
++            address: "127.0.0.1".into(),
++            port,
++            component: 1,
++            ..Default::default()
++        },
++        ..Default::default()
++    }
++    .new_candidate_host()
++    .unwrap();
++    peer.add_local_candidate(RTCIceCandidate::from(&host).to_json().unwrap())
++        .unwrap();
++}
++fn params(peer: &RTCPeerConnection) -> RTCIceParameters {
++    peer.ice_transport().get_local_parameters().unwrap()
++}
++fn signal(a: &mut RTCPeerConnection, b: &mut RTCPeerConnection, restart: bool) {
++    let offer = a
++        .create_offer(Some(RTCOfferOptions {
++            ice_restart: restart,
++            ..Default::default()
++        }))
++        .unwrap();
++    a.set_local_description(offer).unwrap();
++    candidate(a, 31001);
++    b.set_remote_description(a.local_description().unwrap())
++        .unwrap();
++    let answer = b.create_answer(None).unwrap();
++    b.set_local_description(answer).unwrap();
++    candidate(b, 31002);
++    a.set_remote_description(b.local_description().unwrap())
++        .unwrap();
++}
++fn transfer(a: &mut RTCPeerConnection, b: &mut RTCPeerConnection, deliver: bool) -> usize {
++    let mut count = 0;
++    while let Some(mut packet) = a.poll_write() {
++        count += 1;
++        assert!(count < 1000, "Bounded packet fixture");
++        if deliver {
++            std::mem::swap(
++                &mut packet.transport.local_addr,
++                &mut packet.transport.peer_addr,
++            );
++            b.handle_read(packet).unwrap();
++        }
++    }
++    while a.poll_event().is_some() {}
++    while b.poll_event().is_some() {}
++    count
++}
++fn drive(
++    a: &mut RTCPeerConnection,
++    b: &mut RTCPeerConnection,
++    local: &RTCIceParameters,
++    remote: &RTCIceParameters,
++) {
++    let deadline = Instant::now() + Duration::from_secs(5);
++    loop {
++        a.handle_timeout(Instant::now()).unwrap();
++        b.handle_timeout(Instant::now()).unwrap();
++        transfer(a, b, true);
++        transfer(b, a, true);
++        if a.ice_generation_ready(local, remote) && b.ice_generation_ready(remote, local) {
++            return;
++        }
++        assert!(
++            Instant::now() < deadline,
++            "ICE/DTLS generation readiness deadline"
++        );
++        std::thread::sleep(Duration::from_millis(1));
++    }
++}
++fn pair() -> (RTCPeerConnection, RTCPeerConnection) {
++    let mut a = RTCPeerConnectionBuilder::new().build().unwrap();
++    let b = RTCPeerConnectionBuilder::new().build().unwrap();
++    a.create_data_channel("synthetic-generation-proof", None)
++        .unwrap();
++    (a, b)
++}
++#[test]
++fn original_and_restarted_generations_require_their_own_selected_pair() {
++    let (mut a, mut b) = pair();
++    signal(&mut a, &mut b, false);
++    let old_a = params(&a);
++    let old_b = params(&b);
++    assert!(!a.ice_generation_ready(&old_a, &old_b));
++    drive(&mut a, &mut b, &old_a, &old_b);
++    signal(&mut a, &mut b, true);
++    let fresh_a = params(&a);
++    let fresh_b = params(&b);
++    assert!(
++        old_a.username_fragment != fresh_a.username_fragment && old_a.password != fresh_a.password
++    );
++    assert!(
++        old_b.username_fragment != fresh_b.username_fragment && old_b.password != fresh_b.password
++    );
++    // Even retained historical Connected state/statistics cannot nominate a
++    // pair for the new generation. Deliberately drop this first packet flight.
++    transfer(&mut a, &mut b, false);
++    transfer(&mut b, &mut a, false);
++    assert!(!a.ice_generation_ready(&old_a, &old_b));
++    assert!(!b.ice_generation_ready(&old_b, &old_a));
++    assert!(!a.ice_generation_ready(&fresh_a, &fresh_b));
++    assert!(!b.ice_generation_ready(&fresh_b, &fresh_a));
++    drive(&mut a, &mut b, &fresh_a, &fresh_b);
++    assert!(!a.ice_generation_ready(&old_a, &old_b));
++    a.close().unwrap();
++    b.close().unwrap();
++    assert!(!a.ice_generation_ready(&fresh_a, &fresh_b));
++}
++#[test]
++fn same_fragments_with_changed_passwords_and_empty_parameters_refuse() {
++    let (mut a, mut b) = pair();
++    signal(&mut a, &mut b, false);
++    let local = params(&a);
++    let remote = params(&b);
++    drive(&mut a, &mut b, &local, &remote);
++    let mut wrong = local.clone();
++    wrong.password.push('x');
++    assert!(!a.ice_generation_ready(&wrong, &remote));
++    wrong = remote.clone();
++    wrong.password.push('x');
++    assert!(!a.ice_generation_ready(&local, &wrong));
++    assert!(!a.ice_generation_ready(&RTCIceParameters::default(), &remote));
++    assert!(!a.ice_generation_ready(&local, &RTCIceParameters::default()));
++    a.close().unwrap();
++    b.close().unwrap();
++}
++#[test]
++fn forged_historical_connected_state_does_not_replace_live_agent_evidence() {
++    let (mut a, mut b) = pair();
++    a.peer_connection_state = RTCPeerConnectionState::Connected;
++    a.pipeline_context.stats.transport.ice_state =
++        crate::peer_connection::transport::RTCIceTransportState::Connected;
++    assert!(!a.ice_generation_ready(&params(&a), &params(&b)));
++    a.close().unwrap();
++    b.close().unwrap();
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc-stack/Cargo.toml
+@@ -208,6 +208,7 @@
+ [dependencies.tokio]
+ version = "1.49.0"
+ features = [
++    "macros",
+     "io-util",
+     "net",
+     "time",
