@@ -3,7 +3,7 @@
   "task": "G6-054",
   "implementation_status": "in-progress",
   "date": "2026-10-28",
-  "scope": "Explicit canonical WebRTC/SIP addressing, protected TURN references and owned loopback UDP/TCP relay media; distinct-network Linux guest to Mac native PCMU duplex. Distinct-network browser/telephone and complete G6-054 verification remain open.",
+  "scope": "Configured remote WebRTC/SIP addressing with scoped component evidence for native/telephone distinct-network direct and loss paths, browser loopback direct/UDP-TCP relay/restart/expiry/unreachable paths, and original owner drains. Current Linux browser fault and distinct-network bridge verification remain open.",
   "implementation": [
     "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
     "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
@@ -127,10 +127,10 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Actual distinct-network SIP/NAT paths and deployment qualification. Configuration examples now document public WebRTC, SIP contacts and RTP mapping; Local startup/readiness proofs do not establish remote reachability.",
-    "Distinct-network browser/native/telephone direct and relay profiles, ICE restart, packet loss, unreachable media ports and their duplex/cleanup behavior. Current loopback native UDP/TCP lanes cover expiry and deallocation; no browser or60second quality profile is inferred.",
-    "Secure STUN/TURN transports and runtime TURN credential issuance/refresh remain unimplemented or unqualified. The fixture generates documented SHA1 REST credentials externally; the unused upstream SHA256 credential helper is not qualified by it. Default STUN port resolution and the common shared STUN/TURN endpoint now have explicit protocol/local-media evidence; actual remote profiles remain separate.",
-    "Native Linux configuration/security/SIP lane passed23functions at563d16bc; no Linux TURN runtime pass is inherited. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
+    "Run current CFT156 Linux x86 clean/original-peer ICE/loss/unreachable media cases after the isolated loopback-interface fix. Run both current internal-bridge browser algorithms with selected-path, decoded media and cleanup proof. Existing Linux6b clock/native ICE passes do not qualify failed browser scenes.",
+    "Complete the required G6-054 distinct-network direct/relay and fault coverage using the scoped evidence below. Native and telephone owned direct/loss components passed; their precise source/profile limits remain in their artifacts. Old Linux ARM Chromium151 distinct-network quality failure is retained; the current bridge fixture is implemented but unrun.",
+    "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
+    "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "eb62b731189aa45bfb73debead2d37e415990433c7b4a35de85bd1f1ab8ed4f8",
@@ -385,5 +385,48 @@
     "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
     "status": "linux-runtime-pending",
     "full_task_qualified": false
-  }
+  },
+  "current_verification_matrix": [
+    {
+      "profile": "native distinct-network PCMU direct, transport loss and unreachable port",
+      "status": "component evidence recorded",
+      "evidence": [
+        "docs/evidence/gate-6/native-distinct-network-audio.json",
+        "docs/evidence/gate-6/native-network-loss.json",
+        "docs/evidence/gate-6/native-unreachable-port.json"
+      ],
+      "limits": "Owned guest to Mac; no native Linux x86 performance or full video/matrix qualification."
+    },
+    {
+      "profile": "telephone distinct-network direct and loss",
+      "status": "owned component passed",
+      "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
+      "limits": "Exact synthetic telephone/PCMU fixture scope only; no provider/PSTN claim."
+    },
+    {
+      "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
+      "status": "current local component passes recorded",
+      "evidence": [
+        "docs/evidence/gate-6/browser-ice-restart.json",
+        "docs/evidence/gate-6/browser-relay-ice-restart.json",
+        "docs/evidence/gate-6/browser-unreachable-turn.json"
+      ],
+      "limits": "Owned loopback CFT156 and coturn; full Linux/distinct-network matrix not inferred."
+    },
+    {
+      "profile": "native Linux x86 opt3 media runtime",
+      "status": "clock and native ICE2 passed; browser cases failed",
+      "run_id": 41077685499,
+      "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
+      "limits": "Current loopback-interface fix rerun41078605823 remains active."
+    },
+    {
+      "profile": "current browser Linux x86 distinct-network internal bridge",
+      "status": "implemented; actual runtime unrun",
+      "run_id": 41080706946,
+      "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
+      "documentation": "docs/developer/browser-bridge-rehearsal.md",
+      "limits": "Pending owned bridge EdDSA/ES256 scenes; no WAN, relay or ICE-restart inference."
+    }
+  ]
 }

@@ -331,7 +331,7 @@ public_ip = "203.0.113.44"
 ice_policy = "all"
 
 [[webrtc.addressing.ice_services]]
-urls = ["turns:relay.fixture.invalid:443?transport=tcp"]
+urls = ["turn:relay.fixture.invalid:3478?transport=tcp"]
 username_ref = "CONNECT_TURN_USER"
 credential_ref = "CONNECT_TURN_PASSWORD"
 ```
@@ -344,6 +344,8 @@ services and sixteen distinct URLs; credentials are forbidden in URLs. STUN
 entries omit credential references. Local profiles allow only loopback media and
 ICE addresses; omission of addressing keeps the existing simple local setup.
 Neither profile inherits an implicit public STUN server.
+The current server driver supports TURN control over UDP/TCP and refuses secure
+STUN/TURN schemes; see [remote media configuration](remote-media-configuration.md).
 
 The named TURN username/password references use the existing protected server
 secret-reference or explicit environment workflow. Values resolve at startup,

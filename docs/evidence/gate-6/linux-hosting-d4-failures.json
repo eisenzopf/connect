@@ -1120,6 +1120,72 @@
       "passed": true,
       "seconds": 5.964,
       "note": "Isolated follow-up only. Earlier full component failure retained; no cause inferred."
+    },
+    "local_component_followup": {
+      "passed": false,
+      "functions_passed": 222,
+      "unfinished_functions": [],
+      "stalled_task_stacks": [],
+      "timed_out": false,
+      "forced_cleanup": false,
+      "phases": {
+        "core": {
+          "exit_code": 1,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 52.67882508295588,
+          "log_sha256": "429234521571aa38c74eec00eb8cc3628b790b2385afecaf3e3c7128ad48672e"
+        },
+        "http": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 12.378784124972299,
+          "log_sha256": "7cfad9529b9226d079032caec0028dc2e3b8c135901f0976c347f2a18f053d8e"
+        },
+        "https": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 3.2237741251010448,
+          "log_sha256": "1a925f2e5b3be0701afb88910b9ed98a698fa056a4328852c0d52a9cd0b5a25e"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 4.746329792076722,
+          "log_sha256": "d6da2d2808b47cf68f72caacdb25a2c64f48f4590757f7591fcdc8644932e0be"
+        }
+      },
+      "failed_functions": [
+        [
+          "test_python_administration.TypedPythonAdministration.test_admin_operation_original_record_readiness_recovery_and_separate_decisions",
+          "ERROR"
+        ]
+      ],
+      "failure_sites": [
+        {
+          "file": "sdk/python/connect_sdk/_sdk_validation.py",
+          "line": 54
+        },
+        {
+          "file": "sdk/python/connect_sdk/sdk_administration.py",
+          "line": 140
+        },
+        {
+          "file": "sdk/python/connect_sdk/sdk_administration.py",
+          "line": 178
+        },
+        {
+          "file": "sdk/tests/test_python_administration.py",
+          "line": 82
+        }
+      ]
     }
   },
   "initial_admission_diagnostic_local_verification": {
