@@ -44,7 +44,7 @@ jobs:
         run: python3 scripts/check-gate6-linux-hosting.py --preflight
       - name: Reject stale or missing decoded ICE recovery proof
         run: |
-          node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs scripts/tests/browser_network_path.test.mjs scripts/tests/browser_fixture_scope.test.mjs
+          node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs scripts/tests/browser_network_path.test.mjs scripts/tests/browser_fixture_scope.test.mjs scripts/video/browser-failure.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_gate6_browser_build_profiles.py
           python3 -m unittest discover -s scripts/tests -p test_owned_netem.py
           python3 -m unittest discover -s scripts/tests -p test_owned_bridge_turn.py

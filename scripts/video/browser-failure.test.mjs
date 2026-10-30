@@ -2,6 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {installPeerDiagnostics} from "./browser_failure.mjs";
 
+test("RTP loss and repair counters remain bounded numeric facts without private stats fields",async()=>{
+    const original=globalThis.RTCPeerConnection;
+    class Peer{
+        getTransceivers(){return [];}
+        addEventListener(){}
+        async getStats(){
+            return new Map(Array.from({length:20},(_,index)=>["private-secret-"+index,{
+                type:"inbound-rtp",kind:"audio",id:"private-secret",trackIdentifier:"private-secret",
+                nackCount:4,concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
+                jitterBufferDelay:.1,jitterBufferEmittedCount:960,packetsLost:2,
+                pliCount:Infinity,firCount:-1,retransmittedPacketsSent:"private-secret",
+            }]));
+        }
+    }
+    try{
+        globalThis.RTCPeerConnection=Peer;installPeerDiagnostics();
+        for(let index=0;index<5;index++)new globalThis.RTCPeerConnection();
+        const value=await globalThis.connectPeerMediaDiagnostics();
+        assert.equal(value.length,4);assert(value.every(rows=>rows.length===8));
+        assert.deepEqual(value[0][0],{type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
+            concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
+            jitterBufferDelay:.1,jitterBufferEmittedCount:960});
+        assert.equal(JSON.stringify(value).includes("private-secret"),false);
+    }finally{
+        globalThis.RTCPeerConnection=original;
+        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;
+    }
+});
+
 test("codec diagnostics preserve negotiation facts and exclude signaling secrets",()=>{
     const original=globalThis.RTCPeerConnection;
     class Peer{

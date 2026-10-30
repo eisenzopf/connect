@@ -86,3 +86,5 @@ The fixture captures no physical device and does not disable address obfuscation
 or certificate checks. Actual current Linux x86 media results remain required.
 
 Failed decoded-audio observations retain at most sixteen numeric sample measurements: elapsed time within the measured window, finite RMS and frequency (otherwise null), and a fixed phase label. The count of omitted failures stays explicit. These observations contain no raw audio, peer identifiers, addresses or private fixture fields. They explain an existing failure without changing identity, coverage, burst exception or recovery rules.
+
+The independent browser observer also saves before/after RTP counter snapshots from `getStats`: at most four owned peer objects and eight allowlisted numeric RTP/media rows per peer. Packet loss, NACK/PLI/FIR, retransmission, audio concealment and jitter-buffer counters explain transport behavior; they are not a substitute for decoded audio/video or a routing diagnosis. Unknown fields, transport addresses, track identifiers and nonfinite or negative counters are excluded.

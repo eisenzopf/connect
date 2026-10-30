@@ -344,6 +344,7 @@ try {
     const relayAfter=spec.requireRelay?await relayPath():undefined;
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,
+        rtpFeedback:await globalThis.connectPeerMediaDiagnostics(),
         changing:window.videoFixture.observation.changing,
         source:{...window.videoFixture.sourceObservation},markerStart:performance.now(),markerStartUnix:(performance.timeOrigin+performance.now())/1000 }))));
     await Promise.all(pages.map((page,index)=>page.evaluate(({initialStats})=>{
@@ -405,7 +406,8 @@ try {
         const f=window.videoFixture;clearInterval(f.iceTimer);
         f.observation.recordIdentity=false;
         const stats=await f.session.diagnostics();f.recordIce(stats);
-        return {stats,sourceIdentity:f.sourceIdentityReport(f.observation.sourceIdentityCounts,expectedSourceId,allowMutedBlack),markerEndUnix:(performance.timeOrigin+performance.now())/1000,
+        const rtpFeedback=await globalThis.connectPeerMediaDiagnostics();
+        return {stats,rtpFeedback,sourceIdentity:f.sourceIdentityReport(f.observation.sourceIdentityCounts,expectedSourceId,allowMutedBlack),markerEndUnix:(performance.timeOrigin+performance.now())/1000,
         iceSamples:f.iceSamples,iceErrors:f.iceErrors,outboundSamples:f.outboundSamples,
         outbound:f.outboundMetadata(stats),source:{...f.sourceObservation},muteTransitions:f.muteTransitions,
         audioEnvelope:f.audioEnvelope.report(markerStart),audioSamples:f.observation.audioSamples,rendered:window.videoFixture.observation.rendered,
@@ -471,6 +473,7 @@ try {
         });
         const videoBytes=delta("bytes");
         return {stats_available:Boolean(inbound&&before),source_identity:end.sourceIdentity,
+            rtp_feedback:{before:initial[index].rtpFeedback,after:end.rtpFeedback},
             audio_readiness:audioReadiness[index],audio_content:audioContent,audio_profile:audioProof,motion_content:motionContent,motion_profile:motionProof,
             worker_pipeline:workerPipeline(outgoingBefore?.worker,end.outbound?.worker,end.outboundSamples,initial[index].markerStartUnix,end.markerEndUnix),
             window_start_unix_seconds:initial[index].markerStartUnix,window_end_unix_seconds:end.markerEndUnix,decoded:delta("frames"),changing:end.changing-initial[index].changing,

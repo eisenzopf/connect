@@ -268,6 +268,7 @@ def runtime(component=None):
                                 audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
                                 audio_bad_samples=o['audio_profile'].get('bad_unexcepted_samples'),
                                 audio_bad_sample_diagnostics=o['audio_profile'].get('bad_sample_diagnostics'),
+                                rtp_feedback=o.get('rtp_feedback'),
                                 worker_pipeline=o.get('worker_pipeline'),
                                 audio=o['audio_profile']['status'], motion=o['motion_profile']['status'],
                                 source_identity=o['source_identity']['status'], av_sync=o['av_sync']['status'],

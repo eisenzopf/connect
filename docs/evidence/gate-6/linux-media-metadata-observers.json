@@ -272,5 +272,136 @@
     "passed": true,
     "log_sha256": "87bad93b55a2ab854ba3919b97e9d19abbe48ab4f35c0d32ce313bb5d7644673",
     "linux_execution": "not yet run"
+  },
+  "linux_numeric_audio_followup": {
+    "run_id": 41105238086,
+    "revision": "8a450053ac0693434c27e5b59a43f47691faebdd",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41105238086",
+    "artifact_id": 12999629673,
+    "zip_sha256": "9125a9a7d96bac40ff21a8d88575c7ee84f3522f80f8dd92152ffff4e0a457f0",
+    "git_sources_verified": 2858,
+    "prepared_dependencies_verified": 3087,
+    "dependency_differences": [],
+    "producer_seconds": 0.2642249679999935,
+    "producer_all_libraries_opt3": true,
+    "burst_seconds": 3.002881883000015,
+    "observations": [
+      {
+        "decoded_fps": 11.597371241062069,
+        "changing_fps": 9.614487365075883,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.10969996452331543,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 42.879600286483765,
+              "rms": 0.009157821193920272,
+              "frequency_hz": 516.796875,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 2.567199945449829,
+        "motion": "failed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793384219.3340943,
+              "end_unix_seconds": 1793384222.3369763,
+              "duration_seconds": 3.002881883000015
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793384222.3098998,
+              "sampled_interval_end_unix_seconds": 1793384223.8100998,
+              "before": 21,
+              "after": 22,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 1.0915236473083496,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      },
+      {
+        "decoded_fps": 7.215007197671669,
+        "changing_fps": 6.331876986409317,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1101999282836914,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 4.670300006866455,
+              "rms": 0.0005315308866251866,
+              "frequency_hz": 0,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 2.03439998626709,
+        "motion": "failed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793384219.3340943,
+              "end_unix_seconds": 1793384222.3369763,
+              "duration_seconds": 3.002881883000015
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793384222.3172,
+              "sampled_interval_end_unix_seconds": 1793384224.31,
+              "before": 23,
+              "after": 24,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 1.5582237243652344,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      }
+    ],
+    "cleanup": {
+      "original_process_joined": true,
+      "owned_qdiscs_removed": true,
+      "reclaimed_media_addresses": 8
+    },
+    "passed": false,
+    "result": "Each receiver has1invalidsample outside the observed burst: one has RMS.00916/frequency516.797Hz at42.880s, the other has RMS.000532/frequency0 at4.670s. Neither equals the opposite synthetic source tone. Both video returns pass1.092/1.558s, but both outside-burst motion gaps fail2.567/2.034s. No routing, FEC, loss-recovery or whole-profile fix is inferred from these observations."
+  },
+  "rtp_feedback_followup": {
+    "change": "Before/after public getStats snapshots retain existing bounded numeric rows and add packet loss, NACK/PLI/FIR, retransmission, audio concealment and jitter-buffer counters. No IDs, addresses, SDP or raw audio are retained.",
+    "privacy_unit_functions": 2,
+    "passed": true,
+    "linux_execution": "not yet run",
+    "limitation": "Counters show aggregate transport observations; they do not by themselves identify a failure cause or prove independent decoded media."
   }
 }

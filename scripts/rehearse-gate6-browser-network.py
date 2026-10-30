@@ -133,6 +133,7 @@ async def run(args):
                     audio_maximum_sampling_gap_seconds=o['audio_profile'].get('maximum_sampling_gap_seconds'),
                     audio_bad_unexcepted_samples=o['audio_profile'].get('bad_unexcepted_samples'),
                     audio_bad_sample_diagnostics=o['audio_profile'].get('bad_sample_diagnostics'),
+                    rtp_feedback=o.get('rtp_feedback'),
                     maximum_unexcluded_motion_gap_seconds=o['motion_profile'].get('maximum_unexcluded_freshness_gap_seconds'),
                     motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],
                     recovery=o['recovery'],av_acceptance=o['av_acceptance']) for o in value.get('observations',[])])
