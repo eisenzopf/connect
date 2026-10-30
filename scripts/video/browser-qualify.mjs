@@ -9,6 +9,7 @@ import http from "node:http";
 import https from "node:https";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {isIPv4} from "node:net";
 import { ordinalSync } from "./marker_calibration.mjs";
 import { audioObservation } from "./audio_observation.mjs";
 import { combineAudioEnvelopeSync } from "./audio_envelope.mjs";
@@ -19,6 +20,7 @@ import { installPeerDiagnostics, installControlDiagnostics, browserFailure } fro
 import { installIceOwnership, restartOriginalBrowsers } from "./browser_ice_restart.mjs";
 import { refusedRelay } from "./browser_relay_expiry.mjs";
 import { installNetworkProxyProof, observedProxyPaths } from "./browser_network_proxy.mjs";
+import { installBridgeObserver, observedBridgePaths } from "./browser_bridge_proof.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 
 let input = "";
@@ -27,6 +29,14 @@ for await (const chunk of process.stdin) {
     if (input.length > 65536) throw new Error("Browser fixture input too large");
 }
 const spec = JSON.parse(input);
+const privateBridgeIp=value=>isIPv4(value??'')&&(value.startsWith('10.')||value.startsWith('192.168.')
+    ||value.startsWith('172.')&&Number(value.split('.')[1])>=16&&Number(value.split('.')[1])<=31);
+if(spec.ownedContainerBridge&&(!(process.platform==='linux'&&process.arch==='x64'
+    &&process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER==='1')||spec.designatedRemoteHost!=='connect.fixture.internal'
+    ||!privateBridgeIp(spec.ownedContainerBridge.ip)
+    ||!Number.isInteger(spec.ownedContainerBridge.port_start)||!Number.isInteger(spec.ownedContainerBridge.port_end)
+    ||spec.ownedContainerBridge.port_start<20000||spec.ownedContainerBridge.port_end!==spec.ownedContainerBridge.port_start+15
+    ||spec.ownedContainerBridge.port_end>60015))throw Error('Explicit owned internal bridge configuration required');
 if (!Array.isArray(spec.participants) || ![1,2].includes(spec.participants.length) || !spec.terminal)
     throw Error("Canonical browser qualification requires explicit signed participant configurations, subscriptions and a stable Session end; bearer-only legacy fixture migration is unsupported");
 // Protected local fixture key material is normalized inside this private
@@ -100,7 +110,7 @@ if(spec.root) {
 }
 for (const address of [spec.baseURL, ...spec.participants.map(p=>p.url)]) {
     const url = new URL(address);
-    const ownedRemote=spec.designatedRemoteHost==="host.lima.internal"&&url.hostname===spec.designatedRemoteHost
+    const ownedRemote=(spec.designatedRemoteHost==="host.lima.internal"||spec.ownedContainerBridge&&spec.designatedRemoteHost==="connect.fixture.internal")&&url.hostname===spec.designatedRemoteHost
         &&url.protocol==="wss:"&&url.pathname==="/connect"&&url.port&&!url.hash;
     if ((!ownedRemote&&!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) || url.username || url.password || url.search)
         throw new Error("Use an isolated loopback browser fixture");
@@ -141,6 +151,7 @@ try {
         const page = await context.newPage();
         observedPages[index]=page;
         await page.addInitScript(installPeerDiagnostics);
+        if(spec.ownedContainerBridge)await page.addInitScript(installBridgeObserver);
         await page.addInitScript(installControlDiagnostics);
         if(spec.ownedMediaProxy)await page.addInitScript(installNetworkProxyProof);
         if(spec.iceRestart)await page.addInitScript(installIceOwnership);
@@ -480,6 +491,7 @@ try {
     const fallback=await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.fallback)));
     const relayFinal=spec.requireRelay?await relayPath():undefined;
     const proxyFinal=spec.ownedMediaProxy?await observedProxyPaths(pages,spec.ownedMediaProxy):undefined;
+    const bridgeFinal=spec.ownedContainerBridge?await observedBridgePaths(pages,spec.ownedContainerBridge):undefined;
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
         const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
@@ -518,6 +530,7 @@ try {
         browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,
         relay_path:spec.requireRelay?{before:relayBefore,after:relayAfter,final:relayFinal}:undefined,
         owned_media_proxy:spec.ownedMediaProxy?{before:proxyBefore,final:proxyFinal}:undefined,
+        owned_container_bridge:bridgeFinal,
         teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;

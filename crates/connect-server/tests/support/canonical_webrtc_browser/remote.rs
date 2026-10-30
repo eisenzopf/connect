@@ -26,6 +26,25 @@ async fn distinct_network_browser_server_child() {
         .parse()
         .unwrap();
     assert!((20000..=60000).contains(&port));
+    let bridge = std::env::var("CONNECT_G6_OWNED_BROWSER_BRIDGE_IP")
+        .ok()
+        .map(|value| {
+            assert!(cfg!(all(target_os = "linux", target_arch = "x86_64")));
+            assert_eq!(
+                std::env::var("CONNECT_G6_OWNED_BROWSER_BRIDGE").as_deref(),
+                Ok("1")
+            );
+            let ip: std::net::Ipv4Addr = value.parse().unwrap();
+            assert!(ip.is_private());
+            ip
+        });
+    let hostname = if bridge.is_some() {
+        "connect.fixture.internal"
+    } else {
+        "host.lima.internal"
+    };
+    let bind_ip = bridge.unwrap_or(std::net::Ipv4Addr::UNSPECIFIED);
+    let public_ip = bridge.unwrap_or(std::net::Ipv4Addr::new(192, 168, 5, 2));
     let mut f = Fixture::with_native_end_scope(&algorithm, 8).await;
     f.server.shutdown().await.unwrap();
     let now = std::time::SystemTime::now();
@@ -44,8 +63,7 @@ async fn distinct_network_browser_server_child() {
     let issuer =
         rcgen::CertifiedIssuer::self_signed(ca, rcgen::KeyPair::generate().unwrap()).unwrap();
     let mut leaf =
-        rcgen::CertificateParams::new(vec!["localhost".into(), "host.lima.internal".into()])
-            .unwrap();
+        rcgen::CertificateParams::new(vec!["localhost".into(), hostname.into()]).unwrap();
     leaf.not_before = (now - Duration::from_secs(60)).into();
     leaf.not_after = (now + Duration::from_secs(3600)).into();
     leaf.key_usages = vec![rcgen::KeyUsagePurpose::DigitalSignature];
@@ -74,7 +92,7 @@ async fn distinct_network_browser_server_child() {
     std::fs::write(&f.config.private_key, key.serialize_der()).unwrap();
     f.client.trust_certificate = ca_path;
     f.config.network_profile = connect_client::NativeNetworkProfile::Remote;
-    let native = std::net::UdpSocket::bind("0.0.0.0:0").unwrap();
+    let native = std::net::UdpSocket::bind((bind_ip, 0)).unwrap();
     f.config.bind = native.local_addr().unwrap();
     // The shared enrolled-peer fixture also declares a WebTransport Device.
     // Give that optional listener its own exact Remote contact; this browser
@@ -84,17 +102,17 @@ async fn distinct_network_browser_server_child() {
             mount_path: "/connect".into(),
             allowed_origins: vec!["https://localhost:30379".into()],
             advertised_url: Some(format!(
-                "https://host.lima.internal:{}/connect",
+                "https://{hostname}:{}/connect",
                 f.config.bind.port()
             )),
         },
     );
-    let reserved = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+    let reserved = std::net::TcpListener::bind((bind_ip, 0)).unwrap();
     let signaling_port = reserved.local_addr().unwrap().port();
-    let url = format!("wss://host.lima.internal:{signaling_port}/connect");
+    let url = format!("wss://{hostname}:{signaling_port}/connect");
     f.config.websocket = Some(
         connect_server::canonical_websocket::CanonicalWebSocketConfig {
-            bind: format!("0.0.0.0:{signaling_port}").parse().unwrap(),
+            bind: (bind_ip, signaling_port).into(),
             mount_path: "/connect".into(),
             allowed_origins: vec!["https://localhost:30379".into()],
             advertised_url: Some(url.clone()),
@@ -105,10 +123,10 @@ async fn distinct_network_browser_server_child() {
         max_peers: 2,
         addressing: Some(
             connect_server::canonical_webrtc::CanonicalWebRtcAddressing {
-                bind_ip: "0.0.0.0".parse().unwrap(),
+                bind_ip: bind_ip.into(),
                 port_start: port,
                 port_end: port + 15,
-                public_ip: Some("192.168.5.2".parse().unwrap()),
+                public_ip: Some(public_ip.into()),
                 ice_policy: connect_server::canonical_webrtc::CanonicalIcePolicy::All,
                 ice_services: vec![],
             },
@@ -119,9 +137,11 @@ async fn distinct_network_browser_server_child() {
     f.server = RunningCanonicalServer::start(f.config.clone())
         .await
         .unwrap();
-    f.client.endpoint = format!("127.0.0.1:{}", f.server.address.port())
-        .parse()
-        .unwrap();
+    f.client.endpoint = (
+        bridge.unwrap_or(std::net::Ipv4Addr::LOCALHOST),
+        f.server.address.port(),
+    )
+        .into();
     f.client.network_profile = connect_client::NativeNetworkProfile::Remote;
     let host = f.server.test_webrtc_host().unwrap();
     let other = canonical_webtransport_media::other_caps_with_end(
@@ -195,12 +215,12 @@ async fn distinct_network_browser_server_child() {
         participant["url"] = json!(url);
     }
     let spec = json!({"browser":"chrome","root":root,"assetPort":30379,"assetTls":{"certFile":"/fixture/asset-cert.pem","keyFile":"/fixture/asset-key.pem"},"seconds":60,"profileMode":"clean",
-        "designatedRemoteHost":"host.lima.internal","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],
+        "designatedRemoteHost":hostname,"ownedContainerBridge":bridge.map(|ip|json!({"ip":ip.to_string(),"port_start":port,"port_end":port+15})),"sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],
         "participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
     let input = output.join("input.json");
     std::fs::write(&input, serde_json::to_vec(&spec).unwrap()).unwrap();
     std::fs::set_permissions(&input, std::fs::Permissions::from_mode(0o600)).unwrap();
-    std::fs::write(output.join("ready-writing.json"),serde_json::to_vec(&json!({"algorithm":algorithm,"url":url,"media_public_ip":"192.168.5.2","media_port_start":port,"media_port_end":port+15})).unwrap()).unwrap();
+    std::fs::write(output.join("ready-writing.json"),serde_json::to_vec(&json!({"algorithm":algorithm,"url":url,"media_public_ip":public_ip.to_string(),"media_port_start":port,"media_port_end":port+15})).unwrap()).unwrap();
     std::fs::rename(output.join("ready-writing.json"), output.join("ready.json")).unwrap();
     tokio::time::timeout(Duration::from_secs(180), async {
         while !output.join("done").exists() {

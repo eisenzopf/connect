@@ -4,14 +4,14 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function launchOwnedChromium(chromium,binary,profile){
+export async function launchOwnedChromium(chromium,binary,profile,environment=process.env){
     await fs.mkdir(profile,{mode:0o700});
     const child=spawn(binary,['--headless=new','--remote-debugging-address=127.0.0.1',
         '--remote-debugging-port=0','--no-first-run','--no-default-browser-check',
         '--disable-background-networking','--disable-sync','--disable-breakpad','--disable-crash-reporter',
         '--autoplay-policy=no-user-gesture-required','--disable-background-timer-throttling',
         '--disable-renderer-backgrounding',...(process.platform==='linux'&&process.getuid()===0?['--no-sandbox']:[]),
-        `--user-data-dir=${profile}`],{stdio:'ignore'});
+        `--user-data-dir=${profile}`],{stdio:'ignore',env:environment});
     const exited=new Promise(resolve=>{
         child.once('exit',(code,signal)=>resolve({code,signal}));
         child.once('error',()=>resolve({launch_error:true}));
@@ -36,6 +36,6 @@ export async function launchOwnedChromium(chromium,binary,profile){
         }
         if(!Number.isInteger(port)||port<1||port>65535)throw Error('Owned browser readiness deadline');
         browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`,{timeout:5000});
-        return {browser,close};
+        return {browser,close,port};
     }catch(error){await close();throw error;}
 }

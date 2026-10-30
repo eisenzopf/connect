@@ -353,5 +353,37 @@
     "chromium_switch_source": "https://chromium.googlesource.com/chromium/chromium/+/HEAD/content/public/common/content_switches.cc",
     "fix": "Enable --allow-loopback-in-peer-connection only for Chromium in the explicitly owned Linux browser container. Preserve Docker network none and normal certificate verification. Record the selected isolated profile.",
     "remaining": "Actual current CFT156 Linux x86 browser/media replay remains required. The older ARM Chromium151 probe proves only the loopback TURN reachability difference. No full task or acceptance qualification."
+  },
+  "owned_internal_bridge_preparation": {
+    "status": "implemented-runtime-unrun",
+    "documentation": "docs/developer/browser-bridge-rehearsal.md",
+    "behavior": "An internal owned Docker bridge connects a Linux x86 host server to current CFT156 in a distinct browser namespace. Fixed synthetic DNS, exact gateway binds and nominated duplex selected-path proofs prevent a loopback result from qualifying it. Normal CA refusal/import/trusted HTTPS, paced audio, unchanged clean60 decoded media and all original owner/network drains remain required. EdDSA and ES256 run independently.",
+    "guards": {
+      "node_functions_passed": 3,
+      "negative_path_checks": "Foreign address/port, nonnominated/failed/non-UDP/one-way paths and missing/extra peers/transports are refused.",
+      "syntax_and_workflow_parse": true,
+      "format_check": true
+    },
+    "local_compile": {
+      "passed": true,
+      "sources_unchanged": true,
+      "source_count": 5925,
+      "source_manifest_sha256": "c4aeb717b154319b0018ede0d5e61d2c045374b6ea95463f44c7db930f9fc964",
+      "binary_sha256": "d09e03e1fba2dcb8a22ecfafcea69af96ed628e017eb10b3ca2ac5b9c906aa66",
+      "scope": "macOS arm64 local optimization exceptions only; Linux branch and actual bridge runtime not qualified."
+    },
+    "native_regression": {
+      "passed": true,
+      "source_inputs": 5925,
+      "sources_unchanged": true,
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 9.237512290943414,
+        "log_sha256": "442854707c98742699fb48d7b9479904f30e0c74d0fd017d5c6c94edb6812a07"
+      }
+    },
+    "remaining": "Execute both actual Linux x86 bridge scenes. G6-054 remains in progress and acceptance unqualified."
   }
 }

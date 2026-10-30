@@ -38,7 +38,7 @@ jobs:
         run: python3 scripts/check-gate6-linux-hosting.py --preflight
       - name: Reject stale or missing decoded ICE recovery proof
         run: |
-          node --test scripts/tests/browser_ice_recovery.test.mjs
+          node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_gate6_browser_build_profiles.py
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
@@ -98,6 +98,25 @@ jobs:
               python3 scripts/video/owned_pulse_audio.py --output .local/gate6-browser-media/evidence/audio -- \
                 python3 scripts/check-gate6-browser-media.py run
             '
+      - name: Run owned distinct-network browser bridge cases
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,subprocess,sys
+          root=Path.cwd()
+          base=root/'.local/gate6-browser-media/evidence'
+          image=json.loads((base/'image.json').read_text())['Id']
+          failed=False
+          for algorithm in ['EdDSA','ES256']:
+              result=subprocess.run(['python3','scripts/rehearse-gate6-browser-bridge.py',
+                  '--producer',str(base/'build/summary.json'),
+                  '--source-manifest',str(base/'build/source-inputs.json'),
+                  '--image',image,'--algorithm',algorithm,
+                  '--output',str(base/('bridge-'+algorithm.lower()))])
+              failed=failed or result.returncode!=0
+          sys.exit(failed)
+          PY
       - name: Return ownership of only fixture evidence
         if: always()
         run: |
@@ -118,6 +137,10 @@ jobs:
             .local/gate6-browser-media/evidence/runtime/repository-inputs.json
             .local/gate6-browser-media/evidence/runtime/tool-inputs.json
             .local/gate6-browser-media/evidence/runtime/clock/summary.json
+            .local/gate6-browser-media/evidence/bridge-eddsa/summary.json
+            .local/gate6-browser-media/evidence/bridge-es256/summary.json
+            .local/gate6-browser-media/evidence/bridge-eddsa/tool-inputs.json
+            .local/gate6-browser-media/evidence/bridge-es256/tool-inputs.json
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
