@@ -360,5 +360,87 @@
       "error": null,
       "passed": true
     }
+  },
+  "linux_x86_image151_observation": {
+    "run_id": 41047361985,
+    "job_id": 124034612409,
+    "artifact_id": 12972129090,
+    "zip_sha256": "f1f2f53ff841950ed7e746c5db75498028c70d27001252b4ba0c35b894033907",
+    "source_manifest_sha256": "9b2ad9172e574fa8bbd82a7558d6f1c641d3e666df53b10be92fc6a6d90055e0",
+    "tracked_sources_verified_against_git": [
+      ".github/workflows/gate6-browser-observer.yml",
+      "scripts/video/check-renderer.mjs",
+      "scripts/video/marker_calibration.mjs",
+      "scripts/video/observer-tools/package-lock.json",
+      "scripts/video/observer-tools/package.json",
+      "scripts/video/owned_chromium.mjs",
+      "scripts/video/source_identity.mjs"
+    ],
+    "summary": {
+      "scope": "Two owned local canvas/capture/video observers for8seconds. Same synthetic motion/identity/cadence and independent8x8pixel comparison as browser quality fixture. No RTC, transport, Core, audio, remote host or account qualification.",
+      "os": "linux",
+      "architecture": "x64",
+      "node": "v24.18.1",
+      "browser": "151.0.7922.34",
+      "source_count": 79,
+      "source_manifest_sha256": "9b2ad9172e574fa8bbd82a7558d6f1c641d3e666df53b10be92fc6a6d90055e0",
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "minimum_callback_and_changing_fps": 24,
+      "rows": [
+        {
+          "index": 0,
+          "seconds": 8.005299999999988,
+          "draw_fps": 30.354889885450934,
+          "callback_fps": 20.736262226275123,
+          "changing_fps": 18.61266910671683,
+          "raf_fps": 24.608696738410842,
+          "visibility": "visible",
+          "passed": false
+        },
+        {
+          "index": 1,
+          "seconds": 8.005300000000004,
+          "draw_fps": 30.354889885450874,
+          "callback_fps": 20.23659325696725,
+          "changing_fps": 18.113000137408957,
+          "raf_fps": 24.233945011429917,
+          "visibility": "visible",
+          "passed": false
+        }
+      ],
+      "original_browser_joined": true,
+      "ownership": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "error": null,
+      "passed": false
+    },
+    "image_browser": {
+      "cache": "/ms-playwright",
+      "architecture": "x64",
+      "entries": [
+        "chromium-1234"
+      ],
+      "candidates": [
+        "/ms-playwright/chromium-1234/chrome-linux64/chrome"
+      ]
+    }
+  },
+  "next_linux_image": {
+    "recorded_at": "2026-10-30T11:27:58.869076+00:00",
+    "registry_index_url": "https://mcr.microsoft.com/v2/playwright/manifests/v1.64.1-noble",
+    "verified_index_digest": "sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea",
+    "verified_amd64_manifest_digest": "sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8",
+    "verified_config_digest": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+    "platform": "linux/amd64",
+    "tool_version": "1.64.1",
+    "expected_browser_version": "156.0.8078.4",
+    "runtime_result": "Pending. Upgrade the immutable image to match the already integrity-locked fixture tool. Same source, observer, launch policy and24fps minimum; no old-image pass or generic renderer fix inferred."
   }
 }
