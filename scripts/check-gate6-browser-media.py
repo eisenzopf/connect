@@ -198,7 +198,7 @@ def runtime(component=None):
             repository[str(path.relative_to(ROOT))] = digest(path)
     save(output / 'repository-inputs.json', repository)
     tools = {str(path):digest(path) for path in [binary, chrome, node,
-        Path(shutil.which('pulseaudio')).resolve(strict=True),
+        Path(shutil.which('pulseaudio')).resolve(strict=True), Path(shutil.which('tc')).resolve(strict=True),
         Path('/usr/local/share/connect-browser-packages.tsv')]}
     for folder in [module.parent, module.parent.parent / 'playwright-core']:
         for path in folder.rglob('*'):

@@ -13,7 +13,7 @@ Its integration driver has its separately recorded opt0 profile. The pinned
 browser image, integrity-locked automation and source hashes remain checked.
 
 Each browser fixture requires normal untrusted-CA refusal, fresh Chrome profile CA import,
-a normal trusted HTTPS response, a paced software audio clock, the existing
+normally verified signed WSS, a paced software audio clock, the existing
 decoded clean60 audio/video and AV checks, and a nominated duplex UDP path to
 the configured gateway and port range from both original peers' `getStats()`.
 The host and browser namespace hashes must differ. Original server, browser,

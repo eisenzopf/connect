@@ -11,21 +11,36 @@ directory under `.local`. Select `--algorithm EdDSA` or `ES256`. The normal brow
 environment uses `CONNECT_GATE6_CHROME`, `CONNECT_GATE6_NODE` and
 `CONNECT_PLAYWRIGHT_MODULE`. Prepare dependencies before building.
 
-The server binds eight owned `127.0.0.1` UDP ports and advertises the same port
-numbers on `127.0.0.2`. Each proxy has one fixed server destination and bounded
-original-client backends. Actual browser `getStats` must prove that the nominated
-remote address and port traverse this pool before and after measurement; direct
-bypass cannot qualify. No SDP is rewritten by the runner.
+The server binds and advertises eight owned `127.0.0.1` UDP ports. Browser
+`getStats` must prove the nominated address and port remain in that range.
+The earlier port-preserving proxy was correctly rejected: ICE found a direct
+path that bypassed its impairment. Those failures remain recorded.
 
-The existing impairment proxy applies fixed-seed 3% Bernoulli decisions and
-0–100 ms delay to opaque UDP datagrams in each direction, with one three-second
-blackhole interval. This is not a claimed 3% RTP packet rate. Actual counters,
-realized drop fractions and stall drops are recorded. Both participants must
-independently identify the opposite audio/video source, observe content before
-the interruption and meet the existing two-second recovery checks afterward.
-The existing impairment A/V policy retains raw skew/calibration results; it does
-not turn this into a clean 24-fps pass. Every proxy closes, its workers join, and
-the original frontend/backend addresses must be reclaimed.
+The current lane runs only inside its dedicated network-disabled Linux Docker
+container. Only the full/fault lanes receive `NET_ADMIN`, used to create owned
+loopback queue disciplines and sixteen UDP source/destination port filters.
+Control TCP, local audio sockets and unrelated traffic remain outside the filters.
+Both UDP directions receive independent 3% kernel random loss and 50ms delay
+with 50ms default uniform jitter (0–100ms configured delay). No fixed-seed or
+exact realized 3% RTP loss is claimed. The kernel's
+[netem distribution implementation](https://github.com/torvalds/linux/blob/v6.1/net/sched/sch_netem.c)
+uses a uniform random value when no distribution table is supplied.
+
+Twenty seconds after the actual measured window becomes ready, both directions
+get one three-second 100% loss interval. Its observed interval starts after both
+commands acknowledge and ends before either restoration starts, so command
+latency grants no extra recovery time. The decoder reads that observed interval
+and retains the original two-second recovery bound. Both directions must show
+actual burst drops, ordinary drops and forwarded packets. Numeric queue counters,
+source manifests and cleanup evidence are retained. Each queue is bounded to512
+packets. The original media ports must be reclaimed and the original noqueue
+loopback configuration restored before a pass. The helper refuses non-Docker
+execution or a pre-existing queue configuration; it never changes the host.
+
+Both participants must independently identify the opposite decoded audio/video
+source before and after interruption. Existing A/V and motion observers retain
+their thresholds. This is a local fault component, separate from distinct-network,
+clean video quality and acceptance qualification.
 
 The current Mac refuses binding `127.0.0.2` with `EADDRNOTAVAIL`; its network
 configuration is unchanged. The separate manually dispatched

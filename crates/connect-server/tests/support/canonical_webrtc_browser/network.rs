@@ -5,7 +5,7 @@ use std::path::PathBuf;
 pub(super) struct Fixture {
     start: u16,
     end: u16,
-    bursts: Value,
+    burst_report: PathBuf,
     window_ready: PathBuf,
 }
 impl Fixture {
@@ -32,19 +32,13 @@ impl Fixture {
                 .unwrap();
         assert_eq!(window_ready, output.join("window-ready.json"));
         assert!(!window_ready.exists());
-        let bursts = value["bursts"].clone();
-        let burst = bursts.as_array().filter(|v| v.len() == 1).unwrap()[0]
-            .as_object()
-            .unwrap();
-        assert_eq!(burst.len(), 3);
-        let begin = burst["start_unix_seconds"].as_f64().unwrap();
-        let finish = burst["end_unix_seconds"].as_f64().unwrap();
-        assert!(begin.is_finite() && finish.is_finite() && finish - begin == 3.0);
-        assert_eq!(burst["duration_seconds"], 3.0);
+        let burst_report = PathBuf::from(value["burst_report"].as_str().unwrap());
+        assert_eq!(burst_report, output.join("network-bursts.json"));
+        assert!(!burst_report.exists());
         Self {
             start,
             end,
-            bursts,
+            burst_report,
             window_ready,
         }
     }
@@ -54,7 +48,7 @@ impl Fixture {
             bind_ip: "127.0.0.1".parse().unwrap(),
             port_start: self.start,
             port_end: self.end,
-            public_ip: Some("127.0.0.2".parse().unwrap()),
+            public_ip: Some("127.0.0.1".parse().unwrap()),
             ice_policy: CanonicalIcePolicy::All,
             ice_services: vec![],
         }
@@ -62,8 +56,8 @@ impl Fixture {
     pub(super) fn configure(&self, spec: &mut Value) {
         spec["profileMode"] = json!("impairment");
         spec["windowReadyPath"] = json!(self.window_ready);
-        spec["networkBursts"] = self.bursts.clone();
+        spec["networkBurstReportPath"] = json!(self.burst_report);
         spec["ownedMediaProxy"] =
-            json!({"address":"127.0.0.2","portStart":self.start,"portEnd":self.end});
+            json!({"address":"127.0.0.1","portStart":self.start,"portEnd":self.end});
     }
 }

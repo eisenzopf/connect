@@ -424,6 +424,16 @@ try {
             const spectrum=new Float32Array(f.frequencyAnalyser.frequencyBinCount);f.frequencyAnalyser.getFloatFrequencyData(spectrum);
             return f.spectralTone(samples,spectrum,f.audio.sampleRate,f.frequencyAnalyser.fftSize);})() };
     },{expectedSourceId:spec.expectedSourceIds?.[index]??(index===0?1:0),allowMutedBlack:Boolean(spec.muteRecovery),markerStart:initial[index].markerStart/1000})));
+    if(spec.networkBurstReportPath){
+        const raw=await fs.readFile(spec.networkBurstReportPath,'utf8');
+        if(raw.length>4096)throw Error('Bounded owned network burst report required');
+        const bursts=JSON.parse(raw);
+        if(!Array.isArray(bursts)||bursts.length!==1||bursts.some(row=>
+            !Number.isFinite(row.start_unix_seconds)||!Number.isFinite(row.end_unix_seconds)
+            ||row.end_unix_seconds-row.start_unix_seconds<3||row.end_unix_seconds-row.start_unix_seconds>3.2))
+            throw Error('Actual bounded three-second network burst required');
+        spec.networkBursts=bursts;
+    }
     const observations=final.map((end,index)=>{
         const inbound=end.stats.find(s=>s.direction==="inbound");
         const before=initial[index].stats.find(s=>s.direction==="inbound");

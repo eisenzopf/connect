@@ -46,6 +46,7 @@ jobs:
         run: |
           node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_gate6_browser_build_profiles.py
+          python3 -m unittest discover -s scripts/tests -p test_owned_netem.py
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:
@@ -86,6 +87,7 @@ jobs:
         if: ${{ inputs.lane != 'bridge' }}
         run: |
           docker run --rm --read-only --network none --platform linux/amd64 --cpus 4 --memory 6g --shm-size 1g \
+            ${{ (inputs.lane == 'full' || inputs.lane == 'fault') && '--cap-add NET_ADMIN' || '' }} \
             --tmpfs /tmp:rw,nosuid,nodev,size=1g \
             --mount "type=bind,source=$PWD,target=$PWD,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-media/evidence,target=$PWD/.local/gate6-browser-media/evidence" \

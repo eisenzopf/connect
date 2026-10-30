@@ -30,19 +30,14 @@ try{
     if(!refused||!summary.untrusted_browser.original_process_joined||summary.untrusted_browser.forced_kill)throw Error('Unconfigured CA refusal required');
     summary.unconfigured_ca_refused=true;
     stage='normal-ca-import';
-    const trustedProfile=path.join(output,'trusted-profile');
     const prepareProfile=async profile=>{
         const trust=spawnSync('python3',['scripts/video/browser_profile.py','chrome',binary,profile,path.join(output,'root.der')],{encoding:'utf8'});
         if(trust.status!==0)throw Error('Normal private Chrome profile import required');
         const value=JSON.parse(trust.stdout);
         summary.trust={normal_profile_ca_import:true,browser:value.browser,version:value.version,root_sha256:value.root_sha256};
     };
-    owner=await launchOwnedChromium(chromium,binary,trustedProfile,process.env,prepareProfile);
-    stage='trusted-ca';
-    const response=await (await owner.browser.newPage()).goto(httpsUrl,{timeout:5000});
-    if(!response)throw Error('Normal HTTPS response required');
-    summary.trusted_https_status=response.status();summary.trusted_browser=await owner.close();owner=undefined;
-    if(!summary.trusted_browser.original_process_joined||summary.trusted_browser.forced_kill)throw Error('Trusted browser join required');
+    // The signaling listener serves WebSocket upgrades, not an HTTPS document.
+    // The actual signed WSS exchange below is the positive normal-CA proof.
     stage='audio-clock';
     const clock=spawn(process.execPath,['scripts/video/check-audio-clock.mjs',path.join(output,'clock')],{stdio:'inherit'});
     const clockExit=await new Promise(resolve=>clock.once('exit',(code,signal)=>resolve({code,signal})));
