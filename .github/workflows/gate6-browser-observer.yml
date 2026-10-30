@@ -1,0 +1,56 @@
+name: Gate 6 Linux browser observer
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/video/check-renderer.mjs'
+      - 'scripts/video/owned_chromium.mjs'
+      - 'scripts/video/marker_calibration.mjs'
+      - 'scripts/video/source_identity.mjs'
+      - 'scripts/video/observer-tools/**'
+      - '.github/workflows/gate6-browser-observer.yml'
+permissions:
+  contents: read
+concurrency:
+  group: gate6-browser-observer-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  linux-x86-renderer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Install locked fixture framework without downloading browsers
+        working-directory: scripts/video/observer-tools
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Calibrate two isolated observers against unchanged 24 fps minimum
+        run: |
+          test "$(uname -m)" = x86_64
+          mkdir -p .local/gate6-browser-observer/evidence
+          docker run --rm --network none --shm-size=1g --platform linux/amd64 \
+            --mount "type=bind,source=$PWD,target=/work,readonly" \
+            --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
+            --workdir /work \
+            --env CONNECT_CHROME_BINARY=/ms-playwright/chromium-1234/chrome-linux/chrome \
+            --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
+            mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e \
+            node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/run
+      - name: Upload source and numeric observer evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-linux-x86-browser-observer
+          path: |
+            .local/gate6-browser-observer/evidence/run/summary.json
+            .local/gate6-browser-observer/evidence/run/source-inputs.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error

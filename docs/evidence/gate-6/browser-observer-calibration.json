@@ -253,5 +253,59 @@
   ],
   "finding": "Source draws about30fps, requestAnimationFrame about29fps and local capture/video callbacks about22fps, below the unchanged24fps clean threshold. A single context, occlusion switch, GPU-vsync switch, disabled GPU, explicit SwiftShader, uncapped-frame flag and an owned private Xvfb display did not restore qualifying callback cadence. No source/threshold change or transport fix is inferred. The actual remote runs decoded about30fps but observed about11changing renderedfps; their additional rendered reduction is unresolved.",
   "remaining": "Establish a qualifying renderer/observer environment (including the approved native Linux/browser matrix) and rerun full profiles. Do not lower24fps, replace independent pixels with RTP decoder counters or claim physical display performance. Continue other open G6-054 implementation clauses meanwhile.",
-  "private_log_policy": "Raw browser/container logs and diagnostic scripts remain ignored under.local; only bounded synthetic measurements/digests are published."
+  "private_log_policy": "Raw browser/container logs and diagnostic scripts remain ignored under.local; only bounded synthetic measurements/digests are published.",
+  "current_mac_independent_observer": {
+    "recorded_at": "2026-10-30T11:13:43.828570+00:00",
+    "base_revision": "69331641",
+    "scope": "Current local isolated renderer only, canonical fresh headless/CDP flags; no RTC/Core/audio or operating-profile qualification.",
+    "verification": {
+      "scope": "Two owned local canvas/capture/video observers for8seconds. Same synthetic motion/identity/cadence and independent8x8pixel comparison as browser quality fixture. No RTC, transport, Core, audio, remote host or account qualification.",
+      "os": "darwin",
+      "architecture": "arm64",
+      "node": "v26.7.0",
+      "browser": "156.0.8078.48",
+      "source_count": 80,
+      "source_manifest_sha256": "09cc1a0c65539a46e5ff6b0314cd956b710e07273a59bbedcc2b01e23275ca9d",
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "minimum_callback_and_changing_fps": 24,
+      "rows": [
+        {
+          "index": 0,
+          "seconds": 8.006799999952316,
+          "draw_fps": 30.224309337243497,
+          "callback_fps": 30.09941549700695,
+          "changing_fps": 26.727281810620283,
+          "raf_fps": 59.3245741123581,
+          "visibility": "visible",
+          "passed": true
+        },
+        {
+          "index": 1,
+          "seconds": 8.007600000143052,
+          "draw_fps": 30.22128977417413,
+          "callback_fps": 30.096408411470936,
+          "changing_fps": 26.474848893078168,
+          "raf_fps": 59.693291372129075,
+          "visibility": "visible",
+          "passed": true
+        }
+      ],
+      "original_browser_joined": true,
+      "ownership": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "error": null,
+      "passed": true
+    },
+    "summary_sha256": "3bf8780e561febe5d8ee67d9351acab491232e7e1841f74e6500e624b3108c34",
+    "finding": "Both original local observers exceed unchanged24fps in isolation (~30callbacks/~26.5changingfps). Current ordinary full RTC clean60 remains failed at~22decoded/~18changingfps and AV calibration. The independent capture/renderer is capable in this short scope; no specific media cause or full profile pass is inferred.",
+    "procedure": "docs/developer/browser-observer-calibration.md",
+    "linux_x86": "New isolated network-disabled CI workflow prepared against the existing pinned image and integrity-locked fixture framework. No Linux result yet."
+  }
 }
