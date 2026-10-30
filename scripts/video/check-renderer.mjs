@@ -152,7 +152,11 @@ try{
             visibility:end.visibility,passed:end.visibility==='visible'&&(end.callbacks-start.callbacks)/seconds>=24
                 &&(end.changing-start.changing)/seconds>=24&&(mode!=='rtc'||(end.decoded-start.decoded)/seconds>=24)};
     }));
-}catch(error){failure={name:error?.name??'Error'};}
+}catch(error){
+    const reasons=[['Owned RTC gathering deadline','rtc-gathering'],['Native VP8 unavailable','vp8-unavailable'],
+        ['Native receiver target unavailable','receiver-target'],['Owned video playback deadline','video-playback']];
+    failure={name:error?.name??'Error',reason:reasons.find(([message])=>String(error?.message).includes(message))?.[1]??'other'};
+}
 finally{
     await Promise.allSettled(contexts.map(context=>context.close()));
     if(owner){ownership=await owner.close();joined=ownership.original_process_joined&&!ownership.forced_kill&&ownership.exit?.code===0;}
