@@ -128,6 +128,14 @@ def main():
             browser = subprocess.Popen(docker, cwd=ROOT, stdout=browser_log, stderr=subprocess.STDOUT, start_new_session=True)
             stage = 'browser-container'
             browser_exit = browser.wait(timeout=140)
+            # Root in the isolated browser image writes private0600/0700 files.
+            # Return only this fresh fixture to its host owner before reading;
+            # never relax modes or recursively follow browser profile symlinks.
+            if os.getuid() != 0:
+                subprocess.run(['sudo', '-n', 'chown', '--recursive', '--no-dereference', '--',
+                    f'{os.getuid()}:{os.getgid()}', str(fixture)], check=True, timeout=30)
+            assert (fixture/'browser-summary.json').stat().st_uid == os.getuid()
+            report['private_fixture_ownership_normalized'] = True
             browser_summary = json.loads((fixture/'browser-summary.json').read_text())
             audio_summary = json.loads((fixture/'audio/summary.json').read_text())
             media = browser_summary.get('media')

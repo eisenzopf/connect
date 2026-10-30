@@ -19,6 +19,9 @@ the configured gateway and port range from both original peers' `getStats()`.
 The host and browser namespace hashes must differ. Original server, browser,
 audio and container processes must join; routes, capacity and the created
 bridge must drain. Forced cleanup cannot count as success.
+The Ubuntu runner returns only its freshly created fixture directory from the
+root container to the runner UID with noninteractive sudo. Private modes remain
+unchanged and recursive ownership changes do not follow profile symlinks.
 
 Only numeric summaries, finite failure stages and source metadata are uploaded.
 Keys, configs, full media observations and raw process logs remain under ignored
