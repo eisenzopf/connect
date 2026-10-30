@@ -2271,13 +2271,159 @@
     "acceptance_qualified": 0
   },
   "additional_regressions": {
-    "status": "pending",
+    "status": "completed-with-unresolved-sip-iteration",
     "profile": "connect-server --features test-support",
     "directory": ".local/gate-6/subscription-preflight/regressions-supported",
-    "scope": "Native future Participant/video/private handoff, local synthetic SIP subscription and RTC subtree. Results will be recorded after completion.",
+    "scope": "Bounded local synthetic native and RTC checks only; no account/model/provider or named remote execution.",
     "initial_profile_error": {
       "directory": ".local/gate-6/subscription-preflight/regressions",
       "meaning": "The broad target references hold_canonical_roles_for_test; compiling without test-support failsE0599. No runtime check ran in that invocation."
+    },
+    "native_positive_results": [
+      {
+        "name": "native-future",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "production_native_unfiltered_participant_selection_routes_current_audio_and_future_camera",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 852.6295300829224,
+        "counts": [
+          [
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": true,
+        "log_sha256": "46b08f517c25bbad5caed79ce0c9229b7c9a55c3aee8983dd342c8fdc8106f10"
+      },
+      {
+        "name": "native-video",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "production_native_video_subscription_negotiates_real_resources_and_routes_vp8",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 6.833861040882766,
+        "counts": [
+          [
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": true,
+        "log_sha256": "e49487059892261a692b632b87fc397351cc94feaa7749c051173edbaedfb3bf"
+      },
+      {
+        "name": "native-handoff",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "production_native_private_handoff_commits_roles_and_retains_remote_audio",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 97.74738650000654,
+        "counts": [
+          [
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": true,
+        "log_sha256": "ba374bbbf3453ea659b2350525863c455c54dc1f99d993b49e10699ed7b009ca"
+      }
+    ],
+    "binding_contention": {
+      "passed": true,
+      "test": "production_initial_sip_subscription_waits_for_binding_metadata_without_unknown_or_reexecution",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "finding": "The old preparing-state assertion failed because source preflight now waits before media admission. Updated test requires the original accepted operation, effect_started=false, null effect/attempt and zero effects throughout a 150ms binding hold; release produces exactly one completed operation/effect and real marked duplex audio.",
+      "source": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/subscriptions.rs"
+    },
+    "sip_repetitions": {
+      "qualified_all_iterations": false,
+      "initial_run": "Repeated signed replay passed all eight scenes in the original native regression invocation; the separate obsolete binding assertion failed.",
+      "updated_run": "Binding contention passed; a later ordinary subscription scene returned unknown rather than completed. This failure remains unresolved.",
+      "diagnostic_run": "The same ordinary repeated function passed all eight scenes with scoped debug logging (39.27s); no cause or fix for the preceding unknown outcome is claimed."
+    },
+    "rtc": {
+      "passed": 19,
+      "failed": 0,
+      "ignored": 7,
+      "filtered_out": 67,
+      "seconds": 122.41,
+      "ignored_tests": [
+        "canonical_websocket_control::webrtc::subscriptions::av::configured_all_shared_stun_turn_decoded_duplex",
+        "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_tcp_expiry_and_decoded_duplex",
+        "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_udp_expiry_and_decoded_duplex",
+        "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_eddsa",
+        "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_es256",
+        "canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_duplex_eddsa",
+        "canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_duplex_es256"
+      ],
+      "profile": "test-support; cargo rustc final test crate with -C strip=none, then direct run of confirmed Mach-O arm64 executable",
+      "executable": "gate6_canonical_webtransport-78e96278b3405880"
+    },
+    "artifact_failure": {
+      "runtime_executed": false,
+      "finding": "First RTC executable was corrupted to 624 bytes by strip ENOSPC; permission-denied launch is not a runtime regression result. Recorded damaged artifact before removal and rebuilt only final test crate without stripping.",
+      "record": ".local/gate-6/subscription-preflight/damaged-rtc-strip.json"
+    },
+    "logs": {
+      ".local/gate-6/subscription-preflight/regressions-supported/summary.json": "f810394f1d7b37b96502ba6a0aa1f21a546c754a263fbeb543e8c971288117ad",
+      ".local/gate-6/subscription-preflight/local-sip-after-preflight.log": "38974f0a2549a6e86eb6a5c000d389981ff27b9d02af966c2638b3608e0d408f",
+      ".local/gate-6/subscription-preflight/sip-rehearsal-diagnostic.log": "1d3725efd28e42b185da264fd3ed51c88528d846d21a959534582e273045c8ef",
+      ".local/gate-6/subscription-preflight/rtc-unstripped-run.log": "7fa293671ed2739c2c62be3b43e93ba21b2ac40c1f3d356e2299d7c75206e2fe",
+      ".local/gate-6/subscription-preflight/rtc-unstripped-build.log": "d35adf3b5b59c764d67041ddaa3ec87a29db87ea79b0f6bfd8c794c171b2aa78",
+      ".local/gate-6/subscription-preflight/damaged-rtc-strip.json": "2b85168742f901e17d7b86bed639e5dcd3ad03dc8d878d7b45dd60b2ae324e28"
+    },
+    "source_cohort": {
+      "full_sdk_enrollment_cohort": "ec381c25",
+      "production_inputs_unchanged": true,
+      "only_changed_input": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/subscriptions.rs",
+      "changed_test_sha256": "fac2ec4c53b25b8282f170eb3bdab1e4dc3ec59293c44129e07f75e75a4040a7",
+      "meaning": "The 835 SDK/37 Node/15 enrollment and four Store results retain their frozen earlier cohort. Only this additional test assertion changed subsequently; those full suites were not rerun."
     }
   }
 }

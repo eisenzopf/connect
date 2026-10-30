@@ -91,27 +91,38 @@ pub(super) async fn binding_busy(f: &Fixture, client: &mut CanonicalClient, cid:
                 )
                 .optional()
                 .unwrap();
-            if let Some(state) = state.filter(|state| state != "accepted") {
-                if state == "preparing" {
-                    std::thread::sleep(Duration::from_millis(150));
-                }
-                let stopped: String = db
+            if let Some(state) = state {
+                // Source authorization now checks the actual receiver binding
+                // before creating a media attempt. The original intent remains
+                // durably accepted while this bounded metadata lock is held.
+                assert_eq!(
+                    state, "accepted",
+                    "effect started before source preflight completed"
+                );
+                std::thread::sleep(Duration::from_millis(150));
+                let stopped: (String, bool, Option<String>, Option<String>) = db
                     .query_row(
-                        "SELECT state FROM operations WHERE operation_id='initial-select-phone'",
+                        "SELECT o.state,n.effect_started,n.effect_id,n.attempt_id FROM operations o JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE o.operation_id='initial-select-phone'",
                         [],
-                        |r| r.get(0),
+                        |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
                     )
                     .unwrap();
+                let effects: u64 = db.query_row(
+                    "SELECT count(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.operation_id='initial-select-phone'",
+                    [], |r| r.get(0),
+                ).unwrap();
                 let _ = release.send(());
                 assert_eq!(
-                    stopped, "preparing",
-                    "leaf metadata contention became a terminal outcome"
+                    stopped,
+                    ("accepted".into(), false, None, None),
+                    "metadata contention must preserve the unstarted original intent"
                 );
+                assert_eq!(effects, 0, "preflight metadata wait created an effect");
                 break;
             }
             if std::time::Instant::now() >= end {
                 let _ = release.send(());
-                panic!("subscription never reached durable admission");
+                panic!("subscription never durably accepted its original intent");
             }
             std::thread::sleep(Duration::from_millis(5));
         }
