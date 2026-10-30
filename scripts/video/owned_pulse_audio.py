@@ -20,6 +20,9 @@ output = args.output.resolve()
 assert platform.system() == 'Linux' and os.environ.get('CONNECT_GATE6_OWNED_BROWSER_CONTAINER') == '1'
 assert output.is_relative_to(root / '.local') and args.command[:1] == ['--'] and len(args.command) > 1
 output.mkdir(parents=True, mode=0o700, exist_ok=False)
+home = output / 'home'
+home.mkdir(mode=0o700)
+(home / '.config').mkdir(mode=0o700)
 binary = Path(shutil.which('pulseaudio')).resolve(strict=True)
 socket = output / 'native'
 cookie = output / 'cookie'
@@ -30,7 +33,10 @@ config.write_text(f'load-module module-native-protocol-unix socket={socket} auth
     'load-module module-null-sink sink_name=connect_fixture rate=48000 channels=2\n'
     'set-default-sink connect_fixture\n')
 config.chmod(0o600)
-environment = dict(os.environ, PULSE_SERVER='unix:' + str(socket), PULSE_COOKIE=str(cookie), PULSE_RUNTIME_PATH=str(output))
+environment = dict(os.environ, HOME=str(home), PULSE_SERVER='unix:' + str(socket),
+    PULSE_COOKIE=str(cookie), PULSE_RUNTIME_PATH=str(output))
+for name in ('XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME', 'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS'):
+    environment.pop(name, None)
 report = dict(scope='Owned anonymous container software output; no physical audio or personal daemon.', passed=False,
     binary_sha256=hashlib.file_digest(binary.open('rb'), 'sha256').hexdigest(),
     version=subprocess.check_output([str(binary), '--version'], text=True).strip())
@@ -43,6 +49,7 @@ with (output / 'pulse.log').open('xb') as log:
         while not socket.exists():
             assert pulse.poll() is None and time.monotonic() < deadline, 'Owned audio startup failed'
             time.sleep(.025)
+        report['startup_socket_created'] = True
         result = subprocess.run(args.command[1:], env=environment, timeout=1200)
         report['command_exit_code'] = result.returncode
         report['passed'] = result.returncode == 0
@@ -57,12 +64,16 @@ with (output / 'pulse.log').open('xb') as log:
                 pulse.wait()
         report['original_process_joined'] = pulse.poll() is not None
         report['exit_code'] = pulse.returncode
-        report['startup_socket_created'] = socket.exists()
+        report.setdefault('startup_socket_created', False)
+        report['socket_exists_after_join'] = socket.exists()
+        report['private_home_created'] = home.is_dir()
         report['private_cookie_created'] = cookie.is_file()
         text = (output / 'pulse.log').read_text(errors='replace')
         report['error_categories'] = [name for name, pattern in (
             ('module-load', 'Failed to load module'), ('cookie-load', 'Failed to load authentication key'),
-            ('permission', 'Permission denied'), ('bind', 'bind() failed')) if pattern in text]
+            ('permission', 'Permission denied'), ('bind', 'bind() failed'),
+            ('home-directory', 'Failed to create secure directory'),
+            ('read-only-filesystem', 'Read-only file system')) if pattern in text]
         report['passed'] = report['passed'] and pulse.returncode == 0 and not report.get('forced_kill') and report['private_cookie_created']
         (output / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
 assert report['passed']

@@ -138,5 +138,66 @@
     "default_cli_metadata_verified": true,
     "default_cli_build_status": "running; no pass claimed until its original build completes",
     "linux_runtime_status": "pending actual source-bound compilation and runtime"
+  },
+  "read_only_audio_home_fix": {
+    "source_failure": {
+      "source_revision": "f1fe1226e7cb0b468df77d3eba1a1ceaa4206f02",
+      "run_id": 41065660942,
+      "artifact_id": 12985270682,
+      "zip_sha256": "a1c9f7256f7fb880c69a5376b84dfe3066cd04a97769b9d496d00176cb53a9f6",
+      "compile_passed": true,
+      "compile_seconds": 1889.786344588,
+      "audio_startup_failed": true,
+      "audio_process_joined": true,
+      "runtime_cases_executed": 0
+    },
+    "cause": "Owned PulseAudio needed its normal configuration home, but the read-only container had no writable /root/.config/pulse.",
+    "change": "Create a new private home/config under the owned writable output. Scope HOME to it and remove inherited XDG/DBus destinations; keep the private Unix socket/cookie, no system daemon and all original startup/join limits. Record startup socket creation at startup rather than after shutdown.",
+    "actual_before": {
+      "scope": "Owned Linux arm64 Pulse16.1 read-only-container startup regression only. No Linux x86/browser/media/clock qualification.",
+      "mode": "old",
+      "exit_code": 1,
+      "seconds": 0.22522670798934996,
+      "forced_container_cleanup": false,
+      "original_container_removed": true,
+      "audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": false,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "original_process_joined": true,
+        "exit_code": 1,
+        "startup_socket_created": false,
+        "private_cookie_created": false,
+        "error_categories": []
+      },
+      "secure_home_failure": true,
+      "script_sha256": "6818b9e3f2a6255e838672943ea92c256342c580fe6147794c640d7e61e1b602"
+    },
+    "actual_after": {
+      "scope": "Owned Linux arm64 Pulse16.1 read-only-container startup regression only. No Linux x86/browser/media/clock qualification.",
+      "mode": "new",
+      "exit_code": 0,
+      "seconds": 0.2674128341022879,
+      "forced_container_cleanup": false,
+      "original_container_removed": true,
+      "audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      },
+      "secure_home_failure": false,
+      "script_sha256": "eed0b24e9675a9bbc7798ba7065a42a7aec54efe714535586f0dac0ff2e6023f"
+    },
+    "qualification": "Matched owned Linux arm64 Pulse16.1 startup-only regression. No x86/browser/media/audio-clock pass is inferred; exact x86 runtime must still execute."
   }
 }
