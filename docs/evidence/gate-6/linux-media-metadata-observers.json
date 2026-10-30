@@ -2201,5 +2201,195 @@
       "native_content_observer_passed": true,
       "interpretation": "Only actual 640x360 VideoFrames count. Both local native RTC receivers exceed24 changing frames/s;137 measured size refusals each remain recorded. Four cloned-track ownership, failure, unsupported and synchronous-callback tests pass. This is not Linux or Connect qualification. Earlier fail-fast native-frame prototypes remain failed; no old report is promoted."
     }
+  },
+  "linux_audio_lookahead_fault_followup": {
+    "run_id": 41115491511,
+    "artifact_id": 13009556387,
+    "revision": "b43eb582d6d8706ef138d08ad56f2da190878026",
+    "zip_sha256": "ed76d1effb1a2742ed56b5e770fcb50f461e1db70fb98bca9014da3b7ce4a9df",
+    "git_sources_verified": 2861,
+    "prepared_sources_verified": 3087,
+    "scope": "Actual Linux x86_64 opt3 Core patch250 single owned kernel fault component:3% random loss,0-100ms delay variation and one actual3.002492s two-direction blackhole. No full frozen matrix, installation or acceptance qualification.",
+    "build": {
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 2862.729332549,
+        "log_sha256": "2b84a11694e31d43d93f5b3da1721edfcb5ce67b1a97bd50999a8cabde8b9a6d"
+      },
+      "runtime_library_profiles": {
+        "completed_artifacts": 524,
+        "profiles": {
+          "connect_client": [
+            "3"
+          ],
+          "connect_server": [
+            "3"
+          ],
+          "connect_service": [
+            "3"
+          ],
+          "connect_store": [
+            "3"
+          ],
+          "rtc": [
+            "3"
+          ],
+          "rtc_dtls": [
+            "3"
+          ],
+          "rtc_ice": [
+            "3"
+          ],
+          "rvoip_core": [
+            "3"
+          ],
+          "rvoip_media_core": [
+            "3"
+          ],
+          "rvoip_rtp_core": [
+            "3"
+          ],
+          "rvoip_webrtc": [
+            "3"
+          ]
+        },
+        "missing": [],
+        "passed": true
+      },
+      "binary_sha256": "448973dd6fcf997e702786801d82996bf098abff43dd44ea2e4f65340f4a8bdb",
+      "sources_unchanged": true
+    },
+    "cache": {
+      "scope": "CI build-cache preparation only; no runtime qualification.",
+      "source_lock_sha256": "05edbf88c8356847d48781347717f1711a34ae212ad20b062203ff6a00436b31",
+      "retained_incompatible_cache": true,
+      "restored_identical_files": 4094,
+      "different_files": 2
+    },
+    "runtime_passed": false,
+    "burst": {
+      "start_unix_seconds": 1793391499.5016475,
+      "end_unix_seconds": 1793391502.5041394,
+      "duration_seconds": 3.002492186999916
+    },
+    "observations": [
+      {
+        "decoded_fps": 9.713687848464579,
+        "changing_fps": 8.09751679992073,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1100001335144043,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 28.979899883270264,
+              "rms": 0.2661749084641516,
+              "frequency_hz": 624.462890625,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 1.917799949645996,
+        "motion": "passed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793391499.5016475,
+              "end_unix_seconds": 1793391502.5041394,
+              "duration_seconds": 3.002492186999916
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793391502.4964,
+              "sampled_interval_end_unix_seconds": 1793391503.4964,
+              "before": 21,
+              "after": 22,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 0.5212607383728027,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      },
+      {
+        "decoded_fps": 8.280945642877665,
+        "changing_fps": 6.931334783575671,
+        "audio": "failed",
+        "audio_coverage_complete": true,
+        "audio_maximum_sampling_gap_seconds": 0.1110999584197998,
+        "audio_bad_unexcepted_samples": 1,
+        "audio_bad_sample_diagnostics": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 27.16890025138855,
+              "rms": 0.01672167014058844,
+              "frequency_hz": 387.59765625,
+              "phase": "outside-burst"
+            }
+          ]
+        },
+        "maximum_unexcluded_motion_gap_seconds": 1.9169001579284668,
+        "motion": "passed",
+        "source_identity": "passed",
+        "recovery": [
+          {
+            "burst": {
+              "start_unix_seconds": 1793391499.5016475,
+              "end_unix_seconds": 1793391502.5041394,
+              "duration_seconds": 3.002492186999916
+            },
+            "burst_inside_measured_window": true,
+            "changing_content_before_burst": true,
+            "decoded_keyframe_increment_observation": {
+              "status": "observed",
+              "sampled_interval_start_unix_seconds": 1793391502.4966,
+              "sampled_interval_end_unix_seconds": 1793391503.4966,
+              "before": 23,
+              "after": 24,
+              "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+            },
+            "fresh_decoded_content_after_end_seconds": 0.9873604774475098,
+            "status": "passed"
+          }
+        ],
+        "av_acceptance": {
+          "policy": "connect-media-acceptance/2",
+          "scenario": "impairment",
+          "status": "passed",
+          "quality_status": "failed",
+          "reason": "impaired-quality-advisory"
+        }
+      }
+    ],
+    "cleanup": {
+      "original_process_joined": true,
+      "owned_qdiscs_removed": true,
+      "original_media_addresses_reclaimed": 8,
+      "changed_source_inputs": []
+    },
+    "interpretation": "Both video recoveries and continuous motion/identity checks pass. One outside-burst audio sample per receiver fails the unchanged tone-identity check. The controlled mixer regression is fixed; this network result remains failed and is not a causal performance benchmark."
+  },
+  "cancelled_duplicate_full_matrix": {
+    "run_id": 41120415024,
+    "revision": "22bca3d33ddf969e7e23f83a2067056153ee0524",
+    "status": "cancelled during producer build; all runtime cells unrun",
+    "reason": "Released a worker for the queued independent decoded-pixel control; the original fault run continued. No runtime or qualification credit."
   }
 }
