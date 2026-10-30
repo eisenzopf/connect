@@ -1,7 +1,11 @@
 """A source-bound browser producer must keep every hot runtime library at opt3."""
 from pathlib import Path
+import json
 import runpy
+import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 CHECK = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'check-gate6-browser-media.py'))
 LIBRARIES = CHECK['RUNTIME_LIBRARIES']
@@ -39,6 +43,46 @@ class RuntimeBuildProfiles(unittest.TestCase):
         result = profiles([artifact(name) for name in LIBRARIES] + [artifact('connect_service','0')])
         self.assertFalse(result['passed'])
         self.assertEqual(result['profiles']['connect_service'], ['0','3'])
+
+    def failed_build(self, changed):
+        root = Path(__file__).resolve().parents[2]
+        parent = root / '.local/gate-6/browser-build-cache-tests'
+        parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=parent) as directory:
+            directory = Path(directory)
+            manifest = directory / 'cache/source-times.json'
+            snapshot = {'source.rs':{'sha256':'a' * 64,'mode':420,'mtime_ns':123}}
+            observations = iter([{'source.rs':'a' * 64},{'source.rs':('b' if changed else 'a') * 64}])
+
+            def timeout(command, environment, log, budget):
+                self.assertEqual(budget, 3600)
+                log.write_text('')
+                return {'exit_code':-15,'timed_out':True,'forced_kill':False,'seconds':3600}
+
+            def cache(path):
+                self.assertEqual(Path(path).name, 'source_build_cache.py')
+                return {'MANIFEST':manifest,'snapshot':lambda actual_root:snapshot}
+
+            build = CHECK['build']
+            with patch.dict(build.__globals__, {'ROOT':directory,'BASE':directory / 'run',
+                    'INPUTS':lambda:next(observations),'BOUNDED':timeout,
+                    'subprocess':SimpleNamespace(run=lambda *args,**kwargs:None),
+                    'runpy':SimpleNamespace(run_path=cache)}), patch.dict('os.environ', {'GITHUB_OUTPUT':''}):
+                with self.assertRaisesRegex(AssertionError, 'producer failed'):
+                    build()
+            report = json.loads((directory / 'run/evidence/build/summary.json').read_text())
+            self.assertFalse(report['passed'])
+            self.assertEqual(report['artifacts'], [])
+            self.assertEqual(report['sources_unchanged'], not changed)
+            self.assertEqual(manifest.exists(), not changed)
+            if not changed:
+                self.assertEqual(json.loads(manifest.read_text()), {'format':1,'files':snapshot})
+
+    def test_timed_out_build_preserves_only_verified_unchanged_source_times(self):
+        self.failed_build(False)
+
+    def test_changed_source_never_seals_partial_build_cache_times(self):
+        self.failed_build(True)
 
 
 if __name__ == '__main__':

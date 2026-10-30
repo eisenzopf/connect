@@ -102,7 +102,10 @@ def build():
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
             stream.write('source_unchanged=' + str(unchanged).lower() + '\n')
-    if report['passed']:
+    # A bounded cold build can leave useful completed artifacts. Preserve the
+    # verified source timestamps for those too, without claiming a producer.
+    # Otherwise a restored checkout invalidates partial-cache fingerprints.
+    if unchanged:
         cache = runpy.run_path(str(ROOT / 'scripts/lib/source_build_cache.py'))
         cache['MANIFEST'].parent.mkdir(parents=True, exist_ok=True)
         cache['MANIFEST'].write_text(json.dumps({'format':1, 'files':cache['snapshot'](ROOT)}, sort_keys=True) + '\n')

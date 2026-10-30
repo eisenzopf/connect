@@ -89,5 +89,20 @@
     "unit_functions": 5,
     "privacy": "Only finite fixed library labels, optimization levels and completed compiler-artifact counts enter public progress; paths, package IDs and raw diagnostics stay private.",
     "qualification": "Future successful producers must contain every required runtime library at opt3. Current f1fe continuation predates this additional reporting guard; no new pass inferred."
+  },
+  "partial_build_cache_timestamp_fix": {
+    "issue": "Failed cold builds saved compiled artifacts without the source-times manifest, so identical checked-out sources could invalidate restored compiler fingerprints.",
+    "change": "Seal source timestamps whenever source hashes stay unchanged, independently of build success. Timed-out builds still fail with zero producer credit. Changed inputs cannot seal a manifest.",
+    "verification": {
+      "browser_build_profile_and_cache_functions": 7,
+      "shared_source_cache_functions": 3,
+      "actual_recorded_local_producer_rejected_by_opt3_guard": true,
+      "local_opt0_runtime_libraries": [
+        "connect_server",
+        "connect_service",
+        "connect_store"
+      ]
+    },
+    "scope": "Build/cache behavior only; compiler flags, runtime and build budgets, current active runs and media thresholds unchanged. Current f1fe run predates this repair."
   }
 }
