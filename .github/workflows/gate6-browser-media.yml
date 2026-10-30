@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       lane:
-        description: 'Full matrix, baseline plus bridge, bridge only, or one fault diagnostic'
+        description: 'Full matrix or an explicit isolated media/ICE component'
         type: choice
-        options: [full, diagnostic, bridge, fault, relay]
+        options: [full, diagnostic, bridge, fault, relay, native-ice]
         default: full
 permissions:
   contents: read
@@ -122,10 +122,10 @@ jobs:
               CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome\")+glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux/chrome\"); assert len(p)==1; print(p[0])")"
               export CONNECT_GATE6_CHROME
               python3 scripts/video/owned_pulse_audio.py --output .local/gate6-browser-media/evidence/audio -- \
-                python3 scripts/check-gate6-browser-media.py run ${{ inputs.lane == 'diagnostic' && '--component baseline' || inputs.lane == 'fault' && '--component impairment-eddsa' || '' }}
+                python3 scripts/check-gate6-browser-media.py run ${{ inputs.lane == 'diagnostic' && '--component baseline' || inputs.lane == 'fault' && '--component impairment-eddsa' || inputs.lane == 'native-ice' && '--component native-ice' || '' }}
             '
       - name: Run owned distinct-network browser bridge cases
-        if: always() && steps.build.outcome == 'success' && inputs.lane != 'fault'
+        if: always() && steps.build.outcome == 'success' && inputs.lane != 'fault' && inputs.lane != 'native-ice'
         env:
           GATE6_BROWSER_LANE: ${{ inputs.lane }}
         run: |
