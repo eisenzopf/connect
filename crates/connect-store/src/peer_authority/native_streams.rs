@@ -1,6 +1,8 @@
 //! Source planning only: no selector resolution, route mutation or media grant.
 use super::*;
 use connect_protocol::{connection_control::OfferIntent, native_streams::Intent};
+mod ice;
+pub use ice::NativeIceOrigin;
 
 /// Backend facts under this exact command's retained original source readers.
 /// An existing native route and its real physical owner must still be checked

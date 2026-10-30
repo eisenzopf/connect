@@ -1,0 +1,45 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T07:09:23.589132+00:00",
+  "base_revision": "1edcbd7636d73c1f9a76a788fe3a3b60d52f594b",
+  "scope": "Store current-authority continuation for the existing ICE attempt; no physical RTC or public dispatch runtime claim.",
+  "implementation": {
+    "origin": "Opaque Store-issued attribution to original full credential chain/command, key, member epoch, Endpoint, effect, connection generation, physical runtime ID and InstallationOwnership. No owned authority reader is retained.",
+    "resume": "Fresh bounded admission capped by original proof/lease expiry, followed by exact original Preparing attempt/current WebRTC source validation. Creates no attempt/effect. Wrong credential/effect/runtime, withdrawn membership and Unknown attempt refuse.",
+    "schema": 116,
+    "schema_change": false
+  },
+  "verification": {
+    "command": "cargo test --offline --locked -p connect-store --lib native_wire::webrtc_ice -- --test-threads=1",
+    "exit_code": 0,
+    "passed": 13,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 1278,
+    "test_seconds": 6.19,
+    "prepared_patches_at_test": 246,
+    "log_sha256": "0861c19bc70f4dd402fb5db79adba42dd96c05f688d07fe9adc336aa49d87864",
+    "source_sha256": {
+      "crates/connect-store/src/peer_authority/native_streams/ice.rs": "19a40952ae99e969a07304bdd09b0b1c62b3570e93b11b586898bd4d00234493",
+      "crates/connect-store/src/peer_authority/native_streams.rs": "a0bb942251bd43af9ac4d91b855396d9a692d69fc67a6fa75aec66331853a188",
+      "crates/connect-store/src/peer_authority.rs": "fabdaa30ad49d79f9e84b36039824a53bad2dd613ff937868b262514e1f90f60",
+      "crates/connect-store/src/lib.rs": "e28e6b7e9029565c4c789a7e81695e7a77c9ec804ad7cda5b86a97e380aa6ce4",
+      "crates/connect-store/src/connection_control/tests/native_wire/webrtc_ice.rs": "3445c59f5d257af94460d469fc6024f3559c722697947a0dc14574bfca589b58"
+    },
+    "source_fence": "Source hashes recorded after run, not a before/after execution inventory.",
+    "new_cases": 3,
+    "behavior": "Reacquisition releases readers between observations (a real identity writer is acquired); original expiry is never extended; effect count stays unchanged; membership/Unknown/wrong credential/effect/restored-runtime negatives."
+  },
+  "remaining": [
+    "Complete physical worker and exact original answer delivery with current policy",
+    "Canonical wire/HTTP/OpenAPI/SDK integration",
+    "Actual direct/relay/restart/loss/expired/unreachable decoded duplex and cleanup qualification"
+  ],
+  "gate_counts": {
+    "done": 68,
+    "in_progress": 1,
+    "not_started": 36,
+    "acceptance_qualified": 0
+  }
+}

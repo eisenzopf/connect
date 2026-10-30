@@ -29,7 +29,7 @@ pub use connection_media::{
     SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
 };
 pub use native_data::NativeDataProjection;
-pub use native_streams::NativeStreamProjection;
+pub use native_streams::{NativeIceOrigin, NativeStreamProjection};
 mod read_receipts;
 pub use connection_projection::PeerConnectionProjection;
 mod session_projection;

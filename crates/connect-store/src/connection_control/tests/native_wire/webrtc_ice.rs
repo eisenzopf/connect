@@ -471,3 +471,139 @@ fn stale_counter_and_changed_media_refuse_without_leaving_new_operation_or_effec
     }
     assert_eq!(counter(&f, &parent), 1);
 }
+
+#[test]
+fn continuation_reacquires_only_the_original_attempt_and_retains_no_authority_reader() {
+    let (f, request, _) = fixture();
+    let lease = begin(&f, &request);
+    let proof = f.admit(&request);
+    let origin = f
+        .store
+        .native_ice_origin_with_peer(&f.keys[0], &proof, &lease)
+        .unwrap();
+    let expiry = proof.expires_at().min(lease.expires_at());
+    drop(proof);
+    let effects = f.count("operation_effects");
+    for _ in 0..2 {
+        let current = f
+            .store
+            .resume_native_ice_authority(
+                &f.keys[0],
+                &origin,
+                &lease,
+                &AuthorityWait::new(Duration::from_secs(1)),
+            )
+            .unwrap();
+        assert!(current.current());
+        assert!(current.expires_at() <= expiry);
+        drop(current);
+    }
+    // The origin retains no scope reader: the same domain can acquire writers
+    // while the custodian is idle between observations.
+    let held = f
+        .store
+        .acquire_authority(
+            &[crate::AuthorityScope::identity(
+                &f.store.revalidate(&f.keys[0]).unwrap().identity_id,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()],
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(held);
+    assert_eq!(f.count("operation_effects"), effects);
+    assert!(!format!("{origin:?}").contains("PRIVATEPASSWORD"));
+    assert!(f
+        .store
+        .resume_native_ice_authority(
+            &f.keys[1],
+            &origin,
+            &lease,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+}
+
+#[test]
+fn continuation_denies_membership_withdrawal_and_an_unknown_attempt() {
+    let (f, request, _) = fixture();
+    let lease = begin(&f, &request);
+    let proof = f.admit(&request);
+    let origin = f
+        .store
+        .native_ice_origin_with_peer(&f.keys[0], &proof, &lease)
+        .unwrap();
+    drop(proof);
+    f.store.native_stream_attempt_uncertain(&lease).unwrap();
+    assert!(f
+        .store
+        .resume_native_ice_authority(
+            &f.keys[0],
+            &origin,
+            &lease,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+
+    let (f, request, _) = fixture();
+    let lease = begin(&f, &request);
+    let proof = f.admit(&request);
+    let origin = f
+        .store
+        .native_ice_origin_with_peer(&f.keys[0], &proof, &lease)
+        .unwrap();
+    drop(proof);
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE participants SET active=0 WHERE participant_id=?1",
+            [&f.pids[0]],
+        )
+        .unwrap();
+    assert!(f
+        .store
+        .resume_native_ice_authority(
+            &f.keys[0],
+            &origin,
+            &lease,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+}
+
+#[test]
+fn continuation_cannot_cross_original_effects_or_installation_runtimes() {
+    let (f, request, _) = fixture();
+    let lease = begin(&f, &request);
+    let proof = f.admit(&request);
+    let origin = f
+        .store
+        .native_ice_origin_with_peer(&f.keys[0], &proof, &lease)
+        .unwrap();
+    drop(proof);
+    let (other, other_request, _) = fixture();
+    let other_lease = begin(&other, &other_request);
+    assert!(f
+        .store
+        .resume_native_ice_authority(
+            &f.keys[0],
+            &origin,
+            &other_lease,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("restored.sqlite3");
+    f.store.backup(&path).unwrap();
+    let restored = Store::open(&path, Limits::default()).unwrap();
+    assert!(restored
+        .resume_native_ice_authority(
+            &f.keys[0],
+            &origin,
+            &lease,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+}
