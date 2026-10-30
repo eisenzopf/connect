@@ -5622,5 +5622,10 @@
       "network_removed": true
     },
     "remaining": "Native Linuxx86 rerun of portable TURN startup and browser relay; Linux clean/fault audio/video quality still unqualified. No G6-054 or acceptance closure."
+  },
+  "linux_portable_turn_scope_correction": {
+    "evidence": "docs/evidence/gate-6/linux-browser-relay-scope.json",
+    "status": "x86 portable startup component passed; all four media cells failed before allocation; scope correction guarded, current Linux execution pending",
+    "full_task_qualified": false
   }
 }

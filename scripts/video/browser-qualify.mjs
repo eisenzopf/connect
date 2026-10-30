@@ -9,7 +9,7 @@ import http from "node:http";
 import https from "node:https";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {isIPv4} from "node:net";
+import {validateBrowserFixtureScope} from "./browser_fixture_scope.mjs";
 import { ordinalSync } from "./marker_calibration.mjs";
 import { audioObservation } from "./audio_observation.mjs";
 import { combineAudioEnvelopeSync } from "./audio_envelope.mjs";
@@ -29,14 +29,6 @@ for await (const chunk of process.stdin) {
     if (input.length > 65536) throw new Error("Browser fixture input too large");
 }
 const spec = JSON.parse(input);
-const privateBridgeIp=value=>isIPv4(value??'')&&(value.startsWith('10.')||value.startsWith('192.168.')
-    ||value.startsWith('172.')&&Number(value.split('.')[1])>=16&&Number(value.split('.')[1])<=31);
-if(spec.ownedContainerBridge&&(!(process.platform==='linux'&&process.arch==='x64'
-    &&process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER==='1')||spec.designatedRemoteHost!=='connect.fixture.internal'
-    ||!privateBridgeIp(spec.ownedContainerBridge.ip)
-    ||!Number.isInteger(spec.ownedContainerBridge.port_start)||!Number.isInteger(spec.ownedContainerBridge.port_end)
-    ||spec.ownedContainerBridge.port_start<20000||spec.ownedContainerBridge.port_end!==spec.ownedContainerBridge.port_start+15
-    ||spec.ownedContainerBridge.port_end>60015))throw Error('Explicit owned internal bridge configuration required');
 if (!Array.isArray(spec.participants) || ![1,2].includes(spec.participants.length) || !spec.terminal)
     throw Error("Canonical browser qualification requires explicit signed participant configurations, subscriptions and a stable Session end; bearer-only legacy fixture migration is unsupported");
 // Protected local fixture key material is normalized inside this private
@@ -64,10 +56,7 @@ spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
 if(Boolean(spec.muteRecovery)!==(spec.profileMode==="mute") || (spec.muteRecovery&&spec.seconds<20))
     throw Error("Mute measurement requires its separate scenario and at least 20 seconds");
-if(spec.iceRestart&&(spec.profileMode!=="clean"||spec.participants.length!==2||spec.designatedRemoteHost))
-    throw Error("ICE restart qualification requires two owned loopback clean-profile participants");
-if(spec.requireRelay&&(!spec.iceRestart||spec.participants.some(p=>p.connection?.iceTransportPolicy!=="relay")))
-    throw Error("Owned relay qualification requires explicit relay-only original-peer ICE recovery");
+validateBrowserFixtureScope(spec);
 let assets;
 if(spec.root) {
     const root=await fs.realpath(spec.root);

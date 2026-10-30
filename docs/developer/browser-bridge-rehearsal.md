@@ -59,3 +59,5 @@ then join the original container within a separate10seconds. The owned container
 and internal bridge must be removed. Numeric summaries exclude REST credentials,
 wire operation IDs and raw logs. Preparation and local ARM primitive probes do
 not qualify native Linux x86 browser relay media.
+
+The owned TURN bridge uses the exact relay range 32000–32031. Browser preflight admits ICE recovery on this internal bridge only for two relay-only original peers in the clean profile. Direct bridge ranges remain sixteen ports. The portable-startup x86 run 41100747477 proves STUN readiness and normal shutdown in all four cells, but its browser preflight refused the relay scene before any allocation. See `docs/evidence/gate-6/linux-browser-relay-scope.json`; this attempt does not qualify relay media.

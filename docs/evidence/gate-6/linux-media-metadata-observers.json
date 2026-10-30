@@ -62,5 +62,90 @@
   ],
   "linux_runtime": "pending",
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "macos_runtime_followup": {
+    "scope": "Local macOS arm64 test support with store/service/server opt0 exceptions and optimized dependencies; no native Linux or remote qualification.",
+    "producer": {
+      "passed": true,
+      "seconds": 5.297144,
+      "source_manifest_sha256": "b28ca7478b3804155e46d9a1a619b75be845b093113a56a5dd64f6fef7df6664",
+      "source_inputs": 5934,
+      "sources_unchanged": true,
+      "binary_sha256": "4ca501f0c0b1ff9eb2e0e28c28c00f786e1393acdb679444d726f994f788fdcd"
+    },
+    "native_ice": {
+      "functions": 2,
+      "passed": true,
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 9.300775374984369,
+        "log_sha256": "d10d9e5c87fca4b96c3c857e4586c0e12466bc2e49e164890520e2150e7ff3ce"
+      },
+      "source_inputs": 5934,
+      "sources_unchanged": true
+    },
+    "clean60_browser": {
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 68.47163104196079,
+        "log_sha256": "ce22cb6f5c4fd87c30ab69efc2907fa0fa82f939b6217e9f0874426689f25e3f"
+      },
+      "sources": 5934,
+      "sources_unchanged": true,
+      "binary_sha256": "4ca501f0c0b1ff9eb2e0e28c28c00f786e1393acdb679444d726f994f788fdcd",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.98023521901327,
+          "changing_fps": 26.613916422881708,
+          "rendered_fps": 28.480390210835843,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        },
+        {
+          "decoded_fps": 29.98018530846923,
+          "changing_fps": 26.41389311502153,
+          "rendered_fps": 28.347023462871686,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        }
+      ]
+    },
+    "failed_attempt": {
+      "producer": 36,
+      "stage": "final link",
+      "reason": "No space left on device",
+      "sources_unchanged": true,
+      "summary_sha256": "25a27373d1acc316da88150f3ca6c51c488d87d523a293e7c8b084d3c1b1bb2d"
+    },
+    "retention": "Six unused owned compiled files were compressed, decoded and digest-verified before unlinking their unused originals. No source, private daemon or user browser changed."
+  }
 }

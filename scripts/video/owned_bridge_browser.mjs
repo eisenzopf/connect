@@ -52,6 +52,9 @@ try{
     const exit=await new Promise(resolve=>child.once('exit',(code,signal)=>resolve({code,signal})));
     await fs.writeFile(path.join(output,'qualification-private.log'),text,{mode:0o600});
     summary.media=text.split('\n').filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).at(-1);
+    summary.media_child={original_process_joined:true,code:exit.code,signal:exit.signal};
+    summary.media_summary_present=Boolean(summary.media);
+    if(!summary.media)throw Error('Qualification result missing');
     summary.media_browser=await owner.close();owner=undefined;
     summary.passed=exit.code===0&&!exit.signal&&summary.media?.status==='passed'
         &&summary.media.owned_container_bridge?.nominated_udp_duplex===true

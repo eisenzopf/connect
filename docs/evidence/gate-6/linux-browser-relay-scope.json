@@ -1,0 +1,105 @@
+{
+  "task": "G6-054",
+  "status": "partial; current corrected fixture execution pending",
+  "scope": "Owned isolated synthetic Linux x86 Docker bridge; no provider, named remote or publication qualification.",
+  "linux_attempt": {
+    "run_id": 41100747477,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41100747477",
+    "revision": "0e93e36a374103e7725c5654e5a2a82d9bf6ea73",
+    "artifact_id": 12997214410,
+    "artifact_zip_sha256": "52baeb55d25c07ba0a0f9511b10c37c0519be815f88630d17d6bc156e02405f9",
+    "git_sources_verified": 2845,
+    "prepared_dependencies_verified": 3087,
+    "prepared_dependency_differences": [],
+    "cases": [
+      {
+        "algorithm": "EdDSA",
+        "transport": "tcp",
+        "passed": false,
+        "control_binding_ready": true,
+        "allocation_successes": 0,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 0.8432771699999648,
+        "original_container_joined": true,
+        "original_exit_code": 0,
+        "owned_container_removed": true,
+        "bridge_removed": true,
+        "forced_cleanup": false,
+        "source_unchanged": true,
+        "browser_media_result_present": false
+      },
+      {
+        "algorithm": "ES256",
+        "transport": "tcp",
+        "passed": false,
+        "control_binding_ready": true,
+        "allocation_successes": 0,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 0.6800911130000031,
+        "original_container_joined": true,
+        "original_exit_code": 0,
+        "owned_container_removed": true,
+        "bridge_removed": true,
+        "forced_cleanup": false,
+        "source_unchanged": true,
+        "browser_media_result_present": false
+      },
+      {
+        "algorithm": "EdDSA",
+        "transport": "udp",
+        "passed": false,
+        "control_binding_ready": true,
+        "allocation_successes": 0,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 0.44938187200000357,
+        "original_container_joined": true,
+        "original_exit_code": 0,
+        "owned_container_removed": true,
+        "bridge_removed": true,
+        "forced_cleanup": false,
+        "source_unchanged": true,
+        "browser_media_result_present": false
+      },
+      {
+        "algorithm": "ES256",
+        "transport": "udp",
+        "passed": false,
+        "control_binding_ready": true,
+        "allocation_successes": 0,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 0.6031136879999508,
+        "original_container_joined": true,
+        "original_exit_code": 0,
+        "owned_container_removed": true,
+        "bridge_removed": true,
+        "forced_cleanup": false,
+        "source_unchanged": true,
+        "browser_media_result_present": false
+      }
+    ],
+    "result": "All four actual x86 TURN daemons start, answer STUN and retire normally. All four media cells fail before relay allocation; zero allocations are not relay-media or allocation-drain proof."
+  },
+  "correction": {
+    "problem": "The relay scene was rejected before browser negotiation by two older loopback/direct-only preflight guards.",
+    "reproduced_refusals": [
+      "The direct-only guard requires sixteen ports, while the declared TURN fixture uses exactly 32000 through 32031.",
+      "The ICE recovery guard rejects every designated remote host, including the explicitly owned internal bridge."
+    ],
+    "behavior": "Permit the exact 32-port owned TURN fixture with two relay-only original peers, clean media and ICE recovery. Keep direct bridge ranges at sixteen ports. Reject other hosts, public addresses, platforms, processes, ranges and mixed candidate policies.",
+    "early_child_failure": "Retain only child exit facts and result presence; missing qualification output now records the decoded-media failure stage without exposing stderr or fixture secrets."
+  },
+  "verification": {
+    "node_guard_functions": 20,
+    "node_command": "node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs scripts/tests/browser_network_path.test.mjs scripts/tests/browser_fixture_scope.test.mjs",
+    "passed": true,
+    "current_corrected_linux_execution": "not yet run"
+  },
+  "source_sha256": {
+    "scripts/video/browser_fixture_scope.mjs": "fb7db94ba5165d7226e7636d989c9d244e1830b607a3d49c99ff0c3b93ce3ca0",
+    "scripts/tests/browser_fixture_scope.test.mjs": "f134b129ffdbf28a44a4c0d2a367db1026a1ef9a9c712c1e00cbeeeeaee34b38",
+    "scripts/video/browser-qualify.mjs": "6bcc8ef8bf3352a230c7f41365cfe7d3ddb91a54ed2d78fc5f299960520c1104",
+    "scripts/video/owned_bridge_browser.mjs": "af450db0f1d2fdd6cf259a719678513d8060f612adb48f36863b5d65b9456f8e"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}
