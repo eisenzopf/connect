@@ -1,0 +1,91 @@
+{
+  "task": "G6-054",
+  "status": "component regression passed; network qualification pending",
+  "base_revision": "396240ea",
+  "scope": "Actual Core guarded mixer with local synthetic constant PCM and explicit current policy. Upstream Opus-feature test build uses Core opt0 and optimized dependencies. No browser, network, provider or performance qualification.",
+  "problem": "The existing 100 ms WebRTC reorder wait can release six 20 ms packets together. Unconditional two-future-packet clipping skips valid middle PCM intervals inside the existing bounds.",
+  "before": {
+    "execution": {
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 495.8470315001905,
+      "log_sha256": "a4e78568d6ad77f350f06bcca7bf28e7d6e45858c305930ab64e1201ff995311"
+    },
+    "source_manifest_sha256": "1bdfc5f061c3363487e335f1cb57cb3aa747f09520979f67b191b7e8bf00ed12",
+    "source_inputs": 5935,
+    "sources_unchanged": true,
+    "test_only_patch_sha256": "d92c9d8ed2bedce6c1cce120b038233fb3f344e68382fa6370fd601c2ae38fc3",
+    "binary": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_core-160d0c35406a2962",
+      "bytes": 51714504,
+      "sha256": "084d7f04a2f8df096963791375d2975ac33b54791f5370fadab996bced8b302c"
+    },
+    "actual_failure": "Expected the second original PCM level2000, received5116 from the later5000-level packet instead.",
+    "failed_functions": 1,
+    "expected_regression_reproduced": true
+  },
+  "intermediate_candidate": {
+    "patch_sha256": "7760d0d1a265ab828bb29fe1404d534be6fae35ffab053d016c4c382ed23a136",
+    "execution": {
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 363.09640199993737,
+      "log_sha256": "ceadd509394862eb9463ac5880a688e76f00f5cda59d9b16112386e9c5689954"
+    },
+    "sources_unchanged": true,
+    "source_manifest_sha256": "01871b59f55fa146749b6f722917f6a4100ba34faeade261497ea056b287a2c7",
+    "passed_functions": 56,
+    "failed_functions": 1,
+    "new_six_original_case": "passed for8kHz/48kHz and timestampwrap",
+    "failure": "Retaining every original inside200ms delayed fresh7000-level audio behind an initial ten-packet backlog; observed988 from old1000-level audio. Candidate refused and not published.",
+    "passed": false
+  },
+  "refined_change": "Preserve up to 100 ms of unplayed contiguous PCM, matching the existing reorder window; retain the previous clipping for larger backlogs and playing long originals. Keep original admission/deadline checks and fresh policy on every output.",
+  "bounds": {
+    "insertion_maximum_chunks": 10,
+    "insertion_maximum_pcm_ms": 200,
+    "original_packet_age_ms": 200,
+    "unplayed_contiguous_lookahead_ms": 100,
+    "playing_long_original": "original remainder plus newest future packet",
+    "authorities": "No idle source/target permission readers; every output reacquires current scene, route, subscription, consumer and source/target policy.",
+    "missed_ticks": "Existing catch-up and expired-original suppression unchanged."
+  },
+  "final_patch_sha256": "555252f7a3965afa3f9525adc6ebb51cf5a6ed400df2c9ce19641271fafb7eeb",
+  "after": {
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 362.1667085411027,
+      "log_sha256": "c4001a1fadca364e2fabf79d1a3e583fa15e61e493b7973bcdcba8e8f4f5acf0"
+    },
+    "source_manifest_sha256": "6e39a6b02275cd4dff46b9b2fef8a1b4a4ac5352537e8f52128691322f340390",
+    "sources": 5935,
+    "sources_unchanged": true,
+    "patch_sha256": "555252f7a3965afa3f9525adc6ebb51cf5a6ed400df2c9ce19641271fafb7eeb",
+    "guarded_mixer_functions": 58,
+    "passed": true,
+    "cases": "All 58 guarded-mixer functions pass, including six current originals at 8/48 kHz and RTP wrap, expiry without idle authority, current policy refusal, initial-overload freshness and long-original retention."
+  },
+  "development_attempts": [
+    {
+      "scope": "Upstream default-feature compile",
+      "result": "Stopped owned compiler before tests to manage disk; not a regression result.",
+      "execution": {
+        "exit_code": -15,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 104.27951229200698,
+        "log_sha256": "60d75486176069de3558c9e0e97efd7de420ae2941facb5d888f6adf0c2e7abe"
+      }
+    },
+    {
+      "scope": "Root workspace -p rvoip-core selector",
+      "result": "Package requires dev-dependencies and is not a member of root workspace. No test executed."
+    }
+  ],
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

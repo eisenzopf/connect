@@ -1,0 +1,102 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/lookahead.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/lookahead.rs
+@@ -33,3 +33,76 @@
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
++
++#[tokio::test]
++async fn six_current_contiguous_originals_survive_a_bounded_reorder_burst() {
++    for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, false).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        // Six original20ms packets cover120ms, well inside the existing200ms
++        // insertion/age bound. After the first tick, retain all five originals
++        // that have not played, rather than skipping the middle PCM interval.
++        for (offset, value) in [
++            (0, 1000),
++            (160, 2000),
++            (320, 3000),
++            (480, 4000),
++            (640, 5000),
++            (800, 6000),
++        ] {
++            s.publish_at(0, value, start.wrapping_add(offset));
++        }
++        for value in [1000, 2000, 3000, 4000, 5000, 6000] {
++            s.mixer.tick();
++            heard_labeled(
++                out.try_recv().unwrap(),
++                value,
++                "valid short original audio was skipped inside bounded lookahead",
++            )
++            .await;
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("lookahead retained idle authority"),
++            );
++        }
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "original lookahead PCM repeated");
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}
++
++#[tokio::test]
++async fn retained_reorder_burst_expires_without_idle_authority_or_old_pcm_replay() {
++    for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, false).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        for offset in 0..6 {
++            s.publish_at(0, 1000, start.wrapping_add(offset * 160));
++        }
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 1000).await;
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("retained reorder PCM held idle authority"),
++        );
++        tokio::time::sleep(Duration::from_millis(210)).await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "expired reorder PCM reached IO");
++        s.publish_at(0, 7000, start.wrapping_add(960));
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 7000).await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "expired or recovered PCM replayed");
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -484,12 +484,15 @@
+         }
+     }
+     fn keep_next_original(&mut self) {
+-        // Bound burst latency while retaining two not-yet-started originals
+-        // (40ms for the frozen20ms profile). A small arrival burst must not
+-        // skip its middle PCM interval. A playing long original instead keeps
+-        // its remainder plus the newest future packet. The separate ten-chunk/
+-        // 200ms insertion bound, original age and fresh authority still apply.
++        // Preserve up to100ms of unplayed contiguous PCM after the existing
++        // audio reorder wait. Insertion remains bounded to ten chunks/200ms.
++        // Larger backlogs and a playing long original keep the prior trimming
++        // rule, so steady fresh input does not sit behind an initial burst.
+         let partial = self.pending.front().is_some_and(|chunk| chunk.started);
++        let unplayed = self.pending.iter().map(|chunk| chunk.samples.len()).sum::<usize>();
++        if !partial && unplayed <= self.consumer.mix_rate as usize / 10 {
++            return;
++        }
+         let keep = 2;
+         let mut discarded = 0u64;
+         while self.pending.len() > keep {
