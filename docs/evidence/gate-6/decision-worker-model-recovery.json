@@ -1,0 +1,44 @@
+{
+  "task": "G6-073",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T04:10:58.286329+00:00",
+  "base_revision": "04bdf9d959987ee4d68f91e6d3c8a0fe7a05a3ca",
+  "scope": "Private durable proposal response adapter and simulated mode; macOS arm64 Node26.7. No actual-model/native runtime claim.",
+  "verification": {
+    "command": [
+      "npm",
+      "test",
+      "--prefix",
+      "examples/parley-on-connect"
+    ],
+    "exit_code": 0,
+    "seconds": 0.7910673329606652,
+    "passed": 61,
+    "worker_checks": 42,
+    "model_boundary_checks": 6,
+    "existing_checks": 19,
+    "failed": 0,
+    "skipped": 0,
+    "source_count": 295,
+    "changed_inputs": [],
+    "log_sha256": "afccf33334175d6f18b834154ff7e5b655d7294b392e5c08080a59997bbc9baa",
+    "manifest_sha256": "ca80ed6b338cef30f97e8ec5c73c70967bdd519e5c57a9c342cf7960ff8cb5c3"
+  },
+  "behavior": [
+    "Original full request and model-source identity fsynced before callback invocation.",
+    "Completed response fsynced independently of business worker; a real process exit after fsync recovers identical original answer.",
+    "Uncertain callback invoked once; recover and repeated generate do not relaunch it.",
+    "Concurrent callers allocate one original request and at most one invocation.",
+    "Changed request, changed model source/script, missing/partial/corrupt records refuse without fabricating a completed answer."
+  ],
+  "sources": {
+    "examples/parley-on-connect/worker/model.mjs": "c2abf308ae4fc5120fe90809769f053ec3bfc1b8d7aabe10476d52d374ab2fa5",
+    "examples/parley-on-connect/worker/model.test.mjs": "f3739666e35441cb4af9cb48f856f28889a6a44e7b8895c9b74c655d5e128110"
+  },
+  "limits": [
+    "No actual model/account/provider/remote execution. The G6-065 authorization was consumed.",
+    "Native fixture prepared but not yet run. Its source syntax checks are not runtime qualification.",
+    "External model callback remains trusted application code, requires separately bounded owner authorization and host setup.",
+    "G6-073 not complete; Gate6 remains67/105done and0acceptance-qualified."
+  ]
+}

@@ -85,3 +85,18 @@ Remaining G6-073 work: a concrete scenario/model adapter, native integration
 and a separately authorized actual-model rehearsal. Existing G6-065 model
 execution authorization has already been consumed. See the source-bound
 [increment evidence](../../../docs/evidence/gate-6/decision-worker-initial.json).
+
+`RecordedProposalModel` now supplies the durable model-response boundary. It
+fsyncs an immutable original request before calling a trusted model callback,
+then saves its response independently of the worker's journal. `recover()` only
+reads that original response. An unknown request, partial file or changed
+request/source binding never invokes a replacement. `scriptedModel` exercises
+this same path with explicitly simulated, application-configured proposals.
+It owns no Connect client or communication credential. An external callback's
+actual model execution still requires its separately reviewed configuration
+and explicit authorization; this class grants none.
+
+Six additional model-boundary checks pass, bringing the combined local suite
+to61 (42 worker plus19 existing fixtures). They include concurrent callers,
+lost response, source substitution and a real process exit after response fsync.
+See [model recovery evidence](../../../docs/evidence/gate-6/decision-worker-model-recovery.json).
