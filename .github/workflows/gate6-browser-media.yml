@@ -1,0 +1,124 @@
+name: Gate 6 isolated Linux browser media
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gate6-browser-media-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  linux-x86-browser-media:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-browser-media/target
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      CARGO_PROFILE_RELEASE_OPT_LEVEL: '3'
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '1'
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev
+      - name: Bind exact native ABI and host
+        id: native
+        run: python3 scripts/check-gate6-linux-hosting.py --preflight
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-browser-media/target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-browser-opt3-v1-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            g6-browser-opt3-v1-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+      - name: Restore only identical source timestamps and prepare pinned dependencies
+        run: |
+          python3 scripts/lib/source_build_cache.py restore
+          bash scripts/prepare-dependencies.sh
+          cargo fetch --locked
+      - name: Build source-bound full release browser producer
+        id: build
+        run: python3 scripts/check-gate6-browser-media.py build
+      - name: Install integrity-locked browser automation without downloads
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci --prefix scripts/video/observer-tools --ignore-scripts --no-audit --no-fund
+      - name: Build owned software audio image
+        run: |
+          mkdir -p .local/gate6-browser-media/image-context
+          docker build --platform linux/amd64 --file scripts/video/Dockerfile.browser-media --tag connect-g6-browser-media .local/gate6-browser-media/image-context
+          docker image inspect connect-g6-browser-media > .local/gate6-browser-media/evidence/image-private.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          base=Path('.local/gate6-browser-media/evidence')
+          image=json.loads((base/'image-private.json').read_text())[0]
+          assert image['Os']=='linux' and image['Architecture']=='amd64'
+          (base/'image.json').write_text(json.dumps({k:image[k] for k in ['Id','Os','Architecture','RepoDigests']},indent=2)+'\n')
+          PY
+      - name: Run independent bounded media and network cases
+        run: |
+          docker run --rm --read-only --network none --platform linux/amd64 --cpus 4 --memory 6g --shm-size 1g \
+            --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+            --mount "type=bind,source=$PWD,target=$PWD,readonly" \
+            --mount "type=bind,source=$PWD/.local/gate6-browser-media/evidence,target=$PWD/.local/gate6-browser-media/evidence" \
+            --workdir "$PWD" \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            --env TMPDIR=/tmp/connect-fixtures \
+            --env CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1 \
+            --env "CONNECT_GATE6_BROWSER_IMAGE_ID=$(docker image inspect --format '{{.Id}}' connect-g6-browser-media)" \
+            --env "CONNECT_PLAYWRIGHT_MODULE=$PWD/scripts/video/observer-tools/node_modules/playwright/index.mjs" \
+            connect-g6-browser-media sh -eu -c '
+              mkdir -p "$TMPDIR"
+              CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome\")+glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux/chrome\"); assert len(p)==1; print(p[0])")"
+              export CONNECT_GATE6_CHROME
+              python3 scripts/video/owned_pulse_audio.py --output .local/gate6-browser-media/evidence/audio -- \
+                python3 scripts/check-gate6-browser-media.py run
+            '
+      - name: Return ownership of only fixture evidence
+        if: always()
+        run: |
+          if [ -d .local/gate6-browser-media/evidence ]; then
+            sudo chown -R "$(id -u):$(id -g)" .local/gate6-browser-media/evidence
+          fi
+      - name: Upload numeric and source evidence only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-linux-x86-browser-media
+          path: |
+            .local/gate6-browser-media/evidence/build/summary.json
+            .local/gate6-browser-media/evidence/build/source-inputs.json
+            .local/gate6-browser-media/evidence/image.json
+            .local/gate6-browser-media/evidence/audio/summary.json
+            .local/gate6-browser-media/evidence/runtime/summary.json
+            .local/gate6-browser-media/evidence/runtime/repository-inputs.json
+            .local/gate6-browser-media/evidence/runtime/tool-inputs.json
+            .local/gate6-browser-media/evidence/runtime/clock/summary.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && steps.build.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-browser-media/target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-browser-opt3-v1-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

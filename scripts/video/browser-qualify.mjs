@@ -18,6 +18,7 @@ import { workerPipeline } from "./encoded_worker_observation.mjs";
 import { installPeerDiagnostics, installControlDiagnostics, browserFailure } from "./browser_failure.mjs";
 import { installIceOwnership, restartOriginalBrowsers } from "./browser_ice_restart.mjs";
 import { refusedRelay } from "./browser_relay_expiry.mjs";
+import { installNetworkProxyProof, observedProxyPaths } from "./browser_network_proxy.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 
 let input = "";
@@ -141,6 +142,7 @@ try {
         observedPages[index]=page;
         await page.addInitScript(installPeerDiagnostics);
         await page.addInitScript(installControlDiagnostics);
+        if(spec.ownedMediaProxy)await page.addInitScript(installNetworkProxyProof);
         if(spec.iceRestart)await page.addInitScript(installIceOwnership);
         await page.goto(spec.baseURL + "/examples/conversation-client/");
         // Exercise normal sticky user activation for AudioContext in both runtimes.
@@ -326,6 +328,7 @@ try {
         return {candidate_type:incoming.selectedCandidateType,observation_source:incoming.selectedCandidatePairSource};
     })));
     const relayBefore=spec.requireRelay?await relayPath():undefined;
+    const proxyBefore=spec.ownedMediaProxy?await observedProxyPaths(pages,spec.ownedMediaProxy):undefined;
     const iceRestarts=spec.iceRestart?await restartOriginalBrowsers(pages,spec.participants,process.env.CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS):undefined;
     const relayAfter=spec.requireRelay?await relayPath():undefined;
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
@@ -476,6 +479,7 @@ try {
     });
     const fallback=await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.fallback)));
     const relayFinal=spec.requireRelay?await relayPath():undefined;
+    const proxyFinal=spec.ownedMediaProxy?await observedProxyPaths(pages,spec.ownedMediaProxy):undefined;
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
         const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
@@ -513,6 +517,7 @@ try {
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
         browser:browser.version(),fallback,observations,ice_restarts:iceRestarts,
         relay_path:spec.requireRelay?{before:relayBefore,after:relayAfter,final:relayFinal}:undefined,
+        owned_media_proxy:spec.ownedMediaProxy?{before:proxyBefore,final:proxyFinal}:undefined,
         teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;

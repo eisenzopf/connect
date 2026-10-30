@@ -1,6 +1,8 @@
 //! Explicit installed-browser lane: synthetic sources, normal private CA trust.
 #[path = "canonical_webrtc_browser/audio_trace.rs"]
 mod audio_trace;
+#[path = "canonical_webrtc_browser/network.rs"]
+mod network;
 #[path = "canonical_webrtc_browser/recovery.rs"]
 mod recovery;
 #[path = "canonical_webrtc_browser/relay.rs"]
@@ -359,6 +361,7 @@ struct Profile {
     ice_restart: bool,
     relay_refusal: Option<RelayRefusal>,
     relay: Option<relay::Fixture>,
+    network: Option<network::Fixture>,
 }
 
 async fn run_full_profile(
@@ -381,6 +384,7 @@ async fn run_full_profile(
             ice_restart,
             relay_refusal: None,
             relay: None,
+            network: None,
         },
     ))
     .await;
@@ -395,8 +399,17 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         ice_restart,
         relay_refusal,
         relay,
+        network,
     } = profile;
     let expired_relay = matches!(relay_refusal, Some(RelayRefusal::Expired));
+    assert!(
+        network.is_none()
+            || (relay.is_none()
+                && relay_refusal.is_none()
+                && !ice_restart
+                && !forced_fallback
+                && !transition_control)
+    );
     let unreachable_relay = matches!(relay_refusal, Some(RelayRefusal::Unreachable));
     assert!(!expired_relay || relay.is_some());
     assert!(!unreachable_relay || relay.is_none());
@@ -470,7 +483,10 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
     f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
         profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
         max_peers: 2,
-        addressing: relay.as_ref().map(relay::Fixture::addressing),
+        addressing: relay
+            .as_ref()
+            .map(relay::Fixture::addressing)
+            .or_else(|| network.as_ref().map(network::Fixture::addressing)),
     });
     f.server = RunningCanonicalServer::start(f.config.clone())
         .await
@@ -742,6 +758,9 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         }
     }
     let mut spec = json!({"browser":browser_kind,"root":root,"assetPort":asset_port,"debugPort":debug_port,"seconds":60,"profileMode":"clean","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],"participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
+    if let Some(network) = &network {
+        network.configure(&mut spec);
+    }
     if ice_restart {
         spec["iceRestart"] = json!(true);
     }
@@ -1104,6 +1123,34 @@ async fn canonical_chrome_unreachable_turn_es256() {
         "chrome",
         Profile {
             relay_refusal: Some(RelayRefusal::Unreachable),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome, owned loopback port-preserving NAT, measured UDP loss/delay/burst and existing impairment AV profile"]
+async fn canonical_chrome_owned_udp_impairment_eddsa() {
+    Box::pin(run_configured_profile(
+        "EdDSA",
+        "chrome",
+        Profile {
+            network: Some(network::Fixture::load()),
+            ..Profile::default()
+        },
+    ))
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome, owned loopback port-preserving NAT, measured UDP loss/delay/burst and existing impairment AV profile"]
+async fn canonical_chrome_owned_udp_impairment_es256() {
+    Box::pin(run_configured_profile(
+        "ES256",
+        "chrome",
+        Profile {
+            network: Some(network::Fixture::load()),
             ..Profile::default()
         },
     ))

@@ -375,5 +375,10 @@
       "ES256"
     ],
     "scope": "Owned loopback TURN control refusal only; no media-port, decoded-quality, distinct-network or full-task inference."
+  },
+  "browser_network_impairment_preparation": {
+    "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
+    "status": "linux-runtime-pending",
+    "full_task_qualified": false
   }
 }

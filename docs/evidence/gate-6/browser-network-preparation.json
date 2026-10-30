@@ -1,0 +1,47 @@
+{
+  "task": "G6-054",
+  "status": "linux-runtime-pending",
+  "scope": "Prepared owned local browser UDP loss/delay/burst and selected-path proof; no runtime, distinct-network or acceptance credit.",
+  "implementation": [
+    "Fixed port-preserving loopback NAT/proxy pool; actual nominated address/port proof before/final prevents bypass",
+    "Existing measured 3percent Bernoulli opaque-UDP loss,0\u2013100ms delay and3second burst; existing impairment decoded-content/recovery/AV policy unchanged",
+    "Native Linux x86 full-release opt3 build lane, pinned CFT156 image, owned paced software null sink/private cookie and normal CA trust",
+    "Independent scene results, immutable input/tool/binary/image digests and original owner/address cleanup"
+  ],
+  "local_compile": {
+    "scope": "Current same-source test producer with optimized dependencies and existing Gate6 store/service/server opt0 exceptions. Build only; no operating or acceptance qualification.",
+    "seconds": 0.520982,
+    "sources": 5919,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "3aa60248d004d768680e66fea8ad1a23f6b75247fea1a99016d867ddbcb392fd",
+    "artifacts": [
+      {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-4843a2652bd2a4b8",
+        "sha256": "b4bf9d363527b31232f66ccd940b7b2a2b73f177631c02ac562c823e1a2da10b",
+        "bytes": 220072432
+      }
+    ],
+    "passed": true
+  },
+  "local_compile_summary_sha256": "297a5eb787a0f6f8ee9545a5e79df566a8383c757d55a53c33a5e00a75a858c2",
+  "measurement_unit_functions": 57,
+  "measurement_unit_log_sha256": "ed836d0275d399fefea4bcfc18bc742c6742e1c88ac3250e096fe5e9de702170",
+  "privacy_unit_functions": 14,
+  "privacy_unit_log_sha256": "7619adf08deb962c380f8c328bca4f84c77b1a3a62146d2972b15d167c7b18d7",
+  "syntax_checks": [
+    "Rust formatting",
+    "Python compile",
+    "Node syntax",
+    "Workflow YAML,8outer shell scripts and nested container shell"
+  ],
+  "local_runtime": {
+    "attempted": false,
+    "reason": "Owned UDP bind127.0.0.2 refused with macOS errno49/EADDRNOTAVAIL. No host network configuration change or media execution."
+  },
+  "linux_runtime": {
+    "status": "Not dispatched yet",
+    "workflow": ".github/workflows/gate6-browser-media.yml"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

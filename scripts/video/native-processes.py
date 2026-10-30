@@ -246,9 +246,12 @@ class DatagramImpairment:
     This impairs transport packets (including reliable control), not a claimed RTP
     packet percentage. Both directions have independent measured packet counters.
     """
-    def __init__(self, target, seed=511, drop_probability=.03, maximum_delay=.1, bursts=()):
+    def __init__(self, target, seed=511, drop_probability=.03, maximum_delay=.1, bursts=(), listen=('127.0.0.1', 0)):
         import random
         if target[0] != '127.0.0.1': raise ValueError('Select an owned IPv4 loopback UDP target')
+        if type(listen) is not tuple or len(listen)!=2 or listen[0] not in {'127.0.0.1','127.0.0.2'} or type(listen[1]) is not int or not 0<=listen[1]<=65535:
+            raise ValueError('Select a bounded owned loopback UDP listener')
+        self.listen = listen
         self.target = target; self.random = random.Random(seed)
         self.drop_probability = drop_probability; self.maximum_delay = maximum_delay; self.bursts = bursts
         self.counters = {name: {'received': 0, 'dropped': 0, 'forwarded': 0,
@@ -340,7 +343,7 @@ class DatagramImpairment:
                 else:
                     owner.counters['to_server']['startup_queue_overflow'] = owner.counters['to_server'].get('startup_queue_overflow', 0) + 1
                     owner.counters['to_server']['dropped'] += 1
-        await asyncio.get_running_loop().create_datagram_endpoint(Proxy, local_addr=('127.0.0.1', 0))
+        await asyncio.get_running_loop().create_datagram_endpoint(Proxy, local_addr=self.listen)
         self.address = self.transport.get_extra_info('sockname'); return self
 
     async def __aexit__(self, *_):
