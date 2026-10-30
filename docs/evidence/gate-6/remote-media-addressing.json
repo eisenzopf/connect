@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Run current CFT156 Linux x86 clean/original-peer ICE/loss/unreachable media cases after the isolated loopback-interface fix. Run both current internal-bridge browser algorithms with selected-path, decoded media and cleanup proof. Existing Linux6b clock/native ICE passes do not qualify failed browser scenes.",
-    "Complete the required G6-054 distinct-network direct/relay and fault coverage using the scoped evidence below. Native and telephone owned direct/loss components passed; their precise source/profile limits remain in their artifacts. Old Linux ARM Chromium151 distinct-network quality failure is retained; the current bridge fixture is implemented but unrun.",
+    "Complete current native Linuxx86 browser fault and strict-quality checks. Kernel-netem run41093929194 records actual bidirectional forwarded/dropped UDP and complete queue/port cleanup but its path predicate rejects the case before the three-second burst. Per-path boolean diagnostics and finer decoded motion sampling are prepared; neither is a runtime pass.",
+    "Complete the required G6-054 distinct-network direct/relay and fault coverage. Current owned bridge bothalgorithms prove direct topology and decoded duplex content with normalCA and clean retirement, while strictquality remains failed. Native and telephone owned direct/loss component limits remain in their artifacts. Distinct-network browser relay still requires its own exact fixture; local loopback relay does not inherit that result.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
@@ -415,18 +415,18 @@
     },
     {
       "profile": "native Linux x86 opt3 media runtime",
-      "status": "clock and native ICE2 passed; browser cases failed",
-      "run_id": 41077685499,
+      "status": "native ICE2 and both unreachable-TURN algorithms pass; full browser quality fails",
+      "run_id": 41086327828,
       "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
-      "limits": "Current loopback-interface fix rerun41078605823 remains active."
+      "limits": "CFT156 allopt3 runtime libraries. Original-browser ICE recovery remains within2seconds, but no full media matrix or quality qualification. Instrumented follow-up41092205182 receives about30decodedfps while finer changing-frame sampling is under investigation."
     },
     {
       "profile": "current browser Linux x86 distinct-network internal bridge",
-      "status": "implemented; actual runtime unrun",
-      "run_id": 41080706946,
+      "status": "distinct-network path, duplex decoded content and clean retirement observed; strict quality fails",
+      "run_id": 41093924313,
       "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
       "documentation": "docs/developer/browser-bridge-rehearsal.md",
-      "limits": "Pending owned bridge EdDSA/ES256 scenes; no WAN, relay or ICE-restart inference."
+      "limits": "Both EdDSA/ES256 prove normal-CA signedWSS, private gateway/range nominated UDP duplex, opposite-source audio/video, two durable offers, original joins and reclaimed routes/capacity. Changing21.97\u201322.23fps fails strict24fps and ES256AVquality fails. No relay, WAN, full matrix or acceptance inference."
     }
   ]
 }

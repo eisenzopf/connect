@@ -3256,5 +3256,508 @@
     },
     "bridge_followup": "Normal Chrome profile import succeeds but HTTPS GET against the WSS upgrade listener still fails with no certificate error. Remove this invalid document probe; unconfigured CA refusal remains required, and actual signed WSS/decoded media must prove normal trusted use. No certificate bypass.",
     "remaining": "Run native Linuxx86 kernel-impairment and bridge fixtures; no G6-054, full media matrix or acceptance qualification."
+  },
+  "linux_83_bridge_and_kernel_fault": {
+    "fault": {
+      "run_id": 41093929194,
+      "source_revision": "83a57a63e2a06632e48377f15364602ec6c192ac",
+      "artifact_sha256": "6955cde84fd0815776bbc9a3387955c61c92db725e4f259a404353c5515049ce",
+      "git_source_files_verified": 2853,
+      "prepared_dependency_files_matching": 3087,
+      "prepared_dependency_differences": [],
+      "full_matrix": false,
+      "runtime_case": {
+        "exit_code": 1,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 7.035172485999993,
+        "log_sha256": "8e06d97d500064415e07af2adef0df7bc02b3ddbf645ba4569d68c4738eda411",
+        "cpu": {
+          "profile": {
+            "logical_cpus": 4,
+            "affinity_cpus": 4,
+            "quota_cores": 4.0
+          },
+          "cpu_stat_delta": {
+            "usage_usec": 11800812,
+            "user_usec": 8106492,
+            "system_usec": 3694321,
+            "nr_periods": 70,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "average_cores_used": 1.6774019433757508
+        },
+        "name": "impairment-eddsa",
+        "passed": false,
+        "network": {
+          "scope": "Owned Linux Docker loopback UDP netem; no host or external network changes.\n\nBoth directions across the exact eight server media ports get 3% random loss,\n0\u2013100ms delay and one observed three-second blackhole. Raw state stays in .local.\n",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_owned_udp_impairment_eddsa",
+          "source_count": 5940,
+          "kernel_release": "7.0.0-1017-azure",
+          "source_manifest_sha256": "23aad106d2addc042695e5f913f0d991884f54c9331a7c98c613d467e4edaceb",
+          "binary_sha256": "1706bb644aad5111aba089749da961a89835033dadda936b7c07098b1ad20e66",
+          "runner_sha256": "da04b89860d83797d4c3b0d178f3a69f8f3130d08b7f5821b97c23aad81f0122",
+          "profile": "impairment",
+          "configured_random_drop_probability": 0.03,
+          "configured_delay_ms": [
+            0,
+            100
+          ],
+          "configured_burst_seconds": 3,
+          "delay_distribution": "kernel netem uniform50ms +/-50ms",
+          "random_method": "kernel netem per-packet random loss; realized drops are reported, no fixed-seed claim",
+          "initial_counters": {
+            "to_client": {
+              "bytes": 0,
+              "packets": 0,
+              "drops": 0,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            },
+            "to_server": {
+              "bytes": 0,
+              "packets": 0,
+              "drops": 0,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            }
+          },
+          "exit_code": 101,
+          "original_process_joined": true,
+          "final_counters": {
+            "to_client": {
+              "bytes": 311884,
+              "packets": 605,
+              "drops": 32,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            },
+            "to_server": {
+              "bytes": 550295,
+              "packets": 954,
+              "drops": 21,
+              "overlimits": 0,
+              "requeues": 0,
+              "backlog": 0,
+              "qlen": 0
+            }
+          },
+          "owned_qdiscs_removed": true,
+          "original_media_addresses_reclaimed": 8,
+          "test_log_sha256": "b9eccc364f81ea54b35b9f034a9ad84f79b334ffb3411ffecbff4b76f8a38f7f",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 105 filtered out; finished in 6.26s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+              "line": 1005,
+              "column": 55
+            }
+          ],
+          "browser": {
+            "status": "failed",
+            "phase": "browser-participation",
+            "failure_code": "proxy-path-bypassed",
+            "error_class": "Error",
+            "peer_states": [
+              {
+                "connection": "connected",
+                "ice": "connected",
+                "gathering": "complete",
+                "signaling": "stable",
+                "participant": 0,
+                "local_description_set": true,
+                "remote_description_set": true,
+                "observed_gathering_states": [
+                  "complete",
+                  "gathering",
+                  "new"
+                ]
+              },
+              {
+                "connection": "connected",
+                "ice": "connected",
+                "gathering": "complete",
+                "signaling": "stable",
+                "participant": 1,
+                "local_description_set": true,
+                "remote_description_set": true,
+                "observed_gathering_states": [
+                  "complete",
+                  "gathering",
+                  "new"
+                ]
+              }
+            ],
+            "observations": []
+          },
+          "failure": {
+            "stage": "decoded-media-verification",
+            "error_class": "AssertionError",
+            "network_error": null
+          },
+          "changed_source_inputs": []
+        }
+      }
+    },
+    "bridge": {
+      "run_id": 41093924313,
+      "source_revision": "83a57a63e2a06632e48377f15364602ec6c192ac",
+      "artifact_sha256": "2648f90af98dac1975ed9875201272109e6e4d5b576127eb8ffb07a6ebfeb9f4",
+      "git_source_files_verified": 2842,
+      "prepared_dependency_files_matching": 3087,
+      "prepared_dependency_differences": [],
+      "full_matrix": false,
+      "bridges": {
+        "bridge-eddsa": {
+          "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "image_id": "sha256:389983a605a8ff4ed4a9b41b10b03ecc72b14cc4a7ad1cdc422e00ba1fba3c33",
+          "binary_sha256": "1706bb644aad5111aba089749da961a89835033dadda936b7c07098b1ad20e66",
+          "source_count": 5929,
+          "source_manifest_sha256": "42f497b42cd0f8b72d4282314292386182d004a66bd1a55f876987804ec6bfde",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "browser_exit_code": 1,
+          "startup_browser_summary_present": true,
+          "startup_audio_summary_present": true,
+          "private_fixture_same_uid": true,
+          "browser": {
+            "scope": "Owned internal Docker bridge, Linux x86 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.",
+            "browser": "Google Chrome for Testing 156.0.8078.4",
+            "network_namespace_sha256": "c8ec726ce7f137d636df177a9ddffbf73a85fb2dc67d76027bb4dbfe0b9b207e",
+            "passed": false,
+            "untrusted_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "unconfigured_ca_refused": true,
+            "clock": {
+              "scope": "Software clock pacing only; no RTC or decoded media.",
+              "result": {
+                "startup_audio_seconds": 0.25541950113378686,
+                "wall_seconds": 1.2003000000000175,
+                "audio_seconds": 1.2074376417233559,
+                "ratio": 1.0059465481324155,
+                "passed": true
+              },
+              "ownership": {
+                "original_process_joined": true,
+                "forced_kill": false,
+                "exit": {
+                  "code": 0,
+                  "signal": null
+                }
+              },
+              "passed": true
+            },
+            "trust": {
+              "normal_profile_ca_import": true,
+              "browser": "chrome",
+              "version": "Google Chrome for Testing 156.0.8078.4",
+              "root_sha256": "4107ef83b24355b85f222fc342a5b41399e543803acfe423decb720b9286a877"
+            },
+            "media": {
+              "status": "failed",
+              "phase": null,
+              "error_class": null,
+              "owned_container_bridge": {
+                "participants": 2,
+                "selected_paths": 2,
+                "expected_private_gateway": true,
+                "expected_port_range": true,
+                "nominated_udp_duplex": true,
+                "observation_source": "RTCPeerConnection.getStats"
+              },
+              "observations": [
+                {
+                  "decoded_fps": 28.522399745857385,
+                  "changing_fps": 21.97490961728148,
+                  "audio": "passed",
+                  "motion": "passed",
+                  "source_identity": "passed",
+                  "av_acceptance": {
+                    "policy": "connect-media-acceptance/2",
+                    "scenario": "clean",
+                    "status": "passed",
+                    "quality_status": "passed",
+                    "reason": "quality-met"
+                  }
+                },
+                {
+                  "decoded_fps": 29.238596913928543,
+                  "changing_fps": 22.091384334968232,
+                  "audio": "passed",
+                  "motion": "passed",
+                  "source_identity": "passed",
+                  "av_acceptance": {
+                    "policy": "connect-media-acceptance/2",
+                    "scenario": "clean",
+                    "status": "passed",
+                    "quality_status": "passed",
+                    "reason": "quality-met"
+                  }
+                }
+              ]
+            },
+            "media_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            }
+          },
+          "audio": {
+            "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+            "passed": false,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1",
+            "startup_socket_created": true,
+            "command_exit_code": 1,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_home_created": true,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "different_network_namespaces": true,
+          "internal_bridge": true,
+          "server_exit_code": 0,
+          "server_witness": {
+            "algorithm": "EdDSA",
+            "capacity_reclaimed": 2,
+            "durable_offers": 2,
+            "physical_routes_drained": true,
+            "server_shutdown_joined": true
+          },
+          "original_server_joined": true,
+          "original_container_joined": true,
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        },
+        "bridge-es256": {
+          "scope": "Owned Linux x86 host/browser namespaces on an internal Docker bridge only.",
+          "algorithm": "ES256",
+          "passed": false,
+          "image_id": "sha256:389983a605a8ff4ed4a9b41b10b03ecc72b14cc4a7ad1cdc422e00ba1fba3c33",
+          "binary_sha256": "1706bb644aad5111aba089749da961a89835033dadda936b7c07098b1ad20e66",
+          "source_count": 5929,
+          "source_manifest_sha256": "42f497b42cd0f8b72d4282314292386182d004a66bd1a55f876987804ec6bfde",
+          "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+          "browser_exit_code": 1,
+          "startup_browser_summary_present": true,
+          "startup_audio_summary_present": true,
+          "private_fixture_same_uid": true,
+          "browser": {
+            "scope": "Owned internal Docker bridge, Linux x86 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.",
+            "browser": "Google Chrome for Testing 156.0.8078.4",
+            "network_namespace_sha256": "c8ec726ce7f137d636df177a9ddffbf73a85fb2dc67d76027bb4dbfe0b9b207e",
+            "passed": false,
+            "untrusted_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            },
+            "unconfigured_ca_refused": true,
+            "clock": {
+              "scope": "Software clock pacing only; no RTC or decoded media.",
+              "result": {
+                "startup_audio_seconds": 0.26702947845804986,
+                "wall_seconds": 1.2002000000000117,
+                "audio_seconds": 1.207437641723356,
+                "ratio": 1.00603036304228,
+                "passed": true
+              },
+              "ownership": {
+                "original_process_joined": true,
+                "forced_kill": false,
+                "exit": {
+                  "code": 0,
+                  "signal": null
+                }
+              },
+              "passed": true
+            },
+            "trust": {
+              "normal_profile_ca_import": true,
+              "browser": "chrome",
+              "version": "Google Chrome for Testing 156.0.8078.4",
+              "root_sha256": "5674152cb456541009b45b3cf26d28e3824a268e6931c2e12276ca126202b51e"
+            },
+            "media": {
+              "status": "failed",
+              "phase": null,
+              "error_class": null,
+              "owned_container_bridge": {
+                "participants": 2,
+                "selected_paths": 2,
+                "expected_private_gateway": true,
+                "expected_port_range": true,
+                "nominated_udp_duplex": true,
+                "observation_source": "RTCPeerConnection.getStats"
+              },
+              "observations": [
+                {
+                  "decoded_fps": 29.112663382866938,
+                  "changing_fps": 22.234213739203295,
+                  "audio": "passed",
+                  "motion": "passed",
+                  "source_identity": "passed",
+                  "av_acceptance": {
+                    "policy": "connect-media-acceptance/2",
+                    "scenario": "clean",
+                    "status": "failed",
+                    "quality_status": "failed",
+                    "reason": "strict-quality-not-met"
+                  }
+                },
+                {
+                  "decoded_fps": 29.162627908123575,
+                  "changing_fps": 22.150939530442233,
+                  "audio": "passed",
+                  "motion": "passed",
+                  "source_identity": "passed",
+                  "av_acceptance": {
+                    "policy": "connect-media-acceptance/2",
+                    "scenario": "clean",
+                    "status": "failed",
+                    "quality_status": "failed",
+                    "reason": "strict-quality-not-met"
+                  }
+                }
+              ]
+            },
+            "media_browser": {
+              "original_process_joined": true,
+              "forced_kill": false,
+              "exit": {
+                "code": 0,
+                "signal": null
+              }
+            }
+          },
+          "audio": {
+            "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+            "passed": false,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1",
+            "startup_socket_created": true,
+            "command_exit_code": 1,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_home_created": true,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "different_network_namespaces": true,
+          "internal_bridge": true,
+          "server_exit_code": 0,
+          "server_witness": {
+            "algorithm": "ES256",
+            "capacity_reclaimed": 2,
+            "durable_offers": 2,
+            "physical_routes_drained": true,
+            "server_shutdown_joined": true
+          },
+          "original_server_joined": true,
+          "original_container_joined": true,
+          "bridge_containers_drained": true,
+          "owned_bridge_removed": true,
+          "forced_cleanup": false,
+          "sources_unchanged": true,
+          "tools_unchanged": true,
+          "tool_count": 71
+        }
+      }
+    },
+    "conclusions": [
+      "Both bridge algorithms now complete normal-CA signed WSS, a paced software clock, actual nominated duplex UDP across different network namespaces, full60 decoded opposite-source audio/video and clean ownership retirement. Each has two durable offers, routes drained and capacity2 reclaimed. Strict quality still fails: changing21.97\u201322.23fps below24; ES256 AV quality also fails. No quality/full-task pass.",
+      "Native Linuxx86 netem actually forwards605/954 packets and drops32/21 packets across the two directions, then restores the original noqueue and reclaims8media addresses. The browser selected-path predicate rejects the case before the burst; per-boolean diagnostic preparation will distinguish its failed premise. No impairment-recovery pass."
+    ]
+  },
+  "decoded_motion_sampler_preparation": {
+    "reason": "The original 8x8 observation over640x360 has80x45pixel stride; the source bar moves7pixels per frame. Retain the8x8 source-identity cells but compare an independent128x72 decoded pixel sample for motion, with5pixel stride. Source, bitrate, codec, cadence and24fps/2s quality/freshness thresholds are unchanged. Repeated identical decoded pixels still cannot count as motion.",
+    "local_mac_component": {
+      "scope": "Actual macOS Chrome156 ordinary two-peer clean60 AV with finer decoded motion observation and unchanged source, codec, threshold and recovery policy. No Linux or distinct-network qualification.",
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 64.72815783298574,
+        "log_sha256": "0f4e3a1d7c3ff9bbe40d214d946d8866f75b21396ccc7c03e53dab0dc9a80c1e"
+      },
+      "sources": 5929,
+      "sources_unchanged": true,
+      "changed_inputs": [],
+      "binary_sha256": "085ef1f5f05f70d809d7bbf4d500941294ab9269567d59806c7431637def36d5",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.147133910752313,
+          "changing_fps": 25.93078351351092,
+          "rendered_fps": 27.747271561693886,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        },
+        {
+          "decoded_fps": 29.130468882787333,
+          "changing_fps": 25.564152898281332,
+          "rendered_fps": 27.497296142219163,
+          "audio": "passed",
+          "motion": "passed",
+          "identity": "passed",
+          "av": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion_sample_pixels": [
+            128,
+            72
+          ]
+        }
+      ]
+    },
+    "source_manifest_sha256": "21448e8be9feffc9a7b02a816746e71be7cd021f52555cd34d16a031cc93bc25",
+    "observer_sha256": "bf04c6ec15680ea94d14e4d7eb8ba42d2233c0e6a3f07dd94e974f3096f87a25",
+    "remaining": "Current Linux x86 direct bridge and kernel-impairment verification; no Linux, full task or acceptance inference from this Mac pass."
   }
 }

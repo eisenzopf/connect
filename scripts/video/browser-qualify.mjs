@@ -250,7 +250,7 @@ try {
             video.style.cssText="position:fixed;inset:0;width:640px;height:360px;z-index:10000";
             document.body.append(video);
 
-            const sample=document.createElement("canvas"); sample.width=8;sample.height=8;
+            const sample=document.createElement("canvas"); sample.width=128;sample.height=72;
             const pixels=sample.getContext("2d",{willReadFrequently:true});
             pixels.imageSmoothingEnabled=false; // Sample uniform marker centres, without neighboring background blend.
             const observation={rendered:0,changing:0,last:null,videoEdges:[],audioEdges:[],changingTimes:[],audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{}};
@@ -258,17 +258,21 @@ try {
                 observation.rendered++;
                 pixels.drawImage(video,0,0,8,8);
                 const bytes=pixels.getImageData(0,0,8,8).data;
-                const key=Array.from(bytes).join(",");
                 const gray=Array.from({length:64},(_,index)=>.299*bytes[index*4]+.587*bytes[index*4+1]+.114*bytes[index*4+2]);
                 const sourceKind=classifySourceFrame(gray);
                 if(observation.recordIdentity)observation.sourceIdentityCounts[sourceKind]=(observation.sourceIdentityCounts[sourceKind]??0)+1;
                 const white=Array.from(bytes).filter((_,index)=>index%4!==3).every(value=>value>240);
                 if(white&&observation.white===false)observation.videoEdges.push(performance.now());
                 observation.white=white;
-                if(observation.last!==null && key!==observation.last) {
+                // Identity markers use their stable 8x8 cell centres. Motion
+                // needs a finer independent decoded sample: the source bar
+                // moves seven pixels/frame, below the old 80px sample stride.
+                pixels.drawImage(video,0,0,128,72);
+                const motionBytes=pixels.getImageData(0,0,128,72).data;
+                if(observation.last!==null && motionBytes.some((value,index)=>value!==observation.last[index])) {
                     observation.changing++;observation.changingTimes.push((performance.timeOrigin+performance.now())/1000);
                 }
-                observation.last=key; video.requestVideoFrameCallback(decoded);
+                observation.last=motionBytes; video.requestVideoFrameCallback(decoded);
             };
             video.requestVideoFrameCallback(decoded);
             window.videoFixture={session,control,video,fallback,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
@@ -497,7 +501,8 @@ try {
             ...(spec.muteRecovery?{mute_content:{window_start_unix_seconds:initial[index].markerStartUnix,
                 window_end_unix_seconds:end.markerEndUnix,
                 changing_times:end.changingTimes,audio_samples:end.audioSamples}}:{}),
-            rendered:end.rendered-initial[index].rendered,width:inbound?.width,height:inbound?.height,
+            rendered:end.rendered-initial[index].rendered,motion_sample_pixels:[128,72],identity_sample_pixels:[8,8],
+            width:inbound?.width,height:inbound?.height,
             codec:inbound?.codec,packets:delta("packets"),lost:delta("lost"),jitter:inbound?.jitter,
             video_rtp_bytes:videoBytes,video_rtp_bitrate_bits_per_second:videoBytes===null?null:videoBytes*8/observedElapsed,
             keyframes:delta("keyframes"),audio_rms:end.audio.rms,audio_frequency_hz:end.audio.frequency_hz,

@@ -126,6 +126,7 @@ async def run(args):
             states=runpy.run_path(str(ROOT/'scripts/check-gate6-browser-media.py'))['browser_participation_states']
             report['browser']=dict(status=value.get('status'),phase=value.get('phase'),
                 failure_code=value.get('failure_code'),error_class=value.get('error_class'),peer_states=states(value),
+                owned_network_paths=value.get('owned_network_paths'),
                 observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
                     changing_fps=o['changing']/o['elapsed_seconds'],audio=o['audio_profile']['status'],
                     motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],

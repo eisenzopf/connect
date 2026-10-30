@@ -117,6 +117,7 @@ export async function browserFailure(pages, error) {
         ].find(([,message])=>String(error?.message).includes(message))?.[0]??'other',
         error_class: ["Error", "TimeoutError", "ConnectError"].includes(error?.name) ? error.name : "OtherError",
         observations: [], peer_diagnostics: peerDiagnostics,
+        owned_network_paths:error?.owned_network_paths,
         diagnostic_scope: "bounded peer state, numeric RTP counters and codec/direction metadata; no raw SDP, ICE candidates, keys, credentials or media content"};
 }
 

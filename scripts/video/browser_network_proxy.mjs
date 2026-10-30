@@ -17,12 +17,16 @@ export function installNetworkProxyProof() {
                 prescribed_address_selected:(remote?.address??remote?.ip)===address,
                 prescribed_port_selected:Number.isInteger(remote?.port)&&remote.port>=portStart&&remote.port<=portEnd});
         });
-        if(!pairs.length||pairs.some(p=>Object.values(p).some(value=>value!==true)))
-            throw Error('Actual media candidate pair bypassed its owned impairment proxy');
         return {peer_count:peers.length,selected_pairs:pairs};
     };
 }
 
 export async function observedProxyPaths(pages,expected) {
-    return Promise.all(pages.map(page=>page.evaluate(expected=>globalThis.connectOwnedMediaProxyProof(expected),expected)));
+    const paths=await Promise.all(pages.map(page=>page.evaluate(expected=>globalThis.connectOwnedMediaProxyProof(expected),expected)));
+    if(paths.length!==2||paths.some(row=>row.peer_count!==1||row.selected_pairs.length!==1
+        ||Object.values(row.selected_pairs[0]).some(value=>value!==true))){
+        const error=Error('Actual media candidate pair bypassed its owned impairment proxy');
+        error.owned_network_paths=paths;throw error;
+    }
+    return paths;
 }

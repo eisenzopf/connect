@@ -158,7 +158,10 @@ def main():
                 browser_summary['media'] = dict(status=media.get('status'),phase=media.get('phase'),
                     error_class=media.get('error_class'),owned_container_bridge=media.get('owned_container_bridge'),
                     observations=[dict(decoded_fps=o['decoded']/o['elapsed_seconds'],
-                        changing_fps=o['changing']/o['elapsed_seconds'],audio=o['audio_profile']['status'],
+                        changing_fps=o['changing']/o['elapsed_seconds'],rendered_fps=o['rendered']/o['elapsed_seconds'],
+                        motion_sample_pixels=o.get('motion_sample_pixels'),identity_sample_pixels=o.get('identity_sample_pixels'),
+                        av_sync={key:o['av_sync'].get(key) for key in ['status','median_abs_skew_ms','p95_abs_skew_ms']},
+                        audio=o['audio_profile']['status'],
                         motion=o['motion_profile']['status'],source_identity=o['source_identity']['status'],
                         av_acceptance=o['av_acceptance']) for o in media.get('observations',[])])
             report.update(browser=browser_summary, audio=audio_summary, browser_exit_code=browser_exit,
