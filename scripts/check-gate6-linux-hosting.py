@@ -215,8 +215,18 @@ def ipc_data_revocation_failure_diagnostic(value):
     return value
 
 
+def rtc_ice_worker_failure_diagnostic(value):
+    assert type(value) is dict and set(value)=={'phase','code','expected_generation','submitted','receipt_captured','stop_cancelled','physical_cancelled','deadline_elapsed'}
+    assert value['phase'] in {'current-authority','original-slot','original-peer','original-identity','rtc-observation','current-slot','physical-current','negotiate','complete','observe','retire','reply-wait'}
+    assert value['code'] in {'none','other','forbidden','conflict','reconciliation-required','authority-busy','storage'}
+    assert value['expected_generation'] is None or type(value['expected_generation']) is int and 0<=value['expected_generation']<=9007199254740991
+    assert all(type(value[key]) is bool for key in ['submitted','receipt_captured','stop_cancelled','physical_cancelled','deadline_elapsed'])
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
+    os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = BASE / "private-tmp"
     temporary.mkdir(exist_ok=True, mode=0o700)
@@ -295,6 +305,7 @@ def run(node_sdk=False, python_sdk=False):
         for key, prefix, validate in (
             ('rtc_operation_failures', 'rtc-operation-failure ', rtc_operation_failure_diagnostic),
             ('ipc_data_revocation_failures', 'ipc-data-revocation-failure ', ipc_data_revocation_failure_diagnostic),
+            ('rtc_ice_worker_failures', 'rtc-ice-worker-failure ', rtc_ice_worker_failure_diagnostic),
         ):
             values = [validate(json.loads(line[len(prefix):])) for line in text.splitlines() if line.startswith(prefix)]
             assert len(values)<=16, 'Bounded native failure diagnostics exceeded'

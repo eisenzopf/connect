@@ -25,6 +25,13 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_ice_worker_failure_preserves_boundary_without_authority_or_transport_secrets(self):
+        validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_ice_worker_failure_diagnostic']
+        value=dict(phase='current-authority',code='forbidden',expected_generation=2,submitted=True,receipt_captured=False,stop_cancelled=False,physical_cancelled=False,deadline_elapsed=False)
+        self.assertEqual(validate(value),value)
+        for invalid in [dict(value,credential='private'),dict(value,sdp='private'),dict(value,phase='private operation'),dict(value,code='private reason'),dict(value,expected_generation=True),dict(value,expected_generation=9007199254740992),dict(value,submitted=1)]:
+            with self.assertRaises(AssertionError):validate(invalid)
+
     def test_rtc_operation_failure_excludes_private_record_and_transport_values(self):
         validate=runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_operation_failure_diagnostic']
         value=dict(checkpoint='restart-1',state='unknown',problem_code='reconciliation-required',result_present=False,cancel_requested=False,effects=[dict(state='unknown',attempt=1)])

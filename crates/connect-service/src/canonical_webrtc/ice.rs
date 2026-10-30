@@ -116,6 +116,39 @@ impl Restart {
     fn lease(&self) -> Result<&NativeStreamLease> {
         self.lease.as_ref().ok_or_else(Error::forbidden)
     }
+    fn diagnostic(&self, phase: &'static str, error: Option<&Error>) {
+        #[cfg(feature = "test-support")]
+        if std::env::var("CONNECT_GATE6_ICE_DIAGNOSTICS").as_deref() == Ok("1") {
+            let code = match error.map(|e| e.code.as_str()) {
+                None => "none",
+                Some(
+                    code @ ("forbidden"
+                    | "conflict"
+                    | "reconciliation-required"
+                    | "authority-busy"
+                    | "storage"),
+                ) => code,
+                _ => "other",
+            };
+            if code == "authority-busy" && phase != "negotiate" {
+                return;
+            }
+            let generation = self
+                .lease
+                .as_ref()
+                .and_then(|lease| lease.ice_restart())
+                .map(|ice| ice.expected_generation());
+            eprintln!(
+                "rtc-ice-worker-failure {}",
+                serde_json::json!({"phase":phase,"code":code,
+                "expected_generation":generation,"submitted":self.submitted,"receipt_captured":self.receipt.is_some(),
+                "stop_cancelled":self.stop.is_cancelled(),"physical_cancelled":self.physical.is_cancelled(),
+                "deadline_elapsed":Instant::now()>=self.deadline})
+            );
+        }
+        #[cfg(not(feature = "test-support"))]
+        let _ = (phase, error);
+    }
     fn invocation(&self) -> Result<crate::canonical_media::ice::Invocation> {
         if self.stop.is_cancelled()
             || self.physical.is_cancelled()
@@ -263,9 +296,14 @@ impl Restart {
         if self.receipt.is_some() {
             return Ok(true);
         }
-        let invocation = self.invocation()?;
+        let invocation = self
+            .invocation()
+            .inspect_err(|e| self.diagnostic("current-authority", Some(e)))?;
         let slot = self.slot.as_ref().ok_or_else(Error::forbidden)?;
-        let current = slot.current_with_held(&invocation).map_err(media_error)?;
+        let current = slot
+            .current_with_held(&invocation)
+            .map_err(media_error)
+            .inspect_err(|e| self.diagnostic("original-slot", Some(e)))?;
         let rtc = self.rtc.as_ref().ok_or_else(Error::forbidden)?;
         let same = bounded(
             self.deadline,
@@ -275,8 +313,10 @@ impl Restart {
                 .original_peer(&self.id, &self.peer, self.deadline),
         )
         .await?
-        .map_err(|_| Error::forbidden())?;
+        .map_err(|_| Error::forbidden())
+        .inspect_err(|e| self.diagnostic("original-peer", Some(e)))?;
         if !Arc::ptr_eq(rtc, &same) {
+            self.diagnostic("original-identity", Some(&Error::forbidden()));
             return Err(Error::forbidden());
         }
         let intent = self.lease()?.ice_restart().ok_or_else(Error::forbidden)?;
@@ -288,14 +328,18 @@ impl Restart {
             rtc.peer_connection()
                 .ice_descriptions_ready(answer, intent.proposed_remote_offer()),
         )
-        .await?;
+        .await
+        .inspect_err(|e| self.diagnostic("rtc-observation", Some(e)))?;
         // Verify the same slot/owner/ports/credential and physical lifetime
         // again after the live core lock observation, before taking the receipt.
-        slot.current_with_held(&invocation).map_err(media_error)?;
+        slot.current_with_held(&invocation)
+            .map_err(media_error)
+            .inspect_err(|e| self.diagnostic("current-slot", Some(e)))?;
         if !self
             .adapter
             .is_peer_webrtc_preparation_current(&self.id, &self.peer)
         {
+            self.diagnostic("physical-current", Some(&Error::forbidden()));
             return Err(Error::forbidden());
         }
         if ready {
@@ -502,6 +546,7 @@ impl Runtime {
             }
         };
         if let Err(error) = outcome {
+            attempt.diagnostic("negotiate", Some(&error));
             if !attempt.submitted() {
                 let _ = tx.send(attempt.refuse(error).map(reply));
                 return;
@@ -538,7 +583,10 @@ impl Runtime {
                         loop {
                             match attempt.complete() {
                                 Ok(_) => return,
-                                Err(e) if e.code == "forbidden" => return,
+                                Err(e) if e.code == "forbidden" => {
+                                    attempt.diagnostic("complete", Some(&e));
+                                    return;
+                                }
                                 Err(_) => (),
                             }
                             tokio::select! { biased;
@@ -550,7 +598,10 @@ impl Runtime {
                     }
                     Ok(false) => (),
                     Err(e) if e.code == "authority-busy" => (),
-                    Err(_) => break,
+                    Err(e) => {
+                        attempt.diagnostic("observe", Some(&e));
+                        break;
+                    }
                 }
                 tokio::select! { biased;
                     _ = self.stop.cancelled() => break,
@@ -560,6 +611,7 @@ impl Runtime {
                 }
             }
         }
+        attempt.diagnostic(if finished { "retire" } else { "reply-wait" }, None);
         let _ = attempt.uncertain();
         let _ = attempt.close_original().await;
         // The original parent custodian observes this actual joined close and

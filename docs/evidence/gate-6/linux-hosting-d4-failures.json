@@ -444,5 +444,83 @@
     },
     "local_summary_sha256": "3a6acaca841cad32b95881cf6ed58bd2c29d464087677e4fa5704d9bfa9dbd79",
     "linux_verification": "Pending a new source run; no full Linux qualification."
+  },
+  "ice_worker_boundary_diagnostics": {
+    "scope": "Test-support-only and explicitly enabled finite failure telemetry; no production decisions, authority, deadlines or cleanup changed. No Linux failure-resolution or task qualification claim.",
+    "privacy_schema_functions": 15,
+    "local_actual_native_functions": 2,
+    "producer_sha256": "338ffbd25684169d927c5d93215b3873c07b73f2bc6c17aacdeaebc2f9b92e82",
+    "producer_source_inputs": 5919,
+    "producer_sources_unchanged": true,
+    "producer_build_seconds": 699.615913,
+    "runtime_source_inputs": 5919,
+    "runtime_source_manifest_sha256": "28b21a885cb9c3b5a397ad36a8648e158700546400956500dd90afb37cbcff99",
+    "runtime_sources_unchanged": true,
+    "runtime_seconds": 9.023858790984377,
+    "runtime_log_sha256": "6097c088bf8f8238c43f0692556d4a976bb3bc0d837cb4709b127103d3ec2733",
+    "diagnostics": [
+      {
+        "code": "forbidden",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "current-authority",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      },
+      {
+        "code": "forbidden",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "observe",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      },
+      {
+        "code": "none",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "retire",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      },
+      {
+        "code": "forbidden",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "current-authority",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      },
+      {
+        "code": "forbidden",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "observe",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      },
+      {
+        "code": "none",
+        "deadline_elapsed": false,
+        "expected_generation": 2,
+        "phase": "retire",
+        "physical_cancelled": false,
+        "receipt_captured": false,
+        "stop_cancelled": false,
+        "submitted": true
+      }
+    ],
+    "observation": "Only intentional third-generation endpoint revocation emitted terminal boundaries. Both ordinary two-generation signed ICE journeys retained captured completions and fresh decoded markers.",
+    "passed": true
   }
 }

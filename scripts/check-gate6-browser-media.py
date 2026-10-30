@@ -88,8 +88,9 @@ def runtime():
             if path.is_file() and path.suffix in ('.js', '.mjs', '.json'):
                 tools[str(path)] = digest(path)
     save(output / 'tool-inputs.json', tools)
-    env = dict(os.environ, CONNECT_GATE6_NODE=str(node))
+    env = dict(os.environ, CONNECT_GATE6_NODE=str(node), CONNECT_GATE6_ICE_DIAGNOSTICS='1')
     failure_diagnostic = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['rtc_operation_failure_diagnostic']
+    worker_diagnostic = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['rtc_ice_worker_failure_diagnostic']
     steps = []
     try:
         clock = BOUNDED([str(node), 'scripts/video/check-audio-clock.mjs', str(output / 'clock')],
@@ -115,6 +116,9 @@ def runtime():
             step['rtc_operation_failures'] = [failure_diagnostic(json.loads(line.split(' ', 1)[1])) for line in raw.splitlines()
                 if line.startswith('rtc-operation-failure ')]
             assert len(step['rtc_operation_failures']) <= 16
+            step['rtc_ice_worker_failures'] = [worker_diagnostic(json.loads(line.split(' ', 1)[1])) for line in raw.splitlines()
+                if line.startswith('rtc-ice-worker-failure ')]
+            assert len(step['rtc_ice_worker_failures']) <= 16
             for filename in ['browser-result.jsonl', 'ownership.json', 'ice-restart-oracle.json',
                              'unreachable-relay-oracle.json', 'unreachable-turn.json']:
                 path = directory / filename
