@@ -1,0 +1,70 @@
+# Canonical WebRTC ICE restart
+
+G6-054 implementation is in progress. The bounded request types are implemented
+in `connect-protocol::webrtc_ice_restart`. Canonical dispatch, durable Store
+admission, physical execution, SDK methods and HTTP/OpenAPI registration are
+still pending. This document does not advertise a working public restart API.
+
+The intended mutation is `connection.update` with the original Conversation,
+Session and Connection scope, a new logical operation ID saved before IO, and
+the current media revision assertion. Its payload is:
+
+```json
+{
+  "action": "ice-restart",
+  "details": {
+    "expected_ice_generation": 0,
+    "setup": {
+      "kind": "websocket+webrtc",
+      "sdp": "v=0\r\n...the original complete gathered offer...\r\n"
+    }
+  }
+}
+```
+
+The ICE generation is an independent transport counter. It does not replace the
+Connection ownership generation, Stream generations or membership epochs. The
+caller asserts an expected counter; current authority and the physical owner
+come from trusted Store/Core context. No body field grants either one.
+
+The protocol boundary preserves the exact SDP string, requires the WebRTC
+substrate, bounds SDP to 512 KiB and the serialized payload to 544 KiB, and
+accepts only an exact nonnegative JSON integer whose successor remains safely
+representable by browser JSON numbers. Unknown/mixed codec, gate, routing,
+resource and approval fields refuse. SDP and ICE credentials are redacted from
+Debug output. This boundary does not parse SDP semantics or establish readiness.
+
+## Required durable execution
+
+Before physical IO, save the complete original payload, caller, scope, current
+Endpoint/membership, Connection ownership generation, expected media revision
+and expected ICE generation. A duplicate original operation must recover the
+same record and exact original offer/answer, including after observer loss.
+It cannot silently gather another offer, start another attempt, replace the
+Connection, choose another Endpoint or switch substrate.
+
+The canonical physical host must use its existing Core-reserved WebRTC peer.
+Upstream's other WebSocket/WHIP signaling adapter already has an authorized
+answerer restart primitive; that route does not grant access to canonical
+resources. Add the corresponding guarded canonical primitive and retain the
+same original physical owner, logical streams, source identities and gates.
+Validate unchanged media/DTLS identity and the new ICE credentials before
+applying the offer. No changed route is accepted from an untrusted body alone.
+
+An SDP answer alone is not reconnection evidence. Completion must observe the
+new ICE generation on the original peer, enforce current authorization and
+attribute the original effect. Late observations from an old attempt, stale
+generations and superseded owners cannot complete a newer request. Unknown
+outcomes retain their original operation and require observation/reconciliation.
+
+Browser code must save its exact gathered offer and logical request before
+submission, apply only the correlated original answer and preserve uncertainty.
+The end-to-end proof must include direct/relay recovery, stale/refused/expired
+authority, lost/repeated responses, independently decoded duplex media and
+original allocation/peer cleanup. Browser compositor quality and other remaining
+G6-054 matrix requirements remain open; thresholds are unchanged.
+
+The public HTTP reference and shared OpenAPI schema must be updated with the
+new action when canonical dispatch is installed. Until then the existing public
+decoder continues to refuse this action; no compatibility or legacy route is
+added.

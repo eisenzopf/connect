@@ -1,0 +1,93 @@
+{
+  "task": "G6-054",
+  "status": "in-progress",
+  "checked_at": "2026-10-30T05:04:16.157778+00:00",
+  "base_revision": "852e4528572a535283fd1eb56c06f276458a86c1",
+  "scope": "Protocol request-shape foundation only. No canonical ICE-restart dispatch, Store admission, peer restart or network qualification.",
+  "implementation": {
+    "module": "crates/connect-protocol/src/webrtc_ice_restart.rs",
+    "contract": "contracts/webrtc-ice-restart.md",
+    "action": "Proposed connection.update/ice-restart, not registered in public dispatch yet",
+    "maximum_sdp_bytes": 524288,
+    "maximum_serialized_update_bytes": 557056,
+    "maximum_expected_ice_generation": 9007199254740990,
+    "exact_original_sdp": true,
+    "unknown_fields_refused": true,
+    "debug_redacted": true
+  },
+  "verification": {
+    "runs": [
+      {
+        "profile": "default",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": 54,
+        "failed": 0,
+        "ignored": 0,
+        "executable_sha256": "88b1c99dde57e66254ab514fa2b3e00b0851b092ff017c5925ebbc62180289b4",
+        "log_sha256": "38c79758040bac5cf6c6838c381448eb3b1beac48282b265234f5099c7efb559"
+      },
+      {
+        "profile": "schema",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "connect-protocol",
+          "--features",
+          "schema",
+          "--lib",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "passed": 55,
+        "failed": 0,
+        "ignored": 0,
+        "executable_sha256": "125f07fe66bda6d01f79c52e1cd3fe90597c686e67e15b71796d76e34decb165",
+        "log_sha256": "32451edbe74c9689647d5c193e376cdc5ad0497e93c7bfa5e3d1c003856b2eab"
+      }
+    ],
+    "new_default_cases": 7,
+    "new_schema_case": 1,
+    "distinct_current_functions": 55,
+    "source_count": 66,
+    "changed_inputs": [],
+    "source_manifest_sha256": "5610cbc3c2f36f2469b72931c8488c0b5939afa71be799a4780a8103076a2c5b",
+    "prepare_log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+    "format_check_exit": 0,
+    "recorder_correction": "Initial private recorder stopped on Path/string hashing error after default54passed. Corrected recorder reuses the exact unchanged source/log/executable; no runtime result was lost or recast."
+  },
+  "guide_correction": "Existing canonical host accepts Local and explicitly addressed Remote with configured WSS; corrected obsolete local-only statement. No new runtime qualification inferred.",
+  "remaining": [
+    "Register upstream canonical action/schema/vectors and current public HTTP/OpenAPI payload contract",
+    "Durable Store original intent/attempt/counter/answer custody and current authority checks",
+    "Guarded restart of the existing Core-reserved RTC physical peer, unchanged media/DTLS/source/gates, generation-specific readiness",
+    "SDK save-before-IO/recovery and exact original answer application",
+    "Distinct-network direct/relay ICE-restart, expiry/stale owner/loss/replay/decoded duplex/cleanup and remaining G6-054 matrix"
+  ],
+  "qualification_limits": [
+    "Existing upstream WebSocket/WHIP restart method is not canonical resource authority.",
+    "Request-shape validation is not SDP parsing, new-credential verification, authorization or media readiness.",
+    "No task completion, acceptance, remote/provider/model execution or publication credit."
+  ],
+  "prepared_G6_073_candidate": {
+    "producer_commit": "852e4528572a535283fd1eb56c06f276458a86c1",
+    "sealed_cli_sha256": "cc4f34787065d99b94b10104193b6a0faa83f8cd45a7ab9b7667a0401732e1b9",
+    "source_root": "/Volumes/D2-2019/Developer/Connect",
+    "status": "Kept unchanged awaiting new direct actual-model authorization; this foundation work is independent."
+  },
+  "private_evidence": ".local/gate-6/ice-restart/"
+}

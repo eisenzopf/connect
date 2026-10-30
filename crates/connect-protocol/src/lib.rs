@@ -35,6 +35,7 @@ pub mod tasks;
 pub mod transitions;
 pub mod user_delegation;
 pub mod video_profile;
+pub mod webrtc_ice_restart;
 pub use discovery::*;
 
 mod media_diagnostics;

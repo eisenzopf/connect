@@ -82,9 +82,19 @@ mapping. VP8 advertises the local 640×360/30 fps capacity, preserving the
 peer's directional receive parameters and negotiated payload IDs.
 
 `max_peers` must be 1–512 and within the server connection limit. The profile
-requires configured WSS and the local network profile; remote addressing and
-ICE/TURN installation remain G6-054 work. Unknown profiles or fields refuse.
+requires configured WSS. Both Local and Remote network profiles can install the
+host; Remote requires explicit media addressing. Public addresses, ICE servers,
+relay policy and protected TURN secret references are described in
+[native network configuration](native-network.md). Installation alone does not
+qualify a remote media route; the remaining G6-054 network, recovery and browser
+quality matrix is still open. Unknown profiles or fields refuse.
 Omitting `[webrtc]` leaves WSS control available without a media host.
+
+ICE restart is not yet installed on the canonical Connection control path. The
+[ICE restart contract](../../contracts/webrtc-ice-restart.md) defines its bounded
+request shape and remaining Store/Core, physical-peer, SDK and HTTP work.
+Recovery must retain the existing Core-reserved peer; the separate upstream
+WebSocket/WHIP signaling routes do not grant authority over canonical resources.
 
 A participant still needs an enrolled signing Device, a verified WebRTC
 Endpoint with the actual media capabilities, current authorization and an
