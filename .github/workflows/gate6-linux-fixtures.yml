@@ -23,6 +23,7 @@ on:
       - 'scripts/lib/source_build_cache.py'
       - 'scripts/tests/test_source_build_cache.py'
       - 'scripts/tests/test_gate6_linux_diagnostics.py'
+      - 'scripts/tests/test_python_*.py'
       - '.github/workflows/gate6-linux-fixtures.yml'
 permissions:
   contents: read
@@ -90,6 +91,7 @@ jobs:
       - name: Bounded synthetic Python helper and SDK regression checks
         run: |
           python3 -m unittest discover -s scripts/tests -p test_python_import_boundary.py
+          python3 -m unittest discover -s scripts/tests -p test_python_component_cohort.py
           python3 sdk/tests/check_python_helper.py --output .local/gate6-python-ci/evidence --types-python "$(command -v python3)"
       - name: Prepare pinned sources and check isolated Python wheel installation
         if: ${{ !cancelled() }}

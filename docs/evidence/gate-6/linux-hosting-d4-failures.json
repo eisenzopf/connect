@@ -1328,5 +1328,155 @@
       }
     },
     "remaining": "Run the same isolated Linux Python3.14 suite. Existing failed local cohorts and Linux HTTP timeouts remain recorded; no full task/acceptance promotion."
+  },
+  "python_http_shared_deadline_cohort": {
+    "change": "Run the same19 independent HTTP tests in two disjoint processes (10/9) under one shared absolute30second budget, including process creation. Individual caller/worker deadlines and the60/30/30/10phase caps are unchanged. Both result inventories and all223 unique functions must complete; every original process group must drain. Missing/overlapping results or a failed sibling cannot pass.",
+    "linux_before": {
+      "run_id": 41084848898,
+      "source_revision": "cb1bcb82e4062058f0552b7de7bbdea7d7d72b5c",
+      "http_seconds": 30.008089802,
+      "http_timed_out": true,
+      "source_frame": "test_python_http.py:70",
+      "unfinished_function": "test_python_http.TypedPythonHttp.test_structured_status_refusals_keep_original_scope_and_actual_problem",
+      "note": "The import improvement alone did not bring this aggregate Linux phase under30seconds. Earlier failures are retained."
+    },
+    "cohort_guards": {
+      "functions_passed": 3,
+      "behaviors": [
+        "both independent children enter before either exits",
+        "a sibling does not renew the absolute deadline and original owners join",
+        "one failed child cannot be hidden by a passing sibling"
+      ]
+    },
+    "local_component": {
+      "passed": true,
+      "functions_passed": 223,
+      "inventories_valid": true,
+      "unittest_counts_match": true,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "0d6736cc854200137405bf4e0735360bdd98a5e01764b33d11ac03007ed5e30c",
+      "timed_out": false,
+      "forced_cleanup": false,
+      "phases": {
+        "core": {
+          "exit_code": 0,
+          "budget_seconds": 60,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 52.69896062510088,
+          "workers": 1,
+          "worker_exit_codes": [
+            0
+          ],
+          "original_processes_joined": true,
+          "groups_drained": true,
+          "log_sha256": "a4664d335a82a2b91bd6b3f9a34a400305511edc61a773458959c1618e7ec3f7"
+        },
+        "http": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 8.062696292065084,
+          "workers": 2,
+          "worker_exit_codes": [
+            0,
+            0
+          ],
+          "original_processes_joined": true,
+          "groups_drained": true,
+          "log_sha256": "6b5108d1e09c33457d661dfa15382161c8b97478dfd07b5462e81e14bd287b8d"
+        },
+        "https": {
+          "exit_code": 0,
+          "budget_seconds": 30,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 3.1045676248613745,
+          "workers": 1,
+          "worker_exit_codes": [
+            0
+          ],
+          "original_processes_joined": true,
+          "groups_drained": true,
+          "log_sha256": "288d8366ed0b3566fa07f7166e20247a48fb30e243a69dbee556aeddadac3f07"
+        },
+        "http-lifetime": {
+          "exit_code": 0,
+          "budget_seconds": 10,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 4.6495046250056475,
+          "workers": 1,
+          "worker_exit_codes": [
+            0
+          ],
+          "original_processes_joined": true,
+          "groups_drained": true,
+          "log_sha256": "aabfc0145e4e76a092f7cb50dcf655204c7e8179aa8adb5dcec84ec39906ae3a"
+        }
+      },
+      "public_type_checks": {
+        "passed": true,
+        "checks": {
+          "positive": {
+            "exit_code": 0,
+            "log_sha256": "3253c7a5a8535995ce0dc8b25611174b1763d2c9ff1bbb0a29e2e90cca3ca91e",
+            "negative_error_codes": []
+          },
+          "negative": {
+            "exit_code": 1,
+            "log_sha256": "efe3feeb0795d04c3db74791bd25260416e6f3990b4348697bf9d6a2d701da66",
+            "negative_error_codes": [
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "attr-defined",
+              "arg-type",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "misc",
+              "attr-defined",
+              "attr-defined",
+              "misc",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type",
+              "arg-type"
+            ]
+          }
+        }
+      }
+    },
+    "development_failures": "The first cohort cleanup probe exposed an unreaped-exited-sibling group query; reaping before probing fixes it and both observed test PIDs were confirmed absent. Cohort02 completed all223 tests but correctly remained failed because the summary still expected an obsolete19-test process. Cohort03 verifies disjoint10/9 counts and passes. No failing cohort is promoted.",
+    "remaining": "Run the isolated Linux3.14 cohort. No G6-054, complete Python SDK or acceptance qualification."
   }
 }

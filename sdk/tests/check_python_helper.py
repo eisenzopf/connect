@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Source-bound Python helper lifecycle and existing isolated SDK regressions."""
 import argparse
+from collections import Counter
+from contextlib import ExitStack
 import datetime
 import hashlib
 import json
@@ -18,6 +20,50 @@ ROOT = Path(__file__).resolve().parents[2]
 def digest(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def bounded_cohort(commands, environment, logs, budget):
+    """Independent process groups share one absolute execution/cleanup clock."""
+    started=time.monotonic();deadline=started+budget;children=[];timed=False;forced=False;survivor=False
+    def alive(child):
+        # Reap exited siblings before probing their process-group liveness.
+        child.poll()
+        try:os.killpg(child.pid,0);return True
+        except ProcessLookupError:return False
+    with ExitStack() as stack:
+        try:
+            for command,log in zip(commands,logs,strict=True):
+                if time.monotonic()>=deadline:
+                    timed=True;break
+                stream=stack.enter_context(log.open('wb'))
+                children.append(subprocess.Popen(command,cwd=ROOT,env=environment,stdout=stream,
+                    stderr=subprocess.STDOUT,start_new_session=True))
+            while any(child.poll() is None for child in children) and time.monotonic()<deadline:
+                time.sleep(min(.01,max(0,deadline-time.monotonic())))
+            timed=timed or time.monotonic()>=deadline
+            survivor=any(alive(child) for child in children)
+        finally:
+            remaining=[child for child in children if alive(child)]
+            for child in remaining:
+                try:os.killpg(child.pid,signal.SIGTERM)
+                except ProcessLookupError:pass
+            until=time.monotonic()+5
+            while any(alive(child) for child in remaining) and time.monotonic()<until:
+                for child in children:child.poll()
+                time.sleep(.01)
+            for child in remaining:
+                if alive(child):
+                    forced=True
+                    try:os.killpg(child.pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+            until=time.monotonic()+5
+            for child in children:child.wait(timeout=max(.001,until-time.monotonic()))
+    codes=[child.returncode for child in children]
+    complete=len(children)==len(commands)
+    return dict(exit_code=next((code for code in codes if code),0) if complete and not survivor else -1,
+        budget_seconds=budget,timed_out=timed,forced_cleanup=forced,seconds=time.monotonic()-started,
+        workers=len(commands),worker_exit_codes=codes,original_processes_joined=all(child.poll() is not None for child in children),
+        groups_drained=all(not alive(child) for child in children))
 
 
 def sources():
@@ -88,7 +134,9 @@ def phase(case):
  if case.__class__.__module__ not in ("test_python_http","test_python_https"):return "core"
  if case._testMethodName in ("test_deadline_and_cancel_close_original_socket_and_keep_uncertain_mutation_key","test_deadline_terminates_and_joins_a_worker_blocked_inside_its_resolver"):return "http-lifetime"
  return "http"
-selected=[case for case in leaves(suite) if phase(case)==sys.argv[1]]
+worker,workers=int(sys.argv[2]),int(sys.argv[3])
+assert workers==(2 if sys.argv[1]=="http" else 1) and 0<=worker<workers
+selected=[case for case in leaves(suite) if phase(case)==sys.argv[1]][worker::workers]
 class RecordingResult(unittest.TextTestResult):
  def __init__(self,*args,**kwargs):super().__init__(*args,**kwargs);self.passed=[]
  def startTest(self,test):
@@ -99,24 +147,17 @@ class RecordingResult(unittest.TextTestResult):
   super().stopTest(test)
  def addSuccess(self,test):super().addSuccess(test);self.passed.append(test.id())
 result=unittest.TextTestRunner(verbosity=2,resultclass=RecordingResult).run(unittest.TestSuite(selected))
-print("connect-python-component-result "+json.dumps({"phase":sys.argv[1],"selected":[t.id() for t in selected],"passed":result.passed,"tests_run":result.testsRun,"failures":len(result.failures),"errors":len(result.errors),"skipped":len(result.skipped)},separators=(",",":")),flush=True)
+print("connect-python-component-result "+json.dumps({"phase":sys.argv[1],"worker":worker,"workers":workers,"selected":[t.id() for t in selected],"passed":result.passed,"tests_run":result.testsRun,"failures":len(result.failures),"errors":len(result.errors),"skipped":len(result.skipped)},separators=(",",":")),flush=True)
 raise SystemExit(not result.wasSuccessful())
 '''
     for label,budget in [('core',60),('http',30),('https',30),('http-lifetime',10)]:
-        phase_started=time.monotonic();phase_timed=False;phase_forced=False
-        with (private/(label+'-tests.log')).open('wb') as stream:
-            child=subprocess.Popen([sys.executable,'-c',run_suite,label],cwd=ROOT,env=environment,
-                                   stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
-            try:child.wait(timeout=budget)
-            except subprocess.TimeoutExpired:
-                phase_timed=True;os.killpg(child.pid,signal.SIGTERM)
-                try:child.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    phase_forced=True;os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=5)
-        phases[label]={'exit_code':child.returncode,'budget_seconds':budget,'timed_out':phase_timed,
-                       'forced_cleanup':phase_forced,'seconds':time.monotonic()-phase_started,
-                       'log_sha256':digest(private/(label+'-tests.log'))}
-        timed=timed or phase_timed;forced=forced or phase_forced
+        workers=2 if label=='http' else 1
+        logs=[private/f'{label}-{worker}-tests.log' for worker in range(workers)]
+        commands=[[sys.executable,'-c',run_suite,label,str(worker),str(workers)] for worker in range(workers)]
+        phases[label]=bounded_cohort(commands,environment,logs,budget)
+        (private/(label+'-tests.log')).write_bytes(b'\n'.join(path.read_bytes() for path in logs if path.exists()))
+        phases[label]['log_sha256']=digest(private/(label+'-tests.log'))
+        timed=timed or phases[label]['timed_out'];forced=forced or phases[label]['forced_cleanup']
     (private/'tests.log').write_bytes(b'\n'.join((private/(label+'-tests.log')).read_bytes() for label in phases))
     log=(private/'tests.log').read_text(errors='replace')
     # A phase killed at its original bound has no final unittest record. Keep
@@ -144,15 +185,19 @@ raise SystemExit(not result.wasSuccessful())
     # debug text. Missing/mismatched inventories cannot become a passing scope.
     records=[json.loads(line.split(' ',1)[1]) for line in log.splitlines()
              if line.startswith('connect-python-component-result ')]
-    inventories=len(records)==4 and {r['phase'] for r in records}==set(phases)
+    expected={(label,worker) for label in phases for worker in range(2 if label=='http' else 1)}
+    inventories=len(records)==len(expected) and {(r['phase'],r['worker']) for r in records}==expected
     for record in records:
-        assert set(record)=={'phase','selected','passed','tests_run','failures','errors','skipped'}
+        assert set(record)=={'phase','worker','workers','selected','passed','tests_run','failures','errors','skipped'}
+        assert record['workers']==(2 if record['phase']=='http' else 1)
         assert len(set(record['selected']))==len(record['selected'])==record['tests_run']
         assert len(set(record['passed']))==len(record['passed'])
         assert set(record['passed']).issubset(record['selected'])
         inventories=inventories and (record['failures']==record['errors']==record['skipped']==0
             and set(record['passed'])==set(record['selected']))
     functions=[name for record in records for name in record['passed']]
+    all_selected=[name for record in records for name in record['selected']]
+    inventories=inventories and len(all_selected)==len(set(all_selected))
     assert all(re.fullmatch(r'[A-Za-z0-9_.]+',name) for name in functions)
     owned=[name for name in functions if '.OwnedSdkHelper.' in name]
     public=[name for name in functions if '.TypedPythonSdk.' in name]
@@ -208,14 +253,16 @@ raise SystemExit(not result.wasSuccessful())
                          and sorted(checks['negative']['negative_error_codes'])==['arg-type']*28+['attr-defined']*9+['misc']*6,
                'checks':checks}
     unchanged=unchanged and sources()==before
+    counts_match=Counter(int(n) for n in re.findall(r'^Ran (\d+) tests in ',log,re.M))==Counter([198,10,9,4,2])
     result={'passed':bool(inventories and all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
                           and len(functions)==223 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==12 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12 and len(data)==12
-                          and re.search(r'^Ran 198 tests in ',log,re.M) and re.search(r'^Ran 19 tests in ',log,re.M) and re.search(r'^Ran 4 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
+                          and counts_match
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':next((phase['exit_code'] for phase in phases.values() if phase['exit_code']),0),'timed_out':timed,'forced_cleanup':forced,'phases':phases,
             'unfinished_functions':unfinished_functions,
+            'inventories_valid':inventories,'unittest_counts_match':counts_match,
             'stalled_task_stacks':stalled_task_stacks,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
