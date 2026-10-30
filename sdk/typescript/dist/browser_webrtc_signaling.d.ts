@@ -9,6 +9,7 @@ export interface WebRtcSignalingOptions {
     expectedRevision: number;
     participantId: string;
     capabilities: JsonObject;
+    purpose?: "handoff-preparation";
     streams: ReadonlyArray<{
         id: string;
         kind: "audio" | "video" | "screen" | "data";

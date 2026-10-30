@@ -245,3 +245,13 @@ test('canonical answer cannot silently omit an original logical video stream',as
     assert.equal(peer.remoteDescription,null);assert.equal(peer.closed,1);assert.equal(client.requests.length,1);
     assert.equal(owner.savedOffer.payload.streams_offered.length,2);assert.equal(owner.savedOffer.scope.operation_id,'original-offer');
 });
+
+test('independent handoff preparation preserves its exact target-owned marker in the saved RTC offer and refuses mixed media',async()=>{
+ const peer=new Peer(),client=new Client(),input={...options(),purpose:'handoff-preparation'};
+ const owner=new CanonicalWebRtcSignaling(client,peer,input);input.purpose='forged';await owner.offer();
+ assert.deepEqual(client.requests[0][1].handoff_preparation,{profile:'connect-handoff-preparation-v1'});
+ assert.equal(owner.savedOffer.payload.handoff_preparation.profile,'connect-handoff-preparation-v1');owner.close();await owner.finished;
+ for(const patch of [{purpose:'forged'},{streams:[{...options().streams[0],kind:'video'}]},{streams:[{...options().streams[0],direction:'recvonly'}]},{streams:[options().streams[0],{...options().streams[0],id:'second'}]}]){
+  const client=new Client();assert.throws(()=>new CanonicalWebRtcSignaling(client,new Peer(),{...options(),purpose:'handoff-preparation',...patch}),{code:'invalid-request'});assert.equal(client.requests.length,0);
+ }
+});

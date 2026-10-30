@@ -126,6 +126,15 @@ fn handoff_lifetime_unknown_submission_denies_packets_without_claiming_physical_
             .code,
         "handoff-pending"
     );
+    assert_eq!(
+        f.store
+            .try_native_connection_current(&sources[1])
+            .err()
+            .unwrap()
+            .code,
+        "handoff-pending",
+        "the idle custodian must distinguish pending attribution from retirement",
+    );
     f.store.native_handoff_uncertain(attempt).unwrap();
     assert_eq!(
         f.store
@@ -134,6 +143,15 @@ fn handoff_lifetime_unknown_submission_denies_packets_without_claiming_physical_
             .unwrap()
             .code,
         "handoff-pending"
+    );
+    assert_eq!(
+        f.store
+            .try_native_connection_current(&sources[2])
+            .err()
+            .unwrap()
+            .code,
+        "handoff-pending",
+        "unknown attribution still grants no positive lifetime observation or IO",
     );
     let state: String = f
         .store

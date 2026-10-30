@@ -182,7 +182,11 @@ impl Runtime {
                             match ready.current() {
                                 Ok(()) => {}
                                 Err(e) if e.code == "authority-busy" => continue,
-                                Err(_) => break,
+                                Err(error) => {
+                                    tracing::debug!(target: "connect_service::canonical_webrtc::ready",
+                                        connection=?owned.id, code=%error.code, "RTC idle observation retired original media");
+                                    break;
+                                }
                             }
                             // Project the latest durable Session role under its
                             // own bounded current read; no offer reader survives

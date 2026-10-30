@@ -1326,6 +1326,11 @@
       "path": "patches/rvoip/gate6-native-gate-preflight-refusals.patch",
       "source": "G6-061 distinguish native gate admission blocked by an in-progress negotiation from a captured expected/current stream revision conflict. No implicit control retry or engine effect; signed QUIC/WT tests hold a real replacement negotiation, verify both refusals leave the current revision unchanged, then submit a distinct current-revision recovery intent. Historical ambiguous Screen trace is retained separately.",
       "sha256": "359ddc65a8eb3dd29b133d8a1cf214270b68db4ccc80e3b6b2f73231f547f17b"
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-source-preflight.patch",
+      "source": "G6-061 read-only exact subscription source validation before durable attempt start. Share logical participant owner/epoch and wildcard semantics with actual commit; validate opaque current binding snapshots without ports, quiescence, mutation or media grants. Final current authorization remains mandatory.",
+      "sha256": "6ba2e57a32d69a0fb1b9deceda7a2eda5bdc956da504be2647b02c303adec308"
     }
   ]
 }

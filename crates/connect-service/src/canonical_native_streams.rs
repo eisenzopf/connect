@@ -406,6 +406,12 @@ impl Runtime {
                     store.validate_native_subscription_sources_with_peer(&credential, p, &kinds)?;
                 }
             }
+            if let Plan::Subscriptions(subscription) = &plan {
+                preflight_stage = "source-authorization";
+                self.media.preflight_subscription_sources(
+                    &self.core, a.clone(), &id, subscription.selection(), preflight_deadline,
+                )?;
+            }
             if let Some(media) = plan.media() {
                 preflight_stage = "bind-plan";
                 crate::peer_authority::bind_native_stream_plan(&a, media, physical.binding.transport())?;

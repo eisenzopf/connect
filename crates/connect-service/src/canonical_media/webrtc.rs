@@ -53,7 +53,6 @@ impl RtcInvocation {
             || self.read.target().endpoint_transport
                 != connect_protocol::provisioning::EndpointTransport::Webrtc
             || self.read.target().private_consultation.is_some()
-            || self.read.target().handoff_preparation
             || self.connection.origin.runtime_connection_id()
                 != self.read.target().runtime_connection_id
         {
@@ -87,6 +86,29 @@ impl RtcInvocation {
                     .selected()
                     .iter()
                     .map(|s| &s.requested)) => {}
+            MediaControlIntent::Gate {
+                expected,
+                streams,
+                action,
+            } if self.read.target().handoff_preparation
+                && *expected == 1
+                && *action == rvoip_core::stream_lifecycle::StreamGateAction::Mute
+                && self.connection.plan.selected().len() == 1
+                && self.connection.plan.selected()[0].requested.medium == Medium::Audio
+                && **streams
+                    == self
+                        .connection
+                        .plan
+                        .selected()
+                        .iter()
+                        .map(|s| s.requested.logical_id.clone())
+                        .collect::<BTreeSet<_>>() => {}
+            MediaControlIntent::PreparePrivateAudio {
+                operation,
+                expected,
+            } if self.read.target().handoff_preparation
+                && *expected == 2
+                && *operation == self.connection.origin.offer_record_id() => {}
             _ => return Err(StreamControlError::Authority),
         }
         MediaControl::new(

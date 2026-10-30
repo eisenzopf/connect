@@ -822,7 +822,7 @@ impl Store {
             .ok_or_else(Error::forbidden)?;
         let projected = self.validate_native_stream_attempt(credential, proof, lease)?;
         let c = self.try_connection()?;
-        self.native_stream_media_read_at(&c, target, source, proof, lease, &projected)
+        self.native_stream_media_read_at(&c, target, source, proof, lease.expires_at(), &projected)
     }
     fn native_stream_media_read_at(
         &self,
@@ -830,7 +830,7 @@ impl Store {
         target: &NativeMediaOrigin,
         source: Option<&NativeMediaOrigin>,
         proof: &PeerAuthorityGuard,
-        lease: &crate::NativeStreamLease,
+        command_expires_at: i64,
         projected: &crate::NativeStreamProjection,
     ) -> Result<NativeMediaRead> {
         let credential = proof
@@ -842,14 +842,13 @@ impl Store {
         let (target_view, source_view, scopes, expires_at) = views(self, c, target, source)?;
         if projected.connection.runtime_connection_id != target_view.runtime_connection_id
             || projected.connection.connection != target_view.connection
-            || target_view.runtime_connection_id != lease.runtime_connection_id()
-            || target_view.connection.generation != lease.generation()
+            || projected.connection.connection.generation != target_view.connection.generation
             || !self.authority_covers(&proof._scopes, &scopes)
         {
             return Err(Error::forbidden());
         }
         let owner = current_owner(self, target)?;
-        let expires_at = expires_at.min(proof.expires_at()).min(lease.expires_at());
+        let expires_at = expires_at.min(proof.expires_at()).min(command_expires_at);
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
@@ -861,6 +860,53 @@ impl Store {
             expires_at,
             may_subscribe: subscription_permission(c, target)?,
         })
+    }
+    /// Source privacy preflight under the accepted command's original readers.
+    /// No durable attempt or IO authority is created by this bounded capture.
+    pub fn native_stream_preflight_media_reads_with_peer(
+        &self,
+        target: &NativeMediaOrigin,
+        sources: &[&NativeMediaOrigin],
+        proof: &PeerAuthorityGuard,
+    ) -> Result<(NativeMediaRead, Vec<Option<NativeMediaRead>>)> {
+        if sources.len() > self.limits.connections {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Native metadata scene exceeds Connection limit",
+            ));
+        }
+        let credential = proof
+            .request
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?;
+        let c = self.try_connection()?;
+        let (projected, expires) =
+            self.validate_native_stream_preflight_at(&c, credential, proof)?;
+        let target_read =
+            self.native_stream_media_read_at(&c, target, None, proof, expires, &projected)?;
+        let reads = sources
+            .iter()
+            .map(|source| {
+                match self.native_stream_media_read_at(
+                    &c,
+                    target,
+                    Some(source),
+                    proof,
+                    expires,
+                    &projected,
+                ) {
+                    Ok(read) => Ok(Some(read)),
+                    Err(error) if error.code == "forbidden" => Ok(None),
+                    Err(error) => Err(error),
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
+        self.validate_native_stream_preflight_at(&c, credential, proof)?;
+        if !target_read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok((target_read, reads))
     }
     /// Capture one bounded command's current native target/source metadata under
     /// one Store connection interval. No Core call, IO or new authority reader
@@ -886,8 +932,14 @@ impl Store {
             .ok_or_else(Error::forbidden)?;
         let c = self.try_connection()?;
         let projected = self.validate_native_stream_attempt_at(&c, credential, proof, lease)?;
-        let target_read =
-            self.native_stream_media_read_at(&c, target, None, proof, lease, &projected)?;
+        let target_read = self.native_stream_media_read_at(
+            &c,
+            target,
+            None,
+            proof,
+            lease.expires_at(),
+            &projected,
+        )?;
         let reads = sources
             .iter()
             .map(|source| {
@@ -896,7 +948,7 @@ impl Store {
                     target,
                     Some(source),
                     proof,
-                    lease,
+                    lease.expires_at(),
                     &projected,
                 ) {
                     Ok(read) => Ok(Some(read)),

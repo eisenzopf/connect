@@ -933,10 +933,20 @@ confirms the muted preparation; malformed confirmation closes that peer.
 covers the exact receipt checks.
 A copied source offer record is refused before a handoff effect starts.
 
-This independent preparation currently supports WebTransport. The selected
-WSS/WebRTC path returns `unsupported` / `not-submitted` with the caller's original
-operation ID before snapshot IO, RTC allocation or mutation submission. Successful
-WebRTC preparation and handoff remain open implementation work.
+Independent preparation supports WebTransport and WSS/WebRTC. Both paths
+keep the target isolated and reject public/prepared subscriptions before a media
+attempt starts; public duplex audio continues. See the
+[prepared-source privacy evidence](../evidence/gate-6/browser-sdk-webrtc-handoff.json).
+
+The same owned local workflow also completes handoff over both paths, retires
+the outgoing capture, preserves the remote Connection and decodes duplex audio.
+A previous WSS failure came from treating `handoff-pending` metadata as physical
+retirement. The idle custodian now retains the original RTC owner during
+attribution; fresh packet policy continues to deny IO until attribution is
+available. Observation and decoded audio then resume on the same resources.
+The evidence retains the failing runs, direct pending/resumed diagnostics and
+passing normal cohort. Current stream revision refresh after audience changes,
+consultation/return, device movement and full task qualification remain open.
 
 ```ts
 const handingOff = await session.handoff({
@@ -1121,9 +1131,10 @@ Screen-resume branch cannot be recovered from the old trace.
 [Explicit gate refusal and recovery evidence](../evidence/gate-6/browser-sdk-gate-refusals.json)
 now distinguishes busy negotiation from captured revision conflicts and verifies
 original-receipt recovery followed by a new decoded Screen resume. G6-061 stays in
-progress; the verified WebTransport handoff covers one live movement workflow.
-Full runtime parity, browser consultation/return, device movement and successful
-WebRTC handoff require additional implementation and evidence.
+progress; the verified WT/WSS handoff covers this bounded local movement workflow.
+Full runtime parity, browser consultation/return, device movement and current stream
+revision refresh after audience changes require additional implementation and
+evidence.
 
 ## Bounded owned shutdown
 

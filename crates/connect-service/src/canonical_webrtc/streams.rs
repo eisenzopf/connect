@@ -345,6 +345,15 @@ impl Runtime {
                             .collect::<Vec<_>>(),
                     )?;
                 }
+                if let Some(Plan::RtcSubscriptions(subscription)) = &plan {
+                    self.media.preflight_subscription_sources(
+                        &self.core,
+                        a.clone(),
+                        &id,
+                        subscription,
+                        cutoff,
+                    )?;
+                }
                 let sid = SessionId::from_string(source.connection.connection.session_id.clone());
                 Ok((id, plan, sid))
             })

@@ -1,0 +1,220 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+@@ -142,14 +142,42 @@
+         scope: &MediaScope<'_>,
+         control: Option<&MediaControl>,
+     ) -> ControlResult<Vec<ControlRead>> {
+-        let mut leases = Vec::new();
++        self.check_requested_sources(members, |descriptor| {
++            let lease = match control {
++                Some(control) => {
++                    control.valid()?;
++                    control
++                        .lease
++                        .control_participant_receive(descriptor)
++                        .map(ControlRead::Held)
++                }
++                None => target
++                    .policy
++                    .current_participant_receive(scope, descriptor)
++                    .map(ControlRead::Current),
++            }?;
++            StreamController::check(scope, lease.authority())?;
++            if !lease.authority().may_route_source
++                || !lease.authority().send_media.contains(&descriptor.medium)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            Ok(lease)
++        })
++    }
++    // Both read-only planning and the actual commit use these exact logical
++    // owner/epoch witnesses and wildcard Unsupported semantics.
++    pub(super) fn check_requested_sources<T>(
++        &self,
++        members: &HashMap<ConnectionId, SceneMember>,
++        mut check: impl FnMut(&MediaParticipantSource) -> ControlResult<T>,
++    ) -> ControlResult<Vec<T>> {
++        let mut checked = Vec::new();
+         for request in &self.requested {
+-            let Some(source) = members
++            let source = members
+                 .values()
+                 .find(|s| request.matches(&s.controller) && !s.controller.shutdown.is_cancelled())
+-            else {
+-                return Err(StreamControlError::NotReady);
+-            };
++                .ok_or(StreamControlError::NotReady)?;
+             let credential = source.controller.credential_snapshot();
+             source.controller.check_credential_snapshot(&credential)?;
+             if source.controller.shutdown.is_cancelled()
+@@ -158,7 +186,7 @@
+             {
+                 return Err(StreamControlError::Authority);
+             }
+-            let before = leases.len();
++            let before = checked.len();
+             for medium in &request.media {
+                 let descriptor = MediaParticipantSource {
+                     conversation: source.controller.conversation.clone(),
+@@ -170,31 +198,17 @@
+                     principal: credential.principal.clone(),
+                     medium: *medium,
+                 };
+-                let lease = match control {
+-                    Some(control) => {
+-                        control.valid()?;
+-                        control.lease.control_participant_receive(&descriptor).map(ControlRead::Held)
+-                    }
+-                    None => target.policy.current_participant_receive(scope, &descriptor).map(ControlRead::Current),
+-                };
+-                let lease = match lease {
+-                    Ok(lease) => lease,
++                match check(&descriptor) {
++                    Ok(value) => checked.push(value),
+                     Err(StreamControlError::Unsupported) if request.wildcard => continue,
+                     Err(error) => return Err(error),
+-                };
+-                StreamController::check(scope, lease.authority())?;
+-                if !lease.authority().may_route_source
+-                    || !lease.authority().send_media.contains(medium)
+-                {
+-                    return Err(StreamControlError::Authority);
+                 }
+-                leases.push(lease);
+-            }
+-            if leases.len() == before {
++            }
++            if checked.len() == before {
+                 return Err(StreamControlError::Unsupported);
+             }
+         }
+-        Ok(leases)
++        Ok(checked)
+     }
+     pub(super) fn lock<'a>(
+         &'a self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -89,6 +89,83 @@
+     }
+ }
+ impl GuardedMediaScene {
++    /// Check only scene-issued source metadata. This cannot acquire ports,
++    /// quiesce delivery, install intent or mint a media-control grant. Callers
++    /// must repeat current authorization during the actual commit.
++    pub(crate) fn validate_selection_sources(
++        &self,
++        target_id: &ConnectionId,
++        plan: &MediaSubscriptionPlan,
++        mut receive: impl FnMut(&MediaSource, Medium) -> ControlResult<()>,
++        participant: impl FnMut(&MediaParticipantSource) -> ControlResult<()>,
++    ) -> ControlResult<()> {
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?;
++        let target = members.get(target_id).ok_or(StreamControlError::NotReady)?;
++        {
++            let state = target
++                .controller
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?;
++            if state.closed || state.model.revision() != plan.expected {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++        }
++        if let Some(selection) = &plan.change.selection {
++            selection.validate_scope(self, &target.controller, plan.expected)?;
++            selection.check_requested_sources(&members, participant)?;
++        }
++        for snapshot in &plan.sources {
++            let publisher = snapshot
++                .publisher
++                .upgrade()
++                .ok_or(StreamControlError::NotReady)?;
++            if !members
++                .get(&publisher.connection)
++                .is_some_and(|m| Arc::ptr_eq(&m.controller, &publisher))
++                || publisher.shutdown.is_cancelled()
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let credential = publisher.credential_snapshot();
++            publisher.check_credential_snapshot(&credential)?;
++            let state = publisher
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?;
++            let binding = &snapshot.binding;
++            let logical = &binding.negotiated.requested.logical_id;
++            if state.closed
++                || !state
++                    .active
++                    .get(logical)
++                    .is_some_and(|p| same_binding(&p.binding, binding))
++                || !state
++                    .model
++                    .streams()
++                    .get(logical)
++                    .is_some_and(|s| s.state != LogicalStreamState::Ended)
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let descriptor = MediaSource {
++                conversation: publisher.conversation.clone(),
++                session: publisher.session.clone(),
++                connection: publisher.connection.clone(),
++                participant: publisher.origin_member.participant().clone(),
++                membership_epoch: publisher.origin_member.epoch(),
++                connection_generation: binding.connection_generation,
++                logical_id: logical.clone(),
++                transport_id: binding.transport_id.clone(),
++                stream_generation: binding.generation,
++            };
++            receive(&descriptor, binding.negotiated.requested.medium)?;
++        }
++        Ok(())
++    }
+     pub(crate) fn plan_selection(
+         &self,
+         target_id: &ConnectionId,
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -569,6 +569,35 @@
+             }
+         }
+         Ok(scene.plan_selection(connection, expected, input)?)
++    }
++    /// Read-only validation of opaque planned source bindings. The callbacks
++    /// return no IO grant; actual subscription commit still reauthorizes.
++    pub fn validate_staged_media_selection_sources(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++        plan: &crate::staged_streams::subscription_plan::MediaSubscriptionPlan,
++        receive: impl FnMut(
++            &crate::staged_streams::MediaSource,
++            crate::stream_lifecycle::Medium,
++        ) -> crate::staged_streams::ControlResult<()>,
++        participant: impl FnMut(
++            &crate::staged_streams::MediaParticipantSource,
++        ) -> crate::staged_streams::ControlResult<()>,
++    ) -> ControlResult<()> {
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || !state.routes.contains_key(connection) {
++                return Err(ParticipantTransitionError::Inactive.into());
++            }
++        }
++        Ok(scene.validate_selection_sources(connection, plan, receive, participant)?)
+     }
+     /// Plan exact sources onto one existing compatible direct sink per medium.
+     /// No ports or directions are added. Future non-audio participant selectors

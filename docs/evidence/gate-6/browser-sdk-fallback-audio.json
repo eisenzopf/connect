@@ -585,5 +585,14 @@
     "in_progress": 2,
     "not_started": 38,
     "acceptance_qualified": 0
+  },
+  "followups": {
+    "independent-preparation-and-source-privacy": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-webrtc-handoff.json",
+      "isolated_wss_preparation_verified": true,
+      "source_privacy_verified": true,
+      "bounded_wss_handoff_verified": true,
+      "full_task_complete": false
+    }
   }
 }

@@ -173,8 +173,14 @@ impl Store {
         // queue on command SQL or acquire a new reader behind a queued writer.
         snapshot::current_under(self, &proof._scopes, |c| {
             let projected = self.validate_native_stream_attempt_at(c, credential, proof, lease)?;
-            let media =
-                self.native_stream_media_read_at(c, source, None, proof, lease, &projected)?;
+            let media = self.native_stream_media_read_at(
+                c,
+                source,
+                None,
+                proof,
+                lease.expires_at(),
+                &projected,
+            )?;
             let (scopes, expires_at) = facts(self, c, source, source, false, wire)?;
             Ok((
                 NativeDataRead {

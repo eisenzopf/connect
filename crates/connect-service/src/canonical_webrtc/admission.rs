@@ -38,17 +38,28 @@ impl NativeOfferRuntimeObservation for Ready {
 }
 impl Ready {
     fn observe_resources(&self, original_revision: bool) -> Result<NativeOfferObservation> {
-        if self.physical.lifetime.is_cancelled()
-            || self.runtime.stop.is_cancelled()
-            || self.peer.is_closed()
+        let physical_closed = self.physical.lifetime.is_cancelled();
+        let runtime_stopped = self.runtime.stop.is_cancelled();
+        let peer_closed = self.peer.is_closed();
+        let revision = self.controller.revision();
+        let bindings = self.controller.active_bindings();
+        let bindings_match = same_bindings(&bindings, &self.bindings);
+        let generation = self.activation.confirmed_generation();
+        if physical_closed
+            || runtime_stopped
+            || peer_closed
             || (if original_revision {
-                self.controller.revision() != self.expected.stream_revision
+                revision != self.expected.stream_revision
             } else {
-                self.controller.revision() < self.expected.stream_revision
+                revision < self.expected.stream_revision
             })
-            || !same_bindings(&self.controller.active_bindings(), &self.bindings)
-            || self.activation.confirmed_generation() != Some(self.expected.generation)
+            || !bindings_match
+            || generation != Some(self.expected.generation)
         {
+            tracing::debug!(target: "connect_service::canonical_webrtc::ready", connection=%self.expected.runtime_connection_id,
+                original_revision, physical_closed, runtime_stopped, peer_closed, revision,
+                expected_revision=self.expected.stream_revision, bindings_match, binding_count=bindings.len(),
+                ?generation, expected_generation=self.expected.generation, "RTC original resource observation refused");
             return Err(Error::forbidden());
         }
         let owner = self
@@ -83,6 +94,11 @@ impl Ready {
                 self.expected.participant_id.clone(),
             ))
         {
+            tracing::debug!(target: "connect_service::canonical_webrtc::ready", connection=%self.expected.runtime_connection_id,
+                original_revision, expected_participant=%self.expected.participant_id,
+                connection_present=session.connections.contains_key(&ConnectionId::from_string(self.expected.runtime_connection_id.clone())),
+                participant_present=session.participants.contains(&ParticipantId::from_string(self.expected.participant_id.clone())),
+                "RTC original Session observation refused");
             return Err(Error::forbidden());
         }
         Ok(NativeOfferObservation::Ready(self.expected.clone()))
@@ -209,13 +225,18 @@ impl Runtime {
             .min(Instant::now() + source_remaining)
             .min(Instant::now() + Duration::from_secs(5));
         let sid = SessionId::from_string(entry.origin.session_id().to_owned());
+        let handoff_preparation = read.target().handoff_preparation;
         let mut invocation = RtcInvocation {
             policy: self.media.clone(),
             connection: entry.clone(),
             proof,
             read,
             peer: peer.clone(),
-            operation: attempt.original_attempt().operation_id().into(),
+            operation: if handoff_preparation {
+                entry.origin.offer_record_id().into()
+            } else {
+                attempt.original_attempt().operation_id().into()
+            },
             correlation: owned.correlation.clone().ok_or_else(Error::forbidden)?,
             participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
             cancel: physical.lifetime.child_token(),
@@ -233,6 +254,23 @@ impl Runtime {
             )
             .await
             .map_err(denied)?;
+        if handoff_preparation {
+            controller
+                .set_media_gate_with_held(
+                    1,
+                    &entry
+                        .plan
+                        .selected()
+                        .iter()
+                        .map(|s| s.requested.logical_id.clone())
+                        .collect(),
+                    rvoip_core::stream_lifecycle::StreamGateAction::Mute,
+                    deadline,
+                    Arc::new(invocation.clone()),
+                )
+                .await
+                .map_err(denied)?;
+        }
         let mut admitted = None;
         for _ in 0..8 {
             invocation.participant_revision =
@@ -249,10 +287,32 @@ impl Runtime {
                     )),
                 },
             };
-            match self.core.admit_peer_session_connection_with_held(
-                peer.clone(), &sid, entry.principal.clone(), mutation, deadline,
-                invocation.cancel.child_token(), &invocation,
-            ).await {
+            let result = if handoff_preparation {
+                self.core
+                    .admit_private_peer_session_connection_with_held(
+                        peer.clone(),
+                        &sid,
+                        entry.principal.clone(),
+                        mutation,
+                        deadline,
+                        invocation.cancel.child_token(),
+                        &invocation,
+                    )
+                    .await
+            } else {
+                self.core
+                    .admit_peer_session_connection_with_held(
+                        peer.clone(),
+                        &sid,
+                        entry.principal.clone(),
+                        mutation,
+                        deadline,
+                        invocation.cancel.child_token(),
+                        &invocation,
+                    )
+                    .await
+            };
+            match result {
                 Ok(receipt)=>{admitted=Some(receipt);break;},
                 Err(rvoip_core::orchestrator::participant_control::ParticipantControlError::Transition(
                     rvoip_core::participant_transitions::ParticipantTransitionError::Conflict))=>continue,
@@ -291,7 +351,7 @@ impl Runtime {
             controller: controller.clone(),
             expected: NativeReadyObservation {
                 private_consultation: None,
-                handoff_preparation: false,
+                handoff_preparation,
                 conversation_id: entry.origin.conversation_id().into(),
                 session_id: entry.origin.session_id().into(),
                 runtime_connection_id: id.as_str().into(),
@@ -331,6 +391,9 @@ impl Runtime {
         }
         // All newly acquired readers disappear here, before idle monitoring.
         drop(invocation);
+        if handoff_preparation {
+            self.queue_handoff_preparation(entry, ready.physical.lifetime.clone());
+        }
         Ok(ready)
     }
 }

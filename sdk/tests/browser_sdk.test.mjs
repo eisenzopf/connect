@@ -233,9 +233,3 @@ for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} handoff prep
  for(const patch of [{purpose:'forged'},{streams:one(video)},{streams:{first:audio,rest:[video]}},{streams:one({...audio,direction:'recvonly'})}])await assert.rejects(()=>session.connections.offer({connectionId:id('prepared'),purpose:'handoff-preparation',streams:one(audio),...patch},{...opts,operationId:id('prepare-original')}),{kind:'validation',certainty:'not-submitted'});
  assert.equal(f.sent.length,before);
 },{path}));
-
-test('known unsupported RTC handoff preparation refuses with its own ID before snapshot, allocation or mutation',()=>scenario(async({client,f})=>{
- const session=client.conversations.byId(id('room')).sessions.byId(id('session')),before=f.sent.length;
- for(let attempt=0;attempt<2;attempt++)await assert.rejects(()=>session.connections.offer({connectionId:id('prepared'),purpose:'handoff-preparation',streams:one({id:id('audio'),kind:'audio',direction:'sendrecv',codecs:one('opus')})},{...opts,operationId:id('prepare-original')}),{kind:'unsupported',certainty:'not-submitted',operation:{operationId:'prepare-original',command:'connection.offer',scope:{conversationId:'room',sessionId:'session',connectionId:'prepared'}}});
- assert.equal(f.sent.length,before,'refusal releases the local reservation and performs no control IO');
-}));

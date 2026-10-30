@@ -66,6 +66,17 @@ impl Store {
         let c = self.try_connection()?;
         self.telephone_native_pair_in(&c, telephone, native, read)
     }
+    /// Read-only preflight shares the accepted stream command's source readers.
+    pub fn telephone_native_stream_preflight_read_with_peer(
+        &self,
+        telephone: Arc<TelephoneMediaOrigin>,
+        native: &Arc<crate::NativeMediaOrigin>,
+        proof: &crate::PeerAuthorityGuard,
+    ) -> Result<TelephoneNativeMediaRead> {
+        let (read, _) = self.native_stream_preflight_media_reads_with_peer(native, &[], proof)?;
+        let c = self.try_connection()?;
+        self.telephone_native_pair_in(&c, telephone, native, read)
+    }
     fn telephone_native_pair_in(
         &self,
         c: &Connection,

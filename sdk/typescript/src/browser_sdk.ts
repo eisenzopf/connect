@@ -2472,12 +2472,6 @@ export class BrowserSession {
                 | undefined;
             try {
                 if (peer.controlTransport === "websocket") {
-                    if (input.purpose !== undefined)
-                        throw new BrowserSdkError(
-                            "unsupported",
-                            "not-submitted",
-                            key,
-                        );
                     if (
                         !low.audio ||
                         low.data?.length ||

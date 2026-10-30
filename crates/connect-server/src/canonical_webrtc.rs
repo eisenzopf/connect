@@ -378,6 +378,7 @@ async fn worker(
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
         state.send_replace(State::Answered(answer.clone()));
         let mut interval=tokio::time::interval(Duration::from_millis(50));interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut handoff_deferred = false;
         loop {
             tokio::select! {
                 biased;
@@ -386,7 +387,23 @@ async fn worker(
                 _=interval.tick()=>{
                     // No domain reader is retained across this idle wait.
                     match store.try_native_connection_current(&origin) {
-                        Ok(true)=>{},
+                        Ok(true)=>{
+                            if handoff_deferred {
+                                tracing::debug!(connection=origin.connection_id(),"RTC original lifetime observation resumed after handoff attribution");
+                                handoff_deferred = false;
+                            }
+                        },
+                        Err(error) if error.code == "handoff-pending" => {
+                            // This exact original route is temporarily unreadable
+                            // between durable start and attributed handoff outcome.
+                            // Retain custody; fresh packet policy still refuses IO.
+                            // A pending observation is not proof of retirement.
+                            if !handoff_deferred {
+                                tracing::debug!(connection=origin.connection_id(),"RTC original lifetime retained during pending handoff attribution");
+                                handoff_deferred = true;
+                            }
+                            continue;
+                        },
                         Err(error) if matches!(error.code.as_str(),"authority-busy"|"storage-unavailable")=>continue,
                         _=>return Err(Error::forbidden()),
                     }

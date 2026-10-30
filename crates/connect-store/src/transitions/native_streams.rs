@@ -565,6 +565,39 @@ impl Store {
         let c = self.connection()?;
         self.validate_native_stream_attempt_at(&c, credential, proof, lease)
     }
+    /// Read-only source planning for the exact accepted command. This does not
+    /// mint an attempt lease or allow any media effect.
+    pub(crate) fn validate_native_stream_preflight_at(
+        &self,
+        c: &Connection,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+    ) -> Result<(crate::NativeStreamProjection, i64)> {
+        let row = checked_row(c, self, credential, proof)?;
+        let expires = row.record.expires_at.ok_or_else(Error::storage)?;
+        if row.record.state != OperationState::Accepted
+            || row.record.cancel_requested
+            || crate::now() >= expires
+        {
+            return Err(Error::forbidden());
+        }
+        let actor = actor_from_connection(c, credential)?;
+        let source = self.native_stream_projection_at(c, &actor, proof)?;
+        let exact: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM native_stream_operations WHERE operation_record_id=?1 AND parent_record_id=?2 AND credential_id=?3 AND key_id=?4 AND device_id=?5 AND generation=?6 AND source_expires_at>?7 AND effect_started=0 AND effect_id IS NULL AND attempt_id IS NULL AND closed=0)",
+            params![row.record.record_id, source.parent_record_id, credential, proof.request.key_id, proof.key.device_id, source.connection.connection.generation, crate::now()],
+            |r| r.get(0),
+        ).map_err(|_| Error::storage())?;
+        if !exact
+            || intent(proof)?
+                .expected_revision
+                .is_some_and(|r| r != source.stream_revision)
+        {
+            return Err(conflict());
+        }
+        self.require_peer_source(c, proof, credential)?;
+        Ok((source, expires))
+    }
     pub(crate) fn validate_native_stream_attempt_at(
         &self,
         c: &Connection,

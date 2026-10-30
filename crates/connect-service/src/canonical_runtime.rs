@@ -133,14 +133,54 @@ impl Runtime {
     pub(crate) fn native_adapters(&self) -> [Arc<CanonicalNativeAdapter>; 2] {
         [self.quic_native.clone(), self.webtransport_native.clone()]
     }
+    pub(crate) fn connection_media_controller(
+        &self,
+        id: &rvoip_core::ids::ConnectionId,
+    ) -> Result<Arc<rvoip_core::staged_streams::StreamController>> {
+        use rvoip_core::adapter::ConnectionAdapter;
+        if self
+            .core
+            .connection_transport(id)
+            .map_err(|_| Error::forbidden())?
+            == rvoip_core::Transport::WebRtc
+        {
+            self.webrtc
+                .get()
+                .and_then(|host| host.adapter().staged_controller(id))
+                .ok_or_else(Error::forbidden)
+        } else {
+            self.connection_native_adapter(id)?
+                .staged_controller(id)
+                .ok_or_else(Error::forbidden)
+        }
+    }
     pub(crate) fn observe_native_audio_audience_commit(
         &self,
         id: &rvoip_core::ids::ConnectionId,
         commit: &rvoip_core::staged_streams::audience::AudioAudienceCommit,
     ) -> Result<()> {
-        self.connection_native_adapter(id)?
-            .observe_audio_audience_commit(id, commit)
-            .map_err(|_| Error::forbidden())
+        if self
+            .core
+            .connection_transport(id)
+            .map_err(|_| Error::forbidden())?
+            == rvoip_core::Transport::WebRtc
+        {
+            // RTC activation retains exact live resources without a native
+            // counteroffer revision. Validate this actual controller's opaque
+            // commit; no metadata scalar supplies authority or readiness.
+            let controller = self.connection_media_controller(id)?;
+            let (_, revision) = commit
+                .revisions_for(&controller)
+                .map_err(|_| Error::forbidden())?;
+            if controller.revision() != revision {
+                return Err(Error::forbidden());
+            }
+            Ok(())
+        } else {
+            self.connection_native_adapter(id)?
+                .observe_audio_audience_commit(id, commit)
+                .map_err(|_| Error::forbidden())
+        }
     }
     pub(crate) fn native_connection_live(&self, id: &rvoip_core::ids::ConnectionId) -> bool {
         use rvoip_core::adapter::ConnectionAdapter;

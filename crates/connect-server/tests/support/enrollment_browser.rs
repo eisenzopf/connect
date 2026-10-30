@@ -304,7 +304,7 @@ pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase
     let input = h.f.temp.path().join(format!("browser-{phase}.json"));
     std::fs::write(
         &input,
-        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser" || phase=="handoff-browser" || phase=="audio-browser","typed_media_ui":phase=="typed-browser"})).unwrap(),
+        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser" || phase=="handoff-browser" || phase=="audio-browser" || phase=="privacy-browser","typed_media_ui":phase=="typed-browser"})).unwrap(),
     )
     .unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))

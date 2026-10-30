@@ -1,7 +1,6 @@
 //! Owned target preparation: actual decode-only input and guarded local output.
 use crate::{canonical_media::Connection, canonical_runtime::Runtime};
 use rvoip_core::{
-    adapter::ConnectionAdapter,
     ids::{ConnectionId, SessionId},
     staged_streams::local_audio::LocalAudioPurpose,
     stream_lifecycle::{MediaFormat, Medium},
@@ -53,10 +52,7 @@ impl Runtime {
             let Ok(preparation) = entry.preparation() else {
                 return;
             };
-            let Ok(native) = runtime.connection_native_adapter(&id) else {
-                return;
-            };
-            let Some(controller) = native.staged_controller(&id) else {
+            let Ok(controller) = runtime.connection_media_controller(&id) else {
                 return;
             };
             let bindings = controller.active_bindings();

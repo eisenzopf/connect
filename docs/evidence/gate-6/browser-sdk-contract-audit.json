@@ -493,6 +493,12 @@
       "evidence": "docs/evidence/gate-6/browser-sdk-fallback-audio.json",
       "supported_case_verified": true,
       "full_task_complete": false
+    },
+    "prepared-source-refusal-before-effect": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-webrtc-handoff.json",
+      "supported_case_verified": true,
+      "full_task_complete": false,
+      "open": "authoritative stream revision refresh, consultation/return, device movement and full audit"
     }
   }
 }

@@ -365,6 +365,13 @@
       "evidence": "docs/evidence/gate-6/browser-sdk-fallback-audio.json",
       "meaning": "The earlier zero-output WSS probe is resolved: Chrome received RTP but emitted no decoded samples when its remote receiver was connected only to Web Audio. An owned muted HTML audio element starts RTC decoding; the Web Audio graph retains audible volume and presentation control.",
       "successful_wss_handoff": false
+    },
+    "independent-preparation-and-source-privacy": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-webrtc-handoff.json",
+      "isolated_wss_preparation_verified": true,
+      "source_privacy_verified": true,
+      "bounded_wss_handoff_verified": true,
+      "full_task_complete": false
     }
   }
 }

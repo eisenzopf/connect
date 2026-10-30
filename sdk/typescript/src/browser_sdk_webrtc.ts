@@ -153,6 +153,7 @@ export class BrowserRtcConnection {
                 connectionId: input.connectionId,
                 operationId: input.operationId,
                 expectedRevision: 0,
+                purpose: input.purpose,
                 participantId,
                 capabilities: {
                     audio_codecs: [

@@ -131,3 +131,70 @@ fn native_stream_metadata_snapshot_contention_and_cancel_return_no_partial_grant
         )
     );
 }
+
+#[test]
+fn accepted_stream_source_preflight_is_read_only_and_cannot_borrow_an_attempt() {
+    let (f, request, _, origin) = parent_permissions_origin(true, true, false, false, true);
+    let (_other, _, _, foreign) = parent_permissions_origin(true, true, false, false, true);
+    let proof = admit(&f, &request).unwrap();
+    f.store
+        .accept_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let counts = || {
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal"),
+        )
+    };
+    let before = counts();
+    let (target, sources) = f
+        .store
+        .native_stream_preflight_media_reads_with_peer(
+            &origin,
+            &[origin.as_ref(), foreign.as_ref(), origin.as_ref()],
+            &proof,
+        )
+        .unwrap();
+    assert!(target.current() && target.permits_subscriptions());
+    assert!(sources[0].as_ref().unwrap().current());
+    assert!(sources[1].is_none());
+    assert!(sources[2].as_ref().unwrap().current());
+    assert!(std::sync::Arc::ptr_eq(
+        target.interval(),
+        sources[0].as_ref().unwrap().interval()
+    ));
+    assert_eq!(
+        before,
+        counts(),
+        "preflight creates no ledger/effect/journal writes"
+    );
+    assert_eq!(
+        f.store
+            .native_stream_preflight_media_reads_with_peer(&foreign, &[origin.as_ref()], &proof,)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    let (lease, _) = f
+        .store
+        .begin_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    let started = counts();
+    assert_eq!(
+        f.store
+            .native_stream_preflight_media_reads_with_peer(&origin, &[], &proof,)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(started, counts());
+    assert!(f
+        .store
+        .native_stream_media_read_with_peer(&origin, None, &proof, &lease)
+        .unwrap()
+        .current());
+}

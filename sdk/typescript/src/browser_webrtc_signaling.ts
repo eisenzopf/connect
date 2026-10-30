@@ -17,6 +17,7 @@ export interface WebRtcSignalingOptions {
     expectedRevision: number;
     participantId: string;
     capabilities: JsonObject;
+    purpose?: "handoff-preparation";
     streams: ReadonlyArray<{
         id: string;
         kind: "audio" | "video" | "screen" | "data";
@@ -127,6 +128,11 @@ export class CanonicalWebRtcSignaling {
             !Number.isSafeInteger(options.expectedRevision) ||
             options.expectedRevision < 0 ||
             !jsonObject(options.capabilities) ||
+            (options.purpose !== undefined &&
+                (options.purpose !== "handoff-preparation" ||
+                    options.streams.length !== 1 ||
+                    options.streams[0].kind !== "audio" ||
+                    options.streams[0].direction !== "sendrecv")) ||
             options.streams.length < 1 ||
             options.streams.length > 16 ||
             new Set(options.streams.map((s) => s.id)).size !==
@@ -161,6 +167,13 @@ export class CanonicalWebRtcSignaling {
         this.template = snapshot({
             by_participant: options.participantId,
             substrate: "websocket+webrtc",
+            ...(options.purpose === "handoff-preparation"
+                ? {
+                      handoff_preparation: {
+                          profile: "connect-handoff-preparation-v1",
+                      },
+                  }
+                : {}),
             capabilities: options.capabilities,
             streams_offered: options.streams.map((s) => ({
                 ...s,

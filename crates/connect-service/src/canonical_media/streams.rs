@@ -1,4 +1,5 @@
 //! A separate exact subscription command lease; no initial-offer privilege.
+mod source_preflight;
 use super::sources::StreamSource;
 use super::*;
 use rvoip_uctp::v2::native_negotiation::NativeOfferPlan;
