@@ -56,6 +56,9 @@ class RuntimeBuildProfiles(unittest.TestCase):
 
             def timeout(command, environment, log, budget):
                 self.assertEqual(budget, 3600)
+                self.assertEqual(command[-2:], ['-C','opt-level=0'])
+                self.assertLess(command.index('--'), len(command) - 2)
+                self.assertNotIn('--config', command)
                 log.write_text('')
                 return {'exit_code':-15,'timed_out':True,'forced_kill':False,'seconds':3600}
 
@@ -67,13 +70,14 @@ class RuntimeBuildProfiles(unittest.TestCase):
             with patch.dict(build.__globals__, {'ROOT':directory,'BASE':directory / 'run',
                     'INPUTS':lambda:next(observations),'BOUNDED':timeout,
                     'subprocess':SimpleNamespace(run=lambda *args,**kwargs:None),
-                    'runpy':SimpleNamespace(run_path=cache)}), patch.dict('os.environ', {'GITHUB_OUTPUT':''}):
+                    'runpy':SimpleNamespace(run_path=cache)}), patch.dict('os.environ', {'GITHUB_OUTPUT':'','CONNECT_GATE6_FIXTURE_OPT_LEVEL':'0'}):
                 with self.assertRaisesRegex(AssertionError, 'producer failed'):
                     build()
             report = json.loads((directory / 'run/evidence/build/summary.json').read_text())
             self.assertFalse(report['passed'])
             self.assertEqual(report['artifacts'], [])
             self.assertEqual(report['sources_unchanged'], not changed)
+            self.assertEqual(report['fixture_opt_level'], '0')
             self.assertEqual(manifest.exists(), not changed)
             if not changed:
                 self.assertEqual(json.loads(manifest.read_text()), {'format':1,'files':snapshot})

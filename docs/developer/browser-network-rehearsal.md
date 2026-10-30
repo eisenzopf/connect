@@ -31,8 +31,11 @@ The current Mac refuses binding `127.0.0.2` with `EADDRNOTAVAIL`; its network
 configuration is unchanged. The separate manually dispatched
 `Gate 6 isolated Linux browser media` workflow runs the actual cases on a native
 Linux x86_64 kernel, in a network-disabled container with the previously verified
-CFT156 base image. It builds a full release opt3 producer, separately from the
-recorded local producer's opt0 exceptions. It records exact source, executable,
+CFT156 base image. It builds production runtime libraries at release opt3,
+separately from the recorded local producer's root-package opt0 exceptions.
+Only the integration-test driver uses an explicit final-target opt0 override;
+all eleven required runtime libraries must still report opt3. The original
+full-opt3 driver run remains separate. It records exact source, executable,
 image, package and automation hashes. No image or package is published.
 Compiler progress exposes only completed-artifact counts and fixed runtime
 library names/optimization levels. Successful builds require all eleven checked

@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-browser-media-${{ github.ref }}
+  group: gate6-browser-media-driver0-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   linux-x86-browser-media:
@@ -16,6 +16,7 @@ jobs:
       CARGO_PROFILE_RELEASE_OPT_LEVEL: '3'
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '1'
+      CONNECT_GATE6_FIXTURE_OPT_LEVEL: '0'
       CC: clang
       CXX: clang++
     steps:
@@ -55,7 +56,7 @@ jobs:
           python3 scripts/lib/source_build_cache.py restore
           bash scripts/prepare-dependencies.sh
           cargo fetch --locked
-      - name: Build source-bound full release browser producer
+      - name: Build opt3 production libraries and opt0 integration driver
         id: build
         run: python3 scripts/check-gate6-browser-media.py build
       - name: Install integrity-locked browser automation without downloads

@@ -71,6 +71,8 @@ def save(path, value):
 
 
 def build():
+    fixture_level = os.environ.get('CONNECT_GATE6_FIXTURE_OPT_LEVEL', '3')
+    assert fixture_level in {'0', '3'}, 'Use explicit fixture optimization0 or3; production remains opt3'
     output = BASE / 'evidence/build'
     output.mkdir(parents=True, exist_ok=False)
     subprocess.run(['bash', 'scripts/prepare-dependencies.sh'], cwd=ROOT, check=True)
@@ -78,7 +80,8 @@ def build():
     save(output / 'source-inputs.json', before)
     command = ['cargo', 'rustc', '--release', '--offline', '--locked', '-j1',
         '-p', 'connect-server', '--features', 'test-support', '--test',
-        'gate6_canonical_webtransport', '--message-format=json', '--', '-C', 'strip=none']
+        'gate6_canonical_webtransport', '--message-format=json', '--', '-C', 'strip=none',
+        '-C', 'opt-level=' + fixture_level]
     stopped = threading.Event()
     progress = threading.Thread(target=report_build_progress, args=(output / 'build.log', stopped))
     progress.start()
@@ -92,7 +95,8 @@ def build():
     artifacts = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
         and row['target']['name'] == 'gate6_canonical_webtransport' and row.get('executable')]
     unchanged = INPUTS() == before
-    report = dict(scope='Native Linux x86_64 full release opt3 producer, no root opt0 exceptions. Build only.',
+    report = dict(scope='Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt' + fixture_level + '. Build only.',
+        fixture_opt_level=fixture_level,
         command=command, execution=result, runtime_library_profiles=runtime_profiles,
         source_count=len(before), sources_unchanged=unchanged,
         source_manifest_sha256=digest(output / 'source-inputs.json'),
@@ -200,7 +204,7 @@ def runtime():
     finally:
         changed = [name for name, value in repository.items() if not (ROOT / name).is_file() or digest(ROOT / name) != value]
         changed += [name for name, value in tools.items() if digest(name) != value]
-        report = dict(scope='Native Linux x86_64 anonymous network-disabled container: full opt3 producer, normal private CA, original browser ICE, decoded clean/impairment media and owned UDP faults. No distinct-network, provider, installation or acceptance qualification.',
+        report = dict(scope='Native Linux x86_64 anonymous network-disabled container: production runtime opt3 with explicitly recorded integration-driver optimization, normal private CA, original browser ICE, decoded clean/impairment media and owned UDP faults. No distinct-network, provider, installation or acceptance qualification.',
             browser=version, image_id=os.environ.get('CONNECT_GATE6_BROWSER_IMAGE_ID'),
             producer=producer, source_count=len(repository), tool_count=len(tools),
             sources_unchanged=not changed, changed_inputs=changed, steps=steps,

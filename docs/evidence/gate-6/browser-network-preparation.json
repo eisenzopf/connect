@@ -104,5 +104,24 @@
       ]
     },
     "scope": "Build/cache behavior only; compiler flags, runtime and build budgets, current active runs and media thresholds unchanged. Current f1fe run predates this repair."
+  },
+  "production_opt3_fixture_opt0_build_profile": {
+    "scope": "Separate bounded Linux producer preparation: all11checked runtime libraries must remain releaseopt3; only the explicit integration-test target receives final rustc opt-level=0. No root package optimization override, compilation deadline, runtime timeout, media threshold or source/trust policy changes.",
+    "reason": "Avoid spending release optimization work on qualification fixture control code while retaining optimized production media/service code. Existing all-opt3 producer run and queued all-opt3 continuation remain separate.",
+    "offline_cargo_argument_routing": {
+      "scope": "Small owned offline Cargo experiment verifies final-target compiler argument routing only; no Connect production/media qualification.",
+      "build_exit_code": 0,
+      "library_reported_opt_level": "3",
+      "library_command_has_no_opt0_override": true,
+      "driver_final_opt0_override_after_release_opt3": true,
+      "actual_linked_library_test_exit_code": 0,
+      "passed": true,
+      "build_log_sha256": "935dd655b2c65eff337562c8dbccd25a3c471fc1422d67ba2abf33c431def9fb",
+      "test_log_sha256": "30f241da9f11be6b367d8be9a30377dc3dc8493bca4fa59bc5b3e1c110979c0e"
+    },
+    "unit_functions": 7,
+    "shared_cache_functions": 3,
+    "runtime_status": "not yet run; new source must compile and execute every unchanged case before qualification",
+    "concurrency": "Separate fixture-optimization group preserves the original full-opt3 run instead of interrupting it."
   }
 }
