@@ -59,6 +59,23 @@ class RuntimeBuildProfiles(unittest.TestCase):
         latency = result['audio_timing_samples']['mixer-queued']['age_ms']
         self.assertEqual(latency, dict(samples=3, invalid_samples=4, median_ms=2, p95_ms=500, maximum_ms=500))
 
+    def test_sql_custody_reduction_is_finite_and_never_exports_raw_paths_or_queries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'trace.json'
+            rows = [dict(message='Slow SQL custody unit', elapsed_us=value,
+                file='crates/connect-store/src/peer_authority/connection_media/snapshot.rs', line=181,
+                query='private-secret') for value in (500, 2000, 50000, float('inf'), -1, True, 'private-secret')]
+            rows.append(dict(message='Slow SQL custody unit', elapsed_us=1000,
+                file='private-secret', line='private-secret', query='private-secret'))
+            path.write_text(json.dumps(dict(events=[dict(fields=row) for row in rows], omitted_events=0, suppressed_known_successes=0)))
+            result = CHECK['pipeline_diagnostic'](path)
+        self.assertNotIn('private-secret', repr(result))
+        samples = result['sql_custody']['sources']
+        self.assertEqual(samples[0], dict(source='native-snapshot', line=181, samples=3, invalid_samples=4,
+            median_ms=2, p95_ms=50, maximum_ms=50))
+        self.assertEqual(samples[1], dict(source='other', line=0, samples=1, invalid_samples=0,
+            median_ms=1, p95_ms=1, maximum_ms=1))
+
     def test_browser_participation_states_exclude_private_control_and_transport_values(self):
         result = CHECK['browser_participation_states']({'peer_diagnostics':[{'participant':'private-secret',
             'control':{'credential':'private-secret'},'peers':[{'current':{'connection':'private-secret',

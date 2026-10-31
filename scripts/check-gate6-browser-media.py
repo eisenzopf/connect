@@ -74,6 +74,11 @@ def pipeline_diagnostic(path):
     errors = {name: 0 for name in ['Model', 'Unsupported', 'Authority', 'NotRecipient',
         'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other']}
     timings = {}
+    sql_units = {}
+    sql_sources = {
+        "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "native-snapshot",
+        "crates/connect-store/src/transitions/initial_telephone/media.rs": "initial-sip",
+    }
     reported_count_max = 0
     for row in value['events']:
         fields = row.get('fields', {})
@@ -82,6 +87,16 @@ def pipeline_diagnostic(path):
             continue
         if message in messages:
             counts[messages[message]] += 1
+        if message == 'Slow SQL custody unit':
+            filename, line = fields.get('file'), fields.get('line')
+            source = sql_sources.get(filename, 'other') if isinstance(filename, str) else 'other'
+            line = line if source != 'other' and type(line) is int and 0 < line < 100000 else 0
+            bucket = sql_units.setdefault((source, line), dict(values=[], invalid=0))
+            elapsed = fields.get('elapsed_us')
+            if type(elapsed) in (int, float) and math.isfinite(elapsed) and 500 <= elapsed <= 10**9:
+                bucket['values'].append(elapsed / 1000)
+            else:
+                bucket['invalid'] += 1
         if message == 'Current native packet authority' and fields.get('problem'):
             code = fields['problem']
             problems[code if isinstance(code, str) and code in problems else 'other'] += 1
@@ -117,6 +132,13 @@ def pipeline_diagnostic(path):
                 median_ms=statistics.median(values) if values else None,
                 p95_ms=values[math.ceil(len(values) * .95) - 1] if values else None,
                 maximum_ms=values[-1] if values else None)
+    sql_summary = []
+    for (source, line), bucket in sorted(sql_units.items()):
+        values = sorted(bucket['values'])
+        sql_summary.append(dict(source=source, line=line, samples=len(values), invalid_samples=bucket['invalid'],
+            median_ms=statistics.median(values) if values else None,
+            p95_ms=values[math.ceil(len(values) * .95) - 1] if values else None,
+            maximum_ms=values[-1] if values else None))
     return dict(scope='Bounded private synthetic-lane trace event counts and numeric timing samples only; instrumentation can affect timing. No cause or performance qualification.',
         captured_events=len(value['events']), omitted_events=value['omitted_events'],
         suppressed_known_successes=value['suppressed_known_successes'], counts=counts, authority_problems=problems,
@@ -124,7 +146,9 @@ def pipeline_diagnostic(path):
         core_delivery_scope='The historical audio-labelled Core message also covers other media; these events do not identify media kind.',
         rtc_packet_path_reported_count_max=reported_count_max,
         rtc_count_scope='Power-of-two samples of cumulative counters; maximum is not an aggregate failure count.',
-        audio_timing_samples=summarized)
+        audio_timing_samples=summarized,
+        sql_custody=dict(scope='Completed SQL custody units recorded at or above500us only; not all queries or policy time. File labels and integer call-site lines are source-bound; raw paths/details remain private.',
+            minimum_recorded_duration_us=500, sources=sql_summary))
 
 
 def runtime_library_profiles(rows):
@@ -273,6 +297,8 @@ def runtime(component=None):
         ]
         if component:
             cases=[case for case in cases if case[0]==component]
+            if component == 'baseline':
+                cases.insert(0, ('trace-boundaries', 'canonical_webrtc_browser::audio_trace::tests::', False, 5))
         for name, case, ignored, count in cases:
             directory = output / name
             directory.mkdir()
