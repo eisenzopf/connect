@@ -44,5 +44,7 @@ Current public runtime evidence:
 The original-code counterexample is source-verified: run `41195276063` at
 `1f3d766d` fails its first 8 kHz output RTP assertion after the capture NTP
 assertion passes. The other 30 selected Core functions pass. The 48 kHz loop
-is unrun after that failure. The correction remains unqualified pending its
-actual checks. See [`guarded-audio-capture-timeline.json`](../evidence/gate-6/guarded-audio-capture-timeline.json).
+is unrun after that failure. The correction at `31a7f613` passes all 32 selected actual Core functions in
+run `41196260443`, including both rates in the original regression and the
+added true-gap/pending-report/partial/wrap/rate-conversion cases. Browser and
+transport quality qualification remains separate. See [`guarded-audio-capture-timeline.json`](../evidence/gate-6/guarded-audio-capture-timeline.json).
