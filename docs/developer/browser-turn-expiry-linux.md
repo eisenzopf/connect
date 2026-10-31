@@ -52,3 +52,14 @@ The runner restores the existing coturn helper's `NET_BIND_SERVICE` capability
 for the version probe and coturn sidecar executable. The browser holder retains
 no added capabilities, and both fixtures keep their original isolated namespace.
 No case pass is inferred from the successful cached build.
+
+Source `e9b2e7d1` run `41206211689` passes real coturn4.18.0 version/listener
+preflight in all four cells, but every browser command exits1. Source, assets,
+tools and binary verify; each original container exits and is removed, with
+forced cleanup explicitly recorded. No expiry pass is claimed. The initial
+32-character private directory creates an overlong Pulse Unix address on the
+actual Linux checkout path. The runner now uses an eight-character random
+fixture suffix and an explicit Unix-address bound, plus a short owned `/tmp/g6`
+inside each namespace for Rust/Chrome temporary IPC. Existing Pulse startup and
+join facts are retained as fixed diagnostics on failure. Six boundary tests pass;
+the corrected Linux run must still prove the original expiry and drain checks.

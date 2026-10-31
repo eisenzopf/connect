@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "coturn-preflight-repaired-linux-cases-unrun",
+  "status": "four-linux-cases-failed-private-socket-paths-repaired",
   "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
   "runtime_passed": false,
   "runtime_run_id": null,
@@ -13,7 +13,7 @@
   "allocation_drain_limit_seconds": 10,
   "post_drain_join_limit_seconds": 10,
   "local_verification": {
-    "ownership_and_expiry_oracle_tests": 5,
+    "ownership_and_expiry_oracle_tests": 6,
     "browser_build_profile_tests": 11,
     "existing_turn_ownership_tests": 3,
     "python_compile": "passed",
@@ -63,5 +63,155 @@
     "build_passed": true,
     "cached_build_seconds": 0.36475960499998905,
     "repair": "Restore existing coturn helper NET_BIND_SERVICE bounding capability for image executable; namespace remains network-disabled with loopback listeners."
+  },
+  "linux_cases_after_coturn_preflight": {
+    "run_id": 41206211689,
+    "artifact_id": 13044274662,
+    "revision": "e9b2e7d1243f886604825bd3cffa37c8aaec574d",
+    "zip_sha256": "9222d8eff221b7d4ecff2f8e3102d1bb03ddf114f16760ae61779c2dbe22ed91",
+    "git_sources_verified": 2883,
+    "prepared_sources_verified": 3088,
+    "passed": false,
+    "component": {
+      "scope": "Original expired-TURN browser tests in fresh network-disabled Linux namespaces. Original expiry refusal/zero logical offers and allocations only; no distinct-network media, provider, performance or full G6-054 qualification.",
+      "image_id": "sha256:903d5165dac7ee26b2e03450d8dceb583d8f363160c6b0df4cdc8ccece683297",
+      "turn_image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+      "turn_reference": "coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf",
+      "turn_version": "4.18.0",
+      "turn_binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+      "source_manifest_sha256": "6b6a24d19d28c4a79793ce5fdfdf2559e21b5b28e1230e4ba7f97de1b7b5fcf3",
+      "binary_sha256": "72b8dfb8ae9e855f9e2494d1ef270ca89124220a8fbe9396fb9271960371f649",
+      "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "source_count": 5971,
+      "repository_inputs_sha256": "f2eb3208b1910bd04eb60996beb9ad2807b44aa26ae4c10e9d8a95916f79df87",
+      "binary_unchanged": true,
+      "cases": [
+        {
+          "transport": "udp",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 1,
+          "failure": {
+            "type": "AssertionError"
+          },
+          "turn_log_sha256": "d0f412af33b5eb2179e10ff25c5c70fbe35f947b3650000db06c2bab2d9e4cea",
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "udp",
+          "algorithm": "ES256",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 1,
+          "failure": {
+            "type": "AssertionError"
+          },
+          "turn_log_sha256": "7540dd9e519f2d2094429343ef10b5b9cb87483a4ec4171b56dce7af1e494b3e",
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "tcp",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 1,
+          "failure": {
+            "type": "AssertionError"
+          },
+          "turn_log_sha256": "49818b2d957eb72a1eeeb8b42988781f32f1a9c75c89161c14b7953fbb48ead5",
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "tcp",
+          "algorithm": "ES256",
+          "passed": false,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 1,
+          "failure": {
+            "type": "AssertionError"
+          },
+          "turn_log_sha256": "5ea63c22b8f759d68fbf868d28b87f1d73fe78282fa7f1deeb318c418bd31ab7",
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": true,
+            "original_exit_code": 0
+          }
+        }
+      ],
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "passed": false
+    }
   }
 }

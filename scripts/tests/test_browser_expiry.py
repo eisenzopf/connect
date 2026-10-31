@@ -31,6 +31,19 @@ class ExpiryBoundaries(unittest.TestCase):
                 child.wait(timeout=2)
             child.stdout.close()
 
+    def test_linux_addresses_fit_both_pulse_and_owned_rust_ipc(self):
+        root = Path('/home/runner/work/connect/connect')
+        base = root / '.local/gate-6/turn-expiry-linux'
+        old = base / ('a' * 32) / 'udp-EdDSA'
+        new = base / ('a' * 8) / 'udp-EdDSA'
+        self.assertGreaterEqual(len(bytes(old / 'audio/native')), 108)
+        self.assertLess(len(bytes(new / 'audio/native')), 108)
+        with tempfile.TemporaryDirectory() as directory:
+            EXPIRY['fixture'](Path(directory), 'udp')
+            environment = dict(line.split('=', 1) for line in Path(directory, 'environment').read_text().splitlines())
+            self.assertEqual(environment['TMPDIR'], '/tmp/g6')
+            self.assertEqual(environment['CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS'], str(Path(directory) / 'browser'))
+
     def owner(self, directory):
         owner = OWNER(directory, 'sha256:' + 'b' * 64, 'none')
         info = dict(Id='a' * 64, Name='/' + owner.name, Image=owner.image,

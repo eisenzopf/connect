@@ -86,7 +86,7 @@ def fixture(directory, transport):
         CONNECT_GATE6_TURN_USER=user, CONNECT_GATE6_TURN_PASSWORD=password,
         CONNECT_GATE6_TURN_EXPIRED_USER=expired, CONNECT_GATE6_TURN_EXPIRED_PASSWORD=expired_password,
         CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS=str(directory / 'browser'),
-        CONNECT_GATE6_OWNED_BROWSER_CONTAINER='1', TMPDIR=str(directory / 'tmp'),
+        CONNECT_GATE6_OWNED_BROWSER_CONTAINER='1', TMPDIR='/tmp/g6',
         CONNECT_PLAYWRIGHT_MODULE=str(ROOT / 'scripts/video/observer-tools/node_modules/playwright/index.mjs'),
         GIT_CONFIG_COUNT='1', GIT_CONFIG_KEY_0='safe.directory', GIT_CONFIG_VALUE_0=str(ROOT),
         PYTHONDONTWRITEBYTECODE='1')
@@ -125,6 +125,8 @@ def expiry_facts(directory, turn_log, expired):
 
 def run_case(binary, image, turn_image, directory, transport, algorithm):
     directory.mkdir(mode=0o700)
+    # Pulse native sockets and Rust fixture IPC require short Unix addresses.
+    assert len(os.fsencode(directory / 'audio/native')) < 108
     expired = fixture(directory, transport)
     (directory / 'namespace').mkdir(mode=0o700)
     (directory / 'turn').mkdir(mode=0o700)
@@ -142,6 +144,8 @@ def run_case(binary, image, turn_image, directory, transport, algorithm):
         while 'owned-namespace-ready' not in command(['docker', 'logs', holder.cid]):
             assert holder.inspect()['State']['Running'] and time.monotonic() < until
             time.sleep(.025)
+        command(['docker', 'exec', holder.cid, 'python3', '-c',
+            'import os; os.mkdir("/tmp/g6",0o700)'])
         turn = Container(directory / 'turn', turn_image, 'container:' + holder.cid)
         turn.create(['--cap-add', 'NET_BIND_SERVICE', '--cpus', '1', '--memory', '256m', '--pids-limit', '64',
             '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=16m',
@@ -216,6 +220,14 @@ print('ready')"""
         report['failure'] = dict(type=type(error).__name__ if isinstance(error,
             (AssertionError, subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError, ValueError, KeyError)) else 'other')
     finally:
+        audio_path = directory / 'audio/summary.json'
+        if audio_path.is_file():
+            value = json.loads(audio_path.read_text())
+            report['audio_diagnostic'] = {key: value[key] for key in (
+                'passed', 'startup_socket_created', 'original_process_joined', 'exit_code', 'command_exit_code',
+                'forced_kill', 'socket_exists_after_join', 'private_cookie_created') if key in value and type(value[key]) in (bool, int)}
+            report['audio_diagnostic']['error_categories'] = [name for name in value.get('error_categories', [])
+                if name in ('module-load', 'cookie-load', 'permission', 'bind', 'home-directory', 'read-only-filesystem')]
         if turn:
             try:
                 turn.inspect()
@@ -268,7 +280,7 @@ def main():
     (output / 'tool-inputs.json').write_text(json.dumps(tool_inputs, indent=2) + '\n')
     private_base = ROOT / '.local/gate-6/turn-expiry-linux'
     private_base.mkdir(parents=True, mode=0o700, exist_ok=True)
-    private_root = private_base / uuid.uuid4().hex
+    private_root = private_base / uuid.uuid4().hex[:8]
     private_root.mkdir(mode=0o700)
     cases = []
     for transport in ('udp', 'tcp'):
