@@ -313,9 +313,9 @@ RUST_CONSULTATION_CASES = (
 )
 
 
-def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False):
-    assert sum((video_feedback, consultation_return, native_network, telephone_network)) <= 1, 'One isolated component at a time'
-    assert not (video_feedback or consultation_return or native_network or telephone_network) or not (node_sdk or python_sdk), 'Independent component only'
+def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False, mixer_clock=False):
+    assert sum((video_feedback, consultation_return, native_network, telephone_network, mixer_clock)) <= 1, 'One isolated component at a time'
+    assert not (video_feedback or consultation_return or native_network or telephone_network or mixer_clock) or not (node_sdk or python_sdk), 'Independent component only'
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -593,6 +593,8 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
         ):
+            if mixer_clock:
+                continue
             if (video_feedback or consultation_return or native_network or telephone_network) and name != ('webtransport' if video_feedback else 'hosting'):
                 continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
@@ -618,6 +620,13 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        if mixer_clock:
+            component = runpy.run_path(str(ROOT / 'scripts/lib/core_mixer_component.py'))['run']
+            report['mixer_clock'] = component(ROOT, execute)
+            report['scope'] = report['mixer_clock']['scope']
+            assert report['mixer_clock']['passed'], 'Actual guarded mixer clock functions failed or were unrun'
+            report['behavior_passed'] = True
+            return
         if telephone_network:
             component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))['run']
             report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
@@ -1107,8 +1116,9 @@ def main():
     parser.add_argument("--consultation-return", action="store_true", help="Only the two original public Rust SDK return functions")
     parser.add_argument("--native-network", action="store_true", help="Only current native Linux public SDK distinct-network PCMU and bounded faults")
     parser.add_argument("--telephone-network", action="store_true", help="Only current native Linux SIP/RTP distinct-network PCMU and bounded loss")
+    parser.add_argument("--mixer-clock", action="store_true", help="Only actual upstream Core guarded mixer clock functions")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network, args.telephone_network)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network, args.telephone_network, args.mixer_clock)
 
 
 if __name__ == "__main__":

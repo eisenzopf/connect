@@ -1,0 +1,38 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1192,6 +1192,34 @@
+     }
+ }
+ #[tokio::test]
++async fn guarded_mixer_contiguous_capture_keeps_one_rtp_clock_across_empty_tick() {
++    for rate in [8000, 48000] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++        let start = u32::MAX - 79;
++        let clock = source_clock(71, 8000, start, 100u64 << 32, live);
++        s.publish_clocked_ms(0, 1000, start, 20, Some(clock.clone()));
++        s.mixer.tick();
++        let first = mixed_frame(out.try_recv().unwrap()).await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "empty input fabricated PCM");
++        s.publish_clocked_ms(0, 1000, start.wrapping_add(160), 20, Some(clock));
++        s.mixer.tick();
++        let second = mixed_frame(out.try_recv().unwrap()).await;
++        let a = first.source_clock.unwrap().anchor.unwrap();
++        let b = second.source_clock.unwrap().anchor.unwrap();
++        same_ntp(b.ntp_time, ntp_ms(a.ntp_time, 20));
++        assert_eq!(
++            second.timestamp_rtp.wrapping_sub(first.timestamp_rtp),
++            160,
++            "one empty mixer tick invented a gap in contiguous original capture"
++        );
++    }
++}
++#[tokio::test]
+ async fn guarded_mixer_clock_tracks_discarded_initial_pcm_and_missed_quanta() {
+     let s = Scene::new(&four()[..2], 8000).await;
+     s.bind(0, true).await;
