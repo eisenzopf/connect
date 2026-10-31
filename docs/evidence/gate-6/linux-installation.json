@@ -2,7 +2,7 @@
   "format": "connect/gate6-linux-installation/1",
   "task": "G6-056",
   "date": "2026-10-31",
-  "status": "implementation-awaiting-runtime-verification",
+  "status": "verified-complete-for-declared-linux-fixture-scope",
   "primary_package": "Native Ubuntu 24.04 x86_64 production release binary archive with a systemd service",
   "implementation": [
     "scripts/package-linux.py",
@@ -54,20 +54,11 @@
       "whole_gate_qualified": false
     }
   },
-  "unresolved_verification": [
-    "actual canonical recovery Rust test results",
-    "verified production package and its complete source manifest",
-    "fresh installed systemd service, signed remote-profile client and persistent mutation",
-    "graceful restart and least-required filesystem access",
-    "secret injection/configuration preservation",
-    "distinct-source upgrade",
-    "backup/restore with signed client recovery after original files are removed",
-    "fresh current-package CLI initialization and installed signed client, independently of baseline-to-current upgrade"
-  ],
+  "unresolved_verification": [],
   "deferred_qualification_dependencies": [
     "G6-054"
   ],
-  "task_complete": false,
+  "task_complete": true,
   "whole_gate_qualified": false,
   "publication_authorized": false,
   "superseded_unstarted_candidate": {
@@ -77,12 +68,12 @@
   },
   "independent_verifier": "scripts/verify-linux-installation.py",
   "current_bounded_runtime_candidate": {
-    "source_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
-    "controller_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
-    "run_id": 41239765999,
-    "job_id": 124651043679,
-    "url": "https://github.com/eisenzopf/connect/actions/runs/41239765999",
-    "state_at_recording": "Terminal CI success for three expanded recovery cases and the preceding installed upgrade/restart/restore fixture. Its twelve-check report does not include a separate current-package fresh initialization; full task remains open.",
+    "source_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+    "controller_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+    "run_id": 41242185159,
+    "job_id": 124658178261,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41242185159",
+    "state_at_recording": "Terminal success; full independent source/package/installation verification passed",
     "upgrade_source_package_run": 41239447334
   },
   "notice_assembly_preflight": {
@@ -102,7 +93,7 @@
     "recovery_test_crate": "Add the same recursion_limit=256 used by existing canonical integration fixtures; compilation remains unrun until the corrected candidate.",
     "cache": "Preserve completed exact-source compilation independently of runtime or package-assembly success; cache reuse never grants a runtime pass.",
     "upgrade_baseline": "Prepare a Git-pinned current-schema baseline retaining the earlier 391770ee runtime and the corrected packaging/test tooling. Build via the primary workflow branch with an explicit source SHA so the subsequent upgraded runtime can reuse the branch-scoped compiler cache. No compatibility shim or schema downgrade.",
-    "status": "Baseline replay41239447334 is fully source/package verified. Primary07dc8657 run41239765999 is live against that baseline, with the corrected current installer and expanded recovery assertions. Full installed qualification remains open."
+    "status": "Baseline41239447334 and current closure41242185159 independently verified. G6-056 complete for its declared Linux fixture scope; G6-054 remains deferred and whole-gate qualification remains open."
   },
   "corrected_current_schema_baseline": {
     "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
@@ -114,7 +105,7 @@
     "status": "Terminal failure after recovery/package success: first installed readiness absent and evidence upload EACCES; source report unretained. Warm-cache baseline replay pending."
   },
   "primary_recovery_integrity_change": {
-    "status": "authored; formatting passed; Rust execution awaits the primary upgrade candidate",
+    "status": "Current three recovery cases passed and their complete source/artifact provenance independently verified",
     "store_api": "Store::snapshot_blobs reads current-schema blob name, size and SHA-256 at the recorded capture time, without adopting a runtime or changing state.",
     "server_behavior": "Backup and verification use that fixed expiry boundary and reject blob bytes inconsistent with database metadata, including a self-consistently altered manifest checksum.",
     "regression_cases": [
@@ -125,11 +116,11 @@
       "backup remains verifiable/restorable after an included blob naturally expires; live reads remain forbidden with bytes physically present",
       "unrecognized and revoked credentials return unauthorized; non-operator credentials return forbidden"
     ],
-    "runtime_result_verified": false,
+    "runtime_result_verified": true,
     "baseline_run_unchanged": 41231607107
   },
   "ci_phase_visibility": {
-    "status": "authored; 8 package/source-guard checks pass locally; updated workflow awaits next primary run",
+    "status": "Separate recovery/package phases passed with unchanged source guards; raw artifact and installed results independently verified",
     "behavior": "Recovery and release-package assembly are separate visible steps. The second phase preserves the first source inventory and refuses source/controller/manifest changes; it cannot freshen a changed source tree into a cacheable pass."
   },
   "production_graph_fixture": {
@@ -141,7 +132,7 @@
     "runtime_result_verified": false
   },
   "bounded_build_processes": {
-    "status": "authored; 10 package checks pass locally; updated helper awaits primary upgrade CI",
+    "status": "Bounded process-group runner used in successful current CI; real descendant-retirement regression passes with the 12 package integrity tests",
     "behavior": "Each recovery/package command owns a new process group. Timeout or interruption retires the command and compiler/helper descendants before the failed step returns.",
     "regression": "A real compiler-shaped child holds an OS file lock; the test proves timeout releases the child lock, rather than terminating only its parent. Normal exit status is preserved.",
     "baseline_run_unchanged": 41231607107
@@ -150,12 +141,13 @@
     "finding": "Creation with mode0640 under umask0077 produced root-owned0600 configuration, so the service group could not read it. This is a deterministic installer defect; installed startup awaits corrected runtime verification.",
     "fix": "Create privately, write complete content, set root/service-group ownership and explicitly fchmod0640 before fsync/close.",
     "regression": "Actual temporary filesystem and private umask verify final0640, complete bytes and exclusive refusal; only root ownership is stubbed in the unprivileged unit fixture.",
-    "installed_fixture": "Require actual connect-account read access before starting the service."
+    "installed_fixture": "Require actual connect-account read access before starting the service.",
+    "runtime_verified": true
   },
   "evidence_upload_permissions": {
     "finding": "An unprivileged test -d on the root-owned0700 parent returned false, skipping both traversal chmod and curated-report chown. Artifact action then reported EACCES.",
     "fix": "Test parent and evidence existence with sudo, grant only parent traversal, transfer only curated evidence. Raw logs/state remain private.",
-    "runtime_verified": false
+    "runtime_verified": true
   },
   "current_baseline_producer": {
     "run_id": 41239447334,
@@ -192,7 +184,45 @@
     "verifier": "Require a thirteenth fresh_current_install check and bind its source/binary/manifest to the verified current artifact; baseline fresh/upgrade flags cannot satisfy it.",
     "current_component_run": 41239765999,
     "fresh_current_case_in_that_run": false,
-    "runtime_verified": false,
-    "component_ci_conclusion": "success; compiler cache saved"
-  }
+    "runtime_verified": true,
+    "component_ci_conclusion": "success; compiler cache saved",
+    "closure_run": 41242185159,
+    "source_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+    "running_binary_sha256": "8aee658612e1a6e1f15b817a0d4226bc97ce372040f8f98bcf9bd1716e39c8fb"
+  },
+  "previous_component_candidate": {
+    "source_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
+    "controller_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
+    "run_id": 41239765999,
+    "job_id": 124651043679,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41239765999",
+    "state_at_recording": "Terminal CI success for three expanded recovery cases and the preceding installed upgrade/restart/restore fixture. Its twelve-check report does not include a separate current-package fresh initialization; full task remains open.",
+    "upgrade_source_package_run": 41239447334
+  },
+  "independent_verification": {
+    "evidence": "docs/evidence/gate-6/linux-installation-verified.json",
+    "sha256": "00ad63f47686e14200299fd34ee5ed83121c4dea4053a5fa433b38de89e35b97",
+    "procedure": "scripts/verify-linux-installation.py against both retained raw artifact ZIP pairs, exact Git revisions, frozen prepared sources and pinned archives",
+    "installed_checks_passed": 13,
+    "current_recovery_cases_passed": 3,
+    "source_counts": {
+      "initial": {
+        "git": 4565,
+        "prepared": 4094,
+        "pinned_archives": 4
+      },
+      "current": {
+        "git": 4568,
+        "prepared": 4094,
+        "pinned_archives": 4
+      }
+    },
+    "artifact_ids": {
+      "initial_package": 13057250707,
+      "initial_evidence": 13056827238,
+      "current_package": 13058236262,
+      "current_evidence": 13058246331
+    }
+  },
+  "scope": "Ubuntu24.04 native x86_64 production systemd installation; separate local network namespace using the signed remote profile. Includes distinct-source upgrade, restart, complete backup/restore, current authority/integrity failures and a separate fresh current installation. Public WAN, provider, model, browser and media qualification remain separate."
 }

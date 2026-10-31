@@ -2,7 +2,7 @@
   "gate": 6,
   "title": "VoIP 3 through Connect",
   "revision": 2,
-  "updated": "2026-10-29",
+  "updated": "2026-10-31",
   "status": "implementation-in-progress",
   "implementation_authorized": true,
   "plan": "connect-gate-6-plan.html",
@@ -5638,7 +5638,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "8/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "9/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-12"
       ],
@@ -5680,6 +5680,8 @@
         "docs/evidence/gate-6/enrollment-store.json",
         "docs/evidence/gate-6/https-hosting-completion.json",
         "docs/evidence/gate-6/https-hosting-surfaces.json",
+        "docs/evidence/gate-6/linux-installation-verified.json",
+        "docs/evidence/gate-6/linux-installation.json",
         "docs/evidence/gate-6/live-controller-recovery.json",
         "docs/evidence/gate-6/native-remote-audit.json",
         "docs/evidence/gate-6/native-remote-profile.json",
@@ -8060,7 +8062,7 @@
         "G6-102",
         "G6-103"
       ],
-      "observation": "14/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "15/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-16"
       ],
@@ -8401,6 +8403,8 @@
         "docs/evidence/gate-6/direct-source-signed-runtime.json",
         "docs/evidence/gate-6/facade-completion.json",
         "docs/evidence/gate-6/facade-scope-audit.json",
+        "docs/evidence/gate-6/linux-installation-verified.json",
+        "docs/evidence/gate-6/linux-installation.json",
         "docs/evidence/gate-6/media-feedback.json",
         "docs/evidence/gate-6/membership-control.json",
         "docs/evidence/gate-6/membership.json",
@@ -8728,7 +8732,7 @@
         "G6-103",
         "G6-104"
       ],
-      "observation": "5/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "6/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-17"
       ],
@@ -8781,6 +8785,8 @@
         "docs/evidence/gate-6/connector-template-audit.json",
         "docs/evidence/gate-6/contract-checks.json",
         "docs/evidence/gate-6/dependency-reproduction.json",
+        "docs/evidence/gate-6/linux-installation-verified.json",
+        "docs/evidence/gate-6/linux-installation.json",
         "docs/evidence/gate-6/media-feedback.json",
         "docs/evidence/gate-6/native-subscription-credentials.json",
         "docs/evidence/gate-6/rust-sdk-administration.json",

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-29",
+  "updated": "2026-10-31",
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
@@ -481,7 +481,7 @@
         }
       ],
       "authorization": "evidence/gate-6/authorization.json",
-      "completed_task_count": 68,
+      "completed_task_count": 69,
       "in_progress_task_count": 1,
       "deferred_task_count": 1,
       "work_order_amendment": "evidence/gate-6/owner-deferrals.json"

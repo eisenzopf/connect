@@ -1,0 +1,66 @@
+{
+  "format": "connect/gate6-operational-visibility/1",
+  "task": "G6-057",
+  "date": "2026-10-31",
+  "status": "implementation-in-progress",
+  "source_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+  "prerequisite_evidence": "docs/evidence/gate-6/linux-installation-verified.json",
+  "work_started": "Audit actual admission/resource owners before adding authenticated diagnostic fields and enforcement/cleanup qualification.",
+  "source_owners": [
+    {
+      "path": "crates/connect-server/src/canonical.rs",
+      "sha256": "5e61bf36f641c4eb0a3f4ae8e7608e4ead89b5ac930c5d813e74f1e01f8a2359",
+      "finding": "RunningCanonicalServer owns native/WT ProfileServer controls. Native+WT incoming QUIC handshakes retain a bounded slot through connection lifetime. Shutdown begins drain before awaiting owned workers."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/server.rs",
+      "sha256": "0e0c337e4e446133e89d6e23168d2cd0b22b0196e665c4dba5dbc57ba0de2755",
+      "finding": "ProfileServer::stats returns accepted/rejected/active physical counters; begin_drain stops new admission while existing peers retain normal lifetimes; no new upstream counter patch needed for these values."
+    },
+    {
+      "path": "crates/connect-server/src/canonical_websocket_listener.rs",
+      "sha256": "7068e659926da3adbb9dfca8691d919667d30f69d65189c21a5bfbcf84ab0b73",
+      "finding": "WSS owns its own ProfileServer and exposes control(); raw intake try_send overflow currently drops the socket without a separate intake rejection counter."
+    },
+    {
+      "path": "crates/connect-server/src/transports/http.rs",
+      "sha256": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
+      "finding": "HTTPS and loopback HTTP use distinct capacity, handshake and connection semaphores; authenticated operation and public health routes are distinct. Extend observations at actual semaphore ownership."
+    },
+    {
+      "path": "crates/connect-service/src/canonical_runtime.rs",
+      "sha256": "44dd7d09b6b527e9346852f4e39b3eac69d81719e8d68a21cb87bd466bc09259",
+      "finding": "CanonicalRuntimeSnapshot already distinguishes physical peers, peer Session views, live Sessions, logical Connections, media readers, role projections and replacement preparations. Runtime keeps weak physical owners and owned JoinSet work."
+    },
+    {
+      "path": "crates/connect-service/src/canonical_subscriptions.rs",
+      "sha256": "8a28d06915270075518287744809dedb4797d71004e433f854697807c8d887cc",
+      "finding": "MAX_SUBSCRIPTIONS=8 per physical owner; capacity checks precede new origin insertion; cancelled origins are pruned. Need current signed-client refusal and cleanup qualification."
+    },
+    {
+      "path": "crates/connect-service/src/readiness.rs",
+      "sha256": "ec0967a28b6f7baabb1bb64bc95bd1e1cb260c3b5e079eea67d15ef9bd321602",
+      "finding": "Authenticated Health snapshot composes static component/reason observations and bounded numeric media callback. Extend the existing surface, retaining minimal public health."
+    },
+    {
+      "path": "crates/connect-protocol/src/readiness.rs",
+      "sha256": "dd9ffed3628f76e17d7c23b8e5f0cd28cabd3f6f81fe016677d267a9d22da0aa",
+      "finding": "Readiness schema has state/components/media; no current operational resource snapshot field."
+    },
+    {
+      "path": "crates/connect-protocol/src/lib.rs",
+      "sha256": "f2d3129ae057748e3fd50dcbd264b1a66e6405da403f3880e2d9665267cc11aa",
+      "finding": "Limits declares participants, physical/logical connection budget, message/upload/storage/receipt/Session bounds. Need explicit meaning of configured vs observed fields and no cross-transport pass inheritance."
+    }
+  ],
+  "next_required_work": [
+    "Expose redacted health/readiness, active operations and per-transport resource counts under current authorization, with server HTTP/OpenAPI documentation.",
+    "Qualify declared participant/connection/upload/subscription/operation-queue limits and explicit overload refusal before unsafe effects.",
+    "Qualify slow/abandoned peer cleanup, idle expiry and joined graceful drain.",
+    "Measure server/helper/browser processes separately and assert no credentials, private message/media bodies or provider identifiers enter diagnostics."
+  ],
+  "runtime_checks_run": false,
+  "task_complete": false,
+  "acceptance_qualified": false,
+  "whole_gate_qualified": false
+}
