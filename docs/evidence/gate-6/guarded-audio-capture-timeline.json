@@ -151,8 +151,14 @@
     "compile_seconds": 475.757532094
   },
   "after": {
-    "status": "unrun",
-    "passed": false
+    "status": "in-progress",
+    "passed": false,
+    "source_revision": "31a7f61357c716cb1b73c5fa76958be7f897819d",
+    "core_run_id": 41196260443,
+    "browser_diagnostic_run_id": 41196262502,
+    "patch_sha256": "d3efb401f08721a993f5866fa861464d89601b3ce033d75f81e73513da3841f7",
+    "prepared_sources_verified_locally": true,
+    "format_check_passed": true
   },
   "full_task_qualified": false,
   "acceptance_qualified": false,
