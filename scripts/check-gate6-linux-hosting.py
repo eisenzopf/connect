@@ -349,9 +349,13 @@ def telephone_store_checks(binary, execute):
         scope='Actual unary/paired initial SIP Store WAL custody and all current initial-call, snapshot, paired signal and private-packet regressions. No full telephone qualification.')
 
 
-def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False, mixer_clock=False, sip_duplex=False, rtc_compound=False):
-    assert sum((video_feedback, consultation_return, native_network, telephone_network, mixer_clock, sip_duplex, rtc_compound)) <= 1, 'One isolated component at a time'
-    assert not (video_feedback or consultation_return or native_network or telephone_network or mixer_clock or sip_duplex or rtc_compound) or not (node_sdk or python_sdk), 'Independent component only'
+def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False, mixer_clock=False, sip_duplex=False, rtc_compound=False, media_network=False):
+    assert sum((video_feedback, consultation_return, native_network, telephone_network, mixer_clock, sip_duplex, rtc_compound, media_network)) <= 1, 'One explicit lane at a time'
+    assert not (video_feedback or consultation_return or native_network or telephone_network or mixer_clock or sip_duplex or rtc_compound or media_network) or not (node_sdk or python_sdk), 'Independent component only'
+    if media_network:
+        # One original host binary for both current network profiles. Store
+        # boundaries still run first; each component retains its own custody.
+        native_network = telephone_network = True
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -705,9 +709,10 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
             report['scope'] = report['telephone_distinct_network']['scope']
             assert report['initial_sip_packet_observers']['passed'], 'Initial SIP Store observer regressions failed or were unrun'
-            assert report['telephone_distinct_network']['passed'], 'Current telephone distinct-network component failed'
-            report['behavior_passed'] = True
-            return
+            if not media_network:
+                assert report['telephone_distinct_network']['passed'], 'Current telephone distinct-network component failed'
+                report['behavior_passed'] = True
+                return
         if native_network:
             text = execute('compile-native-network-probe', ['cargo', 'build', '--offline', '--locked',
                 '--jobs', '2', '-p', 'connect-client', '--example', 'native_media_probe', '--message-format=json'], 3600)
@@ -720,6 +725,20 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             network = runpy.run_path(str(ROOT / 'scripts/lib/native_network_component.py'))['run']
             report['native_distinct_network'] = network(ROOT, PRIVATE, artifacts['hosting'], probes[0], before, execute)
             report['scope'] = report['native_distinct_network']['scope']
+            if media_network:
+                original_host = report['compiled_artifacts']['hosting']
+                same_host = (digest(artifacts['hosting']) == original_host
+                    and digest(artifacts['store']) == report['compiled_artifacts']['store']
+                    and all(row.get('server_sha256') == original_host and row.get('server_unchanged') is True
+                        for row in report['telephone_distinct_network']['results'])
+                    and all(row.get('server_executable_sha256') == original_host and row.get('executables_unchanged') is True
+                        for row in report['native_distinct_network']['results']))
+                report['media_network_same_host'] = dict(passed=same_host, server_sha256=original_host)
+                assert same_host, 'Network profiles did not preserve the same original host and Store binaries'
+                report['scope'] = ('One unchanged original Linux host binary and source snapshot: all current initial SIP Store boundaries, '
+                    'native direct/encrypted-UDP-loss/unreachable-port and telephone direct/20-percent-RTP-loss, both algorithms. '
+                    'Original decoder, replay, authorization and cleanup checks; no browser, WAN, provider, full G6-054 or acceptance qualification.')
+                assert report['telephone_distinct_network']['passed'], 'Current telephone distinct-network component failed; independent native results retained'
             assert report['native_distinct_network']['passed'], 'Current native distinct-network component failed'
             report['behavior_passed'] = True
             return
@@ -1192,11 +1211,12 @@ def main():
     parser.add_argument("--consultation-return", action="store_true", help="Only the two original public Rust SDK return functions")
     parser.add_argument("--native-network", action="store_true", help="Only current native Linux public SDK distinct-network PCMU and bounded faults")
     parser.add_argument("--telephone-network", action="store_true", help="Only current native Linux SIP/RTP distinct-network PCMU and bounded loss")
+    parser.add_argument("--media-network", action="store_true", help="Current Store boundaries, native and telephone network profiles from one unchanged host build")
     parser.add_argument("--mixer-clock", action="store_true", help="Only actual upstream Core guarded mixer clock functions")
     parser.add_argument("--rtc-compound", action="store_true", help="Only actual RTC protocol-handler compound SR/CNAME tests")
     parser.add_argument("--sip-duplex", action="store_true", help="Only exact prepared production SIP queue-selector contracts")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network, args.telephone_network, args.mixer_clock, args.sip_duplex, args.rtc_compound)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network, args.telephone_network, args.mixer_clock, args.sip_duplex, args.rtc_compound, args.media_network)
 
 
 if __name__ == "__main__":

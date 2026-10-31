@@ -216,3 +216,14 @@ refusals. Hosting compilation took1,396.29s; Store compilation took36.47s.
 This qualifies the recorded owned Linux telephone component. The later RTC
 retirement change, current native regressions and full browser quality/recovery
 remain separately subject to verification; G6-054 and acceptance stay open.
+
+
+The explicit media-network CI lane runs the same81 Store boundaries, four
+telephone cells and six native direct/loss/unreachable-port cells from one
+original host build. Each existing component keeps its original fixtures,
+assertions and resource ownership. A phone behavior failure still permits the
+independent native component to run. The aggregate additionally compares both
+components' reported executable digests and the final host/Store digests with
+the original compiled binaries. This lane may restore the verified telephone
+build cache, with the same exact-source timestamp and pinned dependency checks.
+The lane itself remains unrun until its artifact is verified.
