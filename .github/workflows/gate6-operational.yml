@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: ${{ fromJSON(inputs.phase == 'schema' && '["schema"]' || '["schema","runtime"]') }}
+        phase: ${{ fromJSON(inputs.phase == 'typecheck' && '["typecheck"]' || inputs.phase == 'schema' && '["schema"]' || '["schema","runtime"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
       CARGO_BUILD_JOBS: '2'
@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install native build prerequisites
-        if: ${{ matrix.phase == 'runtime' }}
+        if: ${{ matrix.phase != 'schema' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev ffmpeg
@@ -64,7 +64,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p test_operational_component.py
       - name: Type check integration fixtures before optimized compilation
         id: types
-        if: ${{ matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ matrix.phase != 'schema' && steps.prepare.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase typecheck
       - name: Store administrator authority and configured numeric bounds
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
