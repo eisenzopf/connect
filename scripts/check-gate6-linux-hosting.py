@@ -645,6 +645,12 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['behavior_passed'] = True
             return
         if telephone_network:
+            text = execute('compile-test-service-packet-read', ['cargo', 'test', '--offline', '--locked',
+                '--jobs', '2', '-p', 'connect-service', '--lib', 'canonical_media::packets::tests',
+                '--', '--test-threads=1'], 3600)
+            assert re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == ['2']
+            report['service_packet_read'] = dict(passed=True, actual_tests=2,
+                scope='Existing production packet-read helper: fresh authorization after contention, immediate permanent refusal and original expired budget; no full telephone qualification.')
             component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))['run']
             report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
             report['scope'] = report['telephone_distinct_network']['scope']

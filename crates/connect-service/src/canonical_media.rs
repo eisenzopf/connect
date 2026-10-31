@@ -6,6 +6,7 @@ pub(crate) mod handoff;
 pub(crate) mod ice;
 mod packet_metadata;
 mod packets;
+pub(crate) use packets::packet_read;
 pub(crate) mod preparation;
 pub(crate) mod reconciliation;
 pub(crate) mod replacement;

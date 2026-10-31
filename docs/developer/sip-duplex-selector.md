@@ -70,3 +70,17 @@ are rejected: `tracing` records optional string values as bare fields and omits
 corrected reducer accepts both actual and debug formats and preserves unknown
 values only as `other`. It does not infer Store contention from the rejected
 counter report or change any production media behavior.
+
+The corrected Store-counter source `c05ac310` (`41206644225`) verifies
+564–625 actual `authority-busy` initial-SIP reads per case. The native path
+already retries only that error in a ten-millisecond acquisition budget; initial
+SIP used one try. The candidate reuses that existing helper before a lease is
+created. Every attempt revalidates the original runtime/origin/current Store;
+forbidden, not-ready and other permanent errors are returned immediately. No
+positive grant, SQL lock or physical IO is retained or retried. Actual Core
+admission still applies its current gates and original packet/IO bounds.
+
+The telephone CI lane now also executes the two existing helper tests for fresh
+authorization, immediate permanent refusal and an expired original acquisition
+budget. Those and all four unchanged phone cells must pass on the candidate;
+format and Python boundary checks alone do not qualify this correction.

@@ -8,8 +8,7 @@ use super::*;
 /// The ten-millisecond retry window accommodates current metadata derivation at
 /// a policy-clock edge, while remaining below one twenty-millisecond audio frame.
 /// It bounds retry admission, not the duration of an individual Store read.
-#[cfg(test)]
-fn packet_read<T>(
+pub(crate) fn packet_read<T>(
     mut read: impl FnMut() -> connect_protocol::Result<T>,
 ) -> connect_protocol::Result<T> {
     let until = std::time::Instant::now() + std::time::Duration::from_millis(10);
