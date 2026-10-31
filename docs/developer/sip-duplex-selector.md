@@ -61,3 +61,12 @@ missing transport or absent native egress as a complete explanation; it does
 not identify the specific admission cause. Existing initial-SIP Store authority
 trace messages are now reduced to fixed counts (`authority-busy`, `forbidden`,
 `not-ready`, admitted or other) before choosing a production policy change.
+
+The first Store-counter run (`3e69b274`, `41206380817`) verifies a cached
+hosting build in0.466s. Its two direct cases fail earlier at the original
+subscription; both loss cases still fail native input. The new Store counters
+are rejected: `tracing` records optional string values as bare fields and omits
+`None`, while the initial reducer expected debug `Some(...)`/`None`. The
+corrected reducer accepts both actual and debug formats and preserves unknown
+values only as `other`. It does not infer Store contention from the rejected
+counter report or change any production media behavior.

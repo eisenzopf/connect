@@ -49,8 +49,12 @@ def audio_path_diagnostic(raw, directory):
         'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other')}
     for line in clean.splitlines():
         if 'Current initial SIP packet authority' in line:
-            match = re.search(r'\bproblem=(?:Some\("([^"]+)"\)|None)(?:\s|$)', line)
-            code = ('admitted' if match[1] is None else match[1]) if match else 'other'
+            # tracing Value records an Option<&str> as a bare value, and
+            # omits None. Debug-formatted Option fields remain accepted too.
+            match = re.search(r'\bproblem=(?:Some\("([^"]+)"\)|"([^"]+)"|([A-Za-z][A-Za-z-]*))', line)
+            code = next((part for part in match.groups() if part), None) if match else None
+            if code == 'None' or (code is None and 'problem=' not in line):
+                code = 'admitted'
             authority[code if code in authority else 'other'] += 1
         if 'Owned SIP frame admission' in line:
             result['sip_admissions'] += 1
