@@ -128,7 +128,21 @@
     ],
     "passed": true
   },
-  "linux_followup": "Older 396240ea matrix retains initial RTC authority-busy and installed SDK failures. The 51ba5ccb matrix does not contain this change. Both remain separate; new runtime result required.",
+  "linux_followup": {
+    "scope": "Source-verified actual signed native RTC ICE component and full browser matrix nativeICE cell; installed SDK matrix remains partial/failed.",
+    "component": {
+      "run_id": 41123731659,
+      "artifact_id": 13011672054,
+      "revision": "2d9829b1b67ba4a29e85ee0f0cddfa5f130eaf3a",
+      "zip_sha256": "a02570d7a3b812e17d80e8ba864136633e196fbc959ab27d91d1ccb4c4a6756a",
+      "git_sources_verified": 2863,
+      "prepared_sources_verified": 3087
+    },
+    "component_passed": true,
+    "full_run_id": 41125531888,
+    "full_native_ice_passed": true,
+    "full_task_qualified": false
+  },
   "full_task_qualified": false,
   "acceptance_qualified": false
 }

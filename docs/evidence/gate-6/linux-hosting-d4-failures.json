@@ -2535,5 +2535,201 @@
       "passed": false
     }
   ],
-  "continuation_51ba5ccb_scope": "Source-verified Core250 Linux matrix before sealed RTC Store control-read fix f64e5b3e. Node22 stopped at native ICE authority-busy; Node26 ran 93 steps with eight retained failures: Rust SDK consultation return, both signed Node movement preparation cases, Node/Python consultation return, Node media-av, both Python native phase timeouts. All 4495 Git and 4096 prepared inputs match per artifact. No overall matrix qualification. Current f64e5b3e followup is independent and pending."
+  "continuation_51ba5ccb_scope": "Source-verified Core250 Linux matrix before sealed RTC Store control-read fix f64e5b3e. Node22 stopped at native ICE authority-busy; Node26 ran 93 steps with eight retained failures: Rust SDK consultation return, both signed Node movement preparation cases, Node/Python consultation return, Node media-av, both Python native phase timeouts. All 4495 Git and 4096 prepared inputs match per artifact. No overall matrix qualification. Current f64e5b3e followup is independent and pending.",
+  "continuation_f64e5b3e": [
+    {
+      "source_revision": "f64e5b3e436826958c229e6682d6f8151749c96b",
+      "run_id": 41118165275,
+      "artifact_id": 13013815128,
+      "zip_sha256": "314710805624730e3c5dedbfe9b29c6fd7b647083a602b1a4a199c4954b51882",
+      "tracked_sources_verified": 4496,
+      "prepared_sources_verified": 4096,
+      "source_count": 8592,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "0a0f39b7fcfcc9466c4aaf87666022a476e498fea98c2309d08026c114cdbeb7",
+      "steps": 93,
+      "failed_steps": [
+        {
+          "name": "installed-node-movement-installed_node_eddsa_conversation_handoff_leave",
+          "exit_code": 101,
+          "seconds": 24.928103475999706,
+          "log_sha256": "2963407f69b340a6720d4ae72ff4359431b16ca80694329d0ecf4427ee1ce49e",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 309,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "seconds": 23.672970832000374,
+          "log_sha256": "05f47386fcf6af5ac98228761cc88ca0bef3f8f4d601037cbf90879f85874c52",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 131,
+              "column": 25
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "media-data-binary",
+              "column": null,
+              "command": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-python-native-eddsa",
+          "exit_code": 101,
+          "seconds": 17.857294995999837,
+          "log_sha256": "96bd1d0296a3459b1e4cfbc77290f2497659980ae2dd048123e8bf85407ffb3f",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 171,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "media-av",
+              "error_type": "SdkError",
+              "kind": "deadline",
+              "phase": "failed",
+              "source_line": 114
+            }
+          ],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-python-native-es256",
+          "exit_code": 101,
+          "seconds": 17.95581406600013,
+          "log_sha256": "1bf419ea2c83943d9f40dca9bf65e51543efae3e2afd8d0badea51336698306c",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 171,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "media-av",
+              "error_type": "SdkError",
+              "kind": "deadline",
+              "phase": "failed",
+              "source_line": 114
+            }
+          ],
+          "python_consultation_failures": []
+        }
+      ],
+      "passed": false
+    },
+    {
+      "source_revision": "f64e5b3e436826958c229e6682d6f8151749c96b",
+      "run_id": 41118165275,
+      "artifact_id": 13011922138,
+      "zip_sha256": "3b4cf991dedc2ac980c4830490de2b4635d77dbbee87672b4aca789615519b16",
+      "tracked_sources_verified": 4496,
+      "prepared_sources_verified": 4096,
+      "source_count": 8592,
+      "source_inputs_unchanged": true,
+      "source_manifest_sha256": "0a0f39b7fcfcc9466c4aaf87666022a476e498fea98c2309d08026c114cdbeb7",
+      "steps": 78,
+      "failed_steps": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "seconds": 39.6392384400001,
+          "log_sha256": "13cd1460a4030c6f481e0261655684d9ebce699c286e7098a51d32a00b38d955",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 253,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        },
+        {
+          "name": "installed-node-consultation-remote-ended",
+          "exit_code": 101,
+          "seconds": 8.832914047000031,
+          "log_sha256": "a05145507f352df624bcad11d872924389dce06b44d9aa022d29d05fa1b79a53",
+          "rtc_admission_observations": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 47,
+              "column": 9
+            }
+          ],
+          "rtc_operation_failures": [],
+          "node_failures": [],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "return-wait",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ],
+          "node_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_failures": []
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "continuation_f64e5b3e_scope": "4496 Git +4096 prepared inputs per artifact source-verified. Native ICE passes in both. Node22 ran93 steps with4 failures: EdDSA conversation handoff leave, Node binary data receive deadline, both Python AV deadlines. Node26 ran78 steps with2 failures: Rust SDK EOF return and Node remote-ended return; later steps unrun. Both signed Node replacement candidate cases and restored Node consultation cases now pass. No whole matrix or hosting qualification."
 }
