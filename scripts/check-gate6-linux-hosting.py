@@ -648,9 +648,11 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
                 packet.chmod(0o600)
                 fixture_hashes[packet.name] = digest(packet)
             environment = dict(CONNECT_GATE6_AV_FIXTURE_DIR=str(fixtures), CONNECT_GATE6_FFMPEG=str(decoder))
+            inventory = execute('video-feedback-test-inventory', [artifacts['webtransport'], '--list'], 10)
             results = []
             for algorithm in ('eddsa', 'es256'):
-                case = 'canonical_websocket_control::webrtc::av::configured_signed_av_picture_requests_follow_current_selection_' + algorithm
+                case = 'canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_picture_requests_follow_current_selection_' + algorithm
+                assert case + ': test' in inventory.splitlines(), 'Missing exact configured video feedback function'
                 text = execute('canonical-video-feedback-' + algorithm,
                     [artifacts['webtransport'], case, '--exact', '--ignored', '--nocapture', '--test-threads=1'],
                     90, defer_failure=True, environment=environment)
