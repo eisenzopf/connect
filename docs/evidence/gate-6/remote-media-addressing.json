@@ -537,18 +537,29 @@
       "source_revision": "37a0929f73698c76a60d542948173082889011e8",
       "status": "completed-failed-source-verified",
       "scope": "Store80pass1oldmemo-countfailure,zeroignored. Host and bothnetworkcomponents unrun."
+    },
+    {
+      "run_id": 41219309028,
+      "source_revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
+      "status": "completed-failed-source-verified-producer-only",
+      "scope": "Cold opt3production build times out3600s;512Cargo artifacts completed, no producer executable, allmedia/bridge/expiryUNRUN"
     }
   ],
   "latest_in_flight": [
     {
-      "run_id": 41219309028,
-      "source_revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
-      "scope": "Full original browser baseline/ICE/fault/direct/relay/expiry with active close-timer correction; candidate runtime unqualified"
+      "run_id": 41224457162,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "scope": "Resumed original full browser profile after source-verified cold build timeout; compatible partial cache exists, runtime unrun"
+    },
+    {
+      "run_id": 41222039283,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "scope": "Corrected Store81 plus original4telephone/6native and same-host custody; unqualified until actual artifact"
     }
   ],
   "paired_wal_candidate": "Source66 qualified79Store boundaries but failed all4phonecases. The follow-up fact memo at3cca independently source-verifies all81Storefunctions and all4originaltelephonecells. Browser/combined profiles remain separate.",
   "relay_retirement_candidate": {
-    "status": "implemented-runtime-unrun",
+    "status": "producer-timed-out-media-unrun-resume-dispatched",
     "source_parent": "3cca4d464dbe5f895d65732b6389500e62bab386",
     "patch": "patches/rvoip/gate6-relay-close-active-timers.patch",
     "patch_sha256": "cd9e04adf641c522cadbf1f0347a1150ff04e7531667e97f1e8c0c60fa4115d3",
@@ -559,7 +570,20 @@
     "prior_runtime_evidence": "docs/evidence/gate-6/linux-rtc-compound-runtime.json",
     "details": "docs/developer/rtc-relay-retirement.md",
     "full_task_qualified": false,
-    "acceptance_qualified": false
+    "acceptance_qualified": false,
+    "evidence": "docs/evidence/gate-6/rtc-relay-retirement.json",
+    "producer_failure": {
+      "run_id": 41219309028,
+      "source_revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
+      "artifact_id": 13051031157,
+      "zip_sha256": "bfa96c6c4f6d4fde04f9a310ad8943b4e6c2c2f61673198d4a12221f32f8cbcb",
+      "status": "source-verified-build-timeout-runtime-unrun"
+    },
+    "resumed_run": {
+      "run_id": 41224457162,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "status": "dispatched-unqualified"
+    }
   },
   "combined_media_network": {
     "source_revision": "37a0929f73698c76a60d542948173082889011e8",

@@ -28,3 +28,22 @@ including all four relay cases, original signed Session end, five-second route
 and capacity drain, actual peer joins and zero allocations. Its unchanged
 audio/video/AV/recovery assertions still apply. Runtime verification is unrun;
 the cause of the historical UDP stall and whole G6-054 remain unqualified.
+
+
+Run41219309028 at ec1d9c46 is source-verified but media remains unrun. Its
+cold build finds no compatible cache and reaches the original3,600second limit
+with exit-15, no forced kill,512 completed Cargo artifacts and ten required
+runtime libraries at opt3. The server library and integration driver are
+unfinished. Runtime, bridge and expiry steps are explicitly skipped.
+
+The artifact binds2,878 Git inputs and3,089 prepared frozen78 inputs; it has
+no producer executable. GitHub records a saved partial cache, independently
+confirmed as cache9805350070. This is compilation progress, not runtime evidence.
+
+Full browser run41224457162 resumes on f3e70fa7 using the same production
+sources and recorded patch set. The only Rust difference is the Store snapshot
+tests under cfg(test); production libraries, manifests, lock and patches are
+identical. Completed artifacts may be reused only through the existing source,
+mode, timestamp and patch checks. The one-hour build limit, opt3 runtime,
+opt0 driver and every original media/cleanup assertion remain unchanged.
+See [the recorded producer result](../evidence/gate-6/rtc-relay-retirement.json).

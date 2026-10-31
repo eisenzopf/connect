@@ -1,0 +1,127 @@
+{
+  "run_id": 41219309028,
+  "artifact_id": 13051031157,
+  "revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
+  "zip_sha256": "bfa96c6c4f6d4fde04f9a310ad8943b4e6c2c2f61673198d4a12221f32f8cbcb",
+  "git_sources_verified": 2878,
+  "prepared_sources_verified": 3089,
+  "format": "connect/gate6-rtc-relay-retirement/1",
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "producer-timeout-runtime-unrun",
+  "scope": "Recorded close-timer source correction; source-verified cold production-library build timeout only. No decoded media, route-retirement or full G6-054 qualification.",
+  "producer": {
+    "scope": "Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt0. Build only.",
+    "fixture_opt_level": "0",
+    "unrequested_cli_artifacts": 0,
+    "command": [
+      "cargo",
+      "rustc",
+      "--release",
+      "--offline",
+      "--locked",
+      "-j1",
+      "-p",
+      "connect-server",
+      "--no-default-features",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none",
+      "-C",
+      "opt-level=0"
+    ],
+    "execution": {
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 3600.016469784,
+      "log_sha256": "98e417fc3b8424db7e8135b9bf63831ecc7868d483e72b3b5fc54ecb309d6e61"
+    },
+    "runtime_library_profiles": {
+      "completed_artifacts": 512,
+      "profiles": {
+        "connect_client": [
+          "3"
+        ],
+        "connect_service": [
+          "3"
+        ],
+        "connect_store": [
+          "3"
+        ],
+        "rtc": [
+          "3"
+        ],
+        "rtc_dtls": [
+          "3"
+        ],
+        "rtc_ice": [
+          "3"
+        ],
+        "rvoip_core": [
+          "3"
+        ],
+        "rvoip_media_core": [
+          "3"
+        ],
+        "rvoip_rtp_core": [
+          "3"
+        ],
+        "rvoip_webrtc": [
+          "3"
+        ]
+      },
+      "missing": [
+        "connect_server"
+      ],
+      "passed": false
+    },
+    "source_count": 5967,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "3d200ba937e9d9d450c78ac786ebaaeee126ac9b4a09a1a15751926863baf686",
+    "artifacts": [],
+    "passed": false
+  },
+  "dependency_cache": {
+    "scope": "CI build-cache preparation only; no runtime qualification.",
+    "source_lock_sha256": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2",
+    "retained_incompatible_cache": false,
+    "restored_identical_files": 0,
+    "different_files": 0
+  },
+  "source_verification": "Bind all2878Git blob hashes and3089officially prepared frozen78 source hashes to the captured5967-input manifest; exact source-lock digest matches dependency-cache metadata. This artifact contains only build inputs, failed producer report and dependency-cache metadata.",
+  "cache": {
+    "initial_restore": "No compatible cache found, recorded by the original job",
+    "partial_cache_saved": true,
+    "confirmed_cache_id": 9805350070,
+    "confirmed_size_bytes": 688049832,
+    "completed_cargo_artifacts": 512,
+    "qualification": "Cache reuse is not successful compilation or runtime evidence. Fresh source/mode/timestamp/patch checks and completed production-library profiles remain required."
+  },
+  "source_equivalence": {
+    "original": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
+    "resumed": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+    "production_crates_manifests_lock_and_patches_unchanged": true,
+    "rust_delta": [
+      "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs"
+    ],
+    "test_cfg": "snapshot.rs declares tests under #[cfg(test)]; the browser depends on the ordinary production Store library."
+  },
+  "resumed_full_browser": {
+    "run_id": 41224457162,
+    "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+    "status": "dispatched-runtime-unrun",
+    "lane": "full",
+    "build_limit_seconds": 3600,
+    "production_library_opt_level": 3,
+    "fixture_driver_opt_level": 0,
+    "media_and_cleanup_assertions": "unchanged"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}
