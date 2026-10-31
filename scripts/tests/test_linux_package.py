@@ -184,17 +184,17 @@ class BuildPhaseGuards(unittest.TestCase):
     def test_package_phase_refuses_a_changed_source_manifest_without_building(self):
         self.report['source_inputs_sha256'] = '0' * 64
         self.report_path.write_text(json.dumps(self.report))
-        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: self.inputs}), mock.patch.object(build_pipeline.subprocess, 'run') as run:
+        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: self.inputs}), mock.patch.object(build_pipeline, 'run_bounded') as build:
             with self.assertRaisesRegex(AssertionError, 'Recovery source manifest changed'):
                 build_pipeline.main()
-            run.assert_not_called()
+            build.assert_not_called()
 
     def test_changes_between_phases_are_not_freshened_and_cannot_save_a_cache(self):
         changed = {'crates/example/src/lib.rs': {'sha256': '2' * 64, 'mode': 0o644}}
-        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: changed}), mock.patch.object(build_pipeline.subprocess, 'run') as run:
+        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: changed}), mock.patch.object(build_pipeline, 'run_bounded') as build:
             with self.assertRaisesRegex(AssertionError, 'Source changed between build phases'):
                 build_pipeline.main()
-            run.assert_not_called()
+            build.assert_not_called()
         report = json.loads(self.report_path.read_text())
         self.assertFalse(report['source_inputs_unchanged'])
         self.assertFalse(report['cacheable_build'])
