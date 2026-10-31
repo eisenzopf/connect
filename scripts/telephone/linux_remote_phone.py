@@ -2,6 +2,7 @@
 """Bounded synthetic SIP/RTP peer in a fresh owned Linux container."""
 import hashlib
 import json
+import ipaddress
 from pathlib import Path
 import select
 import platform
@@ -12,10 +13,23 @@ import time
 from urllib.parse import unquote
 
 
+
+def designated_gateway(spec):
+    # The existing Lima profile stays explicit. The Linux CI owner supplies the
+    # verified fresh bridge gateway as both signaling hop and advertised host.
+    if spec.get("owned_internal_bridge") is True:
+        gateway = ipaddress.IPv4Address(spec["gateway"])
+        assert str(gateway) == spec["host_media_ip"] and gateway.is_private
+        assert not (gateway.is_loopback or gateway.is_unspecified or gateway.is_multicast or gateway.is_link_local)
+    else:
+        assert spec["gateway"] == "192.168.5.2"
+    return spec["gateway"]
+
 def main():
     directory = Path(sys.argv[1])
     spec = json.loads((directory / "guest-input.json").read_text())
-    assert spec["gateway"] == "192.168.5.2" and len(spec["nonce"]) == 64
+    designated_gateway(spec)
+    assert len(spec["nonce"]) == 64
     wire = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     media = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     report = {"passed": False, "os": sys.platform, "architecture": platform.machine(), "sip_invites": 0, "sip_acks": 0,

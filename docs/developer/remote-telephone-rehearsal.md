@@ -82,3 +82,33 @@ every fifth PCMU RTP packet independently in each direction, records seen and
 dropped counters, and leaves SIP and RTCP untouched. Decoder thresholds and
 original-owner drain requirements are identical to the direct profile. This is
 a functional controlled-loss fixture, not a latency or load qualification.
+
+
+## Native Linux x86_64 host and peer
+
+The `telephone-network` lane in `gate6-linux-fixtures.yml` builds the current
+server fixture on native Ubuntu 24.04 x86_64 and runs the original four
+EdDSA/ES256 direct and 20% PCMU RTP-loss cases. The synthetic Python SIP/RTP
+peer runs in the pinned Linux/amd64 image as the host operator UID, with a
+separate namespace on one fresh internal Docker bridge. The owner verifies
+that bridge's identity, name, label and concrete non-loopback gateway before
+using it as the SIP/RTP host interface. The peer accepts that gateway only in
+the explicit owned-bridge mode, with the same advertised host address.
+
+The existing nonce-observed fixed NAT, independent opposite-tone decoding,
+journal-before-INVITE, original-INVITE recovery, signed Session end and original
+socket/peer/server-drain checks remain required. The owner retains its exact
+network identity in ignored private state before creation, recovers only that
+name/label after an uncertain creation reply, and removes the bridge only when
+it is still the exact owned empty network. Failure to confirm cleanup is a
+failed component. Credentials, addresses, nonces, PCM and raw logs remain under
+ignored `.local/`; the CI artifact includes only bounded facts and hashes.
+
+```sh
+python3 scripts/check-gate6-linux-hosting.py --telephone-network
+```
+
+This covers the bounded synthetic telephone addressing component. Provider,
+PSTN, WAN, native video, complete transport matrix and performance qualification
+remain separate approved plan work. A Linux result must be recorded separately
+from the earlier Linux arm64 peer/macOS host evidence above.

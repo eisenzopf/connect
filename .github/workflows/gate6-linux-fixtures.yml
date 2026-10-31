@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       lane:
-        description: 'Full fixtures or an isolated Python, video feedback, return or native network component'
+        description: 'Full fixtures or an isolated Python, video, return, native or telephone network component'
         type: choice
-        options: [full, python314, video-feedback, consultation-return, native-network]
+        options: [full, python314, video-feedback, consultation-return, native-network, telephone-network]
         default: full
   push:
     branches: [main]
@@ -22,6 +22,10 @@ on:
       - 'scripts/check-gate6-linux-hosting.py'
       - 'scripts/rehearse-gate6-native-media.py'
       - 'scripts/lib/native_network_component.py'
+      - 'scripts/lib/telephone_network_component.py'
+      - 'scripts/rehearse-gate6-remote-telephone.py'
+      - 'scripts/telephone/linux_remote_phone.py'
+      - 'scripts/tests/test_telephone_media_network.py'
       - 'scripts/tests/test_native_media_network.py'
       - 'scripts/lib/source_build_cache.py'
       - 'scripts/lib/ci_dependency_cache.py'
@@ -33,11 +37,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || '' }}
+  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || inputs.lane == 'telephone-network' && '-telephone-network' || '' }}
   cancel-in-progress: false
 jobs:
   node-control:
-    if: ${{ inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' }}
+    if: ${{ inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -73,7 +77,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   python-control:
-    if: ${{ inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' }}
+    if: ${{ inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -130,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ${{ fromJSON((inputs.lane == 'video-feedback' || inputs.lane == 'consultation-return' || inputs.lane == 'native-network') && '["22"]' || '["22","26"]') }}
+        node: ${{ fromJSON((inputs.lane == 'video-feedback' || inputs.lane == 'consultation-return' || inputs.lane == 'native-network' || inputs.lane == 'telephone-network') && '["22"]' || '["22","26"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-ci/target
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -186,9 +190,10 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
           python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
           python3 -m unittest discover -s scripts/tests -p test_native_media_network.py
+          python3 -m unittest discover -s scripts/tests -p test_telephone_media_network.py
       - name: Run isolated source-bound fixtures
         id: fixtures
-        run: python3 scripts/check-gate6-linux-hosting.py ${{ inputs.lane == 'video-feedback' && '--video-feedback' || inputs.lane == 'consultation-return' && '--consultation-return' || inputs.lane == 'native-network' && '--native-network' || '--node-sdk --python-sdk' }}
+        run: python3 scripts/check-gate6-linux-hosting.py ${{ inputs.lane == 'video-feedback' && '--video-feedback' || inputs.lane == 'consultation-return' && '--consultation-return' || inputs.lane == 'native-network' && '--native-network' || inputs.lane == 'telephone-network' && '--telephone-network' || '--node-sdk --python-sdk' }}
       - name: Upload source-only fixture evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

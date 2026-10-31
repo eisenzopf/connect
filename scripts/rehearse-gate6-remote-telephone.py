@@ -5,6 +5,8 @@ import datetime
 import hashlib
 import json
 import os
+import platform
+import re
 from pathlib import Path
 import random
 import runpy
@@ -155,7 +157,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--server-build", type=Path, required=True)
     parser.add_argument("--server-inputs", type=Path, required=True)
-    parser.add_argument("--host-media-ip", required=True, help="Explicit concrete IPv4 interface on this owned Mac")
+    parser.add_argument("--host-media-ip", required=True, help="Explicit concrete IPv4 interface on the owned host")
+    parser.add_argument("--image", default=IMAGE, help="Pinned native Linux peer image ID")
+    parser.add_argument("--owned-linux-bridge", help="Exact freshly owned internal Linux bridge ID")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--network-profile", choices=["direct", "loss"], default="direct", help="Loss drops every fifth PCMU RTP packet in each direction; signaling and RTCP remain untouched")
@@ -173,8 +177,18 @@ def main():
     binary = Path(build["artifact"]["sealed"])
     assert digest(binary) == build["artifact"]["sha256"]
     assert CASE + ": test" in subprocess.check_output([str(binary), "--list"], text=True).splitlines()
-    image = json.loads(subprocess.check_output(["docker", "image", "inspect", IMAGE]))[0]
-    assert image["Id"] == IMAGE and image["Architecture"] == "arm64" and image["Os"] == "linux"
+    assert re.fullmatch(r'sha256:[0-9a-f]{64}', args.image)
+    image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image], timeout=15))[0]
+    assert image["Id"] == args.image and image["Os"] == "linux"
+    gateway = "192.168.5.2"
+    if args.owned_linux_bridge:
+        assert platform.system() == "Linux" and platform.machine() == "x86_64" and os.getuid() != 0
+        assert image["Architecture"] == "amd64"
+        info = json.loads(subprocess.check_output(["docker", "network", "inspect", args.owned_linux_bridge], timeout=15))[0]
+        gateway = HELPERS["owned_gateway"](args.owned_linux_bridge, info)
+        assert gateway == args.host_media_ip
+    else:
+        assert args.image == IMAGE and image["Architecture"] == "arm64"
     def sources():
         result = HELPERS["HELPERS"]["sources"]()
         for folder in [ROOT / "scripts/telephone"]:
@@ -186,8 +200,10 @@ def main():
     report = {"passed": False, "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
               "network_profile": args.network_profile,
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-              "image_id": IMAGE, "server_sha256": digest(binary), "source_inputs_sha256": before,
+              "image_id": args.image, "server_sha256": digest(binary), "source_inputs_sha256": before,
               "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "profiles": []}
+    if args.owned_linux_bridge:
+        report["scope"] = "Current native Linux x86_64 host and Linux x86_64 synthetic SIP/RTP peer on an owned internal bridge, with one public native SDK PCMU peer and fixed nonce-observed peer-side NAT. Actual opposite-tone decode, journal-before-INVITE, replay, signed end and original drains; no WAN/provider/PSTN/model, video, full matrix or performance qualification."
     try:
         for algorithm in ["EdDSA", "ES256"]:
             directory = out / algorithm
@@ -198,12 +214,18 @@ def main():
             media_start, media_held = reserve(args.host_media_ip, 16)
             server_sip = (args.host_media_ip, sip_port)
             nat = PeerNat(directory, secrets.token_hex(32), args.host_media_ip, server_sip, media_start, args.network_profile)
-            private_json(directory / "guest-input.json", {"nonce": nat.nonce, "gateway": "192.168.5.2", "host_media_ip": args.host_media_ip, "sip_front": nat.front["sip"], "rtp_front": nat.front["rtp"], "media_port_start": media_start})
+            private_json(directory / "guest-input.json", {"nonce": nat.nonce, "gateway": gateway, "owned_internal_bridge": bool(args.owned_linux_bridge), "host_media_ip": args.host_media_ip, "sip_front": nat.front["sip"], "rtp_front": nat.front["rtp"], "media_port_start": media_start})
             private_json(directory / "server-input.json", {"algorithm": algorithm, "host_media_ip": args.host_media_ip, "server_sip": f"{args.host_media_ip}:{sip_port}", "peer_sip": f'{args.host_media_ip}:{nat.front["sip"]}', "media_port_start": media_start})
             guest = server = None
             row = {"algorithm": algorithm, "passed": False}
             try:
-                command = ["docker", "run", "--rm", "--cidfile", str(directory / "container-id"), "--read-only", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--tmpfs", "/tmp:rw,size=64m", "--mount", f"type=bind,source={ROOT},target={ROOT},readonly", "--mount", f"type=bind,source={directory},target=/fixture", IMAGE, "python3", str(ROOT / "scripts/telephone/linux_remote_phone.py"), "/fixture"]
+                command = ["docker", "run", "--rm", "--cidfile", str(directory / "container-id"), "--read-only", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--tmpfs", "/tmp:rw,size=64m", "--mount", f"type=bind,source={ROOT},target={ROOT},readonly", "--mount", f"type=bind,source={directory},target=/fixture", args.image, "python3", str(ROOT / "scripts/telephone/linux_remote_phone.py"), "/fixture"]
+                if args.owned_linux_bridge:
+                    script = ROOT / "scripts/telephone/linux_remote_phone.py"
+                    command[command.index(f"type=bind,source={ROOT},target={ROOT},readonly")] = f"type=bind,source={script},target=/probe.py,readonly"
+                    command[command.index(str(script))] = "/probe.py"
+                    command[2:2] = ["--network", args.owned_linux_bridge,
+                        "--user", f"{os.getuid()}:{os.getgid()}", "--pids-limit", "128"]
                 with (directory / "guest.log").open("w") as guest_log, (directory / "server.log").open("w") as server_log:
                     guest = subprocess.Popen(command, stdout=guest_log, stderr=subprocess.STDOUT, start_new_session=True)
                     until = time.monotonic() + 15
@@ -235,7 +257,7 @@ def main():
                 if cidfile.exists():
                     cid = cidfile.read_text().strip()
                     assert len(cid) == 64 and all(c in "0123456789abcdef" for c in cid)
-                    subprocess.run(["docker", "rm", "--force", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.run(["docker", "rm", "--force", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
                 nat.close()
                 for held in sip_held + media_held:
                     held.close()

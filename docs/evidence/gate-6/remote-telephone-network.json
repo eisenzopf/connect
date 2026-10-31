@@ -286,9 +286,8 @@
     "not_a_fix": "Do not accept unnegotiated RTCP in the fixture, disable it to manufacture a media pass, or silently drop separate-port SIP support."
   },
   "remaining": [
-    "Implement and causally verify negotiated separate/multiplexed RTCP routing, including explicit RTCP address and original socket ownership/drain.",
-    "Then run both EdDSA and ES256 complete opposite-tone decode/replay/signed-end/drain profiles. ES256 has not run in this failed sequence.",
-    "Distinct-network telephone loss/unreachable behavior, browser rendered-rate qualification, ICE restart and remaining G6-054 profiles remain open."
+    "Current nativeLinuxx86_64 host/peer direct and20percentRTP-loss cases require actual CI proof; earlier v43 arm64peer/macOShost four-cell proof remains separately scoped.",
+    "Current browser strictquality/ICE/TURN/distinct-network profiles remain open in G6-054. G6-058 complete transport matrix and G6-093/G6-095/G6-098 named remote/performance qualification remain separate."
   ],
   "source_sha256": {
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs": "1aa6d666aba224a8757eb32bacd5ac454e6b9ffa58016c26cf3998f330ca69ea",
@@ -1350,5 +1349,17 @@
         "changed_inputs": []
       }
     }
+  },
+  "current_linux_component": {
+    "status": "Implemented; actual CI execution pending, no qualification",
+    "entrypoint": "python3 scripts/check-gate6-linux-hosting.py --telephone-network",
+    "scope": "NativeUbuntu24.04x86_64 host and Linuxx86_64 syntheticSIP/RTPpeer, freshinternalbridge/fixednonce-observedNAT, publicnativeSDKPCMU. Existingdirect/20percentPCMU-RTP-loss \u00d7EdDSA/ES256 opposite-tone/journal/replay/signed-end/original-drain checks. NoWAN/provider/PSTN/model/video/fullmatrix/performanceclaim.",
+    "local_verification": {
+      "telephone_endpoint_ownership_privacy_tests": 4,
+      "native_network_boundary_tests": 2,
+      "diagnostic_schema_tests": 19
+    },
+    "execution_passed": false,
+    "acceptance_qualified": false
   }
 }

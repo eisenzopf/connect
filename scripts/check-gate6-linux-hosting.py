@@ -313,9 +313,9 @@ RUST_CONSULTATION_CASES = (
 )
 
 
-def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False):
-    assert sum((video_feedback, consultation_return, native_network)) <= 1, 'One isolated component at a time'
-    assert not (video_feedback or consultation_return or native_network) or not (node_sdk or python_sdk), 'Independent component only'
+def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False):
+    assert sum((video_feedback, consultation_return, native_network, telephone_network)) <= 1, 'One isolated component at a time'
+    assert not (video_feedback or consultation_return or native_network or telephone_network) or not (node_sdk or python_sdk), 'Independent component only'
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -593,7 +593,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
         ):
-            if (video_feedback or consultation_return or native_network) and name != ('webtransport' if video_feedback else 'hosting'):
+            if (video_feedback or consultation_return or native_network or telephone_network) and name != ('webtransport' if video_feedback else 'hosting'):
                 continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
                            *arguments, "--no-run", "--message-format=json"], 3600)
@@ -618,6 +618,13 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        if telephone_network:
+            component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))['run']
+            report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
+            report['scope'] = report['telephone_distinct_network']['scope']
+            assert report['telephone_distinct_network']['passed'], 'Current telephone distinct-network component failed'
+            report['behavior_passed'] = True
+            return
         if native_network:
             text = execute('compile-native-network-probe', ['cargo', 'build', '--offline', '--locked',
                 '--jobs', '2', '-p', 'connect-client', '--example', 'native_media_probe', '--message-format=json'], 3600)
@@ -1099,8 +1106,9 @@ def main():
     parser.add_argument("--video-feedback", action="store_true", help="Only the configured exact-source picture-request component")
     parser.add_argument("--consultation-return", action="store_true", help="Only the two original public Rust SDK return functions")
     parser.add_argument("--native-network", action="store_true", help="Only current native Linux public SDK distinct-network PCMU and bounded faults")
+    parser.add_argument("--telephone-network", action="store_true", help="Only current native Linux SIP/RTP distinct-network PCMU and bounded loss")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network, args.telephone_network)
 
 
 if __name__ == "__main__":
