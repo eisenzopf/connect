@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "status": "Actual before counterexample reproduced; correction prepared, after component/runtime pending",
+  "status": "Controlled before failure and corrected component pass; affected media runtime pending",
   "scope": "Public real-interceptor scheduler component only. No live AV, Core authority, deployment or acceptance qualification.",
   "before": {
     "scope": "Actual interceptor startup-clock component; no media/runtime qualification.",
@@ -69,7 +69,69 @@
     "native_interval": "Existing one-second default and configured periodic cadence unchanged.",
     "tests": "The three public API functions are byte-identical to the verified before counterexample; after verification also requires actual upstream interceptor unit tests."
   },
-  "remaining": "Verify the correction component and full Linux affected media/SDK lanes. A prompt generated report alone does not prove packet delivery or repaired AV startup.",
+  "remaining": "Full affected Linux media and SDK lanes remain required; no packet delivery, AV startup or complete G6-054 qualification is inferred from the component pass.",
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "after": {
+    "scope": "Actual interceptor startup-clock component; no media/runtime qualification.",
+    "expected_counterexample": false,
+    "source_revision": "03c593add1ff97b6313334365624fee927b36a22",
+    "source_count": 5943,
+    "source_manifest_sha256": "45b7c1c9c752b498aa8c321e6d5cfd5eccf6a94e245942bf1da9cb927fa0d0f5",
+    "full_task_qualified": false,
+    "acceptance_qualified": false,
+    "tests_executed": true,
+    "expected_counterexample_reproduced": false,
+    "qualification_passed": true,
+    "metadata": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 0.11420801599999209,
+      "log_sha256": "b0cdd2e9406d4bed10f1c0127d78ede5701fbce503e4be39bba2c35156558a42"
+    },
+    "registry_packages_matched_root_lock": 151,
+    "generated_inputs_sha256": {
+      "probe/Cargo.toml": "dddee356f565f082b281f1d1b8900308e77700b4a607f3568710e7e02539da2b",
+      "probe/Cargo.lock": "62a8a0f76e08748891f8635c1bf150febbe495fcbec5e3951d20cfe942797f84",
+      "probe/src/lib.rs": "32cf766528beb22cb91c16be885f380b260ee977c36e24752d7e4a99a129efa4"
+    },
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+    "test": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 1.3675497340000078,
+      "log_sha256": "10e7b5ef38d290426c130c404d4bec7525c5a6bacf550ef864f876dcf3a52894"
+    },
+    "test_results": [
+      [
+        "ok",
+        "3",
+        "0"
+      ]
+    ],
+    "component_api_passed": true,
+    "upstream_regressions": {
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 7.834516742999995,
+        "log_sha256": "bc00c1a7eefaf8c47d6fed51fc068b27e976dbee099bf7ef3796199bbdbd6bbc"
+      },
+      "results": [
+        "135"
+      ],
+      "passed": true
+    },
+    "generated_inputs_unchanged": true,
+    "status": "component-passed",
+    "sources_unchanged": true,
+    "run_id": 41183572291,
+    "artifact_id": 13036450053,
+    "zip_sha256": "c71ec2b69a4834d1906a5ff2ae1420771bde1ca3399b29026a24b726f3154b0a",
+    "git_sources_verified": 2856,
+    "prepared_sources_verified": 3087
+  }
 }
