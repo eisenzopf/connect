@@ -87,11 +87,12 @@
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
   "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
   "current_runtime_candidate": {
-    "run_id": 41245525263,
-    "job_id": 124668037860,
-    "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
-    "status": "in_progress_at_recording",
-    "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
+    "run_id": 41247496443,
+    "source_revision": "516cc12a942a99a9b97ad24ad673ddd47537605f",
+    "status": "pending-behind-live-original-runtime-run-at-recording",
+    "predecessor_run": 41245525263,
+    "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
+    "task_complete": false
   },
   "pending_socket_cleanup": {
     "status": "implemented-not-yet-runtime-verified",
@@ -139,5 +140,12 @@
     "artifact_id": 13059648481,
     "status": "success-independently-verified",
     "evidence": "docs/evidence/gate-6/operational-schema-verified.json"
+  },
+  "previous_runtime_candidate": {
+    "run_id": 41245525263,
+    "job_id": 124668037860,
+    "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
+    "status": "in_progress_at_recording",
+    "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
   }
 }
