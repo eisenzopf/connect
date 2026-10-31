@@ -136,6 +136,12 @@ def main():
             run('typescript-offline-build', ['npm', 'run', 'build', '--offline', '--cache', cache], cwd=node)
             if tree_hashes(node / 'dist') != tree_hashes(ROOT / 'sdk/typescript/dist'):
                 raise ValueError('Offline TypeScript rebuild differs from candidate distribution')
+            report['typescript_distribution_byte_identical'] = True
+            # The build processes have joined. Release only this owned temporary
+            # compiler/cache before the independent Python rebuild, keeping the
+            # shipped archives and all private reports intact.
+            shutil.rmtree(node)
+            shutil.rmtree(cache)
             python = project / 'python'; shutil.copytree(python_source, python)
             target = project / 'venv'; venv.EnvBuilder(with_pip=False, symlinks=True).create(target)
             executable = target / 'bin/python'
@@ -147,6 +153,7 @@ def main():
             proof = json.loads(args.wheel_proof.read_text())
             if not proof['passed'] or digest(wheel) != proof['wheel_sha256']:
                 raise ValueError('Offline wheel rebuild differs from installed candidate')
+            report['python_wheel_byte_identical'] = True
             report.update(passed=True, consumer_outside_repository=True, empty_caches=True,
                           typescript_distribution_byte_identical=True, python_wheel_byte_identical=True)
         files = tree_hashes(output)

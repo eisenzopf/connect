@@ -25,7 +25,7 @@ from the candidate, then run the example with Node 22 or later:
 
 ```sh
 cd node
-npm install --offline --ignore-scripts /CANDIDATE/node/dependencies/*.tgz /CANDIDATE/node/rudeless-connect-0.1.0.tgz
+npm install --offline --ignore-scripts /CANDIDATE/sdk/node/dependencies/*.tgz /CANDIDATE/sdk/node/rudeless-connect-0.1.0.tgz
 node inspect.mjs /PRIVATE/NEW/installation/operator.sdk.toml
 ```
 
@@ -34,7 +34,7 @@ For Python, create a fresh venv and install the candidate wheel without an index
 ```sh
 cd python
 python3 -m venv .venv
-.venv/bin/python -m pip install --no-index /CANDIDATE/python/rudeless_connect-0.1.0-py3-none-any.whl
+.venv/bin/python -m pip install --no-index /CANDIDATE/sdk/python/rudeless_connect-0.1.0-py3-none-any.whl
 .venv/bin/python -I inspect_candidate.py /PRIVATE/NEW/installation/operator.sdk.toml
 ```
 

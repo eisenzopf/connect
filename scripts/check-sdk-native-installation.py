@@ -4,6 +4,7 @@
 Read-only local synthetic signed peers only; no media, providers or model hosts.
 """
 import argparse
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -95,7 +96,7 @@ def main():
     bounded = runpy.run_path(str(ROOT / 'scripts/check-linux-package-build.py'))['run_bounded']
     server = None; server_log = None
     try:
-        with tempfile.TemporaryDirectory(prefix='connect-installed-candidate-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='connect-installed-candidate-') as temporary, contextlib.ExitStack() as ownership:
             project = Path(temporary).resolve()
             if project.is_relative_to(ROOT.resolve()):
                 raise ValueError('Consumer must be outside the repository')
@@ -124,6 +125,13 @@ def main():
             server_log = (private / 'server.log').open('wb')
             server = subprocess.Popen([str(binary), 'serve', '--config', str(state / 'server.toml')],
                 cwd=project, env=environment, stdout=server_log, stderr=subprocess.STDOUT, start_new_session=True)
+            def retire_owned_server():
+                if server.poll() is None:
+                    os.killpg(server.pid, signal.SIGKILL)
+                    server.wait()
+            # Retire the process before TemporaryDirectory removes its state on
+            # failure. Success still requires the original graceful join below.
+            ownership.callback(retire_owned_server)
             def health():
                 request = urllib.request.Request(f'http://127.0.0.1:{http}/v1/operations', data=b'{"op":"health"}',
                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + application['credential']})

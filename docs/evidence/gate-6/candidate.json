@@ -1477,5 +1477,85 @@
       "Join the original packaged server and verify unchanged executable/source inputs"
     ],
     "full_language_version_facade_media_matrix": "G6-070, not claimed here"
+  },
+  "offline_source_candidates": {
+    "script": "scripts/package-sdk-offline.py",
+    "combined_local_attempt": {
+      "passed": false,
+      "source_revision": "6b378fa00fcb7411c000f245d72cbe6b49374b2e",
+      "source_inputs_sha256": "934e329ec6ed8ba727edbacf524b97958494615db61082407e2e35caaaafb0dc",
+      "source_inputs_unchanged": true,
+      "steps": [
+        {
+          "name": "download-locked-python-tools",
+          "exit_code": 0,
+          "log_sha256": "e089a56be699ff2524528fc5738382f423289aa63d56816c7d1d363f8a6990c2"
+        },
+        {
+          "name": "npm-cache-0",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-cache-1",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-cache-2",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-cache-3",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-cache-4",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-cache-5",
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "npm-offline-ci",
+          "exit_code": 0,
+          "log_sha256": "a6e7fcd0e7096640e2e773088bdbb3574dd0d60a970012d30cbf276a267bd6aa"
+        },
+        {
+          "name": "typescript-offline-build",
+          "exit_code": 0,
+          "log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02"
+        },
+        {
+          "name": "python-offline-builder-install",
+          "exit_code": 1,
+          "log_sha256": "f08a87a81bb496368d83204baa20a1c4af99e62e942568e476eb1de763aed709"
+        }
+      ],
+      "scope": "All six locked npm build/runtime archives cached into an empty cache; actual external npmci offline and TS rebuild pass and bytes match current dist. Combined run fails during later Python venv build-tool install with recorded OSError28/no space. Never promoted to an aggregate pass."
+    },
+    "separate_python_component": {
+      "passed": true,
+      "scope": "Python offline source rebuild only; uses the two original hash-locked build wheels and fresh external venv, produces byte-identical SDK wheel. No TypeScript aggregate/native/platform qualification.",
+      "wheel_sha256": "bc49363e92c9d6c6d22363f8283bd9dc94ce8dc823ab837cc47214199bb898b5",
+      "python_build_tools": {
+        "wheel-0.45.1-py3-none-any.whl": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248",
+        "setuptools-80.9.0-py3-none-any.whl": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"
+      }
+    },
+    "resource_correction": "After successful TS byte comparison and joined compiler, release only its temporary project/cache before independent Python rebuild. Ship all original archives and retain original failed reports. Corrected aggregate/native CI remains pending.",
+    "native_pipeline_aggregate_qualified": false
+  },
+  "complete_candidate_assembly": {
+    "script": "scripts/assemble-sdk-candidate.py",
+    "status": "implemented-not-yet-executed",
+    "requires": "Matching source-bound successful native installed examples and cold offline rebuild proofs for each platform",
+    "outputs": "Versioned runtime, Rust/npm/wheel packages, all offline SDK/compiler inputs, examples, public HTTP/API docs and concrete publication manifest",
+    "publication": "None. Public Cargo fork/name/version strategy and registry account rights require release review; manifests explicitly refuse publication as-is."
   }
 }
