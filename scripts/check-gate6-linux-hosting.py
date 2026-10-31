@@ -269,7 +269,7 @@ def consultation_return_observations(text):
     """Keep only declared return boundaries; paths, IDs and errors stay private."""
     stages = {'return-origin', 'return-handle', 'return-original-observation',
         'return-scene', 'return-read', 'return-revision', 'return-plan',
-        'return-planned', 'return-prepare', 'return-core'}
+        'return-planned', 'return-scene-pending', 'return-prepare', 'return-core'}
     codes = {'forbidden', 'conflict', 'authority-busy', 'storage',
         'storage-unavailable', 'reconciliation-required', 'not-ready'}
     result = []

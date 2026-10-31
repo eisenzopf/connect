@@ -1,0 +1,111 @@
+{
+  "task": "G6-054",
+  "scope": "Existing public Rust SDK native consultation-return regression; no model/provider or full SDK/hosting qualification.",
+  "status": "Before EOF preparation mismatch reproduced; fresh-planning candidate implemented, after pending",
+  "before": {
+    "source_revision": "6e9b771fa49ac67031440a65cbb5078d1a838c4c",
+    "run_id": 41186287469,
+    "artifact_id": 13036413748,
+    "zip_sha256": "b347bcf0063614a73f7aaa78064143f8102fdee0bade7dd2e06d82bd3851e085",
+    "git_sources_verified": 4508,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "f2dbe0051a6996cbfdcdcff904114ccb52906367d5646ec3281560231d82eeb4",
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": false,
+      "results": [
+        {
+          "name": "rust-sdk-consultation-audio",
+          "passed": true,
+          "return_boundaries": []
+        },
+        {
+          "name": "rust-sdk-consultation-eof",
+          "passed": false,
+          "return_boundaries": [
+            {
+              "stage": "return-handle",
+              "code": "other"
+            },
+            {
+              "stage": "return-read",
+              "code": "authority-busy"
+            },
+            {
+              "stage": "return-read",
+              "code": "authority-busy"
+            },
+            {
+              "stage": "return-planned",
+              "code": "other",
+              "current": true,
+              "source_count": 3,
+              "receiver_count": 2
+            },
+            {
+              "stage": "return-prepare",
+              "code": "forbidden"
+            }
+          ]
+        }
+      ],
+      "full_task_qualified": false,
+      "acceptance_qualified": false
+    },
+    "steps": [
+      {
+        "name": "rust-sdk-consultation-audio",
+        "exit_code": 0,
+        "seconds": 56.014758074000014,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 55.98s"
+        ],
+        "consultation_return_observations": [],
+        "log_sha256": "216293a8496039832b0f8e7a06f8ea4ce8f4af869fea22b3d5e7b0ea5a65f286"
+      },
+      {
+        "name": "rust-sdk-consultation-eof",
+        "exit_code": 101,
+        "seconds": 43.11717138700001,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 43.08s"
+        ],
+        "consultation_return_observations": [
+          {
+            "stage": "return-handle",
+            "code": "other"
+          },
+          {
+            "stage": "return-read",
+            "code": "authority-busy"
+          },
+          {
+            "stage": "return-read",
+            "code": "authority-busy"
+          },
+          {
+            "stage": "return-planned",
+            "code": "other",
+            "current": true,
+            "source_count": 3,
+            "receiver_count": 2
+          },
+          {
+            "stage": "return-prepare",
+            "code": "forbidden"
+          }
+        ],
+        "log_sha256": "bdba3fc2e646fdfee955770cc607a8777fa2217fafd3490e0430af6739ef23a7"
+      }
+    ]
+  },
+  "interpretation": "The EOF case reached a current authorized Store read with3sources and a pure Core plan with2receivers, then failed reservation. Candidate treats this as a bounded asynchronous planning mismatch and retries a fresh complete read/plan before admission. Actual convergence remains unproven.",
+  "change": "Compare exact runtime source and receiver sets before reserving the return. A mismatch releases all readers and uses the existing5s metadata retry loop. Original command/operation IDs, expected revision, credentials/expiry, Store exact-selection checks and attempt-once Core change remain unchanged.",
+  "request_deadline_seconds": 35,
+  "function_deadline_seconds": 90,
+  "metadata_retry_deadline_seconds": 5,
+  "remaining": "Run both original actual Rust SDK audio and EOF functions. If mismatch persists, inspect current lifetime/registry retirement; do not weaken the Store source set or invent a continuing call.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

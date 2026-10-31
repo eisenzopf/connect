@@ -6,7 +6,11 @@ use crate::{
 };
 use connect_protocol::{transitions::TransitionCommand, Error, Result};
 use rvoip_core::ids::SessionId;
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    time::Duration,
+};
 struct Job {
     runtime: std::sync::Weak<Runtime>,
     record: String,
@@ -123,6 +127,20 @@ impl Runtime {
                 )
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-plan",?error,"Native return refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_consultation",stage="return-planned",current=read.current(),source_count=sources.len(),receiver_count=plan.expected_receiver_revisions().len(),"Native return planning snapshot");
+            // EOF can remove a receiver from Core before its original Store
+            // lifetime/registry retirement is observed. This is still pure
+            // planning: release every reader and retry fresh metadata rather
+            // than reserve a plan against different source incarnations.
+            // Store's exact selection/revision checks remain mandatory below.
+            let current = sources.iter().map(|source| source.runtime_connection_id())
+                .chain(sips.iter().map(|source| source.runtime_connection_id()))
+                .collect::<BTreeSet<_>>();
+            let planned = plan.expected_receiver_revisions().keys()
+                .map(|id| id.as_str()).collect::<BTreeSet<_>>();
+            if current != planned {
+                tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene-pending",code="authority-busy",source_count=current.len(),receiver_count=planned.len(),"Native return planning observations differ");
+                return Err(Error::new("authority-busy", "Native return scene observations are not yet aligned"));
+            }
             let mut intent = descriptor(&plan)?;
             intent["consultation_record_id"] = serde_json::json!(origin.consultation_record_id());
             intent["restore"] = serde_json::json!(true);
