@@ -3,7 +3,7 @@
   "task": "G6-057",
   "date": "2026-10-31",
   "status": "implementation-in-progress",
-  "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
+  "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
   "prerequisite_evidence": "docs/evidence/gate-6/linux-installation-verified.json",
   "work_started": "Audit actual admission/resource owners before adding authenticated diagnostic fields and enforcement/cleanup qualification.",
   "source_owners": [
@@ -130,6 +130,14 @@
     "change": "Require installation.observe in addition to admin and unrestricted recipient ceiling",
     "regression": "A health/admin tenant administrator with wildcard recipients omits operational; the explicitly granted observer and full installation operator receive it",
     "runtime_status": "pending-current-source-Linux-execution",
-    "http_reference": "Generator authorization description updated; current-source generated reference must be retrieved from the next schema job"
+    "http_reference": "Native Linux generation passed at894ed793; independent4589Git/4094prepared/4archives verification and input-hash comparison passed; generated reference imported"
+  },
+  "current_schema_candidate": {
+    "run_id": 41247152591,
+    "job_id": 124672853307,
+    "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
+    "artifact_id": 13059648481,
+    "status": "success-independently-verified",
+    "evidence": "docs/evidence/gate-6/operational-schema-verified.json"
   }
 }

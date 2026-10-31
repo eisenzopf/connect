@@ -1060,6 +1060,6 @@
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "3ddfcd6c990e3ccbc3d91e6e9a683789edb2526fa7b481a07ec939e95f827cf9",
     "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2",
-    "scripts/generate-application-http-openapi.py": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f"
+    "scripts/generate-application-http-openapi.py": "446f18f31b5d737b61e5efd84bd0a6cbe7cc7729ac0ec73741efc6725db9c026"
   }
 }
