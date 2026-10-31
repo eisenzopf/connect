@@ -1,0 +1,166 @@
+diff --git a/crates/sip/rvoip-sip/src/media_stream/guarded.rs b/crates/sip/rvoip-sip/src/media_stream/guarded.rs
+--- a/crates/sip/rvoip-sip/src/media_stream/guarded.rs
++++ b/crates/sip/rvoip-sip/src/media_stream/guarded.rs
+@@ -12,6 +12,8 @@
+ use std::sync::atomic::AtomicU8;
+ use std::time::Duration;
+ use tokio_util::sync::CancellationToken;
++mod duplex;
++
+ const NOT_STARTED: u8 = 0;
+ const RUNNING: u8 = 1;
+ const CLOSING: u8 = 2;
+@@ -253,6 +255,7 @@
+         let complete = Completion(runtime.clone());
+         let spawned=self.tasks.spawn(async move {
+             let _complete=complete;
++            let mut prefer_output=false;
+             loop {
+                 if stop.cancel.is_cancelled()||!current()||!matches(&task_port.binding().negotiated.format,&stream.codec()){break;}
+                 tokio::select!{biased;
+@@ -261,7 +264,8 @@
+                     value=lifecycle.changed()=>{
+                         if value.is_err()||!stream.source_ready(){break;}
+                     }
+-                    value=input.recv()=>match value {
++                    event=duplex::next(&mut input,&mut output,&mut prefer_output)=>match event {
++                    duplex::Event::Input(value)=>match value {
+                         Some(mut frame)=>{
+                             if !current()||!matches(&task_port.binding().negotiated.format,&stream.codec()){break;}
+                             frame.stream_id=task_port.binding().transport_id.clone();
+@@ -274,7 +278,7 @@
+                         }
+                         None=>break,
+                     },
+-                    value=output.recv()=>match value {
++                    duplex::Event::Output(value)=>match value {
+                         Some(packet)=>{
+                             if !current(){break;}
+                             tokio::select!{biased;
+@@ -285,6 +289,7 @@
+                         }
+                         None=>break,
+                     },
++                    },
+                 }
+             }
+             let _=task_port.report_terminal();
+diff --git a/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs b/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs
+@@ -0,0 +1,114 @@
++// One cancellation-safe receive from the original owned SIP media queues.
++use tokio::sync::mpsc;
++
++pub(super) enum Event<I, O> {
++    Input(Option<I>),
++    Output(Option<O>),
++}
++
++pub(super) async fn next<I, O>(
++    input: &mut mpsc::Receiver<I>,
++    output: &mut mpsc::Receiver<O>,
++    _prefer_output: &mut bool,
++) -> Event<I, O> {
++    tokio::select! { biased;
++        value = input.recv() => Event::Input(value),
++        value = output.recv() => Event::Output(value),
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::time::Duration;
++
++    #[tokio::test]
++    async fn queued_input_cannot_starve_an_already_ready_output() {
++        let (it, mut input) = mpsc::channel(8);
++        let (ot, mut output) = mpsc::channel(8);
++        for n in 0..8 {
++            it.try_send(n).unwrap();
++        }
++        ot.try_send(77).unwrap();
++        let mut prefer_output = false;
++        assert!(matches!(
++            next(&mut input, &mut output, &mut prefer_output).await,
++            Event::Input(Some(0))
++        ));
++        assert!(
++            matches!(
++                next(&mut input, &mut output, &mut prefer_output).await,
++                Event::Output(Some(77))
++            ),
++            "backlogged incoming RTP starved original ready outgoing media"
++        );
++        assert_eq!(input.len(), 7, "output required draining the input backlog");
++    }
++
++    #[tokio::test]
++    async fn queued_output_cannot_starve_an_already_ready_input() {
++        let (it, mut input) = mpsc::channel(8);
++        let (ot, mut output) = mpsc::channel(8);
++        it.try_send(77).unwrap();
++        for n in 0..8 {
++            ot.try_send(n).unwrap();
++        }
++        let mut prefer_output = true;
++        assert!(matches!(
++            next(&mut input, &mut output, &mut prefer_output).await,
++            Event::Output(Some(0))
++        ));
++        assert!(matches!(
++            next(&mut input, &mut output, &mut prefer_output).await,
++            Event::Input(Some(77))
++        ));
++        assert_eq!(output.len(), 7);
++    }
++
++    #[tokio::test]
++    async fn single_direction_fifo_and_cancelled_wait_keep_original_queue_items() {
++        let (it, mut input) = mpsc::channel(8);
++        let (ot, mut output) = mpsc::channel(8);
++        let mut prefer_output = false;
++        assert!(tokio::time::timeout(
++            Duration::from_millis(1),
++            next(&mut input, &mut output, &mut prefer_output)
++        )
++        .await
++        .is_err());
++        assert!(
++            !prefer_output,
++            "cancelled idle wait changed scheduling state"
++        );
++        for n in 0..3 {
++            it.try_send(n).unwrap();
++        }
++        for n in 0..3 {
++            assert!(
++                matches!(next(&mut input, &mut output, &mut prefer_output).await, Event::Input(Some(v)) if v==n)
++            );
++        }
++        let saved = prefer_output;
++        assert!(tokio::time::timeout(
++            Duration::from_millis(1),
++            next(&mut input, &mut output, &mut prefer_output)
++        )
++        .await
++        .is_err());
++        assert_eq!(prefer_output, saved);
++        for n in 0..3 {
++            ot.try_send(n).unwrap();
++        }
++        for n in 0..3 {
++            assert!(
++                matches!(next(&mut input, &mut output, &mut prefer_output).await, Event::Output(Some(v)) if v==n)
++            );
++        }
++        assert!(input.is_empty() && output.is_empty());
++        drop((it, ot));
++        assert!(matches!(
++            next(&mut input, &mut output, &mut prefer_output).await,
++            Event::Input(None) | Event::Output(None)
++        ));
++    }
++}
