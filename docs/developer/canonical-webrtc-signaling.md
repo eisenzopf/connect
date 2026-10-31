@@ -953,3 +953,12 @@ not qualify those commands or the full G6-061 lifecycle/API matrix.
 
 [Typed browser Screen evidence](../evidence/gate-6/browser-sdk-screen-owners.json)
 records the current guarded checks and prior-host refusal.
+
+
+### Current selected-source picture feedback
+
+Authenticated PLI/FIR for the original local video SSRC wakes one owned video-port worker. It coalesces requests and shares one 250 ms schedule across the original physical connection's port rebindings. The worker waits without holding a Core or Store reader and has a 100 ms forwarding deadline.
+
+The source comes from the latest successfully guarded VP8 delivery. The original 200 ms age, four-attempt budget and fresh Core source, recipient and selection checks still apply. The worker resolves that exact original browser route, logical stream, transport, generation and source SSRC before queuing a standard RTCP picture request. Withdrawal, retirement, changed binding or stale delivery refuses forwarding. Native sources retain their periodic-keyframe profile.
+
+RTCP queue admission is a control hint. It creates no durable operation, delivery receipt or media grant; every subsequent source RTP packet still follows ordinary current authorization. The worker joins with its original video port. The focused signed AV fixture checks both directions, wrong-source silence, selection withdrawal/restoration and original peer/server drains. Qualification evidence is recorded in [canonical picture feedback](../evidence/gate-6/canonical-picture-feedback.json).

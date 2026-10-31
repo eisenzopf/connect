@@ -376,5 +376,84 @@
     ],
     "remaining": "Diagnose media IPC Node26, Node22 movement candidates/consultation return, and installed native SDK capability assertions without weakening deadlines or treating sibling passes as qualification."
   },
-  "remaining": "Six failed steps in each Node22/26 matrix include native media and consultation/movement failures. The barrier is not a complete SDK or media qualification."
+  "remaining": "Six failed steps in each Node22/26 matrix include native media and consultation/movement failures. The barrier is not a complete SDK or media qualification.",
+  "linux_after_source_clock": {
+    "node26": {
+      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+      "run_id": 41183674122,
+      "artifact_id": 13036769287,
+      "zip_sha256": "8a4382413c3bf0100c4cfa1ca29080b863f87faa411319ec4fbd2682c5a3f6ae",
+      "git_sources_verified": 4507,
+      "prepared_sources_verified": 4092,
+      "pinned_archives_verified": 4,
+      "source_manifest_sha256": "65da87a88a130d4c2d308dd00024c44afdc1659bd35b3c05bca9c0af82e2340d",
+      "source_inputs_unchanged": true,
+      "node": "26",
+      "steps": 78,
+      "passed": false,
+      "failed_steps": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 39.44s"
+          ],
+          "seconds": 39.474140229999875,
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 253,
+              "column": 9
+            }
+          ],
+          "node_consultation_failures": []
+        },
+        {
+          "name": "installed-node-consultation-remote-ended",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 8.89s"
+          ],
+          "seconds": 8.932042211999942,
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs",
+              "line": 47,
+              "column": 9
+            }
+          ],
+          "node_consultation_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "return-wait",
+              "column": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedKind": null,
+              "phase": "failed"
+            }
+          ]
+        }
+      ],
+      "remaining": "After78reported steps, the runner aborted while extracting the installed Node native-control result: its whitelist omitted the valid media-complete phase. The final result of that journey and all later scenes remain unverified. This is a harness error in addition to the two retained consultation failures, not a media/SDK pass."
+    },
+    "node22": "Same run41183674122 remains live; artifact pending."
+  },
+  "isolated_return_diagnostic": {
+    "run_id": 41186287469,
+    "source_revision": "6e9b771f",
+    "status": "running only original Rust public SDK consultation audio and EOF functions; existing request and90s function limits retained",
+    "superseded": {
+      "run_id": 41184134411,
+      "status": "cancelled while pending",
+      "reason": "Replaced redundant full tracing sweep with just the two original failing-scope functions; active full native/media runs retained."
+    }
+  },
+  "phase_schema_correction": {
+    "status": "implemented; after runtime pending",
+    "cause": "Runner accepted seven of the eight phase labels emitted by the actual Rust Node driver, rejecting media-complete.",
+    "verification": "19diagnostic functions pass, including extraction of all8actual Rust phase literals and unchanged15s bounds; unknown/private shapes still refuse.",
+    "scope": "Upload schema only; does not change request, phase or whole-function deadlines and does not qualify the absent journey result."
+  }
 }

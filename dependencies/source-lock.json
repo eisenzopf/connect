@@ -1367,6 +1367,12 @@
       "path": "patches/rtc-interceptor/gate6-first-source-report.patch",
       "source": "G6-054 emit one prompt first truthful current source SR after media has started, without delaying it to the next periodic tick. Preserve native cadence, pending/retired suppression, source mapping and counters; no repeat on packet/benign SDP updates. Public real-interceptor regression remains byte-identical to the source-verified before counterexample.",
       "sha256": "89840b72c8e46bbe2e79aa95ca10c348087974b973ddb27f324571a01f9f54bf"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-canonical-picture-feedback.patch",
+      "source": "G6-054 route authenticated PLI/FIR through one coalesced canonical worker to the exact original browser source. Derive source only from a recent successful guarded VP8 delivery, repeat current Core route/source/target checks with existing200ms/four-attempt bounds; preserve original SSRC/generation,250ms connection rate bound,100ms request limit and owned port joins. Forward only a standard RTCP hint; subsequent source RTP retains normal fresh delivery authority. No native feedback invention or public command.",
+      "sha256": "132fec54c86c98cdf0bd958356391ea375d8d1cd0947870c6d8eabb4c69169f5"
     }
   ]
 }

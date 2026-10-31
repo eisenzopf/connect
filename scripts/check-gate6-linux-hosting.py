@@ -107,6 +107,16 @@ def node_progress_diagnostic(value):
     return value
 
 
+def node_phase_diagnostic(value):
+    assert type(value) is dict and set(value)=={'algorithm','phase','passed','seconds','deadline_seconds'}
+    assert value['algorithm'] in {'EdDSA','ES256'} and value['passed'] is True
+    assert value['phase'] in {'controls-ready','media-complete','native-complete','initial','recovered',
+        'receipts-observed','read-observed','completed'}
+    assert type(value['seconds']) in (int,float) and 0 <= value['seconds'] <= 90
+    assert type(value['deadline_seconds']) is int and value['deadline_seconds']==15
+    return value
+
+
 def node_failure_diagnostic(failure):
     assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
     assert failure['phase'] == 'failed'
@@ -439,12 +449,8 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         step["node_completed_phases"] = []
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-phase '):
-                phase = json.loads(line.split(' ', 1)[1])
-                assert set(phase) == {'algorithm','phase','passed','seconds','deadline_seconds'}
-                assert phase['algorithm'] in {'EdDSA','ES256'} and phase['passed'] is True
-                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','receipts-observed','read-observed','completed'}
-                assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
-                step['node_completed_phases'].append(phase)
+                assert len(step['node_completed_phases']) < 16
+                step['node_completed_phases'].append(node_phase_diagnostic(json.loads(line.split(' ', 1)[1])))
         step["node_failures"] = []
         step['node_progress'] = []
         for line in text.splitlines():
@@ -666,6 +672,18 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['video_feedback'] = dict(passed=all(row['passed'] for row in results), results=results,
                 decoder_sha256=digest(decoder), fixtures_sha256=fixture_hashes, full_task_qualified=False,
                 acceptance_qualified=False)
+            if report['video_feedback']['passed']:
+                # The forwarding callback uses this existing current-authority
+                # boundary. Require its actual expiry/cancellation/reselection
+                # and atomic-attempt cases, not just end-to-end positive media.
+                report['video_feedback']['core_repair_regressions'] = dict(passed=False, status='unrun')
+                text = execute('core-video-repair-regressions', ['cargo', 'test', '--offline', '--locked',
+                    '--jobs', '2', '-p', 'rvoip-core', '--lib', 'staged_streams::tests::video_repair::',
+                    '--', '--test-threads=1'], 900, defer_failure=True)
+                passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == ['7']
+                report['video_feedback']['core_repair_regressions'] = dict(passed=passed,
+                    status='passed' if passed else 'failed-or-unrun', execution=report['steps'][-1])
+                report['video_feedback']['passed'] = report['video_feedback']['passed'] and passed
             assert report['video_feedback']['passed'], 'Current-selection picture request component failed or was unrun'
             report['behavior_passed'] = True
             return

@@ -1,0 +1,143 @@
+{
+  "task": "G6-054",
+  "scope": "Configured local signed WSS/Store/Core browser-source picture-request component. No loss-profile, full media, SDK or acceptance qualification.",
+  "status": "Actual missing-forwarding counterexample verified; correction prepared, after component/runtime pending",
+  "before": {
+    "source_revision": "78a29528dab8a244dbe103488e52265911ee76f1",
+    "run_id": 41186639101,
+    "artifact_id": 13036834863,
+    "zip_sha256": "7a8a9bd45ba606275dab2aff345724905bc39e30635a6b4054adbeabdc4f0f49",
+    "git_sources_verified": 4508,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "f526be3bff27e69d91e6b9ce1d054f882dd3ca01c9347b9fbf675cb3b852470f",
+    "source_inputs_unchanged": true,
+    "tests_executed": true,
+    "expected_missing_forwarding_reproduced": true,
+    "qualification_passed": false,
+    "results": [
+      {
+        "algorithm": "eddsa",
+        "passed": false,
+        "observations": [
+          {
+            "active": [
+              [
+                false,
+                false
+              ],
+              [
+                false,
+                false
+              ]
+            ],
+            "original_peers_joined": true,
+            "original_server_joined": true,
+            "reclaimed_slots": 2,
+            "restored": [
+              false,
+              false
+            ],
+            "withdrawn": [
+              false,
+              false
+            ]
+          }
+        ]
+      },
+      {
+        "algorithm": "es256",
+        "passed": false,
+        "observations": [
+          {
+            "active": [
+              [
+                false,
+                false
+              ],
+              [
+                false,
+                false
+              ]
+            ],
+            "original_peers_joined": true,
+            "original_server_joined": true,
+            "reclaimed_slots": 2,
+            "restored": [
+              false,
+              false
+            ],
+            "withdrawn": [
+              false,
+              false
+            ]
+          }
+        ]
+      }
+    ],
+    "test_results": [
+      {
+        "name": "canonical-video-feedback-eddsa",
+        "exit_code": 101,
+        "seconds": 12.121060905999997,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 107 filtered out; finished in 12.06s"
+        ],
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs",
+            "line": 650,
+            "column": 9
+          }
+        ],
+        "log_sha256": "2f225eaa9f9d52368b5600720506a483d33ab44fc899a3326560627e13df025d"
+      },
+      {
+        "name": "canonical-video-feedback-es256",
+        "exit_code": 101,
+        "seconds": 12.378023819999996,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 107 filtered out; finished in 12.35s"
+        ],
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs",
+            "line": 650,
+            "column": 9
+          }
+        ],
+        "log_sha256": "3d007346ab39208a8a0f824607c7afdb189f26a8894a0cdd8ddf25fe72e43109"
+      }
+    ],
+    "decoder_sha256": "ed16af623947494a72e284b6eb8ff225f2da22b38b5d5069c2fd4b4ba3384e41",
+    "fixtures_sha256": {
+      "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+      "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+    }
+  },
+  "unrun_attempt": {
+    "source_revision": "fa3e5f437586f2d4ef45864c1e19bc132463e668",
+    "run_id": 41185127102,
+    "artifact_id": 13036103979,
+    "zip_sha256": "53713a05e51be8feee2b62b8dcdcc953e003905d437525957fd1ab4f8c45acc9",
+    "git_sources_verified": 4508,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "392e06feee2e377ff727230bea20ee9977bc2f169fd39ab2b3e5f742f2c53216",
+    "source_inputs_unchanged": true,
+    "tests_executed": false,
+    "status": "unrun: wrong exact module path selected zero tests; rejected by the harness, corrected before behavioral proof"
+  },
+  "patch_sha256": "132fec54c86c98cdf0bd958356391ea375d8d1cd0947870c6d8eabb4c69169f5",
+  "implementation": "One latest successful guarded VP8 delivery names the exact original source. A bounded joined worker coalesces picture requests, repeats current source/receiver/selection guards, validates original source binding and SSRC, and queues only a standard PLI hint. No held reader remains while waiting. Native sources keep their existing periodic keyframes.",
+  "bounds": {
+    "age_ms": 200,
+    "attempts": "Existing shared4peroriginal video repair attempts",
+    "rate": "One attempt per250ms; one shared schedule per original physical connection",
+    "request_ms": 100,
+    "retention": "One latest delivery; no new payload queue or legacy routing fallback"
+  },
+  "remaining": "Verify same actual AV functions and existing Core video repair current-authority, expiry, cancellation and shared-attempt regressions. Then complete affected current Linux media lanes; a feedback component alone does not repair or qualify the impaired profile.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

@@ -25,6 +25,20 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_every_actual_rust_node_journey_phase_is_accepted_with_original_bounds(self):
+        validate = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['node_phase_diagnostic']
+        source = (ROOT/'crates/connect-server/tests/support/canonical_stdio/node_sdk.rs').read_text()
+        phases = set(re.findall(r'phase\(\s*&mut\s+lines,\s*"([a-z-]+)"', source))
+        self.assertEqual(len(phases), 8)
+        self.assertIn('media-complete', phases)
+        for phase in phases:
+            value = dict(algorithm='EdDSA', phase=phase, passed=True, seconds=1.5, deadline_seconds=15)
+            self.assertEqual(validate(value), value)
+        for invalid in [dict(value, credential='private'), dict(value, phase='private'),
+                        dict(value, seconds=True), dict(value, passed=1), dict(value, deadline_seconds=30)]:
+            with self.assertRaises(AssertionError):
+                validate(invalid)
+
     def test_video_feedback_component_keeps_only_boolean_route_and_join_observations(self):
         validate = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['video_feedback_diagnostic']
         value = dict(active=[[False, False], [False, False]], withdrawn=[False, False], restored=[False, False],

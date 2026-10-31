@@ -1,0 +1,369 @@
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -33,6 +33,7 @@
+     clock: SenderClockHandle,
+     mid: Option<(u8, String)>,
+     physical_peer: Option<Arc<crate::peer::RvoipPeerConnection>>,
++    pictures: PictureRequests,
+ }
+ impl CoreVideoEgress {
+     /// Check the exact format and physical track before taking the port queue.
+@@ -85,6 +86,7 @@
+             clock,
+             mid: None,
+             physical_peer: None,
++            pictures: PictureRequests::default(),
+         })
+     }
+     pub(crate) fn bind_peer(
+@@ -96,6 +98,9 @@
+         self.mid = mid;
+         self
+     }
++    pub(crate) fn picture_requests(&self) -> PictureRequests {
++        self.pictures.clone()
++    }
+     /// Waiting and sequence ownership hold no Core permission reader. Retain
+     /// the returned original owner until its actual driver receipt is drained.
+     pub async fn submit_next(&mut self, deadline: Instant) -> ControlResult<Option<OwnedRtpWrite>> {
+@@ -115,6 +120,7 @@
+             payload_type: self.payload_type,
+             clock: self.clock.clone(),
+             mid: self.mid.clone(),
++            pictures: self.pictures.clone(),
+         };
+         Ok(Some(self.track.owned_rtp(Arc::new(producer), deadline)))
+     }
+@@ -197,10 +203,45 @@
+     })
+ }
+ 
++#[derive(Clone)]
+ struct Retained {
+     core: Arc<VideoRepair>,
+     source: Source,
+     mapping: Mapping,
++}
++/// One latest successful delivery, with no idle permission reader. A picture
++/// request is a bounded control hint, not a media delivery or replay grant.
++/// Reuse the existing original-age/attempt bound and fresh Core route checks.
++#[derive(Clone, Default)]
++pub(crate) struct PictureRequests(Arc<Mutex<Option<Retained>>>);
++impl PictureRequests {
++    pub(crate) async fn forward<F, Fut>(&self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaDeliveryOrigin, u32) -> Fut + Send,
++        Fut: std::future::Future<Output = ControlResult<()>> + Send,
++    {
++        let retained = self
++            .0
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        let source = retained.source;
++        retained
++            .core
++            .repair(move |frame, origin| async move {
++                if origin.as_ref() != Some(&source.origin) {
++                    return Err(StreamControlError::Authority);
++                }
++                let packet = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
++                    .map_err(|_| StreamControlError::Unsupported)?;
++                if packet.header.ssrc != source.ssrc {
++                    return Err(StreamControlError::Authority);
++                }
++                send(source.origin, source.ssrc).await
++            })
++            .await
++    }
+ }
+ struct Producer {
+     original: Mutex<Option<(QueuedMedia, OwnedMutexGuard<Timeline>)>>,
+@@ -209,6 +250,7 @@
+     payload_type: u8,
+     clock: SenderClockHandle,
+     mid: Option<(u8, String)>,
++    pictures: PictureRequests,
+ }
+ impl Producer {
+     fn packet(&self, frame: &MediaFrame) -> ControlResult<rtp::Packet> {
+@@ -256,11 +298,13 @@
+             .await
+             .map_err(|_| OwnedRtpError::Refused)?;
+         let (source, mapping) = metadata.ok_or(OwnedRtpError::Refused)?;
+-        *self.retained.lock().unwrap_or_else(|p| p.into_inner()) = Some(Retained {
++        let retained = Retained {
+             core: Arc::new(core),
+             source,
+             mapping,
+-        });
++        };
++        *self.retained.lock().unwrap_or_else(|p| p.into_inner()) = Some(retained.clone());
++        *self.pictures.0.lock().unwrap_or_else(|p| p.into_inner()) = Some(retained);
+         Ok(())
+     }
+     fn repair_deadline(&self) -> Option<Instant> {
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -304,7 +304,7 @@
+ }
+ pub struct CanonicalWebRtcAdapter {
+     handle_pools: Mutex<Vec<(Weak<PeerAdmission>, Arc<StreamHandleAllocator>)>>,
+-    routes: DashMap<ConnectionId, Arc<Route>>,
++    routes: Arc<DashMap<ConnectionId, Arc<Route>>>,
+     allocated: AtomicUsize,
+     events: mpsc::Sender<OrchestratorAdapterEvent>,
+     receiver: Mutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
+@@ -315,7 +315,7 @@
+         let (tx, rx) = mpsc::channel(64);
+         Arc::new(Self {
+             handle_pools: Mutex::new(Vec::new()),
+-            routes: DashMap::new(),
++            routes: Arc::new(DashMap::new()),
+             allocated: AtomicUsize::new(0),
+             events: tx,
+             receiver: Mutex::new(Some(rx)),
+@@ -407,20 +407,30 @@
+         peer: &Arc<PeerAdmission>,
+         deadline: tokio::time::Instant,
+     ) -> Result<Arc<RvoipPeerConnection>> {
+-        let route = self.routes.get(id).map(|r| r.value().clone())
++        let route = self
++            .routes
++            .get(id)
++            .map(|r| r.value().clone())
+             .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
+         let current = || {
+             !route.cancel.is_cancelled()
+                 && Weak::ptr_eq(&route.peer, &Arc::downgrade(peer))
+                 && route.binding.current(peer, id)
+-                && self.routes.get(id).is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++                && self
++                    .routes
++                    .get(id)
++                    .is_some_and(|r| Arc::ptr_eq(r.value(), &route))
+         };
+         if !current() {
+-            return Err(RvoipError::AdmissionRejected("Original WebRTC peer retired"));
++            return Err(RvoipError::AdmissionRejected(
++                "Original WebRTC peer retired",
++            ));
+         }
+         let original = route.binding.peer(deadline).await?;
+         if !current() {
+-            return Err(RvoipError::AdmissionRejected("Original WebRTC peer retired"));
++            return Err(RvoipError::AdmissionRejected(
++                "Original WebRTC peer retired",
++            ));
+         }
+         Ok(original)
+     }
+@@ -473,6 +483,7 @@
+             id.clone(),
+             route.binding.clone(),
+             route.cancel.child_token(),
++            Arc::downgrade(&self.routes),
+         );
+         let controller = StreamController::with_held_control(
+             conversation,
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -2,7 +2,10 @@
+ //! answer or remote declaration alone establishes a source/sink resource.
+ use super::*;
+ mod worker_health;
+-use crate::media::{core_audio::CoreAudioEgress, core_video::CoreVideoEgress};
++use crate::media::{
++    core_audio::CoreAudioEgress,
++    core_video::{CoreVideoEgress, PictureRequests},
++};
+ use crate::peer::source_clock::InboundClockLease;
+ use chrono::Utc;
+ use rtc::shared::marshal::Marshal;
+@@ -234,6 +237,8 @@
+     sources: [OnceLock<SourceJob>; 2],
+     close: OnceLock<Done>,
+     source_lock: Mutex<()>,
++    routes: Weak<DashMap<ConnectionId, Arc<Route>>>,
++    picture_next: Arc<tokio::sync::Mutex<tokio::time::Instant>>,
+ }
+ impl Drop for Backend {
+     fn drop(&mut self) {
+@@ -245,6 +250,7 @@
+         id: ConnectionId,
+         physical: Arc<WebRtcPhysicalBinding>,
+         lifetime: CancellationToken,
++        routes: Weak<DashMap<ConnectionId, Arc<Route>>>,
+     ) -> Arc<Self> {
+         Arc::new(Self {
+             id,
+@@ -254,6 +260,8 @@
+             sources: Default::default(),
+             close: OnceLock::new(),
+             source_lock: Mutex::new(()),
++            routes,
++            picture_next: Arc::new(tokio::sync::Mutex::new(tokio::time::Instant::now())),
+         })
+     }
+     fn current(&self) -> bool {
+@@ -686,6 +694,15 @@
+             io.start(ingress(io.port.clone(), io.health.stop.clone(), rx, source))?;
+         }
+         if let Some(egress) = egress {
++            if let Egress::Video(video) = &egress {
++                io.start(picture_feedback(
++                    video.picture_requests(),
++                    peer.video_keyframe_requests(),
++                    self.routes.clone(),
++                    self.picture_next.clone(),
++                    io.health.stop.clone(),
++                ))?;
++            }
+             io.start(egress_loop(
+                 egress,
+                 io.health.stop.clone(),
+@@ -1054,6 +1071,80 @@
+     Audio(CoreAudioEgress),
+     Video(CoreVideoEgress),
+ }
++
++async fn picture_feedback(
++    pictures: PictureRequests,
++    requests: Arc<tokio::sync::Notify>,
++    routes: Weak<DashMap<ConnectionId, Arc<Route>>>,
++    picture_next: Arc<tokio::sync::Mutex<tokio::time::Instant>>,
++    stop: CancellationToken,
++) -> ControlResult<()> {
++    loop {
++        tokio::select! {biased; _=stop.cancelled()=>return Ok(()), _=requests.notified()=>{}}
++        // Coalesce while waiting without retaining a Core/Store reader.
++        let mut next = tokio::select! {biased; _=stop.cancelled()=>return Ok(()), next=picture_next.lock()=>next};
++        tokio::select! {biased; _=stop.cancelled()=>return Ok(()), _=tokio::time::sleep_until(*next)=>{}}
++        *next = tokio::time::Instant::now() + Duration::from_millis(250);
++        drop(next);
++        let routes = routes.clone();
++        let forward = pictures.forward(move |origin, ssrc| async move {
++            let routes = routes.upgrade().ok_or(StreamControlError::Cancelled)?;
++            let route = routes
++                .get(&origin.connection)
++                .map(|entry| entry.value().clone())
++                .ok_or(StreamControlError::NotReady)?;
++            let backend = route
++                .installation
++                .try_lock()
++                .map_err(|_| StreamControlError::NotReady)?
++                .as_ref()
++                .map(|installation| installation.backend.clone())
++                .ok_or(StreamControlError::NotReady)?;
++            if !backend.current() || route.cancel.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            let io = backend
++                .ports
++                .get(&origin.transport)
++                .map(|entry| entry.value().clone())
++                .ok_or(StreamControlError::NotReady)?;
++            let current = || {
++                backend.current()
++                    && !route.cancel.is_cancelled()
++                    && routes
++                        .get(&origin.connection)
++                        .is_some_and(|entry| Arc::ptr_eq(entry.value(), &route))
++                    && io.binding.transport_id == origin.transport
++                    && io.binding.negotiated.requested.logical_id == origin.logical
++                    && io.binding.generation == origin.generation
++                    && io.binding.source_ready
++                    && io.health.ready.load(Ordering::Acquire)
++                    && !io.health.stop.is_cancelled()
++                    && io
++                        .port
++                        .upgrade()
++                        .is_some_and(|port| port.status() == PortStatus::Active)
++            };
++            if !current() {
++                return Err(StreamControlError::NotReady);
++            }
++            let peer = backend
++                .physical
++                .peer(tokio::time::Instant::now() + Duration::from_millis(100))
++                .await
++                .map_err(|_| StreamControlError::NotReady)?;
++            if !current() {
++                return Err(StreamControlError::NotReady);
++            }
++            // This queues only PLI on the exact original DTLS peer. Subsequent
++            // source media still needs its ordinary fresh guarded delivery.
++            peer.request_picture_for_source(ssrc)
++                .await
++                .map_err(|_| StreamControlError::NotReady)
++        });
++        tokio::select! {biased; _=stop.cancelled()=>return Ok(()), _=tokio::time::timeout(Duration::from_millis(100), forward)=>{}}
++    }
++}
+ impl Egress {
+     async fn submit_next(
+         &mut self,
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -873,6 +873,27 @@
+ 
+     pub fn local_video_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
+         self.local_video.lock().clone()
++    }
++
++    /// Canonical feedback names one source SSRC observed inside the current
++    /// Core delivery guard. Never substitute another camera after a rebind.
++    pub(crate) async fn request_picture_for_source(&self, ssrc: u32) -> Result<()> {
++        let track = self
++            .discover_remote_video_track()
++            .await
++            .ok_or_else(|| WebRtcError::Adapter("no remote video track".into()))?;
++        if !track.ssrcs().await.contains(&ssrc) {
++            return Err(WebRtcError::Adapter("remote video source changed".into()));
++        }
++        track
++            .write_rtcp(vec![Box::new(
++                rtc::rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication {
++                    sender_ssrc: self.local_video_ssrc().unwrap_or(0),
++                    media_ssrc: ssrc,
++                },
++            )])
++            .await
++            .map_err(|error| WebRtcError::Webrtc(error.to_string()))
+     }
+ 
+     pub fn local_video_ssrc(&self) -> Option<u32> {
+@@ -1182,13 +1203,17 @@
+     /// tracks, DTLS identity and negotiated media/session attributes remain.
+     pub async fn restart_ice_as_answerer(self: &Arc<Self>, remote_sdp: &str) -> Result<String> {
+         self.require_role(PeerRole::Answerer)?;
+-        self.pc.set_remote_description(parse_sdp(remote_sdp, RTCSdpType::Offer)?).await?;
++        self.pc
++            .set_remote_description(parse_sdp(remote_sdp, RTCSdpType::Offer)?)
++            .await?;
+         let answer = self.pc.create_transport_restart_answer().await?;
+         self.final_outbound_dtmf_state(remote_sdp, &sdp_to_string(&answer)?, false)?;
+         self.pc.set_local_description(answer).await?;
+         self.wait_gather().await?;
+-        let desc = self.pc.local_description().await
+-            .ok_or_else(|| WebRtcError::Sdp("no original restart answer after gather".into()))?;
++        let desc =
++            self.pc.local_description().await.ok_or_else(|| {
++                WebRtcError::Sdp("no original restart answer after gather".into())
++            })?;
+         sdp_to_string(&desc)
+     }
+ 
+@@ -1200,7 +1225,10 @@
+         let offer = self.pc.create_transport_restart_offer().await?;
+         self.pc.set_local_description(offer).await?;
+         self.wait_gather().await?;
+-        let desc = self.pc.local_description().await
++        let desc = self
++            .pc
++            .local_description()
++            .await
+             .ok_or_else(|| WebRtcError::Sdp("no original restart offer after gather".into()))?;
+         sdp_to_string(&desc)
+     }
