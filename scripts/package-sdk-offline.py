@@ -82,7 +82,8 @@ def main():
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
         parser.error('Commit source before packaging')
     output.mkdir(parents=True, exist_ok=False); evidence.mkdir(parents=True, exist_ok=False)
-    private = ROOT / '.local/gate6-sdk-offline/private'; private.mkdir(parents=True, exist_ok=False)
+    private = ROOT / '.local/gate6-sdk-offline/private' / evidence.name
+    private.mkdir(parents=True, exist_ok=False)
     environment = fixture_environment()
     environment['SOURCE_DATE_EPOCH'] = subprocess.check_output(['git', 'show', '-s', '--format=%ct', 'HEAD'], cwd=ROOT, text=True).strip()
     bounded = runpy.run_path(str(ROOT / 'scripts/check-linux-package-build.py'))['run_bounded']
