@@ -1,0 +1,65 @@
+{
+  "format": "connect/gate6-owner-deferrals/1",
+  "date": "2026-10-31",
+  "deferred_task": "G6-054",
+  "user_instruction": "Let’s park this one and move on to completing the rest of gate 6 and we can come back to this one later.",
+  "disposition": "Deferred by owner; incomplete. Proceed with independent remaining implementation and verification, then return to G6-054. All task verification clauses and acceptance criteria remain binding.",
+  "dependency_adjustments": [
+    {
+      "task": "G6-056",
+      "previous": [
+        "G6-053",
+        "G6-054",
+        "G6-055"
+      ],
+      "current": [
+        "G6-053",
+        "G6-055"
+      ],
+      "reason": "Owner authorized independent remaining work while G6-054 is parked; verification clauses are unchanged."
+    },
+    {
+      "task": "G6-058",
+      "previous": [
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-052",
+        "G6-054",
+        "G6-055",
+        "G6-056",
+        "G6-057"
+      ],
+      "current": [
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-052",
+        "G6-055",
+        "G6-056",
+        "G6-057"
+      ],
+      "reason": "Owner authorized independent remaining work while G6-054 is parked; verification clauses are unchanged."
+    },
+    {
+      "task": "G6-103",
+      "previous": [
+        "G6-102"
+      ],
+      "current": [
+        "G6-054",
+        "G6-102"
+      ],
+      "reason": "Final reconciliation still requires the deferred task; postponement is not acceptance or waived verification."
+    }
+  ],
+  "existing_bounded_browser_run": {
+    "run_id": 41224457162,
+    "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+    "handling": "Allow the already dispatched bounded run to finish and retain its artifact for later; no new G6-054 work while deferred."
+  },
+  "full_gate_qualified": false,
+  "publication_authorized": false
+}
