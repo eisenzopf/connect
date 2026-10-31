@@ -1,5 +1,10 @@
 name: Gate 6 Linux installation
 on:
+  workflow_call:
+    inputs:
+      upgrade_run:
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       upgrade_run:
