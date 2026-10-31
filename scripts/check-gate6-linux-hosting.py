@@ -677,10 +677,14 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
                 # boundary. Require its actual expiry/cancellation/reselection
                 # and atomic-attempt cases, not just end-to-end positive media.
                 report['video_feedback']['core_repair_regressions'] = dict(passed=False, status='unrun')
+                declared = re.findall(r'#\[tokio::test\]\s*async fn (\w+)',
+                    (ROOT/'.deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs').read_text())
+                assert len(declared) == len(set(declared)) == 10, 'Requalify changed Core repair function inventory'
                 text = execute('core-video-repair-regressions', ['cargo', 'test', '--offline', '--locked',
                     '--jobs', '2', '-p', 'rvoip-core', '--lib', 'staged_streams::tests::video_repair::',
                     '--', '--test-threads=1'], 900, defer_failure=True)
-                passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == ['7']
+                passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == [str(len(declared))]
+                passed = passed and all(name + ' ... ok' in (text or '') for name in declared)
                 report['video_feedback']['core_repair_regressions'] = dict(passed=passed,
                     status='passed' if passed else 'failed-or-unrun', execution=report['steps'][-1])
                 report['video_feedback']['passed'] = report['video_feedback']['passed'] and passed
