@@ -1,0 +1,169 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+@@ -16,7 +16,7 @@
+ use rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack;
+ use shared::error::{Error, Result};
+ use shared::marshal::MarshalSize;
+-use std::collections::VecDeque;
++use std::collections::{HashSet, VecDeque};
+ use std::time::Instant;
+ 
+ #[derive(Default)]
+@@ -62,6 +62,92 @@
+ 
+     pub(crate) fn name(&self) -> &'static str {
+         "InterceptorHandler"
++    }
++
++    /// Periodic reports carry the exact local SDP clock identity. This is
++    /// current sender metadata, not a forwarded remote identity or a media
++    /// permission. Never relabel unknown, stopped or ambiguous bindings.
++    fn append_local_source_descriptions(&mut self, packets: &mut Vec<Box<dyn rtcp::Packet>>) {
++        use rtcp::source_description::{
++            SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
++        };
++        let mut described = packets
++            .iter()
++            .filter_map(|packet| packet.as_any().downcast_ref::<SourceDescription>())
++            .flat_map(|description| &description.chunks)
++            .filter(|chunk| {
++                chunk
++                    .items
++                    .iter()
++                    .any(|item| item.sdes_type == SdesType::SdesCname)
++            })
++            .map(|chunk| chunk.source)
++            .collect::<HashSet<_>>();
++        let sources = packets
++            .iter()
++            .filter_map(|packet| packet.as_any().downcast_ref::<SenderReport>())
++            .map(|report| report.ssrc)
++            .collect::<Vec<_>>();
++        let mut chunks = Vec::new();
++        for source in sources {
++            if described.contains(&source) {
++                continue;
++            }
++            let mut cname = None;
++            let mut ambiguous = false;
++            for transceiver in self.rtp_transceivers.iter_mut() {
++                if transceiver.stopped() || !transceiver.current_direction().has_send() {
++                    continue;
++                }
++                let Some(sender) = transceiver.sender_mut().as_mut() else {
++                    continue;
++                };
++                let owns = sender
++                    .get_parameters(self.media_engine)
++                    .encodings
++                    .iter()
++                    .any(|encoding| {
++                        let coding = &encoding.rtp_coding_parameters;
++                        coding.ssrc == Some(source)
++                            || coding
++                                .rtx
++                                .as_ref()
++                                .is_some_and(|repair| repair.ssrc == source)
++                            || coding
++                                .fec
++                                .as_ref()
++                                .is_some_and(|repair| repair.ssrc == source)
++                    });
++                if owns {
++                    if cname.is_some() {
++                        ambiguous = true;
++                        break;
++                    }
++                    cname = Some(sender.track().stream_id().clone());
++                }
++            }
++            let Some(cname) = cname else {
++                continue;
++            };
++            if ambiguous || cname.is_empty() || cname.len() > 255 {
++                continue;
++            }
++            described.insert(source);
++            chunks.push(SourceDescriptionChunk {
++                source,
++                items: vec![SourceDescriptionItem {
++                    sdes_type: SdesType::SdesCname,
++                    text: cname.as_bytes().to_vec().into(),
++                }],
++            });
++        }
++        // The RTCP source-count field has five bits. Ordinary peer reports
++        // contain one SR; preserve valid encoding even for a supplied batch.
++        for group in chunks.chunks(31) {
++            packets.push(Box::new(SourceDescription {
++                chunks: group.to_vec(),
++            }));
++        }
+     }
+ 
+     /// Prepare hop feedback for the first authenticated declared audio packet.
+@@ -372,7 +458,10 @@
+ 
+     fn poll_write(&mut self) -> Option<Self::Wout> {
+         if self.ctx.is_dtls_handshake_complete {
+-            while let Some(packet) = self.interceptor.poll_write() {
++            while let Some(mut packet) = self.interceptor.poll_write() {
++                if let Packet::Rtcp(packets) = &mut packet.message {
++                    self.append_local_source_descriptions(packets);
++                }
+                 // Process outgoing packets for stats
+                 match &packet.message {
+                     Packet::Rtcp(rtcp_packets) => {
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs
+@@ -157,3 +157,50 @@
+     assert_eq!(feedback.len(), 1);
+     assert!(feedback[0].as_any().is::<PictureLossIndication>());
+ }
++
++#[test]
++fn stopped_inactive_ambiguous_or_invalid_local_bindings_never_mint_clock_identities() {
++    let mut stopped = outgoing(RtpCodecKind::Audio, 11, "retired");
++    stopped
++        .stop(&MediaEngine::default(), &mut NoopInterceptor::default())
++        .unwrap();
++    let mut inactive = outgoing(RtpCodecKind::Audio, 11, "inactive");
++    inactive.set_current_direction(RTCRtpTransceiverDirection::Inactive);
++    let groups = vec![
++        vec![stopped],
++        vec![inactive],
++        vec![
++            outgoing(RtpCodecKind::Audio, 11, "one"),
++            outgoing(RtpCodecKind::Video, 11, "two"),
++        ],
++        vec![outgoing(RtpCodecKind::Audio, 11, "")],
++        vec![outgoing(RtpCodecKind::Audio, 11, &"x".repeat(256))],
++    ];
++    for mut tracks in groups {
++        let packets = output(vec![sr(11)], &mut tracks);
++        assert_eq!(
++            packets.len(),
++            1,
++            "unusable local metadata gained an identity"
++        );
++    }
++}
++#[test]
++fn batched_local_descriptions_respect_the_rtcp_source_count_field() {
++    let mut tracks = (1..=32)
++        .map(|ssrc| outgoing(RtpCodecKind::Audio, ssrc, "private-batch"))
++        .collect::<Vec<_>>();
++    let packets = output((1..=32).map(sr).collect(), &mut tracks);
++    let descriptions = packets
++        .iter()
++        .filter_map(|p| p.as_any().downcast_ref::<SourceDescription>())
++        .collect::<Vec<_>>();
++    assert_eq!(descriptions.len(), 2);
++    assert_eq!(descriptions[0].chunks.len(), 31);
++    assert_eq!(descriptions[1].chunks.len(), 1);
++    let sources = descriptions
++        .iter()
++        .flat_map(|d| d.chunks.iter().map(|c| c.source))
++        .collect::<std::collections::HashSet<_>>();
++    assert_eq!(sources, (1..=32).collect());
++}

@@ -1408,6 +1408,11 @@
       "path": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
       "source": "G6-054 exact RTC outgoing-handler CNAME counterexample: local audio/video and distinct SDP clock groups must carry matching SDES with unchanged SR mapping/counts; existing compounds, unknown sources and reduced feedback remain unlabelled. Tests only; no production change or runtime qualification.",
       "sha256": "5bc4ac3479052d6899dfba2a6413f8c1d0ddc751e7a2ec7e185c59be5f663a60"
+    },
+    {
+      "path": "patches/rvoip/gate6-rtc-local-source-descriptions.patch",
+      "source": "G6-054 after exact outgoing-handler counterexample, append SDES CNAME only for current unambiguous local sender/repair SSRCs, using the exact same stream ID as local SDP. Preserve original SR NTP/RTP/counts and existing descriptions; do not relabel unknown/stopped/invalid bindings or reduced feedback. No clock invention, permission grant or quality-threshold change; before/after handler and actual browser verification required. Additional exact-handler cases refuse stopped/inactive/ambiguous/invalid identities and bound SDES chunks to31; original three assertions unchanged.",
+      "sha256": "383341e8fc4154f2dd6fc57d203b4ca46ca1b74fb169154abd0871a0af713d3d"
     }
   ]
 }

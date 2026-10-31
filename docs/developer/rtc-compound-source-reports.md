@@ -25,10 +25,29 @@ same protocol handler; no copied report formatter substitutes for production.
 The `rtc-compound` Linux lane compiles the exact pinned RTC crate, verifies the
 three-function inventory, executes each function separately and seals the
 binary/source inputs. The full Linux fixture lane requires the same component.
-The new assertions are currently unrun. They are not a wire/component pass,
-browser quality result or G6-054 qualification.
+At source `9b281440`, run `41208154602`, the first two assertions fail at
+line116 and the existing-compound/unknown/reduced-feedback assertion passes.
+The artifact verifies4,538 Git inputs,4,094 prepared inputs and four pinned
+archives. This reproduces the wire gap in the actual handler; AV-tail causality
+and the corrected behavior remain unqualified.
 
 The first external preparation failed with ENOSPC before selection. Only that
 fresh generated root was removed. A new internal ignored preparation reproduces
 all258 recorded patches and pinned source digests; the prior frozen73 and main's
 frozen71 remain intact. No local Rust build was attempted.
+
+The correction appends source descriptions only for active, unambiguous local
+sender bindings and their negotiated repair SSRCs. It uses the exact track stream
+ID already used by local SDP, preserves SR clock/count fields and existing
+source descriptions, and does not relabel unknown or stopped sources. Empty or
+overlength names are refused. Each SDES packet has at most31 chunks. Reduced
+feedback retains its original format; no media permission or source clock is
+created by this metadata operation.
+
+The original three assertions remain byte-identical. Two additional actual
+handler tests cover stopped/inactive/ambiguous/invalid bindings and a32-source
+batch across the five-bit SDES count boundary. The after-run also executes the
+current RTC unit inventory and records any declared skips explicitly. The
+correction is prepared in fresh verified internal frozen75; no local Rust build
+or corrected runtime pass is claimed yet. Original strict browser/audio/video
+and recovery verification remains required.

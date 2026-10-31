@@ -7,7 +7,7 @@ import re
 def run(root, execute):
     source = root / '.deps/rvoip/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs'
     names = re.findall(r'#\[test\]\s*fn (\w+)', source.read_text())
-    assert len(names) == len(set(names)) == 3
+    assert len(names) == len(set(names)) and len(names) >= 3
     result = dict(passed=False, status='unrun', full_task_qualified=False, acceptance_qualified=False,
         scope='Exact RTC protocol outgoing handler: known local SRs carry their signaled CNAME, groups remain distinct, existing compounds/unknown sources/reduced feedback are not relabelled. No browser AV or full G6-054 qualification.',
         test_source_sha256=hashlib.sha256(source.read_bytes()).hexdigest())
@@ -33,8 +33,21 @@ def run(root, execute):
             10, defer_failure=True)
         passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == ['1']
         result['results'].append(dict(name=name, passed=passed, executed=True))
+    suite = None
+    if all(row['passed'] for row in result['results']):
+        listing = execute('rtc-current-unit-inventory', [binary, '--list'], 10)
+        expected = len([line for line in listing.splitlines() if line.endswith(': test')])
+        text = execute('rtc-current-unit-regressions', [binary, '--test-threads=1'], 300, defer_failure=True)
+        counts = re.findall(r'^test result: ok\. (\d+) passed; 0 failed; (\d+) ignored;', text or '', re.M)
+        passed, skipped = map(int, counts[0]) if len(counts) == 1 else (0, 0)
+        ignored = re.findall(r'^test ([A-Za-z0-9_:]+) \.\.\. ignored', text or '', re.M)
+        suite = dict(passed=text is not None and passed >= len(names) and passed + skipped == expected
+            and len(ignored) == skipped, declared_tests=expected, passed_tests=passed,
+            ignored_tests=skipped, ignored_functions=ignored,
+            scope='Current compiled RTC unit inventory; declared ignored functions are recorded as skipped, never passes.')
+        result['rtc_unit_regressions'] = suite
     with open(binary, 'rb') as stream:
         result['binary_unchanged'] = hashlib.file_digest(stream, 'sha256').hexdigest() == result['binary_sha256']
-    result['passed'] = result['binary_unchanged'] and all(row['passed'] for row in result['results'])
+    result['passed'] = result['binary_unchanged'] and all(row['passed'] for row in result['results']) and suite is not None and suite['passed']
     result['status'] = 'passed' if result['passed'] else 'failed'
     return result

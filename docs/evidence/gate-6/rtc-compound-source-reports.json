@@ -2,22 +2,85 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "counterexample-prepared-runtime-unrun",
+  "status": "counterexample-reproduced-correction-unrun",
   "scope": "Actual RTC protocol outgoing handler SR/CNAME association; no network/browser quality or full task qualification.",
-  "production_changed": false,
+  "production_changed": true,
   "patch": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
   "patch_sha256": "5bc4ac3479052d6899dfba2a6413f8c1d0ddc751e7a2ec7e185c59be5f663a60",
-  "prepared_patch_count": 258,
+  "prepared_patch_count": 259,
   "original_sr_mapping_and_counts_preserved": "required-unrun",
   "local_shared_and_distinct_cname_groups": "required-unrun",
   "existing_compounds_unknown_sources_and_reduced_feedback": "required-unrun",
-  "actual_test_functions": 3,
-  "actual_runtime_executed": false,
+  "actual_test_functions": 5,
+  "actual_runtime_executed": true,
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "references": [
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.1",
     "https://www.rfc-editor.org/rfc/rfc8834.html#section-4.6",
     "https://www.rfc-editor.org/rfc/rfc8834.html#section-12.2.3"
-  ]
+  ],
+  "before": {
+    "source_revision": "9b2814405602eee2566cd15c59631b68018bc812",
+    "run_id": 41208154602,
+    "artifact_id": 13045161752,
+    "zip_sha256": "2563bb6e20f9f2254dcefbef6cddf8411154b31b7e5bba70c5c625bbc6285045",
+    "git_sources_verified": 4538,
+    "prepared_sources_verified": 4094,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": false,
+      "status": "failed",
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "scope": "Exact RTC protocol outgoing handler: known local SRs carry their signaled CNAME, groups remain distinct, existing compounds/unknown sources/reduced feedback are not relabelled. No browser AV or full G6-054 qualification.",
+      "test_source_sha256": "1ab48cfa265dcec8962215496047fcca0ed60609286ca5aeb868732ac44a23aa",
+      "binary_sha256": "a4e4ce4453c51a8cf657c032dc460415b15a17056221dedd2d166d7837062bfa",
+      "results": [
+        {
+          "name": "current_audio_video_reports_carry_their_shared_signaled_clock_identity",
+          "passed": false,
+          "executed": true
+        },
+        {
+          "name": "distinct_signaled_groups_keep_their_own_exact_source_descriptions",
+          "passed": false,
+          "executed": true
+        },
+        {
+          "name": "existing_compound_unknown_source_and_reduced_feedback_are_not_relabelled",
+          "passed": true,
+          "executed": true
+        }
+      ],
+      "binary_unchanged": true
+    },
+    "actual_panic_locations": [
+      [
+        {
+          "file": "crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs",
+          "line": 116,
+          "column": 5
+        }
+      ],
+      [
+        {
+          "file": "crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs",
+          "line": 116,
+          "column": 5
+        }
+      ]
+    ],
+    "finding": "Exact outgoing protocol handler lacks each current local SR CNAME. Both original identity assertions fail atline116; original compound/unknown/reduced-feedback function passes. No test timeout or forced cleanup. This proves the wire gap, not AV-tail causality."
+  },
+  "correction": {
+    "patch": "patches/rvoip/gate6-rtc-local-source-descriptions.patch",
+    "patch_sha256": "383341e8fc4154f2dd6fc57d203b4ca46ca1b74fb169154abd0871a0af713d3d",
+    "status": "prepared-runtime-unrun",
+    "original_three_assertions_unchanged": true,
+    "additional_guard_functions": 2,
+    "production": "Append exact active unambiguous local sender/repair SSRC CNAME using the same stream ID as local SDP. Preserve SR times/counts/order and existing descriptions; unknown/stopped/inactive/ambiguous/empty/overlength identities are not minted. SDES chunks bounded31 perpacket; reduced feedback unchanged. No new permission, clock, media queue, task or threshold.",
+    "required_after": "All5 exact-handler functions and complete current RTC unit inventory, with every declared skip explicit; actual browser quality still separate."
+  }
 }
