@@ -274,7 +274,8 @@ impl RunningServer {
             browser.binding.signaling_url = format!("ws://{address}");
         }
         let service = Service::with_readiness(store.clone(), discovery, readiness.clone());
-        let mcp_capacity = connect_mcp::McpCapacity::default();
+        let mcp_capacity =
+            connect_mcp::McpCapacity::with_connection_limit(service.store.limits().connections)?;
         let mcp = if let Some(mcp) = &config.mcp {
             let auth: Arc<dyn connect_mcp::McpAuthenticator> = match &mcp.binding {
                 Some(binding) => Arc::new(connect_mcp::FixedBindingAuth::new(

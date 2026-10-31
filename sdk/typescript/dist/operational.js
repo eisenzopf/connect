@@ -24,6 +24,7 @@ const poolKinds = [
     "record-https-requests",
     "record-https-handshakes",
     "mcp-requests",
+    "mcp-connections",
 ];
 const limitFields = [
     "message_bytes",

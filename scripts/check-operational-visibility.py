@@ -82,16 +82,18 @@ def main():
         ("store-authority", prefix + ["-p", "connect-store", "--lib", "operational::tests", "--", "--test-threads=1"], 1800, 2),
         ("service-observation", prefix + ["-p", "connect-service", "--lib", "readiness::tests", "--", "--test-threads=1"], 3600, 3),
         ("permit-lifetime", prefix + ["-p", "connect-service", "--lib", "resources::tests", "--", "--test-threads=1"], 1200, 2),
-        ("mcp-capacity", prefix + ["-p", "connect-mcp", "--lib", "capacity::tests", "--", "--test-threads=1"], 1800, 2),
+        ("mcp-capacity", prefix + ["-p", "connect-mcp", "--lib", "capacity::tests", "--", "--test-threads=1"], 1800, 5),
         ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 3),
         ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
         ("operation-overload", prefix + ["-p", "connect-store", "--lib", "transitions::tests::shared_capacity_keeps_room_for_a_terminal_cancel_decision_and_its_causal_event", "--", "--test-threads=1"], 1200, 1),
     ]
     if args.phase == "typecheck":
-        commands = [("integration-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
+        commands = [("mcp-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
+            "-p", "connect-mcp", "--lib", "--tests"], 1200, None),
+            ("integration-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
             "-p", "connect-installation-conformance", "--test", "gate6_operational_visibility",
             "--test", "gate6_hosting_limits"], 1200, None)]
-        report["scope"] = "Integration fixture type checking only; no tests executed or runtime qualification."
+        report["scope"] = "MCP unit and integration fixture type checking only; no tests executed or runtime qualification."
     if args.case:
         commands = [c for c in commands if c[0] == args.case]
         assert len(commands) == 1

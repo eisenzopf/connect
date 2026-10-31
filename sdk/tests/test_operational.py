@@ -9,6 +9,8 @@ def decode(v):
 class Operational(unittest.TestCase):
  def test_available_busy_retired_and_over_limit_remain_distinct(self):
   self.assertTrue(valid_operational(FIXTURE));self.assertEqual(decode(FIXTURE)['data']['operational'],FIXTURE)
+  for kind in ('mcp-requests','mcp-connections'):
+   m=copy.deepcopy(FIXTURE);m['resource_pools'][0]['kind']=kind;self.assertEqual(decode(m)['data']['operational'],m)
   v=copy.deepcopy(FIXTURE);v['resource_pools'][0]['usage']['used']=5;self.assertTrue(valid_operational(v))
   v['runtime']=None;v['resource_pools']=None;self.assertTrue(valid_operational(v))
  def test_invalid_numbers_private_fields_and_inconsistent_lifecycle_refuse(self):

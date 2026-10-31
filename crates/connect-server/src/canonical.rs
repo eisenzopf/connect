@@ -642,8 +642,11 @@ impl RunningCanonicalServer {
                 )?),
                 None => Arc::new(connect_mcp::LocalAuth::new(service.clone())),
             };
-            let capacity = connect_mcp::McpCapacity::default();
+            let capacity = connect_mcp::McpCapacity::with_connection_limit(
+                service.store.limits().connections,
+            )?;
             resource_observers.push(capacity.observe_requests(&service, stop.clone())?);
+            resource_observers.push(capacity.observe_connections(&service, stop.clone())?);
             Some(
                 capacity
                     .start_primary(service.clone(), auth, config.bind)

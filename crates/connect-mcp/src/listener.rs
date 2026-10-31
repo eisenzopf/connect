@@ -34,7 +34,10 @@ impl RunningMcp {
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
     ) -> io::Result<Self> {
-        McpCapacity::default()
+        McpCapacity::with_connection_limit(service.store.limits().connections)
+            .map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidInput, "Invalid MCP connection limit")
+            })?
             .start_primary(service, authenticator, bind)
             .await
     }
@@ -48,7 +51,10 @@ impl RunningMcp {
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
     ) -> io::Result<Self> {
-        McpCapacity::default()
+        McpCapacity::with_connection_limit(service.store.limits().connections)
+            .map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidInput, "Invalid MCP connection limit")
+            })?
             .start_auxiliary(service, authenticator, bind)
             .await
     }
@@ -65,6 +71,12 @@ impl RunningMcp {
                 "MCP listener must be loopback",
             ));
         }
+        if capacity.connection_limit > service.store.limits().connections {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Shared MCP connection capacity exceeds service configuration",
+            ));
+        }
         let listener_slot = capacity
             .listeners
             .clone()
@@ -75,6 +87,11 @@ impl RunningMcp {
         let listener = tokio::net::TcpListener::bind(bind).await?;
         let address = listener.local_addr()?;
         let cancellation = CancellationToken::new();
+        let listener = crate::socket_io::BoundedListener {
+            listener,
+            capacity: capacity.connections.clone(),
+            cancellation: cancellation.clone(),
+        };
         let mut config = StreamableHttpServerConfig::default()
             .with_legacy_session_mode(false)
             .with_json_response(true)

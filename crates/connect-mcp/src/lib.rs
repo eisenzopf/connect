@@ -21,6 +21,7 @@ mod identity_commands;
 mod identity_schemas;
 mod listener;
 mod schemas;
+mod socket_io;
 mod supervision;
 mod vapi_auth;
 

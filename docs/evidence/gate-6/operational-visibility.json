@@ -81,7 +81,7 @@
       "python_syntax": "passed"
     },
     "rust_execution": "not-yet-run",
-    "openapi_generation": "Passed on native Linux; independently verified artifact/source inputs match current generation inputs",
+    "openapi_generation": "Prior894ed793 reference verified; new mcp-connections DTO requires current generated reference",
     "whole_task_complete": false
   },
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
@@ -208,11 +208,13 @@
     "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
   },
   "required_mcp_connection_gap": {
-    "status": "source-audited-required-implementation-pending",
-    "finding": "McpCapacity bounds request middleware and listeners, but RunningMcp currently passes a plain TcpListener to axum::serve. Raw TCP connections and stalled pre-header sockets are outside the configured connection budget. Request counters do not prove this bound.",
+    "status": "implemented-runtime-and-schema-verification-pending",
+    "finding": "Prior plain TcpListener admitted unbounded raw sockets before request middleware. BoundedListener now acquires actual shared configured socket permits before HTTP dispatch and retains them through socket drop.",
     "sources": {
-      "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
-      "crates/connect-mcp/src/capacity.rs": "ca3172d21808a31df4559159b50301658880c198295550ccb2989ecd36acbea5"
+      "crates/connect-mcp/src/socket_io.rs": "de144c21a095d4ca243f6a229f4b3ddfe87998a8bded3ce1e62efe033e906020",
+      "crates/connect-mcp/src/listener.rs": "4a8db36fe40d71cac43b2b2ccf591c2a59e38dcdc6094bfe7b93ebde28fce32c",
+      "crates/connect-mcp/src/capacity.rs": "bb785b306530034632675b629674cfd8322442b5430566eddb212123fde20be6",
+      "crates/connect-mcp/src/capacity_tests.rs": "53d3c412c4c3d388b1688a05605d95bb3b89513b588dba243a76448f16d0af9f"
     },
     "required_fix": [
       "Acquire a shared configured connection permit before admitting each MCP TCP socket; retain through actual socket drop",
@@ -220,7 +222,29 @@
       "Apply finite idle/lifetime and bounded drain to raw socket I/O, including abandoned incomplete headers",
       "Exercise actual connection capacity refusal, idle reclamation and joined listener shutdown; update schema/SDK closed pool kinds"
     ],
-    "task_can_close": false
+    "task_can_close": false,
+    "implementation": {
+      "idle_seconds": 30,
+      "absolute_lifetime_seconds": 120,
+      "socket_drain_seconds": 1,
+      "parent_join_seconds": 5,
+      "pool_kind": "mcp-connections",
+      "request_kind": "mcp-requests",
+      "sharing": "One configured physical socket pool across canonical primary and task endpoints; independent per-listener cancellation",
+      "new_cases": 3,
+      "focused_runtime_total": 18,
+      "runtime_pass": false
+    },
+    "local_checks": {
+      "typescript_build": "passed",
+      "node_operational_tests": 2,
+      "python_operational_tests": 2,
+      "cache_boundary_tests": 4,
+      "process_boundary_tests": 4,
+      "format": "passed",
+      "rust_typecheck": "not-run-current-source",
+      "schema_generation": "required-after-new-pool-kind"
+    }
   },
   "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-b757.json",
   "fixture_type_correction": {

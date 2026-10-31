@@ -228,6 +228,12 @@ or a process CPU/memory measurement.
 Pool kinds distinguish native QUIC, WebTransport and WebSocket profile owners,
 and actual HTTP/HTTPS connection, request and TLS handshake budgets for each
 configured surface. Record-reference HTTPS has its own three budgets.
+The shared primary/task MCP pool reports `mcp-connections` for physical TCP
+sockets and `mcp-requests` for admitted request work. Its configured connection
+limit applies before HTTP parsing; even incomplete headers occupy a socket slot.
+Excess raw sockets close before authentication. Parsed request overload returns
+HTTP 503 without entering authentication. Socket slots return only on actual
+socket drop, independently of the request permit lifetime.
 `used` reflects the actual owner or semaphore permit lifetime. Accepted/rejected
 counters count admission attempts at that budget, including unsuccessful
 authentication after a transport admission; they are not successful commands.
@@ -254,6 +260,11 @@ still apply earlier. During shutdown, protected bytes stop immediately; ordinary
 routes have at most five seconds to flush a cancellation response before their
 socket closes. Connection expiry never rolls back an accepted mutation: clients
 must retain the original operation IDs and inspect/recover acceptance.
+
+MCP sockets use the same 30-second byte inactivity and fixed 120-second lifetime
+bounds. Listener cancellation allows at most one second for socket IO to drain,
+inside the listener's five-second join deadline. Primary and task endpoints share
+capacity, but shutting down one endpoint only drains its own sockets.
 
 The G6-057 process fixture launches three explicit Linux process roots: the
 production CLI server, an actual Rust typed SDK helper, and an owned Chromium

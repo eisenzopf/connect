@@ -8,6 +8,7 @@ const decode=operational=>decodeResponse({profile:'connect-control/1',result:{Ok
 test('administrator numeric observations preserve unavailable and over-limit samples',()=>{
  assert.equal(validOperationalHealth(fixture),true);
  assert.deepEqual(decode(fixture).data.operational,fixture);
+ for(const kind of ['mcp-requests','mcp-connections']){const m=structuredClone(fixture);m.resource_pools[0].kind=kind;assert.deepEqual(decode(m).data.operational,m);}
  const v=structuredClone(fixture);v.resource_pools[0].usage.used=5;
  assert.equal(validOperationalHealth(v),true);
  v.runtime=null;v.resource_pools=null;assert.equal(validOperationalHealth(v),true);

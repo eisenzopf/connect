@@ -16,18 +16,28 @@ pub const MAX_MCP_LISTENERS: usize = 32;
 #[derive(Clone)]
 pub struct McpCapacity {
     pub(crate) requests: Arc<ResourceBudget>,
+    pub(crate) connections: Arc<ResourceBudget>,
+    pub(crate) connection_limit: usize,
     pub(crate) listeners: Arc<Semaphore>,
 }
 impl Default for McpCapacity {
     fn default() -> Self {
-        Self {
-            requests: ResourceBudget::new(MAX_MCP_REQUESTS)
-                .expect("Fixed nonzero MCP request capacity"),
-            listeners: Arc::new(Semaphore::new(MAX_MCP_LISTENERS)),
-        }
+        Self::with_connection_limit(connect_protocol::Limits::default().connections)
+            .expect("Fixed nonzero default MCP connection capacity")
     }
 }
 impl McpCapacity {
+    /// Share this physical TCP budget across every primary and task endpoint.
+    /// Socket slots include clients that have not sent an HTTP request yet.
+    pub fn with_connection_limit(limit: usize) -> connect_protocol::Result<Self> {
+        Ok(Self {
+            requests: ResourceBudget::new(MAX_MCP_REQUESTS)
+                .expect("Fixed nonzero MCP request capacity"),
+            listeners: Arc::new(Semaphore::new(MAX_MCP_LISTENERS)),
+            connections: ResourceBudget::new(limit)?,
+            connection_limit: limit,
+        })
+    }
     /// Observe the same aggregate permits used by primary and task endpoints.
     /// The composing server owns the returned probe; diagnostics retain Weak
     /// references only. Register once for this server's shared capacity pool.
@@ -39,6 +49,19 @@ impl McpCapacity {
         self.requests.observe(
             &service.readiness,
             connect_protocol::ResourcePoolKind::McpRequests,
+            stop,
+        )
+    }
+
+    /// Observe physical socket permits independently of parsed request work.
+    pub fn observe_connections(
+        &self,
+        service: &Service,
+        stop: tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<Arc<ResourceObserver>> {
+        self.connections.observe(
+            &service.readiness,
+            connect_protocol::ResourcePoolKind::McpConnections,
             stop,
         )
     }

@@ -88,6 +88,7 @@ pub enum ResourcePoolKind {
     RecordHttpsRequests,
     RecordHttpsHandshakes,
     McpRequests,
+    McpConnections,
 }
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
