@@ -1373,6 +1373,12 @@
       "path": "patches/rvoip/gate6-canonical-picture-feedback.patch",
       "source": "G6-054 route authenticated PLI/FIR through one coalesced canonical worker to the exact original browser source. Derive source only from a recent successful guarded VP8 delivery, repeat current Core route/source/target checks with existing200ms/four-attempt bounds; preserve original SSRC/generation,250ms connection rate bound,100ms request limit and owned port joins. Forward only a standard RTCP hint; subsequent source RTP retains normal fresh delivery authority. No native feedback invention or public command.",
       "sha256": "132fec54c86c98cdf0bd958356391ea375d8d1cd0947870c6d8eabb4c69169f5"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-canonical-picture-metadata-wait.patch",
+      "source": "G6-054 after the verified canonical forwarding counterexample, wait for a fresh successful delivery only when Core metadata admission refuses before the forwarding callback begins. Preserve the original100ms absolute request deadline,200ms/four-attempt packet repair budget,250ms shared connection rate bound and current source/receiver/selection checks. Never repeat an entered callback, including refused or uncertain hint IO; no held reader while waiting.",
+      "sha256": "094e9e92dfa0462d372eaad7976a18177b0fec96bebc5276721855687306821c"
     }
   ]
 }
