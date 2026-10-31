@@ -1397,6 +1397,12 @@
       "path": "patches/rvoip/gate6-sip-duplex-scheduler-counterexample.patch",
       "source": "G6-054 expose the exact existing SIP bridge data-queue selection in one shared production module, preserving incoming-first biased ordering and original cancellation/lifecycle/current-authority checks. Add deterministic queued-duplex starvation, reverse-direction fairness and cancellation/FIFO contract regressions. Counterexample fixture only: no claimed telephone fix, media/deadline relaxation, new readers, tasks or queues.",
       "sha256": "e147fe660849c42d5b091a50f177f81b2ead970941d308377e37b5b1629cd114"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-sip-duplex-data-fairness.patch",
+      "source": "G6-054 after exact production SIP selector counterexample15a5675d/run41197830642 records1pass/2fairnessfailures, alternate priority between original ready incoming and outgoing queues. Preserve outer cancellation/lifecycle priority, all current per-frame Core/codec/lifetime checks, original single worker/queues and owned joins. No new readers/tasks/buffers/delays, no media/age/deadline relaxation. Same three original selector assertions retained byte-for-byte; actual decoded telephone coverage remains separately required. Batch per-case reporting defect is corrected in runner without changing the original artifact.",
+      "sha256": "3760a61b5a579ac33862e29b619c129169491a14319deeddbf2534dc3b217b05"
     }
   ]
 }

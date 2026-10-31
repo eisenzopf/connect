@@ -1,0 +1,33 @@
+diff --git a/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs b/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs
+--- a/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs
++++ b/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs
+@@ -9,12 +9,24 @@
+ pub(super) async fn next<I, O>(
+     input: &mut mpsc::Receiver<I>,
+     output: &mut mpsc::Receiver<O>,
+-    _prefer_output: &mut bool,
++    prefer_output: &mut bool,
+ ) -> Event<I, O> {
+-    tokio::select! { biased;
+-        value = input.recv() => Event::Input(value),
+-        value = output.recv() => Event::Output(value),
+-    }
++    // Cancellation and lifecycle remain ahead of this helper in the owning
++    // bridge. Alternate only the two data queues, without another task, queue,
++    // retained authority reader, or delay. Either direction also runs alone.
++    let event = if *prefer_output {
++        tokio::select! { biased;
++            value = output.recv() => Event::Output(value),
++            value = input.recv() => Event::Input(value),
++        }
++    } else {
++        tokio::select! { biased;
++            value = input.recv() => Event::Input(value),
++            value = output.recv() => Event::Output(value),
++        }
++    };
++    *prefer_output = matches!(&event, Event::Input(_));
++    event
+ }
+ 
+ #[cfg(test)]

@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+import time
 
 
 def run(root, execute):
@@ -29,9 +30,23 @@ def run(root, execute):
     prefix = 'production_duplex::tests::'
     inventory = execute('sip-duplex-selector-inventory', [binaries[0], '--list'], 10)
     assert {line.removesuffix(': test') for line in inventory.splitlines() if line.endswith(': test')} == {prefix + name for name in declared}
-    text = execute('sip-duplex-selector-contracts', [binaries[0], '--test-threads=1'], 30, defer_failure=True)
-    result['results'] = [dict(name=name, passed=name + ' ... ok' in (text or '')) for name in declared]
-    result['passed'] = text is not None and all(row['passed'] for row in result['results'])
-    result['passed'] = result['passed'] and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text or '', re.M) == ['3']
+    result['results'] = []
+    started = time.monotonic()
+    until = started + 30
+    for name in declared:
+        remaining = until - time.monotonic()
+        if remaining <= 0:
+            result['results'].append(dict(name=name, passed=False, executed=False))
+            continue
+        text = execute('sip-duplex-selector-' + name, [binaries[0], prefix + name,
+            '--exact', '--test-threads=1'], remaining, defer_failure=True)
+        passed = text is not None and name + ' ... ok' in text
+        passed = passed and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text or '', re.M) == ['1']
+        result['results'].append(dict(name=name, passed=passed, executed=True))
+    with open(binaries[0], 'rb') as stream:
+        result['binary_unchanged'] = hashlib.file_digest(stream, 'sha256').hexdigest() == result['binary_sha256']
+    result['whole_test_deadline_seconds'] = 30
+    result['actual_test_execution_seconds'] = time.monotonic() - started
+    result['passed'] = result['binary_unchanged'] and result['actual_test_execution_seconds'] <= 30 and all(row['passed'] for row in result['results'])
     result['status'] = 'passed' if result['passed'] else 'failed'
     return result

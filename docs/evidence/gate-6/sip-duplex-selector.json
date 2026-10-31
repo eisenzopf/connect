@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "correction-unqualified",
+  "scope": "Exact production SIP data-queue selector and original telephone decoded-duplex fixture; no provider/PSTN/model or full G6-054/acceptance qualification.",
+  "before": {
+    "source_revision": "15a5675d55b5ac6a1b63c52a2a9d82571c7b17e7",
+    "run_id": 41197830642,
+    "artifact_id": 13041626016,
+    "zip_sha256": "b5d1982bb06c52ebefb863d0374e3aeedb9839705041fc269d04c8e3c585fb2f",
+    "git_sources_verified": 4526,
+    "prepared_sources_verified": 4093,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "source_module_sha256": "0cc178f8924f6a7e0f0017cfaa8d0e5d783fb7f9f0b591bd2299710d5d2ca992",
+    "binary_sha256": "9ecbe092099d90f76a49b1f5d7f808edf1b3f695e6a9c2f3610ec04c181352bc",
+    "actual_test_summary": [
+      "test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    ],
+    "assertion_locations": [
+      {
+        "file": ".deps/rvoip/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs",
+        "line": 38,
+        "column": 9
+      },
+      {
+        "file": ".deps/rvoip/crates/sip/rvoip-sip/src/media_stream/guarded/duplex.rs",
+        "line": 57,
+        "column": 9
+      }
+    ],
+    "finding": "Original incoming-first selection fails both bounded fairness assertions at lines38 and57. Actual aggregate output records one passing FIFO/cancellation function and two failures. Full telephone causality remains unproven.",
+    "reporting_defect": "The initial runner maps a failed batch to unavailable stdout and incorrectly labels all three per-function booleans false. Those booleans are rejected; retain the actual aggregate1pass/2fail and exact assertion locations. The corrected runner executes each unchanged function separately within the same absolute30s test budget. Original artifact is preserved."
+  },
+  "after": {
+    "status": "unrun",
+    "passed": false,
+    "proposed_change": "Alternate priority only between the two original data queues. Outer cancellation/lifecycle priority, per-frame current authorization/codec checks, one original worker and queue ownership stay unchanged. No additional tasks/readers/buffers/delays and no media/deadline threshold changes."
+  },
+  "telephone_before": {
+    "source_revision": "15a5675d55b5ac6a1b63c52a2a9d82571c7b17e7",
+    "run_id": 41198159725,
+    "status": "in-progress"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "regression_tests_sha256": "0d4a59835d39eddc8992d0bc4dd16263a321ff6b444ee4dcce91e229ba3fb5c5"
+}
