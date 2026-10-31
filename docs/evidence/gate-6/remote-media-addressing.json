@@ -128,7 +128,7 @@
   },
   "remaining": [
     "Current74 full41190044909 verifies nativeICE2, both ICE restart and both unreachableTURN cells, plus both TCP relay cells passing. Baseline/direct AV, UDP AV calibration and intermittent impaired/UDP decoded audio fail. All four impaired decoded-motion recoveries pass within two seconds. See linux-canonical-picture-runtime.json; no full profile qualification.",
-    "Canonical picture forwarding/metadata-wait has both original signed AV functions and ten actual Core guard regressions passing. Native Linux distinct-network PCMU passes all six cells. Receiver diagnostic a0bf41190438785 is source-verified failed for strict AV despite passing baseline decoded audio; reported concealment/adaptive playout changes with zero RTP loss do not prove a cause. Current Linux telephone6229 fails the unchanged decoded-input minimum after RTP starts; ES256 unrun. Historical component successes do not qualify these failures.",
+    "Clock capture/RTP timeline correction31a7f613 is source-verified by32actual Core functions, six native Linux network cases092c301d, both original signed AV functions and10Core repair guards. Strict browser diagnostic31a/run41196262502 still fails baseline AV p95128.2/124.9ms and ES256 direct peer1p95134.4ms; other3direct AV observations and all6audio/motion/identity observations pass. Concealment remains with0reportedRTP loss/discard. No full G6-054 or acceptance qualification.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader full SDK failures are retained for matrix work and are not passes from a sibling component. Original Rust SDK return/EOF component25a2ce27 run41188491485 now source-verifies both original functions passing; installed/full SDK run41190708730 is source-verified failed on both Node22/26 runners with4/8 failed scenes; all93independent steps are retained in each artifact and broader matrix failures remain unresolved. G6-054 closure still requires its actual addressing/ICE/TURN/distinct-network decoded recovery checks; none are waived."
   ],
@@ -453,6 +453,14 @@
         "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
       ],
       "limits": "UDP EdDSA fails browser participation; UDP ES256 lacks a passing AV calibration on one peer. Earlier4cell abe pass remains historical. No current complete relay or WAN qualification."
+    },
+    {
+      "profile": "Current capture/RTP timeline correction",
+      "status": "bounded component passes; strict AV remains failed",
+      "evidence": [
+        "docs/evidence/gate-6/guarded-audio-capture-timeline.json"
+      ],
+      "limits": "Core32, native6, signedAV2/Core10 pass. Baseline/direct diagnostic AV failures retained. Full fault/relay/telephone and expired-TURN requirement coverage remain separate."
     }
   ]
 }
