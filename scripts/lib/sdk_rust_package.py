@@ -148,7 +148,14 @@ def prepare_package(manifest, vendor, archives, epoch):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         target.chmod(0o755 if source.stat().st_mode & 0o111 else 0o644)
-    shutil.copyfile(manifest, destination / 'Cargo.toml.orig')
+    # Registry-sourced patches can already carry Cargo.toml.orig. Preserve that
+    # original too; a new normalization must not overwrite its source bytes.
+    source_manifest = destination / 'Cargo.toml.connect-source'
+    if source_manifest.exists():
+        raise ValueError('Reserved candidate manifest source filename exists')
+    shutil.copyfile(manifest, source_manifest)
+    if not (destination / 'Cargo.toml.orig').exists():
+        shutil.copyfile(manifest, destination / 'Cargo.toml.orig')
     for field in ('readme', 'license-file'):
         name = package.get(field)
         if isinstance(name, str):
@@ -174,6 +181,7 @@ def prepare_package(manifest, vendor, archives, epoch):
         raise ValueError('Prepared package source changed during packaging')
     return {'name': package['name'], 'version': package['version'], 'archive': archive.name,
             'sha256': sha256(archive), 'source_files': before,
+            'source_manifest_file': source_manifest.name,
             'normalized_manifest_sha256': sha256(destination / 'Cargo.toml'),
             'publication_authorized': False}, paths
 

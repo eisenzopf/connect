@@ -1406,7 +1406,7 @@
   ],
   "scope": "Python3.14.7 and Node26.7.0 on local macOS arm64; clean external pure SDK archives and synthetic HTTP only. No actual browser/native helper/server/platform pair or complete candidate qualification.",
   "rust_source_candidate": {
-    "status": "implemented-pending-real-Linux-assembly-and-cold-external-check",
+    "status": "initial-external-Cargo-check-passed-independent-source-preservation-audit-failed-correction-pending-new-CI",
     "scripts": [
       "scripts/package-sdk-rust.py",
       "scripts/check-sdk-rust-installation.py",
@@ -1415,6 +1415,8 @@
     "local_guard_tests_passed": 4,
     "guard_scope": "Real Cargo offline directory-source resolution after original synthetic sources are deleted, inheritance/features/exact versions, deterministic archives, source license, symlink/archive escape and corrupt archive refusal. No real SDK build claim.",
     "actual_manifest_preflight": "19 prepared source package manifests normalize and round trip without edits to upstream checkout",
-    "whole_candidate_complete": false
+    "whole_candidate_complete": false,
+    "negative_evidence": "docs/evidence/gate-6/rust-candidate-520-negative.json",
+    "original_manifest_preservation_regression": "passed locally"
   }
 }

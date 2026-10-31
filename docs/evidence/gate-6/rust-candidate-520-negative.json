@@ -1,0 +1,64 @@
+{
+  "format": "connect/rust-sdk-candidate-source-negative/1",
+  "task": "G6-069",
+  "source_revision": "520f1fa8be06b2ce0c1f674345acd46e69c269df",
+  "run_id": 41249964276,
+  "job_id": 124681231145,
+  "evidence_artifact_id": 13061180916,
+  "package_artifact_id": 13060877428,
+  "evidence_zip_sha256": "c7323d4fa6fb5a3c71cd741d08bf687db39a6e1b5a0fe41c73940f923008e0a6",
+  "package_zip_sha256": "5b8a022ee1a653b0337dbb687dce6555a2917aaaa6444e41426c203e451da1f7",
+  "sources_verified": {
+    "git": 4602,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "full_tar_inventory_matches_manifest": true,
+  "external_consumer": {
+    "format": "connect/installed-rust-sdk-candidate/1",
+    "source_revision": "520f1fa8be06b2ce0c1f674345acd46e69c269df",
+    "candidate_manifest_sha256": "ee1c615d55fcb4d242ca5229c9919feb2a82f96959a9c9668d89e0928b5cc3c4",
+    "passed": true,
+    "scope": "Actual registry-format archive extraction, cold external Cargo resolution and public SDK example check. No server/helper/runtime/platform-pair/full SDK qualification.",
+    "steps": [
+      {
+        "name": "resolve",
+        "exit_code": 0,
+        "elapsed_seconds": 0.214,
+        "log_sha256": "1ce3f264640d3a15f26af9bf882a0504eb824b29f93c0df7277649d57f08e284"
+      },
+      {
+        "name": "metadata",
+        "exit_code": 0,
+        "elapsed_seconds": 0.264,
+        "log_sha256": "f72ce146b23d7345d60ebbd59df9e27d1f3acaec77b877a6d2358379044e7609"
+      },
+      {
+        "name": "check",
+        "exit_code": 0,
+        "elapsed_seconds": 110.862,
+        "log_sha256": "7657e2ebfa106142e074353c92fba902569cc3c169c0b568accea585a759091f"
+      }
+    ],
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "resolved_packages": 354,
+    "resolved_sdk_source": "registry+https://github.com/rust-lang/crates.io-index",
+    "consumer_outside_repository": true,
+    "empty_cargo_home": true,
+    "empty_target": true,
+    "cargo_offline": true,
+    "extracted_archives": 510,
+    "candidate_unchanged": true
+  },
+  "verification_failure": "New normalization overwrote pre-existing Cargo.toml.orig in four registry-sourced patched packages. Source-file preservation audit correctly refuses full candidate verification.",
+  "mismatched_source_payloads": [
+    "vendor/web-transport-proto-0.6.2/Cargo.toml.orig",
+    "vendor/quinn-proto-0.11.19/Cargo.toml.orig",
+    "vendor/rtc-interceptor-0.20.0-alpha.1/Cargo.toml.orig",
+    "vendor/rtc-dtls-0.20.0-alpha.1/Cargo.toml.orig"
+  ],
+  "correction": "Preserve pre-existing Cargo.toml.orig and store the current pre-normalization manifest separately as Cargo.toml.connect-source; regression asserts exact original preservation.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

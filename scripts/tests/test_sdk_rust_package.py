@@ -81,7 +81,11 @@ unsafe_code="forbid"
         self.assertFalse(value['package']['publish'])
 
     def test_archive_determinism_and_corrupt_original_refusal(self):
+        original_manifest = self.source / 'client/Cargo.toml.orig'
+        original_manifest.write_text('Earlier upstream manifest must survive\n')
         first, _ = prepare_package(self.source / 'client/Cargo.toml', self.vendor, self.archives, 1234)
+        self.assertEqual((self.vendor / 'fixture-client-0.1.0/Cargo.toml.orig').read_bytes(), original_manifest.read_bytes())
+        self.assertEqual((self.vendor / 'fixture-client-0.1.0' / first['source_manifest_file']).read_bytes(), (self.source / 'client/Cargo.toml').read_bytes())
         shutil.rmtree(self.vendor); self.vendor.mkdir()
         archive = self.archives / first['archive']; original = archive.read_bytes(); archive.unlink()
         second, _ = prepare_package(self.source / 'client/Cargo.toml', self.vendor, self.archives, 1234)
