@@ -1,0 +1,75 @@
+{
+  "task": "G6-054",
+  "status": "Actual before counterexample reproduced; correction prepared, after component/runtime pending",
+  "scope": "Public real-interceptor scheduler component only. No live AV, Core authority, deployment or acceptance qualification.",
+  "before": {
+    "scope": "Actual interceptor startup-clock component; no media/runtime qualification.",
+    "expected_counterexample": true,
+    "source_revision": "4516ec158202162f5c40333525a29bae5df323cb",
+    "source_count": 5942,
+    "source_manifest_sha256": "565fd8b04d67f9aa92a1be9282596ab7282abade8eefc60722783b3317232e4a",
+    "full_task_qualified": false,
+    "acceptance_qualified": false,
+    "tests_executed": true,
+    "expected_counterexample_reproduced": true,
+    "qualification_passed": false,
+    "metadata": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 0.16429987600000118,
+      "log_sha256": "b0cdd2e9406d4bed10f1c0127d78ede5701fbce503e4be39bba2c35156558a42"
+    },
+    "registry_packages_matched_root_lock": 151,
+    "generated_inputs_sha256": {
+      "probe/Cargo.toml": "dddee356f565f082b281f1d1b8900308e77700b4a607f3568710e7e02539da2b",
+      "probe/Cargo.lock": "62a8a0f76e08748891f8635c1bf150febbe495fcbec5e3951d20cfe942797f84",
+      "probe/src/lib.rs": "32cf766528beb22cb91c16be885f380b260ee977c36e24752d7e4a99a129efa4"
+    },
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+    "test": {
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 89.16922996899999,
+      "log_sha256": "a170c9853f9251744970e5f7898dfa41d13d9cf77db53437b197101551d16b4a"
+    },
+    "test_results": [
+      [
+        "FAILED",
+        "2",
+        "1"
+      ]
+    ],
+    "generated_inputs_unchanged": true,
+    "status": "counterexample-reproduced",
+    "sources_unchanged": true,
+    "run_id": 41182903546,
+    "artifact_id": 13034654964,
+    "zip_sha256": "86b1651d4536b51af6af997d438e7cfa451e4f47f81fd8721409b7a30bd199e2",
+    "git_sources_verified": 2855,
+    "prepared_sources_verified": 3087
+  },
+  "local_attempt": {
+    "scope": "Public API regression against actual prepared rtc-interceptor before implementation; no runtime or acceptance qualification.",
+    "exit_code": 101,
+    "seconds": 10.321155874989927,
+    "log_sha256": "79ce75ed7848c03b581e9a61abc1e5815dbed0cb08f6a23a2368af01e8cc6276",
+    "test_source_sha256": "6b8ba5852e84264b3b43f4bdd0bfab27e40e43779b1cc89200cbc1dea4f4cf99",
+    "status": "unrun",
+    "tests_executed": false,
+    "expected_counterexample_reproduced": false,
+    "cause": "No space during dependency compilation; no test result"
+  },
+  "patch_sha256": "89840b72c8e46bbe2e79aa95ca10c348087974b973ddb27f324571a01f9f54bf",
+  "change": "After a binding has sent RTP, schedule exactly one prompt first report when its current truthful Source anchor becomes available. Keep periodic interval/phase unchanged and no repeat for subsequent packets or identical SDP bindings. Pending, unsupported and retired sources remain suppressed; native clock scheduling is unchanged.",
+  "bounds": {
+    "urgent_reports": "At most one per bound sender stream lifetime, with current source selection repeated at report generation.",
+    "metadata": "Original source mapping and RTP counters; no fabricated anchor or new permission.",
+    "native_interval": "Existing one-second default and configured periodic cadence unchanged.",
+    "tests": "The three public API functions are byte-identical to the verified before counterexample; after verification also requires actual upstream interceptor unit tests."
+  },
+  "remaining": "Verify the correction component and full Linux affected media/SDK lanes. A prompt generated report alone does not prove packet delivery or repaired AV startup.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

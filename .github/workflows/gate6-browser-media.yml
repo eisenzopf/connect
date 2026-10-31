@@ -223,6 +223,7 @@ jobs:
           key: g6-first-clock-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'dependencies/source-lock.json') }}-${{ github.sha }}
           restore-keys: |
             g6-first-clock-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'dependencies/source-lock.json') }}-
+            g6-first-clock-${{ runner.os }}-${{ runner.arch }}-
       - name: Prepare exact upstream and locked registry sources
         run: |
           bash scripts/prepare-dependencies.sh

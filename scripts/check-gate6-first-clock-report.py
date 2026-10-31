@@ -83,6 +83,20 @@ def main():
             and 'first source mapping waits for the periodic timer' in text
         passed = complete and test['exit_code'] == 0 and results == [('ok', '3', '0')]
         report['expected_counterexample_reproduced'] = reproduced
+        report['component_api_passed'] = passed
+        if passed:
+            regressions_log = output / 'upstream-test-private.log'
+            regressions = BOUNDED(['cargo', 'test', '--release', '--offline', '--locked', '--manifest-path',
+                str(source / 'Cargo.toml'), '-p', 'rtc-interceptor', '--lib', '--', '--test-threads=1'],
+                environment, regressions_log, 300)
+            regression_text = regressions_log.read_text(errors='replace')
+            regression_results = re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', regression_text, re.M)
+            regressions_passed = regressions['exit_code'] == 0 and not regressions['timed_out'] \
+                and not regressions['forced_kill'] and len(regression_results) == 1 and int(regression_results[0]) > 0 \
+                and 'source_clock_real_interceptor_preserves_mapping_counts_and_suppresses_retired ... ok' in regression_text
+            report['upstream_regressions'] = dict(execution=regressions, results=regression_results,
+                passed=regressions_passed)
+            passed = passed and regressions_passed
         report['qualification_passed'] = passed
         report['generated_inputs_unchanged'] = all(digest(output / name) == sha for name, sha in generated.items())
         success = (reproduced if args.expect_missing_prompt_report else passed) and report['generated_inputs_unchanged']

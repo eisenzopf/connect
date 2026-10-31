@@ -1361,6 +1361,12 @@
       "path": "patches/rvoip/gate6-current-audio-burst-lookahead.patch",
       "source": "G6-054 preserve at most100ms of current unplayed contiguous PCM after the existing audio reorder wait, inside ten-chunk/200ms insertion and original-age bounds. Keep overload/playing-long-original trimming, fresh authorization and missed-quantum rules; includes six-original and expiry/no-idle-authority regressions.",
       "sha256": "555252f7a3965afa3f9525adc6ebb51cf5a6ed400df2c9ce19641271fafb7eeb"
+    },
+    {
+      "target": "rtc-interceptor",
+      "path": "patches/rtc-interceptor/gate6-first-source-report.patch",
+      "source": "G6-054 emit one prompt first truthful current source SR after media has started, without delaying it to the next periodic tick. Preserve native cadence, pending/retired suppression, source mapping and counters; no repeat on packet/benign SDP updates. Public real-interceptor regression remains byte-identical to the source-verified before counterexample.",
+      "sha256": "89840b72c8e46bbe2e79aa95ca10c348087974b973ddb27f324571a01f9f54bf"
     }
   ]
 }
