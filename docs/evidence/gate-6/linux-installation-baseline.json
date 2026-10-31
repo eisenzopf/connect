@@ -11,10 +11,10 @@
   "publication_authorized": false,
   "run_id": 41231607107,
   "job_id": 124626808879,
-  "status": "Exact-source cached replay passed. Git/prepared/archive inputs and original retained package payload are independently verified; replay outer ZIP verification pending. No installed baseline claim.",
+  "status": "Exact-source replay producer independently verified: all Git/prepared/archive inputs, three recovery tests and complete package ZIP/file payload. Installed checks belong to the upgraded primary candidate.",
   "controller_branch": "codex/gate6-sip-duplex",
   "scope": "Current-schema Ubuntu upgrade fixture; runtime sources, Cargo manifests/lock, pinned toolchain and upstream patch set equal 391770ee. Only the integration-test recursion attribute differs under crates/.",
-  "upgrade_run_dispatched": false,
+  "upgrade_run_dispatched": true,
   "task_complete": false,
   "whole_gate_qualified": false,
   "build_observation": {
@@ -71,19 +71,45 @@
         "binary_sha256": "aca1f9231679310d2ef2114b35ab1ef8b7f4bcf4bba4d821c78e0226e5c4fb7f",
         "files_verified": 2403
       },
-      "format": "connect/verified-baseline-payload-and-replay-sources/1",
-      "evidence_workflow_run_id": 41239447334,
+      "format": "connect/verified-linux-baseline-producer/1",
+      "run_id": 41239447334,
+      "job_id": 124650063703,
+      "package_artifact_id": 13057250707,
       "evidence_artifact_id": 13056827238,
-      "package_workflow_run_id": 41231607107,
-      "package_artifact_id": 13055654490,
+      "package_zip_sha256": "d8442f6fcb35a323e74e6e2cc9c0544dccc5dc70322bd9b14daf71b9c8b4d941",
       "evidence_zip_sha256": "7424ab9e87cc55598b831afc75f494f3fef2e1e2ae7fe3ea9b4b3d54d536ca4a",
-      "package_zip_sha256": "51567d91e80da0fb15464e631d2f2ad212b2cfadb6ea30eaf5ea04519f29a6f7",
-      "scope": "Original retained package bytes equal the replay build report archive/manifest digests. Replay independently source-binds all Git/prepared/archive inputs and passes all three recovery tests. The replay package outer ZIP download is still pending; no installation pass.",
-      "replay_package_outer_zip_verification_pending": true,
+      "source_manifest_sha256": "21c2675923083787eee2a7ef3207d991ed77e86fc20703fc5f1c1b7d118545f4",
+      "recovery_tests": {
+        "name": "recovery-tests",
+        "exit_code": 0,
+        "elapsed_seconds": 1.417,
+        "test_results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "test_executables": [
+          {
+            "name": "gate6_canonical_recovery",
+            "sha256": "ccef5956dcdecf2abf94b5d5ffec41dd4e357c3d700a2a759f4d1f2756c881d5"
+          }
+        ]
+      },
+      "installed_checks_run": false,
+      "replay_package_outer_zip_verification_pending": false,
       "task_complete": false,
       "whole_gate_qualified": false
     },
     "package_artifact_id": 13057250707,
     "package_zip_sha256": "d8442f6fcb35a323e74e6e2cc9c0544dccc5dc70322bd9b14daf71b9c8b4d941"
+  },
+  "primary_upgrade_candidate": {
+    "source_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
+    "controller_revision": "07dc8657a90de285a41f8080789dff68e60d9637",
+    "run_id": 41239765999,
+    "job_id": 124651043679,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41239765999",
+    "state_at_recording": "Live current-source recovery compilation; installed upgrade/restart/restore unverified",
+    "upgrade_source_package_run": 41239447334
   }
 }
