@@ -176,8 +176,14 @@ jobs:
             .deps
             .local/gate6-linux-ci/target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          # Focused builds compile different targets. Preserve each target cache
+          # and allow the broader full build as a verified-source fallback.
+          key: g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-${{ inputs.lane || 'full' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
+            g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-${{ inputs.lane || 'full' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-${{ inputs.lane || 'full' }}-
+            g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-full-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-full-
             g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
             g6-linux-${{ steps.native.outputs.native_key }}-
       - name: Preserve times only for identical source contents and modes

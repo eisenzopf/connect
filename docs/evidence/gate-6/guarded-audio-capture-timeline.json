@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "core-component-passed-runtime-pending",
+  "status": "core-and-native-components-passed-browser-signed-av-pending",
   "scope": "Actual Core guarded mixer original capture/RTP clock component, separate from strict browser/native/telephone quality and network qualification.",
   "before": {
     "source_revision": "1f3d766d43ad86a1fe54ab24cd804120b5dd063a",
@@ -310,7 +310,363 @@
     },
     "compile_seconds": 552.834368144,
     "actual_test_execution_seconds": 1.7101487870002074,
-    "finding": "All32selected actual Core parent functions pass, including both8/48kHz loops in the original regression and the added real-gap/pending-SR/partial/RTP-wrap/rate-conversion function. No decoded browser/native/telephone/WAN/performance pass follows from this component."
+    "finding": "All32selected actual Core parent functions pass, including both8/48kHz loops in the original regression and the added real-gap/pending-SR/partial/RTP-wrap/rate-conversion function. No decoded browser/native/telephone/WAN/performance pass follows from this component.",
+    "native_integration": {
+      "source_revision": "092c301dfc83a4c599f329e8d759ca2201aeabb1",
+      "run_id": 41197041950,
+      "artifact_id": 13040709481,
+      "zip_sha256": "66b89060666cd33bed6ec8eeb4ed041cc97b5356798eb0b6edd5f668fa1af06b",
+      "git_sources_verified": 4523,
+      "prepared_sources_verified": 4092,
+      "pinned_archives_verified": 4,
+      "source_inputs_unchanged": true,
+      "passed": true,
+      "modes": [
+        {
+          "mode": "direct",
+          "passed": true,
+          "source_inputs_unchanged": true,
+          "build_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "owned_network": {
+            "requested": true,
+            "internal_bridge": true,
+            "original_bridge_removed": true,
+            "remaining_containers": 0
+          },
+          "profiles": [
+            {
+              "algorithm": "EdDSA",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 5.876895436000041,
+              "guest_log_sha256": "e115262b41e0966bcc4cc39b9e9847932a4079d4362c1074e920583067e3ac9a",
+              "server_log_sha256": "bb5da5f80688ba4af4d8e50a3efc280bf897fe9e0859af0f459c3aadf4c029b2",
+              "guest_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sent_frames": 200,
+                  "received_bytes": 31680,
+                  "owned_peer_shutdown": true
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "sent_frames": 200,
+                  "received_bytes": 31360,
+                  "durable_native_offers": 2,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": false,
+                  "post_timeout_signed_heartbeat": false
+                }
+              ],
+              "decoded_at_host": {
+                "expected_hz": 660,
+                "excluded_self_hz": 440,
+                "decoded_samples": 31360,
+                "active_frames": 196,
+                "matching_frames": 196,
+                "pcmu_sha256": "16178b4859f0aaaa1b04eed592a79aee4e756a007379904a730feee79cfa7388",
+                "decoded_s16le_sha256": "9fa82959976b79577298b8fe16fef8ec2fe1e1f8e27bd27a6b8fd2beb5574462",
+                "passed": true
+              },
+              "decoded_at_guest": {
+                "expected_hz": 440,
+                "excluded_self_hz": 660,
+                "decoded_samples": 31680,
+                "active_frames": 198,
+                "matching_frames": 198,
+                "pcmu_sha256": "8d13bf8df2aadd458843e0f56e61a8707e33bc57b3d2f20f2d543a2c3cc0d1fc",
+                "decoded_s16le_sha256": "2cfe77591e669d683ecddde1baa5589dc238fb7470cfdef93c444f689b6f78de",
+                "passed": true
+              }
+            },
+            {
+              "algorithm": "ES256",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 5.656150446999845,
+              "guest_log_sha256": "55ddd7268089dc91bd9b91435b980483cf8aa8c79cb1e1ff8b0fd5d83755a8cb",
+              "server_log_sha256": "4cdc4390df81529a8cc944cbd179c02620cf7c50b94f073560704f5ce23fd10b",
+              "guest_witness": [
+                {
+                  "algorithm": "ES256",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sent_frames": 200,
+                  "received_bytes": 31360,
+                  "owned_peer_shutdown": true
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "ES256",
+                  "sent_frames": 200,
+                  "received_bytes": 30560,
+                  "durable_native_offers": 2,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": false,
+                  "post_timeout_signed_heartbeat": false
+                }
+              ],
+              "decoded_at_host": {
+                "expected_hz": 660,
+                "excluded_self_hz": 440,
+                "decoded_samples": 30560,
+                "active_frames": 191,
+                "matching_frames": 191,
+                "pcmu_sha256": "2952d222a02129fb12872b77a7bae759519642e7f91943e9d5cd91de437ac677",
+                "decoded_s16le_sha256": "af8352eadcec45b173d40d914b5dc7555e70f4f28097f5b41b16a196a722d537",
+                "passed": true
+              },
+              "decoded_at_guest": {
+                "expected_hz": 440,
+                "excluded_self_hz": 660,
+                "decoded_samples": 31360,
+                "active_frames": 196,
+                "matching_frames": 196,
+                "pcmu_sha256": "2e8fdf0f718f1b4076cadd0986c6b9403f74d060650088209aa37aa20a917791",
+                "decoded_s16le_sha256": "5d5e2500655f65881f7d9065f15c24d77355b5dd337afe0fde9850d83b39fa76",
+                "passed": true
+              }
+            }
+          ]
+        },
+        {
+          "mode": "loss",
+          "passed": true,
+          "source_inputs_unchanged": true,
+          "build_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "owned_network": {
+            "requested": true,
+            "internal_bridge": true,
+            "original_bridge_removed": true,
+            "remaining_containers": 0
+          },
+          "profiles": [
+            {
+              "algorithm": "EdDSA",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 5.521423903000141,
+              "guest_log_sha256": "07b3a507ab547c5d43cef1ee20004962c1082e822c0d61c9067d45f4c284acea",
+              "server_log_sha256": "92ff43a19e46c6c27269fe8573cdc022f26ea4433feb8b44c8422b1a5427a18e",
+              "guest_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sent_frames": 200,
+                  "received_bytes": 28320,
+                  "owned_peer_shutdown": true
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "sent_frames": 200,
+                  "received_bytes": 27840,
+                  "durable_native_offers": 2,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": false,
+                  "post_timeout_signed_heartbeat": false
+                }
+              ],
+              "decoded_at_host": {
+                "expected_hz": 660,
+                "excluded_self_hz": 440,
+                "decoded_samples": 27840,
+                "active_frames": 174,
+                "matching_frames": 174,
+                "pcmu_sha256": "378e7599270a817253a99ee3ffcf445233a7782e9ea22094675ff709d8ea827c",
+                "decoded_s16le_sha256": "e8d859fcec2100a9a32ba81b5068b626a2ecfecc6938fc455d6f9a2221dcf2d4",
+                "passed": true
+              },
+              "decoded_at_guest": {
+                "expected_hz": 440,
+                "excluded_self_hz": 660,
+                "decoded_samples": 28320,
+                "active_frames": 177,
+                "matching_frames": 177,
+                "pcmu_sha256": "19edf2cac849fa40ebd8acd353a981ba47b3f0ee337582c6d435bb2522dfc682",
+                "decoded_s16le_sha256": "98f3650450d14f9386e356045f12f8fb1a0134efbdc718596ff7644f1002a2fb",
+                "passed": true
+              },
+              "transport_fault": {
+                "drop_every_after_media_go": 10,
+                "foreign_datagrams": 0,
+                "worker_joined": true,
+                "guest_to_server": {
+                  "eligible": 232,
+                  "dropped": 23,
+                  "forwarded": 230
+                },
+                "server_to_guest": {
+                  "eligible": 239,
+                  "dropped": 23,
+                  "forwarded": 240
+                }
+              }
+            },
+            {
+              "algorithm": "ES256",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 5.7447058150000885,
+              "guest_log_sha256": "be87caf306f4a3f9c568cd64d89dd36409bd4f340e72f882e5989be28e34f267",
+              "server_log_sha256": "7541b8ecf21588fc12697050ae8aa3130e114645685d1b36db60e27120519d75",
+              "guest_witness": [
+                {
+                  "algorithm": "ES256",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sent_frames": 200,
+                  "received_bytes": 27680,
+                  "owned_peer_shutdown": true
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "ES256",
+                  "sent_frames": 200,
+                  "received_bytes": 29280,
+                  "durable_native_offers": 2,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": false,
+                  "post_timeout_signed_heartbeat": false
+                }
+              ],
+              "decoded_at_host": {
+                "expected_hz": 660,
+                "excluded_self_hz": 440,
+                "decoded_samples": 29280,
+                "active_frames": 183,
+                "matching_frames": 183,
+                "pcmu_sha256": "ae70359bc9df5bbf146322fb85765f0788631d6249a8c78837039ece3b089c51",
+                "decoded_s16le_sha256": "e1e40c3a0e06240ffb0d91ec442ff05804d3671d3684acb2a929a0370bac3bcc",
+                "passed": true
+              },
+              "decoded_at_guest": {
+                "expected_hz": 440,
+                "excluded_self_hz": 660,
+                "decoded_samples": 27680,
+                "active_frames": 173,
+                "matching_frames": 173,
+                "pcmu_sha256": "81e0c2d276a599dcb710fd6b34867b4436313dc023b2eeae04aafd598a0e7438",
+                "decoded_s16le_sha256": "c8fd932f04558b19b8dd39c127d3aa552fade5fb0e58465a4154e0ce30e875fb",
+                "passed": true
+              },
+              "transport_fault": {
+                "drop_every_after_media_go": 10,
+                "foreign_datagrams": 0,
+                "worker_joined": true,
+                "guest_to_server": {
+                  "eligible": 231,
+                  "dropped": 23,
+                  "forwarded": 228
+                },
+                "server_to_guest": {
+                  "eligible": 232,
+                  "dropped": 23,
+                  "forwarded": 232
+                }
+              }
+            }
+          ]
+        },
+        {
+          "mode": "unreachable-port",
+          "passed": true,
+          "source_inputs_unchanged": true,
+          "build_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "owned_network": {
+            "requested": true,
+            "internal_bridge": true,
+            "original_bridge_removed": true,
+            "remaining_containers": 0
+          },
+          "profiles": [
+            {
+              "algorithm": "EdDSA",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 6.097512925000046,
+              "guest_log_sha256": "a9288e110cd7714f2186c3fe0088fc5d2f2981bcc149e87045bea5d0921f2d99",
+              "server_log_sha256": "32740ac21bc8345bd6e7b7bd57313a0dcd4cb38db24e23f8f47e3b910b7a8308",
+              "observed_unanswered_datagrams": 6,
+              "guest_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "open_refused": "timeout",
+                  "no_offer_submitted": true,
+                  "elapsed_seconds": 5.00096561
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "EdDSA",
+                  "sent_frames": 0,
+                  "received_bytes": 0,
+                  "durable_native_offers": 1,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": true,
+                  "post_timeout_signed_heartbeat": true
+                }
+              ]
+            },
+            {
+              "algorithm": "ES256",
+              "passed": true,
+              "guest_exit_code": 0,
+              "server_exit_code": 0,
+              "elapsed_seconds": 6.09630294700014,
+              "guest_log_sha256": "d8ca12cdce8ea88fce5866e961f318fa8f22353272b55ff4c3c804b15fff3cd7",
+              "server_log_sha256": "80172968646bbce618fab00911e8683b1fc93087b7e710e15ce32a6188936355",
+              "observed_unanswered_datagrams": 6,
+              "guest_witness": [
+                {
+                  "algorithm": "ES256",
+                  "profile": "remote",
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "open_refused": "timeout",
+                  "no_offer_submitted": true,
+                  "elapsed_seconds": 5.001173562
+                }
+              ],
+              "server_witness": [
+                {
+                  "algorithm": "ES256",
+                  "sent_frames": 0,
+                  "received_bytes": 0,
+                  "durable_native_offers": 1,
+                  "physical_peers_drained": true,
+                  "guest_open_refused": true,
+                  "post_timeout_signed_heartbeat": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
   },
   "full_task_qualified": false,
   "acceptance_qualified": false,

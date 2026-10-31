@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "correction-unqualified",
+  "status": "selector-component-passed-telephone-pending",
   "scope": "Exact production SIP data-queue selector and original telephone decoded-duplex fixture; no provider/PSTN/model or full G6-054/acceptance qualification.",
   "before": {
     "source_revision": "15a5675d55b5ac6a1b63c52a2a9d82571c7b17e7",
@@ -34,9 +34,45 @@
     "reporting_defect": "The initial runner maps a failed batch to unavailable stdout and incorrectly labels all three per-function booleans false. Those booleans are rejected; retain the actual aggregate1pass/2fail and exact assertion locations. The corrected runner executes each unchanged function separately within the same absolute30s test budget. Original artifact is preserved."
   },
   "after": {
-    "status": "unrun",
-    "passed": false,
-    "proposed_change": "Alternate priority only between the two original data queues. Outer cancellation/lifecycle priority, per-frame current authorization/codec checks, one original worker and queue ownership stay unchanged. No additional tasks/readers/buffers/delays and no media/deadline threshold changes."
+    "source_revision": "e6f9c6e9f67c074d0857e7e4d11df13326bd16f3",
+    "run_id": 41198512136,
+    "artifact_id": 13041374960,
+    "zip_sha256": "468c9cf103c205c12320fe1add2e4bcfc1f186e742b4ac186c451a6b922647a5",
+    "git_sources_verified": 4529,
+    "prepared_sources_verified": 4093,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": true,
+      "status": "passed",
+      "source_module_sha256": "a67eec3449d8dd5b293a3bf29e323142c4d306f2071d14402a34ab9d784a8b8f",
+      "scope": "Exact prepared production SIP queue selector: bounded bidirectional service with both queues ready, single-direction FIFO and cancellation-safe idle waits. No RTP, telephone, provider or full G6-054 qualification.",
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "binary_sha256": "f6d8bfabc67130da6d747f4cb163fe2d98ec581680f7900202ebc19b1477cfd3",
+      "results": [
+        {
+          "name": "queued_input_cannot_starve_an_already_ready_output",
+          "passed": true,
+          "executed": true
+        },
+        {
+          "name": "queued_output_cannot_starve_an_already_ready_input",
+          "passed": true,
+          "executed": true
+        },
+        {
+          "name": "single_direction_fifo_and_cancelled_wait_keep_original_queue_items",
+          "passed": true,
+          "executed": true
+        }
+      ],
+      "binary_unchanged": true,
+      "whole_test_deadline_seconds": 30,
+      "actual_test_execution_seconds": 0.017574058999997533
+    },
+    "passed": true,
+    "regression_assertions_unchanged": true
   },
   "telephone_before": {
     "source_revision": "15a5675d55b5ac6a1b63c52a2a9d82571c7b17e7",
@@ -45,5 +81,11 @@
   },
   "full_task_qualified": false,
   "acceptance_qualified": false,
-  "regression_tests_sha256": "0d4a59835d39eddc8992d0bc4dd16263a321ff6b444ee4dcce91e229ba3fb5c5"
+  "regression_tests_sha256": "0d4a59835d39eddc8992d0bc4dd16263a321ff6b444ee4dcce91e229ba3fb5c5",
+  "telephone_after": {
+    "source_revision": "e6f9c6e9f67c074d0857e7e4d11df13326bd16f3",
+    "run_id": 41198516894,
+    "status": "queued-or-in-progress",
+    "passed": false
+  }
 }
