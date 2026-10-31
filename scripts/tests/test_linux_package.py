@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import zipfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +22,7 @@ def load(name, path):
 
 installer = load('linux_installer', 'deploy/linux/install.py')
 packager = load('linux_packager', 'scripts/package-linux.py')
+verifier = load('linux_verifier', 'scripts/verify-linux-installation.py')
 
 
 class Integrity(unittest.TestCase):
@@ -30,12 +32,12 @@ class Integrity(unittest.TestCase):
         self.root = Path(self.temp.name) / 'connect-fixture'
         self.root.mkdir()
         self.files = {}
-        for name in ('bin/connect', 'deploy/connect.service', 'deploy/install.py', 'README.md', 'LICENSE'):
+        for name in ('bin/connect', 'deploy/connect.service', 'deploy/install.py', 'README.md', 'LICENSE', 'dependencies/source-lock.json'):
             path = self.root / name
             path.parent.mkdir(exist_ok=True)
             path.write_bytes(name.encode())
             self.files[name] = {'sha256': installer.digest(path), 'mode': 0o755 if name == 'bin/connect' else 0o644}
-        self.manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-x86_64', 'installation_id': 'connect-fixture', 'files': self.files}
+        self.manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-x86_64', 'installation_id': 'connect-fixture', 'files': self.files, 'source_revision': 'a' * 40, 'source_epoch': 42, 'inputs': {'fixture.rs': '1' * 64}, 'build_profile': 'release', 'test_support': False, 'publication_authorized': False}
         self.write_manifest()
 
     def write_manifest(self):
@@ -62,6 +64,35 @@ class Integrity(unittest.TestCase):
             self.assertEqual((stage / 'bin').stat().st_mode & 0o777, 0o755)
         finally:
             os.umask(prior)
+
+    def package_zip(self):
+        archive = self.root.parent / 'package.tar.gz'
+        packager.archive(self.root, archive, 42)
+        wrapped = self.root.parent / 'artifact.zip'
+        with zipfile.ZipFile(wrapped, 'w') as output:
+            output.write(archive, archive.name)
+        return wrapped
+
+    def test_independent_verifier_checks_packaged_bytes_and_source_map(self):
+        wrapped = self.package_zip()
+        with verifier.artifact(wrapped, installer.digest(wrapped)) as artifact:
+            manifest, proof = verifier.verify_package(artifact, 'a' * 40, {'fixture.rs': '1' * 64})
+            self.assertEqual(manifest, self.manifest)
+            self.assertEqual(proof['binary_sha256'], self.files['bin/connect']['sha256'])
+        with zipfile.ZipFile(wrapped) as artifact:
+            with self.assertRaises(ValueError):
+                verifier.verify_package(artifact, 'b' * 40, {'fixture.rs': '1' * 64})
+        with zipfile.ZipFile(wrapped) as artifact:
+            with self.assertRaises(ValueError):
+                verifier.verify_package(artifact, 'a' * 40, {'fixture.rs': '2' * 64})
+        with self.assertRaises(ValueError):
+            verifier.artifact(wrapped, '0' * 64)
+
+    def test_independent_verifier_refuses_incomplete_git_source_report(self):
+        import subprocess
+        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        with self.assertRaises(ValueError):
+            verifier.verify_sources({}, revision, self.root, None)
 
     def test_rejects_corruption_symlinks_and_unlisted_material(self):
         path = self.root / 'LICENSE'

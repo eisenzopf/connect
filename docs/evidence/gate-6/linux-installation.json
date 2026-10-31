@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "4 passed; deterministic archive normalization, restrictive-umask release directory sealing, corruption/symlink/unlisted material refusals, path traversal/installation ID escape refusals",
+    "package_integrity_boundary_tests": "6 passed; includes independent archive/source-map/digest mismatch refusals and omitted-Git-input refusal, plus the four package integrity/determinism/umask checks",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -48,5 +48,14 @@
     "run_id": 41228473013,
     "source_revision": "16372714",
     "disposition": "Cancelled before build to include the restrictive-umask installer correction; no result claim."
+  },
+  "independent_verifier": "scripts/verify-linux-installation.py",
+  "current_bounded_runtime_candidate": {
+    "source_revision": "c1182a8b",
+    "run_id": 41228758112,
+    "job_id": 124618332652,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41228758112",
+    "state_at_recording": "Queued behind the initial production package build; no result inferred",
+    "upgrade_source_package_run": 41228197167
   }
 }
