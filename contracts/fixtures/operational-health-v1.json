@@ -1,0 +1,55 @@
+{
+  "observed_at": 1700000000,
+  "limits": {
+    "message_bytes": 1024,
+    "page_size": 10,
+    "journal_events": 1000,
+    "operation_receipts": 1000,
+    "message_storage_bytes": 1048576,
+    "participants": 4,
+    "wait_ms": 200,
+    "request_timeout_ms": 1000,
+    "connections": 4,
+    "sessions": 100,
+    "artifact_file_bytes": 4096,
+    "artifact_bytes": 8192,
+    "artifact_chunk_bytes": 512
+  },
+  "operations": {
+    "retained": 10,
+    "accepted": 1,
+    "preparing": 1,
+    "ready": 0,
+    "committing": 1,
+    "interrupted": 1,
+    "unknown": 1
+  },
+  "runtime": {
+    "physical_owners": 1,
+    "physical_capacity": 4,
+    "owned_tasks": 2
+  },
+  "resource_pools": [
+    {
+      "kind": "native-quic",
+      "state": "available",
+      "usage": {
+        "used": 1,
+        "limit": 4,
+        "accepted": 3,
+        "rejected": 1,
+        "draining": false
+      }
+    },
+    {
+      "kind": "websocket",
+      "state": "busy",
+      "usage": null
+    },
+    {
+      "kind": "webtransport",
+      "state": "retired",
+      "usage": null
+    }
+  ]
+}

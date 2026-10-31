@@ -86,6 +86,7 @@ pub use identity_access::{IdentityAccess, IdentityAccessView, TaskCreateDefaults
 pub use native_media::{native_media_scope_policy, NATIVE_MEDIA_SCOPE};
 pub use session_bindings::StoreSessionBindingResolver;
 pub mod readiness;
+pub mod resources;
 pub mod tasks;
 
 pub struct Service {
@@ -359,8 +360,21 @@ impl Service {
         tokio::pin!(wake);
         wake.as_mut().enable();
         let mut result = self.run(credential_id.clone(), operation.clone()).await;
-        if let Ok(Outcome::Health { readiness, .. }) = &mut result {
+        if let Ok(Outcome::Health {
+            readiness,
+            operational,
+            ..
+        }) = &mut result
+        {
             *readiness = Some(self.readiness.snapshot());
+            // Only the current Store administrator branch creates this field.
+            if let Some(snapshot) = operational {
+                snapshot.runtime = self
+                    .canonical_runtime
+                    .get()
+                    .and_then(|runtime| runtime.operational_resources());
+                snapshot.resource_pools = self.readiness.resource_pool_snapshot();
+            }
         }
         if let (
             Operation::SessionObservations { query, .. },

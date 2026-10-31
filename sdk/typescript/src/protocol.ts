@@ -1,3 +1,4 @@
+import { validOperationalHealth } from "./operational.js";
 import { validContextRecord } from "./record_context.js";
 import { validMembership } from "./membership_validation.js";
 import { validConversation } from "./conversations.js";
@@ -317,7 +318,9 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                     (x) =>
                         fields(x, ["kind", "source_id", "actor_id", "body"]) &&
                         integer(x.sequence) &&
-                        (x.record === undefined || (validContextRecord(x.record) && x.record.uuid === x.source_id)),
+                        (x.record === undefined ||
+                            (validContextRecord(x.record) &&
+                                x.record.uuid === x.source_id)),
                 ) &&
                 array(
                     data.deliveries,
@@ -476,7 +479,9 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                 data.profile === "connect-control/1" &&
                 Number.isSafeInteger(data.schema) &&
                 Number(data.schema) >= 0 &&
-                (!("readiness" in data) || readiness(data.readiness))
+                (!("readiness" in data) || readiness(data.readiness)) &&
+                (!("operational" in data) ||
+                    validOperationalHealth(data.operational))
             );
         default:
             return false;

@@ -118,8 +118,8 @@ pub(super) struct GuardedListener {
     pub(super) listener: TcpListener,
     pub(super) cancellation: CancellationToken,
     pub(super) tls: Option<Arc<rustls::ServerConfig>>,
-    pub(super) handshakes: Arc<tokio::sync::Semaphore>,
-    pub(super) connections: Arc<tokio::sync::Semaphore>,
+    pub(super) handshakes: Arc<connect_service::resources::ResourceBudget>,
+    pub(super) connections: Arc<connect_service::resources::ResourceBudget>,
 }
 type TlsStream = tokio_rustls::server::TlsStream<TcpStream>;
 enum Io {

@@ -1,3 +1,4 @@
+from .operational import valid_operational
 from .record_context import valid_context_record
 """Bounded response validation shared by both transports."""
 import json
@@ -144,7 +145,7 @@ def valid_data(kind, data, depth=0):
         nested = data.get("outcome")
         return _fields(data, ("state",)) and "outcome" in data and (nested is None or (isinstance(nested, dict) and valid_data(nested.get("kind"), nested.get("data"), depth + 1)))
     if kind == "health":
-        return _fields(data, ("installation_id", "profile")) and data["profile"] == "connect-control/1" and type(data.get("schema")) is int and data["schema"] >= 0 and ("readiness" not in data or _readiness(data["readiness"]))
+        return _fields(data, ("installation_id", "profile")) and data["profile"] == "connect-control/1" and type(data.get("schema")) is int and data["schema"] >= 0 and ("readiness" not in data or _readiness(data["readiness"])) and ("operational" not in data or valid_operational(data["operational"]))
     return False
 
 

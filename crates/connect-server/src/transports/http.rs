@@ -6,8 +6,9 @@ use axum::{
     routing::{post, put},
     Json, Router,
 };
+use connect_protocol::ResourcePoolKind;
 use connect_protocol::{Error, Operation, PROFILE};
-use connect_service::Service;
+use connect_service::{readiness::ResourceObserver, resources::ResourceBudget, Service};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -19,7 +20,7 @@ pub(super) struct HttpState {
     pub(super) service: Arc<Service>,
     pub(super) provider_routes: Option<Arc<Vec<String>>>,
     pub(super) verifier: Option<Arc<telnyx::webhooks::Verifier>>,
-    pub(super) capacity: Arc<tokio::sync::Semaphore>,
+    pub(super) capacity: Arc<ResourceBudget>,
     pub(super) cancellation: CancellationToken,
     pub(super) address: SocketAddr,
     pub(super) public_authority: Option<String>,
@@ -46,6 +47,7 @@ pub struct Listener {
     stop: CancellationToken,
     task: Option<tokio::task::JoinHandle<anyhow::Result<()>>>,
     _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
+    _resource_observers: Vec<Arc<ResourceObserver>>,
 }
 
 struct Retirement(CancellationToken);
@@ -81,6 +83,39 @@ impl Listener {
             .transpose()
             .map_err(|_| anyhow::anyhow!("Invalid callback verifier"))?
             .map(Arc::new);
+        let requests = ResourceBudget::new(maximum)?;
+        let connections = ResourceBudget::new(maximum)?;
+        let handshakes = ResourceBudget::new(maximum)?;
+        let kinds = match config.surface {
+            crate::hosting::HttpSurface::Application => [
+                ResourcePoolKind::HttpsApplicationConnections,
+                ResourcePoolKind::HttpsApplicationRequests,
+                ResourcePoolKind::HttpsApplicationHandshakes,
+            ],
+            crate::hosting::HttpSurface::Administration => [
+                ResourcePoolKind::HttpsAdministrationConnections,
+                ResourcePoolKind::HttpsAdministrationRequests,
+                ResourcePoolKind::HttpsAdministrationHandshakes,
+            ],
+            crate::hosting::HttpSurface::Callbacks => [
+                ResourcePoolKind::HttpsCallbacksConnections,
+                ResourcePoolKind::HttpsCallbacksRequests,
+                ResourcePoolKind::HttpsCallbacksHandshakes,
+            ],
+            crate::hosting::HttpSurface::Health => [
+                ResourcePoolKind::HttpsHealthConnections,
+                ResourcePoolKind::HttpsHealthRequests,
+                ResourcePoolKind::HttpsHealthHandshakes,
+            ],
+        };
+        let resource_observers = [
+            (&connections, kinds[0]),
+            (&requests, kinds[1]),
+            (&handshakes, kinds[2]),
+        ]
+        .into_iter()
+        .map(|(budget, kind)| budget.observe(&readiness, kind, stop.clone()))
+        .collect::<connect_protocol::Result<Vec<_>>>()?;
         let state = HttpState {
             canonical_discovery: Some(Arc::new(discovery)),
             service,
@@ -89,7 +124,7 @@ impl Listener {
                 .as_ref()
                 .map(|c| Arc::new(c.routes.clone())),
             verifier,
-            capacity: Arc::new(tokio::sync::Semaphore::new(maximum)),
+            capacity: requests,
             cancellation: stop.clone(),
             address,
             public_authority: Some(authority.clone()),
@@ -141,8 +176,8 @@ impl Listener {
                 listener,
                 cancellation: token.clone(),
                 tls: Some(Arc::new(tls)),
-                handshakes: Arc::new(tokio::sync::Semaphore::new(maximum)),
-                connections: Arc::new(tokio::sync::Semaphore::new(maximum)),
+                handshakes,
+                connections,
             };
             axum::serve(
                 io,
@@ -157,6 +192,7 @@ impl Listener {
             stop,
             task: Some(task),
             _retirement: retirement,
+            _resource_observers: resource_observers,
         })
     }
     pub(crate) fn begin_shutdown(&self) {
@@ -235,11 +271,28 @@ impl Listener {
             .map_err(|_| anyhow::anyhow!("Invalid TELNYX_PUBLIC_KEY"))?
             .map(Arc::new);
         let service_limit = service.store.limits().connections;
-        let capacity = Arc::new(tokio::sync::Semaphore::new(service_limit));
+        let capacity = ResourceBudget::new(service_limit)?;
+        let connections = ResourceBudget::new(service_limit)?;
+        let handshakes = ResourceBudget::new(1)?;
         let stop = CancellationToken::new();
         let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
             Arc::new(Retirement(stop.clone()));
         service.store.register_runtime_retirement(&retirement)?;
+        let kinds = if webhooks_only {
+            [
+                ResourcePoolKind::HttpCallbackConnections,
+                ResourcePoolKind::HttpCallbackRequests,
+            ]
+        } else {
+            [
+                ResourcePoolKind::HttpConnections,
+                ResourcePoolKind::HttpRequests,
+            ]
+        };
+        let resource_observers = [(&connections, kinds[0]), (&capacity, kinds[1])]
+            .into_iter()
+            .map(|(budget, kind)| budget.observe(&service.readiness, kind, stop.clone()))
+            .collect::<connect_protocol::Result<Vec<_>>>()?;
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;
         let state = HttpState {
@@ -263,14 +316,13 @@ impl Listener {
             .layer(DefaultBodyLimit::max(body_limit))
             .with_state(state);
         let token = stop.clone();
-        let capacity_for_connections = Arc::new(tokio::sync::Semaphore::new(service_limit));
         let task = tokio::spawn(async move {
             let guarded = super::http_record_io::GuardedListener {
                 listener,
                 cancellation: token.clone(),
                 tls: None,
-                handshakes: Arc::new(tokio::sync::Semaphore::new(1)),
-                connections: capacity_for_connections,
+                handshakes,
+                connections,
             };
             axum::serve(
                 guarded,
@@ -285,6 +337,7 @@ impl Listener {
             stop,
             task: Some(task),
             _retirement: retirement,
+            _resource_observers: resource_observers,
         })
     }
 

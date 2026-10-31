@@ -43,6 +43,12 @@ pub use media_diagnostics::{
     MediaDiagnostics, MediaForwardObservation, MediaQueueObservation, QuicSendBufferObservation,
     QuicTransmissionObservation, WebRtcVideoInputObservation,
 };
+mod operational;
+pub use operational::{
+    OperationCounts, OperationalHealth, OperationalLimits, ResourcePool, ResourcePoolKind,
+    ResourceSampleState, ResourceUsage, RuntimeResources, MAX_OPERATIONAL_COUNTER,
+    MAX_OPERATIONAL_POOLS,
+};
 mod readiness;
 pub use readiness::{ComponentReadiness, Readiness, ReadinessState};
 
@@ -972,6 +978,9 @@ pub enum Outcome {
         profile: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         readiness: Option<Readiness>,
+        /// Installation-wide observations require current administrator authority and an unrestricted recipient ceiling.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        operational: Option<Box<OperationalHealth>>,
     },
 }
 

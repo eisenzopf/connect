@@ -203,3 +203,43 @@ native consultation, eight handoff scenes and eight movement scenes. A reproduce
 SQL-contention outage is fixed; historical audio-failure causation remains unproven
 and is retained for G6-096/G6-098 qualification. Linux, remote/provider/media,
 distribution and independent acceptance profiles remain separate.
+
+## Operational health observations
+
+The named application `health` operation includes `data.operational` only for a
+currently authorized administrator whose recipient ceiling includes `*`.
+Ordinary participant credentials may have `health` permission; that permission
+alone does not expose installation-wide operation or resource counts. Current
+revocation and scope checks apply on every read. Public `/healthz` remains a
+minimal readiness result and does not sample these resource observers.
+
+The operational object contains an observation timestamp, all configured limits,
+operation-ledger state counts, optional runtime owner/task counts, and up to 32
+distinct resource pools. It contains no operation IDs, intent/result bodies,
+credentials, addresses, provider identifiers or private media. The six unsettled
+operation counts are ledger states; they do not imply six classes of live workers.
+Retained operation count includes terminal rows. Runtime `owned_tasks` includes
+completed JoinSet entries awaiting a join; `physical_owners` counts retained
+physical owners. These independently sampled values are not an atomic snapshot
+or a process CPU/memory measurement.
+
+Pool kinds distinguish native QUIC, WebTransport and WebSocket profile owners,
+and actual HTTP/HTTPS connection, request and TLS handshake budgets for each
+configured surface. Record-reference HTTPS has its own three budgets.
+`used` reflects the actual owner or semaphore permit lifetime. Accepted/rejected
+counters count admission attempts at that budget, including unsuccessful
+authentication after a transport admission; they are not successful commands.
+Separate budgets are not additive. Unconfigured pools are absent; registered
+owners report `available` with usage, `busy` with null usage, or `retired` with
+null usage. A null pool list means the registry was unavailable; a null runtime
+means not configured or temporarily unavailable. Unknown values never imply zero.
+The request serving a diagnostic read can itself occupy a request and connection
+slot. Cumulative counters saturate at 9007199254740991; configured limits above
+the supported exact numeric range are refused before Store creation/opening.
+Resource-owner probes are weak references; diagnostics do not retain a listener
+after its runtime owner is dropped.
+
+This component is under G6-057 qualification. Its generated application OpenAPI
+must accompany the exact Rust DTO changes. Capacity enforcement across all
+resource classes, idle cleanup, process measurements and whole-task qualification
+remain separately required by the implementation plan.

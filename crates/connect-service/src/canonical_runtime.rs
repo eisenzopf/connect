@@ -395,6 +395,22 @@ impl Runtime {
         }
         Ok(matches.pop())
     }
+
+    /// Nonblocking process observations. Counts are owners/JoinSet entries,
+    /// not authoritative Session state or proof that cleanup has finished.
+    pub(crate) fn operational_resources(&self) -> Option<connect_protocol::RuntimeResources> {
+        let physical = self.physical.try_lock().ok()?;
+        let work = self.work.try_lock().ok()?;
+        Some(connect_protocol::RuntimeResources {
+            physical_owners: physical
+                .iter()
+                .filter(|owner| owner.strong_count() > 0)
+                .count()
+                .min(u32::MAX as usize) as u32,
+            physical_capacity: self.capacity as u32,
+            owned_tasks: work.len().min(u32::MAX as usize) as u32,
+        })
+    }
     pub(crate) fn snapshot(&self) -> CanonicalRuntimeSnapshot {
         let media = self
             .physical

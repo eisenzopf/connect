@@ -2,8 +2,9 @@
 use connect_protocol::{ComponentReadiness, Readiness, ReadinessState};
 use std::{
     collections::BTreeMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
 };
+pub type ResourceObserver = dyn Fn() -> Option<connect_protocol::ResourceUsage> + Send + Sync;
 type MediaSnapshot = Arc<dyn Fn() -> connect_protocol::MediaDiagnostics + Send + Sync>;
 use tokio_util::sync::CancellationToken;
 
@@ -33,8 +34,71 @@ pub struct OperationalReadiness {
     components: Mutex<BTreeMap<&'static str, ComponentReadiness>>,
     fatal: CancellationToken,
     media: Mutex<Option<MediaSnapshot>>,
+    resources: Mutex<BTreeMap<connect_protocol::ResourcePoolKind, Weak<ResourceObserver>>>,
 }
 impl OperationalReadiness {
+    /// The caller retains the returned owner. The registry keeps only a Weak
+    /// reference, so observing a listener cannot retain its service/worker cycle.
+    pub fn register_resource_pool<F>(
+        &self,
+        kind: connect_protocol::ResourcePoolKind,
+        source: F,
+    ) -> connect_protocol::Result<Arc<ResourceObserver>>
+    where
+        F: Fn() -> Option<connect_protocol::ResourceUsage> + Send + Sync + 'static,
+    {
+        let mut pools = self
+            .resources
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if pools.get(&kind).and_then(Weak::upgrade).is_some() {
+            return Err(connect_protocol::Error::new(
+                "conflict",
+                "Resource owner already registered",
+            ));
+        }
+        if !pools.contains_key(&kind) && pools.len() >= connect_protocol::MAX_OPERATIONAL_POOLS {
+            return Err(connect_protocol::Error::new(
+                "capacity-exceeded",
+                "Resource observation capacity exceeded",
+            ));
+        }
+        let owner: Arc<ResourceObserver> = Arc::new(source);
+        pools.insert(kind, Arc::downgrade(&owner));
+        Ok(owner)
+    }
+    /// Never wait for registry contention and never execute probes under its lock.
+    /// A retired or busy owner cannot be presented as zero resource usage.
+    pub fn resource_pool_snapshot(&self) -> Option<Vec<connect_protocol::ResourcePool>> {
+        use connect_protocol::{ResourcePool, ResourceSampleState, MAX_OPERATIONAL_COUNTER};
+        let sources: Vec<_> = self
+            .resources
+            .try_lock()
+            .ok()?
+            .iter()
+            .map(|(k, v)| (*k, v.clone()))
+            .collect();
+        Some(
+            sources
+                .into_iter()
+                .map(|(kind, source)| {
+                    let (state, usage) = match source.upgrade() {
+                        None => (ResourceSampleState::Retired, None),
+                        Some(source) => match source() {
+                            None => (ResourceSampleState::Busy, None),
+                            Some(mut value) => {
+                                value.accepted = value.accepted.min(MAX_OPERATIONAL_COUNTER);
+                                value.rejected = value.rejected.min(MAX_OPERATIONAL_COUNTER);
+                                (ResourceSampleState::Available, Some(value))
+                            }
+                        },
+                    };
+                    ResourcePool { kind, state, usage }
+                })
+                .collect(),
+        )
+    }
+
     /// Install a process-local bounded numeric provider. Authorization remains
     /// the existing Health operation's responsibility.
     pub fn set_media_snapshot(&self, provider: MediaSnapshot) {

@@ -35,6 +35,7 @@ pub use installation_ownership::{
 mod media_end;
 mod membership;
 mod messages;
+mod operational;
 mod operations;
 mod transitions;
 pub use transitions::provider_sessions::{
@@ -224,6 +225,7 @@ pub struct Store {
 impl Store {
     /// Create a new database. Refuses to reuse an existing path.
     pub fn initialize(path: &Path, limits: Limits) -> Result<Self> {
+        limits.validate()?;
         if path.exists() {
             return Err(Error::new(
                 "conflict",
@@ -626,6 +628,7 @@ impl Store {
         limits: Limits,
         opening: installation_ownership::Opening<'_>,
     ) -> Result<Self> {
+        limits.validate()?;
         use installation_ownership::{Binding, Opening};
         let canonical_path = authority_fences::validate_path(path)?;
         let path = canonical_path.as_path();

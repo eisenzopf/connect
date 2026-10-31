@@ -8,11 +8,15 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use connect_protocol::ResourcePoolKind;
 use connect_protocol::{
     canonical_http::{Problem, Rejection, PROFILE},
     Error,
 };
-use connect_service::{Service, StoreCredentialBinding, StoreValidator};
+use connect_service::{
+    readiness::ResourceObserver, resources::ResourceBudget, Service, StoreCredentialBinding,
+    StoreValidator,
+};
 use rvoip_auth_core::BearerValidator;
 use rvoip_uctp::v2::recording::RecordReferenceRegistry;
 use serde::{Deserialize, Serialize};
@@ -48,7 +52,7 @@ impl RecordHttpsConfig {
 struct Data {
     service: Arc<Service>,
     base: String,
-    capacity: Arc<tokio::sync::Semaphore>,
+    capacity: Arc<ResourceBudget>,
 }
 struct Retirement {
     stop: CancellationToken,
@@ -66,6 +70,7 @@ pub struct RecordHttpsListener {
     stop: CancellationToken,
     task: Option<tokio::task::JoinHandle<std::io::Result<()>>>,
     _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
+    _resource_observers: Vec<Arc<ResourceObserver>>,
 }
 impl RecordHttpsListener {
     pub async fn bind(
@@ -113,17 +118,27 @@ impl RecordHttpsListener {
         });
         service.store.register_runtime_retirement(&retirement)?;
         service.install_record_references(registry.clone())?;
+        let requests = ResourceBudget::new(config.capacity.min(256))?;
+        let connections = ResourceBudget::new(config.capacity.min(256))?;
+        let handshakes = ResourceBudget::new(config.capacity.min(256))?;
+        let resource_observers = [
+            (&connections, ResourcePoolKind::RecordHttpsConnections),
+            (&requests, ResourcePoolKind::RecordHttpsRequests),
+            (&handshakes, ResourcePoolKind::RecordHttpsHandshakes),
+        ]
+        .into_iter()
+        .map(|(budget, kind)| budget.observe(&service.readiness, kind, stop.clone()))
+        .collect::<connect_protocol::Result<Vec<_>>>()?;
         let state = Data {
             service,
             base,
-            capacity: Arc::new(tokio::sync::Semaphore::new(config.capacity.min(256))),
+            capacity: requests,
         };
         let app = Router::new()
             .route("/v2/record-references/{token}", get(download))
             .with_state(state);
         let token = stop.clone();
         let lifetime_registry = registry.clone();
-        let handshakes = config.capacity.min(256);
         let task = tokio::spawn(async move {
             struct Finish(Arc<RecordReferenceRegistry>, CancellationToken);
             impl Drop for Finish {
@@ -137,8 +152,8 @@ impl RecordHttpsListener {
                 listener,
                 cancellation: token.clone(),
                 tls: Some(Arc::new(tls)),
-                handshakes: Arc::new(tokio::sync::Semaphore::new(handshakes)),
-                connections: Arc::new(tokio::sync::Semaphore::new(handshakes)),
+                handshakes,
+                connections,
             };
             axum::serve(io, app.into_make_service_with_connect_info::<Custody>())
                 .with_graceful_shutdown(token.cancelled_owned())
@@ -150,6 +165,7 @@ impl RecordHttpsListener {
             stop,
             task: Some(task),
             _retirement: retirement,
+            _resource_observers: resource_observers,
         })
     }
     pub fn begin_shutdown(&self) {

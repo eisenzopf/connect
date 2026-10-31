@@ -226,6 +226,13 @@ pub(super) fn read(
                 installation_id: id,
                 schema: crate::SCHEMA_VERSION,
                 readiness: None,
+                operational: if actor.permits("admin")
+                    && actor.scope.recipients.iter().any(|id| id == "*")
+                {
+                    Some(Box::new(crate::operational::snapshot(c, &store.limits)?))
+                } else {
+                    None
+                },
                 profile: connect_protocol::PROFILE.into(),
             }
         }

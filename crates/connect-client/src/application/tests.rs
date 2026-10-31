@@ -30,6 +30,7 @@ fn healthy() -> Outcome {
         schema: 34,
         profile: PROFILE.into(),
         readiness: None,
+        operational: None,
     }
 }
 async fn read(stream: &mut TcpStream) -> Vec<u8> {

@@ -1,3 +1,5 @@
+import type { OperationalHealth } from "./operational.js";
+export type * from "./operational.js";
 import type { ContextRecord } from "./record_context.js";
 export type { ContextRecord } from "./record_context.js";
 import type {
@@ -480,6 +482,8 @@ export interface Readiness {
     }>;
 }
 export interface Health {
+    /** Current administrator-only installation observations. */
+    operational?: OperationalHealth;
     installation_id: string;
     schema: number;
     profile: string;

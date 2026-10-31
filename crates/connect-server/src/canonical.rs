@@ -186,6 +186,7 @@ pub struct RunningCanonicalServer {
     profile: ProfileServer,
     webtransport: Option<ProfileServer>,
     websocket: Option<crate::canonical_websocket_listener::Listener>,
+    _resource_observers: Vec<Arc<connect_service::readiness::ResourceObserver>>,
     maximum_rtt_ms: Arc<AtomicU64>,
     stop: CancellationToken,
     intake: Option<JoinHandle<Result<()>>>,
@@ -553,6 +554,42 @@ impl RunningCanonicalServer {
         let websocket_address = websocket.as_ref().map(|ws| ws.address);
         let websocket_url = websocket.as_ref().map(|ws| ws.contact.clone());
         let ws_peers = websocket.as_ref().map(|ws| ws.control());
+
+        // The root owns these read-only probes. Service readiness holds Weak
+        // references only; no diagnostics path retains a listener lifetime.
+        let mut resource_observers = Vec::new();
+        let capacity = config.limits.connections as u32;
+        for (kind, owner) in [
+            (
+                connect_protocol::ResourcePoolKind::NativeQuic,
+                Some(profile.clone()),
+            ),
+            (
+                connect_protocol::ResourcePoolKind::WebTransport,
+                webtransport.clone(),
+            ),
+            (
+                connect_protocol::ResourcePoolKind::WebSocket,
+                ws_peers.clone(),
+            ),
+        ] {
+            if let Some(owner) = owner {
+                resource_observers.push(service.readiness.register_resource_pool(
+                    kind,
+                    move || {
+                        let stats = owner.stats();
+                        Some(connect_protocol::ResourceUsage {
+                            used: stats.active_physical.min(u32::MAX as usize) as u32,
+                            limit: capacity,
+                            accepted: stats.accepted_physical as u64,
+                            rejected: stats.rejected_physical as u64,
+                            draining: owner.is_draining(),
+                        })
+                    },
+                )?);
+            }
+        }
+
         let discovery = connect_protocol::canonical_discovery::TransportDiscovery {
             profile: connect_protocol::canonical_http::PROFILE.into(),
             max_control_envelope_bytes: rvoip_uctp::v2::MAX_ENVELOPE_BYTES as u32,
@@ -684,6 +721,7 @@ impl RunningCanonicalServer {
             websocket_address,
             websocket_url,
             webtransport_url,
+            _resource_observers: resource_observers,
             maximum_rtt_ms,
             stop,
             intake: Some(intake),
