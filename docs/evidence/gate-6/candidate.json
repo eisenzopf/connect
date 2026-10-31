@@ -1417,7 +1417,13 @@
     "actual_manifest_preflight": "19 prepared source package manifests normalize and round trip without edits to upstream checkout",
     "whole_candidate_complete": false,
     "negative_evidence": "docs/evidence/gate-6/rust-candidate-520-negative.json",
-    "original_manifest_preservation_regression": "passed locally"
+    "original_manifest_preservation_regression": "passed locally",
+    "corrected_candidate": {
+      "source_revision": "5e7e976e",
+      "run_id": 41250466858,
+      "job_id": 124682743316,
+      "status": "in-progress-native-prerequisites"
+    }
   },
   "native_runtime_assets": {
     "status": "producer-implemented-not-yet-executed",
@@ -1436,6 +1442,24 @@
       "Ubuntu24.04 explicit system linkage and original libopus0 copyright",
       "No historical Gate4/5 package prerequisites"
     ],
-    "runtime_behavior_and_installed_sdk_qualified": false
+    "runtime_behavior_and_installed_sdk_qualified": false,
+    "candidate": {
+      "source_revision": "04ab1818",
+      "run_id": 41250619720,
+      "status": "both-native-builds-in-progress",
+      "jobs": {
+        "aarch64-apple-darwin": 124683205404,
+        "x86_64-unknown-linux-gnu": 124683205658
+      }
+    }
+  },
+  "installed_examples": {
+    "path": "examples/sdk-installation",
+    "languages": [
+      "Node",
+      "Python"
+    ],
+    "scope": "Standalone packages and matching default connect on PATH; current read-only capabilities and joined close. Separate standalone Rust source bundle has its public journey example.",
+    "verification": "Node/Python syntax checks pass; actual matching-native example execution remains pending."
   }
 }

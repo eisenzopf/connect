@@ -200,5 +200,11 @@
       "original_browser_joined": true
     },
     "linux_profile_pass": false
+  },
+  "queued_runtime_candidate": {
+    "run_id": 41250256185,
+    "source_revision": "405ceb29",
+    "status": "pending-behind-live-predecessor-41248033909",
+    "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
   }
 }
