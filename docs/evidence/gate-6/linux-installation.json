@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "3 passed; deterministic archive, corruption/symlink/unlisted material refusals, path traversal/installation ID escape refusals",
+    "package_integrity_boundary_tests": "4 passed; deterministic archive normalization, restrictive-umask release directory sealing, corruption/symlink/unlisted material refusals, path traversal/installation ID escape refusals",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -38,8 +38,15 @@
     "distinct-source upgrade",
     "backup/restore with signed client recovery after original files are removed"
   ],
-  "deferred_qualification_dependencies": ["G6-054"],
+  "deferred_qualification_dependencies": [
+    "G6-054"
+  ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "publication_authorized": false
+  "publication_authorized": false,
+  "superseded_unstarted_candidate": {
+    "run_id": 41228473013,
+    "source_revision": "16372714",
+    "disposition": "Cancelled before build to include the restrictive-umask installer correction; no result claim."
+  }
 }

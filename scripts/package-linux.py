@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import tarfile
@@ -83,6 +84,11 @@ def main():
     include(binary, 'bin/connect', 0o755)
     for source, target in [('deploy/linux/install.py', 'deploy/install.py'), ('deploy/linux/connect.service', 'deploy/connect.service'), ('docs/LINUX_INSTALL.md', 'README.md'), ('LICENSE', 'LICENSE'), ('THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md'), ('dependencies/source-lock.json', 'dependencies/source-lock.json')]:
         include(source, target)
+    for name in git('ls-files', 'docs', 'contracts').splitlines():
+        if (ROOT / name).is_file() and not (ROOT / name).is_symlink():
+            include(name, name)
+    readme = runtime / 'README.md'
+    readme.write_text(re.sub(r'\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)([^)]+)\)', r'](docs/\1)', readme.read_text()))
     for name in ('rvoip', 'parley'):
         include(f'.deps/{name}/LICENSE', f'licenses/{name}-LICENSE')
     copy_prepared_crate_notices(ROOT, runtime, metadata)
@@ -90,7 +96,7 @@ def main():
     linkage = subprocess.check_output(['ldd', str(binary)], text=True)
     if 'not found' in linkage:
         raise ValueError('Unresolved build-host runtime library')
-    (runtime / 'dependencies/ldd.txt').write_text(linkage)
+    (runtime / 'dependencies/ldd.txt').write_text(re.sub(r'\s+\(0x[0-9a-fA-F]+\)', '', linkage))
     files = {str(p.relative_to(runtime)): {'sha256': digest(p), 'mode': 0o755 if p.relative_to(runtime).as_posix() == 'bin/connect' else 0o644} for p in sorted(runtime.rglob('*')) if p.is_file()}
     inputs = {name: digest(ROOT / name) for name in git('ls-files').splitlines() if (ROOT / name).is_file() and not (ROOT / name).is_symlink()}
     manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-x86_64', 'installation_id': identity, 'source_revision': revision, 'source_epoch': epoch, 'build_profile': 'release', 'test_support': False, 'rustc': subprocess.check_output(['rustc', '-Vv'], text=True), 'inputs': inputs, 'files': files, 'publication_authorized': False}

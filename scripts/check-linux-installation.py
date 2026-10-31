@@ -126,7 +126,13 @@ def main():
     manifest = json.loads((package / 'manifest.json').read_text())
     report = {'source_revision': manifest['source_revision'], 'package_manifest_sha256': digest(package / 'manifest.json'), 'scope': 'Disposable native Ubuntu24.04 x86_64 systemd host; remote-profile signed client in a separate local network namespace. No public/WAN/provider/model/browser/media claim.', 'checks': {}, 'not_run': [], 'passed': False}
     try:
-        run(['python3', package / 'deploy/install.py', '--package', package, '--initialize'])
+        installer_package = (args.upgrade_package or package).resolve()
+        installer_manifest = json.loads((installer_package / 'manifest.json').read_text())
+        report['installer_source_revision'] = installer_manifest['source_revision']
+        report['installer_sha256'] = digest(installer_package / 'deploy/install.py')
+        run(['python3', installer_package / 'deploy/install.py', '--package', package, '--initialize'])
+        report['installed_binary_sha256'] = digest(BINARY)
+        assert report['installed_binary_sha256'] == manifest['files']['bin/connect']['sha256']
         report['checks']['fresh_install'] = True
         set_fields(CONFIG, {'network_profile': 'remote', 'bind': '10.203.0.1:4433'})
         run(['ip', 'netns', 'add', NS])
@@ -175,6 +181,9 @@ def main():
             assert digest(CONFIG) == config_hash and digest(environment) == secret_hash
             start(); assert list_rooms(client) == original_rooms; stop()
             report['checks']['upgrade_preserves_configuration_and_secrets'] = True
+            report['upgraded_binary_sha256'] = digest(BINARY)
+            assert report['upgraded_binary_sha256'] == next_manifest['files']['bin/connect']['sha256']
+            assert report['upgraded_binary_sha256'] != report['installed_binary_sha256']
             report['checks']['distinct_source_upgrade'] = True
             report['upgrade_manifest_sha256'] = digest(upgrade / 'manifest.json')
             report['upgrade_source_revision'] = next_manifest['source_revision']

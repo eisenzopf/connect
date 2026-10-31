@@ -52,6 +52,17 @@ class Integrity(unittest.TestCase):
         packager.archive(self.root, b, 42)
         self.assertEqual(hashlib.sha256(a.read_bytes()).digest(), hashlib.sha256(b.read_bytes()).digest())
 
+    def test_sealed_release_directories_are_traversable_under_private_umask(self):
+        prior = os.umask(0o077)
+        try:
+            stage = self.root / 'private-stage'
+            (stage / 'bin').mkdir(parents=True, mode=0o700)
+            installer.seal_directories(stage)
+            self.assertEqual(stage.stat().st_mode & 0o777, 0o755)
+            self.assertEqual((stage / 'bin').stat().st_mode & 0o777, 0o755)
+        finally:
+            os.umask(prior)
+
     def test_rejects_corruption_symlinks_and_unlisted_material(self):
         path = self.root / 'LICENSE'
         path.write_bytes(b'bad')

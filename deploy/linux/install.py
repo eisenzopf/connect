@@ -111,12 +111,25 @@ def initialize(binary, bind):
     os.chown(config, 0, pwd.getpwnam('connect').pw_gid)
 
 
+def seal_directories(stage):
+    for path in sorted((p for p in stage.rglob('*') if p.is_dir()), reverse=True) + [stage]:
+        if path.is_symlink():
+            raise ValueError('Unexpected symlink in verified stage')
+        path.chmod(0o755)
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--package', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--initialize', action='store_true', help='Create new loopback state and canonical configuration; refuses existing state')
     parser.add_argument('--bind', default='127.0.0.1:4433', help='Fresh loopback initialization only')
     args = parser.parse_args()
+    os.umask(0o077)
     check_platform()
     package = args.package.resolve()
     manifest = verified_files(package)
@@ -131,26 +144,27 @@ def main():
     if destination.exists() or destination.is_symlink():
         raise ValueError('This release already exists; preserve it and select a new source revision')
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=releases))
-    stage.chmod(0o755)
     try:
+        for name in manifest['files']:
+            target = stage / name
+            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            shutil.copyfile(package / name, target, follow_symlinks=False)
+        raw_manifest = (package / 'manifest.json').read_bytes()
+        if json.loads(raw_manifest) != manifest:
+            raise ValueError('Package manifest changed during installation')
+        (stage / 'manifest.json').write_bytes(raw_manifest)
+        verified_files(stage)
+        # Only verified assets become world-readable/executable. Keep staging
+        # private while copying, including with an operator's restrictive umask.
         for name, entry in manifest['files'].items():
             target = stage / name
-            target.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
-            shutil.copyfile(package / name, target, follow_symlinks=False)
             target.chmod(entry['mode'])
             with target.open('rb') as stream:
                 os.fsync(stream.fileno())
-        shutil.copyfile(package / 'manifest.json', stage / 'manifest.json')
         (stage / 'manifest.json').chmod(0o644)
         with (stage / 'manifest.json').open('rb') as stream:
             os.fsync(stream.fileno())
-        for path in sorted((p for p in stage.rglob('*') if p.is_dir()), reverse=True) + [stage]:
-            fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
-            try:
-                os.fsync(fd)
-            finally:
-                os.close(fd)
-        verified_files(stage)
+        seal_directories(stage)
         links = subprocess.run(['ldd', str(stage / 'bin/connect')], capture_output=True, text=True, check=True)
         if 'not found' in links.stdout:
             raise ValueError('Missing runtime libraries; install the documented prerequisites')
