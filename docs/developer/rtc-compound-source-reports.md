@@ -58,3 +58,14 @@ collection type atline205. The follow-up patch explicitly names `HashSet<_>`;
 assertion semantics and the original three functions remain unchanged. The
 failed compilation is retained as unrun, with no component pass. Fresh frozen76
 reproduces all260 recorded patches and source digests before the next run.
+
+At source `86b6cf7c`, run `41209306536`, all five exact-handler functions pass,
+including the original two failing CNAME assertions. All225 current RTC unit
+functions also pass, with zero ignored functions and an unchanged original
+binary. The artifact binds4,540 Git inputs,4,094 prepared inputs and four pinned
+archives. This qualifies the handler/RTC unit component only.
+
+The original full browser matrix is dispatched separately as run `41209664880`
+on that same source and frozen76. It retains the original strict60second media,
+ICE/recovery, direct/relay/fault and expiry checks. No browser AV improvement or
+G6-054 completion is inferred until its actual results verify.
