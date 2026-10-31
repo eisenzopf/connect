@@ -11,7 +11,7 @@
   "publication_authorized": false,
   "run_id": 41231607107,
   "job_id": 124626808879,
-  "status": "Terminal failure after successful recovery tests and package build: installed readiness absent; curated evidence upload EACCES. Cached source replay pending.",
+  "status": "Exact-source cached replay passed. Git/prepared/archive inputs and original retained package payload are independently verified; replay outer ZIP verification pending. No installed baseline claim.",
   "controller_branch": "codex/gate6-sip-duplex",
   "scope": "Current-schema Ubuntu upgrade fixture; runtime sources, Cargo manifests/lock, pinned toolchain and upstream patch set equal 391770ee. Only the integration-test recursion attribute differs under crates/.",
   "upgrade_run_dispatched": false,
@@ -47,5 +47,43 @@
     "scope": "Git inputs and package bytes verified. Runner build/source manifest was lost to evidence-upload EACCES, so this is not complete compiled-source or installation qualification.",
     "task_complete": false,
     "whole_gate_qualified": false
+  },
+  "verified_replay": {
+    "run_id": 41239447334,
+    "job_id": 124650063703,
+    "controller_revision": "22130a9110442880ddabc186b46929a3f11cea02",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41239447334",
+    "scope": "Exact baseline producer only; installed rehearsal deliberately unrun. Full install/upgrade/restore belongs to the corrected primary candidate.",
+    "recovery_seconds": 1.417,
+    "package_seconds": 21.864,
+    "cache_hit": "Exact existing baseline compilation cache",
+    "proof": {
+      "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
+      "controller_source_revision": "22130a9110442880ddabc186b46929a3f11cea02",
+      "sources_verified": {
+        "git": 4565,
+        "prepared": 4094,
+        "pinned_archives": 4
+      },
+      "package": {
+        "archive_sha256": "1c22afe73f6a46c2d62e21b954171a4bc543fe230945d156266df8fd9c1728af",
+        "manifest_sha256": "00999c3aa93b56d60f5ae7b0b521607af919fc5ccb28578779f2e008ffde7312",
+        "binary_sha256": "aca1f9231679310d2ef2114b35ab1ef8b7f4bcf4bba4d821c78e0226e5c4fb7f",
+        "files_verified": 2403
+      },
+      "format": "connect/verified-baseline-payload-and-replay-sources/1",
+      "evidence_workflow_run_id": 41239447334,
+      "evidence_artifact_id": 13056827238,
+      "package_workflow_run_id": 41231607107,
+      "package_artifact_id": 13055654490,
+      "evidence_zip_sha256": "7424ab9e87cc55598b831afc75f494f3fef2e1e2ae7fe3ea9b4b3d54d536ca4a",
+      "package_zip_sha256": "51567d91e80da0fb15464e631d2f2ad212b2cfadb6ea30eaf5ea04519f29a6f7",
+      "scope": "Original retained package bytes equal the replay build report archive/manifest digests. Replay independently source-binds all Git/prepared/archive inputs and passes all three recovery tests. The replay package outer ZIP download is still pending; no installation pass.",
+      "replay_package_outer_zip_verification_pending": true,
+      "task_complete": false,
+      "whole_gate_qualified": false
+    },
+    "package_artifact_id": 13057250707,
+    "package_zip_sha256": "d8442f6fcb35a323e74e6e2cc9c0544dccc5dc70322bd9b14daf71b9c8b4d941"
   }
 }

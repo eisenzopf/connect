@@ -100,7 +100,7 @@
     "recovery_test_crate": "Add the same recursion_limit=256 used by existing canonical integration fixtures; compilation remains unrun until the corrected candidate.",
     "cache": "Preserve completed exact-source compilation independently of runtime or package-assembly success; cache reuse never grants a runtime pass.",
     "upgrade_baseline": "Prepare a Git-pinned current-schema baseline retaining the earlier 391770ee runtime and the corrected packaging/test tooling. Build via the primary workflow branch with an explicit source SHA so the subsequent upgraded runtime can reuse the branch-scoped compiler cache. No compatibility shim or schema downgrade.",
-    "status": "Baseline run41231607107 retained the package and saved the compiler cache. Recover complete exact-source build evidence with a baseline-only cached replay; then use the corrected primary installer for distinct-source upgrade."
+    "status": "Exact baseline replay41239447334 passed using the saved compiler cache. Independently verify4565Git/4094prepared/4archives and the reproduced package payload. Run the corrected primary with upgrade_run41239447334; current installation/upgrade/recovery remain unverified."
   },
   "corrected_current_schema_baseline": {
     "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
@@ -154,5 +154,25 @@
     "finding": "An unprivileged test -d on the root-owned0700 parent returned false, skipping both traversal chmod and curated-report chown. Artifact action then reported EACCES.",
     "fix": "Test parent and evidence existence with sudo, grant only parent traversal, transfer only curated evidence. Raw logs/state remain private.",
     "runtime_verified": false
+  },
+  "current_baseline_producer": {
+    "run_id": 41239447334,
+    "job_id": 124650063703,
+    "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
+    "controller_revision": "22130a9110442880ddabc186b46929a3f11cea02",
+    "status": "Source-bound replay passed; payload reproduced the original verified package. Duplicate outer ZIP verification pending.",
+    "source_counts": {
+      "git": 4565,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "package": {
+      "archive_sha256": "1c22afe73f6a46c2d62e21b954171a4bc543fe230945d156266df8fd9c1728af",
+      "manifest_sha256": "00999c3aa93b56d60f5ae7b0b521607af919fc5ccb28578779f2e008ffde7312",
+      "binary_sha256": "aca1f9231679310d2ef2114b35ab1ef8b7f4bcf4bba4d821c78e0226e5c4fb7f",
+      "files_verified": 2403
+    },
+    "evidence": "docs/evidence/gate-6/linux-installation-baseline.json",
+    "installed_checks_run": false
   }
 }
