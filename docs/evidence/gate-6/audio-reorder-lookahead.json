@@ -271,5 +271,72 @@
       "changed_source_inputs": []
     },
     "interpretation": "Both video recoveries and continuous motion/identity checks pass. One outside-burst audio sample per receiver fails the unchanged tone-identity check. The controlled mixer regression is fixed; this network result remains failed and is not a causal performance benchmark."
+  },
+  "independent_loss_state_candidate": {
+    "scope": "Independent libopus synthetic loss-state diagnostic. Not actual Core, Chrome, current authority or Connect qualification.",
+    "library_sha256": "98dcd3cc62c6cf913b789051536ab246c56cc163c74bd8b4968ac467ec74b68b",
+    "version": "libopus 1.6.1",
+    "seed": 20261031,
+    "seconds": 60,
+    "channels": 2,
+    "packet_ms": 20,
+    "application": {
+      "source": "VOIP",
+      "mix": "AUDIO"
+    },
+    "random_loss": 0.03,
+    "burst_seconds": [
+      20,
+      23
+    ],
+    "excluded_analysis_seconds": [
+      20,
+      25
+    ],
+    "results": [
+      {
+        "source_hz": 440,
+        "advance_missing_decode_state": false,
+        "bad_samples": 0,
+        "first_bad": []
+      },
+      {
+        "source_hz": 440,
+        "advance_missing_decode_state": true,
+        "bad_samples": 0,
+        "first_bad": []
+      },
+      {
+        "source_hz": 660,
+        "advance_missing_decode_state": false,
+        "bad_samples": 0,
+        "first_bad": []
+      },
+      {
+        "source_hz": 660,
+        "advance_missing_decode_state": true,
+        "bad_samples": 2,
+        "first_bad": [
+          {
+            "at": 27.4,
+            "hz": 581.396484375,
+            "rms": 0.007326546903735429
+          },
+          {
+            "at": 52.9,
+            "hz": 581.396484375,
+            "rms": 0.004633367131940945
+          }
+        ]
+      }
+    ],
+    "status": "Rejected candidate: no demonstrated current Core failure reproduction or improvement",
+    "control_source_sha256": "d996ff3b7762740be6f3bc4cff9a9cfa6688ff5bbbaae52639e4b49910c6f297",
+    "signal_preflight": "Source packet and decoded nonzero RMS checks passed for the corrected diagnostic.",
+    "interpretation": "No production code change. Independent synthetic libopus control does not reproduce the current Core/Chrome failure. Advancing loss state worsens one tone in this control and cannot justify a fix.",
+    "refused_initial_attempt": "The first ctypes variadic control declaration was wrong for macOS arm64; silent output failed signal validity. It is retained privately as a refused diagnostic, never a media pass.",
+    "official_api": "https://www.opus-codec.org/docs/opus_api-1.6/group__opus__decoder.html",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }
