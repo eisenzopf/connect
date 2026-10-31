@@ -91,6 +91,13 @@ jobs:
           else
             sudo python3 scripts/check-linux-installation.py --package "$CURRENT_PACKAGE"
           fi
+      - name: Make only curated root-created evidence readable to the runner
+        if: always()
+        run: |
+          if [ -d .local/gate6-installation/evidence ]; then
+            sudo chmod 0711 .local/gate6-installation
+            sudo chown -R "$(id -u):$(id -g)" .local/gate6-installation/evidence
+          fi
       - name: Upload curated source and installation evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

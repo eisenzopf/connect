@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use connect_client::ClientConfig;
 use connect_server::{
-    cli::{init, recovery, task_access::Command as TaskAccessCommand},
+    cli::{init, task_access::Command as TaskAccessCommand},
     config::ServerConfig,
 };
 use std::path::PathBuf;
@@ -98,15 +98,6 @@ enum Command {
         backup: PathBuf,
         #[arg(long)]
         directory: PathBuf,
-    },
-    /// Reconcile current setup metadata; historical schema conversion is unsupported.
-    Migrate {
-        #[arg(long)]
-        config: PathBuf,
-        #[arg(long)]
-        server_config: PathBuf,
-        #[arg(long)]
-        backup: PathBuf,
     },
     Init {
         #[arg(long)]
@@ -391,11 +382,6 @@ async fn main() -> Result<()> {
         Command::Restore { backup, directory } => {
             connect_server::cli::canonical_recovery::restore(&backup, &directory)?
         }
-        Command::Migrate {
-            config,
-            server_config,
-            backup,
-        } => recovery::migrate(&server_config, &config, &backup)?,
         Command::Init {
             directory,
             example,

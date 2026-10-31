@@ -6,6 +6,7 @@ stopped service and preserves configuration/state. Publication is a separate act
 """
 import argparse
 import hashlib
+import grp
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -25,7 +26,10 @@ def digest(path):
 
 
 def verified_files(package):
-    manifest = json.loads((package / 'manifest.json').read_text())
+    manifest_path = package / 'manifest.json'
+    if manifest_path.is_symlink() or not manifest_path.is_file() or manifest_path.stat().st_size > 8 * 1024 * 1024:
+        raise ValueError('Invalid package manifest')
+    manifest = json.loads(manifest_path.read_text())
     if manifest.get('format') != 'connect/linux-package/1' or manifest.get('target') != 'ubuntu-24.04-x86_64':
         raise ValueError('Unsupported package format/target')
     if not re.fullmatch(r'connect-[a-zA-Z0-9._-]+', manifest['installation_id']):
@@ -80,7 +84,7 @@ def account():
     except KeyError:
         subprocess.run(['useradd', '--system', '--user-group', '--home-dir', '/var/lib/connect', '--shell', '/usr/sbin/nologin', 'connect'], check=True)
         user = pwd.getpwnam('connect')
-    if user.pw_uid >= 1000 or user.pw_uid == 0 or user.pw_shell not in ('/usr/sbin/nologin', '/sbin/nologin'):
+    if user.pw_uid >= 1000 or user.pw_uid == 0 or user.pw_gid == 0 or user.pw_gid != grp.getgrnam('connect').gr_gid or user.pw_shell not in ('/usr/sbin/nologin', '/sbin/nologin'):
         raise ValueError('connect must be a dedicated unprivileged system account')
     return user
 
@@ -134,13 +138,28 @@ def main():
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
             shutil.copyfile(package / name, target, follow_symlinks=False)
             target.chmod(entry['mode'])
+            with target.open('rb') as stream:
+                os.fsync(stream.fileno())
         shutil.copyfile(package / 'manifest.json', stage / 'manifest.json')
         (stage / 'manifest.json').chmod(0o644)
+        with (stage / 'manifest.json').open('rb') as stream:
+            os.fsync(stream.fileno())
+        for path in sorted((p for p in stage.rglob('*') if p.is_dir()), reverse=True) + [stage]:
+            fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
         verified_files(stage)
         links = subprocess.run(['ldd', str(stage / 'bin/connect')], capture_output=True, text=True, check=True)
         if 'not found' in links.stdout:
             raise ValueError('Missing runtime libraries; install the documented prerequisites')
         os.rename(stage, destination)
+        fd = os.open(releases, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
     finally:
         if stage.exists():
             shutil.rmtree(stage)
@@ -154,6 +173,11 @@ def main():
         raise ValueError('Unexpected pending activation; inspect before continuing')
     temporary.symlink_to(destination)
     os.replace(temporary, current)
+    fd = os.open(current.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
     unit = Path('/etc/systemd/system/connect.service')
     if unit.is_symlink():
         raise ValueError('Service unit must not be a symlink')

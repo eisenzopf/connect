@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -44,6 +45,10 @@ class Integrity(unittest.TestCase):
         self.assertEqual(installer.verified_files(self.root), self.manifest)
         a, b = self.root.parent / 'a.gz', self.root.parent / 'b.gz'
         packager.archive(self.root, a, 42)
+        for path in self.root.rglob('*'):
+            os.utime(path, (500, 500))
+            if path.is_file():
+                path.chmod(0o700)
         packager.archive(self.root, b, 42)
         self.assertEqual(hashlib.sha256(a.read_bytes()).digest(), hashlib.sha256(b.read_bytes()).digest())
 

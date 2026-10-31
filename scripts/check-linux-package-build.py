@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import runpy
 import subprocess
@@ -48,14 +49,20 @@ def main():
                 step['test_results'] = [line for line in lines if line.startswith('test result:')]
                 step['failed_tests'] = [line for line in lines if line.startswith('test ') and line.endswith(' ... FAILED')]
                 step['compiler_errors'] = []
+                step['test_executables'] = []
                 for line in lines:
                     try:
                         event = json.loads(line)
                     except ValueError:
                         continue
+                    if event.get('reason') == 'compiler-artifact' and event.get('executable') and event.get('profile', {}).get('test'):
+                        step['test_executables'].append({'name': event['target']['name'], 'sha256': digest(Path(event['executable']))})
                     if event.get('reason') == 'compiler-message' and event['message']['level'] == 'error':
                         message = event['message']
                         step['compiler_errors'].append({'message': message['message'], 'code': message.get('code'), 'locations': [{'file': span['file_name'], 'line': span['line_start']} for span in message['spans'] if span['is_primary']]})
+            if name == 'recovery-tests' and status == 0:
+                assert len(step['test_results']) == 1 and re.fullmatch(r'test result: ok\. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in .+', step['test_results'][0])
+                assert any(p['name'] == 'gate6_canonical_recovery' for p in step['test_executables'])
             report['steps'].append(step)
             print(json.dumps(step), flush=True)
             if status != 0:

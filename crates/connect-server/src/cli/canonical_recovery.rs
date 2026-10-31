@@ -14,7 +14,7 @@ use std::{
 };
 
 const FORMAT: &str = "connect/canonical-backup/1";
-const MAX_FILES: usize = 512;
+const MAX_FILES: usize = 4096;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {

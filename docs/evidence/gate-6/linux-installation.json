@@ -1,0 +1,45 @@
+{
+  "format": "connect/gate6-linux-installation/1",
+  "task": "G6-056",
+  "date": "2026-10-31",
+  "status": "implementation-awaiting-runtime-verification",
+  "primary_package": "Native Ubuntu 24.04 x86_64 production release binary archive with a systemd service",
+  "implementation": [
+    "scripts/package-linux.py",
+    "deploy/linux/install.py",
+    "deploy/linux/connect.service",
+    "crates/connect-server/src/cli/canonical_recovery.rs",
+    "crates/connect-server/tests/gate6_canonical_recovery.rs",
+    "scripts/check-linux-installation.py",
+    "docs/LINUX_INSTALL.md"
+  ],
+  "local_verification": {
+    "package_integrity_boundary_tests": "3 passed; deterministic archive, corruption/symlink/unlisted material refusals, path traversal/installation ID escape refusals",
+    "workspace_format_check": "passed",
+    "python_syntax": "passed",
+    "diff_whitespace_check": "passed",
+    "scope": "Source/static checks only. No local Rust build or Linux runtime claim."
+  },
+  "initial_bounded_runtime_candidate": {
+    "source_revision": "391770eecba4bf4936667152b4b573517fb7e8b7",
+    "run_id": 41228197167,
+    "job_id": 124616682283,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41228197167",
+    "state_at_recording": "Production release recovery tests and package build in progress; no result inferred",
+    "scope": "Synthetic local Ubuntu host and a separate network namespace, no account/provider/model execution",
+    "upgrade": "First package producer. A second distinct source revision and retained first package are required to exercise upgrade."
+  },
+  "unresolved_verification": [
+    "actual canonical recovery Rust test results",
+    "verified production package and its complete source manifest",
+    "fresh installed systemd service, signed remote-profile client and persistent mutation",
+    "graceful restart and least-required filesystem access",
+    "secret injection/configuration preservation",
+    "distinct-source upgrade",
+    "backup/restore with signed client recovery after original files are removed"
+  ],
+  "deferred_qualification_dependencies": ["G6-054"],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
