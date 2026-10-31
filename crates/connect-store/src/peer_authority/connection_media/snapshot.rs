@@ -238,6 +238,19 @@ fn cached_with<T: Clone>(
 /// Capture under short immediate SQL custody, release SQL for all file admission,
 /// then reacquire SQL and seal the exact unchanged version under the new reader.
 /// No caller waits with SQL or retains a partial reader while retrying.
+impl Store {
+    /// Share the native packet snapshot boundary with other read-only media
+    /// projections. This retains no metadata cache and acquires fresh complete
+    /// file authority. `finish` runs only after the SQL/clock version is sealed.
+    pub(crate) fn try_packet_projection<T>(
+        &self,
+        mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+        finish: impl FnOnce(&Connection) -> Result<()>,
+    ) -> Result<(T, Arc<AuthorityGuardSet>)> {
+        acquire_at(self, |c, _| derive(c), finish)
+    }
+}
+
 pub(super) fn acquire<T>(
     store: &Store,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,

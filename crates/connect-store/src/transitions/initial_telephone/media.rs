@@ -389,14 +389,36 @@ impl Store {
         &self,
         origin: Arc<InitialTelephoneMediaOrigin>,
     ) -> Result<InitialTelephoneMediaRead> {
-        let required = {
-            let c = self.try_connection()?;
-            historical_lifetime(self, &c, &origin.signal)?;
-            current_scopes(&c, origin.signal.origin(), false)?
-        };
-        let held = self.try_acquire_authority(&required)?;
-        let c = self.try_connection()?;
-        self.initial_telephone_media_in(&c, origin, held, crate::now() + 30)
+        // This projection is read-only. Do not contend with command SQL or
+        // wait in the synchronous media callback. Use the same bounded WAL
+        // observers and sealed SQL/clock boundary as native packet metadata.
+        // No permission or projection survives this invocation.
+        let connected = std::cell::Cell::new(false);
+        let until = crate::now() + 30;
+        let (projection, interval) = self.try_packet_projection(
+            |c| {
+                let projection =
+                    self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Media)?;
+                let scopes = current_scopes(c, origin.signal.origin(), false)?;
+                connected.set(projection.connected);
+                Ok((projection, scopes))
+            },
+            |c| {
+                if connected.get() {
+                    self.remember_session_ready(
+                        c,
+                        crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
+                    )?;
+                }
+                Ok(())
+            },
+        )?;
+        self.initial_telephone_read_from_projection(
+            origin,
+            interval,
+            projection,
+            ProjectionPurpose::Media,
+        )
     }
     /// Only the original candidate's bounded, quarantined admission phase.
     /// Established private routing uses its separately sealed scene authority.
@@ -532,13 +554,22 @@ impl Store {
             return Err(Error::forbidden());
         }
         let p = self.initial_telephone_projection(c, &origin, until, purpose)?;
-        let owner = self.require_runtime_owner()?;
         if p.connected && matches!(purpose, ProjectionPurpose::Media) {
             self.remember_session_ready(
                 c,
                 crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
             )?;
         }
+        self.initial_telephone_read_from_projection(origin, interval, p, purpose)
+    }
+    fn initial_telephone_read_from_projection(
+        &self,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        interval: Arc<AuthorityGuardSet>,
+        p: InitialTelephoneProjection,
+        purpose: ProjectionPurpose,
+    ) -> Result<InitialTelephoneMediaRead> {
+        let owner = self.require_runtime_owner()?;
         Ok(InitialTelephoneMediaRead {
             origin,
             owner,

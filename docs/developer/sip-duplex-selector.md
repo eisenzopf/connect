@@ -98,3 +98,19 @@ The initial public SIP read still uses the command SQL mutex, whereas current
 native packet metadata already uses bounded read-only WAL observers and seals
 SQL/clock versions under a fresh complete authority interval. The next change
 targets that read path instead of waiting in the synchronous media callback.
+
+The public initial-SIP WAL candidate now shares the native snapshot acquire/seal
+implementation. It derives current facts and complete scopes using a bounded
+read-only observer, releases SQL before fresh file admission, rejects changed
+SQL/schema/clock stamps, and validates complete interval coverage. The final
+read owns its file interval and installation lifetime, with no SQL reader or
+persistent SIP projection cache. Existing private and paired receive paths are
+unchanged. There is no synchronous retry.
+
+Two actual Store boundary functions require a current read while the command
+SQL mutex is held, verify observer release/read-only custody, and require
+fail-closed saturation followed by recovery and credential withdrawal. The
+telephone lane inventories and runs these with every current initial-call and
+existing snapshot regression before assessing the four original media cases.
+Format checks and the24Python boundary functions pass locally; Rust/runtime
+verification remains unrun until the source-bound CI result is verified.

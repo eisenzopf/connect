@@ -595,7 +595,8 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         ):
             if mixer_clock or sip_duplex or rtc_compound:
                 continue
-            if (video_feedback or consultation_return or native_network or telephone_network) and name != ('webtransport' if video_feedback else 'hosting'):
+            wanted_components = ('hosting', 'store') if telephone_network else (('webtransport',) if video_feedback else ('hosting',))
+            if (video_feedback or consultation_return or native_network or telephone_network) and name not in wanted_components:
                 continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
                            *arguments, "--no-run", "--message-format=json"], 3600)
@@ -657,15 +658,33 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['behavior_passed'] = True
             return
         if telephone_network:
-            text = execute('compile-test-service-packet-read', ['cargo', 'test', '--offline', '--locked',
-                '--jobs', '2', '-p', 'connect-service', '--lib', 'canonical_media::packets::tests',
-                '--', '--test-threads=1'], 3600)
-            assert re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == ['2']
-            report['service_packet_read'] = dict(passed=True, actual_tests=2,
-                scope='Existing production packet-read helper: fresh authorization after contention, immediate permanent refusal and original expired budget; no full telephone qualification.')
+            inventory = execute('telephone-store-inventory', [artifacts['store'], '--list'], 10)
+            boundary = 'transitions::initial_telephone::tests::packet_observers::'
+            required = {
+                boundary + 'current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned',
+                boundary + 'exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights',
+            }
+            functions = {line[:-6] for line in inventory.splitlines() if line.endswith(': test')}
+            assert required <= functions, 'Missing original Store observer boundary functions'
+            checks = []
+            for name, prefix in (
+                ('telephone-store-current-authority', 'transitions::initial_telephone::tests::'),
+                ('telephone-store-snapshot-regressions', 'peer_authority::connection_media::snapshot::tests::'),
+            ):
+                expected = sum(test.startswith(prefix) for test in functions)
+                assert expected > 0
+                text = execute(name, [artifacts['store'], prefix, '--nocapture', '--test-threads=1'],
+                    300, defer_failure=True)
+                passed = text is not None and re.findall(
+                    r'^test result: ok\. (\d+) passed; 0 failed; 0 ignored;', text, re.M) == [str(expected)]
+                checks.append(dict(name=name, passed=passed, expected_tests=expected))
+            report['initial_sip_packet_observers'] = dict(passed=all(row['passed'] for row in checks),
+                required_boundary_functions=sorted(required), checks=checks,
+                scope='Actual public initial-SIP Store WAL observer custody plus all current initial-call and SQL/clock snapshot regressions. No full telephone qualification.')
             component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))['run']
             report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
             report['scope'] = report['telephone_distinct_network']['scope']
+            assert report['initial_sip_packet_observers']['passed'], 'Initial SIP Store observer regressions failed or were unrun'
             assert report['telephone_distinct_network']['passed'], 'Current telephone distinct-network component failed'
             report['behavior_passed'] = True
             return

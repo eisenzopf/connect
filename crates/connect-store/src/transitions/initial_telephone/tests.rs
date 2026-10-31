@@ -4,6 +4,7 @@ use crate::Scope;
 use connect_protocol::{Limits, Outcome};
 use serde_json::json;
 mod gateways;
+mod packet_observers;
 mod signal;
 struct Fixture {
     _dir: tempfile::TempDir,

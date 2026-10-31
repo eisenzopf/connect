@@ -2354,5 +2354,12 @@
     "finding": "Both helper functions pass, but all four original telephone cells fail. Three reach media-go and retain only800/640/1120nativebytes; directES256 fails original subscription. Store-busy155/10/201/174, with native-egress Deadline9/0/22/24 and generic Backpressure66/0/57/46. No performance or full telephone pass. Remove initial-SIP spin retry; do not relax media or deadline assertions.",
     "full_task_qualified": false,
     "acceptance_qualified": false
+  },
+  "public_initial_sip_wal_candidate": {
+    "status": "implemented-runtime-unrun",
+    "change": "Public initial SIP current media projection uses the existing bounded read-only WAL observers through the same native snapshot acquire/seal implementation. Derive full current projection and scope set; release SQL before fresh file admission; reject changed SQL/schema/clock versions and verify full interval coverage. No persistent SIP metadata cache, retry loop, positive grant reuse, new observer, or altered packet deadline. Private SIP and paired receive projections retain their existing paths.",
+    "validation": "Local format/diff and19diagnostic+5telephone boundary functions pass. CI must execute both new actual Store boundary functions, all current initial telephone functions, all existing snapshot functions, then all4original telephone media cells. Rust runtime unrun locally.",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }
