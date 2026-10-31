@@ -206,5 +206,20 @@
     "source_revision": "405ceb29",
     "status": "pending-behind-live-predecessor-41248033909",
     "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
+  },
+  "required_mcp_connection_gap": {
+    "status": "source-audited-required-implementation-pending",
+    "finding": "McpCapacity bounds request middleware and listeners, but RunningMcp currently passes a plain TcpListener to axum::serve. Raw TCP connections and stalled pre-header sockets are outside the configured connection budget. Request counters do not prove this bound.",
+    "sources": {
+      "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+      "crates/connect-mcp/src/capacity.rs": "ca3172d21808a31df4559159b50301658880c198295550ccb2989ecd36acbea5"
+    },
+    "required_fix": [
+      "Acquire a shared configured connection permit before admitting each MCP TCP socket; retain through actual socket drop",
+      "Observe actual MCP connection permits separately from request permits",
+      "Apply finite idle/lifetime and bounded drain to raw socket I/O, including abandoned incomplete headers",
+      "Exercise actual connection capacity refusal, idle reclamation and joined listener shutdown; update schema/SDK closed pool kinds"
+    ],
+    "task_can_close": false
   }
 }
