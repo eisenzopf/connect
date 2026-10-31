@@ -7,6 +7,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import http from 'node:http';
 import {markerFrames,ordinalSync} from './marker_calibration.mjs';
 import {combineAudioEnvelopeSync} from './audio_envelope.mjs';
+import {audioObservation} from './audio_observation.mjs';
 import {markerCells} from './source_identity.mjs';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 
@@ -50,6 +51,7 @@ const files=[fileURLToPath(import.meta.url),path.join(root,'scripts/video/marker
 files.push(path.join(root,'scripts/video/decoded_video_frames.mjs'));
 files.push(path.join(root,'scripts/video/audio_envelope.mjs'),path.join(root,'scripts/video/owned_pulse_audio.py'),
     path.join(root,'scripts/video/Dockerfile.browser-media'));
+files.push(...['audio_observation.mjs','audio_sample_clock.mjs','audio_spectrum.mjs'].map(name=>path.join(root,'scripts/video',name)));
 async function frameworkFiles(directory){
     for(const entry of await fs.readdir(directory,{withFileTypes:true})){
         const file=path.join(directory,entry.name);
@@ -87,7 +89,7 @@ async function nativeAvDescription(index,description){
 }
 try{
     if(rtcControl){
-        const modules=new Map(await Promise.all(['decoded_video_frames.mjs','marker_calibration.mjs','audio_envelope.mjs']
+        const modules=new Map(await Promise.all(['decoded_video_frames.mjs','marker_calibration.mjs','audio_envelope.mjs','audio_sample_clock.mjs','audio_spectrum.mjs']
             .map(async name=>['/'+name.replaceAll('_','-'),await fs.readFile(path.join(root,'scripts/video',name))])));
         assets=http.createServer((request,response)=>{
             if(request.method==='GET'&&modules.has(request.url)){
@@ -179,19 +181,34 @@ try{
             const sample=document.createElement('canvas');sample.width=width;sample.height=height;
             const pixels=sample.getContext('2d',{willReadFrequently:true});pixels.imageSmoothingEnabled=false;
             let callbacks=0,changing=0,raf=0,last,closed=false,presented,white;
-            const videoEdges=[],audioEdges=[],renderMarkers=[];
+            const videoEdges=[],audioEdges=[],renderMarkers=[],audioSamples=[];
             let renderedMarkerClock;
             if(audio){
                 const {AudioEnvelope}=await import('/audio-envelope.mjs');
+                const {audioSampleClock}=await import('/audio-sample-clock.mjs');
+                const {spectralTone}=await import('/audio-spectrum.mjs');
+                const sampleDue=audioSampleClock();
                 ({renderedMarkerClock}=await import('/marker-calibration.mjs'));
                 audioEnvelope=new AudioEnvelope();
                 if(received.getAudioTracks().length!==1)throw Error('Native remote audio track unavailable');
                 const source=audio.createMediaStreamSource(received),analyser=audio.createAnalyser();
                 analyser.fftSize=256;source.connect(analyser);
+                // Use the same independent spectrum and100ms sampling clock as
+                // the real Connect receiver, with no expected-tone filtering.
+                const frequencyAnalyser=audio.createAnalyser();frequencyAnalyser.fftSize=2048;
+                frequencyAnalyser.smoothingTimeConstant=0;source.connect(frequencyAnalyser);
                 audioTimer=setInterval(()=>{
                     const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);
                     const rms=Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length),at=performance.now()/1000;
                     if(audioEnvelope.sample(at,rms)&&audioEdges.length<512)audioEdges.push(at);
+                    if(sampleDue(at*1000)&&audioSamples.length<2000){
+                        const samples=new Float32Array(frequencyAnalyser.fftSize);
+                        frequencyAnalyser.getFloatTimeDomainData(samples);
+                        const spectrum=new Float32Array(frequencyAnalyser.frequencyBinCount);
+                        frequencyAnalyser.getFloatFrequencyData(spectrum);
+                        audioSamples.push({unix_seconds:(performance.timeOrigin+performance.now())/1000,
+                            ...spectralTone(samples,spectrum,audio.sampleRate,frequencyAnalyser.fftSize)});
+                    }
                 },10);
             }
             const decoded=(_now,metadata)=>{
@@ -232,7 +249,16 @@ try{
                 });
                 contentStatus='observing';
             }
-            window.observer={snapshot:async()=>{
+            window.observer={audioReady:async()=>{
+                const expected=index===0?660:440,deadline=performance.now()+5000;
+                while(performance.now()<deadline){
+                    const recent=audioSamples.slice(-3);
+                    if(recent.length===3&&recent.every(row=>row.rms>.001&&Math.abs(row.frequency_hz-expected)<35))
+                        return {status:'identified',expected_frequency_hz:expected,consecutive_samples:3,limit_seconds:5};
+                    await new Promise(resolve=>setTimeout(resolve,25));
+                }
+                throw Error('Native duplex decoded audio readiness deadline');
+            },snapshot:async()=>{
                 let decoded;const rtp={};
                 if(receiver)(await receiver.getStats()).forEach(stat=>{
                     if(stat.type!=='inbound-rtp'||stat.kind!=='video')return;
@@ -247,7 +273,8 @@ try{
                         pixelFailure:contentPixelFailure,...contentObserver?.snapshot()},
                     ...(audio?{videoEdges:[...videoEdges],audioEdges:[...audioEdges],renderMarkers:[...renderMarkers],
                         envelope:audioEnvelope.report(),audioClock:audio.currentTime,audioRate:audio.sampleRate}:{}),
-                    time:performance.now(),visibility:document.visibilityState};
+                    time:performance.now(),unix_seconds:(performance.timeOrigin+performance.now())/1000,
+                    ...(audio?{audioSamples:[...audioSamples]}:{}),visibility:document.visibilityState};
             },close:async()=>{closed=true;clearInterval(timer);
                 clearInterval(audioTimer);
                 const contentJoined=await contentObserver?.close();sender?.close();receiver?.close();
@@ -258,6 +285,7 @@ try{
         return page;
     }));
     if(rtcControl)await new Promise(resolve=>setTimeout(resolve,1500));
+    const audioReadiness=avControl?await Promise.all(pages.map(page=>page.evaluate(()=>window.observer.audioReady()))):undefined;
     const initial=await Promise.all(pages.map(page=>page.evaluate(()=>window.observer.snapshot())));
     await new Promise(resolve=>setTimeout(resolve,seconds*1000));
     rows=await Promise.all(pages.map(async(page,index)=>{
@@ -265,6 +293,8 @@ try{
         const contentJoined=await page.evaluate(()=>window.observer.close());
         const av=avControl?combineAudioEnvelopeSync(ordinalSync(end.videoEdges.filter(t=>t>=start.time/1000),
             end.audioEdges.filter(t=>t>=start.time/1000),seconds),end.envelope):undefined;
+        const audioProfile=avControl?audioObservation({samples:end.audioSamples,
+            window_start_unix_seconds:start.unix_seconds,window_end_unix_seconds:end.unix_seconds},index===0?660:440):undefined;
         return {index,seconds,draw_fps:(end.draws-start.draws)/seconds,callback_fps:(end.callbacks-start.callbacks)/seconds,
             changing_fps:(end.changing-start.changing)/seconds,raf_fps:(end.raf-start.raf)/seconds,
             presented_counter_fps:Number.isSafeInteger(end.presented)&&Number.isSafeInteger(start.presented)
@@ -281,16 +311,16 @@ try{
                 dimension_refusals:end.content.dimensionsRefused-start.content.dimensionsRefused,
                 last_dimensions:end.content.lastDimensions,pixel_failure:end.content.pixelFailure,
                 failed:end.content.failed??null,reader_joined:contentJoined?.joined??null}}:{}),
-            ...(av?{av_sync:av,render_marker_observation:end.renderMarkers.filter(row=>row.callback_seconds>=start.time/1000),
+            ...(av?{av_sync:av,audio_profile:audioProfile,audio_readiness:audioReadiness[index],render_marker_observation:end.renderMarkers.filter(row=>row.callback_seconds>=start.time/1000),
                 audio_clock:{rate:end.audioRate,seconds:end.audioClock-start.audioClock,wall_seconds:seconds}}:{}),
-            visibility:end.visibility,passed:end.visibility==='visible'&&(avControl?av.status==='passed':
+            visibility:end.visibility,passed:end.visibility==='visible'&&(avControl?av.status==='passed'&&audioProfile.status==='passed':
                 (end.callbacks-start.callbacks)/seconds>=24&&(end.changing-start.changing)/seconds>=24)
                 &&(!rtcControl||(end.decoded-start.decoded)/seconds>=24)};
     }));
 }catch(error){
     const reasons=[['Owned RTC gathering deadline','rtc-gathering'],['Native VP8 unavailable','vp8-unavailable'],
         ['Native receiver target unavailable','receiver-target'],['Owned video playback deadline','video-playback'],
-        ['Owned AV signaling deadline','av-signaling']];
+        ['Owned AV signaling deadline','av-signaling'],['Native duplex decoded audio readiness deadline','audio-readiness']];
     failure={name:error?.name??'Error',reason:reasons.find(([message])=>String(error?.message).includes(message))?.[1]??'other'};
 }
 finally{
@@ -300,7 +330,7 @@ finally{
     if(assets)await new Promise(resolve=>assets.close(resolve));
 }
 const after=await inputs(),changed=Object.keys(before).filter(file=>before[file]!==after[file]);
-const report={scope:avControl?'Two owned browser-native AV controls using the fixed pulse programme, muted HTML video render and separate Web Audio decoded-envelope observer. Original80/120ms skew limits and42 paired markers over60s; no Connect, Core, SDK worker, remote host or account qualification.':rtcControl?'Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.':'Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.',
+const report={scope:avControl?'Two owned browser-native AV controls using the fixed pulse programme, muted HTML video render and separate Web Audio decoded-envelope observer. Original80/120ms skew limits and42 paired markers over60s, plus continuous duplex decoded tone identity using the same spectrum/sampling/coverage rules as the Connect receiver; no Connect, Core, SDK worker, remote host or account qualification.':rtcControl?'Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.':'Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.',
     mode,requested_seconds:seconds,motion_sample_pixels:pixelsPerSide,
     os:process.platform,architecture:process.arch,node:process.version,browser:version,source_count:Object.keys(before).length,
     source_manifest_sha256:await hash(path.join(output,'source-inputs.json')),sources_unchanged:changed.length===0,changed_inputs:changed,
