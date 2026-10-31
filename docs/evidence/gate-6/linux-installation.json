@@ -80,7 +80,7 @@
     "run_id": 41228758112,
     "job_id": 124618332652,
     "url": "https://github.com/eisenzopf/connect/actions/runs/41228758112",
-    "state_at_recording": "Cancellation requested after the initial compiler failure and independent notice-assembly refusal; superseded before qualification.",
+    "state_at_recording": "Terminal cancelled; superseded after the verified test-crate compiler failure and notice-assembly refusal. No qualification.",
     "upgrade_source_package_run": 41228197167
   },
   "notice_assembly_preflight": {
@@ -100,6 +100,15 @@
     "recovery_test_crate": "Add the same recursion_limit=256 used by existing canonical integration fixtures; compilation remains unrun until the corrected candidate.",
     "cache": "Preserve completed exact-source compilation independently of runtime or package-assembly success; cache reuse never grants a runtime pass.",
     "upgrade_baseline": "Prepare a Git-pinned current-schema baseline retaining the earlier 391770ee runtime and the corrected packaging/test tooling. Build via the primary workflow branch with an explicit source SHA so the subsequent upgraded runtime can reuse the branch-scoped compiler cache. No compatibility shim or schema downgrade.",
-    "status": "Corrected baseline preparation; no new runtime result yet."
+    "status": "Corrected current-schema baseline dispatched as41231607107 under the primary workflow branch. Wait for retained package and completed compilation cache, then dispatch the distinct upgraded primary source against that package."
+  },
+  "corrected_current_schema_baseline": {
+    "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
+    "controller_revision": "d251035b8788c829d1d3037139c67d36ec3c1a3f",
+    "run_id": 41231607107,
+    "job_id": 124626808879,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41231607107",
+    "evidence": "docs/evidence/gate-6/linux-installation-baseline.json",
+    "status": "Live exact-source release build; runtime unverified"
   }
 }

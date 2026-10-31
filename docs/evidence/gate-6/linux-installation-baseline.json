@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-current-schema-upgrade-baseline/1",
+  "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
+  "runtime_source_revision": "391770eecba4bf4936667152b4b573517fb7e8b7",
+  "controller_revision": "d251035b8788c829d1d3037139c67d36ec3c1a3f",
+  "branch": "refs/heads/codex/gate6-linux-installation-baseline",
+  "runtime_changes": [],
+  "test_change": "Existing canonical fixture recursion_limit=256",
+  "packaging_changes": "Corrected installer, recorded WebTransport notices, source/evidence and cache controls",
+  "schema_downgrade": false,
+  "publication_authorized": false,
+  "run_id": 41231607107,
+  "job_id": 124626808879,
+  "status": "source-pinned release build live; runtime unverified",
+  "controller_branch": "codex/gate6-sip-duplex",
+  "scope": "Current-schema Ubuntu upgrade fixture; runtime sources, Cargo manifests/lock, pinned toolchain and upstream patch set equal 391770ee. Only the integration-test recursion attribute differs under crates/.",
+  "upgrade_run_dispatched": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
