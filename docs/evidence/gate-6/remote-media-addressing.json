@@ -128,7 +128,7 @@
   },
   "remaining": [
     "Full browser run41209664880 at86b6cf7c is independently source-verified failed. Retain baseline/ICE/relay/impairment quality and UDP EdDSA original5sroute retirement failures. Both direct bridges and all4original expiry cases pass at this source; no full profile pass.",
-    "Verify the paired SIP/native WAL observer candidate with all current unary/snapshot/paired-signal/private-packet regressions and all four unchanged phone cases. All69previous Store functions pass but every phone cell still fails at1794632c.",
+    "Recheck the final combined candidate on the current native direct/loss/unreachable and telephone direct/loss scopes after the Store memo changes. Source3cca verifies all81Store and four telephone cells; the later RTC retirement correction is separately under full-browser verification.",
     "Qualify the final combined candidate for all required addressing/ICE/TURN/native/browser/telephone behaviors with exact source bindings, original operation recovery, decoded duplex identity, unchanged quality bounds and actual allocation/worker cleanup. Recorded passes from different revisions do not establish that claim.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader full SDK failures are retained for matrix work and are not passes from a sibling component. Original Rust SDK return/EOF component25a2ce27 run41188491485 now source-verifies both original functions passing; installed/full SDK run41190708730 is source-verified failed on both Node22/26 runners with4/8 failed scenes; all93independent steps are retained in each artifact and broader matrix failures remain unresolved. G6-054 closure still requires its actual addressing/ICE/TURN/distinct-network decoded recovery checks; none are waived."
@@ -413,15 +413,15 @@
       "profile": "telephone distinct-network direct and loss",
       "status": "Historical Mac host/Linux arm64 guest component pass at its recorded source",
       "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
-      "limits": "Synthetic telephone/PCMU fixture only. Later native Linux x86_64 failures are separate and remain open; no provider/PSTN claim."
+      "limits": "Historical synthetic telephone/PCMU fixture only. Later native Linux x86_64 source3cca now separately verifies all four original cells; no provider/PSTN claim."
     },
     {
       "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
-      "status": "All79Store functions pass; all four original media cases still fail",
-      "run_id": 41214524058,
-      "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
+      "status": "All81Store functions and all four original decoded telephone cases pass at the recorded source",
+      "run_id": 41218176233,
+      "source_revision": "3cca4d464dbe5f895d65732b6389500e62bab386",
       "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
-      "limits": "All four reach media but retain1600/2080/1760/2880nativebytes<original8000. Pairedbusy12/20/18/33 is lower, but deadline observations38/32/37/31remain. Version-sealed fact memo candidate is implemented and unrun; no phone pass from metadata checks."
+      "limits": "Owned Linux x86_64 synthetic PCMU only: native29760/30080/29600/26880bytes, matching opposite-tone frames186/188/149/133; opposite guest frames187/174/155/153. Original operation replay, journal-before-INVITE, signed end, actual drains and empty bridge removal pass. No WAN/provider/PSTN, native video, browser or final combined-candidate pass."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
@@ -525,10 +525,22 @@
       "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
       "status": "completed-failed-source-verified",
       "scope": "All79Store boundaries passed, all4phone cases failed; unchangedoriginalbyte/decoder/deadlinebounds"
+    },
+    {
+      "run_id": 41218176233,
+      "source_revision": "3cca4d464dbe5f895d65732b6389500e62bab386",
+      "status": "completed-passed-source-verified",
+      "scope": "All81Store functions and four original native Linux telephone direct/loss EdDSA/ES256 cases"
     }
   ],
-  "latest_in_flight": [],
-  "paired_wal_candidate": "79Store functions passed but all4originalcallsfailed. New SIP fact memo candidate retains the exact existing native SQL/schema/clock/source validation and fresh file admission, with explicit original runtime checks and no retained permission readers; pending actual81Store/currentphoneverification.",
+  "latest_in_flight": [
+    {
+      "run_id": 41219309028,
+      "source_revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
+      "scope": "Full original browser baseline/ICE/fault/direct/relay/expiry with active close-timer correction; candidate runtime unqualified"
+    }
+  ],
+  "paired_wal_candidate": "Source66 qualified79Store boundaries but failed all4phonecases. The follow-up fact memo at3cca independently source-verifies all81Storefunctions and all4originaltelephonecells. Browser/combined profiles remain separate.",
   "relay_retirement_candidate": {
     "status": "implemented-runtime-unrun",
     "source_parent": "3cca4d464dbe5f895d65732b6389500e62bab386",

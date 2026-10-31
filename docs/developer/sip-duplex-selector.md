@@ -200,3 +200,19 @@ SIP origin after its runtime epoch changes. The paired test also requires both
 identity write fences to become available after its read drops while metadata
 still exists. These join all existing Store regressions before the four unchanged
 phone cells. Rust/network results for this fact-memo candidate remain unrun.
+
+
+Source3cca4d46, run41218176233, independently verifies4,544 Git inputs,
+4,094 prepared inputs and four pinned archives. All81 Store functions pass
+(49 initial-call,22 snapshot, five paired and five private-packet), with zero
+ignored and an unchanged binary. All four original Linux telephone cells pass.
+Native captures contain29,760/30,080/29,600/26,880bytes; matching opposite-tone
+frames are186/188/149/133, and the guest direction has187/174/155/153.
+Every case records journal-before-INVITE, one original call after replay, signed
+Session end, actual peer/server/NAT joins, released listener and empty bridge
+removal without forced cleanup. There are zero observed native egress deadline
+refusals. Hosting compilation took1,396.29s; Store compilation took36.47s.
+
+This qualifies the recorded owned Linux telephone component. The later RTC
+retirement change, current native regressions and full browser quality/recovery
+remain separately subject to verification; G6-054 and acceptance stay open.
