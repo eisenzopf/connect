@@ -680,11 +680,27 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
                 declared = re.findall(r'#\[tokio::test\]\s*async fn (\w+)',
                     (ROOT/'.deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs').read_text())
                 assert len(declared) == len(set(declared)) == 10, 'Requalify changed Core repair function inventory'
-                text = execute('core-video-repair-regressions', ['cargo', 'test', '--offline', '--locked',
-                    '--jobs', '2', '-p', 'rvoip-core', '--lib', 'staged_streams::tests::video_repair::',
-                    '--', '--test-threads=1'], 900, defer_failure=True)
-                passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == [str(len(declared))]
-                passed = passed and all(name + ' ... ok' in (text or '') for name in declared)
+                # A path dependency cannot run its dev-dependency tests from
+                # the Connect workspace. Use its actual pinned workspace/lock;
+                # separate build time from the original bounded test execution.
+                text = execute('compile-core-video-repair-regressions', ['cargo', 'test', '--locked',
+                    '--manifest-path', '.deps/rvoip/Cargo.toml', '--jobs', '2', '-p', 'rvoip-core',
+                    '--lib', '--features', 'opus', '--no-run', '--message-format=json'], 3600, defer_failure=True)
+                passed = False
+                if text is not None:
+                    rows = [json.loads(line) for line in text.splitlines() if line.startswith('{')]
+                    assert any(row.get('reason') == 'build-finished' and row.get('success') for row in rows)
+                    binaries = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
+                        and row['target']['name'] == 'rvoip_core' and row['profile']['test'] and row.get('executable')]
+                    assert len(binaries) == 1
+                    report['compiled_artifacts']['core_video_repair_regressions'] = digest(binaries[0])
+                    prefix = 'staged_streams::tests::video_repair::'
+                    inventory = execute('core-video-repair-test-inventory', [binaries[0], prefix, '--list'], 10)
+                    assert {line.removesuffix(': test') for line in inventory.splitlines() if line.endswith(': test')} == {prefix + name for name in declared}
+                    text = execute('core-video-repair-regressions', [binaries[0], prefix,
+                        '--test-threads=1'], 90, defer_failure=True)
+                    passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == [str(len(declared))]
+                    passed = passed and all(name + ' ... ok' in (text or '') for name in declared)
                 report['video_feedback']['core_repair_regressions'] = dict(passed=passed,
                     status='passed' if passed else 'failed-or-unrun', execution=report['steps'][-1])
                 report['video_feedback']['passed'] = report['video_feedback']['passed'] and passed

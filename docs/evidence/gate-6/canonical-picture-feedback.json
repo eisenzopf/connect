@@ -1,7 +1,7 @@
 {
   "task": "G6-054",
   "scope": "Configured local signed WSS/Store/Core browser-source picture-request component. No loss-profile, full media, SDK or acceptance qualification.",
-  "status": "Actual before and partial after verified: active directions forward for both algorithms; ES256 restored request missed; bounded fresh-metadata candidate pending",
+  "status": "Both original signed AV picture-request functions pass after metadata wait; all10 Core regression functions unrun due workspace invocation, corrected harness pending",
   "before": {
     "source_revision": "78a29528dab8a244dbe103488e52265911ee76f1",
     "run_id": 41186639101,
@@ -137,7 +137,7 @@
     "request_ms": 100,
     "retention": "One latest delivery; no new payload queue or legacy routing fallback"
   },
-  "remaining": "Verify fresh-metadata candidate with the same original AV functions and all10 existing Core video repair current-authority, expiry, cancellation and shared-attempt regressions. Then complete affected current Linux media lanes. Full G6-054 media/SDK failures remain open.",
+  "remaining": "Run corrected actual10-Core regression inventory/expiry/current-authority/cancellation/atomic-budget cases. Complete current full Linux media reachability/decoded recovery. The two signed functions passing do not qualify full G6-054.",
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "after_initial_forwarding": {
@@ -246,7 +246,113 @@
   "metadata_wait_candidate": {
     "patch": "patches/rvoip/gate6-canonical-picture-metadata-wait.patch",
     "sha256": "094e9e92dfa0462d372eaad7976a18177b0fec96bebc5276721855687306821c",
-    "status": "Prepared; not yet compiled or behaviorally verified",
+    "status": "Compiled and both original signed AV functions pass; separate Core regression invocation remains to qualify",
     "scope": "Only pre-callback metadata refusals may wait for a fresh actual successful delivery, within the same100ms absolute deadline. No callback retry after entry, including on refused/uncertain IO. Existing shared250ms rate and200ms/four-attempt original repair bounds remain."
+  },
+  "after_metadata_wait": {
+    "source_revision": "1efea82c3745f5f14a182be444848145e16536b7",
+    "run_id": 41189571146,
+    "artifact_id": 13038424080,
+    "zip_sha256": "6ce2697a99cb0899c09ad2c32f17f5c82b37d69203189db9d3d090d5e01b5e40",
+    "git_sources_verified": 4513,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "8668079d9fb49320b1e5644707e234966c8343434b1f4ed32abf285104d193be",
+    "source_inputs_unchanged": true,
+    "results": [
+      {
+        "algorithm": "eddsa",
+        "passed": true,
+        "observations": [
+          {
+            "active": [
+              [
+                true,
+                false
+              ],
+              [
+                true,
+                false
+              ]
+            ],
+            "original_peers_joined": true,
+            "original_server_joined": true,
+            "reclaimed_slots": 2,
+            "restored": [
+              true,
+              false
+            ],
+            "withdrawn": [
+              false,
+              false
+            ]
+          }
+        ]
+      },
+      {
+        "algorithm": "es256",
+        "passed": true,
+        "observations": [
+          {
+            "active": [
+              [
+                true,
+                false
+              ],
+              [
+                true,
+                false
+              ]
+            ],
+            "original_peers_joined": true,
+            "original_server_joined": true,
+            "reclaimed_slots": 2,
+            "restored": [
+              true,
+              false
+            ],
+            "withdrawn": [
+              false,
+              false
+            ]
+          }
+        ]
+      }
+    ],
+    "signed_functions_passed": true,
+    "core_repair_tests_executed": false,
+    "qualification_passed": false,
+    "core_invocation_failure": {
+      "status": "unrun: Cargo rejected testing a path dependency dev-dependency target from the Connect workspace",
+      "verified_preflight": "Actual local preflight with a compiler wrapper that permits only version/config probes and blocks every compilation reproduces: package rvoip-core cannot be tested because it requires dev-dependencies and is not a member of the workspace. No local compilation or tests occurred.",
+      "correction": "Compile Core lib tests from the actual pinned upstream workspace/lock with production opus feature, then require the exact10 declared functions in its actual binary inventory and execute them within90s. Build has a separate3600s limit. CI may fetch only its locked registry dependencies. Guarded source inputs still must remain unchanged."
+    },
+    "steps": [
+      {
+        "name": "canonical-video-feedback-eddsa",
+        "exit_code": 0,
+        "seconds": 10.748372115999928,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 10.69s"
+        ],
+        "log_sha256": "420e92b60968150adc8a46e2a57c5829cfebfd146b854475bc5b28590b047585"
+      },
+      {
+        "name": "canonical-video-feedback-es256",
+        "exit_code": 0,
+        "seconds": 11.209164081999916,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 11.19s"
+        ],
+        "log_sha256": "f4ead6f3c73d566244355990e3fb8305e909c266432223ed0965eb4b409fda40"
+      },
+      {
+        "name": "core-video-repair-regressions",
+        "exit_code": 101,
+        "seconds": 0.31477026200013825,
+        "test_results": [],
+        "log_sha256": "82845c0e7c83479b713fd722c547f71e8f940933e66cffda6bb86498466b59da"
+      }
+    ]
   }
 }
