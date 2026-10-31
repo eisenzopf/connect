@@ -249,6 +249,17 @@ impl Store {
     ) -> Result<(T, Arc<AuthorityGuardSet>)> {
         acquire_at(self, |c, _| derive(c), finish)
     }
+
+    /// Resolve another current view under this invocation's already-complete
+    /// file interval. Recheck SQL/clock versions and scope coverage; never
+    /// acquire a second reader behind a waiting writer or retain observer SQL.
+    pub(crate) fn try_packet_projection_under<T>(
+        &self,
+        held: &Arc<AuthorityGuardSet>,
+        derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+    ) -> Result<T> {
+        current_under(self, held, derive)
+    }
 }
 
 pub(super) fn acquire<T>(

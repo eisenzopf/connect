@@ -3154,7 +3154,7 @@
     }
   },
   "paired_read_diagnostics": {
-    "status": "local-boundary-verified-runtime-unrun",
+    "status": "source-verified-runtime-paired-store-contention",
     "scope": "Reduce existing Current initial SIP to native packet authority and Initial SIP to native packet grant traces to fixed Store result and grant-stage counters. Unary and paired reads remain separate. Only finite facts and declared labels leave private state; no new trace subscription, production callback, retry, media threshold or call behavior.",
     "local_verification": {
       "telephone_boundary_functions": 6,
@@ -3163,6 +3163,435 @@
     },
     "runtime_scope": "The existing ba12 and 052 runs do not contain these added report fields. No paired-read failure count or cause is inferred from their missing fields.",
     "full_task_qualified": false,
-    "acceptance_qualified": false
+    "acceptance_qualified": false,
+    "runtime": {
+      "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
+      "run_id": 41213265476,
+      "artifact_id": 13046593511,
+      "zip_sha256": "a039886c7fd5514df5e519de1b4cec36b839cdeb9d60e3452372e228aa92de70",
+      "git_sources_verified": 4541,
+      "prepared_sources_verified": 4094,
+      "pinned_archives_verified": 4,
+      "store": {
+        "passed": true,
+        "required_boundary_functions": [
+          "transitions::initial_telephone::tests::packet_observers::current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned",
+          "transitions::initial_telephone::tests::packet_observers::exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights"
+        ],
+        "checks": [
+          {
+            "name": "telephone-store-current-authority",
+            "passed": true,
+            "expected_tests": 48
+          },
+          {
+            "name": "telephone-store-snapshot-regressions",
+            "passed": true,
+            "expected_tests": 21
+          }
+        ],
+        "scope": "Actual public initial-SIP Store WAL observer custody plus all current initial-call and SQL/clock snapshot regressions. No full telephone qualification."
+      },
+      "compile_seconds": {
+        "compile-store": 0.2648833299999751,
+        "compile-hosting": 0.4157959170000254
+      },
+      "cases": [
+        {
+          "network_profile": "direct",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "host_received_bytes": 3360,
+          "unary_store": {
+            "admitted": 764,
+            "authority-busy": 184,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_store": {
+            "admitted": 58,
+            "authority-busy": 106,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_grants": {
+            "store-read": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 106,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "pair-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "source-binding": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "sip-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 2,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-activation": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "granted": {
+              "admitted": 56,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "other": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            }
+          }
+        },
+        {
+          "network_profile": "direct",
+          "algorithm": "ES256",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": false,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 154,
+                "column": 14
+              }
+            ]
+          },
+          "host_received_bytes": null,
+          "unary_store": {
+            "admitted": 39,
+            "authority-busy": 3,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_store": {
+            "admitted": 0,
+            "authority-busy": 0,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_grants": {
+            "store-read": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "pair-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "source-binding": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "sip-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-activation": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "granted": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "other": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            }
+          }
+        },
+        {
+          "network_profile": "loss",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "host_received_bytes": 5120,
+          "unary_store": {
+            "admitted": 674,
+            "authority-busy": 176,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 1
+          },
+          "paired_store": {
+            "admitted": 76,
+            "authority-busy": 83,
+            "forbidden": 1,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_grants": {
+            "store-read": {
+              "admitted": 0,
+              "Authority": 1,
+              "NotReady": 83,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "pair-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "source-binding": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "sip-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-activation": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "granted": {
+              "admitted": 76,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "other": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            }
+          }
+        },
+        {
+          "network_profile": "loss",
+          "algorithm": "ES256",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": false,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 154,
+                "column": 14
+              }
+            ]
+          },
+          "host_received_bytes": null,
+          "unary_store": {
+            "admitted": 73,
+            "authority-busy": 5,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_store": {
+            "admitted": 0,
+            "authority-busy": 0,
+            "forbidden": 0,
+            "not-ready": 0,
+            "other": 0
+          },
+          "paired_grants": {
+            "store-read": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "pair-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "source-binding": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "sip-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-activation": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-owner": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "native-current": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "granted": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            },
+            "other": {
+              "admitted": 0,
+              "Authority": 0,
+              "NotReady": 0,
+              "Cancelled": 0,
+              "other": 0
+            }
+          }
+        }
+      ],
+      "finding": "All69Store regressions pass; all4phone cases fail. Actual two media cases have106/83paired Store authority-busy reads mapped to NotReady at store-read, with56/76completed grants; no native-activation/current refusal. Other2cases fail subscription beforemedia-go. Source audit shows paired Store path still uses command SQL. No missing or zero counters are substituted for unobserved paths."
+    }
+  },
+  "paired_wal_candidate": {
+    "status": "implemented-runtime-unrun",
+    "change": "Use bounded version-sealed WAL observers for paired scope capture, release SQL before one fresh complete file interval, then derive the entire pair under that same interval with current SQL/clock/coverage sealing. Freeze original5sprojection expiry. No retry, metadata cache, permission fallback or extra observer.",
+    "validation": "Two new actual public pair functions require command-SQL independence, both identity fences, observer release/exhaustion and current withdrawal. CI runs all unary/snapshot/paired-signal/private-packet functions before hosting compilation, then all4unchanged originalphonecases. Format/25Python boundary functions pass; Rust/network runtime unrun."
   }
 }

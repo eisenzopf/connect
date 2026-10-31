@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Verify the original full browser matrix after the actual RTC CNAME correction at 86b6cf7c, including all strict clean/fault/direct/UDP/TCP and expired-TURN cases. The 225 RTC unit passes alone do not qualify browser AV or decoded quality.",
-    "Verify the public initial SIP WAL observer candidate, every current initial-call/snapshot Store regression and all four unchanged direct/loss telephone cells. Rejecting the failed synchronous retry is not a telephone pass.",
+    "Full browser run41209664880 at86b6cf7c is independently source-verified failed. Retain baseline/ICE/relay/impairment quality and UDP EdDSA original5sroute retirement failures. Both direct bridges and all4original expiry cases pass at this source; no full profile pass.",
+    "Verify the paired SIP/native WAL observer candidate with all current unary/snapshot/paired-signal/private-packet regressions and all four unchanged phone cases. All69previous Store functions pass but every phone cell still fails at1794632c.",
     "Qualify the final combined candidate for all required addressing/ICE/TURN/native/browser/telephone behaviors with exact source bindings, original operation recovery, decoded duplex identity, unchanged quality bounds and actual allocation/worker cleanup. Recorded passes from different revisions do not establish that claim.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader full SDK failures are retained for matrix work and are not passes from a sibling component. Original Rust SDK return/EOF component25a2ce27 run41188491485 now source-verifies both original functions passing; installed/full SDK run41190708730 is source-verified failed on both Node22/26 runners with4/8 failed scenes; all93independent steps are retained in each artifact and broader matrix failures remain unresolved. G6-054 closure still requires its actual addressing/ICE/TURN/distinct-network decoded recovery checks; none are waived."
@@ -417,11 +417,11 @@
     },
     {
       "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
-      "status": "All four original cases fail on the public unary WAL observer candidate",
-      "run_id": 41210897174,
-      "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
+      "status": "All four original cases fail at latest report source; all69Store regressions pass",
+      "run_id": 41213265476,
+      "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
       "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
-      "limits": "The actual command-SQL independence function and all 21 snapshot regressions pass. One initial-call assertion expects forbidden instead of the existing unauthorized contract, corrected in 052838f3. All four phone cases fail the original native byte minimum (2720/4480/3200/4800 bytes). No full telephone pass or paired Store cause inferred; paired-read diagnostic follow-up remains separate."
+      "limits": "Two media cases record106/83paired Store authority-busy reads mapped to NotReady at store-read. Other two fail subscription before media. Paired WAL candidate is implemented but unrun. No telephone pass."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
@@ -435,19 +435,19 @@
     },
     {
       "profile": "Linux x86_64 strict browser baseline and distinct-network direct media",
-      "status": "Latest verified diagnostic still fails strict AV quality, with intermittent decoded audio failures",
-      "run_id": 41202218277,
-      "source_revision": "eba469b26602361f661d3275ca9a50fee81afe5d",
-      "evidence": "docs/evidence/gate-6/guarded-audio-capture-timeline.json",
-      "limits": "All moving-video and identity observations pass in this diagnostic, but at least one AV observation fails in the baseline and each direct algorithm. Generic Core refusal messages do not identify audio alone, and sampled RTC counters are not aggregate failures. No causal claim from trace counts."
+      "status": "Baseline fails one quiet audio sample; EdDSA ICE fails one AV observation; ES256 ICE passes",
+      "run_id": 41209664880,
+      "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+      "evidence": "docs/evidence/gate-6/linux-rtc-compound-runtime.json",
+      "limits": "Exact original strict60squality. Native ICE and both unreachable TURN cases also pass in this failed full scope. No full quality or CNAME-causality claim."
     },
     {
       "profile": "Linux x86_64 full browser ICE, fault and distinct-network UDP/TCP relay scope",
-      "status": "Last verified full sweep fails overall; native ICE, both ICE restart/unreachable cases and both TCP relay cases pass",
-      "run_id": 41190044909,
-      "source_revision": "74a5a305e1b803fa2a7cd26cb209770e2a060b2e",
-      "evidence": "docs/evidence/gate-6/linux-canonical-picture-runtime.json",
-      "limits": "Both UDP relay cells and strict clean/impairment quality retain failures. All four impaired decoded-motion recoveries pass within two seconds at that source. The later full browser run after the CNAME correction remains pending; no current full relay or WAN qualification."
+      "status": "Full sweep fails; both direct bridges and TCP EdDSA pass; other relay and impairment cells fail",
+      "run_id": 41209664880,
+      "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+      "evidence": "docs/evidence/gate-6/linux-rtc-compound-runtime.json",
+      "limits": "UDP EdDSA decoded media passes but original5sroute/slot drain fails at remote.rs282. TCP ES256 fails AVp95128.3ms; UDP ES256 fails audio and one AVp95151.7ms. Impairment failures remain outside-burst audio or decoded motion. Original limits unchanged."
     },
     {
       "profile": "Capture/RTP timeline and exact-source picture-request regressions",
@@ -476,14 +476,18 @@
     {
       "profile": "Linux x86_64 original expired TURN credentials: UDP/TCP and both algorithms",
       "status": "All four original cases pass at the recorded source",
-      "run_id": 41206536418,
-      "source_revision": "325a375f1b8363363a93136721c504d47b6c990d",
-      "evidence": "docs/evidence/gate-6/browser-turn-expiry-linux.json",
-      "limits": "Actual expired refusal, zero allocations, original peers/helpers joined and both containers removed without forced cleanup. Later full-candidate expiry cases still require their own result."
+      "run_id": 41209664880,
+      "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+      "evidence": [
+        "docs/evidence/gate-6/browser-turn-expiry-linux.json",
+        "docs/evidence/gate-6/linux-rtc-compound-runtime.json"
+      ],
+      "limits": "All four original cases pass within the failed full browser run, with actual refusal, zero allocations and original process/container cleanup. This is expiry component evidence only."
     }
   ],
   "matrix_scope": "Latest verified observations at their recorded revisions, not a claim that one current candidate passes all profiles. Historical Mac/guest and local browser scopes remain separate. A running or queued job supplies no behavior pass.",
-  "latest_in_flight": [
+  "full_task_qualified": false,
+  "last_completed_runs": [
     {
       "run_id": 41209664880,
       "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
@@ -509,5 +513,6 @@
       "status": "queued-no-behavior-result"
     }
   ],
-  "full_task_qualified": false
+  "latest_in_flight": [],
+  "paired_wal_candidate": "Implemented, runtime unrun. Actual paired Store contention at report source motivates sealed observer acquisition and complete under-interval resolution; exact public/private pair checks precede unchanged phone cases."
 }

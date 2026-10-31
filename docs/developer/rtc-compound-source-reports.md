@@ -69,3 +69,14 @@ The original full browser matrix is dispatched separately as run `41209664880`
 on that same source and frozen76. It retains the original strict60second media,
 ICE/recovery, direct/relay/fault and expiry checks. No browser AV improvement or
 G6-054 completion is inferred until its actual results verify.
+
+Full run `41209664880` at `86b6cf7c` is now source-verified and failed overall.
+Both distinct-network direct bridges, ES256 browser ICE, native ICE, both
+unreachable-TURN cases and all four expired-TURN cases pass. Baseline retains
+one quiet audio sample; EdDSA ICE fails one AV observation. Both impairment
+cases fail decoded audio or motion. TCP ES256 and UDP ES256 retain strict
+quality failures. UDP EdDSA passes decoded media but fails the original
+five-second route/slot drain at `remote.rs:282`; external container/TURN cleanup
+passes separately. The handler correction remains qualified; full audio/video,
+recovery and retirement remain open. See
+[the complete scoped evidence](../evidence/gate-6/linux-rtc-compound-runtime.json).

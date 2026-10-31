@@ -962,30 +962,45 @@ impl Store {
         if native.conversation_id() != s.conversation_id || native.session_id() != s.session_id {
             return Err(Error::forbidden());
         }
-        let c = self.try_connection()?;
-        let (_, mut required, _) = self.native_scene_facts(
-            &c,
-            &[native.clone()],
-            native.conversation_id(),
-            native.session_id(),
+        let until = crate::now() + 5;
+        let combined_scopes = |c: &Connection, mut required: Vec<AuthorityScope>| {
+            required.extend(if phone.source().is_private_candidate() {
+                private_facts::current_authority(self, c, &phone)?.0
+            } else {
+                current_scopes(c, phone.signal.origin(), false)?
+            });
+            AuthorityScope::merged(&required)
+        };
+        // Acquire one fresh complete pair interval, outside observer SQL. The
+        // second resolution lends only that interval, never its old facts or
+        // permissions, and seals the entire pair's current SQL/clock snapshot.
+        let (_, held) = self.try_packet_projection(
+            |c| {
+                let (_, required, _) = self.native_scene_facts(
+                    c,
+                    &[native.clone()],
+                    native.conversation_id(),
+                    native.session_id(),
+                )?;
+                Ok(((), combined_scopes(c, required)?))
+            },
+            |_| Ok(()),
         )?;
-        required.extend(if phone.source().is_private_candidate() {
-            private_facts::current_authority(self, &c, &phone)?.0
-        } else {
-            current_scopes(&c, phone.signal.origin(), false)?
-        });
-        let held = self.try_acquire_authority(&AuthorityScope::merged(&required)?)?;
-        let (facts, _, expiry) = self.native_scene_facts(
-            &c,
-            &[native.clone()],
-            native.conversation_id(),
-            native.session_id(),
-        )?;
-        let mut reads = self.native_scene_reads(facts, held.clone(), expiry)?;
-        let read = reads
-            .remove(&(native.runtime_connection_id().into(), None))
-            .ok_or_else(Error::forbidden)?;
-        self.initial_telephone_native_pair_in(&c, phone, &native, read)
+        self.try_packet_projection_under(&held, |c| {
+            let (facts, required, expiry) = self.native_scene_facts(
+                c,
+                &[native.clone()],
+                native.conversation_id(),
+                native.session_id(),
+            )?;
+            let required = combined_scopes(c, required)?;
+            let mut reads = self.native_scene_reads(facts, held.clone(), expiry.min(until))?;
+            let read = reads
+                .remove(&(native.runtime_connection_id().into(), None))
+                .ok_or_else(Error::forbidden)?;
+            let pair = self.initial_telephone_native_pair_in(c, phone.clone(), &native, read)?;
+            Ok((pair, required))
+        })
     }
     pub(crate) fn initial_telephone_native_pair_in(
         &self,

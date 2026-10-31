@@ -313,6 +313,40 @@ RUST_CONSULTATION_CASES = (
 )
 
 
+def telephone_store_checks(binary, execute):
+    original = digest(binary)
+    inventory = execute('telephone-store-inventory', [binary, '--list'], 10)
+    unary = 'transitions::initial_telephone::tests::packet_observers::'
+    pair = 'connection_control::tests::native_stream_authority::sip_signal::'
+    required = {
+        unary + 'current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned',
+        unary + 'exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights',
+        pair + 'sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences',
+        pair + 'sip_native_media_pair_refuses_observer_exhaustion_and_rechecks_withdrawal',
+    }
+    functions = {line[:-6] for line in inventory.splitlines() if line.endswith(': test')}
+    assert required <= functions, 'Missing actual Store observer boundary functions'
+    checks = []
+    for name, prefix in (
+        ('telephone-store-current-authority', 'transitions::initial_telephone::tests::'),
+        ('telephone-store-snapshot-regressions', 'peer_authority::connection_media::snapshot::tests::'),
+        ('telephone-store-paired-current-authority', pair),
+        ('telephone-store-private-packet-regressions', 'connection_control::tests::sip_consultation::planning::packets::'),
+    ):
+        expected = sum(test.startswith(prefix) for test in functions)
+        assert expected > 0
+        text = execute(name, [binary, prefix, '--nocapture', '--test-threads=1'], 300, defer_failure=True)
+        passed = text is not None and re.findall(
+            r'^test result: ok\. (\d+) passed; 0 failed; 0 ignored;', text, re.M) == [str(expected)]
+        checks.append(dict(name=name, passed=passed, expected_tests=expected))
+    unchanged = digest(binary) == original
+    return dict(passed=unchanged and all(row['passed'] for row in checks),
+        binary_sha256=original, binary_unchanged=unchanged,
+        inventory_sha256=hashlib.sha256(inventory.encode()).hexdigest(),
+        required_boundary_functions=sorted(required), checks=checks,
+        scope='Actual unary/paired initial SIP Store WAL custody and all current initial-call, snapshot, paired signal and private-packet regressions. No full telephone qualification.')
+
+
 def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False, telephone_network=False, mixer_clock=False, sip_duplex=False, rtc_compound=False):
     assert sum((video_feedback, consultation_return, native_network, telephone_network, mixer_clock, sip_duplex, rtc_compound)) <= 1, 'One isolated component at a time'
     assert not (video_feedback or consultation_return or native_network or telephone_network or mixer_clock or sip_duplex or rtc_compound) or not (node_sdk or python_sdk), 'Independent component only'
@@ -606,6 +640,13 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
                           and row["target"]["name"] == wanted and row["profile"]["test"] and row.get("executable")]
             assert len(executable) == 1
             artifacts[name] = executable[0]
+            if telephone_network and name == 'store':
+                # Run policy boundaries before compiling the monolithic host.
+                # A failed boundary grants no media pass and leaves calls unrun.
+                report['initial_sip_packet_observers'] = telephone_store_checks(artifacts['store'], execute)
+                if not report['initial_sip_packet_observers']['passed']:
+                    report['scope'] = report['initial_sip_packet_observers']['scope']
+                    raise AssertionError('Initial SIP Store observer regressions failed or were unrun')
             if (node_sdk or python_sdk) and name == 'hosting':
                 cli = {row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
                        and row['target']['name'] == 'connect' and row.get('executable')
@@ -658,29 +699,6 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['behavior_passed'] = True
             return
         if telephone_network:
-            inventory = execute('telephone-store-inventory', [artifacts['store'], '--list'], 10)
-            boundary = 'transitions::initial_telephone::tests::packet_observers::'
-            required = {
-                boundary + 'current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned',
-                boundary + 'exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights',
-            }
-            functions = {line[:-6] for line in inventory.splitlines() if line.endswith(': test')}
-            assert required <= functions, 'Missing original Store observer boundary functions'
-            checks = []
-            for name, prefix in (
-                ('telephone-store-current-authority', 'transitions::initial_telephone::tests::'),
-                ('telephone-store-snapshot-regressions', 'peer_authority::connection_media::snapshot::tests::'),
-            ):
-                expected = sum(test.startswith(prefix) for test in functions)
-                assert expected > 0
-                text = execute(name, [artifacts['store'], prefix, '--nocapture', '--test-threads=1'],
-                    300, defer_failure=True)
-                passed = text is not None and re.findall(
-                    r'^test result: ok\. (\d+) passed; 0 failed; 0 ignored;', text, re.M) == [str(expected)]
-                checks.append(dict(name=name, passed=passed, expected_tests=expected))
-            report['initial_sip_packet_observers'] = dict(passed=all(row['passed'] for row in checks),
-                required_boundary_functions=sorted(required), checks=checks,
-                scope='Actual public initial-SIP Store WAL observer custody plus all current initial-call and SQL/clock snapshot regressions. No full telephone qualification.')
             component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))['run']
             report['telephone_distinct_network'] = component(ROOT, PRIVATE, artifacts['hosting'], before, execute)
             report['scope'] = report['telephone_distinct_network']['scope']

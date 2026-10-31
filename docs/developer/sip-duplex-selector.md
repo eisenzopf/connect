@@ -153,3 +153,23 @@ All original process/NAT cleanup and empty-bridge removal remain recorded.
 This qualifies the unary Store boundary and its69regressions, not duplex media.
 The existing paired-read report source `1794632c` is being verified separately
 as run `41213265476`; no paired Store cause is inferred before those results.
+
+Paired report run `41213265476` at `1794632c` verifies both cached build
+targets (Store0.265s, hosting0.416s) and all69Store regressions. All four
+phone cases fail. The two actual media cases record106and83paired Store
+`authority-busy` results; those grants fail at `store-read`, with no observed
+native activation/current refusal. The other two fail subscription before
+media starts. The paired source still uses the command SQL mutex.
+
+The paired WAL candidate captures complete current SIP/native scopes using the
+existing sealed observer path, releases SQL before one fresh complete authority
+interval, then resolves the entire pair under that same interval. It seals the
+current SQL/schema/clock version and complete coverage again, preserving the
+original five-second projection bound. It adds no retry, metadata cache, observer
+or permission fallback. Two actual pair tests require command-mutex independence,
+both identity fences, released observer custody, saturation recovery and current
+withdrawal. CI runs these with all current unary, snapshot, paired signal and
+private-packet regressions before the monolithic hosting build. A boundary failure
+leaves call cases explicitly unrun. The four original media cases remain required
+after those checks pass. Local format and25Python boundary checks pass; Rust
+and network behavior for the paired candidate remain unrun.

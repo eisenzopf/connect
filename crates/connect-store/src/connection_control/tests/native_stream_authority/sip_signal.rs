@@ -113,6 +113,78 @@ fn operations(f: &Fixture, actor: usize, names: &[&str]) {
 }
 
 #[test]
+fn sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences() {
+    let (f, native, phone) = fixture();
+    drop(
+        f.store
+            .try_initial_telephone_native_read(phone.clone(), native.clone())
+            .unwrap(),
+    );
+    let identities: Vec<_> = f.keys[..2]
+        .iter()
+        .map(|key| f.store.revalidate(key).unwrap().identity_id)
+        .collect();
+    let command = f.store.connection().unwrap();
+    let read = f
+        .store
+        .try_initial_telephone_native_read(phone, native)
+        .unwrap();
+    assert!(read.current() && read.phone().is_connected());
+    for identity in identities {
+        let scopes =
+            [crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap()];
+        assert_eq!(
+            f.store.try_acquire_authority(&scopes).unwrap_err().code,
+            "authority-busy"
+        );
+    }
+    // Returned pair custody contains no SQL observer or command mutex.
+    let observers: Vec<_> = f
+        .store
+        .packet_connections
+        .iter()
+        .map(|c| c.try_lock().unwrap())
+        .collect();
+    assert_eq!(observers.len(), crate::packet_observation::OBSERVERS);
+    drop(observers);
+    drop(read);
+    drop(command);
+}
+
+#[test]
+fn sip_native_media_pair_refuses_observer_exhaustion_and_rechecks_withdrawal() {
+    let (f, native, phone) = fixture();
+    let observers: Vec<_> = f
+        .store
+        .packet_connections
+        .iter()
+        .map(|c| c.try_lock().unwrap())
+        .collect();
+    assert_eq!(
+        f.store
+            .try_initial_telephone_native_read(phone.clone(), native.clone())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(observers);
+    drop(
+        f.store
+            .try_initial_telephone_native_read(phone.clone(), native.clone())
+            .unwrap(),
+    );
+    f.store
+        .revoke(&f.store.revalidate(&f.admin).unwrap(), &f.keys[1])
+        .unwrap();
+    let command = f.store.connection().unwrap();
+    assert!(f
+        .store
+        .try_initial_telephone_native_read(phone, native)
+        .is_err());
+    drop(command);
+}
+
+#[test]
 fn sip_native_signal_pair_requires_opposite_named_permissions_without_media_grants() {
     let (f, native, phone) = fixture();
     for direction in [FromTelephone, ToTelephone] {

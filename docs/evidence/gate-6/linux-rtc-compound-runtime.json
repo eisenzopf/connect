@@ -1,0 +1,1730 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "failed-full-required-browser-scope",
+  "scope": "Original full Linux x86_64 opt3 runtime after actual RTC local CNAME correction. All failures and positive cells remain bound to this exact source; no full G6-054 or acceptance qualification.",
+  "run_id": 41209664880,
+  "artifact_id": 13047666371,
+  "revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+  "zip_sha256": "0ec5c87d099a6b7a59ad29d4d0efb77c5dc03095003e550c55f136c90deeb28d",
+  "git_sources_verified": 2887,
+  "prepared_sources_verified": 3089,
+  "producer": {
+    "scope": "Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt0. Build only.",
+    "fixture_opt_level": "0",
+    "unrequested_cli_artifacts": 0,
+    "command": [
+      "cargo",
+      "rustc",
+      "--release",
+      "--offline",
+      "--locked",
+      "-j1",
+      "-p",
+      "connect-server",
+      "--no-default-features",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none",
+      "-C",
+      "opt-level=0"
+    ],
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 2119.029108377,
+      "log_sha256": "2c750e8dd95ddd3542ba1655ec6a80238a3e8199537bced2d457a08b1fb88e2a"
+    },
+    "runtime_library_profiles": {
+      "completed_artifacts": 524,
+      "profiles": {
+        "connect_client": [
+          "3"
+        ],
+        "connect_server": [
+          "3"
+        ],
+        "connect_service": [
+          "3"
+        ],
+        "connect_store": [
+          "3"
+        ],
+        "rtc": [
+          "3"
+        ],
+        "rtc_dtls": [
+          "3"
+        ],
+        "rtc_ice": [
+          "3"
+        ],
+        "rvoip_core": [
+          "3"
+        ],
+        "rvoip_media_core": [
+          "3"
+        ],
+        "rvoip_rtp_core": [
+          "3"
+        ],
+        "rvoip_webrtc": [
+          "3"
+        ]
+      },
+      "missing": [],
+      "passed": true
+    },
+    "source_count": 5965,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "f717cfdba1b167b64340f021995728a3fe44df77cc8dd1473941c2b3c831f7f4",
+    "artifacts": [
+      {
+        "path": "/home/runner/work/connect/connect/.local/gate6-browser-media/target/release/deps/gate6_canonical_webtransport-ac22f5261b37a54e",
+        "sha256": "d5648ba6d6d828fa018407a293669f331a7e9115f45a63702d5363c063bfcd9b"
+      }
+    ],
+    "passed": true
+  },
+  "runtime_cases": [
+    {
+      "name": "native-ice",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 11.589757101000032,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "0a34c32cca40b0585aa2c98401900c2e28cf89ea9d3d102c0f0a7cf6ecaa794a",
+      "observations": []
+    },
+    {
+      "name": "baseline",
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 68.63544051999997,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "e88d46d8f8d777a6e52512c2a36f24eff2c6328defdfd554f1811ba22c022344",
+      "observations": [
+        {
+          "audio": "failed",
+          "audio_bad_samples": 1,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.10950016975402832,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 28.533830867271988,
+          "changing_fps": 25.868674452348742,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 31.263400077819824,
+                "rms": 0.0006678310083987504,
+                "frequency_hz": 0,
+                "phase": "clean"
+              }
+            ]
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 80,
+            "median_abs_skew_ms": 32.9999999999977,
+            "p95_abs_skew_ms": 96.10000000009222,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11240005493164062,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.451008464965806,
+          "changing_fps": 26.652496348385345,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 82,
+            "median_abs_skew_ms": 26.899999999905333,
+            "p95_abs_skew_ms": 112.90000000037281,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "name": "ice-eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 73.70843858499984,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "25f8ea976112533e4a8648f19dd04d9ec501641602a19dfa151c54cab8cb9f8f",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11160016059875488,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 28.01713002063992,
+          "changing_fps": 25.518575024744564,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 74,
+            "median_abs_skew_ms": 21.599999999864394,
+            "p95_abs_skew_ms": 108.00000000000054,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11080002784729004,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "failed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "decoded_fps": 28.682312602160707,
+          "changing_fps": 26.117227735300805,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ],
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "name": "ice-es256",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 72.91750888000024,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "61a88f78f7c25b28f04d89e943a84408c084683b1aa171b5612fd69415cb30dc",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.1128997802734375,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.95039353744053,
+          "changing_fps": 27.268517364176947,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 81,
+            "median_abs_skew_ms": 33.10000000009339,
+            "p95_abs_skew_ms": 103.30000000027972,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.10940003395080566,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.83354176572792,
+          "changing_fps": 27.135030450234943,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 81,
+            "median_abs_skew_ms": 17.200000000187288,
+            "p95_abs_skew_ms": 90.9999999999993,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "name": "unreachable-eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 18.455324201000167,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "a56db0848714adc738850403bd148cf2e80387df7afcf945563b500c59c7ef6b",
+      "observations": [],
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "name": "unreachable-es256",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 18.455987809999897,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "7abfff427f8f0206900b70f0f7571ab4dfa36a51530d8ecb54efd0971441b336",
+      "observations": [],
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "name": "impairment-eddsa",
+      "passed": false,
+      "exit_code": 1,
+      "seconds": 69.06257516300002,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "c69789e3281dba1e30698498007159397c939f85f99bb488c3fa7a02a0de54ed",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_unexcepted_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.1129000186920166,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "decoded_fps": 8.89567076213788,
+          "changing_fps": 8.312621180349819,
+          "maximum_unexcluded_motion_gap_seconds": 1.6259000301361084,
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793458939.1387198,
+                "end_unix_seconds": 1793458942.1416185,
+                "duration_seconds": 3.002898770000229
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793458942.1153,
+                "sampled_interval_end_unix_seconds": 1793458943.1151,
+                "before": 23,
+                "after": 25,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.8131816387176514,
+              "status": "passed"
+            }
+          ],
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "audio": "failed",
+          "audio_bad_unexcepted_samples": 2,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11260008811950684,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "decoded_fps": 10.461575394776167,
+          "changing_fps": 9.61198885793925,
+          "maximum_unexcluded_motion_gap_seconds": 1.0948998928070068,
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793458939.1387198,
+                "end_unix_seconds": 1793458942.1416185,
+                "duration_seconds": 3.002898770000229
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793458942.1149,
+                "sampled_interval_end_unix_seconds": 1793458943.1151001,
+                "before": 24,
+                "after": 25,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.48708176612854004,
+              "status": "passed"
+            }
+          ],
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 19.459099769592285,
+                "rms": 9.224700717413882e-06,
+                "frequency_hz": 0,
+                "phase": "outside-burst"
+              },
+              {
+                "elapsed_seconds": 26.96869993209839,
+                "rms": 0.0018932166358074723,
+                "frequency_hz": 495.263671875,
+                "phase": "outside-burst"
+              }
+            ]
+          }
+        }
+      ],
+      "network": {
+        "passed": false,
+        "profile": "impairment",
+        "configured_random_drop_probability": 0.03,
+        "configured_delay_ms": [
+          0,
+          100
+        ],
+        "configured_burst_seconds": 3,
+        "original_process_joined": true,
+        "owned_qdiscs_removed": true,
+        "original_media_addresses_reclaimed": 8,
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+            "line": 1033,
+            "column": 5
+          }
+        ],
+        "failure": {
+          "stage": "decoded-media-verification",
+          "error_class": "AssertionError",
+          "network_error": null
+        },
+        "changed_source_inputs": []
+      }
+    },
+    {
+      "name": "impairment-es256",
+      "passed": false,
+      "exit_code": 1,
+      "seconds": 69.00226602200019,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "e3e1667ff58a2b82ece4034ffa0b0206f472b9298d1e73aa8d4c21999144fb45",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_unexcepted_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11059999465942383,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "decoded_fps": 7.047157650805028,
+          "changing_fps": 6.547359235854317,
+          "maximum_unexcluded_motion_gap_seconds": 1.518899917602539,
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793459007.666564,
+                "end_unix_seconds": 1793459010.669698,
+                "duration_seconds": 3.003133921999961
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793459010.6382,
+                "sampled_interval_end_unix_seconds": 1793459011.64,
+                "before": 24,
+                "after": 25,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.6923019886016846,
+              "status": "passed"
+            }
+          ],
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "audio": "passed",
+          "audio_bad_unexcepted_samples": 0,
+          "audio_coverage_complete": true,
+          "audio_maximum_sampling_gap_seconds": 0.11039996147155762,
+          "motion": "failed",
+          "source_identity": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "decoded_fps": 5.447811811313982,
+          "changing_fps": 5.04797241231846,
+          "maximum_unexcluded_motion_gap_seconds": 2.077199935913086,
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793459007.666564,
+                "end_unix_seconds": 1793459010.669698,
+                "duration_seconds": 3.003133921999961
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793459010.6471002,
+                "sampled_interval_end_unix_seconds": 1793459011.6395,
+                "before": 21,
+                "after": 23,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.2404019832611084,
+              "status": "passed"
+            }
+          ],
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ],
+      "network": {
+        "passed": false,
+        "profile": "impairment",
+        "configured_random_drop_probability": 0.03,
+        "configured_delay_ms": [
+          0,
+          100
+        ],
+        "configured_burst_seconds": 3,
+        "original_process_joined": true,
+        "owned_qdiscs_removed": true,
+        "original_media_addresses_reclaimed": 8,
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+            "line": 1033,
+            "column": 5
+          }
+        ],
+        "failure": {
+          "stage": "decoded-media-verification",
+          "error_class": "AssertionError",
+          "network_error": null
+        },
+        "changed_source_inputs": []
+      }
+    }
+  ],
+  "bridges": [
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": null,
+      "passed": true,
+      "browser_exit_code": 0,
+      "server_exit_code": 0,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [],
+      "failure": null,
+      "server_witness": {
+        "algorithm": "EdDSA",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-eddsa",
+      "observations": [
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 21.70000000018746,
+            "p95_abs_skew_ms": 106.59999999962722
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.952140027098945,
+          "changing_fps": 27.1868145296026,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 83,
+            "median_abs_skew_ms": 21.70000000018746,
+            "p95_abs_skew_ms": 106.59999999962722,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 24.00000000000091,
+            "p95_abs_skew_ms": 109.70000000018665
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.951990255425862,
+          "changing_fps": 27.170020081534805,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 83,
+            "median_abs_skew_ms": 24.00000000000091,
+            "p95_abs_skew_ms": 109.70000000018665,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": null,
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": null,
+      "passed": true,
+      "browser_exit_code": 0,
+      "server_exit_code": 0,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [],
+      "failure": null,
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-es256",
+      "observations": [
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 18.39999999990738,
+            "p95_abs_skew_ms": 92.99999999999997
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 28.199089118989637,
+          "changing_fps": 25.550739934158358,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 81,
+            "median_abs_skew_ms": 18.39999999990738,
+            "p95_abs_skew_ms": 92.99999999999997,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 29.800000000278715,
+            "p95_abs_skew_ms": 87.99999999999919
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.231632821004307,
+          "changing_fps": 26.56664065498682,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 81,
+            "median_abs_skew_ms": 29.800000000278715,
+            "p95_abs_skew_ms": 87.99999999999919,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": null,
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": "tcp",
+      "passed": true,
+      "browser_exit_code": 0,
+      "server_exit_code": 0,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [],
+      "failure": null,
+      "server_witness": {
+        "algorithm": "EdDSA",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-relay-tcp-eddsa",
+      "observations": [
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 16.99999999999946,
+            "p95_abs_skew_ms": 79.49999999999946
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 27.6483265330733,
+          "changing_fps": 25.183295010847488,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 74,
+            "median_abs_skew_ms": 16.99999999999946,
+            "p95_abs_skew_ms": 79.49999999999946,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 17.699999999955196,
+            "p95_abs_skew_ms": 57.99999999999983
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.478775273931088,
+          "changing_fps": 26.79737255127408,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 80,
+            "median_abs_skew_ms": 17.699999999955196,
+            "p95_abs_skew_ms": 57.99999999999983,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": {
+        "passed": true,
+        "transport": "tcp",
+        "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+        "architecture": "amd64",
+        "version": "4.18.0",
+        "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+        "startup_stage": "control-binding",
+        "control_binding_ready": true,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 0.43110850499988373,
+        "original_exit_code": 0,
+        "allocation_successes": 10,
+        "log_sha256": "996e2991b114aa352ba21086e99cc1ce9983c6d2240721a6219fead13cff717a",
+        "original_container_joined": true,
+        "owned_container_removed": true,
+        "forced_cleanup": false
+      },
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": "tcp",
+      "passed": false,
+      "browser_exit_code": 1,
+      "server_exit_code": 0,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [],
+      "failure": null,
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-relay-tcp-es256",
+      "observations": [
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 17.399999999906157,
+            "p95_abs_skew_ms": 128.30000000028008
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "decoded_fps": 28.570666946011784,
+          "changing_fps": 25.955159826172803,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 78,
+            "median_abs_skew_ms": 17.399999999906157,
+            "p95_abs_skew_ms": 128.30000000028008,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 23.549999999811888,
+            "p95_abs_skew_ms": 102.3000000002785
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.054124908641178,
+          "changing_fps": 26.455246763143457,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 78,
+            "median_abs_skew_ms": 23.549999999811888,
+            "p95_abs_skew_ms": 102.3000000002785,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": {
+        "passed": true,
+        "transport": "tcp",
+        "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+        "architecture": "amd64",
+        "version": "4.18.0",
+        "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+        "startup_stage": "control-binding",
+        "control_binding_ready": true,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 3.575652692999938,
+        "original_exit_code": 0,
+        "allocation_successes": 10,
+        "log_sha256": "5e85d0273c5ad698f88013ded809b0a830cf596a8d88c7a5fcbf0c842b0dd516",
+        "original_container_joined": true,
+        "owned_container_removed": true,
+        "forced_cleanup": false
+      },
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": false,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 1,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": "udp",
+      "passed": false,
+      "browser_exit_code": 0,
+      "server_exit_code": 101,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs",
+          "line": 282,
+          "column": 6
+        }
+      ],
+      "failure": {
+        "stage": "server-retirement",
+        "error_class": "AssertionError",
+        "owned_startup_reason": null
+      },
+      "server_witness": null,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-relay-udp-eddsa",
+      "observations": [
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 31.900000000373296,
+            "p95_abs_skew_ms": 115.50000000000082
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 27.91728084005245,
+          "changing_fps": 25.3354320750118,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 77,
+            "median_abs_skew_ms": 31.900000000373296,
+            "p95_abs_skew_ms": 115.50000000000082,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 17.200000000187288,
+            "p95_abs_skew_ms": 66.60000000009347
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 28.601412549060544,
+          "changing_fps": 25.986140696875044,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 77,
+            "median_abs_skew_ms": 17.200000000187288,
+            "p95_abs_skew_ms": 66.60000000009347,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": {
+        "passed": true,
+        "transport": "udp",
+        "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+        "architecture": "amd64",
+        "version": "4.18.0",
+        "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+        "startup_stage": "control-binding",
+        "control_binding_ready": true,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 2.3888970460002383,
+        "original_exit_code": 0,
+        "allocation_successes": 10,
+        "log_sha256": "27a5a0f3e1e8d63a745f7a1c5d95934ec2a8831007288eabda7f52f6ad3d7851",
+        "original_container_joined": true,
+        "owned_container_removed": true,
+        "forced_cleanup": false
+      },
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": "udp",
+      "passed": false,
+      "browser_exit_code": 1,
+      "server_exit_code": 0,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "server_panic_locations": [],
+      "failure": null,
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "profile": "bridge-relay-udp-es256",
+      "observations": [
+        {
+          "audio": "failed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 31.89999999990789,
+            "p95_abs_skew_ms": 85.39999999990755
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "decoded_fps": 29.10361851864416,
+          "changing_fps": 26.53810206079001,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 8.570499897003174,
+                "rms": 0.0003636700636101039,
+                "frequency_hz": 0,
+                "phase": "clean"
+              }
+            ]
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 77,
+            "median_abs_skew_ms": 31.89999999990789,
+            "p95_abs_skew_ms": 85.39999999990755,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        },
+        {
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 27.75000000000105,
+            "p95_abs_skew_ms": 151.7000000001758
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "decoded_fps": 29.31994388409084,
+          "changing_fps": 26.77110785325794,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 78,
+            "median_abs_skew_ms": 27.75000000000105,
+            "p95_abs_skew_ms": 151.7000000001758,
+            "scope": "Derived from retained marker pairs using the existing nearest-rank policy; original acceptance status above remains authoritative."
+          }
+        }
+      ],
+      "turn": {
+        "passed": true,
+        "transport": "udp",
+        "image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+        "architecture": "amd64",
+        "version": "4.18.0",
+        "binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+        "startup_stage": "control-binding",
+        "control_binding_ready": true,
+        "zero_allocations_before_exit": true,
+        "drain_seconds": 2.5663257470000644,
+        "original_exit_code": 0,
+        "allocation_successes": 10,
+        "log_sha256": "56c76ab1da5107fe7871884efad9b6c7547bb5370349d5c0e51fbd1f57363175",
+        "original_container_joined": true,
+        "owned_container_removed": true,
+        "forced_cleanup": false
+      },
+      "audio_process": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": false,
+        "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 1,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    }
+  ],
+  "expired_turn": {
+    "scope": "Original expired-TURN browser tests in fresh network-disabled Linux namespaces. Original expiry refusal/zero logical offers and allocations only; no distinct-network media, provider, performance or full G6-054 qualification.",
+    "image_id": "sha256:cdf127d293f91bfb1f98b665b5cb955ebc8de65a894762203252443132f63d65",
+    "turn_image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+    "turn_reference": "coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf",
+    "turn_version": "4.18.0",
+    "turn_binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+    "source_manifest_sha256": "f717cfdba1b167b64340f021995728a3fe44df77cc8dd1473941c2b3c831f7f4",
+    "binary_sha256": "d5648ba6d6d828fa018407a293669f331a7e9115f45a63702d5363c063bfcd9b",
+    "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+    "sources_unchanged": true,
+    "tools_unchanged": true,
+    "source_count": 5976,
+    "repository_inputs_sha256": "b41554b33ecf39a5d9f3d47f5a4a1ed8a1747f175d0e01898a2e4326863a107b",
+    "binary_unchanged": true,
+    "cases": [
+      {
+        "transport": "udp",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+        "control_binding_ready": true,
+        "browser_version": "Google Chrome for Testing 156.0.8078.4",
+        "tool_sha256": {
+          "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+          "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+          "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+        },
+        "test_exit_code": 0,
+        "browser": {
+          "status": "passed",
+          "reason": "expired",
+          "original_contexts_closed": 2,
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.131,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.13139999999990687,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ]
+        },
+        "oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "audio": {
+          "passed": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+          "version": "pulseaudio 16.1"
+        },
+        "unauthorized_responses": 2,
+        "expired_credential_refusals": 2,
+        "allocation_successes": 0,
+        "original_children_joined": true,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 1.2400442699999985,
+        "turn_log_sha256": "f718ddaa49b0523148fe8d2e2fc636803af7556452f339b9b6c1942eb825761f",
+        "behavior_passed": true,
+        "audio_diagnostic": {
+          "passed": true,
+          "startup_socket_created": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "command_exit_code": 0,
+          "socket_exists_after_join": false,
+          "private_cookie_created": true,
+          "error_categories": []
+        },
+        "turn_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        },
+        "namespace_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        }
+      },
+      {
+        "transport": "udp",
+        "algorithm": "ES256",
+        "passed": true,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+        "control_binding_ready": true,
+        "browser_version": "Google Chrome for Testing 156.0.8078.4",
+        "tool_sha256": {
+          "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+          "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+          "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+        },
+        "test_exit_code": 0,
+        "browser": {
+          "status": "passed",
+          "reason": "expired",
+          "original_contexts_closed": 2,
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.13290000000037253,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.1248000000002794,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ]
+        },
+        "oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "audio": {
+          "passed": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+          "version": "pulseaudio 16.1"
+        },
+        "unauthorized_responses": 2,
+        "expired_credential_refusals": 2,
+        "allocation_successes": 0,
+        "original_children_joined": true,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 1.2430838929999481,
+        "turn_log_sha256": "40f56e7c9dc7f9c0961bb6815757348b1a63c811206302e1e7cd78f50748c686",
+        "behavior_passed": true,
+        "audio_diagnostic": {
+          "passed": true,
+          "startup_socket_created": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "command_exit_code": 0,
+          "socket_exists_after_join": false,
+          "private_cookie_created": true,
+          "error_categories": []
+        },
+        "turn_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        },
+        "namespace_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        }
+      },
+      {
+        "transport": "tcp",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+        "control_binding_ready": true,
+        "browser_version": "Google Chrome for Testing 156.0.8078.4",
+        "tool_sha256": {
+          "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+          "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+          "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+        },
+        "test_exit_code": 0,
+        "browser": {
+          "status": "passed",
+          "reason": "expired",
+          "original_contexts_closed": 2,
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.1396999999997206,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.12539999999990686,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ]
+        },
+        "oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "audio": {
+          "passed": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+          "version": "pulseaudio 16.1"
+        },
+        "unauthorized_responses": 4,
+        "expired_credential_refusals": 2,
+        "allocation_successes": 0,
+        "original_children_joined": true,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 1.1926536800001486,
+        "turn_log_sha256": "ab768345db27a22bc59a8da42dce1990538b699a4198c80c087ec007e0602bee",
+        "behavior_passed": true,
+        "audio_diagnostic": {
+          "passed": true,
+          "startup_socket_created": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "command_exit_code": 0,
+          "socket_exists_after_join": false,
+          "private_cookie_created": true,
+          "error_categories": []
+        },
+        "turn_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        },
+        "namespace_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        }
+      },
+      {
+        "transport": "tcp",
+        "algorithm": "ES256",
+        "passed": true,
+        "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+        "control_binding_ready": true,
+        "browser_version": "Google Chrome for Testing 156.0.8078.4",
+        "tool_sha256": {
+          "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+          "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+          "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+        },
+        "test_exit_code": 0,
+        "browser": {
+          "status": "passed",
+          "reason": "expired",
+          "original_contexts_closed": 2,
+          "results": [
+            {
+              "participant": 0,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.1323000000002794,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            },
+            {
+              "participant": 1,
+              "error_code": "unsupported-media-profile",
+              "seconds": 0.13560000000009315,
+              "limit_seconds": 8,
+              "logical_offers": 0,
+              "submission_attempted": false,
+              "owned_peer_closed": true,
+              "owned_audio_tracks_ended": true,
+              "remote_description_set": false
+            }
+          ]
+        },
+        "oracle": {
+          "logical_operations": 0,
+          "passed": true,
+          "physical_allocations": 0
+        },
+        "audio": {
+          "passed": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+          "version": "pulseaudio 16.1"
+        },
+        "unauthorized_responses": 4,
+        "expired_credential_refusals": 2,
+        "allocation_successes": 0,
+        "original_children_joined": true,
+        "zero_allocations_before_exit": true,
+        "allocation_drain_seconds": 1.235428409999713,
+        "turn_log_sha256": "e1610952936af93ab64260b64a696ec683a2e26b0b3a18cac985ac68a60ed739",
+        "behavior_passed": true,
+        "audio_diagnostic": {
+          "passed": true,
+          "startup_socket_created": true,
+          "original_process_joined": true,
+          "exit_code": 0,
+          "command_exit_code": 0,
+          "socket_exists_after_join": false,
+          "private_cookie_created": true,
+          "error_categories": []
+        },
+        "turn_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        },
+        "namespace_cleanup": {
+          "original_container_joined": true,
+          "owned_container_removed": true,
+          "forced_cleanup": false,
+          "original_exit_code": 0
+        }
+      }
+    ],
+    "full_task_qualified": false,
+    "acceptance_qualified": false,
+    "passed": true
+  },
+  "interpretation": "Five handler and225RTC unit passes remain valid separately. Here native ICE, ES256 browser ICE, both unreachable TURN, both direct bridges, TCP EdDSA and all4expiry cases pass. Baseline has one quiet audio sample; EdDSA ICE fails one AV observation; impairment fails outside-burst audio or decoded motion; UDP EdDSA passes media but original routes/slots fail the5s retirement at remote.rs282; UDP ES256 and TCP ES256 retain quality failures. Missing CNAME alone does not establish a complete AV/audio/recovery correction.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "actual-handler-and225-rtc-unit-functions-passed-browser-unrun",
+  "status": "actual-handler-and225-unit-functions-passed-full-browser-failed",
   "scope": "Actual RTC protocol outgoing handler SR/CNAME association; no network/browser quality or full task qualification.",
   "production_changed": true,
   "patch": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
@@ -183,11 +183,15 @@
     "original_three_assertions_prefix_sha256": "1ab48cfa265dcec8962215496047fcca0ed60609286ca5aeb868732ac44a23aa"
   },
   "browser_after": {
-    "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
     "run_id": 41209664880,
-    "lane": "full",
-    "status": "dispatched-runtime-unrun",
-    "passed": false,
-    "scope": "Original full strict media/ICE/relay/fault/direct/expiry scopes on the CNAME correction; no result inferred from handler225unit pass."
+    "artifact_id": 13047666371,
+    "revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+    "zip_sha256": "0ec5c87d099a6b7a59ad29d4d0efb77c5dc03095003e550c55f136c90deeb28d",
+    "git_sources_verified": 2887,
+    "prepared_sources_verified": 3089,
+    "status": "verified-failed-full-required-scope",
+    "evidence": "docs/evidence/gate-6/linux-rtc-compound-runtime.json",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }
