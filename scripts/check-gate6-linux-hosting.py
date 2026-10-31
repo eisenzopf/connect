@@ -15,6 +15,7 @@ import platform
 import re
 import signal
 import shutil
+import struct
 import math
 import subprocess
 import sys
@@ -284,7 +285,19 @@ def consultation_return_observations(text):
     return result
 
 
-def run(node_sdk=False, python_sdk=False):
+def video_feedback_diagnostic(value):
+    assert type(value) is dict and set(value) == {'active', 'withdrawn', 'restored',
+        'original_peers_joined', 'original_server_joined', 'reclaimed_slots'}
+    assert type(value['active']) is list and len(value['active']) == 2
+    for pair in [*value['active'], value['withdrawn'], value['restored']]:
+        assert type(pair) is list and len(pair) == 2 and all(type(v) is bool for v in pair)
+    assert type(value['original_peers_joined']) is bool and type(value['original_server_joined']) is bool
+    assert type(value['reclaimed_slots']) is int and value['reclaimed_slots'] == 2
+    return value
+
+
+def run(node_sdk=False, python_sdk=False, video_feedback=False):
+    assert not video_feedback or not (node_sdk or python_sdk), 'Independent video feedback component only'
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -360,6 +373,9 @@ def run(node_sdk=False, python_sdk=False):
                 "seconds": time.monotonic() - started, "log_sha256": digest(log), "test_results": summary}
         step['rtc_admission_observations'] = rtc_admission_observations(text) if child.returncode else []
         step['consultation_return_observations'] = consultation_return_observations(text) if child.returncode else []
+        step['canonical_video_feedback'] = [video_feedback_diagnostic(json.loads(line.split(' ', 1)[1]))
+            for line in text.splitlines() if line.startswith('canonical-video-feedback ')]
+        assert len(step['canonical_video_feedback']) <= 2
         step['rtc_admission_trace_enabled'] = []
         for line in text.splitlines():
             if 'rtc-admission-tracing-ready ' in line:
@@ -563,6 +579,8 @@ def run(node_sdk=False, python_sdk=False):
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
         ):
+            if video_feedback and name != 'webtransport':
+                continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
                            *arguments, "--no-run", "--message-format=json"], 3600)
             rows = [json.loads(line) for line in text.splitlines() if line.startswith("{")]
@@ -586,6 +604,48 @@ def run(node_sdk=False, python_sdk=False):
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        if video_feedback:
+            report['scope'] = 'Configured signed WSS/Store/Core exact-source picture-request component with decoded synthetic Opus/VP8 and current selection withdrawal/restoration. No loss-profile or full media/SDK qualification.'
+            decoder = Path(shutil.which('ffmpeg') or '').resolve(strict=True)
+            assert decoder.is_file() and os.access(decoder, os.X_OK)
+            fixtures = PRIVATE / 'video-feedback-fixtures'
+            fixtures.mkdir(mode=0o700)
+            fixture_hashes = {}
+            for color in ('red', 'blue'):
+                ivf = fixtures / (color + '.ivf')
+                execute('encode-feedback-' + color, [str(decoder), '-hide_banner', '-loglevel', 'error',
+                    '-nostdin', '-f', 'lavfi', '-i', 'color=' + color + ':size=64x64:rate=1',
+                    '-frames:v', '1', '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8',
+                    '-b:v', '128k', '-f', 'ivf', str(ivf)], 20)
+                raw = ivf.read_bytes()
+                assert raw[:4] == b'DKIF' and raw[8:12] == b'VP80'
+                assert struct.unpack_from('<HH', raw, 12) == (64, 64)
+                size, timestamp = struct.unpack_from('<IQ', raw, 32)
+                assert size == 64 and timestamp == 0 and len(raw) == 44 + size
+                packet = fixtures / (color + '.vp8')
+                packet.write_bytes(raw[44:])
+                packet.chmod(0o600)
+                fixture_hashes[packet.name] = digest(packet)
+            environment = dict(CONNECT_GATE6_AV_FIXTURE_DIR=str(fixtures), CONNECT_GATE6_FFMPEG=str(decoder))
+            results = []
+            for algorithm in ('eddsa', 'es256'):
+                case = 'canonical_websocket_control::webrtc::av::configured_signed_av_picture_requests_follow_current_selection_' + algorithm
+                text = execute('canonical-video-feedback-' + algorithm,
+                    [artifacts['webtransport'], case, '--exact', '--ignored', '--nocapture', '--test-threads=1'],
+                    90, defer_failure=True, environment=environment)
+                step = report['steps'][-1]
+                observed = step['canonical_video_feedback']
+                passed = text is not None and len(observed) == 1 and observed[0] == dict(
+                    active=[[True, False], [True, False]], withdrawn=[False, False], restored=[True, False],
+                    original_peers_joined=True, original_server_joined=True, reclaimed_slots=2)
+                passed = passed and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text or '', re.M) == ['1']
+                results.append(dict(algorithm=algorithm, passed=passed, observations=observed))
+            report['video_feedback'] = dict(passed=all(row['passed'] for row in results), results=results,
+                decoder_sha256=digest(decoder), fixtures_sha256=fixture_hashes, full_task_qualified=False,
+                acceptance_qualified=False)
+            assert report['video_feedback']['passed'], 'Current-selection picture request component failed or was unrun'
+            report['behavior_passed'] = True
+            return
         inventory = execute("snapshot-test-inventory", [artifacts['store'], '--list'], 10)
         for case in (
             'single_credential_snapshot_checks_current_projection_without_duplicate_source_captures',
@@ -960,8 +1020,9 @@ def main():
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--node-sdk", action="store_true", help="Include installed synthetic caller/peer Node native control journey")
     parser.add_argument("--python-sdk", action="store_true", help="Include installed Python native restart/current-authority journey")
+    parser.add_argument("--video-feedback", action="store_true", help="Only the configured exact-source picture-request component")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback)
 
 
 if __name__ == "__main__":

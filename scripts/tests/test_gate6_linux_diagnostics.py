@@ -25,6 +25,16 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_video_feedback_component_keeps_only_boolean_route_and_join_observations(self):
+        validate = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['video_feedback_diagnostic']
+        value = dict(active=[[False, False], [False, False]], withdrawn=[False, False], restored=[False, False],
+            original_peers_joined=True, original_server_joined=True, reclaimed_slots=2)
+        self.assertEqual(validate(value), value)
+        for bad in [dict(value, credential='private'), dict(value, active=[[False, 'private'], [False, False]]),
+                    dict(value, restored=None), dict(value, original_peers_joined=1), dict(value, reclaimed_slots=True)]:
+            with self.assertRaises(AssertionError):
+                validate(bad)
+
     def test_consultation_return_trace_keeps_declared_boundaries_and_bounded_counts(self):
         parse = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['consultation_return_observations']
         trace = ('\x1b[31mDEBUG connect_service::canonical_consultation: Native return planning snapshot stage="return-planned" current=true source_count=3 receiver_count=2 connection=private-secret\x1b[0m\n'

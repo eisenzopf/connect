@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       lane:
-        description: 'Full fixtures or the isolated Python 3.14 diagnostic component'
+        description: 'Full fixtures, isolated Python 3.14 or exact-source video feedback component'
         type: choice
-        options: [full, python314]
+        options: [full, python314, video-feedback]
         default: full
   push:
     branches: [main]
@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   node-control:
-    if: ${{ inputs.lane != 'python314' }}
+    if: ${{ inputs.lane != 'python314' && inputs.lane != 'video-feedback' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -70,6 +70,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   python-control:
+    if: ${{ inputs.lane != 'video-feedback' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -126,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['22', '26']
+        node: ${{ fromJSON(inputs.lane == 'video-feedback' && '["22"]' || '["22","26"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-ci/target
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -183,7 +184,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
       - name: Run isolated source-bound fixtures
         id: fixtures
-        run: python3 scripts/check-gate6-linux-hosting.py --node-sdk --python-sdk
+        run: python3 scripts/check-gate6-linux-hosting.py ${{ inputs.lane == 'video-feedback' && '--video-feedback' || '--node-sdk --python-sdk' }}
       - name: Upload source-only fixture evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -351,6 +351,46 @@ async fn relay_profile(transport: &str) {
     Box::pin(run_with_relay("EdDSA", true, Some(&relay))).await;
 }
 async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayFixture>) {
+    run_with_feedback(algorithm, configured, relay, false).await;
+}
+async fn picture_request(
+    receiver: &Arc<RvoipPeerConnection>,
+    source: &Arc<RvoipPeerConnection>,
+) -> (bool, bool) {
+    let selected = source.video_keyframe_requests();
+    let unrelated = receiver.video_keyframe_requests();
+    // Consume only bounded preexisting hints. A new request must cause a new
+    // observation on the exact source, rather than consume a startup permit.
+    for hints in [&selected, &unrelated] {
+        let mut drained = 0;
+        while tokio::time::timeout(Duration::from_millis(1), hints.notified())
+            .await
+            .is_ok()
+        {
+            drained += 1;
+            assert!(drained <= 8, "bounded preexisting picture requests");
+        }
+    }
+    receiver.request_video_keyframe().await.unwrap();
+    tokio::join!(
+        async {
+            tokio::time::timeout(Duration::from_millis(750), selected.notified())
+                .await
+                .is_ok()
+        },
+        async {
+            tokio::time::timeout(Duration::from_millis(750), unrelated.notified())
+                .await
+                .is_ok()
+        }
+    )
+}
+async fn run_with_feedback(
+    algorithm: &str,
+    configured: bool,
+    relay: Option<&RelayFixture>,
+    verify_feedback: bool,
+) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -484,6 +524,12 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
     opus::tone(&mut b.audio, 440.0, false).await;
     picture(&mut a.video, &blue, "alice-receives-blue", &dir, false).await;
     picture(&mut b.video, &red, "bob-receives-red", &dir, true).await;
+    let mut active_feedback = Vec::new();
+    if verify_feedback {
+        for (receiver, source) in [(0, 1), (1, 0)] {
+            active_feedback.push(picture_request(&peers[receiver], &peers[source]).await);
+        }
+    }
     command(
         &mut first,
         scoped(
@@ -498,6 +544,11 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
     .await;
     completed(&f, &f.client, "av-withdraw-video").await;
     no_video(&mut a.video).await;
+    let withdrawn_feedback = if verify_feedback {
+        Some(picture_request(&peers[0], &peers[1]).await)
+    } else {
+        None
+    };
     // Require newly received media after the withdrawal observation, rather
     // than satisfying continued delivery with packets buffered beforehand.
     while a.audio.try_recv().is_ok() {}
@@ -520,6 +571,11 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
     .await;
     completed(&f, &f.client, "av-restore-video").await;
     picture(&mut a.video, &blue, "alice-restores-blue", &dir, false).await;
+    let restored_feedback = if verify_feedback {
+        Some(picture_request(&peers[0], &peers[1]).await)
+    } else {
+        None
+    };
     // Gate only the first participant's video publication on its original
     // connection. Audio and the opposite video selection must remain live.
     command(
@@ -581,6 +637,39 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
     f.server.shutdown().await.unwrap();
     assert_eq!(host.adapter().route_count(), 0);
     assert_eq!(host.available_slots(), 2);
+    if verify_feedback {
+        println!(
+            "canonical-video-feedback {}",
+            json!({
+                "active": active_feedback, "withdrawn": withdrawn_feedback,
+                "restored": restored_feedback, "original_peers_joined": true,
+                "original_server_joined": true, "reclaimed_slots": 2,
+            })
+        );
+        assert_eq!(withdrawn_feedback, Some((false, false)));
+        assert_eq!(
+            restored_feedback,
+            Some((true, false)),
+            "restored source picture request was not forwarded"
+        );
+        assert_eq!(
+            active_feedback,
+            vec![(true, false), (true, false)],
+            "selected source picture request was not forwarded"
+        );
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic AV source and independent FFmpeg decoder; source-bound picture-request component"]
+async fn configured_signed_av_picture_requests_follow_current_selection_eddsa() {
+    run_with_feedback("EdDSA", true, None, true).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic AV source and independent FFmpeg decoder; source-bound picture-request component"]
+async fn configured_signed_av_picture_requests_follow_current_selection_es256() {
+    run_with_feedback("ES256", true, None, true).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
