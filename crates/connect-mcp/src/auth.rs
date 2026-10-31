@@ -118,7 +118,7 @@ pub(crate) fn bearer(headers: &HeaderMap) -> Result<&str, Error> {
 #[derive(Clone)]
 pub(crate) struct Admission {
     pub authenticator: Arc<dyn McpAuthenticator>,
-    pub capacity: Arc<tokio::sync::Semaphore>,
+    pub capacity: Arc<connect_service::resources::ResourceBudget>,
     pub cancellation: tokio_util::sync::CancellationToken,
 }
 pub(crate) async fn admit(

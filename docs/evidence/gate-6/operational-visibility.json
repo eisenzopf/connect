@@ -175,5 +175,30 @@
     "predecessor_run": 41245525263,
     "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
     "task_complete": false
+  },
+  "mcp_resource_candidate": {
+    "status": "implemented-not-yet-compiled",
+    "ownership": "Canonical host explicitly registers one weak request observer for its actual shared McpCapacity pool. Primary/task endpoint admission uses the same counted ResourceBudget permits; no separate diagnostic allowance.",
+    "cases": [
+      "32actual held primary/auxiliary HTTP authentication requests fill the same pool; request33 receives503 before authentication",
+      "Original32 complete401 after release; used count returns0 and a distinct request is admitted",
+      "Existing listener-boundary test retains primary/auxiliary slots until original listener exit"
+    ],
+    "runtime_pass": false
+  },
+  "browser_fixture_correction": {
+    "finding": "New browser fixture called the numeric port as a function and expected Outcome rather than typed Health data from health().",
+    "change": "Read the numeric port and value.operational directly; production SDK semantics unchanged.",
+    "local_calibration": {
+      "passed": true,
+      "scope": "Owned local macOS Chrome156 fixture calibration against synthetic HTTP and static native pool. No real server/helper, Linux resource measurement or task pass.",
+      "browser_script_sha256": "e442e5dbb831725eb06d488908c2c16bff3a5fc21b659f5626d41c395be61f57",
+      "counts": {
+        "reads": 45,
+        "preflights": 3
+      },
+      "original_browser_joined": true
+    },
+    "linux_profile_pass": false
   }
 }

@@ -22,7 +22,7 @@ let owned;
 try{
     owned=await launchOwnedChromium(chromium,process.env.CONNECT_GATE6_CHROME,input.profile);
     const page=await owned.browser.newPage();
-    await page.goto('http://127.0.0.1:'+server.address().port(),{timeout:5000});
+    await page.goto('http://127.0.0.1:'+server.address().port,{timeout:5000});
     process.stdout.write(JSON.stringify({phase:'ready'})+'\n');
     const result=await page.evaluate(async({endpoint,credential})=>{
         const {BrowserHttpClient}=await import('/browser_http.js');
@@ -30,8 +30,8 @@ try{
         let reads=0;
         for(let i=0;i<45;i++){
             const value=await client.health();
-            if(value.kind!=='health'||!value.data.operational)throw Error('Missing administrator health');
-            const operational=value.data.operational;
+            if(!value.operational)throw Error('Missing administrator health');
+            const operational=value.operational;
             if(!operational.resource_pools?.some(p=>p.kind==='native-quic'&&p.usage?.used>=1))
                 throw Error('Original helper peer not observed');
             // Keep outcomes inside the page. Return only fixed codes/counts.

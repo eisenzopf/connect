@@ -1,6 +1,7 @@
 //! Aggregate resource admission for one server's MCP endpoints.
 use crate::{McpAuthenticator, RunningMcp};
 use connect_service::Service;
+use connect_service::{readiness::ResourceObserver, resources::ResourceBudget};
 use std::{io, net::SocketAddr, sync::Arc};
 use tokio::sync::Semaphore;
 
@@ -14,18 +15,34 @@ pub const MAX_MCP_LISTENERS: usize = 32;
 /// Overload fails immediately rather than adding an unbounded admission queue.
 #[derive(Clone)]
 pub struct McpCapacity {
-    pub(crate) requests: Arc<Semaphore>,
+    pub(crate) requests: Arc<ResourceBudget>,
     pub(crate) listeners: Arc<Semaphore>,
 }
 impl Default for McpCapacity {
     fn default() -> Self {
         Self {
-            requests: Arc::new(Semaphore::new(MAX_MCP_REQUESTS)),
+            requests: ResourceBudget::new(MAX_MCP_REQUESTS)
+                .expect("Fixed nonzero MCP request capacity"),
             listeners: Arc::new(Semaphore::new(MAX_MCP_LISTENERS)),
         }
     }
 }
 impl McpCapacity {
+    /// Observe the same aggregate permits used by primary and task endpoints.
+    /// The composing server owns the returned probe; diagnostics retain Weak
+    /// references only. Register once for this server's shared capacity pool.
+    pub fn observe_requests(
+        &self,
+        service: &Service,
+        stop: tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<Arc<ResourceObserver>> {
+        self.requests.observe(
+            &service.readiness,
+            connect_protocol::ResourcePoolKind::McpRequests,
+            stop,
+        )
+    }
+
     /// Bind a primary endpoint using this pool. Shutdown updates main readiness.
     pub async fn start_primary(
         &self,

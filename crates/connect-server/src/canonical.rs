@@ -642,7 +642,13 @@ impl RunningCanonicalServer {
                 )?),
                 None => Arc::new(connect_mcp::LocalAuth::new(service.clone())),
             };
-            Some(connect_mcp::RunningMcp::start_local(service.clone(), auth, config.bind).await?)
+            let capacity = connect_mcp::McpCapacity::default();
+            resource_observers.push(capacity.observe_requests(&service, stop.clone())?);
+            Some(
+                capacity
+                    .start_primary(service.clone(), auth, config.bind)
+                    .await?,
+            )
         } else {
             service.readiness.unconfigured("mcp");
             None
