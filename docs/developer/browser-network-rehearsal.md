@@ -100,3 +100,5 @@ callback undercount and the unchanged quality limits. A missing or failed native
 observer cannot qualify a Chrome cell.
 
 The AV failure diagnostic retains at most 512 render-marker observations with numeric callback time, signed differences from `expectedDisplayTime` and `presentationTime`, and the presentation counter. Missing or invalid metadata stays null; omitted observations remain explicit. Equal-ordinal signed AV marker pairs remain available in numeric evidence. These diagnostics do not change the original callback-time AV edges, calibration or limits.
+
+The independent `check-renderer.mjs rtc-av` control cross-connects two owned browser pages using four bounded, in-memory native offer/answer descriptions. It uses the same 80 ms receiver preference, coded 100 ms audio/white pulses, muted video render observer and separate Web Audio envelope observer, with the original 60-second 80/120 ms AV limits. Its software audio and browser processes must join. It has no Connect, Core or SDK worker, and cannot qualify a Connect path. Render callback motion counts remain diagnostic in this AV-only control; earlier motion controls retain their own verdicts.

@@ -1,22 +1,27 @@
-/** Independent canvas/capture/video calibration. No RTC, server or account. */
+/** Owned browser-only canvas/capture/RTC controls; no Connect server or account. */
 import fs from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import http from 'node:http';
-import {markerFrames} from './marker_calibration.mjs';
+import {markerFrames,ordinalSync} from './marker_calibration.mjs';
+import {combineAudioEnvelopeSync} from './audio_envelope.mjs';
 import {markerCells} from './source_identity.mjs';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const [directory,mode='calibration']=process.argv.slice(2);
-if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality','rtc','rtc-buffer','rtc-content'].includes(mode))
+if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality','rtc','rtc-buffer','rtc-content','rtc-av'].includes(mode))
     throw Error('One fresh .local output directory and optional quality mode required');
 // Retain the original calibration. The separate quality control matches the
 // actual fixture's 60-second window, native canvas capture and 128x72 observer.
 const seconds=mode==='calibration'?8:60,pixelsPerSide=mode==='calibration'?[8,8]:[128,72];
 const rtcControl=mode.startsWith('rtc');
+const avControl=mode==='rtc-av';
+if(avControl&&(process.platform!=='linux'||process.arch!=='x64'
+    ||process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER!=='1'||!process.env.PULSE_SERVER))
+    throw Error('Native AV control requires its owned Linux software audio fixture');
 const output=path.resolve(directory);let binary=process.env.CONNECT_CHROME_BINARY;
 const modulePath=process.env.CONNECT_PLAYWRIGHT_MODULE;
 if(!output.startsWith(root+path.sep+'.local'+path.sep)||!path.isAbsolute(modulePath??''))
@@ -43,6 +48,8 @@ const files=[fileURLToPath(import.meta.url),path.join(root,'scripts/video/marker
     path.join(root,'scripts/video/observer-tools/package.json'),path.join(root,'scripts/video/observer-tools/package-lock.json'),
     path.join(root,'scripts/video/owned_chromium.mjs'),path.join(root,'.github/workflows/gate6-browser-observer.yml')];
 files.push(path.join(root,'scripts/video/decoded_video_frames.mjs'));
+files.push(path.join(root,'scripts/video/audio_envelope.mjs'),path.join(root,'scripts/video/owned_pulse_audio.py'),
+    path.join(root,'scripts/video/Dockerfile.browser-media'));
 async function frameworkFiles(directory){
     for(const entry of await fs.readdir(directory,{withFileTypes:true})){
         const file=path.join(directory,entry.name);
@@ -57,12 +64,34 @@ const inputs=async()=>{const result={};for(const file of [...new Set(files)].sor
 const before=await inputs();await fs.writeFile(path.join(output,'source-inputs.json'),JSON.stringify(before,null,2)+'\n');
 const {chromium}=await import(pathToFileURL(modulePath).href);
 let browser,owner,ownership,assets;const contexts=[];let rows=[],failure,joined=false,version;
+// Four in-memory descriptions connect the two owned pages. Never export SDP.
+// Cross-page AV keeps source and receiving AudioContexts independent, matching
+// the Connect fixture instead of looping a page's source into its own observer.
+const avDescriptions={offer:[null,null],answer:[null,null]},avWaiters=new Map();
+async function nativeAvDescription(index,description){
+    if(!avControl||![0,1].includes(index)||!description||!["offer","answer"].includes(description.type)
+        ||typeof description.sdp!=="string"||!description.sdp.length||description.sdp.length>65536
+        ||Object.keys(description).some(key=>!["type","sdp"].includes(key)))throw Error('Invalid owned AV description');
+    const {type,sdp}=description,slot=avDescriptions[type];
+    if(slot[index]!==null)throw Error('Repeated owned AV description');
+    slot[index]={type,sdp};
+    const key=type+index,waiting=avWaiters.get(key);
+    if(waiting){clearTimeout(waiting.timer);avWaiters.delete(key);waiting.resolve(slot[index]);}
+    if(slot[1-index])return slot[1-index];
+    return await new Promise((resolve,reject)=>{
+        const key=type+(1-index),timer=setTimeout(()=>{
+            avWaiters.delete(key);reject(Error('Owned AV signaling deadline'));
+        },10000);
+        avWaiters.set(key,{timer,resolve});
+    });
+}
 try{
     if(rtcControl){
-        const observerModule=await fs.readFile(path.join(root,'scripts/video/decoded_video_frames.mjs'));
+        const modules=new Map(await Promise.all(['decoded_video_frames.mjs','marker_calibration.mjs','audio_envelope.mjs']
+            .map(async name=>['/'+name.replaceAll('_','-'),await fs.readFile(path.join(root,'scripts/video',name))])));
         assets=http.createServer((request,response)=>{
-            if(request.method==='GET'&&request.url==='/decoded-video-frames.mjs'){
-                response.writeHead(200,{'Content-Type':'text/javascript'});response.end(observerModule);
+            if(request.method==='GET'&&modules.has(request.url)){
+                response.writeHead(200,{'Content-Type':'text/javascript'});response.end(modules.get(request.url));
             }else if(request.method==='GET'&&request.url==='/')response.end('<!doctype html><body></body>');
             else{response.writeHead(404);response.end();}
         });
@@ -72,6 +101,7 @@ try{
     version=browser.version();
     const pages=await Promise.all([0,1].map(async index=>{
         const context=await browser.newContext();contexts.push(context);const page=await context.newPage();
+        if(avControl)await page.exposeFunction('connectNativeAvDescription',description=>nativeAvDescription(index,description));
         if(assets){
             const origin=`http://127.0.0.1:${assets.address().port}`;
             // Only this owned synthetic origin can expose loopback ICE in the
@@ -80,19 +110,30 @@ try{
             await page.goto(origin);
         }else await page.setContent('<!doctype html><body></body>');
         await page.evaluate(async({index,cells,pulses,mode,pixelsPerSide,rtcControl})=>{
+            let audio,tone,gain,destination,audioTimer,audioEnvelope;
+            if(mode==='rtc-av'){
+                audio=new AudioContext();await audio.resume();
+                tone=audio.createOscillator();tone.frequency.value=440+index*220;
+                gain=audio.createGain();gain.gain.value=.05;
+                destination=audio.createMediaStreamDestination();destination.channelCount=1;
+                tone.connect(gain);gain.connect(destination);tone.start();
+            }
             const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
             const paint=canvas.getContext('2d');let n=0,ordinal=0,draws=0;
             const began=performance.now();
             const draw=()=>{
                 const elapsed=(performance.now()-began)/1000;
                 while(ordinal+1<pulses.length&&pulses[ordinal+1]<=elapsed)ordinal++;
+                const pulse=elapsed>=pulses[ordinal]&&elapsed<pulses[ordinal]+.1;
+                if(gain)gain.gain.setValueAtTime(pulse ? .7 : .05,audio.currentTime);
                 paint.fillStyle=`hsl(${n%360} 90% 40%)`;paint.fillRect(0,0,640,360);
                 paint.fillStyle='white';paint.fillRect((n*7)%580,70,60,150);n++;draws++;
                 cells.forEach((value,i)=>{paint.fillStyle=`rgb(${value},${value},${value})`;
                     paint.fillRect((i%2)*80,Math.floor(i/2)*45,80,45);});
-                if(elapsed>=pulses[ordinal]&&elapsed<pulses[ordinal]+.1){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
+                if(pulse){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
             };
             draw();const timer=setInterval(draw,1000/30),stream=mode==='calibration'?canvas.captureStream(30):canvas.captureStream();
+            if(destination)stream.addTrack(destination.stream.getAudioTracks()[0]);
             let received=stream,sender,receiver;
             const receiverTarget=mode==='rtc-buffer'&&index===1?0:80;
             if(rtcControl){
@@ -102,6 +143,7 @@ try{
                     sendEncodings:[{maxFramerate:30,maxBitrate:1_000_000,scaleResolutionDownBy:1}]});
                 const vp8=RTCRtpReceiver.getCapabilities('video').codecs.filter(codec=>codec.mimeType.toLowerCase()==='video/vp8');
                 if(!vp8.length)throw Error('Native VP8 unavailable');tx.setCodecPreferences(vp8);
+                if(destination)sender.addTransceiver(stream.getAudioTracks()[0],{direction:'sendrecv',streams:[stream]});
                 tx.receiver.jitterBufferTarget=receiverTarget;
                 if(tx.receiver.jitterBufferTarget!==receiverTarget)throw Error('Native receiver target unavailable');
                 const gathered=async peer=>{
@@ -112,13 +154,19 @@ try{
                     }
                 };
                 await sender.setLocalDescription(await sender.createOffer());await gathered(sender);
-                await receiver.setRemoteDescription(sender.localDescription);
+                const remoteOffer=mode==='rtc-av'?await globalThis.connectNativeAvDescription({
+                    type:'offer',sdp:sender.localDescription.sdp}):sender.localDescription;
+                if(!remoteOffer)throw Error('Owned AV signaling closed');
+                await receiver.setRemoteDescription(remoteOffer);
                 for(const {receiver:rx} of receiver.getTransceivers()){
                     rx.jitterBufferTarget=receiverTarget;
                     if(rx.jitterBufferTarget!==receiverTarget)throw Error('Native receiver target unavailable');
                 }
                 await receiver.setLocalDescription(await receiver.createAnswer());await gathered(receiver);
-                await sender.setRemoteDescription(receiver.localDescription);
+                const remoteAnswer=mode==='rtc-av'?await globalThis.connectNativeAvDescription({
+                    type:'answer',sdp:receiver.localDescription.sdp}):receiver.localDescription;
+                if(!remoteAnswer)throw Error('Owned AV signaling closed');
+                await sender.setRemoteDescription(remoteAnswer);
             }
             const video=document.createElement('video');video.muted=true;video.autoplay=true;
             video.width=640;video.height=360;video.style.cssText='position:fixed;inset:0;width:640px;height:360px;z-index:10000';
@@ -130,11 +178,33 @@ try{
             const [width,height]=pixelsPerSide;
             const sample=document.createElement('canvas');sample.width=width;sample.height=height;
             const pixels=sample.getContext('2d',{willReadFrequently:true});pixels.imageSmoothingEnabled=false;
-            let callbacks=0,changing=0,raf=0,last,closed=false,presented;
+            let callbacks=0,changing=0,raf=0,last,closed=false,presented,white;
+            const videoEdges=[],audioEdges=[],renderMarkers=[];
+            let renderedMarkerClock;
+            if(audio){
+                const {AudioEnvelope}=await import('/audio-envelope.mjs');
+                ({renderedMarkerClock}=await import('/marker-calibration.mjs'));
+                audioEnvelope=new AudioEnvelope();
+                if(received.getAudioTracks().length!==1)throw Error('Native remote audio track unavailable');
+                const source=audio.createMediaStreamSource(received),analyser=audio.createAnalyser();
+                analyser.fftSize=256;source.connect(analyser);
+                audioTimer=setInterval(()=>{
+                    const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);
+                    const rms=Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length),at=performance.now()/1000;
+                    if(audioEnvelope.sample(at,rms)&&audioEdges.length<512)audioEdges.push(at);
+                },10);
+            }
             const decoded=(_now,metadata)=>{
                 if(closed)return;callbacks++;pixels.drawImage(video,0,0,width,height);
                 if(Number.isSafeInteger(metadata.presentedFrames)&&metadata.presentedFrames>=0)presented=metadata.presentedFrames;
                 const bytes=pixels.getImageData(0,0,width,height).data;
+                if(audio){
+                    const currentWhite=bytes.every((value,index)=>index%4===3||value>240);
+                    if(currentWhite&&white===false&&videoEdges.length<512){
+                        const at=performance.now();videoEdges.push(at/1000);renderMarkers.push(renderedMarkerClock(at,metadata));
+                    }
+                    white=currentWhite;
+                }
                 if(last!==undefined&&bytes.some((value,index)=>value!==last[index]))changing++;
                 last=bytes;video.requestVideoFrameCallback(decoded);
             };
@@ -175,10 +245,14 @@ try{
                     content:{status:contentStatus,changing:contentChanging,observedFrames:contentFrames,
                         dimensionsRefused:contentDimensionsRefused,lastDimensions:contentLastDimensions,
                         pixelFailure:contentPixelFailure,...contentObserver?.snapshot()},
+                    ...(audio?{videoEdges:[...videoEdges],audioEdges:[...audioEdges],renderMarkers:[...renderMarkers],
+                        envelope:audioEnvelope.report(),audioClock:audio.currentTime,audioRate:audio.sampleRate}:{}),
                     time:performance.now(),visibility:document.visibilityState};
             },close:async()=>{closed=true;clearInterval(timer);
+                clearInterval(audioTimer);
                 const contentJoined=await contentObserver?.close();sender?.close();receiver?.close();
                 for(const track of [...stream.getTracks(),...received.getTracks()])track.stop();video.srcObject=null;
+                if(audio){tone.stop();await audio.close();}
                 return contentJoined;}};
         },{index,cells:markerCells(index),pulses:markerFrames().map(frame=>frame/30),mode,pixelsPerSide,rtcControl});
         return page;
@@ -189,6 +263,8 @@ try{
     rows=await Promise.all(pages.map(async(page,index)=>{
         const end=await page.evaluate(()=>window.observer.snapshot()),start=initial[index],seconds=(end.time-start.time)/1000;
         const contentJoined=await page.evaluate(()=>window.observer.close());
+        const av=avControl?combineAudioEnvelopeSync(ordinalSync(end.videoEdges.filter(t=>t>=start.time/1000),
+            end.audioEdges.filter(t=>t>=start.time/1000),seconds),end.envelope):undefined;
         return {index,seconds,draw_fps:(end.draws-start.draws)/seconds,callback_fps:(end.callbacks-start.callbacks)/seconds,
             changing_fps:(end.changing-start.changing)/seconds,raf_fps:(end.raf-start.raf)/seconds,
             presented_counter_fps:Number.isSafeInteger(end.presented)&&Number.isSafeInteger(start.presented)
@@ -205,25 +281,32 @@ try{
                 dimension_refusals:end.content.dimensionsRefused-start.content.dimensionsRefused,
                 last_dimensions:end.content.lastDimensions,pixel_failure:end.content.pixelFailure,
                 failed:end.content.failed??null,reader_joined:contentJoined?.joined??null}}:{}),
-            visibility:end.visibility,passed:end.visibility==='visible'&&(end.callbacks-start.callbacks)/seconds>=24
-                &&(end.changing-start.changing)/seconds>=24&&(!rtcControl||(end.decoded-start.decoded)/seconds>=24)};
+            ...(av?{av_sync:av,render_marker_observation:end.renderMarkers.filter(row=>row.callback_seconds>=start.time/1000),
+                audio_clock:{rate:end.audioRate,seconds:end.audioClock-start.audioClock,wall_seconds:seconds}}:{}),
+            visibility:end.visibility,passed:end.visibility==='visible'&&(avControl?av.status==='passed':
+                (end.callbacks-start.callbacks)/seconds>=24&&(end.changing-start.changing)/seconds>=24)
+                &&(!rtcControl||(end.decoded-start.decoded)/seconds>=24)};
     }));
 }catch(error){
     const reasons=[['Owned RTC gathering deadline','rtc-gathering'],['Native VP8 unavailable','vp8-unavailable'],
-        ['Native receiver target unavailable','receiver-target'],['Owned video playback deadline','video-playback']];
+        ['Native receiver target unavailable','receiver-target'],['Owned video playback deadline','video-playback'],
+        ['Owned AV signaling deadline','av-signaling']];
     failure={name:error?.name??'Error',reason:reasons.find(([message])=>String(error?.message).includes(message))?.[1]??'other'};
 }
 finally{
+    for(const waiting of avWaiters.values()){clearTimeout(waiting.timer);waiting.resolve(null);}avWaiters.clear();
     await Promise.allSettled(contexts.map(context=>context.close()));
     if(owner){ownership=await owner.close();joined=ownership.original_process_joined&&!ownership.forced_kill&&ownership.exit?.code===0;}
     if(assets)await new Promise(resolve=>assets.close(resolve));
 }
 const after=await inputs(),changed=Object.keys(before).filter(file=>before[file]!==after[file]);
-const report={scope:rtcControl?'Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.':'Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.',
+const report={scope:avControl?'Two owned browser-native AV controls using the fixed pulse programme, muted HTML video render and separate Web Audio decoded-envelope observer. Original80/120ms skew limits and42 paired markers over60s; no Connect, Core, SDK worker, remote host or account qualification.':rtcControl?'Two owned browser-native VP8-only RTC controls. Receiver targets and counters are observations only; changing pixels retain the original threshold. No Connect, Core, SDK worker, audio, remote host or account qualification.':'Two owned local canvas/capture/video controls. No RTC, transport, Core, audio, remote host or account qualification.',
     mode,requested_seconds:seconds,motion_sample_pixels:pixelsPerSide,
     os:process.platform,architecture:process.arch,node:process.version,browser:version,source_count:Object.keys(before).length,
     source_manifest_sha256:await hash(path.join(output,'source-inputs.json')),sources_unchanged:changed.length===0,changed_inputs:changed,
-    minimum_callback_and_changing_fps:24,rows,original_browser_joined:joined,ownership,error:failure??null,
+    minimum_callback_and_changing_fps:avControl?null:24,
+    ...(avControl?{av_limits:{median_abs_skew_ms:80,p95_abs_skew_ms:120,minimum_paired_markers:42},
+        minimum_decoded_fps:24}:{}),rows,original_browser_joined:joined,ownership,error:failure??null,
     passed:!failure&&joined&&changed.length===0&&rows.length===2&&rows.every(row=>row.passed)};
 await fs.writeFile(path.join(output,'summary.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 process.exitCode=report.passed?0:1;

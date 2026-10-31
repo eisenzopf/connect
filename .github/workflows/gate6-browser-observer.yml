@@ -1,6 +1,12 @@
 name: Gate 6 Linux browser observer
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: 'All observer controls or only the independent native AV control'
+        type: choice
+        options: [full, native-av]
+        default: full
   push:
     branches: [main]
     paths:
@@ -22,7 +28,7 @@ concurrency:
 jobs:
   linux-x86-renderer:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -38,6 +44,7 @@ jobs:
       - name: Check decoded-frame ownership and observer cleanup
         run: node --test scripts/video/decoded-video-frames.test.mjs
       - name: Calibrate observers and prove candidate normal private TLS trust
+        if: ${{ inputs.lane != 'native-av' }}
         run: |
           test "$(uname -m)" = x86_64
           mkdir -p .local/gate6-browser-observer/evidence
@@ -57,6 +64,7 @@ jobs:
                 --renderer-manifest .local/gate6-browser-observer/evidence/run/source-inputs.json
             '
       - name: Check the full 60-second motion observer without RTC
+        if: ${{ inputs.lane != 'native-av' }}
         run: |
           docker run --rm --network none --shm-size=1g --platform linux/amd64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
@@ -67,6 +75,7 @@ jobs:
             mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8 \
             node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/quality quality
       - name: Isolate native VP8 RTC presentation without Connect
+        if: ${{ inputs.lane != 'native-av' }}
         run: |
           observer_network="$(docker network create --internal --driver bridge --label "connect.gate6.observer=$GITHUB_RUN_ID" "connect-g6-observer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")"
           cleanup_observer_network() {
@@ -91,6 +100,35 @@ jobs:
             node scripts/video/check-renderer.mjs ".local/gate6-browser-observer/evidence/$observer_mode" "$observer_mode" || observer_failed=1
           done
           exit "$observer_failed"
+      - name: Isolate native browser AV startup without Connect
+        if: always()
+        run: |
+          mkdir -p .local/gate6-browser-observer/image-context .local/gate6-browser-observer/evidence
+          docker build --platform linux/amd64 --file scripts/video/Dockerfile.browser-media \
+            --tag connect-g6-observer-av .local/gate6-browser-observer/image-context
+          docker image inspect --format '{{.Id}}' connect-g6-observer-av > .local/gate6-browser-observer/evidence/av-image-id.txt
+          av_network="$(docker network create --internal --driver bridge --label "connect.gate6.av-observer=$GITHUB_RUN_ID" "connect-g6-av-observer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")"
+          cleanup_av_network() {
+            docker network rm "$av_network" >/dev/null
+            python3 - <<'PY'
+          from pathlib import Path
+          import json
+          Path('.local/gate6-browser-observer/evidence/rtc-av-network.json').write_text(json.dumps(dict(
+              owned_internal_bridge=True,original_bridge_removed=True,forced_cleanup=False))+'\n')
+          PY
+          }
+          trap cleanup_av_network EXIT
+          docker run --rm --read-only --network "$av_network" --platform linux/amd64 --cpus 4 --memory 6g --shm-size=1g \
+            --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+            --mount "type=bind,source=$PWD,target=/work,readonly" \
+            --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
+            --workdir /work \
+            --env CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1 --env PYTHONDONTWRITEBYTECODE=1 \
+            --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
+            --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
+            connect-g6-observer-av python3 scripts/video/owned_pulse_audio.py \
+              --output .local/gate6-browser-observer/evidence/av-audio -- \
+              node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/rtc-av rtc-av
       - name: Return only owned fixture files to the runner
         if: always()
         run: |
@@ -115,6 +153,12 @@ jobs:
             .local/gate6-browser-observer/evidence/rtc-content/summary.json
             .local/gate6-browser-observer/evidence/rtc-content/source-inputs.json
             .local/gate6-browser-observer/evidence/rtc-network.json
+            .local/gate6-browser-observer/evidence/rtc-av/summary.json
+            .local/gate6-browser-observer/evidence/rtc-av/source-inputs.json
+            .local/gate6-browser-observer/evidence/rtc-av/image-browser.json
+            .local/gate6-browser-observer/evidence/av-audio/summary.json
+            .local/gate6-browser-observer/evidence/av-image-id.txt
+            .local/gate6-browser-observer/evidence/rtc-av-network.json
             .local/gate6-browser-observer/evidence/trust/summary.json
           include-hidden-files: true
           retention-days: 7
