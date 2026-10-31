@@ -1,0 +1,59 @@
+{
+  "format": "connect/verified-negative-operational-runtime/1",
+  "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
+  "run_id": 41245525263,
+  "job_id": 124668037860,
+  "artifact_id": 13059721448,
+  "artifact_zip_sha256": "285bffeff27ad30d59331d0f7f0823401a58bc95abde55e88c71bcfc4ecd1028",
+  "source_verified": true,
+  "sources_verified": {
+    "git": 4583,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "store_cases_passed": 2,
+  "service_checks_run": false,
+  "permit_checks_run": false,
+  "public_client_checks_run": false,
+  "compiler_errors": [
+    {
+      "code": "E0308",
+      "message": "mismatched types",
+      "locations": [
+        {
+          "file": "crates/connect-service/src/readiness_tests.rs",
+          "line": 116
+        }
+      ]
+    },
+    {
+      "code": "E0308",
+      "message": "mismatched types",
+      "locations": [
+        {
+          "file": "crates/connect-service/src/readiness_tests.rs",
+          "line": 127
+        }
+      ]
+    },
+    {
+      "code": "E0308",
+      "message": "mismatched types",
+      "locations": [
+        {
+          "file": "crates/connect-service/src/readiness_tests.rs",
+          "line": 140
+        }
+      ]
+    }
+  ],
+  "elapsed_seconds": {
+    "store-authority": 208.544,
+    "service-observation": 1503.835
+  },
+  "finding": "New Service test passed raw token strings to execute_authenticated, whose parameter is an AuthenticatedPrincipal. Three E0308 errors; no Service/runtime qualification.",
+  "correction": "Use StoreValidator.validate_principal for the ordinary/admin credentials; retain the original administrator principal across revocation and require current Service rejection.",
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

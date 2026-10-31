@@ -23,6 +23,15 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def cacheable_steps(steps):
+    # A later compile/runtime failure must not discard already completed Cargo
+    # outputs. This grants cache reuse only; Cargo still validates/rebuilds every
+    # incomplete target and no behavior result is promoted to a pass.
+    return any(step.get("exit_code") in (0, 101) and not step.get("compiler_errors")
+        and any(re.fullmatch("[0-9a-f]{64}", item.get("sha256", ""))
+            for item in step.get("executables", [])) for step in steps)
+
+
 def generate_reference():
     spec = importlib.util.spec_from_file_location("application_reference", ROOT / "scripts/generate-application-http-openapi.py")
     module = importlib.util.module_from_spec(spec)
@@ -77,7 +86,6 @@ def main():
         ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
         ("operation-overload", prefix + ["-p", "connect-store", "--lib", "transitions::tests::shared_capacity_keeps_room_for_a_terminal_cancel_decision_and_its_causal_event", "--", "--test-threads=1"], 1200, 1),
     ]
-    all_commands = commands
     if args.case:
         commands = [c for c in commands if c[0] == args.case]
         assert len(commands) == 1
@@ -138,8 +146,8 @@ def main():
     finally:
         report["source_inputs_unchanged"] = before == sources()
         report["passed"] = report["passed"] and report["source_inputs_unchanged"]
-        report["cacheable_build"] = args.phase == "runtime" and report["source_inputs_unchanged"] and not args.case and len(report["steps"]) == len(all_commands) and all(
-            s["executables"] and not s["compiler_errors"] and s["exit_code"] != "timeout" for s in report["steps"])
+        report["cacheable_build"] = args.phase == "runtime" and report["source_inputs_unchanged"] and not args.case and cacheable_steps(report["steps"])
+        report["cache_scope"] = "Completed Cargo artifacts from unchanged sources only; missing/failed compilation remains unqualified and Cargo must rebuild it."
         (EVIDENCE / (key + ".json")).write_text(json.dumps(report, indent=2) + "\n")
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as output:

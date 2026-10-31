@@ -89,7 +89,7 @@
   "current_runtime_candidate": {
     "run_id": 41247496443,
     "source_revision": "516cc12a942a99a9b97ad24ad673ddd47537605f",
-    "status": "pending-behind-live-original-runtime-run-at-recording",
+    "status": "cancellation-requested-for-confirmed-Service-test-compile-defect-and-subscription-test-precondition",
     "predecessor_run": 41245525263,
     "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
     "task_complete": false
@@ -145,12 +145,34 @@
     "run_id": 41245525263,
     "job_id": 124668037860,
     "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
-    "status": "in_progress_at_recording",
+    "status": "terminal-failure-E0308-in-new-Service-test",
     "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
   },
   "subscription_test_precondition": {
     "finding": "A silent31s lease wait conflicts with the native transport's independent30s idle timeout",
     "correction": "Use read-only conversation snapshots every\u22645s while waiting31s, preserving the original signed peer without renewing its subscription lease",
     "scope": "Fixture precondition correction; does not alter production deadlines, authority, operation IDs or expiry criteria"
+  },
+  "negative_runtime_verification": "docs/evidence/gate-6/operational-runtime-negative.json",
+  "service_test_correction": {
+    "source_locations": "readiness_tests.rs116/127/140 atbafb865c",
+    "error": "Raw token passed where AuthenticatedPrincipal is required",
+    "fix": "Construct real principals with StoreValidator; keep the original principal to test current revocation",
+    "status": "implemented-not-yet-compiled",
+    "no_behavior_relaxation": true
+  },
+  "partial_compilation_cache": {
+    "finding": "A later Service compile failure discarded the already successful Store compilation and native dependencies",
+    "fix": "Cache only completed Cargo executable artifacts from unchanged sources even if later compilation/runtime fails; Cargo must validate/rebuild incomplete targets",
+    "runtime_pass_claim": false,
+    "guard_tests_passed": 4
+  },
+  "superseded_current_candidate": {
+    "run_id": 41247496443,
+    "source_revision": "516cc12a942a99a9b97ad24ad673ddd47537605f",
+    "status": "cancellation-requested-for-confirmed-Service-test-compile-defect-and-subscription-test-precondition",
+    "predecessor_run": 41245525263,
+    "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
+    "task_complete": false
   }
 }

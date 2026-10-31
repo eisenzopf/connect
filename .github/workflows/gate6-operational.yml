@@ -59,6 +59,9 @@ jobs:
       - name: Derive and verify protocol schema shape
         if: ${{ matrix.phase == 'schema' }}
         run: python3 scripts/check-operational-visibility.py --phase schema
+      - name: Check completed-artifact cache boundaries
+        if: ${{ matrix.phase == 'runtime' }}
+        run: python3 -m unittest discover -s scripts/tests -p test_operational_component.py
       - name: Store administrator authority and configured numeric bounds
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case store-authority

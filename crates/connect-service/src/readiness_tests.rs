@@ -83,6 +83,7 @@ fn resource_probes_are_weak_nonblocking_and_not_sampled_by_public_readiness() {
 #[tokio::test]
 async fn ordinary_and_revoked_health_do_not_sample_administrator_probes() {
     use connect_protocol::{Operation, Outcome, ResourcePoolKind};
+    use rvoip_auth_core::BearerValidator;
     use std::sync::atomic::{AtomicUsize, Ordering};
     let temp = tempfile::tempdir().unwrap();
     let store = Arc::new(
@@ -101,6 +102,9 @@ async fn ordinary_and_revoked_health_do_not_sample_administrator_probes() {
             expiry,
         )
         .unwrap();
+    let validator = crate::StoreValidator::new(store.clone());
+    let reader_principal = validator.validate_principal(&reader.token).await.unwrap();
+    let admin_principal = validator.validate_principal(&admin.token).await.unwrap();
     let service = crate::Service::new(store.clone());
     let calls = Arc::new(AtomicUsize::new(0));
     let count = calls.clone();
@@ -113,7 +117,7 @@ async fn ordinary_and_revoked_health_do_not_sample_administrator_probes() {
         .unwrap();
     assert!(matches!(
         service
-            .execute_authenticated(reader.token, Operation::Health {})
+            .execute_authenticated(reader_principal, Operation::Health {})
             .await
             .unwrap(),
         Outcome::Health {
@@ -124,7 +128,7 @@ async fn ordinary_and_revoked_health_do_not_sample_administrator_probes() {
     assert_eq!(calls.load(Ordering::Relaxed), 0);
     assert!(matches!(
         service
-            .execute_authenticated(admin.token.clone(), Operation::Health {})
+            .execute_authenticated(admin_principal.clone(), Operation::Health {})
             .await
             .unwrap(),
         Outcome::Health {
@@ -137,7 +141,7 @@ async fn ordinary_and_revoked_health_do_not_sample_administrator_probes() {
     store.revoke(&actor, &admin.id).unwrap();
     assert_eq!(
         service
-            .execute_authenticated(admin.token, Operation::Health {})
+            .execute_authenticated(admin_principal, Operation::Health {})
             .await
             .unwrap_err()
             .code,
