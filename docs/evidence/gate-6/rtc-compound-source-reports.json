@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "counterexample-prepared-runtime-unrun",
+  "scope": "Actual RTC protocol outgoing handler SR/CNAME association; no network/browser quality or full task qualification.",
+  "production_changed": false,
+  "patch": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
+  "patch_sha256": "5bc4ac3479052d6899dfba2a6413f8c1d0ddc751e7a2ec7e185c59be5f663a60",
+  "prepared_patch_count": 258,
+  "original_sr_mapping_and_counts_preserved": "required-unrun",
+  "local_shared_and_distinct_cname_groups": "required-unrun",
+  "existing_compounds_unknown_sources_and_reduced_feedback": "required-unrun",
+  "actual_test_functions": 3,
+  "actual_runtime_executed": false,
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "references": [
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.1",
+    "https://www.rfc-editor.org/rfc/rfc8834.html#section-4.6",
+    "https://www.rfc-editor.org/rfc/rfc8834.html#section-12.2.3"
+  ]
+}

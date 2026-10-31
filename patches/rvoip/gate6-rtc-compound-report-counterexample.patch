@@ -1,0 +1,171 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+@@ -446,3 +446,6 @@
+ 
+ #[cfg(test)]
+ mod source_clock_activation_tests;
++
++#[cfg(test)]
++mod compound_source_reports_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs
+@@ -0,0 +1,159 @@
++//! Actual outgoing protocol handler, not a copied report formatter.
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::rtp_transceiver::rtp_sender::{RTCRtpCodingParameters, RTCRtpEncodingParameters};
++use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++use ::interceptor::NoopInterceptor;
++use rtcp::source_description::{
++    SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
++};
++use sansio::Protocol;
++fn outgoing(
++    kind: RtpCodecKind,
++    ssrc: u32,
++    cname: &str,
++) -> RTCRtpTransceiverInternal<NoopInterceptor> {
++    let encodings = vec![RTCRtpEncodingParameters {
++        rtp_coding_parameters: RTCRtpCodingParameters {
++            ssrc: Some(ssrc),
++            ..Default::default()
++        },
++        ..Default::default()
++    }];
++    let track = MediaStreamTrack::new(
++        cname.into(),
++        format!("track-{ssrc}"),
++        "synthetic".into(),
++        kind,
++        encodings.clone(),
++    );
++    let mut t = RTCRtpTransceiverInternal::new(
++        kind,
++        Some(track),
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Sendonly,
++            send_encodings: encodings,
++            ..Default::default()
++        },
++    );
++    t.set_current_direction(RTCRtpTransceiverDirection::Sendonly);
++    t
++}
++fn sr(ssrc: u32) -> Box<dyn rtcp::Packet> {
++    Box::new(SenderReport {
++        ssrc,
++        ntp_time: 100 << 32,
++        rtp_time: ssrc * 1000,
++        packet_count: 7,
++        octet_count: 21,
++        ..Default::default()
++    })
++}
++fn description(ssrc: u32, cname: &str) -> Box<dyn rtcp::Packet> {
++    Box::new(SourceDescription {
++        chunks: vec![SourceDescriptionChunk {
++            source: ssrc,
++            items: vec![SourceDescriptionItem {
++                sdes_type: SdesType::SdesCname,
++                text: cname.as_bytes().to_vec().into(),
++            }],
++        }],
++    })
++}
++fn output(
++    packets: Vec<Box<dyn rtcp::Packet>>,
++    transceivers: &mut [RTCRtpTransceiverInternal<NoopInterceptor>],
++) -> Vec<Box<dyn rtcp::Packet>> {
++    let mut hop = NoopInterceptor::default();
++    hop.handle_write(TaggedPacket {
++        now: Instant::now(),
++        transport: Default::default(),
++        message: Packet::Rtcp(packets),
++    })
++    .unwrap();
++    let mut context = InterceptorHandlerContext {
++        is_dtls_handshake_complete: true,
++        ..Default::default()
++    };
++    let mut stats = RTCStatsAccumulator::new();
++    let media = MediaEngine::default();
++    let mut handler =
++        InterceptorHandler::new(&mut context, &mut hop, &mut stats, transceivers, &media);
++    let RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtcp(packets))) = handler
++        .poll_write()
++        .expect("original report disappeared")
++        .message
++    else {
++        panic!("expected original RTCP");
++    };
++    assert!(handler.poll_write().is_none());
++    packets
++}
++fn assert_compound(packets: &[Box<dyn rtcp::Packet>], ssrc: u32, cname: &str) {
++    let report = packets[0]
++        .as_any()
++        .downcast_ref::<SenderReport>()
++        .expect("SR must stay first");
++    assert_eq!(
++        (
++            report.ssrc,
++            report.ntp_time,
++            report.rtp_time,
++            report.packet_count,
++            report.octet_count
++        ),
++        (ssrc, 100 << 32, ssrc * 1000, 7, 21)
++    );
++    let names = packets
++        .iter()
++        .filter_map(|p| p.as_any().downcast_ref::<SourceDescription>())
++        .flat_map(|d| &d.chunks)
++        .filter(|c| c.source == ssrc)
++        .flat_map(|c| &c.items)
++        .filter(|i| i.sdes_type == SdesType::SdesCname)
++        .map(|i| i.text.as_ref())
++        .collect::<Vec<&[u8]>>();
++    assert_eq!(
++        names,
++        vec![cname.as_bytes()],
++        "local sender report lacks its exact SDP CNAME"
++    );
++}
++#[test]
++fn current_audio_video_reports_carry_their_shared_signaled_clock_identity() {
++    let mut tracks = vec![
++        outgoing(RtpCodecKind::Audio, 11, "private-pair"),
++        outgoing(RtpCodecKind::Video, 22, "private-pair"),
++    ];
++    for ssrc in [11, 22] {
++        assert_compound(&output(vec![sr(ssrc)], &mut tracks), ssrc, "private-pair");
++    }
++}
++#[test]
++fn distinct_signaled_groups_keep_their_own_exact_source_descriptions() {
++    let mut tracks = vec![
++        outgoing(RtpCodecKind::Audio, 11, "pair-one"),
++        outgoing(RtpCodecKind::Video, 22, "pair-two"),
++    ];
++    for (ssrc, cname) in [(11, "pair-one"), (22, "pair-two")] {
++        assert_compound(&output(vec![sr(ssrc)], &mut tracks), ssrc, cname);
++    }
++}
++#[test]
++fn existing_compound_unknown_source_and_reduced_feedback_are_not_relabelled() {
++    let mut tracks = vec![outgoing(RtpCodecKind::Audio, 11, "private-pair")];
++    let packets = output(vec![sr(11), description(11, "private-pair")], &mut tracks);
++    assert_eq!(packets.len(), 2);
++    assert_compound(&packets, 11, "private-pair");
++    let unknown = output(vec![sr(999)], &mut tracks);
++    assert_eq!(unknown.len(), 1, "unknown source gained an invented CNAME");
++    let feedback = output(
++        vec![Box::new(PictureLossIndication {
++            sender_ssrc: 11,
++            media_ssrc: 99,
++        })],
++        &mut tracks,
++    );
++    assert_eq!(feedback.len(), 1);
++    assert!(feedback[0].as_any().is::<PictureLossIndication>());
++}

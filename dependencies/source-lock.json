@@ -1403,6 +1403,11 @@
       "path": "patches/rvoip/gate6-sip-duplex-data-fairness.patch",
       "source": "G6-054 after exact production SIP selector counterexample15a5675d/run41197830642 records1pass/2fairnessfailures, alternate priority between original ready incoming and outgoing queues. Preserve outer cancellation/lifecycle priority, all current per-frame Core/codec/lifetime checks, original single worker/queues and owned joins. No new readers/tasks/buffers/delays, no media/age/deadline relaxation. Same three original selector assertions retained byte-for-byte; actual decoded telephone coverage remains separately required. Batch per-case reporting defect is corrected in runner without changing the original artifact.",
       "sha256": "3760a61b5a579ac33862e29b619c129169491a14319deeddbf2534dc3b217b05"
+    },
+    {
+      "path": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
+      "source": "G6-054 exact RTC outgoing-handler CNAME counterexample: local audio/video and distinct SDP clock groups must carry matching SDES with unchanged SR mapping/counts; existing compounds, unknown sources and reduced feedback remain unlabelled. Tests only; no production change or runtime qualification.",
+      "sha256": "5bc4ac3479052d6899dfba2a6413f8c1d0ddc751e7a2ec7e185c59be5f663a60"
     }
   ]
 }
