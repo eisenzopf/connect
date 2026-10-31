@@ -1,0 +1,39 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -214,7 +214,12 @@
+             }
+ 
+             // 4.a poll next timeout
+-            let mut timeout = {
++            // Media timers stop advancing during relay retirement. Polling an
++            // expired one here would repeatedly take the immediate-timeout path
++            // without servicing the TURN response sockets below.
++            let mut timeout = if let Some(deadline) = close_deadline {
++                deadline
++            } else {
+                 let mut core = self.inner.core.lock().await;
+                 core.poll_timeout()
+                     .unwrap_or(Instant::now() + DEFAULT_TIMEOUT_DURATION)
+@@ -239,9 +244,8 @@
+             if delay_from_now.is_zero() {
+                 let now = Instant::now();
+                 self.ice_gatherer.handle_timeout(now)?;
+-                let mut core = self.inner.core.lock().await;
+                 if close_deadline.is_none() {
+-                    core.handle_timeout(now)?;
++                    self.inner.core.lock().await.handle_timeout(now)?;
+                 }
+                 continue;
+             }
+@@ -255,8 +259,9 @@
+                 _ = timer.fuse() => {
+                     let now = Instant::now();
+                     self.ice_gatherer.handle_timeout(now)?;
+-                    let mut core = self.inner.core.lock().await;
+-                    if close_deadline.is_none() { core.handle_timeout(now)?; }
++                    if close_deadline.is_none() {
++                        self.inner.core.lock().await.handle_timeout(now)?;
++                    }
+                 }
+ 
+                 // Driver events (RTP, RTCP, or ICE candidate)

@@ -528,5 +528,19 @@
     }
   ],
   "latest_in_flight": [],
-  "paired_wal_candidate": "79Store functions passed but all4originalcallsfailed. New SIP fact memo candidate retains the exact existing native SQL/schema/clock/source validation and fresh file admission, with explicit original runtime checks and no retained permission readers; pending actual81Store/currentphoneverification."
+  "paired_wal_candidate": "79Store functions passed but all4originalcallsfailed. New SIP fact memo candidate retains the exact existing native SQL/schema/clock/source validation and fresh file admission, with explicit original runtime checks and no retained permission readers; pending actual81Store/currentphoneverification.",
+  "relay_retirement_candidate": {
+    "status": "implemented-runtime-unrun",
+    "source_parent": "3cca4d464dbe5f895d65732b6389500e62bab386",
+    "patch": "patches/rvoip/gate6-relay-close-active-timers.patch",
+    "patch_sha256": "cd9e04adf641c522cadbf1f0347a1150ff04e7531667e97f1e8c0c60fa4115d3",
+    "prepared_patch_count": 261,
+    "finding": "During relay close, Core timeouts are no longer advanced but still participate in wakeup selection. An expired Core timer can repeatedly bypass socket select and delay TURN close responses.",
+    "change": "Choose the original close deadline plus active gatherer/repair timers during retirement; query and handle Core timers only during active media.",
+    "verification": "Official preparation and source/format checks only; actual candidate Rust and full browser/relay behavior unrun.",
+    "prior_runtime_evidence": "docs/evidence/gate-6/linux-rtc-compound-runtime.json",
+    "details": "docs/developer/rtc-relay-retirement.md",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
+  }
 }

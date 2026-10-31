@@ -1418,6 +1418,11 @@
       "path": "patches/rvoip/gate6-rtc-compound-test-type.patch",
       "source": "G6-054 compile repair for added32-source test: explicitly type the expected HashSet collection. Original assertion semantics and original three counterexample functions unchanged; prior941 Linux compile-only failure retained, no runtime pass inferred.",
       "sha256": "19ad0fcfb14a20b93bfe508d6a2eea76007296aa0f49f01b91c38447cf224041"
+    },
+    {
+      "path": "patches/rvoip/gate6-relay-close-active-timers.patch",
+      "source": "G6-054 relay retirement must service its live TURN response sockets rather than a retired Core media timer which is no longer advanced. Select only the original three-second close deadline and active gatherer/repair deadlines during close; avoid unused Core SQL-independent mutex custody in that phase. No close grace, force, media policy, packet-age or quality-threshold change. Existing actual driver and full relay-close verification required; causal attribution to recorded UDP route failure remains unqualified.",
+      "sha256": "cd9e04adf641c522cadbf1f0347a1150ff04e7531667e97f1e8c0c60fa4115d3"
     }
   ]
 }
