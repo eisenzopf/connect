@@ -2,8 +2,8 @@
   "format": 1,
   "task": "G6-054",
   "implementation_status": "in-progress",
-  "date": "2026-10-28",
-  "scope": "Configured remote WebRTC/SIP addressing with verified native/telephone distinct-network direct/loss components and browser direct/UDP-TCP relay/restart/expiry/unreachable components. Four Linux relay cells now pass strict decoded media and cleanup; Linux impairment and variable direct AV remain open.",
+  "date": "2026-10-31",
+  "scope": "Configured WebRTC/SIP remote addressing and source-bound media components. The matrix identifies the exact source of each pass or failure; the latest combined candidate remains unqualified while browser and telephone verification runs.",
   "implementation": [
     "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
     "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
@@ -127,8 +127,9 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Current74 full41190044909 verifies nativeICE2, both ICE restart and both unreachableTURN cells, plus both TCP relay cells passing. Baseline/direct AV, UDP AV calibration and intermittent impaired/UDP decoded audio fail. All four impaired decoded-motion recoveries pass within two seconds. See linux-canonical-picture-runtime.json; no full profile qualification.",
-    "Clock capture/RTP timeline correction31a7f613 is source-verified by32actual Core functions, six native Linux network cases092c301d, both original signed AV functions and10Core repair guards. Strict browser diagnostic31a/run41196262502 still fails baseline AV p95128.2/124.9ms and ES256 direct peer1p95134.4ms; other3direct AV observations and all6audio/motion/identity observations pass. Concealment remains with0reportedRTP loss/discard. No full G6-054 or acceptance qualification.",
+    "Verify the original full browser matrix after the actual RTC CNAME correction at 86b6cf7c, including all strict clean/fault/direct/UDP/TCP and expired-TURN cases. The 225 RTC unit passes alone do not qualify browser AV or decoded quality.",
+    "Verify the public initial SIP WAL observer candidate, every current initial-call/snapshot Store regression and all four unchanged direct/loss telephone cells. Rejecting the failed synchronous retry is not a telephone pass.",
+    "Qualify the final combined candidate for all required addressing/ICE/TURN/native/browser/telephone behaviors with exact source bindings, original operation recovery, decoded duplex identity, unchanged quality bounds and actual allocation/worker cleanup. Recorded passes from different revisions do not establish that claim.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader full SDK failures are retained for matrix work and are not passes from a sibling component. Original Rust SDK return/EOF component25a2ce27 run41188491485 now source-verifies both original functions passing; installed/full SDK run41190708730 is source-verified failed on both Node22/26 runners with4/8 failed scenes; all93independent steps are retained in each artifact and broader matrix failures remain unresolved. G6-054 closure still requires its actual addressing/ICE/TURN/distinct-network decoded recovery checks; none are waived."
   ],
@@ -389,7 +390,7 @@
   "current_verification_matrix": [
     {
       "profile": "native distinct-network PCMU direct, transport loss and unreachable port",
-      "status": "component evidence recorded",
+      "status": "Historical owned guest-to-Mac component evidence at its recorded source",
       "evidence": [
         "docs/evidence/gate-6/native-distinct-network-audio.json",
         "docs/evidence/gate-6/native-network-loss.json",
@@ -398,22 +399,33 @@
       "limits": "Owned guest to Mac; no native Linux x86 performance or full video/matrix qualification."
     },
     {
-      "profile": "Current native Linux x86_64 distinct-network public SDK PCMU direct, bounded encrypted UDP loss and unreachable port",
-      "status": "All6 current component cases pass:3modes \u00d7EdDSA/ES256",
-      "run_id": 41192093218,
-      "source_revision": "35452dfe46d4802059f98a4070d0877fbc1ad16c",
-      "evidence": "docs/evidence/gate-6/native-distinct-network-audio.json",
-      "limits": "Exact4sPCMUaddressing/duplexidentity/transportrefusal andownedcleanupscope. Bothnativehost/clientLinuxx86_64; noNativevideo/WAN/fullmatrix/performancequalification."
+      "profile": "Native Linux x86_64 public SDK PCMU: direct, encrypted UDP loss and unreachable port, both algorithms",
+      "status": "All six original cases pass at the recorded source after the capture/RTP correction",
+      "run_id": 41197041950,
+      "source_revision": "092c301dfc83a4c599f329e8d759ca2201aeabb1",
+      "evidence": [
+        "docs/evidence/gate-6/guarded-audio-capture-timeline.json",
+        "docs/evidence/gate-6/native-distinct-network-audio.json"
+      ],
+      "limits": "Four-second PCMU duplex identity, refusal and actual drains. This source precedes the later SIP/RTC changes; no current combined-candidate, native video, WAN or performance pass."
     },
     {
       "profile": "telephone distinct-network direct and loss",
-      "status": "owned component passed",
+      "status": "Historical Mac host/Linux arm64 guest component pass at its recorded source",
       "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
-      "limits": "Exact synthetic telephone/PCMU fixture scope only; no provider/PSTN claim."
+      "limits": "Synthetic telephone/PCMU fixture only. Later native Linux x86_64 failures are separate and remain open; no provider/PSTN claim."
+    },
+    {
+      "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
+      "status": "All four original cases fail on the rejected synchronous-retry candidate",
+      "run_id": 41207024225,
+      "source_revision": "b31d00c10121dc774413b3f6ec8db2094cc96a85",
+      "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
+      "limits": "Both helper unit functions pass, but three media cases retain only 800/640/1120 native bytes; direct ES256 fails the original subscription. Retry reverted in 7a19b9f6. WAL observer candidate ba12a0c7 and test-corrected 052838f3 require actual Store and all four original call results. No full telephone pass."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
-      "status": "current local component passes recorded",
+      "status": "Historical local original-peer component passes at their recorded sources",
       "evidence": [
         "docs/evidence/gate-6/browser-ice-restart.json",
         "docs/evidence/gate-6/browser-relay-ice-restart.json",
@@ -422,45 +434,74 @@
       "limits": "Owned loopback CFT156 and coturn; full Linux/distinct-network matrix not inferred."
     },
     {
-      "profile": "Linux x86 opt3 native ICE and clean browser media",
-      "status": "Current native ICE and both unreachable TURN pass; clean baseline and ES256 browser ICE fail audio/AV quality",
-      "run_id": 41183675414,
-      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
-      "evidence": [
-        "docs/evidence/gate-6/linux-source-clock-runtime.json",
-        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
-      ],
-      "limits": "Current0c required runtime fails. Earlier abe passes remain historical source-bound evidence; no current clean/impairment qualification."
+      "profile": "Linux x86_64 strict browser baseline and distinct-network direct media",
+      "status": "Latest verified diagnostic still fails strict AV quality, with intermittent decoded audio failures",
+      "run_id": 41202218277,
+      "source_revision": "eba469b26602361f661d3275ca9a50fee81afe5d",
+      "evidence": "docs/evidence/gate-6/guarded-audio-capture-timeline.json",
+      "limits": "All moving-video and identity observations pass in this diagnostic, but at least one AV observation fails in the baseline and each direct algorithm. Generic Core refusal messages do not identify audio alone, and sampled RTC counters are not aggregate failures. No causal claim from trace counts."
     },
     {
-      "profile": "Browser Linux x86 distinct-network direct bridge",
-      "status": "Current ES256 direct passes; EdDSA direct fails123.6ms AV p95",
-      "run_id": 41183675414,
-      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
-      "evidence": [
-        "docs/evidence/gate-6/linux-source-clock-runtime.json",
-        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
-      ],
-      "limits": "Both have decoded moving media and clean original drains. Both report kinds appear in initial stats, but stable strict AV remains unresolved."
+      "profile": "Linux x86_64 full browser ICE, fault and distinct-network UDP/TCP relay scope",
+      "status": "Last verified full sweep fails overall; native ICE, both ICE restart/unreachable cases and both TCP relay cases pass",
+      "run_id": 41190044909,
+      "source_revision": "74a5a305e1b803fa2a7cd26cb209770e2a060b2e",
+      "evidence": "docs/evidence/gate-6/linux-canonical-picture-runtime.json",
+      "limits": "Both UDP relay cells and strict clean/impairment quality retain failures. All four impaired decoded-motion recoveries pass within two seconds at that source. The later full browser run after the CNAME correction remains pending; no current full relay or WAN qualification."
     },
     {
-      "profile": "Browser Linux x86 distinct-network relay UDP/TCP and EdDSA/ES256",
-      "status": "Current TCP EdDSA/ES256 cells pass; both UDP cells fail",
-      "run_id": 41183675414,
-      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
-      "evidence": [
-        "docs/evidence/gate-6/linux-source-clock-runtime.json",
-        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
+      "profile": "Capture/RTP timeline and exact-source picture-request regressions",
+      "status": "32 actual Core clock functions pass; both original signed AV functions plus ten repair guards pass separately",
+      "run_ids": [
+        41196260443,
+        41197046313
       ],
-      "limits": "UDP EdDSA fails browser participation; UDP ES256 lacks a passing AV calibration on one peer. Earlier4cell abe pass remains historical. No current complete relay or WAN qualification."
-    },
-    {
-      "profile": "Current capture/RTP timeline correction",
-      "status": "bounded component passes; strict AV remains failed",
+      "source_revisions": [
+        "31a7f61357c716cb1b73c5fa76958be7f897819d",
+        "092c301dfc83a4c599f329e8d759ca2201aeabb1"
+      ],
       "evidence": [
         "docs/evidence/gate-6/guarded-audio-capture-timeline.json"
       ],
-      "limits": "Core32, native6, signedAV2/Core10 pass. Baseline/direct diagnostic AV failures retained. Full fault/relay/telephone and expired-TURN requirement coverage remain separate."
+      "limits": "Component evidence only. These passes do not replace the strict browser, fault, relay or telephone requirements."
+    },
+    {
+      "profile": "Actual RTC outgoing sender report and local CNAME association",
+      "status": "All five actual handler functions and all 225 current RTC unit functions pass, zero ignored",
+      "run_id": 41209306536,
+      "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+      "evidence": "docs/evidence/gate-6/rtc-compound-source-reports.json",
+      "limits": "Original sender-report mapping/counts and exact SDP CNAME preserved; no browser quality or missing-SDES causality inferred. Full browser run 41209664880 is separate."
+    },
+    {
+      "profile": "Linux x86_64 original expired TURN credentials: UDP/TCP and both algorithms",
+      "status": "All four original cases pass at the recorded source",
+      "run_id": 41206536418,
+      "source_revision": "325a375f1b8363363a93136721c504d47b6c990d",
+      "evidence": "docs/evidence/gate-6/browser-turn-expiry-linux.json",
+      "limits": "Actual expired refusal, zero allocations, original peers/helpers joined and both containers removed without forced cleanup. Later full-candidate expiry cases still require their own result."
     }
-  ]
+  ],
+  "matrix_scope": "Latest verified observations at their recorded revisions, not a claim that one current candidate passes all profiles. Historical Mac/guest and local browser scopes remain separate. A running or queued job supplies no behavior pass.",
+  "latest_in_flight": [
+    {
+      "run_id": 41209664880,
+      "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
+      "scope": "Original full strict browser runtime, direct/UDP/TCP bridge and four expired TURN cases",
+      "status": "running-no-behavior-result"
+    },
+    {
+      "run_id": 41210897174,
+      "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
+      "scope": "Public initial SIP WAL observer Store regressions and all four original telephone cases",
+      "status": "running; static review found withdrawal test expects forbidden instead of existing unauthorized contract"
+    },
+    {
+      "run_id": 41211247494,
+      "source_revision": "052838f31ad713d09132b3eaef6a2867b45ac533",
+      "scope": "Same production WAL candidate with exact existing revoked-credential assertion",
+      "status": "queued-no-behavior-result"
+    }
+  ],
+  "full_task_qualified": false
 }
