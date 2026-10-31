@@ -753,5 +753,68 @@
       }
     ],
     "interpretation": "Concealment and adaptive playout change despite zero reported RTP packets lost/discarded in these two baseline audio streams. These counters do not establish a cause. Audio verdict passes; strict AV remains failed in the baseline and three of four direct bridge observations."
+  },
+  "full_installed_sdk_followup": {
+    "scope": "Separate full installed SDK matrix; these broader failures remain recorded for later matrix closure and do not qualify or block individual successful sibling components.",
+    "runs": [
+      {
+        "run_id": 41190708730,
+        "artifact_id": 13039719260,
+        "source_revision": "2569c63b794b4be0b41634af18a37ba1715ac356",
+        "zip_sha256": "cbd902375e5dd66aa58842729856083c6c088f731893fa59e7c8871c1a8f50dc",
+        "git_sources_verified": 4513,
+        "prepared_sources_verified": 4092,
+        "pinned_archives_verified": 4,
+        "runtime": "node22",
+        "passed": false,
+        "failed_steps": [
+          "installed-node-movement-installed_node_es256_move_candidate",
+          "installed-node-native-control",
+          "installed-python-native-eddsa",
+          "installed-python-native-es256"
+        ],
+        "rust_return": [
+          {
+            "name": "rust-sdk-consultation-audio",
+            "passed": true
+          },
+          {
+            "name": "rust-sdk-consultation-eof",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "run_id": 41190708730,
+        "artifact_id": 13040215436,
+        "source_revision": "2569c63b794b4be0b41634af18a37ba1715ac356",
+        "zip_sha256": "3ba6d92fa5f5238d2fc49e26499cfab6cc78b82933fed0f7c7c593e1d5228b37",
+        "git_sources_verified": 4513,
+        "prepared_sources_verified": 4092,
+        "pinned_archives_verified": 4,
+        "runtime": "node26",
+        "passed": false,
+        "failed_steps": [
+          "installed-node-movement-installed_node_eddsa_move_candidate",
+          "installed-node-movement-installed_node_eddsa_move_revoked_target_key",
+          "installed-node-movement-installed_node_es256_conversation_handoff_leave",
+          "installed-node-movement-installed_node_es256_move_observer",
+          "installed-node-native-control",
+          "installed-python-native-eddsa",
+          "installed-python-native-es256",
+          "installed-python-movement-installed_python_es256_move_speaker"
+        ],
+        "rust_return": [
+          {
+            "name": "rust-sdk-consultation-audio",
+            "passed": true
+          },
+          {
+            "name": "rust-sdk-consultation-eof",
+            "passed": true
+          }
+        ]
+      }
+    ]
   }
 }
