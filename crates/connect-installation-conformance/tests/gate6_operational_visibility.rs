@@ -177,7 +177,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
         abandoned.write_all(b"G").await.unwrap();
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
-                if usage(&read().await, ResourcePoolKind::HttpConnections).used == 1 {
+                if usage(read().await.as_ref(), ResourcePoolKind::HttpConnections).used == 1 {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
@@ -192,7 +192,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
             .unwrap();
         assert!(matches!(result, Ok(0) | Err(_)));
         assert_eq!(
-            usage(&read().await, ResourcePoolKind::HttpConnections).rejected,
+            usage(read().await.as_ref(), ResourcePoolKind::HttpConnections).rejected,
             1
         );
         let result = tokio::time::timeout(Duration::from_secs(35), abandoned.read(&mut byte))
@@ -201,7 +201,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
         assert!(matches!(result, Ok(0) | Err(_)));
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
-                if usage(&read().await, ResourcePoolKind::HttpConnections).used == 0 {
+                if usage(read().await.as_ref(), ResourcePoolKind::HttpConnections).used == 0 {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
@@ -212,7 +212,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
         let mut client = ApplicationClient::open(application).await.unwrap();
         assert_eq!(
             usage(
-                &snapshot(&mut client).await,
+                snapshot(&mut client).await.as_ref(),
                 ResourcePoolKind::HttpConnections
             )
             .limit,
@@ -221,7 +221,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
         drop(client);
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
-                if usage(&read().await, ResourcePoolKind::HttpConnections).used == 0 {
+                if usage(read().await.as_ref(), ResourcePoolKind::HttpConnections).used == 0 {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
@@ -233,7 +233,7 @@ async fn abandoned_http_header_expires_reclaims_capacity_and_joins_listener_drai
         draining.write_all(b"G").await.unwrap();
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
-                if usage(&read().await, ResourcePoolKind::HttpConnections).used == 1 {
+                if usage(read().await.as_ref(), ResourcePoolKind::HttpConnections).used == 1 {
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;

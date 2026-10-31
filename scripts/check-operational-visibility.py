@@ -45,7 +45,7 @@ def generate_reference():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("schema", "runtime"), required=True)
+    parser.add_argument("--phase", choices=("schema", "runtime", "typecheck"), required=True)
     parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "mcp-capacity", "public-client", "hosting-limits", "operation-overload"))
     parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--generate-reference", action="store_true", help=argparse.SUPPRESS)
@@ -87,6 +87,11 @@ def main():
         ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
         ("operation-overload", prefix + ["-p", "connect-store", "--lib", "transitions::tests::shared_capacity_keeps_room_for_a_terminal_cancel_decision_and_its_causal_event", "--", "--test-threads=1"], 1200, 1),
     ]
+    if args.phase == "typecheck":
+        commands = [("integration-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
+            "-p", "connect-installation-conformance", "--test", "gate6_operational_visibility",
+            "--test", "gate6_hosting_limits"], 1200, None)]
+        report["scope"] = "Integration fixture type checking only; no tests executed or runtime qualification."
     if args.case:
         commands = [c for c in commands if c[0] == args.case]
         assert len(commands) == 1

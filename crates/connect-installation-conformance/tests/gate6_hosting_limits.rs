@@ -107,7 +107,7 @@ async fn participant_and_upload_refusals_preserve_state_original_ids_and_reusabl
         let initial = room(&mut peer, "bounded-room").await;
         let payload = |id: &str| {
             Payload::ConversationParticipantAdd(payloads::MemberAdd {
-                identity_id: id.parse().unwrap(),
+                identity_id: id.to_owned().try_into().unwrap(),
                 kind: payloads::MemberAddKind::Human,
                 role: "participant".into(),
             })
@@ -160,7 +160,7 @@ async fn participant_and_upload_refusals_preserve_state_original_ids_and_reusabl
             "remove-second",
             Some(after.revision),
             Payload::ConversationParticipantRemove(payloads::MemberRemove {
-                participant_id: second.participant_id.parse().unwrap(),
+                participant_id: second.participant_id.clone().try_into().unwrap(),
                 reason: None,
             }),
         )

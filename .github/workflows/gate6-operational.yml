@@ -62,26 +62,30 @@ jobs:
       - name: Check completed-artifact cache boundaries
         if: ${{ matrix.phase == 'runtime' }}
         run: python3 -m unittest discover -s scripts/tests -p test_operational_component.py
+      - name: Type check integration fixtures before optimized compilation
+        id: types
+        if: ${{ matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase typecheck
       - name: Store administrator authority and configured numeric bounds
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case store-authority
       - name: Service resource observers and current authorization
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case service-observation
       - name: Actual admission permits and owner retirement
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case permit-lifetime
       - name: Public health and real socket expiry overload and drain
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case public-client
       - name: Shared MCP request overload reclamation and listener lifetimes
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case mcp-capacity
       - name: Public participant upload and subscription limits
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case hosting-limits
       - name: Durable operation overload retains cancellation and causal recovery room
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case operation-overload
       - name: Verify all component results share the unchanged source boundary
         id: component

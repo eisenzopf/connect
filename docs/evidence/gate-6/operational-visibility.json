@@ -89,7 +89,7 @@
   "current_runtime_candidate": {
     "run_id": 41248033909,
     "source_revision": "b757ddef173a1132ebbf7049f285bc2b8afb6529",
-    "status": "in-progress-Service-compilation-observed",
+    "status": "terminal-failed-integration-fixture-typecheck-after8passing-unit-tests",
     "predecessor_run": 41247496443,
     "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
     "task_complete": false,
@@ -159,7 +159,7 @@
     "source_locations": "readiness_tests.rs116/127/140 atbafb865c",
     "error": "Raw token passed where AuthenticatedPrincipal is required",
     "fix": "Construct real principals with StoreValidator; keep the original principal to test current revocation",
-    "status": "implemented-not-yet-compiled",
+    "status": "compiled-and3service-tests-passed-atb757",
     "no_behavior_relaxation": true
   },
   "partial_compilation_cache": {
@@ -204,7 +204,7 @@
   "queued_runtime_candidate": {
     "run_id": 41250256185,
     "source_revision": "405ceb29",
-    "status": "pending-behind-live-predecessor-41248033909",
+    "status": "terminal-cancellation-requested-before-runtime-compilation-for-confirmed-fixture-type-errors",
     "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
   },
   "required_mcp_connection_gap": {
@@ -221,5 +221,13 @@
       "Exercise actual connection capacity refusal, idle reclamation and joined listener shutdown; update schema/SDK closed pool kinds"
     ],
     "task_can_close": false
+  },
+  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-b757.json",
+  "fixture_type_correction": {
+    "status": "implemented-not-yet-compiled",
+    "health_snapshot": "Explicit as_ref for awaited Box<OperationalHealth> temporary",
+    "identifiers": "Use Identifier::try_from(String); FromStr is not implemented",
+    "early_preflight": "Type-check both integration fixtures before optimized runtime compilation; checks do not qualify runtime",
+    "no_criteria_relaxation": true
   }
 }

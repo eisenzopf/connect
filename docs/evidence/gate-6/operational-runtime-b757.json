@@ -1,0 +1,131 @@
+{
+  "format": "connect/verified-operational-runtime-components/1",
+  "source_revision": "b757ddef173a1132ebbf7049f285bc2b8afb6529",
+  "run_id": 41248033909,
+  "job_id": 124675466344,
+  "artifact_id": 13061961528,
+  "artifact_zip_sha256": "e1e15f85a9f94031fc6251dce0eca50fee777e82275272ed38bc6b4b6bb63f04",
+  "sources_verified": {
+    "git": 4591,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "source_inputs_sha256": "25f0a22f940dd3cacfcd6b8ed76dbaf97ef55d2bd24368faa7038b825b5b1ede",
+  "passing_test_counts": {
+    "store-authority": 2,
+    "service-observation": 3,
+    "permit-lifetime": 2,
+    "operation-overload": 1
+  },
+  "passing_tests_total": 8,
+  "failed_integration_compilation": [
+    {
+      "name": "public-client",
+      "exit_code": 101,
+      "elapsed_seconds": 1735.333,
+      "test_results": [],
+      "failed_tests": [],
+      "compiler_errors": [
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 180
+            }
+          ]
+        },
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 195
+            }
+          ]
+        },
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 204
+            }
+          ]
+        },
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 215
+            }
+          ]
+        },
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 224
+            }
+          ]
+        },
+        {
+          "code": "E0308",
+          "message": "mismatched types",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_operational_visibility.rs",
+              "line": 236
+            }
+          ]
+        }
+      ],
+      "executables": [],
+      "failure_locations": []
+    },
+    {
+      "name": "hosting-limits",
+      "exit_code": 101,
+      "elapsed_seconds": 0.716,
+      "test_results": [],
+      "failed_tests": [],
+      "compiler_errors": [
+        {
+          "code": "E0277",
+          "message": "the trait bound `Identifier: FromStr` is not satisfied",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_hosting_limits.rs",
+              "line": 110
+            }
+          ]
+        },
+        {
+          "code": "E0277",
+          "message": "the trait bound `Identifier: FromStr` is not satisfied",
+          "locations": [
+            {
+              "file": "crates/connect-installation-conformance/tests/gate6_hosting_limits.rs",
+              "line": 163
+            }
+          ]
+        }
+      ],
+      "executables": [],
+      "failure_locations": []
+    }
+  ],
+  "runtime_integration_cases_executed": false,
+  "process_profile_executed": false,
+  "completed_compilation_cache_saved": true,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "corrections": "Explicit as_ref on awaited boxed health snapshots; Identifier uses its actual TryFrom<String> API. No deadlines/assertions/production behavior changed. New fixture type-check phase prevents optimized compilation after an early type failure."
+}
