@@ -54,7 +54,7 @@ def run_plan(steps, report, directory, env, minimum_free_bytes=4 * 1024 ** 3,
                     allowed_ignored=IGNORED | {'isolated_native_keychain', 'native_keychain_child'}
                     | set(EXTERNAL_MEDIA_TESTS) | EXTERNAL_FAILURE_TESTS)
                 expected = {'gate5-driver-tests': 21, 'independent-vector-tests': 6,
-                            'video-measurement-tests': 57, 'grant-boundary-tests': 6,
+                            'video-measurement-tests': 60, 'grant-boundary-tests': 6,
                             'native-example-cleanup-guards': 13, 'package-proof-tests': 29,
                             'registry-license-tests': 9,
                             'prepared-archive-tests': 6,
