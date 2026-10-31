@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Build/package/recovery evidence with raw output retained privately, not uploaded."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import time
+from lib.package_environment import fixture_environment
+
+ROOT = Path(__file__).resolve().parents[1]
+BASE = ROOT / '.local/gate6-installation-build'
+EVIDENCE = BASE / 'evidence'
+PRIVATE = BASE / 'private'
+
+
+def digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def main():
+    os.umask(0o077)
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    PRIVATE.mkdir(parents=True, exist_ok=True)
+    source = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']
+    inputs = source()
+    (EVIDENCE / 'source-inputs.json').write_text(json.dumps(inputs, sort_keys=True) + '\n')
+    report = {'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'source_inputs_sha256': digest(EVIDENCE / 'source-inputs.json'), 'source_count': len(inputs), 'steps': [], 'passed': False, 'whole_gate_qualified': False}
+    env = fixture_environment()
+    try:
+        for name, command, budget in [
+            ('recovery-tests', ['cargo', 'test', '--locked', '--release', '--message-format=json', '-p', 'connect-server', '--test', 'gate6_canonical_recovery', '--', '--test-threads=1'], 5400),
+            ('package', ['python3', 'scripts/package-linux.py'], 5400),
+        ]:
+            started = time.monotonic()
+            log = PRIVATE / (name + '.log')
+            try:
+                with log.open('w') as output:
+                    result = subprocess.run(command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT, env=env, timeout=budget)
+                status = result.returncode
+            except subprocess.TimeoutExpired:
+                status = 'timeout'
+            step = {'name': name, 'exit_code': status, 'elapsed_seconds': round(time.monotonic() - started, 3)}
+            if name == 'recovery-tests':
+                lines = log.read_text().splitlines()
+                step['test_results'] = [line for line in lines if line.startswith('test result:')]
+                step['failed_tests'] = [line for line in lines if line.startswith('test ') and line.endswith(' ... FAILED')]
+                step['compiler_errors'] = []
+                for line in lines:
+                    try:
+                        event = json.loads(line)
+                    except ValueError:
+                        continue
+                    if event.get('reason') == 'compiler-message' and event['message']['level'] == 'error':
+                        message = event['message']
+                        step['compiler_errors'].append({'message': message['message'], 'code': message.get('code'), 'locations': [{'file': span['file_name'], 'line': span['line_start']} for span in message['spans'] if span['is_primary']]})
+            report['steps'].append(step)
+            print(json.dumps(step), flush=True)
+            if status != 0:
+                raise RuntimeError('Bounded build step failed; raw diagnostics retained privately')
+        packages = list((ROOT / 'dist').glob('connect-*-ubuntu-24.04-x86_64-*.tar.gz'))
+        assert len(packages) == 1
+        package = packages[0]
+        report['archive'] = package.name
+        report['archive_sha256'] = digest(package)
+        report['package_manifest_sha256'] = digest(package.with_suffix('').with_suffix('') / 'manifest.json')
+        report['source_inputs_unchanged'] = inputs == source()
+        assert report['source_inputs_unchanged']
+        report['passed'] = True
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+            output.write('package=' + str(package.with_suffix('').with_suffix('')) + '\n')
+    finally:
+        report['source_inputs_unchanged'] = inputs == source()
+        (EVIDENCE / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
+
+
+if __name__ == '__main__':
+    main()

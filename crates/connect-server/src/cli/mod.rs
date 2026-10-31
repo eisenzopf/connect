@@ -1,4 +1,5 @@
 pub mod canonical_init;
+pub mod canonical_recovery;
 mod client_errors;
 mod connected_app_init;
 pub mod credential_installation;

@@ -1,0 +1,111 @@
+name: Gate 6 Linux installation
+on:
+  workflow_dispatch:
+    inputs:
+      upgrade_run:
+        description: 'Optional earlier successful installation package run ID (different source revision)'
+        type: string
+        default: ''
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: gate6-linux-installation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  ubuntu-systemd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev ffmpeg
+      - name: Verify package integrity boundaries
+        run: python3 -m unittest discover -s scripts/tests -p test_linux_package.py
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-linux-installation-target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+      - name: Prepare verified upstream sources and locked dependencies
+        run: |
+          python3 scripts/lib/source_build_cache.py restore
+          python3 scripts/lib/ci_dependency_cache.py
+          cargo fetch --locked
+      - name: Test canonical recovery and package the production release
+        id: build
+        run: python3 scripts/check-linux-package-build.py
+      - name: Preserve package as an unpublished workflow artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-linux-installation-package
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          retention-days: 7
+          if-no-files-found: error
+      - name: Retrieve prior package for distinct-source upgrade rehearsal
+        if: ${{ inputs.upgrade_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_RUN: ${{ inputs.upgrade_run }}
+        run: |
+          test "$PRIOR_RUN" -gt 0
+          gh run download "$PRIOR_RUN" --repo "$GITHUB_REPOSITORY" --name gate6-linux-installation-package --dir .local/gate6-prior-package
+          cd .local/gate6-prior-package
+          sha256sum --check *.sha256
+          tar -xzf *.tar.gz
+      - name: Rehearse installed systemd state and signing recovery
+        env:
+          CURRENT_PACKAGE: ${{ steps.build.outputs.package }}
+          PRIOR_RUN: ${{ inputs.upgrade_run }}
+        run: |
+          if [ -n "$PRIOR_RUN" ]; then
+            PRIOR_PACKAGE=$(find "$GITHUB_WORKSPACE/.local/gate6-prior-package" -mindepth 1 -maxdepth 1 -type d -name 'connect-*')
+            sudo python3 scripts/check-linux-installation.py --package "$PRIOR_PACKAGE" --upgrade-package "$CURRENT_PACKAGE"
+          else
+            sudo python3 scripts/check-linux-installation.py --package "$CURRENT_PACKAGE"
+          fi
+      - name: Upload curated source and installation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-linux-installation-evidence
+          path: |
+            .local/gate6-installation-build/evidence/
+            .local/gate6-installation/evidence/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preserve successful exact-source build cache
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        run: python3 scripts/lib/source_build_cache.py save
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-linux-installation-target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

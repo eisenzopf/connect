@@ -92,16 +92,12 @@ enum Command {
         #[arg(long)]
         output: PathBuf,
     },
-    /// Restore a verified backup into a new local directory.
+    /// Restore a verified canonical backup into a new protected directory.
     Restore {
         #[arg(long)]
         backup: PathBuf,
         #[arg(long)]
         directory: PathBuf,
-        #[arg(long, default_value = "127.0.0.1:4434")]
-        bind: std::net::SocketAddr,
-        #[arg(long)]
-        websocket_bind: Option<std::net::SocketAddr>,
     },
     /// Reconcile current setup metadata; historical schema conversion is unsupported.
     Migrate {
@@ -391,13 +387,10 @@ async fn main() -> Result<()> {
             config,
             server_config,
             output,
-        } => recovery::backup(&server_config, &config, &output)?,
-        Command::Restore {
-            backup,
-            directory,
-            bind,
-            websocket_bind,
-        } => recovery::restore(&backup, &directory, bind, websocket_bind)?,
+        } => connect_server::cli::canonical_recovery::backup(&server_config, &config, &output)?,
+        Command::Restore { backup, directory } => {
+            connect_server::cli::canonical_recovery::restore(&backup, &directory)?
+        }
         Command::Migrate {
             config,
             server_config,
