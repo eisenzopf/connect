@@ -555,5 +555,132 @@
       }
     ],
     "scope": "BothoriginalconfiguredsignedAVcurrent-selectionpicturefunctions plusall10actualpinnedCorevideo repair regressions withproductionopusfeature. No loss-profile/fullmedia/SDK/acceptancequalification."
+  },
+  "after_capture_timeline": {
+    "source_revision": "092c301dfc83a4c599f329e8d759ca2201aeabb1",
+    "run_id": 41197046313,
+    "artifact_id": 13041792813,
+    "zip_sha256": "cec10c9fa6eab58801223d45d059bd6fced9a4375590608df600774bf89a35e9",
+    "git_sources_verified": 4523,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": true,
+      "results": [
+        {
+          "algorithm": "eddsa",
+          "passed": true,
+          "observations": [
+            {
+              "active": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  true,
+                  false
+                ]
+              ],
+              "original_peers_joined": true,
+              "original_server_joined": true,
+              "reclaimed_slots": 2,
+              "restored": [
+                true,
+                false
+              ],
+              "withdrawn": [
+                false,
+                false
+              ]
+            }
+          ]
+        },
+        {
+          "algorithm": "es256",
+          "passed": true,
+          "observations": [
+            {
+              "active": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  true,
+                  false
+                ]
+              ],
+              "original_peers_joined": true,
+              "original_server_joined": true,
+              "reclaimed_slots": 2,
+              "restored": [
+                true,
+                false
+              ],
+              "withdrawn": [
+                false,
+                false
+              ]
+            }
+          ]
+        }
+      ],
+      "decoder_sha256": "ed16af623947494a72e284b6eb8ff225f2da22b38b5d5069c2fd4b4ba3384e41",
+      "fixtures_sha256": {
+        "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+        "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+      },
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "core_repair_regressions": {
+        "passed": true,
+        "status": "passed",
+        "execution": {
+          "name": "core-video-repair-regressions",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.7155273749999651,
+          "log_sha256": "dbd236eef81460298b02fa992a4ffdec8f376f499c851df801989ae406f7209b",
+          "test_results": [
+            "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 558 filtered out; finished in 0.69s"
+          ],
+          "rtc_admission_observations": [],
+          "consultation_return_observations": [],
+          "canonical_video_feedback": [],
+          "rtc_admission_trace_enabled": [],
+          "panic_locations": [],
+          "rtc_operation_failures": [],
+          "ipc_data_revocation_failures": [],
+          "ipc_data_status_revocation_failures": [],
+          "rtc_ice_worker_failures": [],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "python_movement_phases": [],
+          "python_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_phases": [],
+          "python_consultation_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "python_administrative_phases": [],
+          "python_administrative_failures": [],
+          "python_administrative_drain_failures": []
+        }
+      }
+    }
   }
 }

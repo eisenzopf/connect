@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "core-and-native-components-passed-browser-signed-av-pending",
+  "status": "core-native-signed-av-components-passed-strict-av-still-failed",
   "scope": "Actual Core guarded mixer original capture/RTP clock component, separate from strict browser/native/telephone quality and network qualification.",
   "before": {
     "source_revision": "1f3d766d43ad86a1fe54ab24cd804120b5dd063a",
@@ -151,7 +151,7 @@
     "compile_seconds": 475.757532094
   },
   "after": {
-    "status": "core-passed-browser-in-progress",
+    "status": "component-regressions-passed-strict-browser-quality-failed",
     "passed": false,
     "source_revision": "31a7f61357c716cb1b73c5fa76958be7f897819d",
     "core_run_id": 41196260443,
@@ -666,6 +666,459 @@
           ]
         }
       ]
+    },
+    "picture_integration": {
+      "source_revision": "092c301dfc83a4c599f329e8d759ca2201aeabb1",
+      "run_id": 41197046313,
+      "artifact_id": 13041792813,
+      "zip_sha256": "cec10c9fa6eab58801223d45d059bd6fced9a4375590608df600774bf89a35e9",
+      "git_sources_verified": 4523,
+      "prepared_sources_verified": 4092,
+      "pinned_archives_verified": 4,
+      "source_inputs_unchanged": true,
+      "component": {
+        "passed": true,
+        "results": [
+          {
+            "algorithm": "eddsa",
+            "passed": true,
+            "observations": [
+              {
+                "active": [
+                  [
+                    true,
+                    false
+                  ],
+                  [
+                    true,
+                    false
+                  ]
+                ],
+                "original_peers_joined": true,
+                "original_server_joined": true,
+                "reclaimed_slots": 2,
+                "restored": [
+                  true,
+                  false
+                ],
+                "withdrawn": [
+                  false,
+                  false
+                ]
+              }
+            ]
+          },
+          {
+            "algorithm": "es256",
+            "passed": true,
+            "observations": [
+              {
+                "active": [
+                  [
+                    true,
+                    false
+                  ],
+                  [
+                    true,
+                    false
+                  ]
+                ],
+                "original_peers_joined": true,
+                "original_server_joined": true,
+                "reclaimed_slots": 2,
+                "restored": [
+                  true,
+                  false
+                ],
+                "withdrawn": [
+                  false,
+                  false
+                ]
+              }
+            ]
+          }
+        ],
+        "decoder_sha256": "ed16af623947494a72e284b6eb8ff225f2da22b38b5d5069c2fd4b4ba3384e41",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "full_task_qualified": false,
+        "acceptance_qualified": false,
+        "core_repair_regressions": {
+          "passed": true,
+          "status": "passed",
+          "execution": {
+            "name": "core-video-repair-regressions",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.7155273749999651,
+            "log_sha256": "dbd236eef81460298b02fa992a4ffdec8f376f499c851df801989ae406f7209b",
+            "test_results": [
+              "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 558 filtered out; finished in 0.69s"
+            ],
+            "rtc_admission_observations": [],
+            "consultation_return_observations": [],
+            "canonical_video_feedback": [],
+            "rtc_admission_trace_enabled": [],
+            "panic_locations": [],
+            "rtc_operation_failures": [],
+            "ipc_data_revocation_failures": [],
+            "ipc_data_status_revocation_failures": [],
+            "rtc_ice_worker_failures": [],
+            "local_schema_mismatches": [],
+            "native_audio_boundary_failures": [],
+            "native_audio_minimum_failures": [],
+            "native_audio_quiescence_failures": [],
+            "sdk_current_read_failures": [],
+            "node_completed_phases": [],
+            "node_failures": [],
+            "node_progress": [],
+            "node_consultation_phases": [],
+            "node_consultation_failures": [],
+            "node_movement_phases": [],
+            "node_movement_failures": [],
+            "python_movement_phases": [],
+            "python_movement_failures": [],
+            "python_native_failures": [],
+            "python_consultation_phases": [],
+            "python_consultation_failures": [],
+            "node_administrative_phases": [],
+            "node_administrative_failures": [],
+            "node_administrative_drain_failures": [],
+            "python_administrative_phases": [],
+            "python_administrative_failures": [],
+            "python_administrative_drain_failures": []
+          }
+        }
+      }
+    },
+    "browser_diagnostic": {
+      "revision": "31a7f61357c716cb1b73c5fa76958be7f897819d",
+      "run_id": 41196262502,
+      "artifact_id": 13041968545,
+      "zip_sha256": "aed87958b57b097351da8579b7c6ac15958856b3790f1037127e1f3f815fa1a5",
+      "git_sources_verified": 2876,
+      "prepared_sources_verified": 3087,
+      "passed": false,
+      "scope": "Original strict60s baseline and two distinct-network direct bridge profiles after the RTP clock correction; no fault/relay/WAN/performance or full G6-054 qualification.",
+      "observations": [
+        {
+          "profile": "baseline",
+          "peer": 0,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 29.61092777856778,
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 27.94999999971992,
+            "p95_abs_skew_ms": 128.20000000018615,
+            "paired_markers": 82
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              116,
+              3055
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              37475
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              10
+            ],
+            "insertedSamplesForDeceleration": [
+              0,
+              3850
+            ],
+            "removedSamplesForAcceleration": [
+              726,
+              3924
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "profile": "baseline",
+          "peer": 1,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 29.628963477185515,
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 27.49999999999808,
+            "p95_abs_skew_ms": 124.90000000037327,
+            "paired_markers": 82
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              118,
+              3082
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              37896
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              11
+            ],
+            "insertedSamplesForDeceleration": [
+              0,
+              2834
+            ],
+            "removedSamplesForAcceleration": [
+              1089,
+              3485
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "profile": "bridge-eddsa",
+          "peer": 0,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 29.925610682659848,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 23.200000000187515,
+            "p95_abs_skew_ms": 117.09999999962761,
+            "paired_markers": 83
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              101,
+              3087
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              15381
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              4
+            ],
+            "insertedSamplesForDeceleration": [
+              145,
+              1891
+            ],
+            "removedSamplesForAcceleration": [
+              0,
+              2180
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "profile": "bridge-eddsa",
+          "peer": 1,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 28.86062976966103,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 21.39999999990394,
+            "p95_abs_skew_ms": 109.39999999990668,
+            "paired_markers": 78
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              105,
+              3092
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              11445
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              3
+            ],
+            "insertedSamplesForDeceleration": [
+              0,
+              4470
+            ],
+            "removedSamplesForAcceleration": [
+              3053,
+              5236
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "profile": "bridge-es256",
+          "peer": 0,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 29.603680274819073,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 19.300000000278317,
+            "p95_abs_skew_ms": 94.60000000009394,
+            "paired_markers": 81
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              100,
+              3089
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              10295
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              3
+            ],
+            "insertedSamplesForDeceleration": [
+              0,
+              3490
+            ],
+            "removedSamplesForAcceleration": [
+              0,
+              725
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "profile": "bridge-es256",
+          "peer": 1,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "decoded_fps": 29.853181598850536,
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 24.449999999953675,
+            "p95_abs_skew_ms": 134.39999999990704,
+            "paired_markers": 82
+          },
+          "bad_audio_samples": 0,
+          "audio_counter_first_last": {
+            "packetsReceived": [
+              102,
+              3086
+            ],
+            "packetsLost": [
+              0,
+              0
+            ],
+            "concealedSamples": [
+              0,
+              18624
+            ],
+            "silentConcealedSamples": [
+              0,
+              0
+            ],
+            "concealmentEvents": [
+              0,
+              5
+            ],
+            "insertedSamplesForDeceleration": [
+              0,
+              2398
+            ],
+            "removedSamplesForAcceleration": [
+              2179,
+              5014
+            ],
+            "packetsDiscarded": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "baseline_pipeline_counts": {
+        "scope": "Bounded private synthetic-lane trace counts only; instrumentation can affect timing.",
+        "captured_events": 44808,
+        "omitted_events": 0,
+        "suppressed_known_successes": 80658,
+        "counts": {
+          "packet_authority_refused": 21,
+          "audio_delivery_refused": 5390,
+          "audio_burst_trimmed": 20,
+          "rtc_packet_path_refused": 17
+        },
+        "authority_problems": {
+          "authority-busy": 9,
+          "forbidden": 12,
+          "storage-unavailable": 0,
+          "conflict": 0,
+          "other": 0
+        }
+      },
+      "finding": "Audio/motion/source identity pass all six observations. Baseline AV p95 remains128.2/124.9ms; three of four direct-bridge AV observations pass, ES256 peer1 remains134.4ms. Concealment/adaptive playout changes remain despite zero reported RTP lost/discarded packets. Pipeline counts include5390audio delivery refusals but no retained stage/problem breakdown; no causal inference or threshold waiver."
     }
   },
   "full_task_qualified": false,

@@ -48,3 +48,9 @@ is unrun after that failure. The correction at `31a7f613` passes all 32 selected
 run `41196260443`, including both rates in the original regression and the
 added true-gap/pending-report/partial/wrap/rate-conversion cases. Browser and
 transport quality qualification remains separate. See [`guarded-audio-capture-timeline.json`](../evidence/gate-6/guarded-audio-capture-timeline.json).
+
+The six native network cases and both original signed AV functions plus ten
+Core repair regressions also pass after the correction. The strict browser
+diagnostic still fails AV timing: both baseline directions and one of four
+direct-bridge observations exceed 120 ms p95, with zero bad audio samples in
+all six observations. These failures remain open in G6-054.
