@@ -4,6 +4,9 @@ import argparse
 import array
 import datetime
 import hashlib
+import ipaddress
+import platform
+import uuid
 import json
 import math
 import os
@@ -121,6 +124,19 @@ def decoded_tone(path, expected, own, ffmpeg):
     return result
 
 
+
+def owned_gateway(network, info):
+    """Accept only the exact newly created, empty, isolated Docker bridge."""
+    assert re.fullmatch(r"[0-9a-f]{64}", network)
+    assert info["Id"] == network and info["Internal"] is True and info["Driver"] == "bridge"
+    assert not info.get("Containers"), "Fresh native bridge unexpectedly has peers"
+    configurations = info["IPAM"]["Config"]
+    assert len(configurations) == 1
+    subnet = ipaddress.IPv4Network(configurations[0]["Subnet"])
+    gateway = ipaddress.IPv4Address(configurations[0]["Gateway"])
+    assert gateway in subnet and gateway.is_private and not gateway.is_loopback and not gateway.is_link_local
+    return str(gateway)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--server-build", type=Path, required=True)
@@ -129,11 +145,16 @@ def main():
     parser.add_argument("--image", default="connect-gate6-native-client:clang1971-ubuntu2404")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ffmpeg", default="ffmpeg")
+    parser.add_argument("--owned-linux-bridge", action="store_true",
+                        help="Native Linux x86 host and client on one fresh internal Docker bridge")
     parser.add_argument("--drop-every", type=int, choices=(0, 10), default=0,
                         help="Drop every tenth encrypted UDP datagram in each direction after media starts")
     parser.add_argument("--unreachable-port", action="store_true",
                         help="Keep an owned UDP port unresponsive; require client timeout before its offer")
     args = parser.parse_args()
+    if args.owned_linux_bridge:
+        assert platform.system() == "Linux" and platform.machine() == "x86_64"
+        assert os.getuid() != 0 and re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
     assert not (args.unreachable_port and args.drop_every), "Choose one bounded fault"
     out = args.output.absolute()
     assert out.parent.resolve().is_relative_to((ROOT / ".local/gate-6/native-remote").resolve())
@@ -159,7 +180,21 @@ def main():
               "guest_executable_sha256": digest(probe), "image_id": image["Id"],
               "runner_sha256": digest(__file__), "drop_every": args.drop_every, "profiles": [],
               "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    network = None
+    network_name = None
+    network_label = uuid.uuid4().hex
+    network_drained = not args.owned_linux_bridge
+    gateway = "host.lima.internal"
     try:
+        if args.owned_linux_bridge:
+            network_name = "connect-g6-native-" + uuid.uuid4().hex[:12]
+            network = subprocess.check_output(["docker", "network", "create", "--internal", "--driver", "bridge",
+                "--label", "connect.gate6.native-media=" + network_label,
+                network_name], text=True, timeout=20).strip()
+            assert re.fullmatch(r"[0-9a-f]{64}", network)
+            info = json.loads(subprocess.check_output(["docker", "network", "inspect", network], text=True, timeout=15))[0]
+            gateway = owned_gateway(network, info)
+            report["scope"] = "Owned native Linux x86_64 host and Linux x86_64 public SDK client on one fresh internal bridge; synthetic signed PCMU duplex or selected bounded transport refusal. No WAN, provider, video, full matrix or performance qualification."
         for algorithm in ["EdDSA", "ES256"]:
             fixture = out / algorithm
             fixture.mkdir(mode=0o700)
@@ -206,7 +241,13 @@ def main():
                                "--platform", "linux/amd64", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL",
                                "--security-opt", "no-new-privileges", "--mount", f"type=bind,source={probe.parent},target=/probe,readonly",
                                "--mount", f"type=bind,source={fixture},target=/fixture", image["Id"],
-                               "/probe/native_media_probe", "/fixture", "host.lima.internal"]
+                               "/probe/native_media_probe", "/fixture", gateway]
+                    if network is not None:
+                        # The client has only its owned internal network and the
+                        # operator's fixture UID. No host network or credentials.
+                        command[2:2] = ["--network", network, "--label", "connect.gate6.native-media=" + network_label,
+                            "--user", f"{os.getuid()}:{os.getgid()}",
+                            "--pids-limit", "128", "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m"]
                     if args.unreachable_port:
                         command.append("--expect-unreachable")
                     with (fixture / "guest.log").open("w") as guest_log:
@@ -218,7 +259,8 @@ def main():
                             if (fixture / "container.id").exists():
                                 cid = (fixture / "container.id").read_text().strip()
                                 assert re.fullmatch("[0-9a-f]{64}", cid)
-                                subprocess.run(["docker", "rm", "--force", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                subprocess.run(["docker", "rm", "--force", cid], stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL, timeout=15)
                     (fixture / "done").write_text("complete\n")
                     server_code = process.wait(timeout=30)
                 finally:
@@ -272,6 +314,28 @@ def main():
     except Exception as error:
         report["failure"] = {"type": type(error).__name__, "message": str(error)}
     finally:
+        if network is None and network_name is not None:
+            # Recover this exact named/labelled creation after an uncertain
+            # Docker reply, without touching any preexisting network.
+            recovered = subprocess.run(["docker", "network", "inspect", network_name],
+                capture_output=True, text=True, timeout=15)
+            if recovered.returncode == 0:
+                info = json.loads(recovered.stdout)[0]
+                assert info['Name'] == network_name and info['Labels'].get('connect.gate6.native-media') == network_label
+                network = info['Id']
+        if network is not None:
+            try:
+                info = json.loads(subprocess.check_output(["docker", "network", "inspect", network], text=True, timeout=15))[0]
+                assert info["Id"] == network and info["Internal"] is True and not info.get("Containers")
+                assert info['Name'] == network_name and info['Labels'].get('connect.gate6.native-media') == network_label
+                removed = subprocess.check_output(["docker", "network", "rm", network], text=True, timeout=15).strip()
+                assert removed == network
+                network_drained = True
+            except Exception as error:
+                report["network_cleanup_error"] = type(error).__name__
+        report["owned_network"] = dict(requested=args.owned_linux_bridge,
+            internal_bridge=args.owned_linux_bridge,original_bridge_removed=network_drained,
+            remaining_containers=0 if network_drained else None)
         report["source_inputs_unchanged"] = HELPERS["sources"]() == before
         report["build_inputs_unchanged"] = all(
             (ROOT / name).is_file() and digest(ROOT / name) == value
@@ -280,7 +344,7 @@ def main():
         report["executables_unchanged"] = digest(binary) == report["server_executable_sha256"] and digest(probe) == report["guest_executable_sha256"]
         report["passed"] = (len(report["profiles"]) == 2 and all(row["passed"] for row in report["profiles"])
                             and report["source_inputs_unchanged"] and report["build_inputs_unchanged"]
-                            and report["executables_unchanged"])
+                            and report["executables_unchanged"] and network_drained)
         report["finished_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         (out / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps({"passed": report["passed"], "summary": str(out / "summary.json")}), flush=True)

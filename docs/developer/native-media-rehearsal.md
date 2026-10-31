@@ -75,3 +75,32 @@ Linux x86_64 performance, a Linux-hosted server, WAN deployment, video, browser,
 SIP/RTP, TURN, frozen packet-loss quality profiles or ICE restart. Those Gate 6
 checks remain separate. The bounded injected-loss observation supplies only
 the transport case described above.
+
+
+## Native Linux host/client component
+
+The `native-network` lane of `.github/workflows/gate6-linux-fixtures.yml` builds
+and source-binds the current server fixture and public `native_media_probe`
+example on Ubuntu 24.04 x86_64. It reuses the original exact child fixture and
+Remote-profile signature/CA/hostname checks above. The client runs as the host
+operator UID in the pinned Linux/amd64 container image, with its own network
+namespace on a fresh internal bridge. It has no external route or host network.
+The designated endpoint is that bridge's verified non-loopback host gateway.
+
+The lane runs direct, drop-every-tenth encrypted datagram, and unreachable-port
+cases for both EdDSA and ES256. Successful media cases retain the original
+independent PCMU decoding and excluded-self-tone observations at each end;
+negative cases require timeout before an offer and a surviving signed heartbeat.
+The runner joins the original peers/server, validates an empty owned bridge,
+then removes that exact bridge. An uncertain bridge-creation reply is recovered
+only by its fresh name and label. All fixture keys, addresses, PCM and raw logs
+stay under ignored `.local/`; the source-only CI artifact contains bounded
+numeric facts, known enum labels and hashes. This is a bounded native PCMU
+addressing component. Native video, WAN, the complete transport matrix and
+performance qualification remain separate plan work.
+
+The command used by that lane is:
+
+```sh
+python3 scripts/check-gate6-linux-hosting.py --native-network
+```

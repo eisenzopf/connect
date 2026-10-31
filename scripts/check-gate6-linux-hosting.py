@@ -312,9 +312,9 @@ RUST_CONSULTATION_CASES = (
 )
 
 
-def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False):
-    assert not (video_feedback and consultation_return), 'One isolated component at a time'
-    assert not (video_feedback or consultation_return) or not (node_sdk or python_sdk), 'Independent component only'
+def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False, native_network=False):
+    assert sum((video_feedback, consultation_return, native_network)) <= 1, 'One isolated component at a time'
+    assert not (video_feedback or consultation_return or native_network) or not (node_sdk or python_sdk), 'Independent component only'
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -592,7 +592,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
         ):
-            if (video_feedback or consultation_return) and name != ('webtransport' if video_feedback else 'hosting'):
+            if (video_feedback or consultation_return or native_network) and name != ('webtransport' if video_feedback else 'hosting'):
                 continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
                            *arguments, "--no-run", "--message-format=json"], 3600)
@@ -617,6 +617,21 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        if native_network:
+            text = execute('compile-native-network-probe', ['cargo', 'build', '--offline', '--locked',
+                '--jobs', '2', '-p', 'connect-client', '--example', 'native_media_probe', '--message-format=json'], 3600)
+            rows = [json.loads(line) for line in text.splitlines() if line.startswith('{')]
+            assert any(row.get('reason') == 'build-finished' and row.get('success') for row in rows)
+            probes = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
+                and row['target']['name'] == 'native_media_probe' and row.get('executable')]
+            assert len(probes) == 1 and sources() == before
+            report['compiled_artifacts']['native_media_probe'] = digest(probes[0])
+            network = runpy.run_path(str(ROOT / 'scripts/lib/native_network_component.py'))['run']
+            report['native_distinct_network'] = network(ROOT, PRIVATE, artifacts['hosting'], probes[0], before, execute)
+            report['scope'] = report['native_distinct_network']['scope']
+            assert report['native_distinct_network']['passed'], 'Current native distinct-network component failed'
+            report['behavior_passed'] = True
+            return
         if consultation_return:
             report['scope'] = 'Only the two original public Rust SDK consultation-return functions with existing deadlines and bounded failure trace extraction. No installed SDK, media matrix or full Gate6 qualification.'
             results = []
@@ -1082,8 +1097,9 @@ def main():
     parser.add_argument("--python-sdk", action="store_true", help="Include installed Python native restart/current-authority journey")
     parser.add_argument("--video-feedback", action="store_true", help="Only the configured exact-source picture-request component")
     parser.add_argument("--consultation-return", action="store_true", help="Only the two original public Rust SDK return functions")
+    parser.add_argument("--native-network", action="store_true", help="Only current native Linux public SDK distinct-network PCMU and bounded faults")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return, args.native_network)
 
 
 if __name__ == "__main__":

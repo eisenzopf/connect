@@ -186,5 +186,20 @@
     "Native Linux x86_64 performance and Linux server installation remain separate; the guest is emulated on a local arm64 VM."
   ],
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "current_linux_component": {
+    "status": "Implemented; CI execution pending, not qualified",
+    "scope": "Native Ubuntu24.04x86_64host and publicSDKLinuxx86_64client on a fresh internal bridge. Exact existing child fixture/Remote profile/signatures/CA/hostname checks; direct, every-tenth encryptedUDPdrop, unreachableport, bothEdDSA/ES256. Four-second PCMU component only; noWAN/video/fullmatrix/performance acceptance claim.",
+    "entrypoint": "python3 scripts/check-gate6-linux-hosting.py --native-network",
+    "workflow_lane": "gate6-linux-fixtures.yml: native-network",
+    "ownership": "Exact fresh networkID/name/label, private operatorUIDclient, emptyownedbridge removed afteroriginalpeer/serverdrain. Uncertaincreate reply recovered only fromfreshname+label; secrets/logs/PCM underignored.local. Publicartifact filters known enums, bounded numericfacts anddigests.",
+    "local_verification": {
+      "ownership_and_evidence_boundary_tests": 2,
+      "diagnostic_schema_tests": 19,
+      "dependency_preparation": "All253recordedpatches verified in unchanged prepared69",
+      "format_check": "passed"
+    },
+    "execution_passed": false,
+    "acceptance_qualified": false
+  }
 }
