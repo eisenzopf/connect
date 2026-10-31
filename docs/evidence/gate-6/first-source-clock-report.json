@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "status": "Controlled before failure and corrected component pass; affected media runtime pending",
+  "status": "Corrected component passed; required affected runtime failed",
   "scope": "Public real-interceptor scheduler component only. No live AV, Core authority, deployment or acceptance qualification.",
   "before": {
     "scope": "Actual interceptor startup-clock component; no media/runtime qualification.",
@@ -133,5 +133,94 @@
     "zip_sha256": "c71ec2b69a4834d1906a5ff2ae1420771bde1ca3399b29026a24b726f3154b0a",
     "git_sources_verified": 2856,
     "prepared_sources_verified": 3087
+  },
+  "affected_runtime": {
+    "run_id": 41183675414,
+    "artifact_id": 13037047630,
+    "revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+    "zip_sha256": "fe1a30c870946920ef152ae0179e59235497eb219b3426053861d4e50320d6c6",
+    "git_sources_verified": 2867,
+    "prepared_sources_verified": 3087,
+    "status": "failed-required-profile",
+    "evidence": "docs/evidence/gate-6/linux-source-clock-runtime.json",
+    "direct_first_report_observations": [
+      {
+        "profile": "bridge-eddsa",
+        "peer": 0,
+        "first_observed_sender_reports": {
+          "audio": {
+            "first_observed_seconds": 0.021100282669067383,
+            "reports_sent": 3
+          },
+          "video": {
+            "first_observed_seconds": 0.021100282669067383,
+            "reports_sent": 3
+          }
+        },
+        "av_sync": {
+          "status": "passed",
+          "median_abs_skew_ms": 29.349999999858767,
+          "p95_abs_skew_ms": 100.30000000027961
+        }
+      },
+      {
+        "profile": "bridge-eddsa",
+        "peer": 1,
+        "first_observed_sender_reports": {
+          "audio": {
+            "first_observed_seconds": 0.02180004119873047,
+            "reports_sent": 3
+          },
+          "video": {
+            "first_observed_seconds": 0.02180004119873047,
+            "reports_sent": 3
+          }
+        },
+        "av_sync": {
+          "status": "failed",
+          "median_abs_skew_ms": 19.499999999998963,
+          "p95_abs_skew_ms": 123.60000000009208
+        }
+      },
+      {
+        "profile": "bridge-es256",
+        "peer": 0,
+        "first_observed_sender_reports": {
+          "audio": {
+            "first_observed_seconds": 0.028800010681152344,
+            "reports_sent": 3
+          },
+          "video": {
+            "first_observed_seconds": 0.028800010681152344,
+            "reports_sent": 3
+          }
+        },
+        "av_sync": {
+          "status": "passed",
+          "median_abs_skew_ms": 35.39999999991039,
+          "p95_abs_skew_ms": 90.70000000018652
+        }
+      },
+      {
+        "profile": "bridge-es256",
+        "peer": 1,
+        "first_observed_sender_reports": {
+          "audio": {
+            "first_observed_seconds": 0.030600309371948242,
+            "reports_sent": 3
+          },
+          "video": {
+            "first_observed_seconds": 0.030600309371948242,
+            "reports_sent": 4
+          }
+        },
+        "av_sync": {
+          "status": "passed",
+          "median_abs_skew_ms": 26.600000000094326,
+          "p95_abs_skew_ms": 95.79999999981403
+        }
+      }
+    ],
+    "interpretation": "The component remains proven; the complete current runtime remains failed. Do not infer that scheduling repaired AV/audio quality."
   }
 }

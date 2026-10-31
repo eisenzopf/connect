@@ -1,0 +1,1026 @@
+{
+  "task": "G6-054",
+  "scope": "Source-verified current opt3 Linux media after first-source-report correction, before canonical picture forwarding. All actual failures retained; no full media/SDK or acceptance qualification.",
+  "status": "failed",
+  "run_id": 41183675414,
+  "artifact_id": 13037047630,
+  "revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+  "zip_sha256": "fe1a30c870946920ef152ae0179e59235497eb219b3426053861d4e50320d6c6",
+  "git_sources_verified": 2867,
+  "prepared_sources_verified": 3087,
+  "producer": {
+    "passed": true,
+    "sources_unchanged": true,
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 2176.486101529,
+      "log_sha256": "6f32b1eaf6de2ab1b44f84d5711e57f57843ac65288789e903a0505c691a2e7f"
+    },
+    "runtime_library_profiles": {
+      "completed_artifacts": 524,
+      "profiles": {
+        "connect_client": [
+          "3"
+        ],
+        "connect_server": [
+          "3"
+        ],
+        "connect_service": [
+          "3"
+        ],
+        "connect_store": [
+          "3"
+        ],
+        "rtc": [
+          "3"
+        ],
+        "rtc_dtls": [
+          "3"
+        ],
+        "rtc_ice": [
+          "3"
+        ],
+        "rvoip_core": [
+          "3"
+        ],
+        "rvoip_media_core": [
+          "3"
+        ],
+        "rvoip_rtp_core": [
+          "3"
+        ],
+        "rvoip_webrtc": [
+          "3"
+        ]
+      },
+      "missing": [],
+      "passed": true
+    }
+  },
+  "runtime": [
+    {
+      "name": "native-ice",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 10.794427683999857,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "bffd782b8658cdd9a86b1cb8392bf3b898fa585f869d45b4be6c3f7f031db5f7",
+      "observations": []
+    },
+    {
+      "name": "baseline",
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 67.40518212300003,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "164a09763e4ee5979fbe5bba18ee19aea0a121356a7d5bf7338a7ba4dbcc9a92",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": "failed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.854326965879057,
+          "changing_fps": 27.138782716192512,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 7.669899940490723,
+                "rms": 0.07160873661936239,
+                "frequency_hz": 516.796875,
+                "phase": "clean"
+              }
+            ]
+          },
+          "av_sync": "failed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.9547348003364,
+          "changing_fps": 27.172509710427512,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "name": "ice-eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 74.17208635999987,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "beb23e98ad5725c3be594a51bb5f58638e76314250ba4bfddf750955197da42a",
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.915433993047465,
+          "changing_fps": 27.11710831886485,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.95144138300275,
+          "changing_fps": 27.202838586453556,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "name": "ice-es256",
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 74.22781500099973,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "6b3905fb5d18dc654164aafd714d2f8140dbc151a60b2f5d90ba1c86ac2a38da",
+      "observations": [
+        {
+          "audio": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 8.543400049209595,
+                "rms": 0.1380072020745235,
+                "frequency_hz": 602.9296875,
+                "phase": "clean"
+              }
+            ]
+          },
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.951990136465636,
+          "changing_fps": 27.21999548553106,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.9698469269868,
+          "changing_fps": 27.20442469803749,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "name": "unreachable-eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 18.510830928999894,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "06bbcf716fa250838ca4476fa0fe8967c7f61ca6119a52d243a3a0b9d3de20e4",
+      "observations": []
+    },
+    {
+      "name": "unreachable-es256",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 18.506632196999817,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "3477d76e7fffe693f490834b02af2d446f93237cb8a8e6e754fc821e9c45a29e",
+      "observations": []
+    },
+    {
+      "name": "impairment-eddsa",
+      "passed": false,
+      "exit_code": 1,
+      "seconds": 69.14814291500034,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "002c76eca75b92de629e511ad0a6cb2222d8ae23710bb86d45705f2c9f226f90",
+      "observations": [
+        {
+          "audio": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 28.674000024795532,
+                "rms": 0.0009264320358635305,
+                "frequency_hz": 0,
+                "phase": "outside-burst"
+              }
+            ]
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "motion": "passed",
+          "decoded_fps": 5.747394516057315,
+          "changing_fps": 5.497507797967867,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 47.57419991493225,
+                "rms": 9.754883333640752e-05,
+                "frequency_hz": 0,
+                "phase": "outside-burst"
+              }
+            ]
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "motion": "passed",
+          "decoded_fps": 10.445142970400324,
+          "changing_fps": 9.578879119585626,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ],
+      "network_scope": "Owned Linux Docker loopback UDP netem; no host or external network changes.\n\nBoth directions across the exact eight server media ports get 3% random loss,\n0\u2013100ms delay and one observed three-second blackhole. Raw state stays in .local.\n"
+    },
+    {
+      "name": "impairment-es256",
+      "passed": false,
+      "exit_code": 1,
+      "seconds": 69.61105813300037,
+      "timed_out": false,
+      "forced_kill": false,
+      "log_sha256": "2d5456ab383356d371932c8f70ead8ddaf1375088d34ed389ddb9cba759c8eb7",
+      "observations": [
+        {
+          "audio": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 14,
+            "samples": [
+              {
+                "elapsed_seconds": 20.473999977111816,
+                "rms": 0.00041701994400711334,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.573999881744385,
+                "rms": 6.238008131708677e-05,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.674000024795532,
+                "rms": 3.868695288580799e-06,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.773899793624878,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.874099731445312,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.973899841308594,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.07409977912903,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.174000024795532,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.273899793624878,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.373899936676025,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.473899841308594,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.573999881744385,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.674099922180176,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.7739999294281,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.874000072479248,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.973999977111816,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              }
+            ]
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "motion": "failed",
+          "decoded_fps": 7.979715864323055,
+          "changing_fps": 7.429965084526268,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed",
+            "reason": "impaired-quality-advisory"
+          },
+          "motion": "failed",
+          "decoded_fps": 7.230103896901055,
+          "changing_fps": 6.8636009343853335,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ],
+      "network_scope": "Owned Linux Docker loopback UDP netem; no host or external network changes.\n\nBoth directions across the exact eight server media ports get 3% random loss,\n0\u2013100ms delay and one observed three-second blackhole. Raw state stays in .local.\n"
+    }
+  ],
+  "bridges": [
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": null,
+      "passed": false,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "EdDSA",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-eddsa",
+      "media_status": {
+        "status": "failed",
+        "phase": null,
+        "error_class": null
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 29.349999999858767,
+            "p95_abs_skew_ms": 100.30000000027961
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.613097653531295,
+          "changing_fps": 26.815009686268496,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 19.499999999998963,
+            "p95_abs_skew_ms": 123.60000000009208
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.91393906123125,
+          "changing_fps": 27.149064960917002,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": null,
+      "passed": true,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-es256",
+      "media_status": {
+        "status": "passed",
+        "phase": null,
+        "error_class": null
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 35.39999999991039,
+            "p95_abs_skew_ms": 90.70000000018652
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.065699987888532,
+          "changing_fps": 26.367337009070226,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 26.600000000094326,
+            "p95_abs_skew_ms": 95.79999999981403
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 28.71318615625438,
+          "changing_fps": 25.981769375729023,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": "tcp",
+      "passed": true,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "EdDSA",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-relay-tcp-eddsa",
+      "media_status": {
+        "status": "passed",
+        "phase": null,
+        "error_class": null
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 23.899999999898114,
+            "p95_abs_skew_ms": 65.70000000018794
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.33386637722252,
+          "changing_fps": 26.61869305553753,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 30.399999999907834,
+            "p95_abs_skew_ms": 68.29999999981595
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 29.267285059026282,
+          "changing_fps": 26.602079817453028,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": "tcp",
+      "passed": true,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-relay-tcp-es256",
+      "media_status": {
+        "status": "passed",
+        "phase": null,
+        "error_class": null
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 32.14999999967638,
+            "p95_abs_skew_ms": 82.79999999981413
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 28.964216885552382,
+          "changing_fps": 26.332620411764417,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 15.799999999813963,
+            "p95_abs_skew_ms": 68.99999999999551
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 28.98043824011719,
+          "changing_fps": 26.298914931692554,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    },
+    {
+      "algorithm": "EdDSA",
+      "relay_transport": "udp",
+      "passed": false,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "EdDSA",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-relay-udp-eddsa",
+      "media_status": {
+        "status": "failed",
+        "phase": "browser-participation",
+        "error_class": "Error"
+      },
+      "observations": []
+    },
+    {
+      "algorithm": "ES256",
+      "relay_transport": "udp",
+      "passed": false,
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "server_panic_locations": [],
+      "server_witness": {
+        "algorithm": "ES256",
+        "capacity_reclaimed": 2,
+        "durable_offers": 2,
+        "media_diagnostics": {
+          "forwarding": [],
+          "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+          "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+          "queues": [],
+          "scope": "server-process"
+        },
+        "physical_routes_drained": true,
+        "server_shutdown_joined": true
+      },
+      "profile": "bridge-relay-udp-es256",
+      "media_status": {
+        "status": "failed",
+        "phase": null,
+        "error_class": null
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 27.47019348140352,
+          "changing_fps": 25.038023530957847,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        },
+        {
+          "audio": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 25.399999999905276,
+            "p95_abs_skew_ms": 113.89999999990508
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "motion": "passed",
+          "decoded_fps": 26.820817006630666,
+          "changing_fps": 24.30532423147462,
+          "video_observer": "native-decoded-frames/1",
+          "source_identity": "passed"
+        }
+      ]
+    }
+  ],
+  "software_audio": {
+    "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+    "passed": false,
+    "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+    "version": "pulseaudio 16.1",
+    "startup_socket_created": true,
+    "command_exit_code": 1,
+    "original_process_joined": true,
+    "exit_code": 0,
+    "socket_exists_after_join": false,
+    "private_home_created": true,
+    "private_cookie_created": true,
+    "error_categories": []
+  },
+  "direct_first_report_observations": [
+    {
+      "profile": "bridge-eddsa",
+      "peer": 0,
+      "first_observed_sender_reports": {
+        "audio": {
+          "first_observed_seconds": 0.021100282669067383,
+          "reports_sent": 3
+        },
+        "video": {
+          "first_observed_seconds": 0.021100282669067383,
+          "reports_sent": 3
+        }
+      },
+      "av_sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 29.349999999858767,
+        "p95_abs_skew_ms": 100.30000000027961
+      }
+    },
+    {
+      "profile": "bridge-eddsa",
+      "peer": 1,
+      "first_observed_sender_reports": {
+        "audio": {
+          "first_observed_seconds": 0.02180004119873047,
+          "reports_sent": 3
+        },
+        "video": {
+          "first_observed_seconds": 0.02180004119873047,
+          "reports_sent": 3
+        }
+      },
+      "av_sync": {
+        "status": "failed",
+        "median_abs_skew_ms": 19.499999999998963,
+        "p95_abs_skew_ms": 123.60000000009208
+      }
+    },
+    {
+      "profile": "bridge-es256",
+      "peer": 0,
+      "first_observed_sender_reports": {
+        "audio": {
+          "first_observed_seconds": 0.028800010681152344,
+          "reports_sent": 3
+        },
+        "video": {
+          "first_observed_seconds": 0.028800010681152344,
+          "reports_sent": 3
+        }
+      },
+      "av_sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 35.39999999991039,
+        "p95_abs_skew_ms": 90.70000000018652
+      }
+    },
+    {
+      "profile": "bridge-es256",
+      "peer": 1,
+      "first_observed_sender_reports": {
+        "audio": {
+          "first_observed_seconds": 0.030600309371948242,
+          "reports_sent": 3
+        },
+        "video": {
+          "first_observed_seconds": 0.030600309371948242,
+          "reports_sent": 4
+        }
+      },
+      "av_sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 26.600000000094326,
+        "p95_abs_skew_ms": 95.79999999981403
+      }
+    }
+  ],
+  "interpretation": "Both report kinds are present in the first measured sample for all4direct peers, with3accepted reports for audio and3or4forvideo. This is a bounded wire-stats observation, not a measurement of first-report latency or a claim that AV is fixed. EdDSA direct p95 still123.6ms; clean audio, impairment and UDP relay failures remain. Daemon command status includes failed child cases; original daemon exit0/join/socket removal are recorded separately.",
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

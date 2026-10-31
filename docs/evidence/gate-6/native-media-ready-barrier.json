@@ -438,7 +438,139 @@
       ],
       "remaining": "After78reported steps, the runner aborted while extracting the installed Node native-control result: its whitelist omitted the valid media-complete phase. The final result of that journey and all later scenes remain unverified. This is a harness error in addition to the two retained consultation failures, not a media/SDK pass."
     },
-    "node22": "Same run41183674122 remains live; artifact pending."
+    "node22": {
+      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+      "run_id": 41183674122,
+      "artifact_id": 13037112474,
+      "zip_sha256": "8ce8c0aa748f2b8c5627e44040ca71af9d7383ca4697dc131e0be22755ab051c",
+      "git_sources_verified": 4507,
+      "prepared_sources_verified": 4092,
+      "pinned_archives_verified": 4,
+      "source_manifest_sha256": "65da87a88a130d4c2d308dd00024c44afdc1659bd35b3c05bca9c0af82e2340d",
+      "source_inputs_unchanged": true,
+      "passed": false,
+      "steps": 93,
+      "failed_steps": [
+        {
+          "name": "rust-sdk-consultation-eof",
+          "exit_code": 101,
+          "seconds": 53.901245233000054,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 53.86s"
+          ],
+          "node_failures": [],
+          "python_native_failures": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 253,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_session_handoff_leave",
+          "exit_code": 101,
+          "seconds": 24.775287146999972,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 24.76s"
+          ],
+          "node_failures": [],
+          "python_native_failures": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 309,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "seconds": 23.77191287400001,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 23.75s"
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "media-data-binary",
+              "column": null,
+              "command": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "python_native_failures": [],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 131,
+              "column": 25
+            }
+          ]
+        },
+        {
+          "name": "installed-python-native-eddsa",
+          "exit_code": 101,
+          "seconds": 49.119367425999826,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 49.11s"
+          ],
+          "node_failures": [],
+          "python_native_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "session-decisions",
+              "error_type": "SdkError",
+              "kind": "deadline",
+              "phase": "failed",
+              "source_line": 387
+            }
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 171,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "name": "installed-python-native-es256",
+          "exit_code": 101,
+          "seconds": 49.46888917000024,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 427 filtered out; finished in 49.45s"
+          ],
+          "node_failures": [],
+          "python_native_failures": [
+            {
+              "certainty": "read-only",
+              "checkpoint": "session-decisions",
+              "error_type": "SdkError",
+              "kind": "deadline",
+              "phase": "failed",
+              "source_line": 387
+            }
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/python_sdk.rs",
+              "line": 171,
+              "column": 9
+            }
+          ]
+        }
+      ],
+      "remaining": "Five failed reported steps include EOF, handoff, Node binary-data phase deadline and both Python session-decisions deadlines. These remain unresolved."
+    }
   },
   "isolated_return_diagnostic": {
     "run_id": 41186287469,

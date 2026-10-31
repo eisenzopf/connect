@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Source-verified abe41125531888 and fault41125541583 retain outside-burst audio identity failures and subsequent motion gaps. Both original recovery deadlines pass, but that does not qualify the full impairment profile. See linux-decoded-observer-runtime.json.",
-    "Direct AV has variable strict tails: abe143.3/121.2ms and7d125.4/126.0ms fail120ms. The933 diagnostic passes76.9/97.7 and76.6/116.9ms this run, without resolving variability. First source-report scheduler correction03c593ad passes unchanged3public tests+135upstream; full actual affected media41183675414 remains pending. See first-source-clock-report.json.",
+    "Current0c full41183675414 fails clean baseline audio/AV, ES256 ICE audio, both impairment profiles and both UDP relay cells. NativeICE2, both unreachableTURN cells, EdDSA ICE, ES256 direct and both TCP relay cells pass within exact scope; no full profile qualification.",
+    "The first-source-report correction has actual3+135component proof and both report kinds in first measured direct stats, but EdDSA p95 remains123.6ms. Verified separate picture-request counterexample78a demonstrates missing canonical selected-source forwarding; patch252 after checks are running. See linux-source-clock-runtime.json and canonical-picture-feedback.json.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
@@ -415,30 +415,36 @@
     },
     {
       "profile": "Linux x86 opt3 native ICE and clean browser media",
-      "status": "Verified native ICE, clean baseline, both original browser restarts and both unreachable TURN cells pass",
-      "run_id": 41125531888,
-      "source_revision": "abe8733c7d8a9c8488adc410ba00f4048435fe68",
-      "evidence": "docs/evidence/gate-6/linux-decoded-observer-runtime.json",
-      "limits": "The declared bounded Chrome decoded-pixel observer resolves the prior callback undercount; earlier failures remain in their original evidence. Impairment and variable direct AV remain open."
+      "status": "Current native ICE and both unreachable TURN pass; clean baseline and ES256 browser ICE fail audio/AV quality",
+      "run_id": 41183675414,
+      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+      "evidence": [
+        "docs/evidence/gate-6/linux-source-clock-runtime.json",
+        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
+      ],
+      "limits": "Current0c required runtime fails. Earlier abe passes remain historical source-bound evidence; no current clean/impairment qualification."
     },
     {
       "profile": "Browser Linux x86 distinct-network direct bridge",
-      "status": "Verified933 diagnostic passes both direct AV cells; earlier strict AV tail failures remain unresolved",
-      "run_id": 41181623570,
-      "source_revision": "933e07edf9d0e6ec141a7f27d44378958008fe10",
+      "status": "Current ES256 direct passes; EdDSA direct fails123.6ms AV p95",
+      "run_id": 41183675414,
+      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
       "evidence": [
-        "docs/evidence/gate-6/receiver-source-clock-startup.json",
-        "docs/evidence/gate-6/linux-rendered-clock-diagnostic.json"
+        "docs/evidence/gate-6/linux-source-clock-runtime.json",
+        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
       ],
-      "limits": "No stable AV resolution is inferred from one passing run. Clock scheduling correction has component proof; full affected run41183675414 at0c9290d9 is pending."
+      "limits": "Both have decoded moving media and clean original drains. Both report kinds appear in initial stats, but stable strict AV remains unresolved."
     },
     {
       "profile": "Browser Linux x86 distinct-network relay UDP/TCP and EdDSA/ES256",
-      "status": "All4 verified strict decoded-media/AV/original-ICE/zero-allocation/drain cells pass",
-      "run_id": 41125531888,
-      "source_revision": "abe8733c7d8a9c8488adc410ba00f4048435fe68",
-      "evidence": "docs/evidence/gate-6/linux-decoded-observer-runtime.json",
-      "limits": "Owned distinct-container network scope; no WAN, provider, installation or full Gate6 qualification."
+      "status": "Current TCP EdDSA/ES256 cells pass; both UDP cells fail",
+      "run_id": 41183675414,
+      "source_revision": "0c9290d99c8ab68fcd40ccd56a6a9821278ac26f",
+      "evidence": [
+        "docs/evidence/gate-6/linux-source-clock-runtime.json",
+        "docs/evidence/gate-6/linux-decoded-observer-runtime.json"
+      ],
+      "limits": "UDP EdDSA fails browser participation; UDP ES256 lacks a passing AV calibration on one peer. Earlier4cell abe pass remains historical. No current complete relay or WAN qualification."
     }
   ]
 }
