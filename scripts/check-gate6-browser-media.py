@@ -4,6 +4,8 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import math
+import statistics
 import os
 import platform
 import re
@@ -61,22 +63,68 @@ def cpu_measurement(before,after,seconds):
 
 
 def pipeline_diagnostic(path):
-    value=json.loads(path.read_text())
-    messages={'Current native packet authority':'packet_authority_refused',
-        'Guarded audio delivery refused':'audio_delivery_refused',
-        'Guarded audio pending burst trimmed':'audio_burst_trimmed',
-        'RTC original packet path refused':'rtc_packet_path_refused'}
-    counts={name:0 for name in messages.values()}
-    problems={code:0 for code in ['authority-busy','forbidden','storage-unavailable','conflict','other']}
+    value = json.loads(path.read_text())
+    messages = {'Current native packet authority': 'packet_authority_refused',
+        'Guarded audio delivery refused': 'core_delivery_refused',
+        'Guarded audio pending burst trimmed': 'audio_burst_trimmed',
+        'RTC original packet path refused': 'rtc_packet_path_refused'}
+    counts = {name: 0 for name in messages.values()}
+    problems = {code: 0 for code in ['authority-busy', 'forbidden', 'storage-unavailable', 'conflict', 'other']}
+    stages = {name: 0 for name in ['mixer-target', 'source-egress', 'target-egress', 'other']}
+    errors = {name: 0 for name in ['Model', 'Unsupported', 'Authority', 'NotRecipient',
+        'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other']}
+    timings = {}
+    reported_count_max = 0
     for row in value['events']:
-        fields=row.get('fields',{})
-        message=fields.get('message')
-        if message in messages:counts[messages[message]]+=1
-        if message=='Current native packet authority' and fields.get('problem'):
-            code=fields['problem'];problems[code if code in problems else 'other']+=1
-    return dict(scope='Bounded private synthetic-lane trace counts only; instrumentation can affect timing.',
-        captured_events=len(value['events']),omitted_events=value['omitted_events'],
-        suppressed_known_successes=value['suppressed_known_successes'],counts=counts,authority_problems=problems)
+        fields = row.get('fields', {})
+        message = fields.get('message')
+        if not isinstance(message, str):
+            continue
+        if message in messages:
+            counts[messages[message]] += 1
+        if message == 'Current native packet authority' and fields.get('problem'):
+            code = fields['problem']
+            problems[code if isinstance(code, str) and code in problems else 'other'] += 1
+        if message == 'Guarded audio delivery refused':
+            stage, problem = fields.get('stage'), fields.get('problem')
+            stages[stage if isinstance(stage, str) and stage in stages else 'other'] += 1
+            if isinstance(problem, str) and problem.startswith('Model('):
+                problem = 'Model'
+            errors[problem if isinstance(problem, str) and problem in errors else 'other'] += 1
+        if message == 'RTC original packet path refused':
+            count = fields.get('count')
+            if type(count) is int and 0 <= count <= 10**12:
+                reported_count_max = max(reported_count_max, count)
+        stage = 'mixer-queued' if message == 'Guarded audio queued' else fields.get('stage')
+        if message not in ('Guarded audio queued', 'Original RTC audio timing'):
+            continue
+        stage = stage if isinstance(stage, str) and stage in ('source-read', 'core-publish', 'mixer-queued', 'driver-write') else 'other'
+        for field in ('age_us', 'publish_us', 'write_us'):
+            if field not in fields:
+                continue
+            bucket = timings.setdefault(stage, {}).setdefault(field, dict(values=[], invalid=0))
+            number = fields[field]
+            if type(number) in (int, float) and math.isfinite(number) and 0 <= number <= 10**9:
+                bucket['values'].append(number / 1000)
+            else:
+                bucket['invalid'] += 1
+    summarized = {}
+    for stage, fields in timings.items():
+        summarized[stage] = {}
+        for name, bucket in fields.items():
+            values = sorted(bucket['values'])
+            summarized[stage][name.replace('_us', '_ms')] = dict(samples=len(values), invalid_samples=bucket['invalid'],
+                median_ms=statistics.median(values) if values else None,
+                p95_ms=values[math.ceil(len(values) * .95) - 1] if values else None,
+                maximum_ms=values[-1] if values else None)
+    return dict(scope='Bounded private synthetic-lane trace event counts and numeric timing samples only; instrumentation can affect timing. No cause or performance qualification.',
+        captured_events=len(value['events']), omitted_events=value['omitted_events'],
+        suppressed_known_successes=value['suppressed_known_successes'], counts=counts, authority_problems=problems,
+        core_delivery_refusal_stages=stages, core_delivery_refusal_problems=errors,
+        core_delivery_scope='The historical audio-labelled Core message also covers other media; these events do not identify media kind.',
+        rtc_packet_path_reported_count_max=reported_count_max,
+        rtc_count_scope='Power-of-two samples of cumulative counters; maximum is not an aggregate failure count.',
+        audio_timing_samples=summarized)
 
 
 def runtime_library_profiles(rows):

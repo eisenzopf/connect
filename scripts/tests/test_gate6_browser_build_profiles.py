@@ -32,6 +32,33 @@ class RuntimeBuildProfiles(unittest.TestCase):
         self.assertEqual(result['counts']['packet_authority_refused'],2)
         self.assertEqual(result['omitted_events'],7)
 
+    def test_pipeline_stages_and_timings_keep_only_finite_public_classes(self):
+        root = Path(__file__).resolve().parents[2] / '.local/gate-6/pipeline-diagnostic-tests'
+        root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=root) as directory:
+            path = Path(directory) / 'trace.json'
+            rows = [
+                {'message': 'Guarded audio delivery refused', 'stage': 'target-egress', 'problem': 'NotReady', 'source': 'private-secret'},
+                {'message': 'Guarded audio delivery refused', 'stage': 'private-secret', 'problem': 'Model(private-secret)'},
+                {'message': 'Guarded audio delivery refused', 'stage': ['private-secret'], 'problem': {'private-secret': 1}},
+                {'message': 'RTC original packet path refused', 'count': 16, 'reason': 'private-secret'},
+                {'message': 'RTC original packet path refused', 'count': 8},
+                {'message': 'RTC original packet path refused', 'count': 'private-secret'},
+            ]
+            rows += [dict(message='Guarded audio queued', age_us=value, target='private-secret')
+                for value in (1000, 2000, 500000, float('inf'), -1, 'private-secret', True)]
+            path.write_text(json.dumps(dict(events=[dict(fields=row) for row in rows], omitted_events=0, suppressed_known_successes=0)))
+            result = CHECK['pipeline_diagnostic'](path)
+        self.assertNotIn('private-secret', repr(result))
+        self.assertEqual(result['core_delivery_refusal_stages']['target-egress'], 1)
+        self.assertEqual(result['core_delivery_refusal_stages']['other'], 2)
+        self.assertEqual(result['core_delivery_refusal_problems']['NotReady'], 1)
+        self.assertEqual(result['core_delivery_refusal_problems']['Model'], 1)
+        self.assertEqual(result['core_delivery_refusal_problems']['other'], 1)
+        self.assertEqual(result['rtc_packet_path_reported_count_max'], 16)
+        latency = result['audio_timing_samples']['mixer-queued']['age_ms']
+        self.assertEqual(latency, dict(samples=3, invalid_samples=4, median_ms=2, p95_ms=500, maximum_ms=500))
+
     def test_browser_participation_states_exclude_private_control_and_transport_values(self):
         result = CHECK['browser_participation_states']({'peer_diagnostics':[{'participant':'private-secret',
             'control':{'credential':'private-secret'},'peers':[{'current':{'connection':'private-secret',
