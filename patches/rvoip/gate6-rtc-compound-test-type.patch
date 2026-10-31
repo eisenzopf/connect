@@ -1,0 +1,10 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs
+@@ -202,5 +202,5 @@
+         .iter()
+         .flat_map(|d| d.chunks.iter().map(|c| c.source))
+         .collect::<std::collections::HashSet<_>>();
+-    assert_eq!(sources, (1..=32).collect());
+-}
++    assert_eq!(sources, (1..=32).collect::<std::collections::HashSet<_>>());
++}

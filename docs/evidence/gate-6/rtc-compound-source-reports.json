@@ -2,12 +2,12 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "counterexample-reproduced-correction-unrun",
+  "status": "counterexample-reproduced-after-test-compile-repaired",
   "scope": "Actual RTC protocol outgoing handler SR/CNAME association; no network/browser quality or full task qualification.",
   "production_changed": true,
   "patch": "patches/rvoip/gate6-rtc-compound-report-counterexample.patch",
   "patch_sha256": "5bc4ac3479052d6899dfba2a6413f8c1d0ddc751e7a2ec7e185c59be5f663a60",
-  "prepared_patch_count": 259,
+  "prepared_patch_count": 260,
   "original_sr_mapping_and_counts_preserved": "required-unrun",
   "local_shared_and_distinct_cname_groups": "required-unrun",
   "existing_compounds_unknown_sources_and_reduced_feedback": "required-unrun",
@@ -81,6 +81,49 @@
     "original_three_assertions_unchanged": true,
     "additional_guard_functions": 2,
     "production": "Append exact active unambiguous local sender/repair SSRC CNAME using the same stream ID as local SDP. Preserve SR times/counts/order and existing descriptions; unknown/stopped/inactive/ambiguous/empty/overlength identities are not minted. SDES chunks bounded31 perpacket; reduced feedback unchanged. No new permission, clock, media queue, task or threshold.",
-    "required_after": "All5 exact-handler functions and complete current RTC unit inventory, with every declared skip explicit; actual browser quality still separate."
+    "required_after": "All5 exact-handler functions and complete current RTC unit inventory, with every declared skip explicit; actual browser quality still separate.",
+    "compile_repair_patch": "patches/rvoip/gate6-rtc-compound-test-type.patch"
+  },
+  "initial_after_compile_failure": {
+    "source_revision": "94116f8d6471e330d74d191d1f2e93c95a0f2c1b",
+    "run_id": 41208970825,
+    "artifact_id": 13045626994,
+    "zip_sha256": "4be7f98204ffe301904c3e299ff8a6d332b39f121df29e210029e8c81ffa82e3",
+    "git_sources_verified": 4539,
+    "prepared_sources_verified": 4094,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "status": "unrun-compile-error",
+    "actual_tests_executed": 0,
+    "compiler_diagnostics": [
+      {
+        "code": "E0283",
+        "message": "type annotations needed",
+        "locations": [
+          {
+            "file_name": "crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs",
+            "line_start": 205,
+            "column_start": 34
+          }
+        ]
+      },
+      {
+        "code": "E0283",
+        "message": "type annotations needed",
+        "locations": [
+          {
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "line_start": 46,
+            "column_start": 32
+          },
+          {
+            "file_name": "crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/compound_source_reports_tests.rs",
+            "line_start": 205,
+            "column_start": 34
+          }
+        ]
+      }
+    ],
+    "repair": "Explicit HashSet<_> type on the added32-source expected collection. No assertion semantics or original three functions changed."
   }
 }

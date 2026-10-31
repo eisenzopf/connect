@@ -51,3 +51,10 @@ current RTC unit inventory and records any declared skips explicitly. The
 correction is prepared in fresh verified internal frozen75; no local Rust build
 or corrected runtime pass is claimed yet. Original strict browser/audio/video
 and recovery verification remains required.
+
+The first after-run (`94116f8d`, `41208970825`) verifies its source inputs but
+cannot execute tests: Rust E0283 points to the added32-source test's expected
+collection type atline205. The follow-up patch explicitly names `HashSet<_>`;
+assertion semantics and the original three functions remain unchanged. The
+failed compilation is retained as unrun, with no component pass. Fresh frozen76
+reproduces all260 recorded patches and source digests before the next run.
