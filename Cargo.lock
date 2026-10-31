@@ -740,6 +740,7 @@ dependencies = [
 name = "connect-installation-conformance"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
  "chrono",
  "connect-client",
@@ -747,8 +748,10 @@ dependencies = [
  "connect-server",
  "connect-store",
  "hex",
+ "serde_json",
  "sha2",
  "tempfile",
+ "tokio",
  "toml",
 ]
 
