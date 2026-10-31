@@ -1,0 +1,36 @@
+{
+  "format": "connect/native-sdk-runtime-payload-negative/1",
+  "source_revision": "04ab18187e2b5b48bcc6025147cb59335063ef51",
+  "sources_verified": {
+    "git": 4606,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "files_read": 753,
+  "content_mismatch_count": 0,
+  "content_mismatches": [],
+  "mode_mismatch_count": 745,
+  "mode_mismatch_samples": [
+    "licenses/prepared-index.json",
+    "licenses/prepared/quinn-proto-0.11.19/LICENSE-APACHE",
+    "licenses/prepared/quinn-proto-0.11.19/LICENSE-MIT",
+    "licenses/prepared/rtc-dtls-0.20.0-alpha.1/LICENSE-APACHE",
+    "licenses/prepared/rtc-dtls-0.20.0-alpha.1/LICENSE-MIT",
+    "licenses/prepared/rtc-interceptor-0.20.0-alpha.1/LICENSE-APACHE",
+    "licenses/prepared/rtc-interceptor-0.20.0-alpha.1/LICENSE-MIT",
+    "licenses/provenance/dependencies/licenses/asn1-rs-impl/LICENSE-APACHE",
+    "licenses/provenance/dependencies/licenses/asn1-rs-impl/LICENSE-MIT",
+    "licenses/provenance/dependencies/licenses/rmcp/LICENSE"
+  ],
+  "archive_sha256": "abca5756e1ab89b04c82c9d7b66aa4dc31f3e5416ad63816dc24ab07b400a550",
+  "manifest_sha256": "c21b031cac6bae6b1f3e498f1f1f6b6ae831a45787acbe193e8d481e74e4ad18",
+  "binary_sha256": "556a2e59217c87ca3a80f118a9a1a94fac250ae494adb1782305dc8041f39c13",
+  "artifact_zip_digests": {
+    "evidence": "c2670d52889910b3a7b7f557a0ef7b298b639b1079cf22f1a6168a7cde82f5b9",
+    "package": "fd9ba58c81b6770166439f95abfad09db8d2a1b344ca3dc87adaa1248568c808"
+  },
+  "package_input": "bounded-stdin",
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

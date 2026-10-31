@@ -19,6 +19,7 @@ import tomllib
 from lib.package_environment import fixture_environment
 from lib.package_inventory import copy_prepared_crate_notices
 from lib.registry_licenses import copy_registry_notices, selected_dependency_ids
+from lib.sdk_candidate import runtime_inventory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -141,8 +142,7 @@ def main():
                              'sdk_helper': {'path': 'bin/connect', 'sha256': binary_sha}},
                       production_release=True, test_support=False,
                       rustc=subprocess.check_output(['rustc', '-Vv'], env=environment, text=True))
-        record['files'] = {p.relative_to(runtime).as_posix(): {'sha256': digest(p), 'mode': p.stat().st_mode & 0o777}
-                           for p in runtime.rglob('*') if p.is_file()}
+        record['files'] = runtime_inventory(runtime)
         if source() != before:
             raise ValueError('Original sources changed before asset publication')
         asset_manifest = {key: value for key, value in record.items() if key != 'passed'}

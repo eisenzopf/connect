@@ -12,6 +12,18 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def runtime_inventory(runtime):
+    """Describe the portable archive modes, independent of private build umask."""
+    files = {}
+    for path in runtime.rglob('*'):
+        if path.is_symlink():
+            raise ValueError('Runtime asset contains a symlink')
+        if path.is_file():
+            name = path.relative_to(runtime).as_posix()
+            files[name] = {'sha256': digest(path), 'mode': 0o755 if name == 'bin/connect' else 0o644}
+    return files
+
+
 def install_runtime(archive, proof, destination):
     if not (proof['passed'] and proof['source_inputs_unchanged'] and proof['production_release']
             and not proof['test_support'] and re.fullmatch('[0-9a-f]{40}', proof['source_revision'])

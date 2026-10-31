@@ -1428,7 +1428,7 @@
     "scope": "510exact crate archives;4604Git/4094prepared/4pinned archives;28112payload files; cold external original public Rust journey cargo check. The later installed inspection example/native runtime pair remain unqualified."
   },
   "native_runtime_assets": {
-    "status": "producer-implemented-not-yet-executed",
+    "status": "initial-linux-compilation-passed-independent-archive-mode-audit-failed-corrected-producer-pending",
     "script": "scripts/package-sdk-runtime.py",
     "workflow": ".github/workflows/gate6-runtime-candidate.yml",
     "targets": [
@@ -1453,6 +1453,15 @@
         "aarch64-apple-darwin": 124683205404,
         "x86_64-unknown-linux-gnu": 124683205658
       }
+    },
+    "linux_negative_evidence": "docs/evidence/gate-6/native-runtime-linux-negative.json",
+    "finding": "Native producer inventoried 745 generated notice/linkage files as private0600 but portable tar writer emitted0644. Independent complete tar audit reports0content and745mode mismatches.",
+    "correction": "Inventory the portable archive modes before manifest publication; actual producer archive+outside extraction regression passes with original private0600 source files preserved.",
+    "local_archive_guard_tests_passed": 4,
+    "superseded_queued_qualification": {
+      "run_id": 41252046756,
+      "source_revision": "456ad6e8",
+      "status": "terminal-cancelled-before-execution-for-confirmed-native-package-mode-defect"
     }
   },
   "installed_examples": {

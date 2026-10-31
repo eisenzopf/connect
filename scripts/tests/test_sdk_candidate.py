@@ -5,12 +5,13 @@ import io
 import json
 from pathlib import Path
 import sys
+import runpy
 import tarfile
 import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.sdk_candidate import digest, install_runtime
+from lib.sdk_candidate import digest, install_runtime, runtime_inventory
 
 
 class NativeCandidate(unittest.TestCase):
@@ -51,6 +52,27 @@ class NativeCandidate(unittest.TestCase):
         self.pack(binary=b'altered executable')
         with self.assertRaisesRegex(ValueError, 'payload differs'):
             install_runtime(self.archive, self.proof, self.root / 'installed')
+
+    def test_actual_producer_archive_modes_match_manifest_under_private_umask(self):
+        runtime = self.root / self.identity
+        (runtime / 'bin').mkdir(parents=True)
+        (runtime / 'bin/connect').write_bytes(b'owned executable')
+        (runtime / 'bin/connect').chmod(0o755)
+        (runtime / 'LICENSE').write_bytes(b'original license')
+        (runtime / 'LICENSE').chmod(0o600)
+        self.proof['files'] = runtime_inventory(runtime)
+        body = json.dumps(self.proof).encode()
+        (runtime / 'manifest.json').write_bytes(body)
+        (runtime / 'manifest.json').chmod(0o600)
+        self.proof['manifest_sha256'] = hashlib.sha256(body).hexdigest()
+        root = Path(__file__).resolve().parents[2]
+        producer = runpy.run_path(str(root / 'scripts/package-linux.py'))
+        producer['archive'](runtime, self.archive, 1234)
+        self.proof['archive_sha256'] = digest(self.archive)
+        destination = self.root / 'installed'
+        install_runtime(self.archive, self.proof, destination)
+        self.assertEqual((runtime / 'LICENSE').stat().st_mode & 0o777, 0o600)
+        self.assertEqual((destination / 'LICENSE').stat().st_mode & 0o777, 0o644)
 
     def test_escape_symlink_and_canonical_duplicate_are_refused(self):
         for index, name in enumerate([self.identity + '/../escape', self.identity + '/bin//connect', self.identity + '/link']):
