@@ -1448,7 +1448,7 @@
     "candidate": {
       "source_revision": "04ab1818",
       "run_id": 41250619720,
-      "status": "both-native-builds-in-progress",
+      "status": "Linux-CI-build-completed-but-archive-audit-failed;macOS-build-still-live",
       "jobs": {
         "aarch64-apple-darwin": 124683205404,
         "x86_64-unknown-linux-gnu": 124683205658
@@ -1566,5 +1566,16 @@
     "requires": "Matching source-bound successful native installed examples and cold offline rebuild proofs for each platform",
     "outputs": "Versioned runtime, Rust/npm/wheel packages, all offline SDK/compiler inputs, examples, public HTTP/API docs and concrete publication manifest",
     "publication": "None. Public Cargo fork/name/version strategy and registry account rights require release review; manifests explicitly refuse publication as-is."
+  },
+  "full_platform_candidate": {
+    "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+    "run_id": 41253765267,
+    "status": "pending-behind-original-macOS-production-build",
+    "scope": "Corrected portable native archive modes, actual installed Rust/Node/Python examples, cold offline source rebuilds and complete candidate assembly. No pass claim."
+  },
+  "superseded_platform_candidate": {
+    "run_id": 41252976114,
+    "source_revision": "4f2df554",
+    "status": "terminal-cancelled-before-execution-to-use-corrected-fixtures-and-package-manager-isolation"
   }
 }

@@ -204,7 +204,7 @@
   "queued_runtime_candidate": {
     "run_id": 41250256185,
     "source_revision": "405ceb29",
-    "status": "terminal-cancellation-requested-before-runtime-compilation-for-confirmed-fixture-type-errors",
+    "status": "terminal-cancelled-before-runtime-compilation-for-confirmed-fixture-type-errors",
     "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
   },
   "required_mcp_connection_gap": {
@@ -229,5 +229,12 @@
     "identifiers": "Use Identifier::try_from(String); FromStr is not implemented",
     "early_preflight": "Type-check both integration fixtures before optimized runtime compilation; checks do not qualify runtime",
     "no_criteria_relaxation": true
+  },
+  "current_typecheck_candidate": {
+    "source_revision": "a78c18957cf29f3a3abd7e16df61b3aeed0bf4a0",
+    "run_id": 41253516677,
+    "job_id": 124691759237,
+    "status": "in-progress-fixture-typecheck",
+    "runtime_qualification": false
   }
 }
