@@ -397,13 +397,14 @@ try {
     const initial = await Promise.all(pages.map(page=>page.evaluate(async()=>({
         stats:await window.videoFixture.session.diagnostics(),rendered:window.videoFixture.observation.rendered,
         rtpFeedback:await globalThis.connectPeerMediaDiagnostics(),
+        receiverClocks:await globalThis.connectPeerClockDiagnostics(),
         changing:window.videoFixture.observation.changing,
         renderChanging:window.videoFixture.observation.renderChanging,
         presentedFrames:window.videoFixture.observation.presentedFrames,
         nativeContent:window.videoFixture.nativeObserver?{...window.videoFixture.nativeContent,
             ...window.videoFixture.nativeObserver.snapshot()}:null,
         source:{...window.videoFixture.sourceObservation},markerStart:performance.now(),markerStartUnix:(performance.timeOrigin+performance.now())/1000 }))));
-    await Promise.all(pages.map((page,index)=>page.evaluate(({initialStats})=>{
+    await Promise.all(pages.map((page,index)=>page.evaluate(({initialStats,initialClocks})=>{
         const f=window.videoFixture;f.observation.recordIdentity=true;f.iceSamples=[];f.outboundSamples=[];f.iceErrors=0;f.iceBusy=false;
         const finite=value=>Number.isFinite(value)&&value>=0?value:undefined;
         f.outboundMetadata=stats=>{
@@ -424,7 +425,7 @@ try {
                 worker:outgoing.worker?{...outgoing.worker}:undefined,
                 quality_limit:["none","cpu","bandwidth","other"].includes(outgoing.qualityLimit)?outgoing.qualityLimit:undefined};
         };
-        f.recordIce=stats=>{
+        f.recordIce=(stats,clocks)=>{
             const incoming=stats.find(row=>row.direction==="inbound");
             const at=(performance.timeOrigin+performance.now())/1000;
             if(f.outboundSamples.length<256)f.outboundSamples.push({unix_seconds:at,
@@ -436,15 +437,18 @@ try {
                 remote_port:incoming?.selectedRemotePort,local_port:incoming?.selectedLocalPort,
                 transport:incoming?.selectedTransport,candidate_type:incoming?.selectedCandidateType,
                 observation_source:incoming?.selectedCandidatePairSource,
-                decoded_keyframes:incoming?.keyframes,decoded_frames:incoming?.frames});
+                decoded_keyframes:incoming?.keyframes,decoded_frames:incoming?.frames,
+                ...(clocks?{receiver_clocks:clocks}:{})});
         };
-        f.recordIce(initialStats);
+        f.recordIce(initialStats,initialClocks);
+        const clockUntil=performance.now()+20000;
         f.iceTimer=setInterval(async()=>{
             if(f.iceBusy)return;f.iceBusy=true;
-            try {f.recordIce(await f.session.diagnostics());}catch {f.iceErrors++;}
+            try {f.recordIce(await f.session.diagnostics(),performance.now()<clockUntil
+                ?await globalThis.connectPeerClockDiagnostics():undefined);}catch {f.iceErrors++;}
             finally {f.iceBusy=false;}
         },500);
-    },{initialStats:initial[index].stats})));
+    },{initialStats:initial[index].stats,initialClocks:initial[index].receiverClocks})));
     if(spec.windowReadyPath)await fs.writeFile(spec.windowReadyPath,JSON.stringify({
         starts_unix_seconds:initial.map(row=>row.markerStartUnix)}),{flag:"wx",mode:0o600});
     const began=performance.now();
@@ -542,6 +546,10 @@ try {
                 dimension_refusals:end.nativeContent.dimensionsRefused-initial[index].nativeContent.dimensionsRefused,
                 last_dimensions:end.nativeContent.lastDimensions,failed:end.nativeContent.failed}:null,
             rtp_feedback:{before:initial[index].rtpFeedback,after:end.rtpFeedback},
+            receiver_clock_observation:{scope:'Bounded public receiver clock and sender-report stats only; no AV verdict.',
+                sample_interval_seconds:.5,observed_initial_seconds:20,sample_bound:256,
+                samples:end.iceSamples.filter(row=>row.receiver_clocks).map(row=>({
+                    elapsed_seconds:row.unix_seconds-initial[index].markerStartUnix,peers:row.receiver_clocks}))},
             audio_readiness:audioReadiness[index],audio_content:audioContent,audio_profile:audioProof,motion_content:motionContent,motion_profile:motionProof,
             worker_pipeline:workerPipeline(outgoingBefore?.worker,end.outbound?.worker,end.outboundSamples,initial[index].markerStartUnix,end.markerEndUnix),
             window_start_unix_seconds:initial[index].markerStartUnix,window_end_unix_seconds:end.markerEndUnix,decoded:delta("frames"),changing:end.changing-initial[index].changing,

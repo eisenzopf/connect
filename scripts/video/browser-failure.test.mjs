@@ -23,6 +23,8 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         globalThis.RTCPeerConnection=Peer;installPeerDiagnostics();
         for(let index=0;index<5;index++)new globalThis.RTCPeerConnection();
         const value=await globalThis.connectPeerMediaDiagnostics();
+        const clocks=await globalThis.connectPeerClockDiagnostics();
+        assert.equal(clocks.length,4);assert(clocks.every(rows=>rows.length===8));
         assert.equal(value.length,4);assert(value.every(rows=>rows.length===8));
         assert.deepEqual(value[0][0],{type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
             concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
@@ -32,7 +34,7 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         assert.equal(JSON.stringify(value).includes("private-secret"),false);
     }finally{
         globalThis.RTCPeerConnection=original;
-        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;
+        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
     }
 });
 
@@ -62,6 +64,66 @@ test("codec diagnostics preserve negotiation facts and exclude signaling secrets
         assert.deepEqual(value[0].remote.media[0].codecs,[{payload_type:96,name:"VP8",clock_rate:90000,channels:null}]);
     }finally{
         globalThis.RTCPeerConnection=original;
-        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;
+        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
+    }
+});
+
+test('receiver clock diagnostics resolve kind privately and preserve signed clock facts without IDs or epochs',async()=>{
+    const original=globalThis.RTCPeerConnection;
+    class Peer{
+        getTransceivers(){return [];}
+        addEventListener(){}
+        async getStats(){
+            const now=performance.timeOrigin+performance.now();
+            return new Map([
+                ['private-local',{type:'inbound-rtp',kind:'audio',id:'private-local',timestamp:now,
+                    estimatedPlayoutTimestamp:now+50,packetsReceived:100,totalSamplesReceived:960,
+                    jitterBufferEmittedCount:200,jitterBufferDelay:20,jitterBufferTargetDelay:16,
+                    jitterBufferMinimumDelay:10,transportId:'private-transport'}],
+                ['private-remote',{type:'remote-outbound-rtp',localId:'private-local',timestamp:now-10,
+                    remoteTimestamp:now-40,reportsSent:5,ssrc:1234,remoteAddress:'private-address'}],
+            ]);
+        }
+    }
+    try{
+        globalThis.RTCPeerConnection=Peer;installPeerDiagnostics();new globalThis.RTCPeerConnection();
+        const [rows]=await globalThis.connectPeerClockDiagnostics();
+        assert.deepEqual(rows[0],{type:'inbound-rtp',kind:'audio',estimated_playout_timestamp_present:true,
+            estimated_playout_minus_stats_ms:50,packetsReceived:100,framesDecoded:null,totalSamplesReceived:960,
+            jitterBufferEmittedCount:200,jitterBufferDelay:20,jitterBufferTargetDelay:16,jitterBufferMinimumDelay:10,
+            jitter_buffer_mean_ms:100,jitter_buffer_target_mean_ms:80,jitter_buffer_minimum_mean_ms:50});
+        assert.equal(rows[1].kind,'audio');assert.equal(rows[1].reports_sent,5);
+        assert.equal(rows[1].local_minus_remote_clock_ms,30);
+        assert(rows[1].last_sr_received_age_ms>=10&&rows[1].last_sr_received_age_ms<1000);
+        assert.equal(JSON.stringify(rows).includes('private-'),false);
+        for(const key of ['id','ssrc','timestamp','remoteTimestamp','localId'])assert.equal(key in rows[1],false);
+    }finally{
+        globalThis.RTCPeerConnection=original;
+        for(const name of ['connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
+    }
+});
+
+test('unsupported clocks, empty buffers and failed clock reads remain explicitly unmeasured',async()=>{
+    const original=globalThis.RTCPeerConnection;
+    class Peer{
+        constructor(){this.fail=false;}
+        getTransceivers(){return [];}
+        addEventListener(){}
+        async getStats(){
+            if(this.fail)throw Error('private-error');
+            return new Map([['private',{type:'inbound-rtp',kind:'video',timestamp:NaN,
+                estimatedPlayoutTimestamp:Infinity,packetsReceived:-1,framesDecoded:NaN,
+                jitterBufferEmittedCount:0,jitterBufferDelay:Infinity}]]);
+        }
+    }
+    try{
+        globalThis.RTCPeerConnection=Peer;installPeerDiagnostics();const peer=new globalThis.RTCPeerConnection();
+        const [[row]]=await globalThis.connectPeerClockDiagnostics();
+        assert.equal(row.estimated_playout_timestamp_present,false);assert.equal(row.estimated_playout_minus_stats_ms,null);
+        assert.equal(row.packetsReceived,null);assert.equal(row.framesDecoded,null);assert.equal(row.jitter_buffer_mean_ms,null);
+        peer.fail=true;assert.deepEqual(await globalThis.connectPeerClockDiagnostics(),[{unavailable:true}]);
+    }finally{
+        globalThis.RTCPeerConnection=original;
+        for(const name of ['connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
     }
 });

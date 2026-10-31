@@ -69,6 +69,43 @@ export function installPeerDiagnostics() {
         });
         return rows;
     }));
+    globalThis.connectPeerClockDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
+        try{
+        const report=await entry.peer.getStats(),rows=[],now=performance.timeOrigin+performance.now();
+        const numeric=value=>Number.isFinite(value)&&value>=0?value:null;
+        const difference=(left,right)=>Number.isFinite(left)&&Number.isFinite(right)&&Math.abs(left-right)<=3600000
+            ?left-right:null;
+        report.forEach(stat=>{
+            if(!['inbound-rtp','remote-outbound-rtp'].includes(stat.type)||rows.length>=8)return;
+            const kind=stat.kind??report.get(stat.localId)?.kind;
+            if(!['audio','video'].includes(kind))return;
+            const row={type:stat.type,kind};
+            if(stat.type==='remote-outbound-rtp'){
+                row.reports_sent=numeric(stat.reportsSent);
+                row.remote_timestamp_present=Number.isFinite(stat.remoteTimestamp)&&stat.remoteTimestamp>0;
+                row.last_sr_received_age_ms=difference(now,stat.timestamp);
+                // Remote and local clocks need not be synchronized. This is
+                // a raw clock-domain difference, never a network-delay claim.
+                row.local_minus_remote_clock_ms=row.remote_timestamp_present?difference(stat.timestamp,stat.remoteTimestamp):null;
+            }else{
+                row.estimated_playout_timestamp_present=Number.isFinite(stat.estimatedPlayoutTimestamp)&&stat.estimatedPlayoutTimestamp>0;
+                row.estimated_playout_minus_stats_ms=row.estimated_playout_timestamp_present
+                    ?difference(stat.estimatedPlayoutTimestamp,stat.timestamp):null;
+                for(const key of ['packetsReceived','framesDecoded','totalSamplesReceived'])row[key]=numeric(stat[key]);
+                const emitted=numeric(stat.jitterBufferEmittedCount);
+                row.jitterBufferEmittedCount=emitted;
+                for(const [key,label]of [['jitterBufferDelay','jitter_buffer_mean_ms'],
+                    ['jitterBufferTargetDelay','jitter_buffer_target_mean_ms'],
+                    ['jitterBufferMinimumDelay','jitter_buffer_minimum_mean_ms']]){
+                    row[key]=numeric(stat[key]);
+                    row[label]=emitted>0&&numeric(stat[key])!==null?numeric(1000*stat[key]/emitted):null;
+                }
+            }
+            rows.push(row);
+        });
+        return rows;
+        }catch{return {unavailable:true};}
+    }));
     const descriptionCodecs=description=>{
         if(!description||typeof description.sdp!=="string"||description.sdp.length>65536)return {unavailable:true};
         const media=[];let section;
