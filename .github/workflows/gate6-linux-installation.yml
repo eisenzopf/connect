@@ -74,9 +74,13 @@ jobs:
           python3 scripts/lib/source_build_cache.py restore
           python3 scripts/lib/ci_dependency_cache.py
           cargo fetch --locked
-      - name: Test canonical recovery and package the production release
+      - name: Compile and execute canonical recovery behavior
+        id: recovery
+        run: python3 scripts/check-linux-package-build.py --phase recovery
+      - name: Build and inventory the production release package
+        if: ${{ !cancelled() }}
         id: build
-        run: python3 scripts/check-linux-package-build.py
+        run: python3 scripts/check-linux-package-build.py --phase package
       - name: Preserve package as an unpublished workflow artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build/package/recovery evidence with raw output retained privately, not uploaded."""
+import argparse
 import hashlib
 import json
 import os
@@ -22,23 +23,44 @@ def digest(path):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--phase', choices=('all', 'recovery', 'package'), default='all')
+    args = parser.parse_args()
     os.umask(0o077)
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     PRIVATE.mkdir(parents=True, exist_ok=True)
     source = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']
-    inputs = source()
-    (EVIDENCE / 'source-inputs.json').write_text(json.dumps(inputs, sort_keys=True) + '\n')
-    report = {'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'source_inputs_sha256': digest(EVIDENCE / 'source-inputs.json'), 'source_count': len(inputs), 'steps': [], 'passed': False, 'compilation_completed': False, 'whole_gate_qualified': False}
-    expected = os.environ.get('CONNECT_INSTALLATION_SOURCE_REVISION', report['source_revision'])
-    assert re.fullmatch('[0-9a-f]{40}', expected) and expected == report['source_revision'], 'Checkout differs from requested exact source'
-    report['requested_source_revision'] = expected
-    report['controller_source_revision'] = os.environ.get('GITHUB_SHA')
+    source_path = EVIDENCE / 'source-inputs.json'
+    report_path = EVIDENCE / 'build.json'
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    expected = os.environ.get('CONNECT_INSTALLATION_SOURCE_REVISION', head)
+    assert re.fullmatch('[0-9a-f]{40}', expected) and expected == head, 'Checkout differs from requested exact source'
+    if args.phase == 'package':
+        inputs = json.loads(source_path.read_text())
+        report = json.loads(report_path.read_text())
+        assert report['source_revision'] == head and report['requested_source_revision'] == expected
+        assert report['controller_source_revision'] == os.environ.get('GITHUB_SHA')
+        assert report['source_inputs_sha256'] == digest(source_path) and report['source_count'] == len(inputs), 'Recovery source manifest changed between phases'
+    else:
+        inputs = source()
+        source_path.write_text(json.dumps(inputs, sort_keys=True) + '\n')
+        report = {'source_revision': head, 'requested_source_revision': expected,
+                  'controller_source_revision': os.environ.get('GITHUB_SHA'),
+                  'source_inputs_sha256': digest(source_path), 'source_count': len(inputs),
+                  'steps': [], 'passed': False, 'compilation_completed': False, 'whole_gate_qualified': False}
     env = fixture_environment()
     try:
+        assert inputs == source(), 'Source changed between build phases'
+        if args.phase == 'package':
+            assert len(report['steps']) == 1 and report['steps'][0]['name'] == 'recovery-tests'
+            if report['steps'][0]['exit_code'] != 0 or not report['compilation_completed']:
+                raise RuntimeError('Recovery did not pass; package assembly remains unrun')
         for name, command, budget in [
             ('recovery-tests', ['cargo', 'test', '--locked', '--release', '--message-format=json', '-p', 'connect-server', '--test', 'gate6_canonical_recovery', '--', '--test-threads=1'], 5400),
             ('package', ['python3', 'scripts/package-linux.py'], 5400),
         ]:
+            if (args.phase == 'package' and name == 'recovery-tests') or (args.phase == 'recovery' and name == 'package'):
+                continue
             started = time.monotonic()
             log = PRIVATE / (name + '.log')
             try:
@@ -81,6 +103,8 @@ def main():
             print(json.dumps(step), flush=True)
             if status != 0:
                 raise RuntimeError('Bounded build step failed; raw diagnostics retained privately')
+        if args.phase == 'recovery':
+            return
         packages = list((ROOT / 'dist').glob('connect-*-ubuntu-24.04-x86_64-*.tar.gz'))
         assert len(packages) == 1
         package = packages[0]
@@ -98,7 +122,7 @@ def main():
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
                 output.write('cacheable_build=' + str(report['cacheable_build']).lower() + '\n')
-        (EVIDENCE / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
+        report_path.write_text(json.dumps(report, indent=2) + '\n')
 
 
 if __name__ == '__main__':

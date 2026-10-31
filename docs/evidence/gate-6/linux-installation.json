@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "6 passed; includes independent archive/source-map/digest mismatch refusals and omitted-Git-input refusal, plus the four package integrity/determinism/umask checks",
+    "package_integrity_boundary_tests": "8 passed; package/archive/source-map guards and separated-phase source-manifest/cache refusal guards",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -125,5 +125,9 @@
     ],
     "runtime_result_verified": false,
     "baseline_run_unchanged": 41231607107
+  },
+  "ci_phase_visibility": {
+    "status": "authored; 8 package/source-guard checks pass locally; updated workflow awaits next primary run",
+    "behavior": "Recovery and release-package assembly are separate visible steps. The second phase preserves the first source inventory and refuses source/controller/manifest changes; it cannot freshen a changed source tree into a cacheable pass."
   }
 }

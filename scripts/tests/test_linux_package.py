@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import zipfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -23,6 +24,7 @@ def load(name, path):
 installer = load('linux_installer', 'deploy/linux/install.py')
 packager = load('linux_packager', 'scripts/package-linux.py')
 verifier = load('linux_verifier', 'scripts/verify-linux-installation.py')
+build_pipeline = load('linux_build_pipeline', 'scripts/check-linux-package-build.py')
 
 
 class Integrity(unittest.TestCase):
@@ -113,6 +115,55 @@ class Integrity(unittest.TestCase):
         self.manifest['installation_id'] = '../arbitrary'
         self.write_manifest()
         with self.assertRaises(ValueError): installer.verified_files(self.root)
+
+
+class BuildPhaseGuards(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.evidence = self.root / 'evidence'
+        self.evidence.mkdir()
+        self.inputs = {'crates/example/src/lib.rs': {'sha256': '1' * 64, 'mode': 0o644}}
+        source = self.evidence / 'source-inputs.json'
+        source.write_text(json.dumps(self.inputs) + '\n')
+        self.report = {'source_revision': 'a' * 40, 'requested_source_revision': 'a' * 40,
+                       'controller_source_revision': 'b' * 40,
+                       'source_inputs_sha256': installer.digest(source), 'source_count': 1,
+                       'steps': [{'name': 'recovery-tests', 'exit_code': 0}],
+                       'compilation_completed': True, 'passed': False}
+        self.report_path = self.evidence / 'build.json'
+        self.report_path.write_text(json.dumps(self.report))
+        self.patchers = [
+            mock.patch.multiple(build_pipeline, ROOT=self.root, EVIDENCE=self.evidence, PRIVATE=self.root / 'private'),
+            mock.patch('sys.argv', ['check-linux-package-build.py', '--phase', 'package']),
+            mock.patch.dict(os.environ, {'CONNECT_INSTALLATION_SOURCE_REVISION': 'a' * 40,
+                                         'GITHUB_SHA': 'b' * 40, 'GITHUB_OUTPUT': str(self.root / 'outputs')}),
+            mock.patch.object(build_pipeline.os, 'umask', return_value=0o022),
+            mock.patch.object(build_pipeline.subprocess, 'check_output', return_value='a' * 40 + '\n'),
+        ]
+        for patcher in self.patchers:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_package_phase_refuses_a_changed_source_manifest_without_building(self):
+        self.report['source_inputs_sha256'] = '0' * 64
+        self.report_path.write_text(json.dumps(self.report))
+        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: self.inputs}), mock.patch.object(build_pipeline.subprocess, 'run') as run:
+            with self.assertRaisesRegex(AssertionError, 'Recovery source manifest changed'):
+                build_pipeline.main()
+            run.assert_not_called()
+
+    def test_changes_between_phases_are_not_freshened_and_cannot_save_a_cache(self):
+        changed = {'crates/example/src/lib.rs': {'sha256': '2' * 64, 'mode': 0o644}}
+        with mock.patch.object(build_pipeline.runpy, 'run_path', return_value={'sources': lambda: changed}), mock.patch.object(build_pipeline.subprocess, 'run') as run:
+            with self.assertRaisesRegex(AssertionError, 'Source changed between build phases'):
+                build_pipeline.main()
+            run.assert_not_called()
+        report = json.loads(self.report_path.read_text())
+        self.assertFalse(report['source_inputs_unchanged'])
+        self.assertFalse(report['cacheable_build'])
+        self.assertEqual(json.loads((self.evidence / 'source-inputs.json').read_text()), self.inputs)
 
 
 if __name__ == '__main__':
