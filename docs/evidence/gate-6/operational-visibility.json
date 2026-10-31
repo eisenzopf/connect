@@ -147,5 +147,10 @@
     "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
     "status": "in_progress_at_recording",
     "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
+  },
+  "subscription_test_precondition": {
+    "finding": "A silent31s lease wait conflicts with the native transport's independent30s idle timeout",
+    "correction": "Use read-only conversation snapshots every\u22645s while waiting31s, preserving the original signed peer without renewing its subscription lease",
+    "scope": "Fixture precondition correction; does not alter production deadlines, authority, operation IDs or expiry criteria"
   }
 }

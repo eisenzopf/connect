@@ -328,7 +328,24 @@ async fn signed_subscription_capacity_refuses_ninth_and_expired_leases_release_s
         )
         .await
         .unwrap();
-        tokio::time::sleep(Duration::from_secs(31)).await;
+        // Expire the subscription lease on the original live transport.
+        // A silent 31s wait would instead hit QUIC's independent 30s idle bound.
+        let expires = tokio::time::Instant::now() + Duration::from_secs(31);
+        while tokio::time::Instant::now() < expires {
+            tokio::time::sleep_until(
+                (tokio::time::Instant::now() + Duration::from_secs(5)).min(expires),
+            )
+            .await;
+            peer.conversation_snapshot(
+                &rooms[0],
+                payloads::ConversationGet {
+                    page: None,
+                    limit: Some(10),
+                },
+            )
+            .await
+            .unwrap();
+        }
         peer.subscribe_conversation(&rooms[8], query())
             .await
             .unwrap();
