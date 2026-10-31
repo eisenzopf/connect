@@ -1,0 +1,517 @@
+{
+  "run_id": 41180007866,
+  "artifact_id": 13034263935,
+  "revision": "7d1bb086f12eceb68b623f85171f1b5a776ba37e",
+  "zip_sha256": "ec2a4cb8ca80ae6c24951673590f0b1a2d2daa2ac786139241eb4b03461b5435",
+  "git_sources_verified": 2853,
+  "prepared_sources_verified": 3087,
+  "task": "G6-054",
+  "scope": "Source-verified anonymous Linux distinct-network direct bridges only. Callback timing diagnostics retain the original AV verdict and quality limits.",
+  "status": "Both direct bridge cases failed strict AV tails again",
+  "producer": {
+    "scope": "Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt0. Build only.",
+    "fixture_opt_level": "0",
+    "unrequested_cli_artifacts": 0,
+    "command": [
+      "cargo",
+      "rustc",
+      "--release",
+      "--offline",
+      "--locked",
+      "-j1",
+      "-p",
+      "connect-server",
+      "--no-default-features",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none",
+      "-C",
+      "opt-level=0"
+    ],
+    "execution": {
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 0.41486509199999944,
+      "log_sha256": "492936319702c1efeac1019c078b3166750e0cbbbd351e95a6e2f49281db9097"
+    },
+    "runtime_library_profiles": {
+      "completed_artifacts": 524,
+      "profiles": {
+        "connect_client": [
+          "3"
+        ],
+        "connect_server": [
+          "3"
+        ],
+        "connect_service": [
+          "3"
+        ],
+        "connect_store": [
+          "3"
+        ],
+        "rtc": [
+          "3"
+        ],
+        "rtc_dtls": [
+          "3"
+        ],
+        "rtc_ice": [
+          "3"
+        ],
+        "rvoip_core": [
+          "3"
+        ],
+        "rvoip_media_core": [
+          "3"
+        ],
+        "rvoip_rtp_core": [
+          "3"
+        ],
+        "rvoip_webrtc": [
+          "3"
+        ]
+      },
+      "missing": [],
+      "passed": true
+    },
+    "source_count": 5940,
+    "sources_unchanged": true,
+    "source_manifest_sha256": "6a4ecc162435f4a6632f5fb9bda13e1f7a8a1a3afcd90f01f626bab813f866cf",
+    "artifacts": [
+      {
+        "path": "/home/runner/work/connect/connect/.local/gate6-browser-media/target/release/deps/gate6_canonical_webtransport-ac22f5261b37a54e",
+        "sha256": "70504cf3ccd709cabd08e3afe4d964b1b8cd8903a7faee5bab6d94d2a0d325eb"
+      }
+    ],
+    "passed": true
+  },
+  "cases": [
+    {
+      "algorithm": "EdDSA",
+      "passed": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "source_count": 5940,
+      "source_manifest_sha256": "6a4ecc162435f4a6632f5fb9bda13e1f7a8a1a3afcd90f01f626bab813f866cf",
+      "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "observations": [
+        {
+          "decoded_fps": 29.95628188455943,
+          "changing_fps": 27.14059131810195,
+          "video_observer": "native-decoded-frames/1",
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 35.60000000000585,
+            "p95_abs_skew_ms": 125.40000000002749
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "paired_markers": 83,
+          "render_markers": 83,
+          "omitted_render_markers": 0,
+          "maximum_callback_minus_expected_display_ms": 36.70000000000073,
+          "display_metadata_substitution_p95_abs_ms": 124.50000000000479,
+          "display_substitution_scope": "Counterfactual diagnostic only. Original callback-time AV verdict retained.",
+          "largest_signed_skews": [
+            {
+              "ordinal": 88,
+              "video_emit_seconds": 62.7275,
+              "audio_emit_seconds": 62.586600000000004,
+              "signed_video_minus_audio_ms": 140.89999999999492
+            },
+            {
+              "ordinal": 83,
+              "video_emit_seconds": 59.425,
+              "audio_emit_seconds": 59.28660000000001,
+              "signed_video_minus_audio_ms": 138.3999999999901
+            },
+            {
+              "ordinal": 11,
+              "video_emit_seconds": 7.260300000000018,
+              "audio_emit_seconds": 7.397700000000012,
+              "signed_video_minus_audio_ms": -137.39999999999418
+            },
+            {
+              "ordinal": 12,
+              "video_emit_seconds": 7.760200000000012,
+              "audio_emit_seconds": 7.896600000000006,
+              "signed_video_minus_audio_ms": -136.39999999999387
+            },
+            {
+              "ordinal": 87,
+              "video_emit_seconds": 62.225900000000024,
+              "audio_emit_seconds": 62.1005,
+              "signed_video_minus_audio_ms": 125.40000000002749
+            },
+            {
+              "ordinal": 19,
+              "video_emit_seconds": 12.893600000000006,
+              "audio_emit_seconds": 13.016600000000006,
+              "signed_video_minus_audio_ms": -122.99999999999933
+            }
+          ],
+          "signed_video_minus_audio_median_by_receiver_time": [
+            {
+              "from_seconds": 0,
+              "to_seconds": 15,
+              "median_ms": -98.0499999999882
+            },
+            {
+              "from_seconds": 15,
+              "to_seconds": 30,
+              "median_ms": -2.349999999989194
+            },
+            {
+              "from_seconds": 30,
+              "to_seconds": 45,
+              "median_ms": 1.6000000000033765
+            },
+            {
+              "from_seconds": 45,
+              "to_seconds": 60,
+              "median_ms": 34.900000000000375
+            }
+          ],
+          "video_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.0936000000000057,
+            "late_15_markers_median_seconds": 1.1924000000000206,
+            "range_ms": 198.60000000000343
+          },
+          "audio_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.1966000000000054,
+            "late_15_markers_median_seconds": 1.1276000000000082,
+            "range_ms": 150.20000000001232
+          }
+        },
+        {
+          "decoded_fps": 29.938573511254063,
+          "changing_fps": 27.172962379997426,
+          "video_observer": "native-decoded-frames/1",
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 43.70000000001539,
+            "p95_abs_skew_ms": 118.10000000000542
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "paired_markers": 83,
+          "render_markers": 83,
+          "omitted_render_markers": 0,
+          "maximum_callback_minus_expected_display_ms": 35.69999999999709,
+          "display_metadata_substitution_p95_abs_ms": 129.80000000001178,
+          "display_substitution_scope": "Counterfactual diagnostic only. Original callback-time AV verdict retained.",
+          "largest_signed_skews": [
+            {
+              "ordinal": 16,
+              "video_emit_seconds": 10.4935,
+              "audio_emit_seconds": 10.633200000000011,
+              "signed_video_minus_audio_ms": -139.70000000001193
+            },
+            {
+              "ordinal": 15,
+              "video_emit_seconds": 9.96,
+              "audio_emit_seconds": 10.093800000000018,
+              "signed_video_minus_audio_ms": -133.80000000001678
+            },
+            {
+              "ordinal": 13,
+              "video_emit_seconds": 8.977,
+              "audio_emit_seconds": 9.103200000000012,
+              "signed_video_minus_audio_ms": -126.20000000001141
+            },
+            {
+              "ordinal": 11,
+              "video_emit_seconds": 7.1913999999999945,
+              "audio_emit_seconds": 7.313200000000012,
+              "signed_video_minus_audio_ms": -121.80000000001723
+            },
+            {
+              "ordinal": 14,
+              "video_emit_seconds": 9.475100000000007,
+              "audio_emit_seconds": 9.593200000000012,
+              "signed_video_minus_audio_ms": -118.10000000000542
+            },
+            {
+              "ordinal": 10,
+              "video_emit_seconds": 6.674600000000006,
+              "audio_emit_seconds": 6.783200000000011,
+              "signed_video_minus_audio_ms": -108.60000000000537
+            }
+          ],
+          "signed_video_minus_audio_median_by_receiver_time": [
+            {
+              "from_seconds": 0,
+              "to_seconds": 15,
+              "median_ms": -95.25000000000006
+            },
+            {
+              "from_seconds": 15,
+              "to_seconds": 30,
+              "median_ms": 34.250000000000114
+            },
+            {
+              "from_seconds": 30,
+              "to_seconds": 45,
+              "median_ms": 34.7000000000115
+            },
+            {
+              "from_seconds": 45,
+              "to_seconds": 60,
+              "median_ms": 33.699999999996066
+            }
+          ],
+          "video_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.008100000000006,
+            "late_15_markers_median_seconds": 1.1093000000000188,
+            "range_ms": 183.49999999999866
+          },
+          "audio_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.1032000000000117,
+            "late_15_markers_median_seconds": 1.0931000000000068,
+            "range_ms": 109.89999999999966
+          }
+        }
+      ]
+    },
+    {
+      "algorithm": "ES256",
+      "passed": false,
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "source_count": 5940,
+      "source_manifest_sha256": "6a4ecc162435f4a6632f5fb9bda13e1f7a8a1a3afcd90f01f626bab813f866cf",
+      "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true,
+      "owned_bridge_removed": true,
+      "forced_cleanup": false,
+      "observations": [
+        {
+          "decoded_fps": 29.932688731953288,
+          "changing_fps": 27.184278247383286,
+          "video_observer": "native-decoded-frames/1",
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 33.79999999999228,
+            "p95_abs_skew_ms": 113.8999999999939
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "paired_markers": 83,
+          "render_markers": 83,
+          "omitted_render_markers": 0,
+          "maximum_callback_minus_expected_display_ms": 35.79999999997381,
+          "display_metadata_substitution_p95_abs_ms": 115.29999999999279,
+          "display_substitution_scope": "Counterfactual diagnostic only. Original callback-time AV verdict retained.",
+          "largest_signed_skews": [
+            {
+              "ordinal": 16,
+              "video_emit_seconds": 10.475600000000005,
+              "audio_emit_seconds": 10.606,
+              "signed_video_minus_audio_ms": -130.39999999999452
+            },
+            {
+              "ordinal": 15,
+              "video_emit_seconds": 9.96,
+              "audio_emit_seconds": 10.085899999999993,
+              "signed_video_minus_audio_ms": -125.89999999999257
+            },
+            {
+              "ordinal": 17,
+              "video_emit_seconds": 10.975600000000005,
+              "audio_emit_seconds": 11.095899999999995,
+              "signed_video_minus_audio_ms": -120.29999999998964
+            },
+            {
+              "ordinal": 18,
+              "video_emit_seconds": 11.910799999999988,
+              "audio_emit_seconds": 12.025899999999995,
+              "signed_video_minus_audio_ms": -115.10000000000709
+            },
+            {
+              "ordinal": 20,
+              "video_emit_seconds": 13.292,
+              "audio_emit_seconds": 13.405899999999994,
+              "signed_video_minus_audio_ms": -113.8999999999939
+            },
+            {
+              "ordinal": 14,
+              "video_emit_seconds": 9.475299999999988,
+              "audio_emit_seconds": 9.585899999999993,
+              "signed_video_minus_audio_ms": -110.60000000000514
+            }
+          ],
+          "signed_video_minus_audio_median_by_receiver_time": [
+            {
+              "from_seconds": 0,
+              "to_seconds": 15,
+              "median_ms": -100.85000000000565
+            },
+            {
+              "from_seconds": 15,
+              "to_seconds": 30,
+              "median_ms": -22.300000000003095
+            },
+            {
+              "from_seconds": 30,
+              "to_seconds": 45,
+              "median_ms": 33.79999999999228
+            },
+            {
+              "from_seconds": 45,
+              "to_seconds": 60,
+              "median_ms": 21.25000000000199
+            }
+          ],
+          "video_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 0.9756000000000054,
+            "late_15_markers_median_seconds": 1.1071000000000097,
+            "range_ms": 182.19999999998038
+          },
+          "audio_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.0858999999999934,
+            "late_15_markers_median_seconds": 1.0758999999999972,
+            "range_ms": 111.50000000002436
+          }
+        },
+        {
+          "decoded_fps": 29.71847411044898,
+          "changing_fps": 26.95319008447671,
+          "video_observer": "native-decoded-frames/1",
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 35.39999999999566,
+            "p95_abs_skew_ms": 125.99999999999945
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "paired_markers": 82,
+          "render_markers": 82,
+          "omitted_render_markers": 0,
+          "maximum_callback_minus_expected_display_ms": 36.59999999999127,
+          "display_metadata_substitution_p95_abs_ms": 128.200000000022,
+          "display_substitution_scope": "Counterfactual diagnostic only. Original callback-time AV verdict retained.",
+          "largest_signed_skews": [
+            {
+              "ordinal": 16,
+              "video_emit_seconds": 10.397100000000005,
+              "audio_emit_seconds": 10.543900000000024,
+              "signed_video_minus_audio_ms": -146.80000000001849
+            },
+            {
+              "ordinal": 8,
+              "video_emit_seconds": 5.577400000000023,
+              "audio_emit_seconds": 5.724,
+              "signed_video_minus_audio_ms": -146.5999999999772
+            },
+            {
+              "ordinal": 12,
+              "video_emit_seconds": 7.611400000000024,
+              "audio_emit_seconds": 7.744200000000012,
+              "signed_video_minus_audio_ms": -132.79999999998805
+            },
+            {
+              "ordinal": 14,
+              "video_emit_seconds": 9.394100000000005,
+              "audio_emit_seconds": 9.523900000000022,
+              "signed_video_minus_audio_ms": -129.80000000001723
+            },
+            {
+              "ordinal": 15,
+              "video_emit_seconds": 9.877900000000023,
+              "audio_emit_seconds": 10.003900000000023,
+              "signed_video_minus_audio_ms": -125.99999999999945
+            },
+            {
+              "ordinal": 19,
+              "video_emit_seconds": 12.6935,
+              "audio_emit_seconds": 12.813800000000018,
+              "signed_video_minus_audio_ms": -120.30000000001806
+            }
+          ],
+          "signed_video_minus_audio_median_by_receiver_time": [
+            {
+              "from_seconds": 0,
+              "to_seconds": 15,
+              "median_ms": -107.15000000000873
+            },
+            {
+              "from_seconds": 15,
+              "to_seconds": 30,
+              "median_ms": -20.45000000001096
+            },
+            {
+              "from_seconds": 30,
+              "to_seconds": 45,
+              "median_ms": 49.099999999974386
+            },
+            {
+              "from_seconds": 45,
+              "to_seconds": 60,
+              "median_ms": 14.749999999999375
+            }
+          ],
+          "video_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 0.9104000000000223,
+            "late_15_markers_median_seconds": 1.009299999999989,
+            "range_ms": 169.10000000000647
+          },
+          "audio_emit_seconds_source_offset": {
+            "early_15_markers_median_seconds": 1.0239000000000225,
+            "late_15_markers_median_seconds": 0.9839000000000198,
+            "range_ms": 112.69999999998248
+          }
+        }
+      ]
+    }
+  ],
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "conclusion": "Late callbacks alone do not explain the strict AV failures: substituting expected display metadata still fails and worsens one previously passing peer. Early audio lags video about100\u2013140ms and the skew converges later. Investigate actual source-clock availability and startup synchronization before changing sender timing, readiness or measurement.",
+  "sender_interval_audit": "The existing rtc-interceptor sender-report builder defaults to one second and the runtime installs that default. No evidence supports a presumed five-second egress report timer; no timer patch applied.",
+  "next": "Trace actual source SR/CNAME activation and paired sender/receiver clock readiness; preserve the strict80/120ms AV limits and independently report initial media readiness. Do not use an arbitrary longer warmup or callback substitution to erase the failure."
+}
