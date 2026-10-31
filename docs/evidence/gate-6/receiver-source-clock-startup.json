@@ -1,0 +1,168 @@
+{
+  "run_id": 41181623570,
+  "artifact_id": 13034853170,
+  "revision": "933e07edf9d0e6ec141a7f27d44378958008fe10",
+  "zip_sha256": "b79957c0cbc686807065c80fb855e5769df0e61d5204a95385ec52a735eecb48",
+  "git_sources_verified": 2853,
+  "prepared_sources_verified": 3087,
+  "task": "G6-054",
+  "scope": "Direct bridge receiver source-clock diagnostic before scheduler correction; this run passed strict AV, while prior intermittent AV failures remain open.",
+  "cases": [
+    {
+      "algorithm": "eddsa",
+      "passed": true,
+      "peers": [
+        {
+          "index": 0,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 21.649999999992176,
+            "p95_abs_skew_ms": 76.90000000000819
+          },
+          "clock_samples": 40,
+          "first_observed_sender_reports": {
+            "video": {
+              "elapsed_seconds": 0.0176999568939209,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "video",
+                "reports_sent": 2,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 831.948974609375,
+                "local_minus_remote_clock_ms": 2.18896484375
+              }
+            },
+            "audio": {
+              "elapsed_seconds": 0.5246999263763428,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "audio",
+                "reports_sent": 1,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 357.85205078125,
+                "local_minus_remote_clock_ms": 0.10400390625
+              }
+            }
+          },
+          "playout_offset": "unmeasured: browser timestamp domains did not pass the plausibility bound"
+        },
+        {
+          "index": 1,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 28.249999999999886,
+            "p95_abs_skew_ms": 97.69999999999612
+          },
+          "clock_samples": 40,
+          "first_observed_sender_reports": {
+            "video": {
+              "elapsed_seconds": 0.031599998474121094,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "video",
+                "reports_sent": 2,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 846.148193359375,
+                "local_minus_remote_clock_ms": 0.205810546875
+              }
+            },
+            "audio": {
+              "elapsed_seconds": 0.534600019454956,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "audio",
+                "reports_sent": 1,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 380.080078125,
+                "local_minus_remote_clock_ms": 0.10302734375
+              }
+            }
+          },
+          "playout_offset": "unmeasured: browser timestamp domains did not pass the plausibility bound"
+        }
+      ],
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true
+    },
+    {
+      "algorithm": "es256",
+      "passed": true,
+      "peers": [
+        {
+          "index": 0,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 17.89999999999381,
+            "p95_abs_skew_ms": 76.59999999997692
+          },
+          "clock_samples": 40,
+          "first_observed_sender_reports": {
+            "video": {
+              "elapsed_seconds": 0.013000011444091797,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "video",
+                "reports_sent": 2,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 876.322998046875,
+                "local_minus_remote_clock_ms": 0.110107421875
+              }
+            },
+            "audio": {
+              "elapsed_seconds": 0.5137002468109131,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "audio",
+                "reports_sent": 1,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 389.627197265625,
+                "local_minus_remote_clock_ms": 0.10595703125
+              }
+            }
+          },
+          "playout_offset": "unmeasured: browser timestamp domains did not pass the plausibility bound"
+        },
+        {
+          "index": 1,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 18.100000000007554,
+            "p95_abs_skew_ms": 116.89999999999401
+          },
+          "clock_samples": 40,
+          "first_observed_sender_reports": {
+            "video": {
+              "elapsed_seconds": 0.010699987411499023,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "video",
+                "reports_sent": 2,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 867.983154296875,
+                "local_minus_remote_clock_ms": 0.340087890625
+              }
+            },
+            "audio": {
+              "elapsed_seconds": 0.5115997791290283,
+              "observation": {
+                "type": "remote-outbound-rtp",
+                "kind": "audio",
+                "reports_sent": 1,
+                "remote_timestamp_present": true,
+                "last_sr_received_age_ms": 379.3291015625,
+                "local_minus_remote_clock_ms": 0.242919921875
+              }
+            }
+          },
+          "playout_offset": "unmeasured: browser timestamp domains did not pass the plausibility bound"
+        }
+      ],
+      "original_server_joined": true,
+      "original_container_joined": true,
+      "bridge_containers_drained": true
+    }
+  ],
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}
