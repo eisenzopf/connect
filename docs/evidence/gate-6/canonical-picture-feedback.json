@@ -1,7 +1,7 @@
 {
   "task": "G6-054",
   "scope": "Configured local signed WSS/Store/Core browser-source picture-request component. No loss-profile, full media, SDK or acceptance qualification.",
-  "status": "Both original signed AV picture-request functions pass after metadata wait; all10 Core regression functions unrun due workspace invocation, corrected harness pending",
+  "status": "Source-verified picture-request component passes: both original signed AV functions and all10 current Core repair regressions",
   "before": {
     "source_revision": "78a29528dab8a244dbe103488e52265911ee76f1",
     "run_id": 41186639101,
@@ -137,7 +137,7 @@
     "request_ms": 100,
     "retention": "One latest delivery; no new payload queue or legacy routing fallback"
   },
-  "remaining": "Run corrected actual10-Core regression inventory/expiry/current-authority/cancellation/atomic-budget cases. Complete current full Linux media reachability/decoded recovery. The two signed functions passing do not qualify full G6-054.",
+  "remaining": "Complete affected current full Linux browser direct/relay/ICE/loss decoded media and remaining G6-054 addressing checks. This component is not full media/SDK or acceptance qualification.",
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "after_initial_forwarding": {
@@ -246,7 +246,7 @@
   "metadata_wait_candidate": {
     "patch": "patches/rvoip/gate6-canonical-picture-metadata-wait.patch",
     "sha256": "094e9e92dfa0462d372eaad7976a18177b0fec96bebc5276721855687306821c",
-    "status": "Compiled and both original signed AV functions pass; separate Core regression invocation remains to qualify",
+    "status": "Verified passing bothoriginalsignedAVfunctions andall10existingCoreguard/expiry/cancellation/reselection/shared-attemptregressions",
     "scope": "Only pre-callback metadata refusals may wait for a fresh actual successful delivery, within the same100ms absolute deadline. No callback retry after entry, including on refused/uncertain IO. Existing shared250ms rate and200ms/four-attempt original repair bounds remain."
   },
   "after_metadata_wait": {
@@ -354,5 +354,206 @@
         "log_sha256": "82845c0e7c83479b713fd722c547f71e8f940933e66cffda6bb86498466b59da"
       }
     ]
+  },
+  "after_corrected_core_invocation": {
+    "source_revision": "4bef1eb9b66fcfd4948986cb6115593f6bfb5f29",
+    "run_id": 41191552960,
+    "artifact_id": 13038814852,
+    "zip_sha256": "1a0b5125ea16af5496b8f7712f40aa423fa9bea90c9ee258f1923cb271485760",
+    "git_sources_verified": 4513,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "279dd130dc7715512f2552659b55b3c6ef4b28a189077264f581488604209949",
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": true,
+      "results": [
+        {
+          "algorithm": "eddsa",
+          "passed": true,
+          "observations": [
+            {
+              "active": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  true,
+                  false
+                ]
+              ],
+              "original_peers_joined": true,
+              "original_server_joined": true,
+              "reclaimed_slots": 2,
+              "restored": [
+                true,
+                false
+              ],
+              "withdrawn": [
+                false,
+                false
+              ]
+            }
+          ]
+        },
+        {
+          "algorithm": "es256",
+          "passed": true,
+          "observations": [
+            {
+              "active": [
+                [
+                  true,
+                  false
+                ],
+                [
+                  true,
+                  false
+                ]
+              ],
+              "original_peers_joined": true,
+              "original_server_joined": true,
+              "reclaimed_slots": 2,
+              "restored": [
+                true,
+                false
+              ],
+              "withdrawn": [
+                false,
+                false
+              ]
+            }
+          ]
+        }
+      ],
+      "decoder_sha256": "ed16af623947494a72e284b6eb8ff225f2da22b38b5d5069c2fd4b4ba3384e41",
+      "fixtures_sha256": {
+        "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+        "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+      },
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "core_repair_regressions": {
+        "passed": true,
+        "status": "passed",
+        "execution": {
+          "name": "core-video-repair-regressions",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.7156723919999877,
+          "log_sha256": "35af341dbec839ebc5373588f77b8ce8677f54b817e58631dc59f3a736b53ce5",
+          "test_results": [
+            "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 556 filtered out; finished in 0.69s"
+          ],
+          "rtc_admission_observations": [],
+          "consultation_return_observations": [],
+          "canonical_video_feedback": [],
+          "rtc_admission_trace_enabled": [],
+          "panic_locations": [],
+          "rtc_operation_failures": [],
+          "ipc_data_revocation_failures": [],
+          "ipc_data_status_revocation_failures": [],
+          "rtc_ice_worker_failures": [],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "python_movement_phases": [],
+          "python_movement_failures": [],
+          "python_native_failures": [],
+          "python_consultation_phases": [],
+          "python_consultation_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "python_administrative_phases": [],
+          "python_administrative_failures": [],
+          "python_administrative_drain_failures": []
+        }
+      }
+    },
+    "passed": true,
+    "steps": [
+      {
+        "name": "compile-webtransport",
+        "exit_code": 0,
+        "seconds": 0.365119524000022,
+        "test_results": [],
+        "log_sha256": "9c93f23a19078c1b7d467b02c758525046be4966a9130837bf1e8a2faa88a7e8"
+      },
+      {
+        "name": "encode-feedback-red",
+        "exit_code": 0,
+        "seconds": 0.1642618839999841,
+        "test_results": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "encode-feedback-blue",
+        "exit_code": 0,
+        "seconds": 0.0640256760000284,
+        "test_results": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "video-feedback-test-inventory",
+        "exit_code": 0,
+        "seconds": 0.01576073399996858,
+        "test_results": [],
+        "log_sha256": "2f95a4adff2adda29d8eb0ff70c656fc2f7ad2124c4a944a68ba3ab908c596cd"
+      },
+      {
+        "name": "canonical-video-feedback-eddsa",
+        "exit_code": 0,
+        "seconds": 11.147972872000025,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 11.12s"
+        ],
+        "log_sha256": "04165d13a4f29709ab2b09cf8ca229b6944df1dd6827c05aed5e9dd006b1bdfa"
+      },
+      {
+        "name": "canonical-video-feedback-es256",
+        "exit_code": 0,
+        "seconds": 11.105405629000018,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 11.08s"
+        ],
+        "log_sha256": "acb603463ee311d997dc466dab078bbffe300c9e0771a0637d9100e7295688b2"
+      },
+      {
+        "name": "compile-core-video-repair-regressions",
+        "exit_code": 0,
+        "seconds": 561.150095729,
+        "test_results": [],
+        "log_sha256": "f472cb629bffbc87aa442fd3c2d7b2e6416754ed0e0c94804bdd530987d7f894"
+      },
+      {
+        "name": "core-video-repair-test-inventory",
+        "exit_code": 0,
+        "seconds": 0.0037661159999515803,
+        "test_results": [],
+        "log_sha256": "413f8a069646b804ed210ca75d3ac0fdeeef754f5ecc6686a0f6ef8b892bed8e"
+      },
+      {
+        "name": "core-video-repair-regressions",
+        "exit_code": 0,
+        "seconds": 0.7156723919999877,
+        "test_results": [
+          "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 556 filtered out; finished in 0.69s"
+        ],
+        "log_sha256": "35af341dbec839ebc5373588f77b8ce8677f54b817e58631dc59f3a736b53ce5"
+      }
+    ],
+    "scope": "BothoriginalconfiguredsignedAVcurrent-selectionpicturefunctions plusall10actualpinnedCorevideo repair regressions withproductionopusfeature. No loss-profile/fullmedia/SDK/acceptancequalification."
   }
 }
