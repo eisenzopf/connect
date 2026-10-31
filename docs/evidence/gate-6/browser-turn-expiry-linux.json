@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "holder-lifecycle-corrected-linux-runtime-unrun",
+  "status": "coturn-preflight-repaired-linux-cases-unrun",
   "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
   "runtime_passed": false,
   "runtime_run_id": null,
@@ -48,5 +48,20 @@
         "original_exit_code": 0
       }
     ]
+  },
+  "initial_linux_preflight": {
+    "run_id": 41204143024,
+    "artifact_id": 13043874986,
+    "revision": "d2ef6a75227540614dd26756389ad7019c7fa661",
+    "zip_sha256": "d1a858c224f6ea4d0c27f0270530ee794a226a315d5d301302a3d8d20a3a4eb1",
+    "git_sources_verified": 2872,
+    "prepared_sources_verified": 3088,
+    "status": "failed-before-cases",
+    "coturn_version_probe_exit_code": 255,
+    "expired_browser_cases_executed": 0,
+    "summary_absent": true,
+    "build_passed": true,
+    "cached_build_seconds": 0.36475960499998905,
+    "repair": "Restore existing coturn helper NET_BIND_SERVICE bounding capability for image executable; namespace remains network-disabled with loopback listeners."
   }
 }

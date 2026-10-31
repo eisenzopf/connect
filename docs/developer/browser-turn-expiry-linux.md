@@ -44,3 +44,11 @@ on its owned termination signal. The fifth boundary test executes this lifecycle
 and joins its original process. The pending first Linux dispatch was cancelled
 before start so the corrected holder can be verified in the same four-case lane.
 This process-only comparison is not a Docker or browser runtime pass.
+
+The first Linux execution (`41204143024`, source `d2ef6a75`) stopped at the
+coturn version preflight with exit255, before any expired-browser case. Its
+producer/source inputs verified and its cached runtime build completed in0.365s.
+The runner restores the existing coturn helper's `NET_BIND_SERVICE` capability
+for the version probe and coturn sidecar executable. The browser holder retains
+no added capabilities, and both fixtures keep their original isolated namespace.
+No case pass is inferred from the successful cached build.

@@ -143,7 +143,7 @@ def run_case(binary, image, turn_image, directory, transport, algorithm):
             assert holder.inspect()['State']['Running'] and time.monotonic() < until
             time.sleep(.025)
         turn = Container(directory / 'turn', turn_image, 'container:' + holder.cid)
-        turn.create(['--cpus', '1', '--memory', '256m', '--pids-limit', '64',
+        turn.create(['--cap-add', 'NET_BIND_SERVICE', '--cpus', '1', '--memory', '256m', '--pids-limit', '64',
             '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=16m',
             '--mount', f'type=bind,source={directory},target={directory}', '--workdir', str(directory)],
             '/usr/bin/turnserver', ['-c', str(directory / 'turnserver.conf')])
@@ -258,7 +258,7 @@ def main():
     turn = json.loads(command(['docker', 'image', 'inspect', TURN_REFERENCE]))[0]
     assert turn['Id'] == args.turn_image
     prefix = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
-        '--security-opt', 'no-new-privileges', '--entrypoint']
+        '--cap-add', 'NET_BIND_SERVICE', '--security-opt', 'no-new-privileges', '--entrypoint']
     version = command([*prefix, '/usr/bin/turnserver', args.turn_image, '--version'])
     assert version == '4.18.0'
     turn_sha = command([*prefix, '/usr/bin/sha256sum', args.turn_image, '/usr/bin/turnserver']).split()[0]
