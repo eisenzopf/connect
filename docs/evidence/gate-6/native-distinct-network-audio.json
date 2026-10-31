@@ -188,7 +188,7 @@
   "acceptance_qualified": false,
   "publication": false,
   "current_linux_component": {
-    "status": "Compiled current binaries; first dispatch unrun due missing import, corrected CI pending",
+    "status": "All6 current native Linux x86 host/client addressing component cases pass; broader profiles remain unqualified",
     "scope": "Native Ubuntu24.04x86_64host and publicSDKLinuxx86_64client on a fresh internal bridge. Exact existing child fixture/Remote profile/signatures/CA/hostname checks; direct, every-tenth encryptedUDPdrop, unreachableport, bothEdDSA/ES256. Four-second PCMU component only; noWAN/video/fullmatrix/performance acceptance claim.",
     "entrypoint": "python3 scripts/check-gate6-linux-hosting.py --native-network",
     "workflow_lane": "gate6-linux-fixtures.yml: native-network",
@@ -199,7 +199,7 @@
       "dependency_preparation": "All253recordedpatches verified in unchanged prepared69",
       "format_check": "passed"
     },
-    "execution_passed": false,
+    "execution_passed": true,
     "acceptance_qualified": false,
     "unrun_attempts": [
       {
@@ -216,6 +216,414 @@
         "network_fixture_executed": false,
         "status": "Unrun after successful actual hosting/probe builds: dispatch NameError from missing runpy import. No image pull, container or network stage began; import corrected. Cached builds34.92sand12.75s."
       }
-    ]
+    ],
+    "after": {
+      "source_revision": "35452dfe46d4802059f98a4070d0877fbc1ad16c",
+      "run_id": 41192093218,
+      "artifact_id": 13039536318,
+      "zip_sha256": "90be84a493ba2aa118b711abd00e14997e42d74dd34733ae3dc23532c69fb246",
+      "git_sources_verified": 4515,
+      "prepared_sources_verified": 4092,
+      "pinned_archives_verified": 4,
+      "source_manifest_sha256": "ff08c86c3d96860416ef4c7c29665a48157925478d2b37f11ee5d97697413abc",
+      "source_inputs_unchanged": true,
+      "component": {
+        "scope": "Current native Linux x86_64 host/client public SDK PCMU direct, bounded encrypted UDP loss and unreachable-port components; no WAN, video, full matrix, performance or acceptance qualification.",
+        "passed": true,
+        "results": [
+          {
+            "passed": true,
+            "mode": "direct",
+            "source_revision": "35452dfe46d4802059f98a4070d0877fbc1ad16c",
+            "server_executable_sha256": "0c1bc4b83986e3d9ea42c187021cd07fbb8e7747e102c8ad2e8e8c6ce35587d3",
+            "guest_executable_sha256": "77d9ca9ba3ff4570355935bce8595b91f0067d0b79f2524fa523aece94cb7939",
+            "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+            "runner_sha256": "6df3d822a4a9fd6f7d954a9e036b9d09b24b3efdcfa387ad333255ff459eb451",
+            "drop_every": 0,
+            "source_inputs_unchanged": true,
+            "build_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "owned_network": {
+              "requested": true,
+              "internal_bridge": true,
+              "original_bridge_removed": true,
+              "remaining_containers": 0
+            },
+            "profiles": [
+              {
+                "algorithm": "EdDSA",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 7.417764427999998,
+                "guest_log_sha256": "4154492edb3fa575e0e3288d552e49542961d4176245d7f0f0f59b3125d2668e",
+                "server_log_sha256": "5fe480eb95d5460a1a6385d1d4185f6985c98d4d9383b86cdc1a6339d36202e9",
+                "guest_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "sent_frames": 200,
+                    "received_bytes": 29600,
+                    "owned_peer_shutdown": true
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "sent_frames": 200,
+                    "received_bytes": 29440,
+                    "durable_native_offers": 2,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": false,
+                    "post_timeout_signed_heartbeat": false
+                  }
+                ],
+                "decoded_at_host": {
+                  "expected_hz": 660,
+                  "excluded_self_hz": 440,
+                  "decoded_samples": 29440,
+                  "active_frames": 184,
+                  "matching_frames": 184,
+                  "pcmu_sha256": "4afff7208048827fa0a1c635845f6e72c0e2d3b5fe84d0b62d0b92f9f18233da",
+                  "decoded_s16le_sha256": "6804587fe25017e0c096e9d21bde2930d5ff5a07fa899578e9761e1e3c9ca940",
+                  "passed": true
+                },
+                "decoded_at_guest": {
+                  "expected_hz": 440,
+                  "excluded_self_hz": 660,
+                  "decoded_samples": 29600,
+                  "active_frames": 185,
+                  "matching_frames": 185,
+                  "pcmu_sha256": "540ab9449ea38037d23dac857d9208c09056ce0e34470b5272284b4e3891edc7",
+                  "decoded_s16le_sha256": "5b86c6bc23edeaf32b1c794a02c23f6f3b65a7bbdc5a62631c738706f5bce80d",
+                  "passed": true
+                }
+              },
+              {
+                "algorithm": "ES256",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 7.446924465000052,
+                "guest_log_sha256": "bedb11a0333231edd51df5a1cfaa2689e57856b55ca454a2e1751d18e65e3138",
+                "server_log_sha256": "c8be51225efbea56c686272d0d0689d0089eb091224042e926a4d5aa2667cade",
+                "guest_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "sent_frames": 200,
+                    "received_bytes": 28320,
+                    "owned_peer_shutdown": true
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "sent_frames": 200,
+                    "received_bytes": 28800,
+                    "durable_native_offers": 2,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": false,
+                    "post_timeout_signed_heartbeat": false
+                  }
+                ],
+                "decoded_at_host": {
+                  "expected_hz": 660,
+                  "excluded_self_hz": 440,
+                  "decoded_samples": 28800,
+                  "active_frames": 180,
+                  "matching_frames": 180,
+                  "pcmu_sha256": "8a26b2f064fadc8cca3769ab9f48f213cbe6aa3f5989a435f5a1a05a5167c480",
+                  "decoded_s16le_sha256": "1bd202bbdb068f0d76045dc7f789c41654aa0ba3f953c12a80b34e385778ed68",
+                  "passed": true
+                },
+                "decoded_at_guest": {
+                  "expected_hz": 440,
+                  "excluded_self_hz": 660,
+                  "decoded_samples": 28320,
+                  "active_frames": 177,
+                  "matching_frames": 177,
+                  "pcmu_sha256": "fbde6081bdacde21fc2c34ac009da2b614c5244808a15e33a6ec4e9b43bad005",
+                  "decoded_s16le_sha256": "e7d24b4a665c00205eaed02da2b2a10f6022f6f0c73102a35eac6cc4a6bf561f",
+                  "passed": true
+                }
+              }
+            ]
+          },
+          {
+            "passed": true,
+            "mode": "loss",
+            "source_revision": "35452dfe46d4802059f98a4070d0877fbc1ad16c",
+            "server_executable_sha256": "0c1bc4b83986e3d9ea42c187021cd07fbb8e7747e102c8ad2e8e8c6ce35587d3",
+            "guest_executable_sha256": "77d9ca9ba3ff4570355935bce8595b91f0067d0b79f2524fa523aece94cb7939",
+            "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+            "runner_sha256": "6df3d822a4a9fd6f7d954a9e036b9d09b24b3efdcfa387ad333255ff459eb451",
+            "drop_every": 10,
+            "source_inputs_unchanged": true,
+            "build_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "owned_network": {
+              "requested": true,
+              "internal_bridge": true,
+              "original_bridge_removed": true,
+              "remaining_containers": 0
+            },
+            "profiles": [
+              {
+                "algorithm": "EdDSA",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 7.05026301700002,
+                "guest_log_sha256": "d028d7cc4172f283999e0600c5f5bc15755807d2952f929b1fc58866bbc6b85f",
+                "server_log_sha256": "0707d349752cc188ed279048231561db65082da40faff606fafabc0be3aeff65",
+                "guest_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "sent_frames": 200,
+                    "received_bytes": 28160,
+                    "owned_peer_shutdown": true
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "sent_frames": 200,
+                    "received_bytes": 27360,
+                    "durable_native_offers": 2,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": false,
+                    "post_timeout_signed_heartbeat": false
+                  }
+                ],
+                "decoded_at_host": {
+                  "expected_hz": 660,
+                  "excluded_self_hz": 440,
+                  "decoded_samples": 27360,
+                  "active_frames": 171,
+                  "matching_frames": 171,
+                  "pcmu_sha256": "b0772e2427c9254f8b272ced084037b350948b20553864e55024cbf9b28fa38f",
+                  "decoded_s16le_sha256": "3e5c64ef5562a2c12131434a74c6d158a9457c7aa3acf2a26d3571b574332341",
+                  "passed": true
+                },
+                "decoded_at_guest": {
+                  "expected_hz": 440,
+                  "excluded_self_hz": 660,
+                  "decoded_samples": 28160,
+                  "active_frames": 176,
+                  "matching_frames": 176,
+                  "pcmu_sha256": "51c020ed96bde5960a75c73700fd7dfbc73d35e1b7276a2aa2e8330874b3e345",
+                  "decoded_s16le_sha256": "083eae247b114980dc6bde9ead179ea3f7fcebf14263e3e2cc76848c86f90fd1",
+                  "passed": true
+                },
+                "transport_fault": {
+                  "drop_every_after_media_go": 10,
+                  "foreign_datagrams": 0,
+                  "worker_joined": true,
+                  "guest_to_server": {
+                    "eligible": 233,
+                    "dropped": 23,
+                    "forwarded": 231
+                  },
+                  "server_to_guest": {
+                    "eligible": 230,
+                    "dropped": 23,
+                    "forwarded": 231
+                  }
+                }
+              },
+              {
+                "algorithm": "ES256",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 7.081368798000028,
+                "guest_log_sha256": "be15bdb949c86d109e5b60bdb22fdf5cf5297fd9f837c0458f96cc4d66c1426f",
+                "server_log_sha256": "339a6774b5b787df688ee8c19a96d3b362ff51db4b551ec8aaa55bc9f93d412e",
+                "guest_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "sent_frames": 200,
+                    "received_bytes": 27360,
+                    "owned_peer_shutdown": true
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "sent_frames": 200,
+                    "received_bytes": 27520,
+                    "durable_native_offers": 2,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": false,
+                    "post_timeout_signed_heartbeat": false
+                  }
+                ],
+                "decoded_at_host": {
+                  "expected_hz": 660,
+                  "excluded_self_hz": 440,
+                  "decoded_samples": 27520,
+                  "active_frames": 172,
+                  "matching_frames": 172,
+                  "pcmu_sha256": "51572bb67bb02fe5583586a9c495da1ff929a622864a3ed13caf8708fb38f6f2",
+                  "decoded_s16le_sha256": "084429e293600b5cbe75a4a354d5ef119551ba8a12f284178ff084b1cd93dd20",
+                  "passed": true
+                },
+                "decoded_at_guest": {
+                  "expected_hz": 440,
+                  "excluded_self_hz": 660,
+                  "decoded_samples": 27360,
+                  "active_frames": 171,
+                  "matching_frames": 171,
+                  "pcmu_sha256": "e0ad593478097d7d0a2c0c03626a40f74c853e02c95219b2047ea7598ab9500a",
+                  "decoded_s16le_sha256": "2f314c8b5db3e6585e2ce54d668be649154963dfc6857693278a750b37788b20",
+                  "passed": true
+                },
+                "transport_fault": {
+                  "drop_every_after_media_go": 10,
+                  "foreign_datagrams": 0,
+                  "worker_joined": true,
+                  "guest_to_server": {
+                    "eligible": 233,
+                    "dropped": 23,
+                    "forwarded": 231
+                  },
+                  "server_to_guest": {
+                    "eligible": 233,
+                    "dropped": 23,
+                    "forwarded": 233
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "passed": true,
+            "mode": "unreachable-port",
+            "source_revision": "35452dfe46d4802059f98a4070d0877fbc1ad16c",
+            "server_executable_sha256": "0c1bc4b83986e3d9ea42c187021cd07fbb8e7747e102c8ad2e8e8c6ce35587d3",
+            "guest_executable_sha256": "77d9ca9ba3ff4570355935bce8595b91f0067d0b79f2524fa523aece94cb7939",
+            "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+            "runner_sha256": "6df3d822a4a9fd6f7d954a9e036b9d09b24b3efdcfa387ad333255ff459eb451",
+            "drop_every": 0,
+            "source_inputs_unchanged": true,
+            "build_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "owned_network": {
+              "requested": true,
+              "internal_bridge": true,
+              "original_bridge_removed": true,
+              "remaining_containers": 0
+            },
+            "profiles": [
+              {
+                "algorithm": "EdDSA",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 6.904618397999968,
+                "guest_log_sha256": "87d84123481ca659783b1a8ca876a9e5a78ddf8c07d046b067ba32bf0fe15244",
+                "server_log_sha256": "2321e37764691c815f5ac0f2c1e2a8d9730db7910e902c252228de9a00af0a46",
+                "observed_unanswered_datagrams": 6,
+                "guest_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "open_refused": "timeout",
+                    "no_offer_submitted": true,
+                    "elapsed_seconds": 5.001734514
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "EdDSA",
+                    "sent_frames": 0,
+                    "received_bytes": 0,
+                    "durable_native_offers": 1,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": true,
+                    "post_timeout_signed_heartbeat": true
+                  }
+                ]
+              },
+              {
+                "algorithm": "ES256",
+                "passed": true,
+                "guest_exit_code": 0,
+                "server_exit_code": 0,
+                "elapsed_seconds": 6.978203440000016,
+                "guest_log_sha256": "219e76c27358a392f4db26ffd07f789682708ad2c5f208fcb8990991a8635647",
+                "server_log_sha256": "b4eb2e2edc80374c5fbdf53736a3a0ff6d0aa5ca064a9014fbf8d15ac0e91fba",
+                "observed_unanswered_datagrams": 6,
+                "guest_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "profile": "remote",
+                    "os": "linux",
+                    "architecture": "x86_64",
+                    "open_refused": "timeout",
+                    "no_offer_submitted": true,
+                    "elapsed_seconds": 5.001639347
+                  }
+                ],
+                "server_witness": [
+                  {
+                    "algorithm": "ES256",
+                    "sent_frames": 0,
+                    "received_bytes": 0,
+                    "durable_native_offers": 1,
+                    "physical_peers_drained": true,
+                    "guest_open_refused": true,
+                    "post_timeout_signed_heartbeat": true
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+        "full_task_qualified": false,
+        "acceptance_qualified": false
+      },
+      "steps": [
+        {
+          "name": "compile-hosting",
+          "exit_code": 0,
+          "seconds": 0.4657583050000085,
+          "log_sha256": "78a33fc8a94a728ecbb8b363478b6cdeb90647ce7e140d995535bfa3d10808f8"
+        },
+        {
+          "name": "compile-native-network-probe",
+          "exit_code": 0,
+          "seconds": 0.36561553900000376,
+          "log_sha256": "fc6ac1294b46be8efe2a8f52b9d1cbf55a1abaa214d0959ad798ea390e91cd06"
+        },
+        {
+          "name": "native-network-image-pull",
+          "exit_code": 0,
+          "seconds": 25.66836889900003,
+          "log_sha256": "423fb2b2033c7a9596c8d1b13c0efd1e81a6bc6b151174fb1527df74e5d63fcd"
+        },
+        {
+          "name": "native-network-image",
+          "exit_code": 0,
+          "seconds": 0.03204374500000995,
+          "log_sha256": "f92ea824be6ef10429f28802eab690d3b8c1964cc704d9b556aba704ff8cda86"
+        }
+      ]
+    },
+    "interpretation": "Actual current35452dfe publicSDKnativeLinuxhost/client, bothalgorithms: direct/loss decode every observed active frame as the intended remote440/660Hztone, excluding self. Each loss direction drops23eligibleencryptedUDPdatagrams; proxyworkers join. Bothunreachablecases actualtimeout~5s before offer, oneoriginalhostoffer andsurvivingfreshsignedheartbeat. Alloriginalpeers/serverexit0; all3freshinternalbridges removed with0containers. Four-secondPCMUcomponent only; noNativevideo/WAN/performance/fullmatrix claim."
   }
 }
