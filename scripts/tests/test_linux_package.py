@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import sys
+import time
 import zipfile
 import unittest
 from unittest import mock
@@ -13,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def load(name, path):
-    import sys
     sys.path.insert(0, str(ROOT / 'scripts'))
     spec = importlib.util.spec_from_file_location(name, ROOT / path)
     module = importlib.util.module_from_spec(spec)
@@ -115,6 +116,40 @@ class Integrity(unittest.TestCase):
         self.manifest['installation_id'] = '../arbitrary'
         self.write_manifest()
         with self.assertRaises(ValueError): installer.verified_files(self.root)
+
+
+@unittest.skipUnless(os.name == 'posix', 'Linux build process groups')
+class BoundedBuild(unittest.TestCase):
+    def test_timeout_retires_compiler_descendants_before_returning(self):
+        import fcntl
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock = root / 'compiler.lock'
+            # A child holds a real OS lock while alive. Its release proves that
+            # terminating only the Cargo-shaped parent cannot satisfy this case.
+            compiler = "import fcntl,sys,time; f=open(sys.argv[1],'w'); fcntl.flock(f,fcntl.LOCK_EX); f.write('ready'); f.flush(); time.sleep(30)"
+            parent = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]]); time.sleep(30)"
+            result = build_pipeline.run_bounded(
+                [sys.executable, '-c', parent, compiler, str(lock)],
+                root / 'build.log', os.environ.copy(), 2)
+            self.assertEqual(result, 'timeout')
+            self.assertEqual(lock.read_text(), 'ready')
+            with lock.open() as stream:
+                deadline = time.monotonic() + 2
+                while True:
+                    try:
+                        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        break
+                    except BlockingIOError:
+                        if time.monotonic() >= deadline:
+                            self.fail('Compiler descendant retained its OS lock')
+                        time.sleep(.01)
+
+    def test_completed_build_preserves_its_exit_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertEqual(build_pipeline.run_bounded(
+                [sys.executable, '-c', 'raise SystemExit(7)'],
+                Path(directory) / 'build.log', os.environ.copy(), 2), 7)
 
 
 class BuildPhaseGuards(unittest.TestCase):

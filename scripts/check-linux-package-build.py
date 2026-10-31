@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path
 import runpy
+import signal
 import subprocess
 import time
 from lib.package_environment import fixture_environment
@@ -20,6 +21,32 @@ PRIVATE = BASE / 'private'
 def digest(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def run_bounded(command, log, env, budget):
+    """Own Cargo, package helpers and their compiler descendants as one group."""
+    with log.open('w') as output:
+        child = subprocess.Popen(command, cwd=ROOT, stdout=output,
+                                 stderr=subprocess.STDOUT, env=env,
+                                 start_new_session=True)
+        joined = False
+        try:
+            status = child.wait(timeout=budget)
+            joined = True
+            return status
+        except subprocess.TimeoutExpired:
+            return 'timeout'
+        finally:
+            if not joined:
+                # Killing only Cargo leaves rustc/C++ children writing into the
+                # target tree while cache preservation starts. Retire the whole
+                # owned group on timeout or interruption, even if the direct
+                # child exited between wait() and this cleanup.
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                child.wait()
 
 
 def main():
@@ -63,12 +90,7 @@ def main():
                 continue
             started = time.monotonic()
             log = PRIVATE / (name + '.log')
-            try:
-                with log.open('w') as output:
-                    result = subprocess.run(command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT, env=env, timeout=budget)
-                status = result.returncode
-            except subprocess.TimeoutExpired:
-                status = 'timeout'
+            status = run_bounded(command, log, env, budget)
             step = {'name': name, 'exit_code': status, 'elapsed_seconds': round(time.monotonic() - started, 3)}
             if name == 'recovery-tests':
                 lines = log.read_text().splitlines()

@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "8 passed; package/archive/source-map guards and separated-phase source-manifest/cache refusal guards",
+    "package_integrity_boundary_tests": "10 passed; archive/source-map/phase guards plus real descendant process timeout cleanup and completed-command exit status",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -137,5 +137,11 @@
     "dependencies": "Existing package versions, checksums and dependency edges unchanged. Server MCP feature enabled; unrelated MCP client feature absent.",
     "verification": "Workspace formatting and 19 package/source-cache/dependency-cache guard tests pass. Rust execution awaits the primary upgrade candidate.",
     "runtime_result_verified": false
+  },
+  "bounded_build_processes": {
+    "status": "authored; 10 package checks pass locally; updated helper awaits primary upgrade CI",
+    "behavior": "Each recovery/package command owns a new process group. Timeout or interruption retires the command and compiler/helper descendants before the failed step returns.",
+    "regression": "A real compiler-shaped child holds an OS file lock; the test proves timeout releases the child lock, rather than terminating only its parent. Normal exit status is preserved.",
+    "baseline_run_unchanged": 41231607107
   }
 }
