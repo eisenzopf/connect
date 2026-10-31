@@ -1,0 +1,59 @@
+{
+  "format": "connect/verified-rust-sdk-candidate/1",
+  "source_revision": "5e7e976e717c74daea94990e28bde45c50978b72",
+  "sources_verified": {
+    "git": 4604,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "files_verified": 28112,
+  "prepared_archives_verified": 19,
+  "locked_registry_archives_verified": 491,
+  "candidate_archive_sha256": "5d898cb02bad6bb46f13f6f1ee2d83100241c4fc447197479615807c2a1dc09a",
+  "candidate_manifest_sha256": "d52be45deb072d50c47b71207f46d3ea439b18fe7ba45659a42d387593fcaf42",
+  "artifact_zip_digests": {
+    "evidence": "0cff075ee08b79b4d613a766e0d1b806e02cfee340b10034c66c64dc0001d04a",
+    "package": "b492b52a92ddd2a5654991d8c6f77485999b27481cea50dfdbc38c43f1a17b83"
+  },
+  "external_consumer": {
+    "format": "connect/installed-rust-sdk-candidate/1",
+    "source_revision": "5e7e976e717c74daea94990e28bde45c50978b72",
+    "candidate_manifest_sha256": "d52be45deb072d50c47b71207f46d3ea439b18fe7ba45659a42d387593fcaf42",
+    "passed": true,
+    "scope": "Actual registry-format archive extraction, cold external Cargo resolution and public SDK example check. No server/helper/runtime/platform-pair/full SDK qualification.",
+    "steps": [
+      {
+        "name": "resolve",
+        "exit_code": 0,
+        "elapsed_seconds": 0.315,
+        "log_sha256": "1ce3f264640d3a15f26af9bf882a0504eb824b29f93c0df7277649d57f08e284"
+      },
+      {
+        "name": "metadata",
+        "exit_code": 0,
+        "elapsed_seconds": 0.265,
+        "log_sha256": "13d600e303463e23e708bc2d185dff0d2f9991f03452996f366eb77d650b1853"
+      },
+      {
+        "name": "check",
+        "exit_code": 0,
+        "elapsed_seconds": 111.8,
+        "log_sha256": "bb4bef89bdd8f0e3a8ec5b366a8724f7e104f8812f4baf05bfe0229ca615a36a"
+      }
+    ],
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "resolved_packages": 354,
+    "resolved_sdk_source": "registry+https://github.com/rust-lang/crates.io-index",
+    "consumer_outside_repository": true,
+    "empty_cargo_home": true,
+    "empty_target": true,
+    "cargo_offline": true,
+    "extracted_archives": 510,
+    "candidate_unchanged": true
+  },
+  "passed": true,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}

@@ -1406,7 +1406,7 @@
   ],
   "scope": "Python3.14.7 and Node26.7.0 on local macOS arm64; clean external pure SDK archives and synthetic HTTP only. No actual browser/native helper/server/platform pair or complete candidate qualification.",
   "rust_source_candidate": {
-    "status": "initial-external-Cargo-check-passed-independent-source-preservation-audit-failed-correction-pending-new-CI",
+    "status": "corrected-source-candidate-independently-verified",
     "scripts": [
       "scripts/package-sdk-rust.py",
       "scripts/check-sdk-rust-installation.py",
@@ -1419,11 +1419,13 @@
     "negative_evidence": "docs/evidence/gate-6/rust-candidate-520-negative.json",
     "original_manifest_preservation_regression": "passed locally",
     "corrected_candidate": {
-      "source_revision": "5e7e976e",
+      "source_revision": "5e7e976e717c74daea94990e28bde45c50978b72",
       "run_id": 41250466858,
       "job_id": 124682743316,
-      "status": "in-progress-native-prerequisites"
-    }
+      "status": "terminal-success-independently-verified",
+      "evidence": "docs/evidence/gate-6/rust-candidate-verified.json"
+    },
+    "scope": "510exact crate archives;4604Git/4094prepared/4pinned archives;28112payload files; cold external original public Rust journey cargo check. The later installed inspection example/native runtime pair remain unqualified."
   },
   "native_runtime_assets": {
     "status": "producer-implemented-not-yet-executed",
