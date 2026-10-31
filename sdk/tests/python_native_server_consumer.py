@@ -108,6 +108,14 @@ async def audio_video(owner,other,session,peer_session):
     source=await offer(session,'source');target=await offer(peer_session,'target')
     for connection,remote in ((source,'target'),(target,'source')):
         await completed(connection.streams.subscribe(NonEmpty(StreamTarget(StreamId('python-av-'+remote+'-audio')),(StreamTarget(StreamId('python-av-'+remote+'-video')),)),connection.receipt_stream_revision,mutation('python-av-'+str(connection.id)+'-select')))
+    # Server selection and local media-owner readiness are separate. Both
+    # original owners must be ready before either finite packet clock starts.
+    async def ready(connection,side,remote):
+        selected=await connection.media.refresh(options)
+        assert selected.binding.connection_id==connection.id
+        for stream_id,medium in ((StreamId('python-av-'+side+'-audio'),'audio'),(StreamId('python-av-'+remote+'-video'),'video')):
+            assert any(stream.id==stream_id and stream.medium==medium for stream in selected.streams)
+    await asyncio.gather(ready(source,'source','target'),ready(target,'target','source'))
     async def capture(connection,side,remote,ssrc):
         fixture=Path(spec['av_fixture_dir'])/('python-'+side)
         inputs=load_media(str(fixture)+'.mulaw',str(fixture)+'.ivf')

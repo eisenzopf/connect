@@ -1,0 +1,27 @@
+{
+  "task": "G6-054",
+  "status": "Prepared caller readiness correction; runtime confirmation pending",
+  "scope": "Installed synthetic SDK AV file callers and example guidance only. No SDK API, Core, store, provider or acceptance qualification.",
+  "problem": "The AV callers selected server streams, then began both finite media clocks without first refreshing both local Connection.media owners. The example already requires current negotiation for receive custody. Cold IPC setup can otherwise consume pacing time and form catch-up bursts against live bounded queues.",
+  "change": "After both original selections, await both original Connection.media.refresh calls and verify each own audio/current selected remote video binding before starting either capture. The barrier completes for both Clients, rather than warming each independently after the other may start.",
+  "bounds": {
+    "request_ms": 4000,
+    "media_exchange_seconds": 4,
+    "parent_phase_seconds": 15,
+    "packet_age_and_queue_bounds": "unchanged",
+    "logical_operations": "Original IDs and offer/selection/end ordering unchanged. Read-only readiness grants no future packet authority."
+  },
+  "source_sha256": {
+    "sdk/tests/node_sdk_server_consumer.mjs": "4dff485082182e22f617d3b25661b04af15219d0464ee79cfee7366f3d7bb441",
+    "sdk/tests/python_native_server_consumer.py": "31b8d2b1cf95055379d85a9eadf573fbfc5b27af2e8129d28a9fe36a27f766c2",
+    "examples/sdk-media/README.md": "d69d643e7ed748d2adce6f5e95ba54df3e07c1813d2aa2212ed02b76e82a05d8"
+  },
+  "verification": {
+    "node_syntax": "passed",
+    "python_syntax": "passed",
+    "linux_diagnostic_schema_functions": 16,
+    "live_result": "pending"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

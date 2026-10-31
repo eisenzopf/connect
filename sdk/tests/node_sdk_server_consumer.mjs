@@ -34,6 +34,14 @@ async function audioVideoJourney(owner,other,session){
  const offer=(where,side)=>completed(where.connections.offer({connectionId:'node-av-'+side,streams:{first:{id:'node-av-'+side+'-audio',kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:[]}},rest:[{id:'node-av-'+side+'-video',kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},{...opts,operationId:'node-av-'+side+'-offer'}));
  const source=await offer(session,'source'),target=await offer(peerSession,'target');
  for(const [connection,remote]of [[source,'target'],[target,'source']])await completed(connection.streams.subscribe({selectors:{first:{stream:'node-av-'+remote+'-audio'},rest:[{stream:'node-av-'+remote+'-video'}]},expectedStreamRevision:connection.receiptStreamRevision},{...opts,operationId:'node-av-'+connection.id+'-select'}));
+ // Selection is server readiness. Open both original local media owners and
+ // verify their current receive bindings before either finite source starts.
+ await Promise.all([[source,'source','target'],[target,'target','source']].map(async([connection,side,remote])=>{
+  const selected=await connection.media.refresh(opts);
+  assert.equal(selected.binding.connectionId,connection.id);
+  for(const [id,medium]of [['node-av-'+side+'-audio','audio'],['node-av-'+remote+'-video','video']])
+   assert.ok(selected.streams.some(stream=>stream.id===id&&stream.medium===medium));
+ }));
  const capture=async(connection,side,remote,ssrc)=>{
   const input=await loadMedia(spec.av_fixture_dir+'/node-'+side+'.mulaw',spec.av_fixture_dir+'/node-'+side+'.ivf');
   return exchangeMedia(connection.streams.byId('node-av-'+side+'-audio').media,connection.streams.byId('node-av-'+side+'-video').media,connection.streams.byId('node-av-'+side+'-audio').media,connection.streams.byId('node-av-'+remote+'-video').media,input,spec.pid_file+'.av-'+side,ssrc);

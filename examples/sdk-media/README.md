@@ -34,6 +34,8 @@ import {loadMedia, exchangeMedia} from './packet-codec.mjs';
 
 const input = await loadMedia('.local/media/input.mulaw', '.local/media/input.ivf');
 // Each argument is an original Stream.media handle. Start the peer concurrently.
+// After server selection, await both peers' connection.media.refresh() calls
+// before starting either packet clock; one ready peer must not outrun a cold one.
 const capture = await exchangeMedia(
     sendingAudio, sendingVideo, receivingAudio, receivingVideo,
     input, '.local/media/received', 0x41560001,
@@ -62,7 +64,11 @@ automatic reconnect or replay.
 
 Choose unique publisher labels and subscribe explicitly to the other
 publisher's labels. Refresh `connection.media` after selection to find the actual
-receive bindings. Current native audio uses the local negotiated mixed-audio
+receive bindings. Finish that readiness barrier on both original Clients before
+starting either finite source. Cold IPC startup inside a source's pacing loop
+can make it send a catch-up burst and lose initial media to the live queue bounds.
+The readiness calls and media exchange retain their original request/phase budgets;
+they do not extend packet expiry or replay missed input. Current native audio uses the local negotiated mixed-audio
 sink; selected video and reliable data use the matched remote logical Stream.
 The [Node](../../sdk/tests/node_sdk_server_consumer.mjs) and
 [Python](../../sdk/tests/python_native_server_consumer.py) installed consumers
