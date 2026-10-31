@@ -78,6 +78,9 @@ test('receiver clock diagnostics resolve kind privately and preserve signed cloc
             return new Map([
                 ['private-local',{type:'inbound-rtp',kind:'audio',id:'private-local',timestamp:now,
                     estimatedPlayoutTimestamp:now+50,packetsReceived:100,totalSamplesReceived:960,
+                    concealedSamples:480,silentConcealedSamples:0,concealmentEvents:1,
+                    insertedSamplesForDeceleration:120,removedSamplesForAcceleration:240,
+                    packetsDiscarded:NaN,packetsLost:-1,
                     jitterBufferEmittedCount:200,jitterBufferDelay:20,jitterBufferTargetDelay:16,
                     jitterBufferMinimumDelay:10,transportId:'private-transport'}],
                 ['private-remote',{type:'remote-outbound-rtp',localId:'private-local',timestamp:now-10,
@@ -90,6 +93,8 @@ test('receiver clock diagnostics resolve kind privately and preserve signed cloc
         const [rows]=await globalThis.connectPeerClockDiagnostics();
         assert.deepEqual(rows[0],{type:'inbound-rtp',kind:'audio',estimated_playout_timestamp_present:true,
             estimated_playout_minus_stats_ms:50,packetsReceived:100,framesDecoded:null,totalSamplesReceived:960,
+            concealedSamples:480,silentConcealedSamples:0,concealmentEvents:1,
+            insertedSamplesForDeceleration:120,removedSamplesForAcceleration:240,packetsDiscarded:null,packetsLost:null,
             jitterBufferEmittedCount:200,jitterBufferDelay:20,jitterBufferTargetDelay:16,jitterBufferMinimumDelay:10,
             jitter_buffer_mean_ms:100,jitter_buffer_target_mean_ms:80,jitter_buffer_minimum_mean_ms:50});
         assert.equal(rows[1].kind,'audio');assert.equal(rows[1].reports_sent,5);

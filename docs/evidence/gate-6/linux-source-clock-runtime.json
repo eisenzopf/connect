@@ -1022,5 +1022,214 @@
   ],
   "interpretation": "Both report kinds are present in the first measured sample for all4direct peers, with3accepted reports for audio and3or4forvideo. This is a bounded wire-stats observation, not a measurement of first-report latency or a claim that AV is fixed. EdDSA direct p95 still123.6ms; clean audio, impairment and UDP relay failures remain. Daemon command status includes failed child cases; original daemon exit0/join/socket removal are recorded separately.",
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "audio_investigation": {
+    "scope": "Bounded diagnostic facts and rejected independent codec hypotheses only; no new runtime qualification or relaxed decoded identity criteria",
+    "verified_existing_current_cases": [
+      {
+        "case": "baseline",
+        "peer": 1,
+        "bad_samples": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 7.669899940490723,
+              "rms": 0.07160873661936239,
+              "frequency_hz": 516.796875,
+              "phase": "clean"
+            }
+          ]
+        },
+        "audio_rtp_feedback": {
+          "before": [
+            {
+              "type": "inbound-rtp",
+              "kind": "audio",
+              "packetsReceived": 109,
+              "bytesReceived": 9371,
+              "totalSamplesReceived": 92160,
+              "totalAudioEnergy": 0,
+              "totalSamplesDuration": 1.9200000000000015,
+              "audioLevel": 0,
+              "packetsLost": 0,
+              "concealedSamples": 652,
+              "silentConcealedSamples": 0,
+              "concealmentEvents": 2,
+              "jitterBufferDelay": 18144,
+              "jitterBufferEmittedCount": 98880,
+              "jitterBufferTargetDelay": 7910.4,
+              "jitterBufferMinimumDelay": 4569.6,
+              "totalProcessingDelay": 19679.99808
+            }
+          ],
+          "after": [
+            {
+              "type": "inbound-rtp",
+              "kind": "audio",
+              "packetsReceived": 3082,
+              "bytesReceived": 253884,
+              "totalSamplesReceived": 2974560,
+              "totalAudioEnergy": 0,
+              "totalSamplesDuration": 61.96999999999624,
+              "audioLevel": 0,
+              "packetsLost": 0,
+              "concealedSamples": 24473,
+              "silentConcealedSamples": 0,
+              "concealmentEvents": 30,
+              "jitterBufferDelay": 237369.6,
+              "jitterBufferEmittedCount": 2955840,
+              "jitterBufferTargetDelay": 236467.2,
+              "jitterBufferMinimumDelay": 162681.6,
+              "totalProcessingDelay": 224689.38432
+            }
+          ]
+        }
+      },
+      {
+        "case": "ice-es256",
+        "peer": 0,
+        "bad_samples": {
+          "limit": 16,
+          "omitted": 0,
+          "samples": [
+            {
+              "elapsed_seconds": 8.543400049209595,
+              "rms": 0.1380072020745235,
+              "frequency_hz": 602.9296875,
+              "phase": "clean"
+            }
+          ]
+        },
+        "audio_rtp_feedback": {
+          "before": [
+            {
+              "type": "inbound-rtp",
+              "kind": "audio",
+              "packetsReceived": 347,
+              "bytesReceived": 30806,
+              "totalSamplesReceived": 394080,
+              "totalAudioEnergy": 0,
+              "totalSamplesDuration": 8.20999999999987,
+              "audioLevel": 0,
+              "packetsLost": 0,
+              "concealedSamples": 69209,
+              "silentConcealedSamples": 0,
+              "concealmentEvents": 14,
+              "jitterBufferDelay": 33532.8,
+              "jitterBufferEmittedCount": 328320,
+              "jitterBufferTargetDelay": 30028.8,
+              "jitterBufferMinimumDelay": 25766.4,
+              "totalProcessingDelay": 32889.30528
+            }
+          ],
+          "after": [
+            {
+              "type": "inbound-rtp",
+              "kind": "audio",
+              "packetsReceived": 3328,
+              "bytesReceived": 291742,
+              "totalSamplesReceived": 3276480,
+              "totalAudioEnergy": 0,
+              "totalSamplesDuration": 68.25999999999802,
+              "audioLevel": 0,
+              "packetsLost": 0,
+              "concealedSamples": 86669,
+              "silentConcealedSamples": 0,
+              "concealmentEvents": 33,
+              "jitterBufferDelay": 244752,
+              "jitterBufferEmittedCount": 3192960,
+              "jitterBufferTargetDelay": 262982.4,
+              "jitterBufferMinimumDelay": 205209.6,
+              "totalProcessingDelay": 230186.63712
+            }
+          ]
+        }
+      }
+    ],
+    "receiver_interpretation": "Concealment grows with zero reported RTP packet loss in the affected clean cases. Existing stats do not retain adaptive acceleration/deceleration counters, and receiver clock samples end after20s. They cannot identify the cause of later audio failures. A new bounded throughout-window diagnostic records those standardized counters, keeping the same decoded acceptance.",
+    "standard": "https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-insertedsamplesfordeceleration",
+    "independent_encoder_reset_controls": [
+      {
+        "scope": "Independent libopus encoder-reset-after-input-gap diagnostic. Model of current mixer reset trigger, not actual Core, Chrome, current authority or Connect qualification.",
+        "script_sha256": "f80d48314529100424c7b299194c75c1c62052bcb341b62ecd6fc87ab8c7a562",
+        "library_sha256": "98dcd3cc62c6cf913b789051536ab246c56cc163c74bd8b4968ac467ec74b68b",
+        "version": "libopus 1.6.1",
+        "channels": 2,
+        "seed": 20261031,
+        "seconds": 60,
+        "results": [
+          {
+            "source_hz": 440,
+            "reset_encoder_after_input_gap": false,
+            "encoder_resets": 0,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 440,
+            "reset_encoder_after_input_gap": true,
+            "encoder_resets": 73,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 660,
+            "reset_encoder_after_input_gap": false,
+            "encoder_resets": 0,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 660,
+            "reset_encoder_after_input_gap": true,
+            "encoder_resets": 73,
+            "bad_samples": 0,
+            "first_bad": []
+          }
+        ],
+        "production_change": "None: no wrong carrier reproduction in either the continuous-state or73resets-per-source model. Actual Core/Chrome cause remains unproven."
+      },
+      {
+        "scope": "Independent libopus encoder-reset-after-input-gap diagnostic. Model of current mixer reset trigger, not actual Core, Chrome, current authority or Connect qualification.",
+        "script_sha256": "5a0473b904c0e09afadf72fd64dc36f2562a5c433738c4c4d2b629c9f4e0ea78",
+        "library_sha256": "98dcd3cc62c6cf913b789051536ab246c56cc163c74bd8b4968ac467ec74b68b",
+        "version": "libopus 1.6.1",
+        "channels": 1,
+        "seed": 20261031,
+        "seconds": 60,
+        "results": [
+          {
+            "source_hz": 440,
+            "reset_encoder_after_input_gap": false,
+            "encoder_resets": 0,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 440,
+            "reset_encoder_after_input_gap": true,
+            "encoder_resets": 73,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 660,
+            "reset_encoder_after_input_gap": false,
+            "encoder_resets": 0,
+            "bad_samples": 0,
+            "first_bad": []
+          },
+          {
+            "source_hz": 660,
+            "reset_encoder_after_input_gap": true,
+            "encoder_resets": 73,
+            "bad_samples": 0,
+            "first_bad": []
+          }
+        ],
+        "production_change": "None: no wrong carrier reproduction in either the continuous-state or73resets-per-source model. Actual Core/Chrome cause remains unproven."
+      }
+    ]
+  }
 }

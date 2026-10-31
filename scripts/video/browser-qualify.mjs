@@ -441,11 +441,9 @@ try {
                 ...(clocks?{receiver_clocks:clocks}:{})});
         };
         f.recordIce(initialStats,initialClocks);
-        const clockUntil=performance.now()+20000;
         f.iceTimer=setInterval(async()=>{
             if(f.iceBusy)return;f.iceBusy=true;
-            try {f.recordIce(await f.session.diagnostics(),performance.now()<clockUntil
-                ?await globalThis.connectPeerClockDiagnostics():undefined);}catch {f.iceErrors++;}
+            try {f.recordIce(await f.session.diagnostics(),await globalThis.connectPeerClockDiagnostics());}catch {f.iceErrors++;}
             finally {f.iceBusy=false;}
         },500);
     },{initialStats:initial[index].stats,initialClocks:initial[index].receiverClocks})));
@@ -546,8 +544,8 @@ try {
                 dimension_refusals:end.nativeContent.dimensionsRefused-initial[index].nativeContent.dimensionsRefused,
                 last_dimensions:end.nativeContent.lastDimensions,failed:end.nativeContent.failed}:null,
             rtp_feedback:{before:initial[index].rtpFeedback,after:end.rtpFeedback},
-            receiver_clock_observation:{scope:'Bounded public receiver clock and sender-report stats only; no AV verdict.',
-                sample_interval_seconds:.5,observed_initial_seconds:20,sample_bound:256,
+            receiver_clock_observation:{scope:'Bounded throughout-window public receiver clock, sender-report, concealment and adaptive playout stats only; no decoded tone or AV verdict.',
+                sample_interval_seconds:.5,requested_window_seconds:spec.seconds,sample_bound:256,
                 samples:end.iceSamples.filter(row=>row.receiver_clocks).map(row=>({
                     elapsed_seconds:row.unix_seconds-initial[index].markerStartUnix,peers:row.receiver_clocks}))},
             audio_readiness:audioReadiness[index],audio_content:audioContent,audio_profile:audioProof,motion_content:motionContent,motion_profile:motionProof,

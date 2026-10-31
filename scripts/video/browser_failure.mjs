@@ -58,6 +58,7 @@ export function installPeerDiagnostics() {
             "totalSamplesDuration","audioLevel","frameWidth","frameHeight"];
         fields.push("packetsLost","nackCount","pliCount","firCount","retransmittedPacketsSent",
             "retransmittedBytesSent","concealedSamples","silentConcealedSamples","concealmentEvents",
+            "insertedSamplesForDeceleration","removedSamplesForAcceleration","packetsDiscarded",
             "jitterBufferDelay","jitterBufferEmittedCount","jitterBufferTargetDelay",
             "jitterBufferMinimumDelay","totalDecodeTime","totalProcessingDelay",
             "totalInterFrameDelay","totalSquaredInterFrameDelay","freezeCount","totalFreezesDuration");
@@ -92,6 +93,12 @@ export function installPeerDiagnostics() {
                 row.estimated_playout_minus_stats_ms=row.estimated_playout_timestamp_present
                     ?difference(stat.estimatedPlayoutTimestamp,stat.timestamp):null;
                 for(const key of ['packetsReceived','framesDecoded','totalSamplesReceived'])row[key]=numeric(stat[key]);
+                // W3C receiver counters distinguish actual concealment and
+                // adaptive playout from packet receipt. They are observations,
+                // never an exception to decoded tone/AV acceptance.
+                if(kind==='audio')for(const key of ['concealedSamples','silentConcealedSamples','concealmentEvents',
+                    'insertedSamplesForDeceleration','removedSamplesForAcceleration','packetsDiscarded','packetsLost'])
+                    row[key]=numeric(stat[key]);
                 const emitted=numeric(stat.jitterBufferEmittedCount);
                 row.jitterBufferEmittedCount=emitted;
                 for(const [key,label]of [['jitterBufferDelay','jitter_buffer_mean_ms'],
