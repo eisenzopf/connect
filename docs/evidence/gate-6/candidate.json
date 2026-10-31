@@ -1418,5 +1418,24 @@
     "whole_candidate_complete": false,
     "negative_evidence": "docs/evidence/gate-6/rust-candidate-520-negative.json",
     "original_manifest_preservation_regression": "passed locally"
+  },
+  "native_runtime_assets": {
+    "status": "producer-implemented-not-yet-executed",
+    "script": "scripts/package-sdk-runtime.py",
+    "workflow": ".github/workflows/gate6-runtime-candidate.yml",
+    "targets": [
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu"
+    ],
+    "requirements": [
+      "Actual host and Mach-O/ELF architecture validation",
+      "Production release binary supplies both server and SDK helper roles with one exact SHA256",
+      "Rust helper profiles derived from the matching compiled source",
+      "Complete original registry/prepared notices and source inputs",
+      "macOS locked bundled static Opus; refuse non-system dylib paths",
+      "Ubuntu24.04 explicit system linkage and original libopus0 copyright",
+      "No historical Gate4/5 package prerequisites"
+    ],
+    "runtime_behavior_and_installed_sdk_qualified": false
   }
 }
