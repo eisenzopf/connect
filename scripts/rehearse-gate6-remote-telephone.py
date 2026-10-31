@@ -262,6 +262,12 @@ def main():
                 for held in sip_held + media_held:
                     held.close()
                 row["peer_nat"] = nat.stats
+                raw = (directory / "server.log").read_text() if (directory / "server.log").exists() else ""
+                row["server_failure"] = {"panic_locations": [dict(file=name, line=int(line), column=int(column))
+                    for name, line, column in re.findall(r"panicked at ((?:crates|\.deps)/[^\s:]+):(\d+):(\d+)", raw)[:4]],
+                    "readiness_written": (directory / "ready.json").exists(),
+                    "media_go_written": (directory / "media-go").exists(),
+                    "elapsed_observed": "Elapsed(())" in raw}
                 row["passed"] = bool(row["passed"] and not row["forced_server_cleanup"] and not row["forced_guest_cleanup"] and nat.stats["journal_before_first_invite"] and nat.stats["unique_calls"] == 1 and nat.stats["foreign_datagrams"] == 0 and "error" not in nat.stats and all(nat.stats["rtp"][k] >= 50 for k in ["guest_to_server", "server_to_guest"]))
                 if args.network_profile == "loss":
                     row["passed"] = bool(row["passed"] and all(nat.rtp_seen[k] >= 100 and nat.rtp_dropped[k] == nat.rtp_seen[k] // 5 for k in nat.rtp_seen))

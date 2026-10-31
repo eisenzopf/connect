@@ -78,6 +78,10 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
             source_revision='a'*40, profiles=[dict(algorithm='EdDSA', passed=False,
                 guest=dict(os='linux', architecture='x86_64', received_rtp=180, nonce='private-secret'),
                 server_witness=[dict(original_invite_replayed=True, call_id='private-secret')],
+                server_failure=dict(media_go_written=False, private='private-secret', panic_locations=[
+                    dict(file='crates/connect-server/tests/fixture.rs',line=100,column=7),
+                    dict(file='/private-secret',line=1,column=1),
+                    dict(file='crates/../private-secret',line=1,column=1)]),
                 peer_nat=dict(worker_joined=True, unique_calls=1, error='private-secret',
                     rtp=dict(guest_to_server=180, server_to_guest=float('inf'), address='private-secret')))])
         result = component['public_result'](value)
@@ -85,6 +89,8 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
         self.assertEqual(result['profiles'][0]['guest']['received_rtp'], 180)
         self.assertTrue(result['profiles'][0]['server_witness'][0]['original_invite_replayed'])
         self.assertNotIn('server_to_guest', result['profiles'][0]['peer_nat']['rtp'])
+        self.assertEqual(result['profiles'][0]['server_failure']['panic_locations'],
+            [dict(file='crates/connect-server/tests/fixture.rs',line=100,column=7)])
 
 
 if __name__ == '__main__':

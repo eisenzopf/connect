@@ -84,6 +84,14 @@ def public_result(value):
     for profile in value.get('profiles', []):
         row = facts(profile, ('algorithm', 'passed', 'guest_exit_code', 'server_exit_code',
             'forced_server_cleanup', 'forced_guest_cleanup'))
+        failure = profile.get('server_failure', {})
+        row['server_failure'] = facts(failure, ('readiness_written', 'media_go_written', 'elapsed_observed'))
+        row['server_failure']['panic_locations'] = [dict(file=item['file'], line=item['line'], column=item['column'])
+            for item in failure.get('panic_locations', [])[:4] if isinstance(item, dict)
+            and isinstance(item.get('file'), str) and re.fullmatch(r'(?:crates|\.deps)/[A-Za-z0-9_./-]{1,240}', item['file'])
+            and '..' not in Path(item['file']).parts
+            and isinstance(item.get('line'), int) and 0 < item['line'] < 10**6
+            and isinstance(item.get('column'), int) and 0 < item['column'] < 10**5]
         row['guest'] = facts(profile.get('guest', {}), ('passed', 'os', 'architecture', 'sip_invites',
             'sip_acks', 'sip_byes', 'sent_rtp', 'received_rtp', 'foreign_datagrams', 'rtcp_mux_offered',
             'server_advertised_media_ip_matched', 'unique_call_ids', 'owned_sockets_closed',
