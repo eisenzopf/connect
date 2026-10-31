@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 import runpy
 import subprocess
+import signal
+import sys
+import time
 import tempfile
 import unittest
 
@@ -12,6 +15,22 @@ EXPIRY = runpy.run_path(str(ROOT / 'scripts/check-gate6-browser-expiry.py'))
 
 
 class ExpiryBoundaries(unittest.TestCase):
+    def test_namespace_holder_survives_child_exit_signals_then_joins_on_original_term(self):
+        child = subprocess.Popen([sys.executable, '-c', EXPIRY['HOLDER_CODE']],
+            stdout=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(child.stdout.readline().strip(), 'owned-namespace-ready')
+            child.send_signal(signal.SIGCHLD)
+            time.sleep(.05)
+            self.assertIsNone(child.poll(), 'Original namespace ended on a child-exit signal')
+            child.terminate()
+            self.assertEqual(child.wait(timeout=2), 0)
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait(timeout=2)
+            child.stdout.close()
+
     def owner(self, directory):
         owner = OWNER(directory, 'sha256:' + 'b' * 64, 'none')
         info = dict(Id='a' * 64, Name='/' + owner.name, Image=owner.image,

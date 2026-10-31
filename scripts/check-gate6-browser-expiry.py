@@ -21,6 +21,19 @@ OWNED = runpy.run_path(str(ROOT / 'scripts/lib/owned_fixture_container.py'))
 command, Container = OWNED['command'], OWNED['OwnedContainer']
 TURN_REFERENCE = 'coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf'
 
+HOLDER_CODE = """import os,signal,sys
+def reap(*_):
+ while True:
+  try:
+   if os.waitpid(-1,os.WNOHANG)[0]==0:break
+  except ChildProcessError:break
+signal.signal(signal.SIGCHLD,reap)
+signal.signal(signal.SIGTERM,lambda *_:sys.exit(0))
+print('owned-namespace-ready',flush=True)
+while True:signal.pause()
+"""
+
+
 
 def digest(path):
     with Path(path).open('rb') as stream:
@@ -124,16 +137,11 @@ def run_case(binary, image, turn_image, directory, transport, algorithm):
             '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=1g', '--workdir', str(ROOT),
             '--mount', f'type=bind,source={ROOT},target={ROOT},readonly',
             '--mount', f'type=bind,source={directory},target={directory}'], 'python3',
-            ['-c', """import os,signal,sys
-def reap(*_):
- while True:
-  try:
-   if os.waitpid(-1,os.WNOHANG)[0]==0:break
-  except ChildProcessError:break
-signal.signal(signal.SIGCHLD,reap)
-signal.signal(signal.SIGTERM,lambda *_:sys.exit(0))
-signal.pause()
-"""])
+            ['-c', HOLDER_CODE])
+        until = time.monotonic() + 5
+        while 'owned-namespace-ready' not in command(['docker', 'logs', holder.cid]):
+            assert holder.inspect()['State']['Running'] and time.monotonic() < until
+            time.sleep(.025)
         turn = Container(directory / 'turn', turn_image, 'container:' + holder.cid)
         turn.create(['--cpus', '1', '--memory', '256m', '--pids-limit', '64',
             '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=16m',

@@ -2,10 +2,10 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "queued-linux-runtime-unrun",
+  "status": "holder-lifecycle-corrected-linux-runtime-unrun",
   "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
   "runtime_passed": false,
-  "runtime_run_id": 41203742129,
+  "runtime_run_id": null,
   "original_tests_unchanged": true,
   "original_browser_timeout_seconds": 8,
   "original_node_deadline_seconds": 110,
@@ -13,7 +13,7 @@
   "allocation_drain_limit_seconds": 10,
   "post_drain_join_limit_seconds": 10,
   "local_verification": {
-    "ownership_and_expiry_oracle_tests": 4,
+    "ownership_and_expiry_oracle_tests": 5,
     "browser_build_profile_tests": 11,
     "existing_turn_ownership_tests": 3,
     "python_compile": "passed",
@@ -22,5 +22,31 @@
   },
   "full_task_qualified": false,
   "acceptance_qualified": false,
-  "runtime_source_revision": "d9bca15efa650d82719738aeca0d2babf9622916"
+  "prior_dispatch": {
+    "run_id": 41203742129,
+    "source_revision": "d9bca15efa650d82719738aeca0d2babf9622916",
+    "status": "cancellation-requested-before-start",
+    "reason": "Exact namespace-holder process exits on SIGCHLD; corrected before Linux execution."
+  },
+  "namespace_holder_process_counterexample": {
+    "scope": "Exact owned namespace-holder Python process code only; no Docker/browser/expiry qualification.",
+    "python": "3.14.7",
+    "before_revision": "d9bca15e",
+    "results": [
+      {
+        "version": "before",
+        "code_sha256": "2eba0c62c72151c0712dadffa2ac6c465b66508b25db471b254222fb9b9bee3c",
+        "exit_after_child_signal": 0,
+        "original_process_joined": true,
+        "original_exit_code": 0
+      },
+      {
+        "version": "after",
+        "code_sha256": "2889c33fb958a37bc4b0adba0cc02475c2b3f60a6bbdaebdb33e324b374cf7a0",
+        "exit_after_child_signal": null,
+        "original_process_joined": true,
+        "original_exit_code": 0
+      }
+    ]
+  }
 }

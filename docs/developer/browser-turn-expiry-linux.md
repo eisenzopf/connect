@@ -35,3 +35,12 @@ This lane qualifies expiry refusal only. Distinct-network relay media and the
 unchanged decoded audio/video quality requirements retain their own cases. The
 Linux execution of this new lane is pending; local boundary tests and syntax
 checks are implementation evidence, not a runtime pass.
+
+The initial holder at `d9bca15e` used one `signal.pause()` call and exited when
+an orphan's child-exit signal interrupted it. A direct local process comparison
+reproduces that exit with the exact original code. The corrected holder keeps
+waiting after child-exit signals, reaps original exited children and exits zero
+on its owned termination signal. The fifth boundary test executes this lifecycle
+and joins its original process. The pending first Linux dispatch was cancelled
+before start so the corrected holder can be verified in the same four-case lane.
+This process-only comparison is not a Docker or browser runtime pass.
