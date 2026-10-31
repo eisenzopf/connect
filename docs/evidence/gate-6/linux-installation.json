@@ -9,7 +9,7 @@
     "deploy/linux/install.py",
     "deploy/linux/connect.service",
     "crates/connect-server/src/cli/canonical_recovery.rs",
-    "crates/connect-server/tests/gate6_canonical_recovery.rs",
+    "crates/connect-installation-conformance/tests/gate6_canonical_recovery.rs",
     "scripts/check-linux-installation.py",
     "docs/LINUX_INSTALL.md"
   ],
@@ -129,5 +129,13 @@
   "ci_phase_visibility": {
     "status": "authored; 8 package/source-guard checks pass locally; updated workflow awaits next primary run",
     "behavior": "Recovery and release-package assembly are separate visible steps. The second phase preserves the first source inventory and refuses source/controller/manifest changes; it cannot freshen a changed source tree into a cacheable pass."
+  },
+  "production_graph_fixture": {
+    "package": "connect-installation-conformance",
+    "test": "gate6_canonical_recovery",
+    "assertions": "All recovery test bytes preserved from the server integration fixture.",
+    "dependencies": "Existing package versions, checksums and dependency edges unchanged. Server MCP feature enabled; unrelated MCP client feature absent.",
+    "verification": "Workspace formatting and 19 package/source-cache/dependency-cache guard tests pass. Rust execution awaits the primary upgrade candidate.",
+    "runtime_result_verified": false
   }
 }

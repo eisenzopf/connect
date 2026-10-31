@@ -56,7 +56,7 @@ def main():
             if report['steps'][0]['exit_code'] != 0 or not report['compilation_completed']:
                 raise RuntimeError('Recovery did not pass; package assembly remains unrun')
         for name, command, budget in [
-            ('recovery-tests', ['cargo', 'test', '--locked', '--release', '--message-format=json', '-p', 'connect-server', '--test', 'gate6_canonical_recovery', '--', '--test-threads=1'], 5400),
+            ('recovery-tests', ['cargo', 'test', '--locked', '--release', '--message-format=json', '-p', 'connect-installation-conformance', '--test', 'gate6_canonical_recovery', '--', '--test-threads=1'], 5400),
             ('package', ['python3', 'scripts/package-linux.py'], 5400),
         ]:
             if (args.phase == 'package' and name == 'recovery-tests') or (args.phase == 'recovery' and name == 'package'):

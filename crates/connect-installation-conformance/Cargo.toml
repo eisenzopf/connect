@@ -1,0 +1,23 @@
+[package]
+name = "connect-installation-conformance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dev-dependencies]
+connect-server = { path = "../connect-server" }
+connect-client = { path = "../connect-client" }
+connect-store = { path = "../connect-store" }
+connect-protocol = { path = "../connect-protocol" }
+base64.workspace = true
+sha2.workspace = true
+hex.workspace = true
+toml.workspace = true
+chrono.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

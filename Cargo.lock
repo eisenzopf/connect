@@ -737,6 +737,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "connect-installation-conformance"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "connect-client",
+ "connect-protocol",
+ "connect-server",
+ "connect-store",
+ "hex",
+ "sha2",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
 name = "connect-mcp"
 version = "0.1.0"
 dependencies = [
@@ -4306,8 +4322,8 @@ dependencies = [
  "sha2",
  "thiserror 1.0.69",
  "tokio",
- "tokio-util",
  "tokio-tungstenite",
+ "tokio-util",
  "tracing",
  "url",
  "zeroize",
