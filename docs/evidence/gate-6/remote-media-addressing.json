@@ -3,7 +3,7 @@
   "task": "G6-054",
   "implementation_status": "in-progress",
   "date": "2026-10-28",
-  "scope": "Configured remote WebRTC/SIP addressing with scoped component evidence for native/telephone distinct-network direct and loss paths, browser loopback direct/UDP-TCP relay/restart/expiry/unreachable paths, and original owner drains. Current Linux browser fault and distinct-network bridge verification remain open.",
+  "scope": "Configured remote WebRTC/SIP addressing with verified native/telephone distinct-network direct/loss components and browser direct/UDP-TCP relay/restart/expiry/unreachable components. Four Linux relay cells now pass strict decoded media and cleanup; Linux impairment and variable direct AV remain open.",
   "implementation": [
     "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
     "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
@@ -127,8 +127,8 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Current Linuxfull41101375461 has normal/ICE decode29.626\u201329.975fps,0\u20131lostpackets and0bad audio samples; strict changing22.359\u201323.028fps stillfails24fps. NativeICE2 and bothunreachableTURN pass. Loss runs41105238086/41106763766 retain isolated outside-burst audio invalid samples and video freshness gaps; no fault-profile pass.",
-    "Actual distinct-network UDP/TCP and EdDSA/ES256 relay run41106953334 proves duplex decoded identity, all32fresh original-ICE recoveries and40total allocations drained tozero without force. Strict changing22.744\u201323.791fps fails24fps; UDP/EdDSA additionally lacks the final normal server witness. See linux-browser-relay-scope.json; no whole relay profile passes.",
+    "Source-verified abe41125531888 and fault41125541583 retain outside-burst audio identity failures and subsequent motion gaps. Both original recovery deadlines pass, but that does not qualify the full impairment profile. See linux-decoded-observer-runtime.json.",
+    "Direct AV has variable strict tails: abe143.3/121.2ms and7d125.4/126.0ms fail120ms. The933 diagnostic passes76.9/97.7 and76.6/116.9ms this run, without resolving variability. First source-report scheduler correction03c593ad passes unchanged3public tests+135upstream; full actual affected media41183675414 remains pending. See first-source-clock-report.json.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader Linux installed SDK debug failures remain recorded in linux-hosting-d4-failures.json; none become passes from a sibling component result."
   ],
@@ -414,26 +414,31 @@
       "limits": "Owned loopback CFT156 and coturn; full Linux/distinct-network matrix not inferred."
     },
     {
-      "profile": "native Linux x86 opt3 media runtime",
-      "status": "nativeICE2/unreachableTURN pass; clean Linux browser media quality still fails",
-      "run_id": 41095499407,
-      "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
-      "limits": "Source/encoder30fps but receiver16\u201322fps and actual packet loss/bad audio with complete observer coverage. Finer motion observation has only a separate Mac positive result; it does not resolve Linux media loss."
+      "profile": "Linux x86 opt3 native ICE and clean browser media",
+      "status": "Verified native ICE, clean baseline, both original browser restarts and both unreachable TURN cells pass",
+      "run_id": 41125531888,
+      "source_revision": "abe8733c7d8a9c8488adc410ba00f4048435fe68",
+      "evidence": "docs/evidence/gate-6/linux-decoded-observer-runtime.json",
+      "limits": "The declared bounded Chrome decoded-pixel observer resolves the prior callback undercount; earlier failures remain in their original evidence. Impairment and variable direct AV remain open."
     },
     {
-      "profile": "current browser Linux x86 distinct-network internal bridge",
-      "status": "distinct-network path, duplex decoded content and clean retirement observed; strict quality fails",
-      "run_id": 41093924313,
-      "evidence": "docs/evidence/gate-6/browser-network-preparation.json",
-      "documentation": "docs/developer/browser-bridge-rehearsal.md",
-      "limits": "Both EdDSA/ES256 prove normal-CA signedWSS, private gateway/range nominated UDP duplex, opposite-source audio/video, two durable offers, original joins and reclaimed routes/capacity. Changing21.97\u201322.23fps fails strict24fps and ES256AVquality fails. No relay, WAN, full matrix or acceptance inference."
+      "profile": "Browser Linux x86 distinct-network direct bridge",
+      "status": "Verified933 diagnostic passes both direct AV cells; earlier strict AV tail failures remain unresolved",
+      "run_id": 41181623570,
+      "source_revision": "933e07edf9d0e6ec141a7f27d44378958008fe10",
+      "evidence": [
+        "docs/evidence/gate-6/receiver-source-clock-startup.json",
+        "docs/evidence/gate-6/linux-rendered-clock-diagnostic.json"
+      ],
+      "limits": "No stable AV resolution is inferred from one passing run. Clock scheduling correction has component proof; full affected run41183675414 at0c9290d9 is pending."
     },
     {
-      "profile": "native Linuxx86 distinct-network relay UDP/TCP, EdDSA/ES256 and original ICE",
-      "status": "functional media/recovery/drain components observed; all4strictprofiles failed",
-      "run_id": 41106953334,
-      "evidence": "docs/evidence/gate-6/linux-browser-relay-scope.json",
-      "limits": "Actual allocated relay paths and32fresh media recoveries do not remove sub24changing-fps failures or the missing UDP/EdDSA server witness."
+      "profile": "Browser Linux x86 distinct-network relay UDP/TCP and EdDSA/ES256",
+      "status": "All4 verified strict decoded-media/AV/original-ICE/zero-allocation/drain cells pass",
+      "run_id": 41125531888,
+      "source_revision": "abe8733c7d8a9c8488adc410ba00f4048435fe68",
+      "evidence": "docs/evidence/gate-6/linux-decoded-observer-runtime.json",
+      "limits": "Owned distinct-container network scope; no WAN, provider, installation or full Gate6 qualification."
     }
   ]
 }
