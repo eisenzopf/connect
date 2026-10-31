@@ -1,0 +1,757 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "failed",
+  "scope": "Current pinned Linux x86_64 synthetic browser/native AV runtime after canonical picture forwarding and metadata wait. Original strict media criteria and owned network faults. No WAN/provider/model, full transport matrix, performance or acceptance qualification.",
+  "proof": {
+    "run_id": 41190044909,
+    "artifact_id": 13039357946,
+    "revision": "74a5a305e1b803fa2a7cd26cb209770e2a060b2e",
+    "zip_sha256": "74b4007a78c20ef6c04151127e6d4eac5bdd417967a29f9f79190e713ee9ca38",
+    "git_sources_verified": 2869,
+    "prepared_sources_verified": 3087
+  },
+  "runtime": [
+    {
+      "name": "native-ice",
+      "passed": true,
+      "observations": []
+    },
+    {
+      "name": "baseline",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 27.2334330053105,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 28.74903385589643,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "ice-eddsa",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.13446158899644,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.18477524255358,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "ice-es256",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.73102167930362,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.963407754045903,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "unreachable-eddsa",
+      "passed": true,
+      "observations": []
+    },
+    {
+      "name": "unreachable-es256",
+      "passed": true,
+      "observations": []
+    },
+    {
+      "name": "impairment-eddsa",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 10.527139904975689,
+          "audio": "failed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_unexcepted_samples": 31,
+          "audio_coverage_complete": true,
+          "av_sync": null,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 15,
+            "samples": [
+              {
+                "elapsed_seconds": 6.366799831390381,
+                "rms": 4.306881512343607e-05,
+                "frequency_hz": 0,
+                "phase": "outside-burst"
+              },
+              {
+                "elapsed_seconds": 20.46679973602295,
+                "rms": 0.0005197876739162874,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.566799879074097,
+                "rms": 0.0001010941604066709,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.666799783706665,
+                "rms": 1.7877945028018586e-05,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.766899824142456,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.86679983139038,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 20.96679973602295,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.066799879074097,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.166799783706665,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.266799688339233,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.366899967193604,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.466899871826172,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.566799879074097,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.667399883270264,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.766799688339233,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              },
+              {
+                "elapsed_seconds": 21.866899967193604,
+                "rms": 0,
+                "frequency_hz": 0,
+                "phase": "burst"
+              }
+            ]
+          },
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793442468.9898212,
+                "end_unix_seconds": 1793442471.9922507,
+                "duration_seconds": 3.0024292130001413
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793442471.962,
+                "sampled_interval_end_unix_seconds": 1793442473.9625,
+                "before": 24,
+                "after": 25,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 1.5804493427276611,
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "decoded_fps": 5.413616984476029,
+          "audio": "failed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_unexcepted_samples": 1,
+          "audio_coverage_complete": true,
+          "av_sync": null,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 26.767899990081787,
+                "rms": 0.03650385937458574,
+                "frequency_hz": 495.263671875,
+                "phase": "outside-burst"
+              }
+            ]
+          },
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793442468.9898212,
+                "end_unix_seconds": 1793442471.9922507,
+                "duration_seconds": 3.0024292130001413
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793442471.9622,
+                "sampled_interval_end_unix_seconds": 1793442472.9622,
+                "before": 22,
+                "after": 23,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.6416492462158203,
+              "status": "passed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "impairment-es256",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 7.8963150690328785,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_unexcepted_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": null,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          },
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793442537.5495765,
+                "end_unix_seconds": 1793442540.5527122,
+                "duration_seconds": 3.003135870999813
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793442540.5386999,
+                "sampled_interval_end_unix_seconds": 1793442541.5388,
+                "before": 22,
+                "after": 23,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.8949878215789795,
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "decoded_fps": 9.278338495151324,
+          "audio": "failed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_unexcepted_samples": 1,
+          "audio_coverage_complete": true,
+          "av_sync": null,
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 53.067999839782715,
+                "rms": 0.0787873660340728,
+                "frequency_hz": 495.263671875,
+                "phase": "outside-burst"
+              }
+            ]
+          },
+          "recovery": [
+            {
+              "burst": {
+                "start_unix_seconds": 1793442537.5495765,
+                "end_unix_seconds": 1793442540.5527122,
+                "duration_seconds": 3.003135870999813
+              },
+              "burst_inside_measured_window": true,
+              "changing_content_before_burst": true,
+              "decoded_keyframe_increment_observation": {
+                "status": "observed",
+                "sampled_interval_start_unix_seconds": 1793442540.5403998,
+                "sampled_interval_end_unix_seconds": 1793442541.0414,
+                "before": 21,
+                "after": 22,
+                "method": "public independent-decoder counter increase over a sampled interval; no per-rendered-frame keyframe flag"
+              },
+              "fresh_decoded_content_after_end_seconds": 0.3472878932952881,
+              "status": "passed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bridges": [
+    {
+      "name": "bridge-eddsa",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 29.783321294440015,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 33.60000000009222,
+            "p95_abs_skew_ms": 142.79999999981374
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.763391863244955,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 19.899999999907436,
+            "p95_abs_skew_ms": 137.6000000000932
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "bridge-es256",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 29.81526531656275,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 40.600000000097225,
+            "p95_abs_skew_ms": 122.70000000018567
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.513403405296632,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": 28.64999999990836,
+            "p95_abs_skew_ms": 134.99999999999977
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "bridge-relay-tcp-eddsa",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.01658261587926,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 25.199999999951928,
+            "p95_abs_skew_ms": 87.2000000001858
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 28.666651063103725,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 42.99999999999926,
+            "p95_abs_skew_ms": 97.7000000001862
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "bridge-relay-tcp-es256",
+      "passed": true,
+      "observations": [
+        {
+          "decoded_fps": 29.202552078477282,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 26.5999999998634,
+            "p95_abs_skew_ms": 63.10000000009808
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.03359612266899,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 29.249999999764853,
+            "p95_abs_skew_ms": 82.69999999972022
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "bridge-relay-udp-eddsa",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 27.40063730151046,
+          "audio": "failed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": [
+              {
+                "elapsed_seconds": 22.475600004196167,
+                "rms": 0.26319785881807567,
+                "frequency_hz": 710.595703125,
+                "phase": "clean"
+              },
+              {
+                "elapsed_seconds": 28.965699911117554,
+                "rms": 0.29453140443011433,
+                "frequency_hz": 624.462890625,
+                "phase": "clean"
+              }
+            ]
+          }
+        },
+        {
+          "decoded_fps": 27.76967990384951,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 23.399999999909937,
+            "p95_abs_skew_ms": 98.40000000037286
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "bridge-relay-udp-es256",
+      "passed": false,
+      "observations": [
+        {
+          "decoded_fps": 27.93719538106905,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "failed",
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        {
+          "decoded_fps": 29.130870795038405,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 25.300000000040512,
+            "p95_abs_skew_ms": 73.89999999990948
+          },
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        }
+      ]
+    }
+  ],
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "finding": "Both ICE restart and both TCP TURN cells pass. All four impaired decoded-motion recoveries now pass within the original two seconds. Baseline and direct bridge AV tails, UDP AV calibration, and intermittent impaired/UDP decoded audio still fail; no full G6-054 pass.",
+  "receiver_diagnostic": {
+    "proof": {
+      "run_id": 41190438785,
+      "artifact_id": 13039103978,
+      "revision": "a0bf181cd38d53d334295a67a3cc231781f4e8ab",
+      "zip_sha256": "1839740a1c02a4d57b36a81d8fb2728caeed14ecac8c93a72727ff46144241d6",
+      "git_sources_verified": 2869,
+      "prepared_sources_verified": 3087
+    },
+    "status": "failed",
+    "baseline_audio": [
+      {
+        "observation": {
+          "decoded_fps": 29.645519671980875,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "failed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        "counter_first_last": {
+          "packetsReceived": [
+            103,
+            3098
+          ],
+          "packetsLost": [
+            0,
+            0
+          ],
+          "concealedSamples": [
+            654,
+            5951
+          ],
+          "silentConcealedSamples": [
+            0,
+            0
+          ],
+          "concealmentEvents": [
+            1,
+            8
+          ],
+          "insertedSamplesForDeceleration": [
+            0,
+            437
+          ],
+          "removedSamplesForAcceleration": [
+            3342,
+            3487
+          ],
+          "packetsDiscarded": [
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "observation": {
+          "decoded_fps": 29.178699609020658,
+          "audio": "passed",
+          "motion": "passed",
+          "source_identity": "passed",
+          "audio_bad_samples": 0,
+          "audio_coverage_complete": true,
+          "av_sync": "passed",
+          "audio_bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        "counter_first_last": {
+          "packetsReceived": [
+            101,
+            3069
+          ],
+          "packetsLost": [
+            0,
+            0
+          ],
+          "concealedSamples": [
+            654,
+            9159
+          ],
+          "silentConcealedSamples": [
+            0,
+            0
+          ],
+          "concealmentEvents": [
+            1,
+            11
+          ],
+          "insertedSamplesForDeceleration": [
+            0,
+            436
+          ],
+          "removedSamplesForAcceleration": [
+            2179,
+            2179
+          ],
+          "packetsDiscarded": [
+            0,
+            0
+          ]
+        }
+      }
+    ],
+    "interpretation": "Concealment and adaptive playout change despite zero reported RTP packets lost/discarded in these two baseline audio streams. These counters do not establish a cause. Audio verdict passes; strict AV remains failed in the baseline and three of four direct bridge observations."
+  }
+}
