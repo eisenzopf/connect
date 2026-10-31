@@ -102,6 +102,14 @@ def public_result(value):
         row['audio_path_diagnostic']['initial_sip_store_authority'] = facts(
             diagnostic.get('initial_sip_store_authority', {}),
             ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other'))
+        row['audio_path_diagnostic']['initial_sip_to_native_store_authority'] = facts(
+            diagnostic.get('initial_sip_to_native_store_authority', {}),
+            ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other'))
+        grants = diagnostic.get('initial_sip_to_native_grants', {})
+        row['audio_path_diagnostic']['initial_sip_to_native_grants'] = {
+            stage: facts(grants.get(stage, {}), ('admitted', 'Authority', 'NotReady', 'Cancelled', 'other'))
+            for stage in ('store-read', 'pair-current', 'source-binding', 'sip-owner',
+                          'native-activation', 'native-owner', 'native-current', 'granted', 'other')}
         row['guest'] = facts(profile.get('guest', {}), ('passed', 'os', 'architecture', 'sip_invites',
             'sip_acks', 'sip_byes', 'sent_rtp', 'received_rtp', 'foreign_datagrams', 'rtcp_mux_offered',
             'server_advertised_media_ip_matched', 'unique_call_ids', 'owned_sockets_closed',

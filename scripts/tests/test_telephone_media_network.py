@@ -54,6 +54,43 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
             self.assertFalse(missing['host_received_capture_written'])
             self.assertNotIn('host_received_bytes', missing)
 
+    def test_paired_authority_and_grant_stages_are_separate_finite_private_reductions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            raw = '\n'.join([
+                'TRACE Current initial SIP to native packet authority elapsed_us=8',
+                'TRACE Current initial SIP to native packet authority problem=Some("authority-busy")',
+                'TRACE Current initial SIP to native packet authority problem="forbidden"',
+                'TRACE Current initial SIP to native packet authority problem=private-secret',
+                'TRACE Initial SIP to native packet grant connection=private-secret stage=store-read problem=Some(NotReady)',
+                'TRACE Initial SIP to native packet grant stage="source-binding" problem=Some(Authority)',
+                'TRACE Initial SIP to native packet grant stage=granted problem=None',
+                'TRACE Initial SIP to native packet grant stage="private-secret" problem=Some(Model(private-secret))',
+                'TRACE Initial SIP to native packet grant stage=native-current problem=private-secret',
+                'TRACE Initial SIP to native packet grant stage=native-owner',
+            ])
+            diagnostic = harness['audio_path_diagnostic'](raw, directory)
+            self.assertEqual(sum(diagnostic['initial_sip_store_authority'].values()), 0)
+            self.assertEqual(diagnostic['initial_sip_to_native_store_authority'],
+                {'admitted': 1, 'authority-busy': 1, 'forbidden': 1, 'not-ready': 0, 'other': 1})
+            grants = diagnostic['initial_sip_to_native_grants']
+            self.assertEqual(grants['store-read']['NotReady'], 1)
+            self.assertEqual(grants['source-binding']['Authority'], 1)
+            self.assertEqual(grants['granted']['admitted'], 1)
+            self.assertEqual(grants['other']['other'], 1)
+            self.assertEqual(grants['native-current']['other'], 1)
+            self.assertEqual(grants['native-owner']['other'], 1)
+            self.assertEqual(sum(sum(row.values()) for row in grants.values()), 6)
+            self.assertNotIn('private-secret', json.dumps(diagnostic))
+            # Output admits only declared stages and finite facts, even if a
+            # malformed report supplies arbitrary fields or value strings.
+            row = component['public_result']({'profiles': [{'audio_path_diagnostic': dict(diagnostic,
+                initial_sip_to_native_grants=dict(grants, arbitrary={'other': 'private-secret'},
+                    **{'sip-owner': {'Authority': 'private-secret', 'arbitrary': 1}}))}]})
+            public = row['profiles'][0]['audio_path_diagnostic']
+            self.assertNotIn('private-secret', json.dumps(public))
+            self.assertNotIn('arbitrary', public['initial_sip_to_native_grants'])
+            self.assertEqual(public['initial_sip_to_native_grants']['sip-owner'], {})
+
     def test_linux_gateway_requires_explicit_owned_mode_and_the_same_concrete_advertised_host(self):
         self.assertEqual(phone['designated_gateway']({'gateway': '192.168.5.2'}), '192.168.5.2')
         valid = dict(owned_internal_bridge=True, gateway='172.28.0.1', host_media_ip='172.28.0.1')

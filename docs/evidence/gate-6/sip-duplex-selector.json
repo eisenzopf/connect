@@ -2362,5 +2362,17 @@
     "full_task_qualified": false,
     "acceptance_qualified": false,
     "test_contract_correction": "Static follow-up: actor_from_connection_at returns Error::unauthorized for an actually revoked credential. The withdrawal boundary now requires that exact existing code rather than forbidden. Production/read/expiry/authorization behavior is unchanged; the original ba12 run is retained and a separate corrected-source run must verify the full Store/telephone scope."
+  },
+  "paired_read_diagnostics": {
+    "status": "local-boundary-verified-runtime-unrun",
+    "scope": "Reduce existing Current initial SIP to native packet authority and Initial SIP to native packet grant traces to fixed Store result and grant-stage counters. Unary and paired reads remain separate. Only finite facts and declared labels leave private state; no new trace subscription, production callback, retry, media threshold or call behavior.",
+    "local_verification": {
+      "telephone_boundary_functions": 6,
+      "linux_diagnostic_boundary_functions": 19,
+      "passed": true
+    },
+    "runtime_scope": "The existing ba12 and 052 runs do not contain these added report fields. No paired-read failure count or cause is inferred from their missing fields.",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }

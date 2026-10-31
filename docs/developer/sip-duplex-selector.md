@@ -119,3 +119,12 @@ Static follow-up corrects the withdrawal test's expected error to the existing
 `Error::unauthorized()` contract of a revoked credential. The production
 projection is unchanged. Run `41210897174` on `ba12a0c7` remains retained; a
 separate corrected-source run is required before qualifying its Store checks.
+
+The report reducer also separates the existing paired SIP-to-native Store-read
+trace from unary SIP reads. Existing final-grant traces reduce to fixed stages
+(Store read, pair current, source binding, SIP owner, native activation/owner/
+current and granted) and declared result counts. Unknown fields stay `other`;
+raw identities/details remain private. Six telephone and19Linux diagnostic
+boundary functions pass locally. These fields are absent from the already
+dispatched `ba12a0c7` and `052838f3` sources, so their absence cannot establish a
+paired-read failure count or cause. Production media and assertions are unchanged.

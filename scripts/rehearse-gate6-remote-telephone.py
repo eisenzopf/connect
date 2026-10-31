@@ -44,18 +44,36 @@ def audio_path_diagnostic(raw, directory):
     result = dict(sip_admissions=0, sip_admitted=0, sip_refused=0,
         native_egress_configured=0, native_egress_refused=0, mixer_queued=0,
         core_delivery_refused=0, audio_burst_trimmed=0)
-    authority = {code: 0 for code in ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other')}
+    authority_codes = ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other')
+    authority = {code: 0 for code in authority_codes}
+    paired_authority = {code: 0 for code in authority_codes}
+    paired_grants = {stage: {problem: 0 for problem in ('admitted', 'Authority', 'NotReady', 'Cancelled', 'other')}
+        for stage in ('store-read', 'pair-current', 'source-binding', 'sip-owner',
+                      'native-activation', 'native-owner', 'native-current', 'granted', 'other')}
     errors = {name: 0 for name in ('Model', 'Unsupported', 'Authority', 'NotRecipient',
         'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other')}
     for line in clean.splitlines():
-        if 'Current initial SIP packet authority' in line:
+        for message, counts in (
+                ('Current initial SIP packet authority', authority),
+                ('Current initial SIP to native packet authority', paired_authority)):
+            if message not in line:
+                continue
             # tracing Value records an Option<&str> as a bare value, and
             # omits None. Debug-formatted Option fields remain accepted too.
             match = re.search(r'\bproblem=(?:Some\("([^"]+)"\)|"([^"]+)"|([A-Za-z][A-Za-z-]*))', line)
             code = next((part for part in match.groups() if part), None) if match else None
             if code == 'None' or (code is None and 'problem=' not in line):
                 code = 'admitted'
-            authority[code if code in authority else 'other'] += 1
+            counts[code if code in counts else 'other'] += 1
+        if 'Initial SIP to native packet grant' in line:
+            stage = re.search(r'\bstage=(?:"([A-Za-z-]+)"|([A-Za-z-]+))(?=\s|$)', line)
+            stage = next((value for value in stage.groups() if value), None) if stage else None
+            counts = paired_grants[stage if stage in paired_grants else 'other']
+            problem = re.search(r'\bproblem=(?:Some\()?([A-Za-z]+)', line)
+            problem = problem[1] if problem else 'other'
+            if problem == 'None':
+                problem = 'admitted'
+            counts[problem if problem in counts else 'other'] += 1
         if 'Owned SIP frame admission' in line:
             result['sip_admissions'] += 1
             result['sip_admitted' if re.search(r'\bproblem=None(?:\s|$)', line) else 'sip_refused'] += 1
@@ -79,6 +97,8 @@ def audio_path_diagnostic(raw, directory):
         result['host_received_sha256'] = digest(captured)
     result['problems'] = errors
     result['initial_sip_store_authority'] = authority
+    result['initial_sip_to_native_store_authority'] = paired_authority
+    result['initial_sip_to_native_grants'] = paired_grants
     return result
 
 
