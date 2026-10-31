@@ -8726,7 +8726,8 @@
           "record-https-connections",
           "record-https-requests",
           "record-https-handshakes",
-          "mcp-requests"
+          "mcp-requests",
+          "mcp-connections"
         ],
         "type": "string"
       },
@@ -14937,7 +14938,7 @@
     "crates/connect-protocol/src/native_gates.rs": "e34a887a3ee5debdd5069c1628b77df2a426206b594b219c1eef89e2e14915b7",
     "crates/connect-protocol/src/native_network.rs": "660942bd63592c76352c04ea7f63005505985b9d1fb897078c9ecd9c6a0c0baf",
     "crates/connect-protocol/src/native_streams.rs": "f632f2874a01bcc6a480428cba33bc384cb963eb87f7fbc6c287298a43983cf4",
-    "crates/connect-protocol/src/operational.rs": "c1b2f68f4092bbef09bfffc9af848dab6d0099e34e18c241ac0ae16cad620951",
+    "crates/connect-protocol/src/operational.rs": "152e9f831e95aedb5a856d5bfc738305a4b445f3c2428b3d02bd0d9bf144e9ed",
     "crates/connect-protocol/src/provisioning.rs": "60114420e0ae7fe3e52bb77d011194cec681e87f151ebd7d9f59c36d87e33ab8",
     "crates/connect-protocol/src/readiness.rs": "dd9ffed3628f76e17d7c23b8e5f0cd28cabd3f6f81fe016677d267a9d22da0aa",
     "crates/connect-protocol/src/readiness_tests.rs": "a44649daab4711d37d5391759e34c14ac34aba886afe88eacec767b12247557d",

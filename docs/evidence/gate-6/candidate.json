@@ -1577,5 +1577,12 @@
     "run_id": 41252976114,
     "source_revision": "4f2df554",
     "status": "terminal-cancelled-before-execution-to-use-corrected-fixtures-and-package-manager-isolation"
+  },
+  "sealed_candidate_verifier": {
+    "status": "implemented-local-guards-pass-awaiting-real-sealed-artifacts",
+    "script": "scripts/verify-sdk-candidate.py",
+    "local_tests": 7,
+    "scope": "Independent full tar payload bytes/modes, identical CI native/installed/offline source inventories, original Git/prepared/registry provenance, actual helper joins/reclamation and cold cache evidence, original component archive identities. Requires independently verified native asset; rejects publication/release/full-gate promotion.",
+    "actual_sealed_candidate_verified": false
   }
 }

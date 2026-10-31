@@ -1,22 +1,23 @@
 {
   "format": "connect/verified-operational-schema/1",
-  "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
-  "workflow_run_id": 41247152591,
-  "job_id": 124672853307,
-  "artifact_id": 13059648481,
-  "artifact_zip_sha256": "8a9ef123e7bdecd21da27b91fb9735869ea4a7a55872c0b43fa7611d85201909",
+  "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
+  "workflow_run_id": 41254268813,
+  "job_id": 124693998064,
+  "artifact_id": 13061664199,
+  "artifact_zip_sha256": "d23ee866b0b18f4d73800b3c37999aefffc7daf29546c0f7d85ec4f8fe63f195",
   "sources_verified": {
-    "git": 4589,
+    "git": 4624,
     "prepared": 4094,
     "pinned_archives": 4
   },
   "protocol_cases_passed": 1,
   "generated": {
-    "application-http-dispatch.json": "371ed90a12b2345c6dc52ac29cbb42414fff9ca4a0ddcbef8a4df3bb11d98f65",
-    "openapi-application-http.json": "76bdc8df9d1efc096169915ac9a447f39344dd0d68e8440a716c60613964ab9c"
+    "application-http-dispatch.json": "40025d8b6d77765dda1aaeca27e0f73e3eddc2c464dddd5beddae1906e420b67",
+    "openapi-application-http.json": "c3cdc2252b77822799309abf887b1ce187562dadce3f05225abfe1ffd2b1bd21"
   },
   "generated_inputs_match_current_sources": true,
   "authorization_description_includes_distinct_installation_grant": true,
+  "mcp_physical_connections_in_closed_enum": true,
   "runtime_qualified": false,
   "task_complete": false,
   "whole_gate_qualified": false

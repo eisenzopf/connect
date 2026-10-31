@@ -81,19 +81,18 @@
       "python_syntax": "passed"
     },
     "rust_execution": "not-yet-run",
-    "openapi_generation": "Prior894ed793 reference verified; new mcp-connections DTO requires current generated reference",
+    "openapi_generation": "Current c6f9c5ea reference independently verified:4624Git/4094prepared/4archives; includes mcp-connections; exact generator inputs match current tree",
     "whole_task_complete": false
   },
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
   "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
   "current_runtime_candidate": {
-    "run_id": 41248033909,
-    "source_revision": "b757ddef173a1132ebbf7049f285bc2b8afb6529",
-    "status": "terminal-failed-integration-fixture-typecheck-after8passing-unit-tests",
-    "predecessor_run": 41247496443,
-    "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
-    "task_complete": false,
-    "job_id": 124675466344
+    "run_id": 41254268813,
+    "job_id": 124693998219,
+    "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
+    "status": "in-progress-MCP-and-integration-typecheck",
+    "scope": "18focused runtime functions, current rawMCP sockets and separate actual server/helper/browser process measurement; all runtime outcomes pending",
+    "task_complete": false
   },
   "pending_socket_cleanup": {
     "status": "implemented-not-yet-runtime-verified",
@@ -135,19 +134,21 @@
     "http_reference": "Native Linux generation passed at894ed793; independent4589Git/4094prepared/4archives verification and input-hash comparison passed; generated reference imported"
   },
   "current_schema_candidate": {
-    "run_id": 41247152591,
-    "job_id": 124672853307,
-    "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
-    "artifact_id": 13059648481,
+    "run_id": 41254268813,
+    "job_id": 124693998064,
+    "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
+    "artifact_id": 13061664199,
     "status": "success-independently-verified",
     "evidence": "docs/evidence/gate-6/operational-schema-verified.json"
   },
   "previous_runtime_candidate": {
-    "run_id": 41245525263,
-    "job_id": 124668037860,
-    "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
-    "status": "terminal-failure-E0308-in-new-Service-test",
-    "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
+    "run_id": 41248033909,
+    "source_revision": "b757ddef173a1132ebbf7049f285bc2b8afb6529",
+    "status": "terminal-failed-integration-fixture-typecheck-after8passing-unit-tests",
+    "predecessor_run": 41247496443,
+    "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
+    "task_complete": false,
+    "job_id": 124675466344
   },
   "subscription_test_precondition": {
     "finding": "A silent31s lease wait conflicts with the native transport's independent30s idle timeout",
@@ -243,7 +244,7 @@
       "process_boundary_tests": 4,
       "format": "passed",
       "rust_typecheck": "not-run-current-source",
-      "schema_generation": "required-after-new-pool-kind"
+      "schema_generation": "Passed and independently source-verified at c6f9c5ea"
     }
   },
   "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-b757.json",
@@ -260,5 +261,13 @@
     "job_id": 124691759237,
     "status": "in-progress-fixture-typecheck",
     "runtime_qualification": false
+  },
+  "previous_schema_candidate": {
+    "run_id": 41247152591,
+    "job_id": 124672853307,
+    "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
+    "artifact_id": 13059648481,
+    "status": "success-independently-verified",
+    "evidence": "docs/evidence/gate-6/operational-schema-verified.json"
   }
 }

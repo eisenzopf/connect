@@ -86,7 +86,9 @@ jobs:
           python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
       - name: Check native archive extraction boundaries
         if: ${{ inputs.qualification }}
-        run: python3 -m unittest discover -s scripts/tests -p test_sdk_candidate.py -v
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_sdk_candidate.py -v
+          python3 -m unittest discover -s scripts/tests -p test_sdk_sealed_candidate.py -v
       - name: Assemble and check external pure SDK archive installations
         if: ${{ inputs.qualification }}
         run: |
