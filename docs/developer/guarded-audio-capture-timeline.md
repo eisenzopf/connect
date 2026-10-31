@@ -54,3 +54,12 @@ Core repair regressions also pass after the correction. The strict browser
 diagnostic still fails AV timing: both baseline directions and one of four
 direct-bridge observations exceed 120 ms p95, with zero bad audio samples in
 all six observations. These failures remain open in G6-054.
+
+The verified source `eba469b2` diagnostic (`41202218277`) still fails strict
+media quality. Its existing trace records audio source-read age p95 0.598ms,
+Core-publication age p95 2.689ms, queued original PCM age p95 108.794ms and
+driver-write age p95 9.487ms. Core has5,381 generic delivery refusals, all
+`NotReady`, split3,491 source-egress/1,890 target-egress; no mixer-target
+refusal is recorded. These counts include other media where the historical
+message is generic. They focus the next investigation on retained PCM and
+admission contention; they do not establish causality or qualify an AV path.

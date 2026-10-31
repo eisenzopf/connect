@@ -44,9 +44,14 @@ def audio_path_diagnostic(raw, directory):
     result = dict(sip_admissions=0, sip_admitted=0, sip_refused=0,
         native_egress_configured=0, native_egress_refused=0, mixer_queued=0,
         core_delivery_refused=0, audio_burst_trimmed=0)
+    authority = {code: 0 for code in ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other')}
     errors = {name: 0 for name in ('Model', 'Unsupported', 'Authority', 'NotRecipient',
         'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other')}
     for line in clean.splitlines():
+        if 'Current initial SIP packet authority' in line:
+            match = re.search(r'\bproblem=(?:Some\("([^"]+)"\)|None)(?:\s|$)', line)
+            code = ('admitted' if match[1] is None else match[1]) if match else 'other'
+            authority[code if code in authority else 'other'] += 1
         if 'Owned SIP frame admission' in line:
             result['sip_admissions'] += 1
             result['sip_admitted' if re.search(r'\bproblem=None(?:\s|$)', line) else 'sip_refused'] += 1
@@ -69,6 +74,7 @@ def audio_path_diagnostic(raw, directory):
         result['host_received_bytes'] = captured.stat().st_size
         result['host_received_sha256'] = digest(captured)
     result['problems'] = errors
+    result['initial_sip_store_authority'] = authority
     return result
 
 
@@ -271,7 +277,7 @@ def main():
                     for held in sip_held + media_held:
                         held.close()
                     env = dict(os.environ, CONNECT_G6_REMOTE_PHONE_DIR=str(directory), TMPDIR=str(directory),
-                        RUST_LOG="rvoip_sip=warn,rvoip_sip::guarded_frame=trace,rvoip_uctp::native_egress=trace,rvoip_core::audio_path=trace")
+                        RUST_LOG="rvoip_sip=warn,rvoip_sip::guarded_frame=trace,rvoip_uctp::native_egress=trace,rvoip_core::audio_path=trace,connect_service::canonical_packet=trace")
                     server = subprocess.Popen([str(binary), CASE, "--exact", "--ignored", "--nocapture", "--test-threads=1"], cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT, start_new_session=True)
                     row["server_exit_code"] = server.wait(timeout=75)
                     if row["server_exit_code"] != 0:

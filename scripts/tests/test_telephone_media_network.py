@@ -24,7 +24,10 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
                 'TRACE Native guarded egress refused problem=Authority',
                 'TRACE Guarded audio queued age_us=30 target=private-secret',
                 'TRACE Guarded audio delivery refused stage=mixer-target problem=Unknown(private-secret)',
-                'TRACE Guarded audio pending burst trimmed discarded_chunks=1'])
+                'TRACE Guarded audio pending burst trimmed discarded_chunks=1',
+                'TRACE Current initial SIP packet authority problem=None',
+                'TRACE Current initial SIP packet authority problem=Some("authority-busy")',
+                'TRACE Current initial SIP packet authority problem=Some("private-secret")'])
             diagnostic = harness['audio_path_diagnostic'](raw, directory)
             self.assertEqual((diagnostic['sip_admissions'], diagnostic['sip_admitted'], diagnostic['sip_refused']), (3, 1, 2))
             self.assertEqual(diagnostic['host_received_bytes'], 320)
@@ -32,6 +35,8 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
             self.assertEqual(diagnostic['problems']['Model'], 1)
             self.assertEqual(diagnostic['problems']['Authority'], 1)
             self.assertEqual(diagnostic['problems']['other'], 1)
+            self.assertEqual(diagnostic['initial_sip_store_authority'],
+                {'admitted': 1, 'authority-busy': 1, 'forbidden': 0, 'not-ready': 0, 'other': 1})
             self.assertEqual(diagnostic['native_egress_configured'], 1)
             self.assertEqual(diagnostic['native_egress_refused'], 1)
             self.assertEqual(diagnostic['mixer_queued'], 1)

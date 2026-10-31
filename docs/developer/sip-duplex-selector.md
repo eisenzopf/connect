@@ -52,3 +52,12 @@ restoration, after completed compilation with unchanged source inputs. A behavio
 failure can retain the completed build; a failed compilation cannot mark it
 cacheable. Source content/mode checks still govern restored timestamps. The
 change has no measured build-speed claim until a subsequent run proves reuse.
+
+Source `12231a45`, run `41203387431`, executes all four original telephone
+cells. All fail the unchanged native input minimum, with3,360–6,400 actual
+received bytes. SIP receives173–200 ingress attempts per cell, admits68–91
+and refuses96–111. Core refusals are predominantly `NotReady`. This rejects
+missing transport or absent native egress as a complete explanation; it does
+not identify the specific admission cause. Existing initial-SIP Store authority
+trace messages are now reduced to fixed counts (`authority-busy`, `forbidden`,
+`not-ready`, admitted or other) before choosing a production policy change.

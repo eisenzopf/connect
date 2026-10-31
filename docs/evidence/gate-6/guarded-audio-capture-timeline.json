@@ -1123,5 +1123,181 @@
   },
   "full_task_qualified": false,
   "acceptance_qualified": false,
-  "proposed_correction": "Numeric single-source RTP/sample-offset coordinates and rational rate conversion, independent of sender-report timing. Preserve real input gaps, discarded PCM, current guards, age/queue bounds and unsupported/multi-source fallback. New real-gap/partial/pending-SR/rate-conversion cases and original regressions must execute before component qualification."
+  "proposed_correction": "Numeric single-source RTP/sample-offset coordinates and rational rate conversion, independent of sender-report timing. Preserve real input gaps, discarded PCM, current guards, age/queue bounds and unsupported/multi-source fallback. New real-gap/partial/pending-SR/rate-conversion cases and original regressions must execute before component qualification.",
+  "latest_pipeline_after_clock": {
+    "run_id": 41202218277,
+    "artifact_id": 13043903118,
+    "revision": "eba469b26602361f661d3275ca9a50fee81afe5d",
+    "zip_sha256": "daeb01f0736a4ad9bc7107de778db13a3036b62aa7566dc66c01b11db40b029c",
+    "git_sources_verified": 2880,
+    "prepared_sources_verified": 3088,
+    "pipeline_diagnostic": {
+      "scope": "Bounded private synthetic-lane trace event counts and numeric timing samples only; instrumentation can affect timing. No cause or performance qualification.",
+      "captured_events": 44427,
+      "omitted_events": 0,
+      "suppressed_known_successes": 81776,
+      "counts": {
+        "packet_authority_refused": 61,
+        "core_delivery_refused": 5381,
+        "audio_burst_trimmed": 17,
+        "rtc_packet_path_refused": 23
+      },
+      "authority_problems": {
+        "authority-busy": 44,
+        "forbidden": 17,
+        "storage-unavailable": 0,
+        "conflict": 0,
+        "other": 0
+      },
+      "core_delivery_refusal_stages": {
+        "mixer-target": 0,
+        "source-egress": 3491,
+        "target-egress": 1890,
+        "other": 0
+      },
+      "core_delivery_refusal_problems": {
+        "Model": 0,
+        "Unsupported": 0,
+        "Authority": 0,
+        "NotRecipient": 0,
+        "Cancelled": 0,
+        "Deadline": 0,
+        "NotReady": 5381,
+        "Backpressure": 0,
+        "CleanupUnconfirmed": 0,
+        "other": 0
+      },
+      "core_delivery_scope": "The historical audio-labelled Core message also covers other media; these events do not identify media kind.",
+      "rtc_packet_path_reported_count_max": 32,
+      "rtc_count_scope": "Power-of-two samples of cumulative counters; maximum is not an aggregate failure count.",
+      "audio_timing_samples": {
+        "source-read": {
+          "age_ms": {
+            "samples": 6361,
+            "invalid_samples": 0,
+            "median_ms": 0.049,
+            "p95_ms": 0.598,
+            "maximum_ms": 13.561
+          }
+        },
+        "core-publish": {
+          "age_ms": {
+            "samples": 6360,
+            "invalid_samples": 0,
+            "median_ms": 0.389,
+            "p95_ms": 2.689,
+            "maximum_ms": 100.044
+          },
+          "publish_ms": {
+            "samples": 6360,
+            "invalid_samples": 0,
+            "median_ms": 0.265,
+            "p95_ms": 1.854,
+            "maximum_ms": 99.793
+          }
+        },
+        "mixer-queued": {
+          "age_ms": {
+            "samples": 6086,
+            "invalid_samples": 0,
+            "median_ms": 67.827,
+            "p95_ms": 108.794,
+            "maximum_ms": 152.297
+          }
+        },
+        "driver-write": {
+          "age_ms": {
+            "samples": 6086,
+            "invalid_samples": 0,
+            "median_ms": 3.175,
+            "p95_ms": 9.487,
+            "maximum_ms": 53.286
+          },
+          "write_ms": {
+            "samples": 6086,
+            "invalid_samples": 0,
+            "median_ms": 0.064,
+            "p95_ms": 0.214,
+            "maximum_ms": 2.747
+          }
+        }
+      }
+    },
+    "passed": false,
+    "scope": "One source-bound Linux baseline plus two direct bridge profiles, unchanged strict media limits. No relay/fault/full-task qualification.",
+    "profiles": [
+      {
+        "profile": "baseline",
+        "participant": 0,
+        "marker_pairs": 79,
+        "median_abs_skew_ms": 34.89999999990445,
+        "p95_abs_skew_ms": 116.70000000018632,
+        "audio": "passed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "passed",
+        "decoded_fps": 28.8757926316139
+      },
+      {
+        "profile": "baseline",
+        "participant": 1,
+        "marker_pairs": 78,
+        "median_abs_skew_ms": 29.499999999767823,
+        "p95_abs_skew_ms": 120.70000000018588,
+        "audio": "passed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "failed",
+        "decoded_fps": 28.14560440062228
+      },
+      {
+        "profile": "bridge-eddsa",
+        "participant": 0,
+        "marker_pairs": 82,
+        "median_abs_skew_ms": 20.00000000000135,
+        "p95_abs_skew_ms": 102.20000000018636,
+        "audio": "passed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "passed",
+        "decoded_fps": 29.443063146997872
+      },
+      {
+        "profile": "bridge-eddsa",
+        "participant": 1,
+        "marker_pairs": 83,
+        "median_abs_skew_ms": 24.40000000036946,
+        "p95_abs_skew_ms": 127.00000000000067,
+        "audio": "failed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "failed",
+        "decoded_fps": 29.92655744533193
+      },
+      {
+        "profile": "bridge-es256",
+        "participant": 0,
+        "marker_pairs": 77,
+        "median_abs_skew_ms": 24.00000000000091,
+        "p95_abs_skew_ms": 107.29999999981388,
+        "audio": "failed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "passed",
+        "decoded_fps": 27.437424552996095
+      },
+      {
+        "profile": "bridge-es256",
+        "participant": 1,
+        "marker_pairs": 80,
+        "median_abs_skew_ms": 24.00000000000091,
+        "p95_abs_skew_ms": 122.8999999999072,
+        "audio": "passed",
+        "motion": "passed",
+        "source_identity": "passed",
+        "av_sync": "failed",
+        "decoded_fps": 28.90356372567954
+      }
+    ]
+  }
 }

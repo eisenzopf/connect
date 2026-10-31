@@ -99,6 +99,9 @@ def public_result(value):
         row['audio_path_diagnostic']['problems'] = facts(diagnostic.get('problems', {}),
             ('Model', 'Unsupported', 'Authority', 'NotRecipient', 'Cancelled', 'Deadline', 'NotReady',
              'Backpressure', 'CleanupUnconfirmed', 'other'))
+        row['audio_path_diagnostic']['initial_sip_store_authority'] = facts(
+            diagnostic.get('initial_sip_store_authority', {}),
+            ('admitted', 'authority-busy', 'forbidden', 'not-ready', 'other'))
         row['guest'] = facts(profile.get('guest', {}), ('passed', 'os', 'architecture', 'sip_invites',
             'sip_acks', 'sip_byes', 'sent_rtp', 'received_rtp', 'foreign_datagrams', 'rtcp_mux_offered',
             'server_advertised_media_ip_matched', 'unique_call_ids', 'owned_sockets_closed',
