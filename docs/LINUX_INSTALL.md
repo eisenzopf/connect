@@ -185,7 +185,11 @@ compatibility/downgrade path in this pre-alpha installation.
 `scripts/check-linux-installation.py` exercises the package on a disposable native
 Ubuntu 24.04 systemd host: install, signed remote-profile client in a separate
 network namespace, graceful restart, upgrade activation, stopped backup, restore
-and secret/configuration preservation. It uses synthetic identities and local
+and secret/configuration preservation. It then removes only its own installation
+roots and freshly initializes the current package, verifies a new empty state,
+performs a signed mutation/read and checks the actual running binary and source
+isolation. Pre-existing installation paths and any pre-existing unit are refused
+before the rehearsal starts. It uses synthetic identities and local
 networking only. Raw state/logs remain under ignored `.local/`. Its curated report
 must identify source/package digests and the actual assertions before G6-056 can
 be marked complete. Browser/media qualification remains G6-054.

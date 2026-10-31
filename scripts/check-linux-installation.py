@@ -110,6 +110,43 @@ def list_rooms(config):
     return acknowledgements[0]['payload']['details']['page']['conversations']
 
 
+
+def fresh_current(package, report):
+    """Independently initialize the current binary after removing fixture state."""
+    manifest = json.loads((package / 'manifest.json').read_text())
+    assert run(['systemctl', 'is-active', 'connect.service'], ok=False).stdout.strip() == 'inactive'
+    unit = Path('/etc/systemd/system/connect.service')
+    assert not unit.is_symlink() and digest(unit) == manifest['files']['deploy/connect.service']['sha256']
+    # main() refuses all four pre-existing paths. Only this disposable fixture
+    # created them, and the original installed service has already been joined.
+    for path in (Path('/opt/connect'), Path('/etc/connect'), Path('/var/lib/connect')):
+        assert path.is_dir() and not path.is_symlink()
+        shutil.rmtree(path)
+    unit.unlink()
+    run(['systemctl', 'daemon-reload'])
+    run(['python3', package / 'deploy/install.py', '--package', package, '--initialize'])
+    run(['runuser', '-u', 'connect', '--', 'test', '-r', CONFIG])
+    assert CONFIG.stat().st_mode & 0o777 == 0o640
+    set_fields(CONFIG, {'network_profile': 'remote', 'bind': '10.203.0.1:4433'})
+    client = Path('/var/lib/connect/current-fresh-client.toml')
+    client_config(STATE / 'operator.toml', client)
+    start()
+    pid = run(['systemctl', 'show', '-p', 'MainPID', '--value', 'connect.service']).stdout.strip()
+    executable = Path('/proc', pid, 'exe')
+    assert run(['readlink', executable]).stdout.strip() == str(Path('/opt/connect/current').resolve() / 'bin/connect')
+    assert str(ROOT) not in run(['readlink', Path('/proc', pid, 'cwd')]).stdout
+    assert run(['nsenter', '-t', pid, '-m', '--', 'runuser', '-u', 'connect', '--', 'sh', '-c', 'test ! -w /opt/connect/current/bin/connect && test ! -w /etc/connect/server.toml && test -w /var/lib/connect && test ! -r "$1/Cargo.toml"', 'sh', str(ROOT)], ok=False).returncode == 0
+    report['fresh_current_binary_sha256'] = digest(executable)
+    assert report['fresh_current_binary_sha256'] == manifest['files']['bin/connect']['sha256']
+    assert list_rooms(client) == []
+    request(client, 'conversation.create', {'tenant_id': 'tnt_default', 'policy': 'persistent', 'initial_participants': [], 'metadata': {'fixture': 'current-fresh-installation'}}, 'installation-current-fresh-create')
+    assert len(list_rooms(client)) == 1
+    stop()
+    report['fresh_current_source_revision'] = manifest['source_revision']
+    report['fresh_current_manifest_sha256'] = digest(package / 'manifest.json')
+    report['checks']['fresh_current_install'] = True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--package', required=True, type=Path)
@@ -117,7 +154,7 @@ def main():
     args = parser.parse_args()
     if os.geteuid() != 0:
         parser.error('Disposable root/systemd host required')
-    if any(p.exists() or p.is_symlink() for p in (Path('/opt/connect'), Path('/etc/connect'), Path('/var/lib/connect'))):
+    if any(p.exists() or p.is_symlink() for p in (Path('/opt/connect'), Path('/etc/connect'), Path('/var/lib/connect'), Path('/etc/systemd/system/connect.service'))):
         parser.error('Refusing a host with existing Connect paths')
     os.umask(0o077)
     PRIVATE.mkdir(parents=True)
@@ -211,6 +248,7 @@ def main():
         # Check preserved configuration before the deliberately different restore config.
         report['configuration_before_restore_sha256'] = config_hash
         report['checks']['no_writable_source_tree_required'] = True
+        fresh_current((args.upgrade_package or package).resolve(), report)
         report['passed'] = not report['not_run']
     finally:
         run(['systemctl', 'stop', 'connect.service'], ok=False)

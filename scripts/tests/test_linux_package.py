@@ -109,6 +109,26 @@ class Integrity(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.artifact(wrapped, '0' * 64)
 
+
+    def test_fresh_current_requires_its_own_run_and_exact_current_package(self):
+        current = {'source_revision': self.manifest['source_revision'],
+                   'package': {'binary_sha256': self.files['bin/connect']['sha256'],
+                               'manifest_sha256': installer.digest(self.root / 'manifest.json')}}
+        observed = {'checks': {'fresh_install': True},
+                    'fresh_current_source_revision': current['source_revision'],
+                    'fresh_current_binary_sha256': current['package']['binary_sha256'],
+                    'fresh_current_manifest_sha256': current['package']['manifest_sha256']}
+        # A baseline fresh install or a later upgrade is no current fresh run.
+        with self.assertRaises(ValueError):
+            verifier.verify_fresh_current(observed, current)
+        observed['checks']['fresh_current_install'] = True
+        verifier.verify_fresh_current(observed, current)
+        for field in ('fresh_current_source_revision', 'fresh_current_binary_sha256', 'fresh_current_manifest_sha256'):
+            with self.subTest(field=field):
+                wrong = dict(observed, **{field: 'baseline-value'})
+                with self.assertRaises(ValueError):
+                    verifier.verify_fresh_current(wrong, current)
+
     def test_independent_verifier_refuses_incomplete_git_source_report(self):
         import subprocess
         revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()

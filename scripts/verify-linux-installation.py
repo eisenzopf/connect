@@ -172,6 +172,16 @@ def candidate(evidence_path, evidence_digest, package_path, package_digest, revi
     return {'source_revision': revision, 'controller_source_revision': report['controller_source_revision'], 'sources_verified': counts, 'package': proof}, manifest, installation
 
 
+
+def verify_fresh_current(installation, current):
+    if installation.get('checks', {}).get('fresh_current_install') is not True:
+        raise ValueError('Current-source fresh installation was not exercised')
+    if (installation.get('fresh_current_source_revision') != current['source_revision']
+            or installation.get('fresh_current_binary_sha256') != current['package']['binary_sha256']
+            or installation.get('fresh_current_manifest_sha256') != current['package']['manifest_sha256']):
+        raise ValueError('Fresh installation did not run the verified current package')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for prefix in ('initial', 'current'):
@@ -194,9 +204,10 @@ def main():
     initial, current = proofs['initial'], proofs['current']
     if not installation or not installation['passed'] or installation['not_run']:
         raise ValueError('Installation/upgrade/recovery is incomplete')
-    required = {'fresh_install', 'signed_remote_profile_mutation_and_read', 'systemd_secret_injection', 'installed_binary_and_filesystem_isolation', 'graceful_stop', 'restart_retains_state_and_enrolled_credential', 'restart_preserves_configuration_and_secrets', 'upgrade_preserves_configuration_and_secrets', 'distinct_source_upgrade', 'restored_state_and_signing_trust_without_original_files', 'secret_injection_file_preserved', 'no_writable_source_tree_required'}
+    required = {'fresh_current_install', 'fresh_install', 'signed_remote_profile_mutation_and_read', 'systemd_secret_injection', 'installed_binary_and_filesystem_isolation', 'graceful_stop', 'restart_retains_state_and_enrolled_credential', 'restart_preserves_configuration_and_secrets', 'upgrade_preserves_configuration_and_secrets', 'distinct_source_upgrade', 'restored_state_and_signing_trust_without_original_files', 'secret_injection_file_preserved', 'no_writable_source_tree_required'}
     if not required <= installation['checks'].keys() or any(installation['checks'][key] is not True for key in required):
         raise ValueError('Required installation behavior not proved')
+    verify_fresh_current(installation, current)
     if installation['source_revision'] != initial['source_revision'] or installation['upgrade_source_revision'] != current['source_revision'] or initial['source_revision'] == current['source_revision']:
         raise ValueError('Upgrade did not use two distinct verified source revisions')
     for label, prefix in [('installed', 'initial'), ('upgraded', 'current')]:

@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "11 passed; includes actual 0640 configuration publication under umask0077, exclusive refusal, archive/source-map/phase guards and compiler-descendant cleanup",
+    "package_integrity_boundary_tests": "12 passed; adds current-fresh proof refusal for inherited baseline/upgrade flags or mismatched source/binary/manifest",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -61,7 +61,8 @@
     "graceful restart and least-required filesystem access",
     "secret injection/configuration preservation",
     "distinct-source upgrade",
-    "backup/restore with signed client recovery after original files are removed"
+    "backup/restore with signed client recovery after original files are removed",
+    "fresh current-package CLI initialization and installed signed client, independently of baseline-to-current upgrade"
   ],
   "deferred_qualification_dependencies": [
     "G6-054"
@@ -81,7 +82,7 @@
     "run_id": 41239765999,
     "job_id": 124651043679,
     "url": "https://github.com/eisenzopf/connect/actions/runs/41239765999",
-    "state_at_recording": "Live current-source recovery compilation; installed upgrade/restart/restore unverified",
+    "state_at_recording": "Terminal CI success for three expanded recovery cases and the preceding installed upgrade/restart/restore fixture. Its twelve-check report does not include a separate current-package fresh initialization; full task remains open.",
     "upgrade_source_package_run": 41239447334
   },
   "notice_assembly_preflight": {
@@ -184,5 +185,14 @@
     "url": "https://github.com/eisenzopf/connect/actions/runs/41228758112",
     "state_at_recording": "Terminal cancelled; superseded after the verified test-crate compiler failure and notice-assembly refusal. No qualification.",
     "upgrade_source_package_run": 41228197167
+  },
+  "fresh_current_installation_qualification": {
+    "finding": "The previous rehearsal freshly installed the baseline and upgraded to the current source, but did not execute a separate current-binary fresh initialization. The current-source Rust fixtures do not replace the packaged CLI/systemd case.",
+    "implementation": "After upgrade/restore assertions and a joined stop, remove only fixture-created installation roots and the verified unit, install and initialize the exact current package, require service-account configuration read access, prove empty state/new signed mutation and read, inspect the running executable hash and source isolation, then join shutdown.",
+    "verifier": "Require a thirteenth fresh_current_install check and bind its source/binary/manifest to the verified current artifact; baseline fresh/upgrade flags cannot satisfy it.",
+    "current_component_run": 41239765999,
+    "fresh_current_case_in_that_run": false,
+    "runtime_verified": false,
+    "component_ci_conclusion": "success; compiler cache saved"
   }
 }
