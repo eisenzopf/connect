@@ -981,5 +981,25 @@
         }
       ]
     }
+  },
+  "latest_current_linux_network_verification": {
+    "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+    "run_id": 41222039283,
+    "artifact_id": 13051031959,
+    "zip_sha256": "d9c617de67bf965a7800cba018c48ebcbcb1c05d99dccd46894ba6e0319bf0c2",
+    "git_sources_verified": 4546,
+    "prepared_sources_verified": 4094,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "b729cbcb1023d506c7c57b4c6555aa946a4ed33a39def31c9167d239b3608342",
+    "source_inputs_unchanged": true,
+    "status": "verified-passed-81-store-and-ten-original-network-cases",
+    "evidence": "docs/evidence/gate-6/linux-network-media.json",
+    "same_host_sha256": "b4a36b9488d8700be8098170b51f25fa18d6dfad1e8b84f67d7d3951d74015f7",
+    "store_passed_functions": 81,
+    "store_ignored_functions": 0,
+    "native_cases_passed": 6,
+    "telephone_cases_passed": 4,
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }

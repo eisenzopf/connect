@@ -244,3 +244,16 @@ explicit failure otherwise. Actual fact values, independent fresh guards, writer
 exclusion and every forced SQL/schema/source/clock invalidation remain asserted.
 There is no production clock override or validity grace. Corrected Rust/runtime
 verification is unrun until the next source-bound artifact.
+
+
+Corrected combined run41222039283 at f3e70fa7 is independently verified:
+all81 Store functions pass with zero ignored, and all ten original network
+cells pass from one unchanged host binary. Native direct/loss/unreachable-port
+and telephone direct/20-percent-RTP-loss each exercise both signing algorithms.
+Unreachable native ports refuse before a second offer, then permit the original
+signed heartbeat; positive cases decode the opposite tone. Telephone cases
+retain the original replay, journal ordering, signed end and actual cleanup.
+All owned bridges are empty and removed. Store/hosting/probe compilation takes
+35.82/1,661.31/104.07s. The browser profile remains separately unqualified.
+Full current source/binary/decoder evidence is
+[linux-network-media.json](../evidence/gate-6/linux-network-media.json).

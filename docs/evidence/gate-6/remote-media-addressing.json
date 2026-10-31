@@ -128,7 +128,7 @@
   },
   "remaining": [
     "Full browser run41209664880 at86b6cf7c is independently source-verified failed. Retain baseline/ICE/relay/impairment quality and UDP EdDSA original5sroute retirement failures. Both direct bridges and all4original expiry cases pass at this source; no full profile pass.",
-    "Recheck the final combined candidate on the current native direct/loss/unreachable and telephone direct/loss scopes after the Store memo changes. Source3cca verifies all81Store and four telephone cells; the later RTC retirement correction is separately under full-browser verification.",
+    "Current f3 combined source now independently verifies all81Store and all10native/telephone cases on one unchanged host. Full browser quality/ICE/fault/relay/expiry and original route/allocation cleanup still require the resumed current production candidate artifact.",
     "Qualify the final combined candidate for all required addressing/ICE/TURN/native/browser/telephone behaviors with exact source bindings, original operation recovery, decoded duplex identity, unchanged quality bounds and actual allocation/worker cleanup. Recorded passes from different revisions do not establish that claim.",
     "Server secure STUN/TURN schemes and live TURN credential refresh remain unsupported. Startup-resolved protected references and UDP/TCP TURN control are the implemented driver scope. The canonical runtime example now selects its supported TCP scheme.",
     "G6-056 installation, G6-058 complete transport matrix, and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate. Broader full SDK failures are retained for matrix work and are not passes from a sibling component. Original Rust SDK return/EOF component25a2ce27 run41188491485 now source-verifies both original functions passing; installed/full SDK run41190708730 is source-verified failed on both Node22/26 runners with4/8 failed scenes; all93independent steps are retained in each artifact and broader matrix failures remain unresolved. G6-054 closure still requires its actual addressing/ICE/TURN/distinct-network decoded recovery checks; none are waived."
@@ -400,14 +400,14 @@
     },
     {
       "profile": "Native Linux x86_64 public SDK PCMU: direct, encrypted UDP loss and unreachable port, both algorithms",
-      "status": "All six original cases pass at the recorded source after the capture/RTP correction",
-      "run_id": 41197041950,
-      "source_revision": "092c301dfc83a4c599f329e8d759ca2201aeabb1",
+      "status": "All six original current native cases pass from the same host as four telephone cases and81Store checks",
+      "run_id": 41222039283,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
       "evidence": [
-        "docs/evidence/gate-6/guarded-audio-capture-timeline.json",
+        "docs/evidence/gate-6/linux-network-media.json",
         "docs/evidence/gate-6/native-distinct-network-audio.json"
       ],
-      "limits": "Four-second PCMU duplex identity, refusal and actual drains. This source precedes the later SIP/RTC changes; no current combined-candidate, native video, WAN or performance pass."
+      "limits": "Current f3 source, four-second PCMU duplex opposite-tone identity, direct/10-percent encrypted-UDP loss/unreachable-port, original refusals and actual cleanup. No native video, WAN, load, browser or full G6-054 qualification."
     },
     {
       "profile": "telephone distinct-network direct and loss",
@@ -417,11 +417,11 @@
     },
     {
       "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
-      "status": "All81Store functions and all four original decoded telephone cases pass at the recorded source",
-      "run_id": 41218176233,
-      "source_revision": "3cca4d464dbe5f895d65732b6389500e62bab386",
-      "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
-      "limits": "Owned Linux x86_64 synthetic PCMU only: native29760/30080/29600/26880bytes, matching opposite-tone frames186/188/149/133; opposite guest frames187/174/155/153. Original operation replay, journal-before-INVITE, signed end, actual drains and empty bridge removal pass. No WAN/provider/PSTN, native video, browser or final combined-candidate pass."
+      "status": "All81Store functions and all four original decoded telephone cases pass with the six native cases on one unchanged host",
+      "run_id": 41222039283,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "evidence": "docs/evidence/gate-6/linux-network-media.json",
+      "limits": "Owned Linux x86_64 synthetic PCMU only: native30720/31040/26240/29600bytes and matching opposite-tone frames192/194/133/149; guest191/196/157/156. Original operation replay, journal-before-INVITE, signed end, actual cleanup and empty bridge removal pass. No browser, native video, WAN/provider/PSTN or full G6-054 claim."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
@@ -543,6 +543,12 @@
       "source_revision": "ec1d9c46ab2aa543349f753ede4518d01e379fa2",
       "status": "completed-failed-source-verified-producer-only",
       "scope": "Cold opt3production build times out3600s;512Cargo artifacts completed, no producer executable, allmedia/bridge/expiryUNRUN"
+    },
+    {
+      "run_id": 41222039283,
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "status": "completed-passed-source-verified",
+      "scope": "All81Store and all10original native/telephone network cases from one unchanged original host"
     }
   ],
   "latest_in_flight": [
@@ -550,11 +556,6 @@
       "run_id": 41224457162,
       "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
       "scope": "Resumed original full browser profile after source-verified cold build timeout; compatible partial cache exists, runtime unrun"
-    },
-    {
-      "run_id": 41222039283,
-      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
-      "scope": "Corrected Store81 plus original4telephone/6native and same-host custody; unqualified until actual artifact"
     }
   ],
   "paired_wal_candidate": "Source66 qualified79Store boundaries but failed all4phonecases. The follow-up fact memo at3cca independently source-verifies all81Storefunctions and all4originaltelephonecells. Browser/combined profiles remain separate.",
@@ -646,10 +647,30 @@
     "store_compile_seconds": 0.2647270340000034,
     "interpretation": "Source-bound binary is exactly the earlier passing3cca Store binary. Source audit finds the old exact-reuse count has no unchanged-clock precondition despite intentional policy-clock invalidation. This is a test-contract defect; the artifact does not directly establish the observed tuple or clock crossing. All original fact/fence assertions remain required after the precondition correction. Hosting compilation and both network components are unrun, never passes or media failures.",
     "correction": {
-      "status": "test-only-implemented-runtime-unrun",
+      "status": "verified-pass-all81-store-and-ten-original-network-cases",
       "change": "Both exact memo invocation-count functions must complete in one observed unchanged wall-clock second, bounded to8attempts and explicit failure otherwise. Facts and fresh independent-reader/writer-refusal assertions retained. All explicit SQL/schema/source/clock invalidation count assertions retained. No production clock override, validity grace, memo permission, observer, authority policy, media assertion or skip."
     },
     "full_task_qualified": false,
-    "acceptance_qualified": false
+    "acceptance_qualified": false,
+    "verified_after": {
+      "source_revision": "f3e70fa7fa7428deb49445c7882defa79063cdad",
+      "run_id": 41222039283,
+      "artifact_id": 13051031959,
+      "zip_sha256": "d9c617de67bf965a7800cba018c48ebcbcb1c05d99dccd46894ba6e0319bf0c2",
+      "git_sources_verified": 4546,
+      "prepared_sources_verified": 4094,
+      "pinned_archives_verified": 4,
+      "source_manifest_sha256": "b729cbcb1023d506c7c57b4c6555aa946a4ed33a39def31c9167d239b3608342",
+      "source_inputs_unchanged": true,
+      "status": "verified-passed-81-store-and-ten-original-network-cases",
+      "evidence": "docs/evidence/gate-6/linux-network-media.json",
+      "same_host_sha256": "b4a36b9488d8700be8098170b51f25fa18d6dfad1e8b84f67d7d3951d74015f7",
+      "store_passed_functions": 81,
+      "store_ignored_functions": 0,
+      "native_cases_passed": 6,
+      "telephone_cases_passed": 4,
+      "full_task_qualified": false,
+      "acceptance_qualified": false
+    }
   }
 }
