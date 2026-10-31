@@ -68,7 +68,7 @@ def main():
         ("store-authority", prefix + ["-p", "connect-store", "--lib", "operational::tests", "--", "--test-threads=1"], 1800, 2),
         ("service-observation", prefix + ["-p", "connect-service", "--lib", "readiness::tests", "--", "--test-threads=1"], 3600, 3),
         ("permit-lifetime", prefix + ["-p", "connect-service", "--lib", "resources::tests", "--", "--test-threads=1"], 1200, 2),
-        ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 1),
+        ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 3),
     ]
     try:
         for name, command, budget, expected in commands:

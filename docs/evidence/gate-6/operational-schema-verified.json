@@ -1,0 +1,22 @@
+{
+  "format": "connect/verified-operational-schema/1",
+  "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
+  "workflow_run_id": 41245525263,
+  "job_id": 124668037878,
+  "artifact_id": 13059058297,
+  "artifact_zip_sha256": "dc37e21194aca9403616b5da4cc02a42befc63561a5206d4abd4dd225ab14670",
+  "sources_verified": {
+    "git": 4583,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "protocol_cases_passed": 1,
+  "generated": {
+    "application-http-dispatch.json": "f86e27a8f6f0a3565b6c38c9911bf5b8de2c29b597cd7b28709ad133845ca0db",
+    "openapi-application-http.json": "b93f8a935f73198d5a81a9dacfe0e4016b5ce11cf8ade2064769a6af4ac3a767"
+  },
+  "generated_inputs_match_current_sources": true,
+  "runtime_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

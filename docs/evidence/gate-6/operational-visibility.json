@@ -3,7 +3,7 @@
   "task": "G6-057",
   "date": "2026-10-31",
   "status": "implementation-in-progress",
-  "source_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+  "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
   "prerequisite_evidence": "docs/evidence/gate-6/linux-installation-verified.json",
   "work_started": "Audit actual admission/resource owners before adding authenticated diagnostic fields and enforcement/cleanup qualification.",
   "source_owners": [
@@ -81,7 +81,28 @@
       "python_syntax": "passed"
     },
     "rust_execution": "not-yet-run",
-    "openapi_generation": "isolated schema lane prepared; generated reference pending",
+    "openapi_generation": "Passed on native Linux; independently verified artifact/source inputs match current generation inputs",
     "whole_task_complete": false
+  },
+  "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
+  "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
+  "current_runtime_candidate": {
+    "run_id": 41245525263,
+    "job_id": 124668037860,
+    "source_revision": "bafb865cb521d768dcc4a43c45ca0cdc2cfaa5b3",
+    "status": "in_progress_at_recording",
+    "scope": "Original one public-client lifetime test plus Store/Service/permit unit cases; excludes later socket expiry changes"
+  },
+  "pending_socket_cleanup": {
+    "status": "implemented-not-yet-runtime-verified",
+    "idle_seconds": 30,
+    "absolute_lifetime_seconds": 120,
+    "drain_grace_seconds": 5,
+    "cases": [
+      "Actual signed peer/application health lifetime, privacy and revocation",
+      "Actual abandoned header, overload, reclaimed slot and joined drain",
+      "Trickling incomplete header cannot retain its connection indefinitely"
+    ],
+    "quic_ingress": "Real semaphore permit holds the TLS/physical admission slot through the whole peer lifetime"
   }
 }

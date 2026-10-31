@@ -229,7 +229,7 @@ configured surface. Record-reference HTTPS has its own three budgets.
 `used` reflects the actual owner or semaphore permit lifetime. Accepted/rejected
 counters count admission attempts at that budget, including unsuccessful
 authentication after a transport admission; they are not successful commands.
-Separate budgets are not additive. Unconfigured pools are absent; registered
+Separate budgets are not additive. Unconfigured or not-yet-instrumented pools are absent; registered
 owners report `available` with usage, `busy` with null usage, or `retired` with
 null usage. A null pool list means the registry was unavailable; a null runtime
 means not configured or temporarily unavailable. Unknown values never imply zero.
@@ -243,3 +243,12 @@ This component is under G6-057 qualification. Its generated application OpenAPI
 must accompany the exact Rust DTO changes. Capacity enforcement across all
 resource classes, idle cleanup, process measurements and whole-task qualification
 remain separately required by the implementation plan.
+
+HTTP/HTTPS application and record-reference sockets expire after 30 seconds
+without successful byte IO, or after a fixed 120-second connection lifetime.
+Actual byte progress refreshes only the inactivity deadline; trickling incomplete
+headers cannot extend the lifetime ceiling. Protected response authority deadlines
+still apply earlier. During shutdown, protected bytes stop immediately; ordinary
+routes have at most five seconds to flush a cancellation response before their
+socket closes. Connection expiry never rolls back an accepted mutation: clients
+must retain the original operation IDs and inspect/recover acceptance.

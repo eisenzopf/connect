@@ -650,6 +650,12 @@ impl RunningCanonicalServer {
         let mcp_address = mcp.as_ref().map(|mcp| mcp.address);
         let maximum_rtt_ms = Arc::new(AtomicU64::new(0));
         let observed_rtt = maximum_rtt_ms.clone();
+        let ingress = connect_service::resources::ResourceBudget::new(config.limits.connections)?;
+        resource_observers.push(ingress.observe(
+            &service.readiness,
+            connect_protocol::ResourcePoolKind::QuicIngress,
+            stop.clone(),
+        )?);
         let readiness = service.readiness.clone();
         let intake = crate::worker::spawn(
             readiness,
@@ -688,9 +694,10 @@ impl RunningCanonicalServer {
                         done=handshakes.join_next(),if !handshakes.is_empty()=>{if done.is_some_and(|r|r.is_err()){anyhow::bail!("Canonical TLS admission task failed");}},
                         incoming=accepted.accept()=>{
                             let Some(incoming)=incoming else{break;};
-                            if handshakes.len()>=config.limits.connections{incoming.refuse();continue;}
+                            let Ok(slot)=ingress.clone().try_acquire_owned() else {incoming.refuse();continue;};
                             let sender=sender.clone();let wt_sender=wt_sender.clone();let cancelled=cancelled.clone();let observed_rtt=observed_rtt.clone();
                             handshakes.spawn(async move{
+                                let _slot=slot;
                                 let connection=tokio::select!{biased;_=cancelled.cancelled()=>return,result=tokio::time::timeout(Duration::from_secs(5),incoming)=>match result{Ok(Ok(c))=>c,_=>return}};
                                 struct ObservedPath(quinn::Connection,Arc<AtomicU64>);
                                 impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.stats().path.rtt.as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}

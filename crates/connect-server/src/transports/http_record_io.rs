@@ -22,6 +22,13 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+// Finite HTTP exchanges reconnect with their original logical mutation IDs.
+// Inactivity is reset only by actual bytes. A slow trickle cannot extend the
+// absolute connection ceiling. Protected response authority may end earlier.
+const HTTP_IDLE: std::time::Duration = std::time::Duration::from_secs(30);
+const HTTP_LIFETIME: std::time::Duration = std::time::Duration::from_secs(120);
+const HTTP_DRAIN_GRACE: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// The physical writer retains this owner even after Hyper consumes Body bytes.
 pub(super) trait ProtectedResponse: Send {
     fn status(&self) -> u16;
@@ -133,6 +140,9 @@ pub(super) struct GuardedStream {
     cancelled: Pin<Box<dyn Future<Output = ()> + Send>>,
     timer: Option<(Instant, Pin<Box<Sleep>>)>,
     _connection: OwnedSemaphorePermit,
+    idle: Pin<Box<Sleep>>,
+    lifetime: Pin<Box<Sleep>>,
+    drain: Option<Pin<Box<Sleep>>>,
 }
 impl GuardedStream {
     fn ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
@@ -146,6 +156,28 @@ impl GuardedStream {
         Poll::Ready(Ok(()))
     }
     fn check(&mut self, cx: &mut Context<'_>) -> io::Result<()> {
+        if self.idle.as_mut().poll(cx).is_ready() || self.lifetime.as_mut().poll(cx).is_ready() {
+            self.custody.close();
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "HTTP connection expired",
+            ));
+        }
+        let cancelled = self.cancelled.as_mut().poll(cx).is_ready();
+        if cancelled {
+            // Ordinary routes may flush their cancellation result. An abandoned
+            // parser/keep-alive must still wake and retire within the join bound.
+            let drain = self
+                .drain
+                .get_or_insert_with(|| Box::pin(tokio::time::sleep(HTTP_DRAIN_GRACE)));
+            if drain.as_mut().poll(cx).is_ready() {
+                self.custody.close();
+                return Err(io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "HTTP listener draining",
+                ));
+            }
+        }
         let mut expired = false;
         let mut state = self
             .custody
@@ -155,7 +187,7 @@ impl GuardedStream {
         if let Some(held) = &state.held {
             // Protected bytes stop immediately. Other requests still need IO
             // to send their cancellation response during graceful shutdown.
-            expired = self.cancelled.as_mut().poll(cx).is_ready();
+            expired = cancelled;
             let deadline = held.response.deadline();
             if self.timer.as_ref().is_none_or(|(old, _)| *old != deadline) {
                 self.timer = Some((deadline, Box::pin(tokio::time::sleep_until(deadline))))
@@ -197,11 +229,16 @@ impl AsyncRead for GuardedStream {
             Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
             Poll::Ready(Ok(())) => {}
         }
-        match &mut self.stream {
+        let before = buffer.filled().len();
+        let result = match &mut self.stream {
             Io::Plain(stream) => Pin::new(stream).poll_read(cx, buffer),
             Io::Tls(stream) => Pin::new(&mut **stream).poll_read(cx, buffer),
             Io::Handshake(_) => unreachable!("handshake readiness checked"),
+        };
+        if matches!(result, Poll::Ready(Ok(()))) && buffer.filled().len() > before {
+            self.idle.as_mut().reset(Instant::now() + HTTP_IDLE);
         }
+        result
     }
 }
 impl AsyncWrite for GuardedStream {
@@ -218,11 +255,15 @@ impl AsyncWrite for GuardedStream {
             Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
             Poll::Ready(Ok(())) => {}
         }
-        match &mut self.stream {
+        let result = match &mut self.stream {
             Io::Plain(stream) => Pin::new(stream).poll_write(cx, bytes),
             Io::Tls(stream) => Pin::new(&mut **stream).poll_write(cx, bytes),
             Io::Handshake(_) => unreachable!("handshake readiness checked"),
+        };
+        if matches!(result, Poll::Ready(Ok(n)) if n > 0) {
+            self.idle.as_mut().reset(Instant::now() + HTTP_IDLE);
         }
+        result
     }
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         if let Err(e) = self.check(cx) {
@@ -305,6 +346,9 @@ impl Listener for GuardedListener {
                     cancelled: Box::pin(cancellation.cancelled_owned()),
                     timer: None,
                     _connection: connection,
+                    idle: Box::pin(tokio::time::sleep(HTTP_IDLE)),
+                    lifetime: Box::pin(tokio::time::sleep(HTTP_LIFETIME)),
+                    drain: None,
                 },
                 address,
             );
