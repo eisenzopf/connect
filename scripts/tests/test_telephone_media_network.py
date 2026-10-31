@@ -9,9 +9,42 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 phone = runpy.run_path(str(ROOT / 'scripts/telephone/linux_remote_phone.py'))
 component = runpy.run_path(str(ROOT / 'scripts/lib/telephone_network_component.py'))
+harness = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-remote-telephone.py'))
 
 
 class TelephoneNetworkBoundaryTests(unittest.TestCase):
+    def test_existing_trace_reduction_retains_counts_without_private_fields(self):
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, 'host-received.pcmu').write_bytes(b'\xff' * 320)
+            raw = "\n".join([
+                '\x1b[35mTRACE\x1b[0m rvoip_sip::guarded_frame: Owned SIP frame admission expected_connection=private-secret problem=None',
+                'TRACE Owned SIP frame admission problem=Some(NotReady)',
+                'TRACE Owned SIP frame admission problem=Some(Model(private-secret))',
+                'TRACE Native guarded egress configured connection=private-secret',
+                'TRACE Native guarded egress refused problem=Authority',
+                'TRACE Guarded audio queued age_us=30 target=private-secret',
+                'TRACE Guarded audio delivery refused stage=mixer-target problem=Unknown(private-secret)',
+                'TRACE Guarded audio pending burst trimmed discarded_chunks=1'])
+            diagnostic = harness['audio_path_diagnostic'](raw, directory)
+            self.assertEqual((diagnostic['sip_admissions'], diagnostic['sip_admitted'], diagnostic['sip_refused']), (3, 1, 2))
+            self.assertEqual(diagnostic['host_received_bytes'], 320)
+            self.assertEqual(diagnostic['problems']['NotReady'], 1)
+            self.assertEqual(diagnostic['problems']['Model'], 1)
+            self.assertEqual(diagnostic['problems']['Authority'], 1)
+            self.assertEqual(diagnostic['problems']['other'], 1)
+            self.assertEqual(diagnostic['native_egress_configured'], 1)
+            self.assertEqual(diagnostic['native_egress_refused'], 1)
+            self.assertEqual(diagnostic['mixer_queued'], 1)
+            self.assertEqual(diagnostic['core_delivery_refused'], 1)
+            row = component['public_result']({'profiles': [{'audio_path_diagnostic': dict(diagnostic,
+                arbitrary='private-secret', problems=dict(diagnostic['problems'], arbitrary='private-secret'))}]})
+            self.assertEqual(row['profiles'][0]['audio_path_diagnostic'], diagnostic)
+            self.assertNotIn('private-secret', json.dumps(row))
+            Path(directory, 'host-received.pcmu').unlink()
+            missing = harness['audio_path_diagnostic']('', directory)
+            self.assertFalse(missing['host_received_capture_written'])
+            self.assertNotIn('host_received_bytes', missing)
+
     def test_linux_gateway_requires_explicit_owned_mode_and_the_same_concrete_advertised_host(self):
         self.assertEqual(phone['designated_gateway']({'gateway': '192.168.5.2'}), '192.168.5.2')
         valid = dict(owned_internal_bridge=True, gateway='172.28.0.1', host_media_ip='172.28.0.1')

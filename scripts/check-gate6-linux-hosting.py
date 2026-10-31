@@ -620,12 +620,14 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         # A failed compile must never stamp source times as a completed build.
         if not (mixer_clock or sip_duplex):
             MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
+        report['compilation_completed'] = not (mixer_clock or sip_duplex)
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
         if sip_duplex or not any((video_feedback, consultation_return, native_network, telephone_network, mixer_clock)):
             component = runpy.run_path(str(ROOT / 'scripts/lib/sip_duplex_component.py'))['run']
             report['sip_duplex'] = component(ROOT, execute)
             if 'binary_sha256' in report['sip_duplex']:
                 MANIFEST.write_text(json.dumps({'format': 1, 'files': snapshot(ROOT)}, sort_keys=True) + '\n')
+                report['compilation_completed'] = True
             if sip_duplex:
                 report['scope'] = report['sip_duplex']['scope']
             assert report['sip_duplex']['passed'], 'Actual SIP data selector contract failed or was unrun'
@@ -637,6 +639,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
             report['mixer_clock'] = component(ROOT, execute)
             if 'binary_sha256' in report['mixer_clock']:
                 MANIFEST.write_text(json.dumps({'format': 1, 'files': snapshot(ROOT)}, sort_keys=True) + '\n')
+                report['compilation_completed'] = True
             report['scope'] = report['mixer_clock']['scope']
             assert report['mixer_clock']['passed'], 'Actual guarded mixer clock functions failed or were unrun'
             report['behavior_passed'] = True
@@ -1116,6 +1119,8 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         report["source_inputs_unchanged"] = sources() == before
         report["passed"] = report.get("behavior_passed", False) and report["source_inputs_unchanged"]
         output("source_unchanged", str(report["source_inputs_unchanged"]).lower())
+        report['cacheable_build'] = bool(report.get('compilation_completed', False) and report['source_inputs_unchanged'])
+        output('cacheable_build', str(report['cacheable_build']).lower())
         report["finished_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         (EVIDENCE / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
     assert report["passed"]

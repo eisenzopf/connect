@@ -92,6 +92,13 @@ def public_result(value):
             and '..' not in Path(item['file']).parts
             and isinstance(item.get('line'), int) and 0 < item['line'] < 10**6
             and isinstance(item.get('column'), int) and 0 < item['column'] < 10**5]
+        diagnostic = profile.get('audio_path_diagnostic', {})
+        row['audio_path_diagnostic'] = facts(diagnostic, ('sip_admissions', 'sip_admitted', 'sip_refused',
+            'native_egress_configured', 'native_egress_refused', 'mixer_queued', 'core_delivery_refused',
+            'audio_burst_trimmed', 'host_received_capture_written', 'host_received_bytes', 'host_received_sha256'))
+        row['audio_path_diagnostic']['problems'] = facts(diagnostic.get('problems', {}),
+            ('Model', 'Unsupported', 'Authority', 'NotRecipient', 'Cancelled', 'Deadline', 'NotReady',
+             'Backpressure', 'CleanupUnconfirmed', 'other'))
         row['guest'] = facts(profile.get('guest', {}), ('passed', 'os', 'architecture', 'sip_invites',
             'sip_acks', 'sip_byes', 'sent_rtp', 'received_rtp', 'foreign_datagrams', 'rtcp_mux_offered',
             'server_advertised_media_ip_matched', 'unique_call_ids', 'owned_sockets_closed',

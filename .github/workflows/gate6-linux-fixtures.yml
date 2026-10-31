@@ -211,11 +211,11 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: always() && steps.fixtures.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
+        if: always() && steps.fixtures.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true'
         with:
           path: |
             ~/.cargo/registry
             .deps
             .local/gate6-linux-ci/target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: g6-linux-lane-v1-${{ steps.native.outputs.native_key }}-${{ inputs.lane || 'full' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

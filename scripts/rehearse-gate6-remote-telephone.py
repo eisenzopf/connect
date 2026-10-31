@@ -37,6 +37,41 @@ def private_json(path, value):
         out.write("\n")
 
 
+def audio_path_diagnostic(raw, directory):
+    # Reduce existing trace messages to fixed enums and counts. Original logs,
+    # connection IDs and arbitrary error details remain in the private fixture.
+    clean = re.sub(r"\x1b\[[0-9;]*m", "", raw)
+    result = dict(sip_admissions=0, sip_admitted=0, sip_refused=0,
+        native_egress_configured=0, native_egress_refused=0, mixer_queued=0,
+        core_delivery_refused=0, audio_burst_trimmed=0)
+    errors = {name: 0 for name in ('Model', 'Unsupported', 'Authority', 'NotRecipient',
+        'Cancelled', 'Deadline', 'NotReady', 'Backpressure', 'CleanupUnconfirmed', 'other')}
+    for line in clean.splitlines():
+        if 'Owned SIP frame admission' in line:
+            result['sip_admissions'] += 1
+            result['sip_admitted' if re.search(r'\bproblem=None(?:\s|$)', line) else 'sip_refused'] += 1
+        for message, key in (
+            ('Native guarded egress configured', 'native_egress_configured'),
+            ('Native guarded egress refused', 'native_egress_refused'),
+            ('Guarded audio queued', 'mixer_queued'),
+            ('Guarded audio delivery refused', 'core_delivery_refused'),
+            ('Guarded audio pending burst trimmed', 'audio_burst_trimmed')):
+            if message in line:
+                result[key] += 1
+        if any(message in line for message in ('Owned SIP frame admission',
+                'Native guarded egress refused', 'Guarded audio delivery refused')):
+            match = re.search(r'\bproblem=(?:Some\()?([A-Za-z]+)', line)
+            if match and match[1] != 'None':
+                errors[match[1] if match[1] in errors else 'other'] += 1
+    captured = Path(directory) / 'host-received.pcmu'
+    result['host_received_capture_written'] = captured.is_file()
+    if captured.is_file():
+        result['host_received_bytes'] = captured.stat().st_size
+        result['host_received_sha256'] = digest(captured)
+    result['problems'] = errors
+    return result
+
+
 def reserve(ip, count):
     for _ in range(64):
         first = random.SystemRandom().randint(20000, 59984)
@@ -235,7 +270,8 @@ def main():
                         time.sleep(.02)
                     for held in sip_held + media_held:
                         held.close()
-                    env = dict(os.environ, CONNECT_G6_REMOTE_PHONE_DIR=str(directory), TMPDIR=str(directory))
+                    env = dict(os.environ, CONNECT_G6_REMOTE_PHONE_DIR=str(directory), TMPDIR=str(directory),
+                        RUST_LOG="rvoip_sip=warn,rvoip_sip::guarded_frame=trace,rvoip_uctp::native_egress=trace,rvoip_core::audio_path=trace")
                     server = subprocess.Popen([str(binary), CASE, "--exact", "--ignored", "--nocapture", "--test-threads=1"], cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT, start_new_session=True)
                     row["server_exit_code"] = server.wait(timeout=75)
                     if row["server_exit_code"] != 0:
@@ -250,6 +286,10 @@ def main():
                 row["guest_decoded"] = HELPERS["decoded_tone"](directory / "guest-received.pcmu", 440, 660, args.ffmpeg)
                 assert row["host_decoded"]["passed"] and row["guest_decoded"]["passed"]
                 row["passed"] = True
+            except Exception as error:
+                # Each algorithm is an independent required case. Preserve its
+                # failure and original cleanup, then exercise the next case.
+                row["failure"] = {"type": type(error).__name__}
             finally:
                 row["forced_server_cleanup"] = stop(server)
                 row["forced_guest_cleanup"] = stop(guest)
@@ -263,6 +303,7 @@ def main():
                     held.close()
                 row["peer_nat"] = nat.stats
                 raw = (directory / "server.log").read_text() if (directory / "server.log").exists() else ""
+                row["audio_path_diagnostic"] = audio_path_diagnostic(raw, directory)
                 row["server_failure"] = {"panic_locations": [dict(file=name, line=int(line), column=int(column))
                     for name, line, column in re.findall(r"panicked at ((?:crates|\.deps)/[^\s:]+):(\d+):(\d+)", raw)[:4]],
                     "readiness_written": (directory / "ready.json").exists(),
@@ -276,7 +317,6 @@ def main():
                 row["logs_sha256"] = {name: digest(directory / name) for name in ["server.log", "guest.log"] if (directory / name).exists()}
                 report["profiles"].append(row)
                 print(json.dumps({"algorithm": algorithm, "passed": row["passed"]}), flush=True)
-            assert row["passed"]
     except Exception as error:
         report["failure"] = {"type": type(error).__name__, "message": str(error)}
     finally:

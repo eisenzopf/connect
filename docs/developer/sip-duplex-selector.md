@@ -33,3 +33,22 @@ per-function boolean report is rejected because of the batch-output handling
 error. A passing selector test cannot qualify a telephone call or establish the
 cause of a separate telephone failure. See
 [`sip-duplex-selector.json`](../evidence/gate-6/sip-duplex-selector.json).
+
+The full telephone run at `e6f9c6e9` (`41198516894`) still fails the
+unchanged native input minimum in both EdDSA direct and loss cases, as did the
+comparable `15a5675d` run (`41198159725`). ES256 was not exercised by that
+stop-on-first-failure harness. All original processes and the NAT worker joined,
+and the empty bridge was removed. This rejects a telephone completion claim.
+
+The runner now records fixed-enum counts from existing SIP admission, Core
+queue/delivery and native egress trace messages, plus the actual native receive
+capture byte count. Raw logs and identifiers stay private. Both algorithms run
+independently with their original assertions and deadlines; a failed case cannot
+hide the remaining algorithm. Tracing may affect timing and provides diagnostic
+evidence only. No production media behavior or acceptance limit changes.
+
+Linux source fixture caches now save under the same lane-specific key used for
+restoration, after completed compilation with unchanged source inputs. A behavior
+failure can retain the completed build; a failed compilation cannot mark it
+cacheable. Source content/mode checks still govern restored timestamps. The
+change has no measured build-speed claim until a subsequent run proves reuse.
