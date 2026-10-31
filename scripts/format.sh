@@ -16,3 +16,6 @@ cargo fmt --manifest-path examples/rust-sdk-journey/Cargo.toml "$@"
 
 # Declaration-only shared SDK contract fixtures live outside Cargo workspaces.
 rustfmt --edition 2024 contracts/sdk-api/rust/contract.rs contracts/sdk-api/rust/outline.rs contracts/sdk-api/rust/negative.rs "$@"
+
+# Independent public interceptor regression, compiled only by its component lane.
+rustfmt --edition 2024 scripts/tests/rtc_source_clock_startup.rs "$@"
