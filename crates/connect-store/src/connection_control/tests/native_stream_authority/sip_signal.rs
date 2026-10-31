@@ -130,9 +130,9 @@ fn sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences()
         .try_initial_telephone_native_read(phone, native)
         .unwrap();
     assert!(read.current() && read.phone().is_connected());
-    for identity in identities {
+    for identity in &identities {
         let scopes =
-            [crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap()];
+            [crate::AuthorityScope::identity(identity, crate::AuthorityMode::Write).unwrap()];
         assert_eq!(
             f.store.try_acquire_authority(&scopes).unwrap_err().code,
             "authority-busy"
@@ -148,6 +148,11 @@ fn sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences()
     assert_eq!(observers.len(), crate::packet_observation::OBSERVERS);
     drop(observers);
     drop(read);
+    for identity in &identities {
+        let scopes =
+            [crate::AuthorityScope::identity(identity, crate::AuthorityMode::Write).unwrap()];
+        drop(f.store.try_acquire_authority(&scopes).unwrap());
+    }
     drop(command);
 }
 

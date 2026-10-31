@@ -29,6 +29,8 @@ pub struct InitialTelephoneMediaOrigin {
     signal: Arc<InitialTelephoneSignaling>,
     codec: String,
     observation: String,
+    unary_metadata: Arc<dyn std::any::Any + Send + Sync>,
+    pair_metadata: Arc<dyn std::any::Any + Send + Sync>,
 }
 pub struct InitialTelephoneAnswerRecorded {
     pub media: Option<Arc<InitialTelephoneMediaOrigin>>,
@@ -49,6 +51,7 @@ pub struct InitialTelephoneMediaRead {
     connected: bool,
     purpose: ProjectionPurpose,
 }
+#[derive(Clone)]
 struct InitialTelephoneProjection {
     endpoint_actor: Actor,
     route_actor: Actor,
@@ -59,6 +62,13 @@ struct InitialTelephoneProjection {
     conversation_revision: u64,
     expires: i64,
     connected: bool,
+}
+#[derive(Clone)]
+struct InitialTelephoneNativeProjection {
+    phone: InitialTelephoneProjection,
+    native: crate::peer_authority::SceneFacts,
+    expires: i64,
+    purpose: ProjectionPurpose,
 }
 #[derive(Clone, Copy)]
 enum ProjectionPurpose {
@@ -276,6 +286,9 @@ impl Store {
             signal: signal.clone(),
             codec: capture.codec.clone(),
             observation: capture.observation.clone(),
+            unary_metadata: Store::new_packet_projection_metadata::<InitialTelephoneProjection>(),
+            pair_metadata: Store::new_packet_projection_metadata::<InitialTelephoneNativeProjection>(
+            ),
         });
         if let Some((saved, accepted)) = old {
             if saved != capture.observation {
@@ -389,22 +402,24 @@ impl Store {
         &self,
         origin: Arc<InitialTelephoneMediaOrigin>,
     ) -> Result<InitialTelephoneMediaRead> {
+        origin.signal.origin().lifetime(self)?;
         // This projection is read-only. Do not contend with command SQL or
         // wait in the synchronous media callback. Use the same bounded WAL
         // observers and sealed SQL/clock boundary as native packet metadata.
-        // No permission or projection survives this invocation.
-        let connected = std::cell::Cell::new(false);
+        // Only immutable facts may be reused after exact SQL/schema/clock
+        // version checks. Every invocation acquires fresh complete authority.
         let until = crate::now() + 30;
-        let (projection, interval) = self.try_packet_projection(
+        let (projection, interval) = self.try_cached_packet_projection(
+            origin.unary_metadata.as_ref(),
+            None,
             |c| {
                 let projection =
                     self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Media)?;
                 let scopes = current_scopes(c, origin.signal.origin(), false)?;
-                connected.set(projection.connected);
                 Ok((projection, scopes))
             },
-            |c| {
-                if connected.get() {
+            |c, projection: &InitialTelephoneProjection| {
+                if projection.connected {
                     self.remember_session_ready(
                         c,
                         crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
@@ -413,6 +428,10 @@ impl Store {
                 Ok(())
             },
         )?;
+        origin.signal.origin().lifetime(self)?;
+        if crate::now() >= projection.expires {
+            return Err(Error::forbidden());
+        }
         self.initial_telephone_read_from_projection(
             origin,
             interval,
@@ -958,98 +977,113 @@ impl Store {
         phone: Arc<InitialTelephoneMediaOrigin>,
         native: Arc<crate::NativeMediaOrigin>,
     ) -> Result<InitialTelephoneNativeRead> {
+        phone.signal.origin().lifetime(self)?;
+        native.require_runtime(self)?;
         let s = phone.source();
         if native.conversation_id() != s.conversation_id || native.session_id() != s.session_id {
             return Err(Error::forbidden());
         }
         let until = crate::now() + 5;
-        let combined_scopes = |c: &Connection, mut required: Vec<AuthorityScope>| {
-            required.extend(if phone.source().is_private_candidate() {
-                private_facts::current_authority(self, c, &phone)?.0
-            } else {
-                current_scopes(c, phone.signal.origin(), false)?
-            });
-            AuthorityScope::merged(&required)
-        };
-        // Acquire one fresh complete pair interval, outside observer SQL. The
-        // second resolution lends only that interval, never its old facts or
-        // permissions, and seals the entire pair's current SQL/clock snapshot.
-        let (_, held) = self.try_packet_projection(
-            |c| {
-                let (_, required, _) = self.native_scene_facts(
-                    c,
-                    &[native.clone()],
-                    native.conversation_id(),
-                    native.session_id(),
-                )?;
-                Ok(((), combined_scopes(c, required)?))
+        // An exact original native origin is the memo's weak source identity.
+        // It lends no permission and cannot keep the native origin alive.
+        let source: Arc<dyn std::any::Any + Send + Sync> = native.clone();
+        let (projection, held) = self.try_cached_packet_projection(
+            phone.pair_metadata.as_ref(),
+            Some(&source),
+            |c| self.initial_telephone_native_projection(c, &phone, &native, until),
+            |c, projection: &InitialTelephoneNativeProjection| {
+                if projection.phone.connected
+                    && matches!(projection.purpose, ProjectionPurpose::Media)
+                {
+                    self.remember_session_ready(
+                        c,
+                        crate::session_lifecycle::ReadyOrigin::InitialTelephone(phone.clone()),
+                    )?;
+                }
+                Ok(())
             },
-            |_| Ok(()),
         )?;
-        self.try_packet_projection_under(&held, |c| {
-            let (facts, required, expiry) = self.native_scene_facts(
-                c,
-                &[native.clone()],
-                native.conversation_id(),
-                native.session_id(),
-            )?;
-            let required = combined_scopes(c, required)?;
-            let mut reads = self.native_scene_reads(facts, held.clone(), expiry.min(until))?;
-            let read = reads
-                .remove(&(native.runtime_connection_id().into(), None))
-                .ok_or_else(Error::forbidden)?;
-            let pair = self.initial_telephone_native_pair_in(c, phone.clone(), &native, read)?;
-            Ok((pair, required))
+        phone.signal.origin().lifetime(self)?;
+        native.require_runtime(self)?;
+        // Neither a memo entry nor a SQL observer owns the returned grant.
+        // Build each actual current read after releasing SQL and memo custody.
+        let mut reads =
+            self.native_scene_reads(projection.native, held.clone(), projection.expires)?;
+        let native_read = reads
+            .remove(&(native.runtime_connection_id().into(), None))
+            .ok_or_else(Error::forbidden)?;
+        let phone_read = self.initial_telephone_read_from_projection(
+            phone,
+            held,
+            projection.phone,
+            projection.purpose,
+        )?;
+        if !phone_read.current() || !native_read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(InitialTelephoneNativeRead {
+            phone: phone_read,
+            native: native_read,
         })
     }
-    pub(crate) fn initial_telephone_native_pair_in(
+    fn initial_telephone_native_projection(
         &self,
         c: &Connection,
-        phone: Arc<InitialTelephoneMediaOrigin>,
-        native_origin: &crate::NativeMediaOrigin,
-        native: crate::NativeMediaRead,
-    ) -> Result<InitialTelephoneNativeRead> {
+        phone: &Arc<InitialTelephoneMediaOrigin>,
+        native_origin: &Arc<crate::NativeMediaOrigin>,
+        until: i64,
+    ) -> Result<(InitialTelephoneNativeProjection, Vec<AuthorityScope>)> {
+        let (native, mut required, expiry) = self.native_scene_facts(
+            c,
+            &[native_origin.clone()],
+            native_origin.conversation_id(),
+            native_origin.session_id(),
+        )?;
+        let view = &native
+            .get(&(native_origin.runtime_connection_id().into(), None))
+            .ok_or_else(Error::forbidden)?
+            .0;
+        required.extend(if phone.source().is_private_candidate() {
+            private_facts::current_authority(self, c, phone)?.0
+        } else {
+            current_scopes(c, phone.signal.origin(), false)?
+        });
         self.require_sip_native_pair_context(
             c,
             phone.connection_id(),
             native_origin,
-            native.target().private_consultation.as_deref(),
+            view.private_consultation.as_deref(),
         )?;
         let actor = self.native_media_route_actor(c, native_origin)?;
         if !actor.permits_recipient(&phone.source().target.identity_id) {
             return Err(Error::forbidden());
         }
-        let initial = if phone.source().is_private_candidate() {
-            self.private_initial_telephone_media_in(
-                c,
-                phone,
-                native.interval().clone(),
-                native.expires_at(),
-            )?
+        let purpose = if phone.source().is_private_candidate() {
+            ProjectionPurpose::PrivateCurrent
         } else {
-            self.initial_telephone_media_in(
-                c,
-                phone,
-                native.interval().clone(),
-                native.expires_at(),
-            )?
+            ProjectionPurpose::Media
         };
-        if !initial.current()
-            || !native.current()
-            || initial.source().session_id != native.target().session.session.id
+        let expiry = expiry.min(until);
+        let initial = self.initial_telephone_projection(c, phone, expiry, purpose)?;
+        if phone.source().session_id != view.session.session.id
             || !initial
-                .endpoint_actor()
-                .permits_recipient(&native.target().session.actor.identity_id)
+                .endpoint_actor
+                .permits_recipient(&view.session.actor.identity_id)
             || !initial
-                .route_actor()
-                .permits_recipient(&native.target().session.actor.identity_id)
+                .route_actor
+                .permits_recipient(&view.session.actor.identity_id)
         {
             return Err(Error::forbidden());
         }
-        Ok(InitialTelephoneNativeRead {
-            phone: initial,
-            native,
-        })
+        Ok((
+            InitialTelephoneNativeProjection {
+                phone: initial,
+                native,
+                expires: expiry,
+                purpose,
+            },
+            AuthorityScope::merged(&required)?,
+        ))
     }
 }
 impl Store {
@@ -1152,6 +1186,11 @@ impl Store {
                 signal: signal.clone(),
                 codec,
                 observation,
+                unary_metadata: Store::new_packet_projection_metadata::<InitialTelephoneProjection>(
+                ),
+                pair_metadata: Store::new_packet_projection_metadata::<
+                    InitialTelephoneNativeProjection,
+                >(),
             };
             emit_connection(&tx, self, &origin, "connection_retired")?;
         }

@@ -417,11 +417,11 @@
     },
     {
       "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
-      "status": "All four original cases fail at latest report source; all69Store regressions pass",
-      "run_id": 41213265476,
-      "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
+      "status": "All79Store functions pass; all four original media cases still fail",
+      "run_id": 41214524058,
+      "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
       "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
-      "limits": "Two media cases record106/83paired Store authority-busy reads mapped to NotReady at store-read. Other two fail subscription before media. Paired WAL candidate is implemented but unrun. No telephone pass."
+      "limits": "All four reach media but retain1600/2080/1760/2880nativebytes<original8000. Pairedbusy12/20/18/33 is lower, but deadline observations38/32/37/31remain. Version-sealed fact memo candidate is implemented and unrun; no phone pass from metadata checks."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
@@ -519,15 +519,14 @@
       "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
       "scope": "Same production WAL candidate with fixed paired-read trace counters and corrected Store assertion",
       "status": "completed-failed-source-verified"
-    }
-  ],
-  "latest_in_flight": [
+    },
     {
       "run_id": 41214524058,
       "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
-      "scope": "Paired WAL Store boundaries plus all four original telephone cases",
-      "status": "confirmed-running-no-qualified-result"
+      "status": "completed-failed-source-verified",
+      "scope": "All79Store boundaries passed, all4phone cases failed; unchangedoriginalbyte/decoder/deadlinebounds"
     }
   ],
-  "paired_wal_candidate": "Implemented, runtime unrun. Actual paired Store contention at report source motivates sealed observer acquisition and complete under-interval resolution; exact public/private pair checks precede unchanged phone cases."
+  "latest_in_flight": [],
+  "paired_wal_candidate": "79Store functions passed but all4originalcallsfailed. New SIP fact memo candidate retains the exact existing native SQL/schema/clock/source validation and fresh file admission, with explicit original runtime checks and no retained permission readers; pending actual81Store/currentphoneverification."
 }

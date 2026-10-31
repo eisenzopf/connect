@@ -123,7 +123,7 @@ pub(super) fn cached<T: Clone>(
     derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    cached_with(store, memo, source, None, derive, finish)
+    cached_with(store, memo, source, None, derive, |c, _| finish(c))
 }
 
 /// Recheck current metadata under an active caller-owned complete interval.
@@ -136,7 +136,7 @@ pub(super) fn cached_under<T: Clone>(
     derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    cached_with(store, memo, source, Some(held), derive, finish)
+    cached_with(store, memo, source, Some(held), derive, |c, _| finish(c))
 }
 
 fn cached_with<T: Clone>(
@@ -145,7 +145,7 @@ fn cached_with<T: Clone>(
     source: Option<&MetadataToken>,
     held: Option<&Arc<AuthorityGuardSet>>,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
-    finish: impl FnOnce(&Connection) -> Result<()>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let mut captured = None;
     let mut capture = |c: &Connection, version: Version| {
@@ -164,7 +164,7 @@ fn cached_with<T: Clone>(
         });
         Ok((facts, scopes))
     };
-    let mut finish = Some(finish);
+    let mut finish = Some(|c: &Connection, facts: &Arc<T>| finish(c, facts.as_ref()));
     let mut optimistic = None;
     if held.is_none() {
         // Copy metadata outside SQL and use only its old scope names to try a
@@ -204,7 +204,7 @@ fn cached_with<T: Clone>(
                 finish.take().ok_or_else(Error::storage)?,
                 held,
             ),
-            None => acquire_with(
+            None => acquire_with_facts(
                 store,
                 &mut capture,
                 finish.take().ok_or_else(Error::storage)?,
@@ -239,26 +239,27 @@ fn cached_with<T: Clone>(
 /// then reacquire SQL and seal the exact unchanged version under the new reader.
 /// No caller waits with SQL or retains a partial reader while retrying.
 impl Store {
-    /// Share the native packet snapshot boundary with other read-only media
-    /// projections. This retains no metadata cache and acquires fresh complete
-    /// file authority. `finish` runs only after the SQL/clock version is sealed.
-    pub(crate) fn try_packet_projection<T>(
-        &self,
-        mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
-        finish: impl FnOnce(&Connection) -> Result<()>,
-    ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-        acquire_at(self, |c, _| derive(c), finish)
+    /// Type-erased immutable facts only, exactly like a native origin's memo.
+    /// Entries never own SQL, file authority, execution or a media IO grant.
+    pub(crate) fn new_packet_projection_metadata<T: Send + Sync + 'static>(
+    ) -> Arc<dyn std::any::Any + Send + Sync> {
+        Arc::new(Memo::<T>::default())
     }
 
-    /// Resolve another current view under this invocation's already-complete
-    /// file interval. Recheck SQL/clock versions and scope coverage; never
-    /// acquire a second reader behind a waiting writer or retain observer SQL.
-    pub(crate) fn try_packet_projection_under<T>(
+    /// Share native SQL/schema/clock/source memoization, fresh complete file
+    /// admission and sealing. A hit skips projection work, never authorization.
+    /// `finish` sees the actual sealed facts on both a hit and a miss.
+    pub(crate) fn try_cached_packet_projection<T: Clone + Send + Sync + 'static>(
         &self,
-        held: &Arc<AuthorityGuardSet>,
+        metadata: &(dyn std::any::Any + Send + Sync),
+        source: Option<&Arc<dyn std::any::Any + Send + Sync>>,
         derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
-    ) -> Result<T> {
-        current_under(self, held, derive)
+        finish: impl FnOnce(&Connection, &T) -> Result<()>,
+    ) -> Result<(T, Arc<AuthorityGuardSet>)> {
+        let memo = metadata
+            .downcast_ref::<Memo<T>>()
+            .ok_or_else(Error::storage)?;
+        cached_with(self, memo, source, None, derive, finish)
     }
 }
 
@@ -281,8 +282,17 @@ fn acquire_at<T>(
 
 fn acquire_with<T>(
     store: &Store,
-    mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection) -> Result<()>,
+    admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    acquire_with_facts(store, derive, |c, _| finish(c), admit)
+}
+
+fn acquire_with_facts<T>(
+    store: &Store,
+    mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
     admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let (before, facts, scopes) = {
@@ -308,13 +318,13 @@ pub(super) fn current_under<T>(
     held: &Arc<AuthorityGuardSet>,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
 ) -> Result<T> {
-    acquire_under(store, |c, _| derive(c), |_| Ok(()), held).map(|(facts, _)| facts)
+    acquire_under(store, |c, _| derive(c), |_, _| Ok(()), held).map(|(facts, _)| facts)
 }
 
 fn acquire_under<T>(
     store: &Store,
     mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
-    finish: impl FnOnce(&Connection) -> Result<()>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
     held: &Arc<AuthorityGuardSet>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let c = store.try_packet_connection()?;
@@ -343,7 +353,7 @@ fn seal<T>(
     mut scopes: Vec<AuthorityScope>,
     held: Arc<AuthorityGuardSet>,
     derive: &mut impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
-    finish: impl FnOnce(&Connection) -> Result<()>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let after = version(c)?;
     if (Version {
@@ -370,7 +380,7 @@ fn seal<T>(
     if !store.authority_covers(&held, &scopes) {
         return Err(Error::forbidden());
     }
-    finish(c)?;
+    finish(c, &facts)?;
     Ok((facts, held))
 }
 

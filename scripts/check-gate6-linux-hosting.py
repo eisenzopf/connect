@@ -323,6 +323,8 @@ def telephone_store_checks(binary, execute):
         unary + 'exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights',
         pair + 'sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences',
         pair + 'sip_native_media_pair_refuses_observer_exhaustion_and_rechecks_withdrawal',
+        unary + 'cached_initial_sip_facts_do_not_cross_the_original_runtime_epoch',
+        'peer_authority::connection_media::snapshot::tests::erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant',
     }
     functions = {line[:-6] for line in inventory.splitlines() if line.endswith(': test')}
     assert required <= functions, 'Missing actual Store observer boundary functions'

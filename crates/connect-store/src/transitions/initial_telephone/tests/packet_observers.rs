@@ -78,3 +78,24 @@ fn exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights()
     );
     drop(command);
 }
+
+#[test]
+fn cached_initial_sip_facts_do_not_cross_the_original_runtime_epoch() {
+    let mut f = Fixture::new();
+    let media = answered(&f);
+    drop(
+        f.store
+            .try_initial_telephone_media_read(media.clone())
+            .unwrap(),
+    );
+    // Controlled lifetime change without a SQL commit. A matching database
+    // stamp cannot replace the original runtime/installation binding.
+    f.store.runtime_epoch.push_str("-successor");
+    assert_eq!(
+        f.store
+            .try_initial_telephone_media_read(media)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+}

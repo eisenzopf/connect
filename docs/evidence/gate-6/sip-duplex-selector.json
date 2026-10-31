@@ -3590,8 +3590,575 @@
     }
   },
   "paired_wal_candidate": {
-    "status": "implemented-runtime-unrun",
+    "status": "all79-store-functions-passed-telephone-failed",
     "change": "Use bounded version-sealed WAL observers for paired scope capture, release SQL before one fresh complete file interval, then derive the entire pair under that same interval with current SQL/clock/coverage sealing. Freeze original5sprojection expiry. No retry, metadata cache, permission fallback or extra observer.",
-    "validation": "Two new actual public pair functions require command-SQL independence, both identity fences, observer release/exhaustion and current withdrawal. CI runs all unary/snapshot/paired-signal/private-packet functions before hosting compilation, then all4unchanged originalphonecases. Format/25Python boundary functions pass; Rust/network runtime unrun."
+    "validation": "Two new actual public pair functions require command-SQL independence, both identity fences, observer release/exhaustion and current withdrawal. CI runs all unary/snapshot/paired-signal/private-packet functions before hosting compilation, then all4unchanged originalphonecases. Format/25Python boundary functions pass; Rust/network runtime unrun.",
+    "runtime": {
+      "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
+      "run_id": 41214524058,
+      "artifact_id": 13047982281,
+      "zip_sha256": "deb5c29f5b59617a7da670847dd4e06b856b6d55ad94a1377deafd5785a89d7e",
+      "git_sources_verified": 4542,
+      "prepared_sources_verified": 4094,
+      "pinned_archives_verified": 4,
+      "store": {
+        "passed": true,
+        "binary_sha256": "968000a49055c40b76e2c5679b6be62d7c7258c9b61b2e3444f781bafa6ddb09",
+        "binary_unchanged": true,
+        "inventory_sha256": "22578cf8e0b0c261ad9b83f5f677334f3c5e91915db756fb43636ed576207766",
+        "required_boundary_functions": [
+          "connection_control::tests::native_stream_authority::sip_signal::sip_native_media_pair_refuses_observer_exhaustion_and_rechecks_withdrawal",
+          "connection_control::tests::native_stream_authority::sip_signal::sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences",
+          "transitions::initial_telephone::tests::packet_observers::current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned",
+          "transitions::initial_telephone::tests::packet_observers::exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights"
+        ],
+        "checks": [
+          {
+            "name": "telephone-store-current-authority",
+            "passed": true,
+            "expected_tests": 48
+          },
+          {
+            "name": "telephone-store-snapshot-regressions",
+            "passed": true,
+            "expected_tests": 21
+          },
+          {
+            "name": "telephone-store-paired-current-authority",
+            "passed": true,
+            "expected_tests": 5
+          },
+          {
+            "name": "telephone-store-private-packet-regressions",
+            "passed": true,
+            "expected_tests": 5
+          }
+        ],
+        "scope": "Actual unary/paired initial SIP Store WAL custody and all current initial-call, snapshot, paired signal and private-packet regressions. No full telephone qualification."
+      },
+      "compile_seconds": {
+        "compile-store": 36.36932125699997,
+        "compile-hosting": 1538.184997853
+      },
+      "cases": [
+        {
+          "network_profile": "direct",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "audio_path": {
+            "sip_admissions": 200,
+            "sip_admitted": 148,
+            "sip_refused": 52,
+            "native_egress_configured": 1,
+            "native_egress_refused": 38,
+            "mixer_queued": 118,
+            "core_delivery_refused": 454,
+            "audio_burst_trimmed": 3,
+            "host_received_capture_written": true,
+            "host_received_bytes": 1600,
+            "host_received_sha256": "58d77bc80a9812ab0a53905b4277807c566df1d6a6038e0a22c63742d74b26b8",
+            "problems": {
+              "Model": 0,
+              "Unsupported": 0,
+              "Authority": 1,
+              "NotRecipient": 0,
+              "Cancelled": 0,
+              "Deadline": 38,
+              "NotReady": 491,
+              "Backpressure": 14,
+              "CleanupUnconfirmed": 0,
+              "other": 0
+            },
+            "initial_sip_store_authority": {
+              "admitted": 587,
+              "authority-busy": 149,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_store_authority": {
+              "admitted": 72,
+              "authority-busy": 12,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_grants": {
+              "store-read": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 12,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "pair-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "source-binding": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 1,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "sip-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 1,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-activation": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "granted": {
+                "admitted": 70,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "other": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              }
+            }
+          },
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat_worker_joined": true
+        },
+        {
+          "network_profile": "direct",
+          "algorithm": "ES256",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "audio_path": {
+            "sip_admissions": 200,
+            "sip_admitted": 141,
+            "sip_refused": 59,
+            "native_egress_configured": 1,
+            "native_egress_refused": 33,
+            "mixer_queued": 107,
+            "core_delivery_refused": 660,
+            "audio_burst_trimmed": 1,
+            "host_received_capture_written": true,
+            "host_received_bytes": 2080,
+            "host_received_sha256": "a3d6d6646208d43b3aa51cc2873e99c75a4f0789d498151433b042e5c3a7373d",
+            "problems": {
+              "Model": 0,
+              "Unsupported": 0,
+              "Authority": 1,
+              "NotRecipient": 0,
+              "Cancelled": 1,
+              "Deadline": 32,
+              "NotReady": 698,
+              "Backpressure": 20,
+              "CleanupUnconfirmed": 0,
+              "other": 0
+            },
+            "initial_sip_store_authority": {
+              "admitted": 591,
+              "authority-busy": 180,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_store_authority": {
+              "admitted": 85,
+              "authority-busy": 20,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_grants": {
+              "store-read": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 20,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "pair-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "source-binding": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "sip-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-activation": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 1,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "granted": {
+                "admitted": 84,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "other": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              }
+            }
+          },
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat_worker_joined": true
+        },
+        {
+          "network_profile": "loss",
+          "algorithm": "EdDSA",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "audio_path": {
+            "sip_admissions": 182,
+            "sip_admitted": 121,
+            "sip_refused": 61,
+            "native_egress_configured": 1,
+            "native_egress_refused": 38,
+            "mixer_queued": 121,
+            "core_delivery_refused": 797,
+            "audio_burst_trimmed": 0,
+            "host_received_capture_written": true,
+            "host_received_bytes": 1760,
+            "host_received_sha256": "4d8c03e940c0c2598e365c741a9d2819364e4d28e17ea00a0720ac34047404cc",
+            "problems": {
+              "Model": 0,
+              "Unsupported": 0,
+              "Authority": 0,
+              "NotRecipient": 0,
+              "Cancelled": 1,
+              "Deadline": 37,
+              "NotReady": 846,
+              "Backpressure": 12,
+              "CleanupUnconfirmed": 0,
+              "other": 0
+            },
+            "initial_sip_store_authority": {
+              "admitted": 573,
+              "authority-busy": 209,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 3
+            },
+            "initial_sip_to_native_store_authority": {
+              "admitted": 81,
+              "authority-busy": 18,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_grants": {
+              "store-read": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 18,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "pair-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "source-binding": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 1,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "sip-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 1,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-activation": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "granted": {
+                "admitted": 79,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "other": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              }
+            }
+          },
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat_worker_joined": true
+        },
+        {
+          "network_profile": "loss",
+          "algorithm": "ES256",
+          "passed": false,
+          "server_failure": {
+            "readiness_written": true,
+            "media_go_written": true,
+            "elapsed_observed": false,
+            "panic_locations": [
+              {
+                "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                "line": 173,
+                "column": 5
+              }
+            ]
+          },
+          "audio_path": {
+            "sip_admissions": 175,
+            "sip_admitted": 147,
+            "sip_refused": 28,
+            "native_egress_configured": 1,
+            "native_egress_refused": 32,
+            "mixer_queued": 117,
+            "core_delivery_refused": 819,
+            "audio_burst_trimmed": 2,
+            "host_received_capture_written": true,
+            "host_received_bytes": 2880,
+            "host_received_sha256": "d0fa1be5bba11942a83e90c5619f614432590123192ba6c1120fc6e2e5cfde57",
+            "problems": {
+              "Model": 0,
+              "Unsupported": 0,
+              "Authority": 4,
+              "NotRecipient": 0,
+              "Cancelled": 0,
+              "Deadline": 31,
+              "NotReady": 841,
+              "Backpressure": 3,
+              "CleanupUnconfirmed": 0,
+              "other": 0
+            },
+            "initial_sip_store_authority": {
+              "admitted": 666,
+              "authority-busy": 195,
+              "forbidden": 0,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_store_authority": {
+              "admitted": 82,
+              "authority-busy": 33,
+              "forbidden": 1,
+              "not-ready": 0,
+              "other": 0
+            },
+            "initial_sip_to_native_grants": {
+              "store-read": {
+                "admitted": 0,
+                "Authority": 1,
+                "NotReady": 33,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "pair-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "source-binding": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "sip-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-activation": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-owner": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "native-current": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "granted": {
+                "admitted": 82,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              },
+              "other": {
+                "admitted": 0,
+                "Authority": 0,
+                "NotReady": 0,
+                "Cancelled": 0,
+                "other": 0
+              }
+            }
+          },
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat_worker_joined": true
+        }
+      ],
+      "owned_network": {
+        "requested": true,
+        "internal_bridge": true,
+        "original_bridge_removed": true,
+        "remaining_containers": 0
+      },
+      "finding": "All79actual Store functions pass (48initial,21snapshot,5pairedsignal/media,5privatepacket),0ignored; unchangedbinary. All4phone cases reach media but fail native8000byte minimum with1600/2080/1760/2880bytes. Pairedbusy12/20/18/33falls, but original egressrefusals38/33/38/32 and deadline observations38/32/37/31 remain. No complete media pass from decreased contention. Store36.369s, hosting1538.185s; Store boundaries executed before host."
+    }
+  },
+  "sip_packet_fact_memo_candidate": {
+    "status": "implemented-runtime-unrun",
+    "change": "Public unary and paired SIP projections use the exact existing native Memo/cached_with algorithm: four SQL-observer entries per memo, matching SQL data/schema/change/clock stamps and exact weak native-source identity. A hit skips only immutable projection work. Every invocation still takes fresh complete file authority and rechecks original SIP/native runtime ownership and expiry. Metadata contains only projected actors/session/native facts, never SQL/file/execution/media grants.",
+    "native_algorithm": "Existing native cached/cached_under signatures and predicates remain unchanged. Internal finish callback additionally receives the actual sealed facts, including on a hit; existing native callers discard that argument. No new grace, retry, callback repetition, observer, scope or media acceptance limit.",
+    "validation": "Existing actual current-withdrawal, command-SQL independence, observer exhaustion, identity-fence and private packet checks retained. Add generic memo same-source/source-change and finish-on-hit test; add original SIP runtime-epoch refusal; require paired memo releases both identity fences. Expected four groups49+22+5+5, actual inventory authoritative. All4original phonecells remain required after Store tests. Local format/Python checks pass; Rust/runtime not executed locally."
   }
 }

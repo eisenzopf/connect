@@ -173,3 +173,30 @@ private-packet regressions before the monolithic hosting build. A boundary failu
 leaves call cases explicitly unrun. The four original media cases remain required
 after those checks pass. Local format and25Python boundary checks pass; Rust
 and network behavior for the paired candidate remain unrun.
+
+Paired WAL source `66dadd1a`, run `41214524058`, verifies all79Store functions
+(48initial-call,21snapshot, five paired signal/media and five private packet),
+with zero ignored and an unchanged binary. All four phone cases reach media,
+but fail the8,000byte native minimum at1,600/2,080/1,760/2,880bytes. Paired
+Store contention falls to12/20/18/33refusals, while egress deadline failures
+remain high. A lower contention count does not qualify decoded delivery.
+The Store checks run before hosting compilation; compilation takes36.37s and
+1,538.18s respectively. Original process/NAT/empty-bridge cleanup is recorded.
+
+The next candidate reuses the native SQL-versioned fact memo for public unary
+and paired SIP projections. Its bounded entries contain immutable projected
+actors, sessions, native views and required scope names. A hit still acquires
+fresh complete authority and must match the exact SQL/schema/clock version and
+original weak native source. No SQL reader, authority interval, execution handle
+or media grant is retained. Original runtime ownership and expiry are checked
+before and after each invocation. Private packet scope and recipient ceilings
+remain current. The sealed-facts finish callback runs on a hit too, preserving
+readiness registration without redoing the full projection. Existing native
+callbacks and admission predicates remain unchanged.
+
+Two additional Store tests require same-source fact reuse with fresh authority,
+finish-on-hit and different-source separation, and refusal of a cached original
+SIP origin after its runtime epoch changes. The paired test also requires both
+identity write fences to become available after its read drops while metadata
+still exists. These join all existing Store regressions before the four unchanged
+phone cells. Rust/network results for this fact-memo candidate remain unrun.

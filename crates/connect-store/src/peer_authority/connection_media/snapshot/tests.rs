@@ -5,6 +5,67 @@ mod hints;
 mod owned;
 
 #[test]
+fn erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant() {
+    for _ in 0..8 {
+        let f = Fixture::new();
+        let memo = Store::new_packet_projection_metadata::<i64>();
+        let first: MetadataToken = Arc::new(1u8);
+        let other: MetadataToken = Arc::new(2u8);
+        let calls = std::cell::Cell::new(0);
+        let finishes = std::cell::RefCell::new(Vec::new());
+        let read = |source| {
+            f.store.try_cached_packet_projection(
+                memo.as_ref(),
+                Some(source),
+                |c| {
+                    calls.set(calls.get() + 1);
+                    f.derive(c)
+                },
+                |_, facts: &i64| {
+                    finishes.borrow_mut().push(*facts);
+                    Ok(())
+                },
+            )
+        };
+        let second = crate::now();
+        let (value, held) = read(&first).unwrap();
+        assert_eq!(value, 1);
+        drop(held);
+        let command = f.store.connection().unwrap();
+        let (value, held) = read(&first).unwrap();
+        assert_eq!(value, 1);
+        assert_eq!(
+            f.store
+                .try_acquire_authority(&[f.write.clone()])
+                .unwrap_err()
+                .code,
+            "authority-busy"
+        );
+        drop(held);
+        // Immutable memo facts retain no grant after the invocation ends.
+        drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+        let (value, held) = read(&other).unwrap();
+        assert_eq!(value, 1);
+        drop(held);
+        drop(command);
+        assert_eq!(
+            *finishes.borrow(),
+            vec![1, 1, 1],
+            "memo hits still finish each actual sealed grant"
+        );
+        if crate::now() == second {
+            assert_eq!(
+                calls.get(),
+                2,
+                "one unchanged source reuses facts; another original source cannot"
+            );
+            return;
+        }
+    }
+    panic!("No unchanged clock interval for the controlled memo boundary");
+}
+
+#[test]
 fn current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority() {
     let f = Fixture::new();
     let memo = Memo::default();
