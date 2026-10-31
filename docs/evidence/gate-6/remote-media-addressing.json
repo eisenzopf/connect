@@ -417,11 +417,11 @@
     },
     {
       "profile": "Native Linux x86_64 telephone direct/20-percent RTP loss, EdDSA/ES256",
-      "status": "All four original cases fail on the rejected synchronous-retry candidate",
-      "run_id": 41207024225,
-      "source_revision": "b31d00c10121dc774413b3f6ec8db2094cc96a85",
+      "status": "All four original cases fail on the public unary WAL observer candidate",
+      "run_id": 41210897174,
+      "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
       "evidence": "docs/evidence/gate-6/sip-duplex-selector.json",
-      "limits": "Both helper unit functions pass, but three media cases retain only 800/640/1120 native bytes; direct ES256 fails the original subscription. Retry reverted in 7a19b9f6. WAL observer candidate ba12a0c7 and test-corrected 052838f3 require actual Store and all four original call results. No full telephone pass."
+      "limits": "The actual command-SQL independence function and all 21 snapshot regressions pass. One initial-call assertion expects forbidden instead of the existing unauthorized contract, corrected in 052838f3. All four phone cases fail the original native byte minimum (2720/4480/3200/4800 bytes). No full telephone pass or paired Store cause inferred; paired-read diagnostic follow-up remains separate."
     },
     {
       "profile": "browser original-peer direct and UDP/TCP relay ICE, expiry and unreachable TURN",
@@ -488,18 +488,24 @@
       "run_id": 41209664880,
       "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
       "scope": "Original full strict browser runtime, direct/UDP/TCP bridge and four expired TURN cases",
-      "status": "running-no-behavior-result"
+      "status": "runtime phase failed; original independent direct/relay and expiry phases continue; no final artifact yet"
     },
     {
       "run_id": 41210897174,
       "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
       "scope": "Public initial SIP WAL observer Store regressions and all four original telephone cases",
-      "status": "running; static review found withdrawal test expects forbidden instead of existing unauthorized contract"
+      "status": "completed-failed-source-verified; see latest telephone matrix row"
     },
     {
       "run_id": 41211247494,
       "source_revision": "052838f31ad713d09132b3eaef6a2867b45ac533",
       "scope": "Same production WAL candidate with exact existing revoked-credential assertion",
+      "status": "running-no-qualified-result"
+    },
+    {
+      "run_id": 41213265476,
+      "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
+      "scope": "Same production WAL candidate with fixed paired-read trace counters and corrected Store assertion",
       "status": "queued-no-behavior-result"
     }
   ],

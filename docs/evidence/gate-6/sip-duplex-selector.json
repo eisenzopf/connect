@@ -2356,12 +2356,508 @@
     "acceptance_qualified": false
   },
   "public_initial_sip_wal_candidate": {
-    "status": "implemented-runtime-unrun",
+    "status": "store-boundary-partial-pass-telephone-failed",
     "change": "Public initial SIP current media projection uses the existing bounded read-only WAL observers through the same native snapshot acquire/seal implementation. Derive full current projection and scope set; release SQL before fresh file admission; reject changed SQL/schema/clock versions and verify full interval coverage. No persistent SIP metadata cache, retry loop, positive grant reuse, new observer, or altered packet deadline. Private SIP and paired receive projections retain their existing paths.",
     "validation": "Local format/diff and19diagnostic+5telephone boundary functions pass. CI must execute both new actual Store boundary functions, all current initial telephone functions, all existing snapshot functions, then all4original telephone media cells. Rust runtime unrun locally.",
     "full_task_qualified": false,
     "acceptance_qualified": false,
-    "test_contract_correction": "Static follow-up: actor_from_connection_at returns Error::unauthorized for an actually revoked credential. The withdrawal boundary now requires that exact existing code rather than forbidden. Production/read/expiry/authorization behavior is unchanged; the original ba12 run is retained and a separate corrected-source run must verify the full Store/telephone scope."
+    "test_contract_correction": "Static follow-up: actor_from_connection_at returns Error::unauthorized for an actually revoked credential. The withdrawal boundary now requires that exact existing code rather than forbidden. Production/read/expiry/authorization behavior is unchanged; the original ba12 run is retained and a separate corrected-source run must verify the full Store/telephone scope.",
+    "first_runtime": {
+      "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
+      "run_id": 41210897174,
+      "artifact_id": 13047102253,
+      "zip_sha256": "db431b6ce92c80d1acc1924c5be4a7020a1c41e915bbb7c2cfe86d7723e417ea",
+      "git_sources_verified": 4541,
+      "prepared_sources_verified": 4094,
+      "pinned_archives_verified": 4,
+      "store": {
+        "passed": false,
+        "required_boundary_functions": [
+          "transitions::initial_telephone::tests::packet_observers::current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned",
+          "transitions::initial_telephone::tests::packet_observers::exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights"
+        ],
+        "checks": [
+          {
+            "name": "telephone-store-current-authority",
+            "passed": false,
+            "expected_tests": 48
+          },
+          {
+            "name": "telephone-store-snapshot-regressions",
+            "passed": true,
+            "expected_tests": 21
+          }
+        ],
+        "scope": "Actual public initial-SIP Store WAL observer custody plus all current initial-call and SQL/clock snapshot regressions. No full telephone qualification."
+      },
+      "telephone": {
+        "scope": "Current native Linux x86_64 host and SIP/RTP peer on one owned internal bridge, controlled fixed peer-side NAT and public native SDK PCMU: original direct/20percentRTP-loss \u00d7EdDSA/ES256 decode, journal-before-INVITE, replay, signed end and drains. No WAN/provider/PSTN/model, video, full matrix, performance or acceptance qualification.",
+        "passed": false,
+        "results": [
+          {
+            "passed": false,
+            "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
+            "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+            "server_sha256": "efddc512c253c8726bb60cad6035537e9bfdb8f7aa5f6619f4837ed513ddb179",
+            "source_inputs_unchanged": true,
+            "build_inputs_unchanged": true,
+            "server_unchanged": true,
+            "profiles": [
+              {
+                "algorithm": "EdDSA",
+                "passed": false,
+                "guest_exit_code": 1,
+                "server_exit_code": 101,
+                "forced_server_cleanup": false,
+                "forced_guest_cleanup": false,
+                "server_failure": {
+                  "readiness_written": true,
+                  "media_go_written": true,
+                  "elapsed_observed": false,
+                  "panic_locations": [
+                    {
+                      "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                      "line": 173,
+                      "column": 5
+                    }
+                  ]
+                },
+                "audio_path_diagnostic": {
+                  "sip_admissions": 200,
+                  "sip_admitted": 162,
+                  "sip_refused": 38,
+                  "native_egress_configured": 1,
+                  "native_egress_refused": 17,
+                  "mixer_queued": 84,
+                  "core_delivery_refused": 725,
+                  "audio_burst_trimmed": 1,
+                  "host_received_capture_written": true,
+                  "host_received_bytes": 2720,
+                  "host_received_sha256": "28231a28bfb31f1a7a0b2df813492b1a677e18b179854d825f192cdeffe5178f",
+                  "problems": {
+                    "Model": 0,
+                    "Unsupported": 0,
+                    "Authority": 0,
+                    "NotRecipient": 0,
+                    "Cancelled": 0,
+                    "Deadline": 17,
+                    "NotReady": 756,
+                    "Backpressure": 7,
+                    "CleanupUnconfirmed": 0,
+                    "other": 0
+                  },
+                  "initial_sip_store_authority": {
+                    "admitted": 753,
+                    "authority-busy": 209,
+                    "forbidden": 0,
+                    "not-ready": 0,
+                    "other": 2
+                  }
+                },
+                "guest": {
+                  "passed": false,
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sip_invites": 1,
+                  "sip_acks": 1,
+                  "sip_byes": 0,
+                  "sent_rtp": 200,
+                  "received_rtp": 34,
+                  "foreign_datagrams": 0,
+                  "rtcp_mux_offered": false,
+                  "server_advertised_media_ip_matched": true,
+                  "owned_sockets_closed": true,
+                  "received_bytes": 5440,
+                  "received_sha256": "4659f5942226f746ad88f8b8883a69faeb09bda7d01a46180556fdb13a7ef3d4"
+                },
+                "server_witness": [],
+                "host_decoded": {},
+                "guest_decoded": {},
+                "peer_nat": {
+                  "foreign_datagrams": 0,
+                  "journal_before_first_invite": true,
+                  "worker_joined": true,
+                  "unique_calls": 1,
+                  "owned_rtcp_sink_packets": 5,
+                  "sip": {
+                    "guest_to_server": 1,
+                    "server_to_guest": 2
+                  },
+                  "rtp": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 34
+                  },
+                  "rtcp": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  },
+                  "pcmu_rtp_seen": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 34
+                  },
+                  "pcmu_rtp_dropped": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  }
+                },
+                "logs_sha256": {
+                  "server.log": "fb78725e39fb201c6df3c1c595da4216fb8486f402ff50caa4d9492d80aca1a2",
+                  "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+                }
+              },
+              {
+                "algorithm": "ES256",
+                "passed": false,
+                "guest_exit_code": 1,
+                "server_exit_code": 101,
+                "forced_server_cleanup": false,
+                "forced_guest_cleanup": false,
+                "server_failure": {
+                  "readiness_written": true,
+                  "media_go_written": true,
+                  "elapsed_observed": false,
+                  "panic_locations": [
+                    {
+                      "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                      "line": 173,
+                      "column": 5
+                    }
+                  ]
+                },
+                "audio_path_diagnostic": {
+                  "sip_admissions": 200,
+                  "sip_admitted": 135,
+                  "sip_refused": 65,
+                  "native_egress_configured": 1,
+                  "native_egress_refused": 5,
+                  "mixer_queued": 77,
+                  "core_delivery_refused": 395,
+                  "audio_burst_trimmed": 0,
+                  "host_received_capture_written": true,
+                  "host_received_bytes": 4480,
+                  "host_received_sha256": "933978a77730bcc67c7db37b549b7d0831a5d7071824cf9d05ec77198aea1f60",
+                  "problems": {
+                    "Model": 0,
+                    "Unsupported": 0,
+                    "Authority": 1,
+                    "NotRecipient": 0,
+                    "Cancelled": 1,
+                    "Deadline": 4,
+                    "NotReady": 448,
+                    "Backpressure": 11,
+                    "CleanupUnconfirmed": 0,
+                    "other": 0
+                  },
+                  "initial_sip_store_authority": {
+                    "admitted": 643,
+                    "authority-busy": 156,
+                    "forbidden": 0,
+                    "not-ready": 0,
+                    "other": 3
+                  }
+                },
+                "guest": {
+                  "passed": false,
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sip_invites": 1,
+                  "sip_acks": 1,
+                  "sip_byes": 0,
+                  "sent_rtp": 200,
+                  "received_rtp": 42,
+                  "foreign_datagrams": 0,
+                  "rtcp_mux_offered": false,
+                  "server_advertised_media_ip_matched": true,
+                  "owned_sockets_closed": true,
+                  "received_bytes": 6720,
+                  "received_sha256": "376950825b949b685d96b40a264ad1b049626250bf34875bc96ea4a723ada7b8"
+                },
+                "server_witness": [],
+                "host_decoded": {},
+                "guest_decoded": {},
+                "peer_nat": {
+                  "foreign_datagrams": 0,
+                  "journal_before_first_invite": true,
+                  "worker_joined": true,
+                  "unique_calls": 1,
+                  "owned_rtcp_sink_packets": 5,
+                  "sip": {
+                    "guest_to_server": 1,
+                    "server_to_guest": 2
+                  },
+                  "rtp": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 42
+                  },
+                  "rtcp": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  },
+                  "pcmu_rtp_seen": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 42
+                  },
+                  "pcmu_rtp_dropped": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  }
+                },
+                "logs_sha256": {
+                  "server.log": "4709863d4495b439df07711f88515d486e940f2241277fb8c330dcba963da82b",
+                  "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+                }
+              }
+            ],
+            "network_profile": "direct"
+          },
+          {
+            "passed": false,
+            "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
+            "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+            "server_sha256": "efddc512c253c8726bb60cad6035537e9bfdb8f7aa5f6619f4837ed513ddb179",
+            "source_inputs_unchanged": true,
+            "build_inputs_unchanged": true,
+            "server_unchanged": true,
+            "profiles": [
+              {
+                "algorithm": "EdDSA",
+                "passed": false,
+                "guest_exit_code": 1,
+                "server_exit_code": 101,
+                "forced_server_cleanup": false,
+                "forced_guest_cleanup": false,
+                "server_failure": {
+                  "readiness_written": true,
+                  "media_go_written": true,
+                  "elapsed_observed": false,
+                  "panic_locations": [
+                    {
+                      "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                      "line": 173,
+                      "column": 5
+                    }
+                  ]
+                },
+                "audio_path_diagnostic": {
+                  "sip_admissions": 178,
+                  "sip_admitted": 128,
+                  "sip_refused": 50,
+                  "native_egress_configured": 1,
+                  "native_egress_refused": 17,
+                  "mixer_queued": 95,
+                  "core_delivery_refused": 727,
+                  "audio_burst_trimmed": 0,
+                  "host_received_capture_written": true,
+                  "host_received_bytes": 3200,
+                  "host_received_sha256": "28593ec50b0e1c132d56d466571267dd54a9b802494be69bca9e3e1a27a0e1d5",
+                  "problems": {
+                    "Model": 1,
+                    "Unsupported": 0,
+                    "Authority": 0,
+                    "NotRecipient": 0,
+                    "Cancelled": 1,
+                    "Deadline": 16,
+                    "NotReady": 768,
+                    "Backpressure": 8,
+                    "CleanupUnconfirmed": 0,
+                    "other": 0
+                  },
+                  "initial_sip_store_authority": {
+                    "admitted": 733,
+                    "authority-busy": 223,
+                    "forbidden": 0,
+                    "not-ready": 0,
+                    "other": 2
+                  }
+                },
+                "guest": {
+                  "passed": false,
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sip_invites": 1,
+                  "sip_acks": 1,
+                  "sip_byes": 0,
+                  "sent_rtp": 200,
+                  "received_rtp": 37,
+                  "foreign_datagrams": 0,
+                  "rtcp_mux_offered": false,
+                  "server_advertised_media_ip_matched": true,
+                  "owned_sockets_closed": true,
+                  "received_bytes": 5920,
+                  "received_sha256": "7da7bd04c955fa2a34faa29c398ada5f227f8868dc61662babfd9375828dfe12"
+                },
+                "server_witness": [],
+                "host_decoded": {},
+                "guest_decoded": {},
+                "peer_nat": {
+                  "foreign_datagrams": 0,
+                  "journal_before_first_invite": true,
+                  "worker_joined": true,
+                  "unique_calls": 1,
+                  "owned_rtcp_sink_packets": 5,
+                  "sip": {
+                    "guest_to_server": 1,
+                    "server_to_guest": 2
+                  },
+                  "rtp": {
+                    "guest_to_server": 160,
+                    "server_to_guest": 37
+                  },
+                  "rtcp": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  },
+                  "pcmu_rtp_seen": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 46
+                  },
+                  "pcmu_rtp_dropped": {
+                    "guest_to_server": 40,
+                    "server_to_guest": 9
+                  }
+                },
+                "logs_sha256": {
+                  "server.log": "7f60891ff34476d9ef51641ef5eaed3c075fdcd7ea9d8719101963a24e239daf",
+                  "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+                }
+              },
+              {
+                "algorithm": "ES256",
+                "passed": false,
+                "guest_exit_code": 1,
+                "server_exit_code": 101,
+                "forced_server_cleanup": false,
+                "forced_guest_cleanup": false,
+                "server_failure": {
+                  "readiness_written": true,
+                  "media_go_written": true,
+                  "elapsed_observed": false,
+                  "panic_locations": [
+                    {
+                      "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                      "line": 173,
+                      "column": 5
+                    }
+                  ]
+                },
+                "audio_path_diagnostic": {
+                  "sip_admissions": 174,
+                  "sip_admitted": 130,
+                  "sip_refused": 44,
+                  "native_egress_configured": 1,
+                  "native_egress_refused": 11,
+                  "mixer_queued": 95,
+                  "core_delivery_refused": 706,
+                  "audio_burst_trimmed": 0,
+                  "host_received_capture_written": true,
+                  "host_received_bytes": 4800,
+                  "host_received_sha256": "bec915632c7f0d292cfad28a85c524680f2705a5378c868fd715ee93343bf325",
+                  "problems": {
+                    "Model": 0,
+                    "Unsupported": 0,
+                    "Authority": 0,
+                    "NotRecipient": 0,
+                    "Cancelled": 1,
+                    "Deadline": 10,
+                    "NotReady": 744,
+                    "Backpressure": 6,
+                    "CleanupUnconfirmed": 0,
+                    "other": 0
+                  },
+                  "initial_sip_store_authority": {
+                    "admitted": 706,
+                    "authority-busy": 220,
+                    "forbidden": 0,
+                    "not-ready": 0,
+                    "other": 1
+                  }
+                },
+                "guest": {
+                  "passed": false,
+                  "os": "linux",
+                  "architecture": "x86_64",
+                  "sip_invites": 1,
+                  "sip_acks": 1,
+                  "sip_byes": 0,
+                  "sent_rtp": 200,
+                  "received_rtp": 38,
+                  "foreign_datagrams": 0,
+                  "rtcp_mux_offered": false,
+                  "server_advertised_media_ip_matched": true,
+                  "owned_sockets_closed": true,
+                  "received_bytes": 6080,
+                  "received_sha256": "db2dfc7c4c81713ef7c3e394c3dab20d6efe91600db29f2bbaaa866cdc9cfb39"
+                },
+                "server_witness": [],
+                "host_decoded": {},
+                "guest_decoded": {},
+                "peer_nat": {
+                  "foreign_datagrams": 0,
+                  "journal_before_first_invite": true,
+                  "worker_joined": true,
+                  "unique_calls": 1,
+                  "owned_rtcp_sink_packets": 5,
+                  "sip": {
+                    "guest_to_server": 1,
+                    "server_to_guest": 2
+                  },
+                  "rtp": {
+                    "guest_to_server": 160,
+                    "server_to_guest": 38
+                  },
+                  "rtcp": {
+                    "guest_to_server": 0,
+                    "server_to_guest": 0
+                  },
+                  "pcmu_rtp_seen": {
+                    "guest_to_server": 200,
+                    "server_to_guest": 47
+                  },
+                  "pcmu_rtp_dropped": {
+                    "guest_to_server": 40,
+                    "server_to_guest": 9
+                  }
+                },
+                "logs_sha256": {
+                  "server.log": "bc8933c5d701e87c94ed328666e10e96026b2fcc30240c5663346990af754c49",
+                  "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+                }
+              }
+            ],
+            "network_profile": "loss"
+          }
+        ],
+        "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+        "guest_python": "Python 3.12.3",
+        "owned_network": {
+          "requested": true,
+          "internal_bridge": true,
+          "original_bridge_removed": true,
+          "remaining_containers": 0
+        },
+        "full_task_qualified": false,
+        "acceptance_qualified": false
+      },
+      "compile_seconds": {
+        "compile-store": 35.96276597799999,
+        "compile-hosting": 1478.1974052700002
+      },
+      "finding": "Actual command-SQL independence function passes. All21snapshot functions pass; initial-call suite47pass/1fail at the new withdrawal assertion line72, matching the already-corrected unauthorized error contract. All4original telephone cells fail native minimum8000bytes, retaining2720/4480/3200/4800bytes. Higher SIP admission counts alone do not qualify duplex delivery. No paired Store/grant counters exist in this source; do not infer those counts."
+    },
+    "followup_runs": [
+      {
+        "run_id": 41211247494,
+        "source_revision": "052838f31ad713d09132b3eaef6a2867b45ac533",
+        "purpose": "Correct exact existing unauthorized assertion; same production",
+        "status": "running-no-qualified-result"
+      },
+      {
+        "run_id": 41213265476,
+        "source_revision": "1794632c",
+        "purpose": "Same production plus existing paired-read trace reduction",
+        "status": "queued-no-qualified-result"
+      }
+    ]
   },
   "paired_read_diagnostics": {
     "status": "local-boundary-verified-runtime-unrun",

@@ -128,3 +128,16 @@ raw identities/details remain private. Six telephone and19Linux diagnostic
 boundary functions pass locally. These fields are absent from the already
 dispatched `ba12a0c7` and `052838f3` sources, so their absence cannot establish a
 paired-read failure count or cause. Production media and assertions are unchanged.
+
+The first WAL run (`ba12a0c7`, `41210897174`) is source-verified against4,541
+Git inputs,4,094prepared inputs and four pinned archives. Its actual command-SQL
+independence function passes; all21snapshot functions pass. The initial-call
+suite records47passes and one failure at the new withdrawal assertion line72,
+matching the revoked-credential error corrected in `052838f3`. All four original
+telephone media cases still fail the8,000byte native minimum, retaining
+2,720/4,480/3,200/4,800bytes. Higher SIP admission counts alone do not prove
+duplex delivery. Store compilation takes36.0s and hosting compilation1,478.2s.
+Original peers and NAT workers join, and the empty owned bridge is removed
+without forced server/guest cleanup. Paired-read counters are absent at this
+source; no paired Store cause is inferred. Corrected-source run `41211247494`
+and report-source run `41213265476` remain separate and unqualified.
