@@ -161,6 +161,10 @@ No publication or release acceptance is authorized by this candidate.
             with path.open('rb') as content: tar.addfile(info, content)
     if inventory(candidate, normalized=True) != {**files, 'manifest.json': {'sha256': manifest_sha, 'mode': 0o644}}:
         raise ValueError('Candidate changed during archive sealing')
+    if (source_inputs != runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']()
+            or subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != head
+            or subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip()):
+        raise ValueError('Original source changed during candidate sealing')
     evidence.mkdir(parents=True, exist_ok=False)
     record = {'format': 'connect/sealed-platform-sdk-candidate/1', 'source_revision': head, 'target': runtime['target'],
               'archive_name': archive.name, 'archive_sha256': digest(archive), 'manifest_sha256': manifest_sha,

@@ -165,6 +165,8 @@ def main():
         report['passed'] = report['passed'] and report['source_inputs_unchanged']
         (evidence / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps({'passed': report['passed']}))
+    if not report['passed']:
+        raise SystemExit('Offline SDK source rebuild remains unqualified')
 
 
 if __name__ == '__main__':

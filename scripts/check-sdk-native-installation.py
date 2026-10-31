@@ -245,6 +245,8 @@ def main():
         report['passed'] = report['passed'] and report['source_inputs_unchanged']
         (output / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps({'passed': report['passed'], 'target': report['target']}))
+    if not report['passed']:
+        raise SystemExit('Installed native candidate remains unqualified')
 
 
 if __name__ == '__main__':
