@@ -254,6 +254,36 @@ def rtc_admission_observations(text):
     return observed
 
 
+def consultation_return_observations(text):
+    """Keep only declared return boundaries; paths, IDs and errors stay private."""
+    stages = {'return-origin', 'return-handle', 'return-original-observation',
+        'return-scene', 'return-read', 'return-revision', 'return-plan',
+        'return-planned', 'return-prepare', 'return-core'}
+    codes = {'forbidden', 'conflict', 'authority-busy', 'storage',
+        'storage-unavailable', 'reconciliation-required', 'not-ready'}
+    result = []
+    for line in text.splitlines():
+        line = re.sub(r'\x1b\[[0-9;]*m', '', line)
+        if 'connect_service::canonical_consultation' not in line:
+            continue
+        stage = re.search(r'\bstage="?(return-[a-z-]+)\b', line)
+        if not stage or stage[1] not in stages:
+            continue
+        code = re.search(r'\bcode=([a-z-]+)\b', line)
+        row = dict(stage=stage[1], code=code[1] if code and code[1] in codes else 'other')
+        current = re.search(r'\bcurrent=(true|false)\b', line)
+        if current:
+            row['current'] = current[1] == 'true'
+        for field in ('source_count', 'receiver_count'):
+            count = re.search(r'\b' + field + r'=([0-9]+)\b', line)
+            if count and 0 <= int(count[1]) <= 64:
+                row[field] = int(count[1])
+        result.append(row)
+        if len(result) == 32:
+            break
+    return result
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
@@ -329,6 +359,7 @@ def run(node_sdk=False, python_sdk=False):
         step = {"name": name, "exit_code": child.returncode, "timed_out": timed, "forced_kill": forced,
                 "seconds": time.monotonic() - started, "log_sha256": digest(log), "test_results": summary}
         step['rtc_admission_observations'] = rtc_admission_observations(text) if child.returncode else []
+        step['consultation_return_observations'] = consultation_return_observations(text) if child.returncode else []
         step['rtc_admission_trace_enabled'] = []
         for line in text.splitlines():
             if 'rtc-admission-tracing-ready ' in line:
@@ -609,7 +640,8 @@ def run(node_sdk=False, python_sdk=False):
                     'reason':'Installed Node consumers require their explicit environment and --ignored selection.',
                     'explicit_sdk_matrix_requested':node_sdk,'qualified_by_baseline':False}
             text = execute(name, selection + ["--test-threads=1"], 90, defer_failure=independent_sdk,
-                environment={'RUST_LOG':'connect_service::canonical_webrtc=debug'} if name == 'native-ice-restart' else None)
+                environment={'RUST_LOG':'connect_service::canonical_webrtc=debug'} if name == 'native-ice-restart'
+                else {'RUST_LOG':'connect_service::canonical_consultation=debug'} if independent_sdk else None)
             if text is None:
                 sdk_failures.append(name)
                 continue

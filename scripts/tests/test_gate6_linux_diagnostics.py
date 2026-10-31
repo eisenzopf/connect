@@ -25,6 +25,18 @@ def failure(checkpoint='events-bootstrap'):
 language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_consultation_return_trace_keeps_declared_boundaries_and_bounded_counts(self):
+        parse = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['consultation_return_observations']
+        trace = ('\x1b[31mDEBUG connect_service::canonical_consultation: Native return planning snapshot stage="return-planned" current=true source_count=3 receiver_count=2 connection=private-secret\x1b[0m\n'
+                 'DEBUG connect_service::canonical_consultation: Native return preparation refused stage="return-prepare" code=authority-busy reason="private body"\n'
+                 'DEBUG connect_service::canonical_consultation: Native return refused stage="private-secret" code=private-secret\n'
+                 'DEBUG connect_service::canonical_consultation: Native return refused stage="return-read" code=private-secret source_count=999\n')
+        self.assertEqual(parse(trace), [dict(stage='return-planned', code='other', current=True, source_count=3, receiver_count=2),
+            dict(stage='return-prepare', code='authority-busy'), dict(stage='return-read', code='other')])
+        self.assertNotIn('private', json.dumps(parse(trace)))
+        self.assertEqual(len(parse(trace * 20)), 32)
+        self.assertEqual(parse('unrelated private error'), [])
+
     def test_initial_rtc_admission_trace_retains_only_finite_boundaries(self):
         check = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['rtc_admission_observations']
         source = '\x1b[31mDEBUG private/path connection=private-secret RTC actual admission boundary refused error=Authority\x1b[0m\nRTC original media admission refused code=forbidden credential=private-secret\nRTC original resource observation refused physical_closed=false bindings_match=true revision=private-secret\nRTC original Session observation refused code=private-secret connection_present=false participant_present=true'
