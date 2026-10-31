@@ -1,5 +1,10 @@
 # Python canonical SDK
 
+The candidate distribution is `rudeless-connect` (`import connect_sdk`);
+see the [candidate packaging evidence](../evidence/gate-6/candidate.json).
+The wheel includes the MIT license. Native APIs require the exact matching
+`connect` server/helper candidate on PATH; full platform bundling remains G6-069.
+
 The [G6-063 implementation audit](../evidence/gate-6/python-implementation.json)
 records the Python control implementation as complete. All 25 frozen methods are
 implemented, with real installed local control, administrative, handoff/move and

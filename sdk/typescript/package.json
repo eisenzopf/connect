@@ -14,7 +14,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -27,8 +29,15 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^26.6.4",
     "prettier": "^3.9.9",
     "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eisenzopf/connect.git",
+    "directory": "sdk/typescript"
+  },
+  "dependencies": {
+    "@types/node": "26.6.4"
   }
 }

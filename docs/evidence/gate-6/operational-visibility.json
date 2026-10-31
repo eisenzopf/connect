@@ -87,12 +87,13 @@
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
   "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
   "current_runtime_candidate": {
-    "run_id": 41247496443,
-    "source_revision": "516cc12a942a99a9b97ad24ad673ddd47537605f",
-    "status": "cancellation-requested-for-confirmed-Service-test-compile-defect-and-subscription-test-precondition",
-    "predecessor_run": 41245525263,
+    "run_id": 41248033909,
+    "source_revision": "b757ddef173a1132ebbf7049f285bc2b8afb6529",
+    "status": "in-progress-Service-compilation-observed",
+    "predecessor_run": 41247496443,
     "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
-    "task_complete": false
+    "task_complete": false,
+    "job_id": 124675466344
   },
   "pending_socket_cleanup": {
     "status": "implemented-not-yet-runtime-verified",
@@ -170,7 +171,7 @@
   "superseded_current_candidate": {
     "run_id": 41247496443,
     "source_revision": "516cc12a942a99a9b97ad24ad673ddd47537605f",
-    "status": "cancellation-requested-for-confirmed-Service-test-compile-defect-and-subscription-test-precondition",
+    "status": "terminal-cancelled-for-confirmed-Service-test-compile-defect",
     "predecessor_run": 41245525263,
     "scope": "Thirteen actual focused runtime cases across Store authority, Service observers, actual permits, public socket/peer lifetimes, participant/upload/subscription and durable operation overload; four process privacy/ownership guards; separate production-server/Rust-helper/owned-browser CPU/RSS profile",
     "task_complete": false

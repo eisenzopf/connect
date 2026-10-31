@@ -11,6 +11,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import venv
 import zipfile
 
@@ -29,7 +30,7 @@ def main():
     private=output.with_name(output.name+'-private');private.mkdir(mode=0o700,exist_ok=False)
     dist=ROOT/'dist/sdk/python'/output.name;dist.mkdir(mode=0o700,parents=True,exist_ok=False)
     before=sources()
-    extra=['sdk/python/build-requirements.txt','.github/workflows/gate6-linux-fixtures.yml']
+    extra=['sdk/python/build-requirements.txt','sdk/python/LICENSE','sdk/python/README.md','.github/workflows/gate6-linux-fixtures.yml']
     for name in extra:before[name]={'sha256':digest(ROOT/name),'mode':(ROOT/name).stat().st_mode & 0o777}
     (output/'source-inputs.json').write_text(json.dumps(before,indent=2)+'\n')
     environment=dict(os.environ,PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1')
@@ -55,6 +56,8 @@ def main():
     assert versions=={'setuptools':'80.9.0','wheel':'0.45.1'}
     source=private/'source';source.mkdir(mode=0o700)
     shutil.copy2(ROOT/'sdk/python/pyproject.toml',source/'pyproject.toml')
+    shutil.copy2(ROOT/'sdk/python/LICENSE',source/'LICENSE')
+    shutil.copy2(ROOT/'sdk/python/README.md',source/'README.md')
     shutil.copytree(ROOT/'sdk/python/connect_sdk',source/'connect_sdk',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     environment['SOURCE_DATE_EPOCH']=subprocess.check_output(['git','show','-s','--format=%ct','HEAD'],cwd=ROOT,text=True).strip()
     run('build',[str(args.build_python.absolute()),'-c','from setuptools.build_meta import build_wheel; build_wheel('+repr(str(dist))+')'],cwd=source)
@@ -64,20 +67,24 @@ def main():
         names=archive.namelist();assert len(names)==len(set(names))
         assert {n for n in names if n.startswith('connect_sdk/')}==set(runtime)
         for name,guard in runtime.items():assert hashlib.sha256(archive.read(name)).hexdigest()==guard['sha256'],name
-        metadata=archive.read('connect_sdk-0.1.0.dist-info/METADATA').decode()
-        assert 'Requires-Python: >=3.11' in metadata and 'Requires-Dist:' not in metadata
-    project=private/'external-project';project.mkdir(mode=0o700)
-    target=project/'venv';venv.EnvBuilder(with_pip=False,symlinks=True).create(target)
-    python=target/'bin/python'
-    run('install',[sys.executable,'-m','pip','--python',str(python),'install','--no-cache-dir','--disable-pip-version-check','--no-index','--no-deps',str(wheel)],cwd=project)
-    consumer=project/'consume.py';shutil.copy2(ROOT/'sdk/tests/python_installed_consumer.py',consumer)
-    installed=json.loads(run('consumer',[str(python),'-I',str(consumer)],cwd=project,timeout=40))
-    assert installed['passed'] and installed['owned_workers_joined']==6
+        metadata=archive.read('rudeless_connect-0.1.0.dist-info/METADATA').decode()
+        assert 'Name: rudeless-connect' in metadata and 'Requires-Python: >=3.11' in metadata and 'Requires-Dist:' not in metadata
+        assert 'License-Expression: MIT' in metadata
+        assert archive.read('rudeless_connect-0.1.0.dist-info/licenses/LICENSE') == (ROOT/'sdk/python/LICENSE').read_bytes()
+    with tempfile.TemporaryDirectory(prefix='connect-python-installed-') as directory:
+        project=Path(directory).resolve()
+        assert not project.is_relative_to(ROOT.resolve()), 'Consumer must be outside the repository'
+        target=project/'venv';venv.EnvBuilder(with_pip=False,symlinks=True).create(target)
+        python=target/'bin/python'
+        run('install',[sys.executable,'-m','pip','--python',str(python),'install','--no-cache-dir','--disable-pip-version-check','--no-index','--no-deps',str(wheel)],cwd=project)
+        consumer=project/'consume.py';shutil.copy2(ROOT/'sdk/tests/python_installed_consumer.py',consumer)
+        installed=json.loads(run('consumer',[str(python),'-I',str(consumer)],cwd=project,timeout=40))
+        assert installed['passed'] and installed['owned_workers_joined']==6
     after=sources()
     for name in extra:after[name]={'sha256':digest(ROOT/name),'mode':(ROOT/name).stat().st_mode & 0o777}
     assert before==after
     result={'passed':True,'scope':'Clean external venv wheel import and actual local synthetic HTTP control/worker ownership through public async and synchronous SDKs. No original native helper/server, restart, named remote or full SDK qualification.',
-        'build_tools':versions,'wheel_sha256':digest(wheel),'wheel_name':wheel.name,'wheel_runtime_files_verified':len(runtime),
+        'build_tools':versions,'wheel_sha256':digest(wheel),'wheel_name':wheel.name,'wheel_runtime_files_verified':len(runtime),'distribution_name':'rudeless-connect','license_text_verified':True,'consumer_outside_repository':True,
         'source_inputs_unchanged':True,'source_count':len(before),'source_inputs_sha256':digest(output/'source-inputs.json'),
         'consumer':installed,'consumer_log_sha256':digest(private/'consumer.log'),
         'raw_logs_and_temporary_state_excluded_from_artifact':True,'finished_at':datetime.datetime.now(datetime.timezone.utc).isoformat()}

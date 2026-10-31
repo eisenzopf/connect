@@ -24,7 +24,7 @@ from packet_codec import load_media, exchange_media
 spec=json.loads(Path(sys.argv[1]).read_text())
 assert Path.cwd().resolve()==Path(spec['project']).resolve()
 assert Path(connect_sdk.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
-assert importlib.metadata.version('connect-sdk')=='0.1.0'
+assert importlib.metadata.version('rudeless-connect')=='0.1.0'
 assert 'PYTHONPATH' not in os.environ
 options=RequestOptions(4000)
 mutation=lambda id:MutationOptions(OperationId(id),options)

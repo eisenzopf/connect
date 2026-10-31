@@ -1,0 +1,1408 @@
+{
+  "format": "connect/gate6-sdk-candidate/1",
+  "task": "G6-069",
+  "date": "2026-10-31",
+  "status": "implementation-in-progress",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false,
+  "registry_listing_audit": {
+    "checked_at": "2026-10-31T22:29:28.486554+00:00",
+    "scope": "Read-only public registry listing checks; absence does not reserve a name or prove account ownership.",
+    "results": [
+      {
+        "registry": "npm",
+        "name": "@rudeless/connect",
+        "url": "https://registry.npmjs.org/@rudeless%2Fconnect",
+        "ownership_verified": false,
+        "http_status": 404,
+        "listing": "not-listed"
+      },
+      {
+        "registry": "pypi",
+        "name": "connect-sdk",
+        "url": "https://pypi.org/pypi/connect-sdk/json",
+        "ownership_verified": false,
+        "http_status": 200,
+        "response_sha256": "07e437a295634814ffe4c311e1f51535463c0f835d78173336860315c99b6dfe",
+        "listing": "present",
+        "version": "22.0",
+        "repository": {
+          "Homepage": "https://github.com/ingrammicro/connect-python-sdk"
+        },
+        "author": "CloudBlue Connect",
+        "license": "Apache Software License"
+      },
+      {
+        "registry": "crates",
+        "name": "connect-client",
+        "url": "https://crates.io/api/v1/crates/connect-client",
+        "ownership_verified": false,
+        "http_status": 404,
+        "listing": "not-listed"
+      },
+      {
+        "registry": "pypi",
+        "name": "rudeless-connect",
+        "url": "https://pypi.org/pypi/rudeless-connect/json",
+        "ownership_verified": false,
+        "http_status": 404,
+        "listing": "not-listed"
+      },
+      {
+        "registry": "crates",
+        "name": "rudeless-connect",
+        "url": "https://crates.io/api/v1/crates/rudeless-connect",
+        "ownership_verified": false,
+        "http_status": 404,
+        "listing": "not-listed"
+      }
+    ]
+  },
+  "selected_names": {
+    "rust": "connect-client",
+    "typescript": "@rudeless/connect",
+    "python_distribution": "rudeless-connect",
+    "python_module": "connect_sdk",
+    "version": "0.1.0"
+  },
+  "packaging_changes": [
+    "Include exact root MIT license and SDK README in wheel and npm archive",
+    "Pin Python build tools to the existing hashed build requirements",
+    "Declare the Node public declaration dependency @types/node and ship both integrity-verified dependency archives with original licenses",
+    "Install wheel and npm archives in clean temporary projects outside the repository; isolated import and empty package caches"
+  ],
+  "verified_components": {
+    "python": {
+      "summary": {
+        "passed": true,
+        "scope": "Clean external venv wheel import and actual local synthetic HTTP control/worker ownership through public async and synchronous SDKs. No original native helper/server, restart, named remote or full SDK qualification.",
+        "build_tools": {
+          "setuptools": "80.9.0",
+          "wheel": "0.45.1"
+        },
+        "wheel_sha256": "6e0765992ab1095450280f9146ad714ff22aab10a967801e97ce13cb4373dde2",
+        "wheel_name": "rudeless_connect-0.1.0-py3-none-any.whl",
+        "wheel_runtime_files_verified": 41,
+        "distribution_name": "rudeless-connect",
+        "license_text_verified": true,
+        "consumer_outside_repository": true,
+        "source_inputs_unchanged": true,
+        "source_count": 105,
+        "source_inputs_sha256": "ca42364392a2c181f193a09e7f69a5fb48bde1ebf9fda79e91cd709b14acf8c4",
+        "consumer": {
+          "profile": "connect-python-installed-http/1",
+          "passed": true,
+          "distribution_version": "0.1.0",
+          "python_version": "3.14.7",
+          "isolated_installed_import": true,
+          "typed_marker_installed": true,
+          "async_and_sync_control": true,
+          "fresh_physical_same_original_id": true,
+          "owned_workers_joined": 6,
+          "requests": 6,
+          "native_server_qualified": false,
+          "full_sdk_qualified": false
+        },
+        "consumer_log_sha256": "6f498e263d13b22075c05e07f6ee820d1effb1899ef1ddd1e587a1d20afe3461",
+        "raw_logs_and_temporary_state_excluded_from_artifact": true,
+        "finished_at": "2026-10-31T22:32:30.968202+00:00"
+      },
+      "source_inputs": {
+        "crates/connect-client/src/sdk/helper.rs": {
+          "sha256": "bd4d0afaa5332d5c1a60b5433c463ea0062097d16bd6f0e3c10c4872f115636b",
+          "mode": 420
+        },
+        "examples/conversation-client/pcmu.py": {
+          "sha256": "2d53a2b397ca9837c5297dc7c5f44bd135206275b6bac6159c1b0f91517646d4",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/__init__.py": {
+          "sha256": "7f1f79ccb3046c79cba70c8baceff116b3d80511708b7713bfa68b48ccb6a887",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_helper.py": {
+          "sha256": "068ee6cbd9940c2e01d4b3bbcd0fbb49aafc95b402203bf03deea329e99de715",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_http_protocol.py": {
+          "sha256": "d44c6583527cb034dd7f739aa3c715f10bd88fbe394d8a0b6dccd87bbf887b48",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_http_worker.py": {
+          "sha256": "de6c7f54cd27feda4c4571962bccc8b79d7d119bbae63406175ef5e0be675b10",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_media_channel.py": {
+          "sha256": "ff6fd7a12f151c002ba97edb390ea879ec0f8c7abd9d2ffbc22b7acb50531e2e",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_readers.py": {
+          "sha256": "0d887b2dc13ed8587794182ffeb48bb5faed1a5ac02493b8e22eca9ca405d0f1",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_sdk_validation.py": {
+          "sha256": "c49304d4543b998a38af75edf387e6c23933a09137d10757bf89b652eff1df2c",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/_validation.py": {
+          "sha256": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/agent_observations.py": {
+          "sha256": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/client.py": {
+          "sha256": "c12de5bee7e9f0ed9eda87ad1f2bbde9b53b3e8f6eb85521bdcab89f6ecfb6f3",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/contact_validation.py": {
+          "sha256": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/conversation_validation.py": {
+          "sha256": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/errors.py": {
+          "sha256": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/event_validation.py": {
+          "sha256": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/http.py": {
+          "sha256": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/media_validation.py": {
+          "sha256": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/membership_types.py": {
+          "sha256": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/membership_validation.py": {
+          "sha256": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/native.py": {
+          "sha256": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/native_audio.py": {
+          "sha256": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/operational.py": {
+          "sha256": "a0fbc20fdbf0f254046cd2ce0124a05307e33fadb078a4e5abb73ad63fc6eb97",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/operations.py": {
+          "sha256": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/protocol.py": {
+          "sha256": "80685808a64fecb35f3e41cd7813e8ed5beebd000d1a8c2c9bcac2d10789dcdb",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/py.typed": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/record_context.py": {
+          "sha256": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_administration.py": {
+          "sha256": "1a9fc59fe32c056a5d758fb3a54702b4e9c9e694e4b52d6e70241c9addb876b6",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_connections.py": {
+          "sha256": "51062e4faacb5264964a668a40b034d9dbb8dadb9def9135b6407a0e78b7fe29",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_data_types.py": {
+          "sha256": "9451360d83c143f26fcbce40a0a930dd1858f53cc64c2ba8397635d674dae428",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_events.py": {
+          "sha256": "d136d353ec64ade7572f7601aa144249baccd9fc3f86238a3f9c7061cf2c022e",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_http.py": {
+          "sha256": "38a51ab0761daaa143a360a3c8377ec8662b8aca5bd2407894faf2e2dd902aac",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_incoming.py": {
+          "sha256": "503135a9b5beeeffcb9d4a9406cf4185457c937244a3f47fb72113fd009da2c6",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_media.py": {
+          "sha256": "24c39df5b4ba39c900e3d67a38ed8bcce878a5582aff2675a262d6c92955834d",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_media_types.py": {
+          "sha256": "96b52e487ef37ba0e6cba6fd72f9aed67504721cc5c8758a9685e8b47d142135",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_movements.py": {
+          "sha256": "fe5801a08a4b91661973e59dd061375be0af2227c865d7808ab45349a2bd53ea",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_raw.py": {
+          "sha256": "4cfb039b4121785da554b91cc1edd605929ed108ab8e4c23d409395c4f774b4e",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_sessions.py": {
+          "sha256": "510a2ab8396227604b45af745b9c13c082148bdbc0cc71e7379d7fd9056c7c23",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_sync.py": {
+          "sha256": "9528a95c538eed90982b19bc7dc5830b075e62586676fed8a15a34a6b1cc2fde",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/sdk_types.py": {
+          "sha256": "ae15a7b9efff4df16e5faffb674a8681c2c5576587a9f582ba9667f3a9e50397",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/task_operations.py": {
+          "sha256": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/task_protocol.py": {
+          "sha256": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+          "mode": 420
+        },
+        "sdk/python/connect_sdk/task_types.py": {
+          "sha256": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+          "mode": 420
+        },
+        "sdk/python/pyproject.toml": {
+          "sha256": "31f7c8fe664d79e06f2ea3b04c2453b75501d7705b5769b269d2611e45b44afc",
+          "mode": 420
+        },
+        "sdk/tests/_python_http_fixture.py": {
+          "sha256": "81cdf0d712db63f5d588aa8f3e274262f7a52f6448d679699e57351ad5628901",
+          "mode": 420
+        },
+        "sdk/tests/_python_sdk_fixture.py": {
+          "sha256": "a1c7354fca5972ada4e04e5e0122440450ce745c154b45a99eef00f4f9c9794b",
+          "mode": 420
+        },
+        "sdk/tests/attachment_links_probe.py": {
+          "sha256": "e056d8b557420addf3b951401608fa4523a0e3eb88f2d2d815c2706405aa7443",
+          "mode": 420
+        },
+        "sdk/tests/check_canonical_helper.py": {
+          "sha256": "495df89e0224ef17ffb008b7ae7d0beb3b8b8a8e86f14bfd6787d64f2cd274e6",
+          "mode": 420
+        },
+        "sdk/tests/check_packet_codec.py": {
+          "sha256": "2f2d6149cff60f72aabf5077dd698d51312dfa1b412c8631eea2f34a2bacd789",
+          "mode": 420
+        },
+        "sdk/tests/check_python_helper.py": {
+          "sha256": "4aa2394ed037e6b2c8a9f8973bae9024dbb760073074c48955dac0ffafd14806",
+          "mode": 420
+        },
+        "sdk/tests/check_python_installation.py": {
+          "sha256": "78f84caaf9b24a3a7172609ef9cdf9ca2bfb99f82aa7fc5a1da8d2e4e9e8011e",
+          "mode": 420
+        },
+        "sdk/tests/contact_probe.py": {
+          "sha256": "19caa48f63c886c11230b016db41f416356543851c3fade5f416258b3eb38b48",
+          "mode": 420
+        },
+        "sdk/tests/conversations_probe.py": {
+          "sha256": "d3dbaf8211a9f36e3414085917a997c4a79e9c20ae71a6abb4b63a5cefddd980",
+          "mode": 420
+        },
+        "sdk/tests/events_probe.py": {
+          "sha256": "c156211ef108e37b8104798daf9c624855646228127812a9e835c85d88515e28",
+          "mode": 420
+        },
+        "sdk/tests/fixtures/sdk_helper.mjs": {
+          "sha256": "67e31413838b3c34acfa8d35301c9a8933a02c84b1505383155f0f83508cc885",
+          "mode": 493
+        },
+        "sdk/tests/fixtures/sdk_media_helper.py": {
+          "sha256": "e40d25d15b89d4c549d699e6540b8857adb868e80225541744d7fb4dd9de50ff",
+          "mode": 493
+        },
+        "sdk/tests/helper_auth_probe.py": {
+          "sha256": "8fba34b40fca4dc29ba282227acdddfb33dd2dc64b27043c25e39e7339653ca8",
+          "mode": 420
+        },
+        "sdk/tests/helper_fixture.py": {
+          "sha256": "1ec26743afbb91d73d9bef7692853a5e3058a4cb4bd128374c3fdbc4adcde9fc",
+          "mode": 493
+        },
+        "sdk/tests/membership_probe.py": {
+          "sha256": "de535eb095200e8539833febaa425404bf464af2dc5f71ebcf9c5a225d8a9267",
+          "mode": 420
+        },
+        "sdk/tests/messages_probe.py": {
+          "sha256": "547a5154a10e8bb53f28f9b047baeebe95c59c9d1ec7c6a6342f8ab95c52e0ca",
+          "mode": 420
+        },
+        "sdk/tests/native_grant_probe.py": {
+          "sha256": "5d1002bfad95e8c2780567f81a8396958e4b4c091884ae5a57f84bf589749e5c",
+          "mode": 420
+        },
+        "sdk/tests/operations_probe.py": {
+          "sha256": "c3c23c4db79605775c93198a09c63e12d5163cbdbba47a9b42979d1a17297a44",
+          "mode": 420
+        },
+        "sdk/tests/prepare_codec_fixtures.py": {
+          "sha256": "5495822691f3265de760efa7a90128d773c250803d944ed74112fd733b5d17e7",
+          "mode": 420
+        },
+        "sdk/tests/prepare_native_consumer.py": {
+          "sha256": "42635f2b7b8671b979d2261b41e2f2c467d080395e9922d5a2965ee25a4923f8",
+          "mode": 420
+        },
+        "sdk/tests/prepare_python_native_consumer.py": {
+          "sha256": "e31ab0c1ebe1a6603c4803c330f49341846ea5f4392847c62e9d2919d1319615",
+          "mode": 420
+        },
+        "sdk/tests/python_administrative_server_consumer.py": {
+          "sha256": "8c5bf9e0b20b5d6187956d772976877f11bb939e60daadb357ba5429265668d0",
+          "mode": 420
+        },
+        "sdk/tests/python_consultation_server_consumer.py": {
+          "sha256": "c1fed36487fd306ad4b05ea2625f36d772a32fcd0d6a7f751a15c52ba6b81870",
+          "mode": 420
+        },
+        "sdk/tests/python_installed_consumer.py": {
+          "sha256": "cb11f670d712de92d9a5eb8be1e26d4cbbffa04eafde334e390279798b8e41fa",
+          "mode": 420
+        },
+        "sdk/tests/python_movement_server_consumer.py": {
+          "sha256": "148d63c987efa9491f521b9f25c964e2556cfab32230a85fbc0abccd7e07bffe",
+          "mode": 420
+        },
+        "sdk/tests/python_native_server_consumer.py": {
+          "sha256": "97f8fa972e5cc754e53ac2c3137f29e73f100e686bcfe3c882c273c09fdb4551",
+          "mode": 420
+        },
+        "sdk/tests/python_probe.py": {
+          "sha256": "78291a22a507c5ecdad39fa08bd044c87b31d05c675c805ada5c46a8ae77e929",
+          "mode": 420
+        },
+        "sdk/tests/python_sdk_negative.py": {
+          "sha256": "d93bd4a0f6878292e5e358bfcd6df6077c48fa6ad3968ca4986affca459ebb00",
+          "mode": 420
+        },
+        "sdk/tests/python_sdk_positive.py": {
+          "sha256": "0f079e2422750c2345d1f247ec2046c546e5e6a0bd5e6e717d1c4470443e19cd",
+          "mode": 420
+        },
+        "sdk/tests/receipts_probe.py": {
+          "sha256": "8b01f0a37600b5a4cd8bb0c9817381d166090a97076e29ffef6908daf466eeb9",
+          "mode": 420
+        },
+        "sdk/tests/session_probe.py": {
+          "sha256": "2e86f4851fc52acf455ba60efc864a31bb7c34dce985d7141b48c49f6f6fa1e3",
+          "mode": 420
+        },
+        "sdk/tests/task_matrix_probe.py": {
+          "sha256": "0e300c994ef88b25f47a2caa0cdd3dbd73003c93d0adc61b7e5306847b31a86a",
+          "mode": 420
+        },
+        "sdk/tests/test_clients.py": {
+          "sha256": "b15fccc60b550956e389cadf66204d40292495a7211c2575a5a4a0c2aaf4ada5",
+          "mode": 420
+        },
+        "sdk/tests/test_contacts.py": {
+          "sha256": "ffbee9292271fe2e7d2bc5891303c99eb147dd166dc0e69e09e703cc40d3c675",
+          "mode": 420
+        },
+        "sdk/tests/test_control_receipts.py": {
+          "sha256": "37a98dd891d233251ef977f3934bd6c159b195c14b90c765d3e348025a0269d2",
+          "mode": 420
+        },
+        "sdk/tests/test_conversations.py": {
+          "sha256": "34af66e5671022d2efdda5f6a8a7e2bbb4e457de52fb03011c2d85ae4cc89f7e",
+          "mode": 420
+        },
+        "sdk/tests/test_events.py": {
+          "sha256": "e03c8b9b115f6b2d2e38fc04673a0ca15918f1fb1f436f7a97975dd2fe0c6fbf",
+          "mode": 420
+        },
+        "sdk/tests/test_media_diagnostics.py": {
+          "sha256": "fbe668eca0364a589218ed291ac5c890377257b7ef5a628bec929a54f27053c7",
+          "mode": 420
+        },
+        "sdk/tests/test_membership.py": {
+          "sha256": "f2bf45f750cb89fd3ee167dd1ab52a8f57ac1bb92bf465cb778f38fc202195e4",
+          "mode": 420
+        },
+        "sdk/tests/test_microphone_codec.py": {
+          "sha256": "b3e976a7b7eace49270e264562b988bba4e765f52b44323ede161bdc1a566f99",
+          "mode": 420
+        },
+        "sdk/tests/test_operational.py": {
+          "sha256": "b3c4e637661b966a4c85a7cfa63ae818acabb2d04a8514faabee53463b110461",
+          "mode": 420
+        },
+        "sdk/tests/test_packet_codec.py": {
+          "sha256": "a2e1a5e4bfd2fde0dd76c76f6fb5277588bdecf73568f63440dbd3390a3b3976",
+          "mode": 420
+        },
+        "sdk/tests/test_python_administration.py": {
+          "sha256": "8109400d382a955422c0f7c32f3fe78c00a39076d4149b378ccc82eca32cf4e0",
+          "mode": 420
+        },
+        "sdk/tests/test_python_connections.py": {
+          "sha256": "8ed51969540615133f7c7e6029380ceb90be8c19f2f6698ad63617afc84ce47d",
+          "mode": 420
+        },
+        "sdk/tests/test_python_data.py": {
+          "sha256": "ca499a7f708fb3ee81b4913cf8d7b49babc5fa70e77274e743e484c1a1146439",
+          "mode": 420
+        },
+        "sdk/tests/test_python_http.py": {
+          "sha256": "4c05fa098de8d839100cf5efc636d288dc6230319a6d69526f9bf7a5e4b5226a",
+          "mode": 420
+        },
+        "sdk/tests/test_python_https.py": {
+          "sha256": "27f752316e4777d3dc4abfbc3b00fbd55363c525c8f5a4fc7777382951f3a120",
+          "mode": 420
+        },
+        "sdk/tests/test_python_media.py": {
+          "sha256": "8e3159ed3538b1d02326bcaef7d4d31ae4f7f85166a3b0ed677ddb16c6006f71",
+          "mode": 420
+        },
+        "sdk/tests/test_python_movements.py": {
+          "sha256": "5ad9ee593da6e12dc3b4d7dd8e308ebdc0233ebcd7ced803675d6cfd6950cce2",
+          "mode": 420
+        },
+        "sdk/tests/test_python_raw.py": {
+          "sha256": "7c702d3eba0469653059f6c24695e1b797d9d931d81a54ff4aab8a1042653c99",
+          "mode": 420
+        },
+        "sdk/tests/test_python_readers.py": {
+          "sha256": "cc77b5deebccd9941e8abe840d0819dea9290d59d9b5099fa1c1a4d3f4faa910",
+          "mode": 420
+        },
+        "sdk/tests/test_python_sdk.py": {
+          "sha256": "59acbe2493dbe0e58ef500a201df7638d22d08345faf03b0c4e699189668828b",
+          "mode": 420
+        },
+        "sdk/tests/test_python_sessions.py": {
+          "sha256": "9f4e1aec2cee4c060b8cf53b22ff4f2a15977ab9d0a2c0b07597b0d9f978de79",
+          "mode": 420
+        },
+        "sdk/tests/test_python_sync.py": {
+          "sha256": "63b49c437183ad7f37061756f5f7d1d8664acd5d660a68a8d7b43477a6791d0b",
+          "mode": 420
+        },
+        "sdk/tests/test_record_context.py": {
+          "sha256": "fe991bff3811835775fc9976b3fa4408febbd4d5151106d3cbcb397c693e3dd7",
+          "mode": 420
+        },
+        "sdk/tests/test_sdk_helper.py": {
+          "sha256": "627983f22574e90574b91e17dd9e41e3fd0ee17eb5a79d7deccdda4de9d1b430",
+          "mode": 420
+        },
+        "sdk/tests/test_tasks.py": {
+          "sha256": "d37aa749103d52ced30801a27c4e71a6dc237ce1c9f11115917daf8ac71aaafa",
+          "mode": 420
+        },
+        "sdk/python/build-requirements.txt": {
+          "sha256": "55c4ebdbc03f3eb035cbd92ea7af75dd00b19995a128c4bb7bbbae1edc2a124b",
+          "mode": 420
+        },
+        "sdk/python/LICENSE": {
+          "sha256": "2a2a2cbcaa51b2012f2c66f1168fa520cf86004397c0058682c4d3bb1bd53716",
+          "mode": 420
+        },
+        "sdk/python/README.md": {
+          "sha256": "ab5d18baa4c1652cd95d86a27f5b9a04a150d363fa813e7e6c040dbe90aa8536",
+          "mode": 420
+        },
+        ".github/workflows/gate6-linux-fixtures.yml": {
+          "sha256": "ee080033ccabf7e6e1baaf04259ddf4d9f3eb242a7c0b33b1904a6905d412bcd",
+          "mode": 420
+        }
+      },
+      "current_differences_from_observation": []
+    },
+    "typescript": {
+      "summary": {
+        "passed": true,
+        "format": "connect/installed-node-sdk-candidate/1",
+        "scope": "Local clean external empty-cache archive install and actual synthetic HTTP Node/browser entry points. No real browser, native helper/server, platform pair or whole SDK qualification.",
+        "package_name": "@rudeless/connect",
+        "version": "0.1.0",
+        "dependency_archives": [
+          {
+            "name": "@types/node",
+            "version": "26.6.4",
+            "file_name": "types-node-26.6.4.tgz",
+            "sha256": "bf2dbf11cfccd34681fc4d5e4d150afce77fd6610224757dbe6c92c8e5149700",
+            "integrity": "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==",
+            "source_url": "https://registry.npmjs.org/@types/node/-/node-26.6.4.tgz",
+            "license_sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+          },
+          {
+            "name": "undici-types",
+            "version": "8.9.0",
+            "file_name": "undici-types-8.9.0.tgz",
+            "sha256": "3a587851ccbf1021b20eac8a38eb819d7e2a1ab77aa477cb24cae5473a3e78c6",
+            "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==",
+            "source_url": "https://registry.npmjs.org/undici-types/-/undici-types-8.9.0.tgz",
+            "license_sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+          }
+        ],
+        "archive_name": "rudeless-connect-0.1.0.tgz",
+        "archive_sha256": "58ffa9468da81d5ebd7136ed8e3237426bff0fc2e0ae0ff365eeb0519feb9912",
+        "files_verified": 195,
+        "consumer_outside_repository": true,
+        "empty_cache": true,
+        "install_scripts_disabled": true,
+        "license_text_verified": true,
+        "source_inputs_unchanged": true,
+        "source_inputs_sha256": "2415d2198d40132ced4c2992095f78ee79a5878743199583344d77b3a79b5aec",
+        "consumer": {
+          "passed": true,
+          "requests": 2,
+          "node_entry_imported": true,
+          "browser_entry_imported": true,
+          "installed_from_external_project": true
+        },
+        "elapsed_seconds": {
+          "pack": 0.756,
+          "install": 0.286,
+          "types": 0.208,
+          "consumer": 0.09
+        },
+        "external_declarations_checked": true,
+        "typescript_version": "7.0.2",
+        "compiler_entry_sha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+        "node_version": "v26.7.0"
+      },
+      "source_inputs": {
+        "sdk/tests/check_node_installation.py": {
+          "mode": 420,
+          "sha256": "780d0051ccd869ffb2b6cce3ed2179098e68e315c43f6da612a3918b59a0b1d7"
+        },
+        "sdk/typescript/LICENSE": {
+          "mode": 420,
+          "sha256": "2a2a2cbcaa51b2012f2c66f1168fa520cf86004397c0058682c4d3bb1bd53716"
+        },
+        "sdk/typescript/README.md": {
+          "mode": 420,
+          "sha256": "99b9536f6bb4692b915da82c09c659ad9c75151f376b2f7b3feb468a7e154832"
+        },
+        "sdk/typescript/dist/agent_observations.d.ts": {
+          "mode": 420,
+          "sha256": "c230d270fd4a33948e6a66aee27f216f97260ba6fdb1b58f8d4b4eea049c997c"
+        },
+        "sdk/typescript/dist/agent_observations.js": {
+          "mode": 420,
+          "sha256": "e83264b75f53f69e7d4752144cdbb56759e7be3236f2c42b645c674101c2301c"
+        },
+        "sdk/typescript/dist/browser.d.ts": {
+          "mode": 420,
+          "sha256": "c27d7ed339e1dab8e376ac44c7780c9b27c36a315ff81d53c1145a9cf6ef06fc"
+        },
+        "sdk/typescript/dist/browser.js": {
+          "mode": 420,
+          "sha256": "8eb2b4b189d48be7676148a4a9212300c95981c2d9ed08791c8cba329ec175c0"
+        },
+        "sdk/typescript/dist/browser_application_reads.d.ts": {
+          "mode": 420,
+          "sha256": "67762af36bf4d503c193a9d4e6580a18941056861bb29f4ff96bc57533d94604"
+        },
+        "sdk/typescript/dist/browser_application_reads.js": {
+          "mode": 420,
+          "sha256": "44ee74aac1afff2c4d81f122328526c4c51a9f01d3ebc71041def201744a51f0"
+        },
+        "sdk/typescript/dist/browser_audio_worklet.d.ts": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/browser_audio_worklet.js": {
+          "mode": 420,
+          "sha256": "e358fcd8a3478112adadb2e5fd7e5e094505b8ac742297da64810458201a0356"
+        },
+        "sdk/typescript/dist/browser_binding.d.ts": {
+          "mode": 420,
+          "sha256": "6c9334e1bea13bab8379f3fcf084c68cca5451d7ab7db00cda68b188fac95f03"
+        },
+        "sdk/typescript/dist/browser_binding.js": {
+          "mode": 420,
+          "sha256": "125e6499364f4725a470682f127d7c1aa33141567ac5787888fc2115014c82ba"
+        },
+        "sdk/typescript/dist/browser_canonical_schema.d.ts": {
+          "mode": 420,
+          "sha256": "d58782e37522b014d06614fa3a9ccbbf7e91ff67ff66c532df9e74d3e92eb291"
+        },
+        "sdk/typescript/dist/browser_canonical_schema.js": {
+          "mode": 420,
+          "sha256": "b30448fb2951283e389192191128592e73c3f6e79b0011265ae3cda4d57c28d6"
+        },
+        "sdk/typescript/dist/browser_canonical_validation.d.ts": {
+          "mode": 420,
+          "sha256": "bf55686e5fe8b6ef4a5cf562374b485df3cc384de571e255a4bed2f645573cc2"
+        },
+        "sdk/typescript/dist/browser_canonical_validation.js": {
+          "mode": 420,
+          "sha256": "f155a872e06db2e876f41a2eb8da1d3f203d332b51f783c19891efcde2a68e37"
+        },
+        "sdk/typescript/dist/browser_capture.d.ts": {
+          "mode": 420,
+          "sha256": "615b9b9993ddca700fff132bb4b9473d8a5aa64f1d25aa8bc0f9215138f2c983"
+        },
+        "sdk/typescript/dist/browser_capture.js": {
+          "mode": 420,
+          "sha256": "2e57b068d20243c6006e3c76fc8324012dcfa354e341ccc43b6304890785909e"
+        },
+        "sdk/typescript/dist/browser_client.d.ts": {
+          "mode": 420,
+          "sha256": "3266dbb667df4ff47b8d5327b7282e1ea28eda1c2d3ad0f672b494878bdf06e1"
+        },
+        "sdk/typescript/dist/browser_client.js": {
+          "mode": 420,
+          "sha256": "1aa6ed99c40918fc40cff31c7a697b30bb8551a48a4923d059f8fdb42533dbb4"
+        },
+        "sdk/typescript/dist/browser_codecs.d.ts": {
+          "mode": 420,
+          "sha256": "fd185c2e3f68ddbda916e0531dfc91b619c349bf1a092368a139f1c94cad435a"
+        },
+        "sdk/typescript/dist/browser_codecs.js": {
+          "mode": 420,
+          "sha256": "80ddfb3864a5278fcb1105979b899641605eb3fd8e92408c6a1cf68641103206"
+        },
+        "sdk/typescript/dist/browser_control_transport.d.ts": {
+          "mode": 420,
+          "sha256": "ebc916f257503b6165c3791d5342aefb2b6d8b9ee151aabaa375d93334e1f181"
+        },
+        "sdk/typescript/dist/browser_control_transport.js": {
+          "mode": 420,
+          "sha256": "6930de9d2b9b103ca248813f84de24a4dcc2ccce419033222f813681882e6c63"
+        },
+        "sdk/typescript/dist/browser_deadline.d.ts": {
+          "mode": 420,
+          "sha256": "bea99b78619cff0782f1c35ce8f6900fdd9f91381dd8d352c9ca1f3475a3c381"
+        },
+        "sdk/typescript/dist/browser_deadline.js": {
+          "mode": 420,
+          "sha256": "0f75a16a0d484caf1009759e7389bd9be1c00fbc83d46bf183d7fe8b3b571f9e"
+        },
+        "sdk/typescript/dist/browser_enrollment.d.ts": {
+          "mode": 420,
+          "sha256": "05df2b7fa6eb278b848ec89b4cc89271df5abd74c8ba9d3001f0e10a70c15afe"
+        },
+        "sdk/typescript/dist/browser_enrollment.js": {
+          "mode": 420,
+          "sha256": "5e00707a119af77c2d22f8ac877f6b4967a688ad6f32d728bb87c798bda42d68"
+        },
+        "sdk/typescript/dist/browser_enrollment_contract.d.ts": {
+          "mode": 420,
+          "sha256": "ed342f3b5c10e21057ba9746da3c8616fe0fafa8516386dbffe5f540b111935a"
+        },
+        "sdk/typescript/dist/browser_enrollment_contract.js": {
+          "mode": 420,
+          "sha256": "028b84f55498ac0f3549e6d3b79d605a709d13ee70ff0f50e9d556e727034df3"
+        },
+        "sdk/typescript/dist/browser_enrollment_key.d.ts": {
+          "mode": 420,
+          "sha256": "47cf236f1f4bc2a642ce30a749d21c649888ba21c2fa275ae0cf6f57b1f129a1"
+        },
+        "sdk/typescript/dist/browser_enrollment_key.js": {
+          "mode": 420,
+          "sha256": "8541d69689ed4d51e4561e2b8e777283f2c5c480b7a8666c5de8bdf85a2966c7"
+        },
+        "sdk/typescript/dist/browser_enrollment_store.d.ts": {
+          "mode": 420,
+          "sha256": "71917022e7c6bd4b7d8969bb905ba3e5bb5aa5ad1655d641519bff9257934fac"
+        },
+        "sdk/typescript/dist/browser_enrollment_store.js": {
+          "mode": 420,
+          "sha256": "13c2f2a094aff3324107bb7cf645d3e651d3dd7ba4de2d4be2fb1c7f0ac57f3a"
+        },
+        "sdk/typescript/dist/browser_http.d.ts": {
+          "mode": 420,
+          "sha256": "7030f7f0d808a4a877c1121c6c526c4c801b37d3ddbd7c339b53b78561640f9b"
+        },
+        "sdk/typescript/dist/browser_http.js": {
+          "mode": 420,
+          "sha256": "ad7a77e48c405e73086cd726a646608e32958435086a36e4950d1f1814da7e17"
+        },
+        "sdk/typescript/dist/browser_ice.d.ts": {
+          "mode": 420,
+          "sha256": "028f798c5917acd8bea3b6279dc8aa0a0711d13b8e39e0439facc6e95af70a30"
+        },
+        "sdk/typescript/dist/browser_ice.js": {
+          "mode": 420,
+          "sha256": "2b094d3e33df549a00a828b01bb44f9a796f8d502b14367e9fe4fbc2e8b2b19f"
+        },
+        "sdk/typescript/dist/browser_media.d.ts": {
+          "mode": 420,
+          "sha256": "e0bdf4bc373ef9027c7429d14ec863c43503af546c732e2fe09d4b926e778429"
+        },
+        "sdk/typescript/dist/browser_media.js": {
+          "mode": 420,
+          "sha256": "1e6b9fbf99f773d582d4b0355b2d3c1104fca2a3514b08daab4be622b3d625fe"
+        },
+        "sdk/typescript/dist/browser_media_capture.d.ts": {
+          "mode": 420,
+          "sha256": "91256fa9f65af438348dd23cfe7144742b984d8867d8152724a2cbf4be991039"
+        },
+        "sdk/typescript/dist/browser_media_capture.js": {
+          "mode": 420,
+          "sha256": "ee1e9e6b6c7a185e2ecd1c0aace3e6a79c2028e0c6dcc976b08e6635ed366dce"
+        },
+        "sdk/typescript/dist/browser_media_renderer.d.ts": {
+          "mode": 420,
+          "sha256": "a9e2eb6beaa17ea6335a439195bb115b41887c5ce12125f10751e190096aa31a"
+        },
+        "sdk/typescript/dist/browser_media_renderer.js": {
+          "mode": 420,
+          "sha256": "5b6c7a37054706245bc76feb031f0066a4fd89db8e64cff2d25b54f40ed4c802"
+        },
+        "sdk/typescript/dist/browser_receiver.d.ts": {
+          "mode": 420,
+          "sha256": "863b62fc27269e55fff66d8625f4979a14e30f9ca58d4140ba97535738f7764a"
+        },
+        "sdk/typescript/dist/browser_receiver.js": {
+          "mode": 420,
+          "sha256": "a39bcbc747ff1a8f0bd62ff490f7b39aa427cb85dab97de5181497a584f5e096"
+        },
+        "sdk/typescript/dist/browser_rtcp.d.ts": {
+          "mode": 420,
+          "sha256": "0a5fc8f2bf3dfd1c0e68870224e695cb0f02c0bb76d037a378f764484558c1f5"
+        },
+        "sdk/typescript/dist/browser_rtcp.js": {
+          "mode": 420,
+          "sha256": "80ee2ae8aa07e291f5525ec715fac08d795cac0f6ac1bdee19dc3cecc267495b"
+        },
+        "sdk/typescript/dist/browser_rtp.d.ts": {
+          "mode": 420,
+          "sha256": "b5f938b5d38fa75311859c630461fb9324fc042ee791fe66e853c23506117536"
+        },
+        "sdk/typescript/dist/browser_rtp.js": {
+          "mode": 420,
+          "sha256": "1efcb0d7d9266d770b90a79c378ecbf8142129210093046c8d49221136e6f0c8"
+        },
+        "sdk/typescript/dist/browser_sdk.d.ts": {
+          "mode": 420,
+          "sha256": "57fc3fd7721856a36abe6b044f364d95019404d3dcbe026594bb4d5e1da68f1b"
+        },
+        "sdk/typescript/dist/browser_sdk.js": {
+          "mode": 420,
+          "sha256": "f41ad0d70d8c1ae0e0db5cdfef991eb2498ddc76372728b8869ee9550ac1698f"
+        },
+        "sdk/typescript/dist/browser_sdk_consultations.d.ts": {
+          "mode": 420,
+          "sha256": "18ef4dfd8d57f303ea76f7687121232fa367607db3f536cd3893540cdbc8fd8f"
+        },
+        "sdk/typescript/dist/browser_sdk_consultations.js": {
+          "mode": 420,
+          "sha256": "095665329af3429cc6b577706ed7df3e5dc0afff8f4122d3f40ccb1484af8dd0"
+        },
+        "sdk/typescript/dist/browser_sdk_decisions.d.ts": {
+          "mode": 420,
+          "sha256": "f439e5546fbbb56925f2635c13b0aedcec4bd55e851278cfdc1016d20d5d6b6a"
+        },
+        "sdk/typescript/dist/browser_sdk_decisions.js": {
+          "mode": 420,
+          "sha256": "4c4613be2a1f63c8d80cc56b5581510b3adaf87a6e28ea64a61a6715d4e02424"
+        },
+        "sdk/typescript/dist/browser_sdk_events.d.ts": {
+          "mode": 420,
+          "sha256": "c31d201a19b5b1257a051b49978709d00552467e9c04a0e345ed3736f6ebee2d"
+        },
+        "sdk/typescript/dist/browser_sdk_events.js": {
+          "mode": 420,
+          "sha256": "f4e3d77b092b33be82ef9726cbfd5fdb4785c3615764ce2332e511d1850b4b76"
+        },
+        "sdk/typescript/dist/browser_sdk_inbox.d.ts": {
+          "mode": 420,
+          "sha256": "75980228fd4e27c2d2089b2e79391375b42f5b2ebb9187aee0e8d3eb7ae954ca"
+        },
+        "sdk/typescript/dist/browser_sdk_inbox.js": {
+          "mode": 420,
+          "sha256": "e5b8b4273fb543f30f3f35c1f07895820c8789d72d184f12c847e9a136e5d3fd"
+        },
+        "sdk/typescript/dist/browser_sdk_membership.d.ts": {
+          "mode": 420,
+          "sha256": "f6274eb5371ac5c3ac6a3e82c6d87330ecca39cadc6147b9893950846c3b63a1"
+        },
+        "sdk/typescript/dist/browser_sdk_membership.js": {
+          "mode": 420,
+          "sha256": "6c542e4dbade649d30d9e3af8b9301f2e4e4c2a2916eef9196b0e3fad1821388"
+        },
+        "sdk/typescript/dist/browser_sdk_messages.d.ts": {
+          "mode": 420,
+          "sha256": "8d82133b7be10d19ca34384631c99e39cd559ade88c0b89441b47280ae92f450"
+        },
+        "sdk/typescript/dist/browser_sdk_messages.js": {
+          "mode": 420,
+          "sha256": "f3a872055741a41ad3ace5f504ec13623cb84ecc781fa8a395c1b375f9ce0663"
+        },
+        "sdk/typescript/dist/browser_sdk_movements.d.ts": {
+          "mode": 420,
+          "sha256": "422ea85c547eb5eaaf1014ccee47b9c0fafea68a9f52f6b54f864049d683a529"
+        },
+        "sdk/typescript/dist/browser_sdk_movements.js": {
+          "mode": 420,
+          "sha256": "e5aa322fac7239d4f38bd92019d550a62fc7da2695c34cd988e41d8a054967b0"
+        },
+        "sdk/typescript/dist/browser_sdk_raw.d.ts": {
+          "mode": 420,
+          "sha256": "1ad09baae1b7ffdcbbf90a1c45e8ed436ccdd0ee733074fab533421905100830"
+        },
+        "sdk/typescript/dist/browser_sdk_raw.js": {
+          "mode": 420,
+          "sha256": "dc41eca6f0ad00344942b579542869704f3b6d464ba3431ce457173064d9d7d4"
+        },
+        "sdk/typescript/dist/browser_sdk_sessions.d.ts": {
+          "mode": 420,
+          "sha256": "0a65c5892ccd9c80175af1b5117f48df3b70f36a48ca0229a91d164201b16491"
+        },
+        "sdk/typescript/dist/browser_sdk_sessions.js": {
+          "mode": 420,
+          "sha256": "0fe3829ca24953e32471eaf54a746fb82e4eabb0978bdbab9bfe500ce2a4da3d"
+        },
+        "sdk/typescript/dist/browser_sdk_streams.d.ts": {
+          "mode": 420,
+          "sha256": "67493fdcdb52994b60dc8b574058c0341d5168407f875972417e203a7a589ee5"
+        },
+        "sdk/typescript/dist/browser_sdk_streams.js": {
+          "mode": 420,
+          "sha256": "0f527190c9ab615ff0165463bbbd1c02a092c429ed6226d9579c817702aa5e32"
+        },
+        "sdk/typescript/dist/browser_sdk_webrtc.d.ts": {
+          "mode": 420,
+          "sha256": "a8697ecd938a556e1a55c148a98b232ad438ca4fcfe84440c7a72d8bb4ffb8ef"
+        },
+        "sdk/typescript/dist/browser_sdk_webrtc.js": {
+          "mode": 420,
+          "sha256": "75e555ed458a084f5cb2fa2516f632d4822e075ac8d76e04a39cb9332e17603e"
+        },
+        "sdk/typescript/dist/browser_tasks.d.ts": {
+          "mode": 420,
+          "sha256": "7a46970c14ebc249f4c4503f0e69652654e3017b7f0eb3779bc36fe5ee293078"
+        },
+        "sdk/typescript/dist/browser_tasks.js": {
+          "mode": 420,
+          "sha256": "37cafdec84de199b0fdd611e2631f8604f9d544428f8d60c5752dcf2cfbaa635"
+        },
+        "sdk/typescript/dist/browser_transport_client.d.ts": {
+          "mode": 420,
+          "sha256": "a6d85b0b501ab2e2f8ee3989d6677da500490070c4529dc19844a2c95415a73b"
+        },
+        "sdk/typescript/dist/browser_transport_client.js": {
+          "mode": 420,
+          "sha256": "b3b64724bc944ac43dd861f339d9f86eea39148e632accad7b1db4b61ef3cae3"
+        },
+        "sdk/typescript/dist/browser_ui.d.ts": {
+          "mode": 420,
+          "sha256": "a3ebff354e16a0b6acbf9558336c057a4a8bfec53370c0caa96700b59df89b99"
+        },
+        "sdk/typescript/dist/browser_ui.js": {
+          "mode": 420,
+          "sha256": "ba3604882b491132e40a25d4869d518a77cd7dcc1855d5441efedd799036fbe8"
+        },
+        "sdk/typescript/dist/browser_video.d.ts": {
+          "mode": 420,
+          "sha256": "542bfcfc2033c5d8eedff0e137b05b9b3b726f316a29196afb6948c4c02d1a23"
+        },
+        "sdk/typescript/dist/browser_video.js": {
+          "mode": 420,
+          "sha256": "aa1266e9b948f7abf2f1c8dca9b6789a7dea950bd1aee2f22819d257c66050af"
+        },
+        "sdk/typescript/dist/browser_video_capture.d.ts": {
+          "mode": 420,
+          "sha256": "07a3456758e41bb0ac445c8540bd6a766f925e39002f313801cde20b7c040a9e"
+        },
+        "sdk/typescript/dist/browser_video_capture.js": {
+          "mode": 420,
+          "sha256": "94f7966d4b8b6ea9e72a7945bd72f9308263dee55e078898e6cc02260c74f891"
+        },
+        "sdk/typescript/dist/browser_video_keyframes.d.ts": {
+          "mode": 420,
+          "sha256": "ad5bb07585033efe14ac77fca766f3292ebf743cd6cd2950fc30e1b0b0e11a3c"
+        },
+        "sdk/typescript/dist/browser_video_keyframes.js": {
+          "mode": 420,
+          "sha256": "2391985351d208a18738b34139f0d1f4ca4b8ea0696b1a8459c7f8049fc4e272"
+        },
+        "sdk/typescript/dist/browser_video_setup.d.ts": {
+          "mode": 420,
+          "sha256": "e8923a6f46d526394f5e00814975922f43513cf832dd38cd5679e5f2afe270d7"
+        },
+        "sdk/typescript/dist/browser_video_setup.js": {
+          "mode": 420,
+          "sha256": "bec3a302b29941d69b1c32240155afb996ad36b9207ff1803accce0b01a71ac7"
+        },
+        "sdk/typescript/dist/browser_video_stats.d.ts": {
+          "mode": 420,
+          "sha256": "f4293c347d33461a83ab2505bab0a843bba7812e700dc56b853754f9d89ceffc"
+        },
+        "sdk/typescript/dist/browser_video_stats.js": {
+          "mode": 420,
+          "sha256": "cd452106181c8b12c9affe711711da9fab9306e1756c0ad4a731a577ed3f219e"
+        },
+        "sdk/typescript/dist/browser_video_transform.d.ts": {
+          "mode": 420,
+          "sha256": "91e45252a2c03501d86a9d260fe14ce9543daeb59886e3b4318d4f0fcea618da"
+        },
+        "sdk/typescript/dist/browser_video_transform.js": {
+          "mode": 420,
+          "sha256": "ff0415be3c9fa856007554888c25dcb9ebaa6e46595f1e32616643d98daf5dfc"
+        },
+        "sdk/typescript/dist/browser_voice.d.ts": {
+          "mode": 420,
+          "sha256": "f8ab3a267edaa8522d24c16f5ca53a1766b717b20288380f6e9e5067f94a3f15"
+        },
+        "sdk/typescript/dist/browser_voice.js": {
+          "mode": 420,
+          "sha256": "c1966e9e0e6d8c13b4dc634b95af86b977dbb44bb67d2b327c33ab2bb51848c8"
+        },
+        "sdk/typescript/dist/browser_voice_stats.d.ts": {
+          "mode": 420,
+          "sha256": "77200e7531b021bfcee95c809e4ff94162318ef89a858035ab368ed9c2a2cc79"
+        },
+        "sdk/typescript/dist/browser_voice_stats.js": {
+          "mode": 420,
+          "sha256": "bd93aa728c0131e20a6fa016f27b2508d2d7d5e772434d474c6bbbd8117c25ec"
+        },
+        "sdk/typescript/dist/browser_webrtc_restart.d.ts": {
+          "mode": 420,
+          "sha256": "b254fe807ca2d42b5ad666856e58e2ec4333cd1e6322663197e79360ee1b5b90"
+        },
+        "sdk/typescript/dist/browser_webrtc_restart.js": {
+          "mode": 420,
+          "sha256": "19c3755b732bbaa0db7c3497c63a6796e514a2688923202d520848dcd42bcf1d"
+        },
+        "sdk/typescript/dist/browser_webrtc_signaling.d.ts": {
+          "mode": 420,
+          "sha256": "2fa9fb8c255423127fb28778047c27bb82ff6ceea7be731b30551617106de408"
+        },
+        "sdk/typescript/dist/browser_webrtc_signaling.js": {
+          "mode": 420,
+          "sha256": "aae6ae723f71737f0d4c3ae11fa76f7e7a7d542ae2258a206132637f752be13e"
+        },
+        "sdk/typescript/dist/canonical_error.d.ts": {
+          "mode": 420,
+          "sha256": "ce4a687383a25cd224407b942732c03ac6bf439b0bfb9c361b761ddad1aea756"
+        },
+        "sdk/typescript/dist/canonical_error.js": {
+          "mode": 420,
+          "sha256": "c0163dfee7754a87fee594a7fabfd116e17c818a73b263a1aacca7734f992949"
+        },
+        "sdk/typescript/dist/canonical_http.d.ts": {
+          "mode": 420,
+          "sha256": "e47ea284a96d35e52570444d8e9b90e588c25561df4be3a877e5bf3c9ba69a33"
+        },
+        "sdk/typescript/dist/canonical_http.js": {
+          "mode": 420,
+          "sha256": "fa87706e698086a8c3cb5c8938d86f3dce8d84e0145bf4a017bf63ec29b51f04"
+        },
+        "sdk/typescript/dist/canonical_native.d.ts": {
+          "mode": 420,
+          "sha256": "884aef1a422a1d55cc966e3b5910248de9bf577bae1f6871ce63fc97d0681574"
+        },
+        "sdk/typescript/dist/canonical_native.js": {
+          "mode": 420,
+          "sha256": "064dbeaf8932dbe61b4a6b1103a6d295109fb38c32555d5454b4bc6586ea8196"
+        },
+        "sdk/typescript/dist/canonical_validation.d.ts": {
+          "mode": 420,
+          "sha256": "62f09cb738ceb0b8407340644130fadd434403d3fd50c74a4795f845bf8b540b"
+        },
+        "sdk/typescript/dist/canonical_validation.js": {
+          "mode": 420,
+          "sha256": "475e7300cbbea41eba4058cf9bad53fa8fa5dfc19573336f9f4f947b3b1bf4f3"
+        },
+        "sdk/typescript/dist/contact_validation.d.ts": {
+          "mode": 420,
+          "sha256": "e530fb7a25930e174fabf509211a3af5d064ddfd9b22cb221ce34994e905e387"
+        },
+        "sdk/typescript/dist/contact_validation.js": {
+          "mode": 420,
+          "sha256": "4c81b0dcfa5590137b70db87884c3a957bbbd6151a81bee43951070a1079eaa1"
+        },
+        "sdk/typescript/dist/contacts.d.ts": {
+          "mode": 420,
+          "sha256": "ccdca6934872b9150b761aeca1bab1eb0943c7ee710d523b14b888af75a5dc62"
+        },
+        "sdk/typescript/dist/contacts.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/control_endpoint.d.ts": {
+          "mode": 420,
+          "sha256": "91764dfb35c16fe3ee45c734871f27b10898faa6591abfdac0c3619b563d7673"
+        },
+        "sdk/typescript/dist/control_endpoint.js": {
+          "mode": 420,
+          "sha256": "50ebee5d40a892d9c764321d2cb99e8212e66571f5d3fb0f91f289a4390adf3a"
+        },
+        "sdk/typescript/dist/conversations.d.ts": {
+          "mode": 420,
+          "sha256": "de03da148033a1b8232277f1938931d21486c165626240d857d7331a30a3a97d"
+        },
+        "sdk/typescript/dist/conversations.js": {
+          "mode": 420,
+          "sha256": "d5ab14d5a0dc4b75195c747184df5bc7945be644db654f39de7170975c50143d"
+        },
+        "sdk/typescript/dist/errors.d.ts": {
+          "mode": 420,
+          "sha256": "16843e525c53c8fb9d1db15eddeaaf3b34a6f3312924731453bea5f03a48b96f"
+        },
+        "sdk/typescript/dist/errors.js": {
+          "mode": 420,
+          "sha256": "90877123ab7e3358e825d6b5ba268c0772f0c29b2b3225c1a3aed40e32ee1f84"
+        },
+        "sdk/typescript/dist/event_validation.d.ts": {
+          "mode": 420,
+          "sha256": "bbcd9d7bc17e7b0892ac59b4d49428fada621f3825edf1ea60d349e0895850a4"
+        },
+        "sdk/typescript/dist/event_validation.js": {
+          "mode": 420,
+          "sha256": "e2a11ad9974aa44cbbec8848d72d6400a6cc713256919b302e765d8ccb7bc5d2"
+        },
+        "sdk/typescript/dist/events.d.ts": {
+          "mode": 420,
+          "sha256": "6c66e646b713b0563610090ee3c2774df3e25cd9c11c6ea0506cbe2c1dc92af4"
+        },
+        "sdk/typescript/dist/events.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/http.d.ts": {
+          "mode": 420,
+          "sha256": "d9901d26770f7094a44f04c085952ee998b69dd5ce90648592487aa920b5d609"
+        },
+        "sdk/typescript/dist/http.js": {
+          "mode": 420,
+          "sha256": "f34fa24f5513abcde04d1cf402aeaafa32e37643c99bcd71409b4ebe8be13b16"
+        },
+        "sdk/typescript/dist/index.d.ts": {
+          "mode": 420,
+          "sha256": "3dc2dd9b5bb8280ae43e1ed1799f409c20b2acf016ed978f5a08524dbccacc4d"
+        },
+        "sdk/typescript/dist/index.js": {
+          "mode": 420,
+          "sha256": "deab44756420ffb36a0ea9ec725a81ece00a7cb6227e85cf439caf9e0164a0d0"
+        },
+        "sdk/typescript/dist/media_diagnostics.d.ts": {
+          "mode": 420,
+          "sha256": "cb4c2a664168556722173247f25518c7638bbc1144b01db1e7d6c2d220c6fc75"
+        },
+        "sdk/typescript/dist/media_diagnostics.js": {
+          "mode": 420,
+          "sha256": "b7c99561b44fc369d0cdb7110cd8aaa96bd94f63d1d858f75e1d1c046aac70e5"
+        },
+        "sdk/typescript/dist/membership.d.ts": {
+          "mode": 420,
+          "sha256": "358f61a480fe2dce43920037fb6def413a025952bdf20fbf55f84b6c444ecec0"
+        },
+        "sdk/typescript/dist/membership.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/membership_validation.d.ts": {
+          "mode": 420,
+          "sha256": "023a218f6498609205dd150f474e296351aa7f5252e9ace505fdb0384de8b58b"
+        },
+        "sdk/typescript/dist/membership_validation.js": {
+          "mode": 420,
+          "sha256": "39bb089658843ea83eea415d25bac98abfc8f14fde9b807f1fd61a4e1ee08a2f"
+        },
+        "sdk/typescript/dist/native.d.ts": {
+          "mode": 420,
+          "sha256": "5c206744ff32914e5cab9db5eaf7614a70217cab66e02f22daa616af4c34f95e"
+        },
+        "sdk/typescript/dist/native.js": {
+          "mode": 420,
+          "sha256": "5364ae8bb52c8acb9ae46821c7cc9cf86aea8407e8b8696a3f0c0d138d79e683"
+        },
+        "sdk/typescript/dist/native_audio.d.ts": {
+          "mode": 420,
+          "sha256": "9aa25311b2ad2a56a22521f3ee3b50de23300fe8c567d4d7a369684cd63ca182"
+        },
+        "sdk/typescript/dist/native_audio.js": {
+          "mode": 420,
+          "sha256": "fd91c8d3b68bf7963269c184cea4f9a1d1053d45f0517d5e9d74f763c7faca18"
+        },
+        "sdk/typescript/dist/node_administration.d.ts": {
+          "mode": 420,
+          "sha256": "18b8feb379d49b91affc3ba9778f44da151d62acb154daa27f33e371eed6194c"
+        },
+        "sdk/typescript/dist/node_administration.js": {
+          "mode": 420,
+          "sha256": "4590a43dba6d3b34910ef2240c5a9cee8c38fcafcd4d12b142b0962407d32d33"
+        },
+        "sdk/typescript/dist/node_connections.d.ts": {
+          "mode": 420,
+          "sha256": "41bb91191c11e6c6c2c8e8da3d707276f236560dc1e304cb3586384f75672273"
+        },
+        "sdk/typescript/dist/node_connections.js": {
+          "mode": 420,
+          "sha256": "0d6892cc0939003dfb8fed9c3e994bdc678e93f172566c8e14727db053ac1965"
+        },
+        "sdk/typescript/dist/node_events.d.ts": {
+          "mode": 420,
+          "sha256": "4cb375caf2592911443b25dbc72246fd78bab75b500d555f0611207a5cbfdc8d"
+        },
+        "sdk/typescript/dist/node_events.js": {
+          "mode": 420,
+          "sha256": "0822bc972f542e83767f6e3a1fe99044942988ed4b13762aebcb97a62d10cc44"
+        },
+        "sdk/typescript/dist/node_incoming.d.ts": {
+          "mode": 420,
+          "sha256": "fde35d376cf35d3ddb01e087be33a54c59650a114d115b5f90d55de36794597e"
+        },
+        "sdk/typescript/dist/node_incoming.js": {
+          "mode": 420,
+          "sha256": "22d6470caee8639657da3ed2f16a2602507a663bd7a9caab5c90466eb291359c"
+        },
+        "sdk/typescript/dist/node_media.d.ts": {
+          "mode": 420,
+          "sha256": "72a5ae7b08710e99150a352896ed1ad1eac5270b8520dfd83620c34dad5a8b98"
+        },
+        "sdk/typescript/dist/node_media.js": {
+          "mode": 420,
+          "sha256": "04b0df62a4f6f2d39f389cf7a9dede6858431347d6642eb5394a02740986fa21"
+        },
+        "sdk/typescript/dist/node_media_channel.d.ts": {
+          "mode": 420,
+          "sha256": "9eecb5428c8d0ce6ce626b8e5b7dd292c3031262cfb21210336b0d544030f4a7"
+        },
+        "sdk/typescript/dist/node_media_channel.js": {
+          "mode": 420,
+          "sha256": "8235c78171e4c370c08ea47e9578a346d85dc736d6333377b7fb32ebc730f7bd"
+        },
+        "sdk/typescript/dist/node_media_types.d.ts": {
+          "mode": 420,
+          "sha256": "949255373a4408637a7df49efffa282a45e16155d212676ff121637a22054634"
+        },
+        "sdk/typescript/dist/node_media_types.js": {
+          "mode": 420,
+          "sha256": "a099a9ae15d484e6669bd64978564fe1b5b9e3336b4c191bc51c27f872d86849"
+        },
+        "sdk/typescript/dist/node_movements.d.ts": {
+          "mode": 420,
+          "sha256": "69344e0ff6bf587e9c1e554e80c25617f100fc47a4097fcee8afe5a2d20f255b"
+        },
+        "sdk/typescript/dist/node_movements.js": {
+          "mode": 420,
+          "sha256": "47b5451b4df6745a75d7804e8acf44b4fc6345198b911fbf4b9c661d11b3c537"
+        },
+        "sdk/typescript/dist/node_raw.d.ts": {
+          "mode": 420,
+          "sha256": "f77355510a648d8b001b0984c7e6ed359b3386dbc473c23bbedd25d4fce32eff"
+        },
+        "sdk/typescript/dist/node_raw.js": {
+          "mode": 420,
+          "sha256": "50b8dedda65d27719fb1d8c0c848cf04407d42825d7a535dbee7e0c51e25f90a"
+        },
+        "sdk/typescript/dist/node_readers.d.ts": {
+          "mode": 420,
+          "sha256": "590320b904e0555f6bf7ef331cf64cb4e15708c6fb573a176ecbc70121ed3416"
+        },
+        "sdk/typescript/dist/node_readers.js": {
+          "mode": 420,
+          "sha256": "b4d66e7d417966b1529191cbb658a204e0c26074f20392013ade6db36e59b9c8"
+        },
+        "sdk/typescript/dist/node_receipts.d.ts": {
+          "mode": 420,
+          "sha256": "6a1ea60ff6f81bc7f1620cb174efb9395c2c102d95894fd199aaca106a5f7dbe"
+        },
+        "sdk/typescript/dist/node_receipts.js": {
+          "mode": 420,
+          "sha256": "c01b35670cf60f897fed658e3f4fcf4e8a9f8befabce5157c4d204aea3dbc080"
+        },
+        "sdk/typescript/dist/node_sdk.d.ts": {
+          "mode": 420,
+          "sha256": "36336fe2482a5e9a6d04f318f88cba9d78fe01a33161d321777b4c55d717ae19"
+        },
+        "sdk/typescript/dist/node_sdk.js": {
+          "mode": 420,
+          "sha256": "c32cbc0ae4104e5f3ba579d32655c5a09dfdffc8d8a9c690f098e69213e18ebf"
+        },
+        "sdk/typescript/dist/node_sessions.d.ts": {
+          "mode": 420,
+          "sha256": "0f96dbfe2088e7abadcecaedc693a2a655ef8e4b2210171734cb168d28b521bf"
+        },
+        "sdk/typescript/dist/node_sessions.js": {
+          "mode": 420,
+          "sha256": "a6adfa0320221c1ae194ec59ec840cd71f93ed97063230b7fc63a45b3175beb1"
+        },
+        "sdk/typescript/dist/operational.d.ts": {
+          "mode": 420,
+          "sha256": "4faa8ffb405313d2677c569a80d9fbd3efd89559592a708417de3819cb223c7f"
+        },
+        "sdk/typescript/dist/operational.js": {
+          "mode": 420,
+          "sha256": "3c9a2217859e803a73a2909afed838e1f7b0be19c57f6aa077d33cba3e67d477"
+        },
+        "sdk/typescript/dist/operations.d.ts": {
+          "mode": 420,
+          "sha256": "edc84a4011314e532e6a1d47351b0b03fada374e37edfb7013e0c585453de634"
+        },
+        "sdk/typescript/dist/operations.js": {
+          "mode": 420,
+          "sha256": "b9ca188abb2664d3ab8c0134235a66f69401ec7ded9bc3e35b14a53bf751b3d7"
+        },
+        "sdk/typescript/dist/protocol.d.ts": {
+          "mode": 420,
+          "sha256": "2b8461bdbc961db44f615e892287f5443845ff80e09c62d8c5ec94f65ca2700e"
+        },
+        "sdk/typescript/dist/protocol.js": {
+          "mode": 420,
+          "sha256": "e22d9ea196915525fd1fbfb590ef01d110d39870e03feb4c145c4b7f0b48ab66"
+        },
+        "sdk/typescript/dist/record_context.d.ts": {
+          "mode": 420,
+          "sha256": "c59e4e50594280766b2b0b8e7f91e2482def57239e0d6406d71dbc47ebe71fed"
+        },
+        "sdk/typescript/dist/record_context.js": {
+          "mode": 420,
+          "sha256": "a30a0d3f3df8db1ca583173fb3fb8c78cd68fa78bc7209b54f522fbd7d0d690d"
+        },
+        "sdk/typescript/dist/sdk_helper.d.ts": {
+          "mode": 420,
+          "sha256": "9e90d87637efdfd06c8d49b1cc6cf260e671ef7079c9b370ae2a93a1fdb17711"
+        },
+        "sdk/typescript/dist/sdk_helper.js": {
+          "mode": 420,
+          "sha256": "ef9ab82d24a965ee42ba9b869ea17a45f424978b82e53172c5cf01c007cfaeec"
+        },
+        "sdk/typescript/dist/sdk_identity.d.ts": {
+          "mode": 420,
+          "sha256": "2379954fe6a42c5b3355ddf5694393179624957c39c5e033c29f2ad88b0654d3"
+        },
+        "sdk/typescript/dist/sdk_identity.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/task_operations.d.ts": {
+          "mode": 420,
+          "sha256": "87b1e0a7c3f83c4242980661f3c5613b0415044a405838618022659c340a50f6"
+        },
+        "sdk/typescript/dist/task_operations.js": {
+          "mode": 420,
+          "sha256": "8b844e26bb3a4eb49d54857e1b07bb64b846690705cb900a624a5a8e807d7d9c"
+        },
+        "sdk/typescript/dist/task_protocol.d.ts": {
+          "mode": 420,
+          "sha256": "ea1ff55d2f9b316040a18a6c90e0774813e86be36e55d6ae2eda608ac73e18b4"
+        },
+        "sdk/typescript/dist/task_protocol.js": {
+          "mode": 420,
+          "sha256": "929c06b33987c967062c50afdde34b5e3422095e1d02bc9c31cfd07a8e7d55fc"
+        },
+        "sdk/typescript/dist/tasks.d.ts": {
+          "mode": 420,
+          "sha256": "d41e991981dd5f9f538d6988e4b0b6734307d90a3209e3b8cb96cf96e157b1bf"
+        },
+        "sdk/typescript/dist/tasks.js": {
+          "mode": 420,
+          "sha256": "5bba952d286fe6910adbda28be5eabdf63cec46e90e557598cdff7e7a14a56a8"
+        },
+        "sdk/typescript/dist/transitions.d.ts": {
+          "mode": 420,
+          "sha256": "5971b6f933cb715ceb8dab155ff5ad6a9f856b41a05877922e173d9627dd1dcc"
+        },
+        "sdk/typescript/dist/transitions.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/types.d.ts": {
+          "mode": 420,
+          "sha256": "8249bfc9da78bf683ee1ce59a4b758d7534167b602f10e47abcb24e650444d34"
+        },
+        "sdk/typescript/dist/types.js": {
+          "mode": 420,
+          "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+        },
+        "sdk/typescript/dist/uctp_datetime.d.ts": {
+          "mode": 420,
+          "sha256": "49c0eaf5faae4096fbad98b59aa7d9d007dea1aba0c833003e2280fad1190da6"
+        },
+        "sdk/typescript/dist/uctp_datetime.js": {
+          "mode": 420,
+          "sha256": "ff9bf58f1888a7986775491aeeb33aec2c212187133f7d764f7ea6aba905f0c3"
+        },
+        "sdk/typescript/dist/uctp_json.d.ts": {
+          "mode": 420,
+          "sha256": "abc32d5b634cdf3ac12a71439a7cb53e377645294a094aa259e4f388aaab0f94"
+        },
+        "sdk/typescript/dist/uctp_json.js": {
+          "mode": 420,
+          "sha256": "aae4bcaae9b0d62e16ac2633fd2334dc452d4ca5cb4ae3f74e1a6db67addf95d"
+        },
+        "sdk/typescript/dist/uctp_signing.d.ts": {
+          "mode": 420,
+          "sha256": "5c5abfebcb52b09ac2606bc719188df5fb12f148b4e434aefcc1c4389ef10bfa"
+        },
+        "sdk/typescript/dist/uctp_signing.js": {
+          "mode": 420,
+          "sha256": "44928e745ca41aee4a2ffbaab26938ed4c9f825eb9eb4df30989479f9bdb73ac"
+        },
+        "sdk/typescript/dist/uctp_wire.d.ts": {
+          "mode": 420,
+          "sha256": "f79f790f26b64102d955889cb563d9841dbf28fadd12033850bfc41c0fa46ba0"
+        },
+        "sdk/typescript/dist/uctp_wire.js": {
+          "mode": 420,
+          "sha256": "4a1b9e6757b169c43dd7e8ca8c4192af9b9fb24496c947239f6ecd3f4126911d"
+        },
+        "sdk/typescript/dist/validation.d.ts": {
+          "mode": 420,
+          "sha256": "6c18a6a8246a0ba6393c22045eb39a0824021c648a40c49b097e17eae548096c"
+        },
+        "sdk/typescript/dist/validation.js": {
+          "mode": 420,
+          "sha256": "29d8b2dfd38ced5f481beb91daf70c078a948032cd21b9fc2db82b00738733d9"
+        },
+        "sdk/typescript/package-lock.json": {
+          "mode": 420,
+          "sha256": "0e0ad36cbffd605c5b7c6932907fb46c54451b91360e16f7b8c17e906b8c72cd"
+        },
+        "sdk/typescript/package.json": {
+          "mode": 420,
+          "sha256": "4405d8b519481ca86df266d35f33d3ac0f61644d415b7e509cd38041ee262def"
+        }
+      },
+      "current_differences_from_observation": []
+    }
+  },
+  "retained_failed_attempts": [
+    {
+      "attempt": "node-archive-01",
+      "result": "Checker assumed npm pack JSON array; npm12 returned an object. No install pass. Checker now verifies the actual archive filename and bytes."
+    },
+    {
+      "attempt": "node-archive-02",
+      "result": "External install succeeded; strict declarations failed because Node public types were an undeclared development dependency. SDK production metadata corrected."
+    },
+    {
+      "attempt": "node-archive-03",
+      "result": "External offline dependency install succeeded; checker omitted the explicit Node type environment. No declaration pass."
+    },
+    {
+      "attempt": "node-archive-04",
+      "result": "External install and strict declarations passed; synthetic consumer incorrectly expected Outcome.kind from health(), which returns the typed health data. Corrected assertion now checks the exact fixture data."
+    }
+  ],
+  "remaining_requirements": [
+    "Standalone versioned Rust registry-equivalent archives and complete offline dependency closure without repository/.deps paths",
+    "Exact same-candidate production server/helper assets for macOS arm64 and native Linux x86_64 with licenses and platform metadata",
+    "Offline source inputs and usable outside-repository examples",
+    "Full candidate external installation and native dependency resolution verification",
+    "Publication manifests and names/account ownership review; no publication performed"
+  ],
+  "scope": "Python3.14.7 and Node26.7.0 on local macOS arm64; clean external pure SDK archives and synthetic HTTP only. No actual browser/native helper/server/platform pair or complete candidate qualification."
+}

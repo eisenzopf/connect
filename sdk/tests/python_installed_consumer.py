@@ -15,7 +15,7 @@ from connect_sdk import (CanonicalHttpClient, ConversationId, HttpCommandScope,
 
 root=Path(sys.prefix).resolve()
 assert Path(connect_sdk.__file__).resolve().is_relative_to(root)
-assert importlib.metadata.version('connect-sdk')=='0.1.0'
+assert importlib.metadata.version('rudeless-connect')=='0.1.0'
 assert importlib.resources.files('connect_sdk').joinpath('py.typed').is_file()
 assert os.environ.get('PYTHONPATH') is None
 options=RequestOptions(4000)
