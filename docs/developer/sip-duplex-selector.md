@@ -141,3 +141,15 @@ Original peers and NAT workers join, and the empty owned bridge is removed
 without forced server/guest cleanup. Paired-read counters are absent at this
 source; no paired Store cause is inferred. Corrected-source run `41211247494`
 and report-source run `41213265476` remain separate and unqualified.
+
+At corrected source `052838f3`, run `41211247494`, all48initial-call and
+21snapshot Store functions pass with zero ignored. The hosting build reuses
+its verified cache in0.416s; rebuilding the changed Store test target takes
+33.2s. The original telephone requirements remain failed: direct EdDSA receives
+6,720native bytes, direct ES256 and loss EdDSA fail the original subscription,
+and loss ES256 receives8,800bytes but only45active/42matching frames against
+the original50frame requirement. Its opposite guest tone passes54/54frames.
+All original process/NAT cleanup and empty-bridge removal remain recorded.
+This qualifies the unary Store boundary and its69regressions, not duplex media.
+The existing paired-read report source `1794632c` is being verified separately
+as run `41213265476`; no paired Store cause is inferred before those results.
