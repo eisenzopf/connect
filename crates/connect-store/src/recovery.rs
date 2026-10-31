@@ -16,6 +16,58 @@ pub struct Snapshot {
     pub digest: String,
 }
 
+/// One external blob referenced by a current-schema snapshot at its capture time.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnapshotBlob {
+    pub name: String,
+    pub size: u64,
+    pub sha256: String,
+}
+
+impl Store {
+    /// Read recovery metadata without adopting a runtime or mutating the snapshot.
+    /// Expiry is evaluated at the recorded capture time, never at a later
+    /// verification/restore time. Live reads retain their current expiry checks.
+    pub fn snapshot_blobs(database: &Path, captured_at: i64) -> Result<Vec<SnapshotBlob>> {
+        let connection = Connection::open_with_flags(database, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|_| Error::storage())?;
+        let schema: u32 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|_| Error::storage())?;
+        if schema != SCHEMA_VERSION {
+            return Err(Error::new(
+                "unsupported-schema",
+                "Snapshot blob inventory requires the current schema",
+            ));
+        }
+        let mut statement = connection.prepare("SELECT blob_name, expected_size, expected_sha256 FROM artifacts WHERE state='ready' AND (expires_at IS NULL OR expires_at>?1) ORDER BY blob_name")
+            .map_err(|_| Error::storage())?;
+        let blobs = statement
+            .query_map([captured_at], |row| {
+                Ok(SnapshotBlob {
+                    name: row.get(0)?,
+                    size: row.get(1)?,
+                    sha256: row.get(2)?,
+                })
+            })
+            .map_err(|_| Error::storage())?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|_| Error::storage())?;
+        let mut names = std::collections::BTreeSet::new();
+        for blob in &blobs {
+            if !crate::artifacts::valid_blob_name(&blob.name)
+                || blob.size == 0
+                || blob.sha256.len() != 64
+                || !blob.sha256.bytes().all(|b| b.is_ascii_hexdigit())
+                || !names.insert(blob.name.clone())
+            {
+                return Err(Error::storage());
+            }
+        }
+        Ok(blobs)
+    }
+}
+
 pub(crate) fn create_private_file(path: &Path) -> Result<()> {
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);

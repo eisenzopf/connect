@@ -110,5 +110,20 @@
     "url": "https://github.com/eisenzopf/connect/actions/runs/41231607107",
     "evidence": "docs/evidence/gate-6/linux-installation-baseline.json",
     "status": "Live exact-source release build; runtime unverified"
+  },
+  "primary_recovery_integrity_change": {
+    "status": "authored; formatting passed; Rust execution awaits the primary upgrade candidate",
+    "store_api": "Store::snapshot_blobs reads current-schema blob name, size and SHA-256 at the recorded capture time, without adopting a runtime or changing state.",
+    "server_behavior": "Backup and verification use that fixed expiry boundary and reject blob bytes inconsistent with database metadata, including a self-consistently altered manifest checksum.",
+    "regression_cases": [
+      "finalized blob bytes and a signed client survive restore and two restarts after the original and backup are removed",
+      "same-length source corruption refuses backup before publication",
+      "truncated or absent backup blobs refuse restore",
+      "altered blob bytes plus an altered manifest checksum still refuse restore",
+      "backup remains verifiable/restorable after an included blob naturally expires; live reads remain forbidden with bytes physically present",
+      "unrecognized and revoked credentials return unauthorized; non-operator credentials return forbidden"
+    ],
+    "runtime_result_verified": false,
+    "baseline_run_unchanged": 41231607107
   }
 }

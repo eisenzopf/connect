@@ -216,8 +216,15 @@ pub fn verified_manifest(directory: &Path) -> Result<Manifest> {
         Store::inspect_snapshot(&database)? == manifest.snapshot,
         "Backup snapshot differs from manifest"
     );
+    let captured_at = chrono::DateTime::parse_from_rfc3339(&manifest.created_at)
+        .context("Invalid backup capture time")?
+        .timestamp();
+    let inventory = Store::snapshot_blobs(&database, captured_at)?;
     ensure!(
-        Store::artifact_blob_names(&database)?
+        inventory
+            .iter()
+            .map(|blob| blob.name.clone())
+            .collect::<Vec<_>>()
             == manifest.blobs.keys().cloned().collect::<Vec<_>>(),
         "Backup blob references differ from snapshot"
     );
@@ -227,10 +234,18 @@ pub fn verified_manifest(directory: &Path) -> Result<Manifest> {
             "Invalid recovery blob directory"
         );
     }
-    for (name, expected) in &manifest.blobs {
-        ensure!(blob_name(name), "Unsafe blob path");
-        let path = directory.join("blobs").join(name);
+    for blob in inventory {
+        let expected = &manifest.blobs[&blob.name];
+        ensure!(
+            *expected == blob.sha256,
+            "Backup blob digest differs from database metadata"
+        );
+        let path = directory.join("blobs").join(&blob.name);
         regular(&path)?;
+        ensure!(
+            std::fs::metadata(&path)?.len() == blob.size,
+            "Backup blob size differs from database metadata"
+        );
         ensure!(hash(&path)? == *expected, "Recovery blob checksum mismatch");
     }
     Ok(manifest)
@@ -275,6 +290,7 @@ pub fn backup(server_path: &Path, operator_path: &Path, output: &Path) -> Result
     Store::authorize_recovery(&server.database, &operator.credential)?;
     let stage = Stage::new(output)?;
     let snapshot = Store::backup_database(&server.database, &stage.0.join("state.sqlite3"))?;
+    let captured_at = chrono::Utc::now();
     let mut assets = Assets {
         root: &stage.0,
         files: BTreeMap::new(),
@@ -300,14 +316,23 @@ pub fn backup(server_path: &Path, operator_path: &Path, output: &Path) -> Result
     server.database = "state.sqlite3".into();
     assets.write("server.toml", toml::to_string_pretty(&server)?.as_bytes())?;
     let mut blobs = BTreeMap::new();
-    for name in Store::artifact_blob_names(&stage.0.join("state.sqlite3"))? {
-        ensure!(blob_name(&name), "Invalid snapshot blob name");
+    for blob in Store::snapshot_blobs(&stage.0.join("state.sqlite3"), captured_at.timestamp())? {
+        ensure!(blob_name(&blob.name), "Invalid snapshot blob name");
         if blobs.is_empty() {
             private_directory(&stage.0.join("blobs"))?;
         }
-        let destination = stage.0.join("blobs").join(&name);
-        copy(&source_blobs.join(&name), &destination)?;
-        blobs.insert(name, hash(&destination)?);
+        let destination = stage.0.join("blobs").join(&blob.name);
+        copy(&source_blobs.join(&blob.name), &destination)?;
+        ensure!(
+            std::fs::metadata(&destination)?.len() == blob.size,
+            "Source blob size differs from database metadata"
+        );
+        let actual = hash(&destination)?;
+        ensure!(
+            actual == blob.sha256,
+            "Source blob digest differs from database metadata"
+        );
+        blobs.insert(blob.name, actual);
     }
     if !blobs.is_empty() {
         std::fs::File::open(stage.0.join("blobs"))?.sync_all()?;
@@ -315,7 +340,7 @@ pub fn backup(server_path: &Path, operator_path: &Path, output: &Path) -> Result
     let manifest = Manifest {
         format: FORMAT.into(),
         binary_version: env!("CARGO_PKG_VERSION").into(),
-        created_at: chrono::Utc::now().to_rfc3339(),
+        created_at: captured_at.to_rfc3339(),
         snapshot,
         files: assets.files,
         blobs,

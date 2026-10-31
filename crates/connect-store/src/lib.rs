@@ -181,7 +181,7 @@ use std::{
 
 pub use connection_control::sip_consultation::SipConsultationReservation;
 pub use identity::{Actor, IssuedCredential, Scope};
-pub use recovery::Snapshot;
+pub use recovery::{Snapshot, SnapshotBlob};
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{

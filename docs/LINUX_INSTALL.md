@@ -145,7 +145,11 @@ sudo systemctl start connect.service
 Copy verified backups to protected encrypted storage with the binary/package and
 its digest. Do not expose them as CI artifacts: they contain credential material.
 A missing manifest, bad hash, unsupported schema, unsafe path, symlink or missing
-referenced blob is a refusal. Backup requires a current administrator credential.
+referenced blob is a refusal. Blob bytes must also match the database's recorded
+size and SHA-256, including when a supplied manifest checksum has been changed.
+Blob inclusion uses the recorded snapshot capture time so natural expiry does
+not invalidate a stored backup. Restored live reads still enforce current expiry;
+backup verification never renews file access. Backup requires a current administrator credential.
 Restore does not renew expired credentials or server pins; renew before serving.
 
 Restore only into a **new** directory, on a stopped host, using the matching

@@ -52,6 +52,13 @@ def main():
                 lines = log.read_text().splitlines()
                 step['test_results'] = [line for line in lines if line.startswith('test result:')]
                 step['failed_tests'] = [line for line in lines if line.startswith('test ') and line.endswith(' ... FAILED')]
+                # Retain source coordinates, never assertion values, config or keys.
+                step['failure_locations'] = []
+                for line in lines:
+                    location = re.search(r'panicked at ([^\s]+\.rs):(\d+):(\d+)', line)
+                    if location:
+                        step['failure_locations'].append({'file': location[1], 'line': int(location[2]), 'column': int(location[3])})
+
                 step['compiler_errors'] = []
                 step['test_executables'] = []
                 for line in lines:
