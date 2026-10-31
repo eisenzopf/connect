@@ -33,8 +33,14 @@ stay under ignored `.local/gate-6/turn-expiry-linux/`.
 
 This lane qualifies expiry refusal only. Distinct-network relay media and the
 unchanged decoded audio/video quality requirements retain their own cases. The
-Linux execution of this new lane is pending; local boundary tests and syntax
-checks are implementation evidence, not a runtime pass.
+Linux execution is verified at source `325a375f` in run `41206536418`:
+all four original cases pass. The artifact binds2,883 Git inputs,3,088 prepared
+inputs and5,971 complete repository/browser-asset inputs to that source. Each
+case records actual expired-user refusals, zero offers/allocations, original
+peer/capture/audio joins and normal coturn/namespace exit and removal. The
+zero-allocation drain takes0.99–1.33 seconds. This is an expiry component pass,
+not full G6-054 or acceptance qualification. See
+[`browser-turn-expiry-linux.json`](../evidence/gate-6/browser-turn-expiry-linux.json).
 
 The initial holder at `d9bca15e` used one `signal.pause()` call and exited when
 an orphan's child-exit signal interrupted it. A direct local process comparison
@@ -43,7 +49,8 @@ waiting after child-exit signals, reaps original exited children and exits zero
 on its owned termination signal. The fifth boundary test executes this lifecycle
 and joins its original process. The pending first Linux dispatch was cancelled
 before start so the corrected holder can be verified in the same four-case lane.
-This process-only comparison is not a Docker or browser runtime pass.
+The process-only comparison remains separate from the later four-case Linux
+runtime pass.
 
 The first Linux execution (`41204143024`, source `d2ef6a75`) stopped at the
 coturn version preflight with exit255, before any expired-browser case. Its
@@ -62,4 +69,5 @@ actual Linux checkout path. The runner now uses an eight-character random
 fixture suffix and an explicit Unix-address bound, plus a short owned `/tmp/g6`
 inside each namespace for Rust/Chrome temporary IPC. Existing Pulse startup and
 join facts are retained as fixed diagnostics on failure. Six boundary tests pass;
-the corrected Linux run must still prove the original expiry and drain checks.
+the corrected source subsequently passes all original expiry and drain checks
+in the verified Linux run above.

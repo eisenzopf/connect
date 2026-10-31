@@ -2,10 +2,10 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "four-linux-cases-failed-private-socket-paths-repaired",
+  "status": "four-original-linux-expiry-cases-passed",
   "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
-  "runtime_passed": false,
-  "runtime_run_id": null,
+  "runtime_passed": true,
+  "runtime_run_id": 41206536418,
   "original_tests_unchanged": true,
   "original_browser_timeout_seconds": 8,
   "original_node_deadline_seconds": 110,
@@ -213,5 +213,376 @@
       "acceptance_qualified": false,
       "passed": false
     }
+  },
+  "runtime_source_revision": "325a375f1b8363363a93136721c504d47b6c990d",
+  "latest_pass": {
+    "run_id": 41206536418,
+    "artifact_id": 13045045211,
+    "revision": "325a375f1b8363363a93136721c504d47b6c990d",
+    "zip_sha256": "d200b3f85475394d2262188cfc283d033d363f779deeb14e44f371084d16f1f6",
+    "git_sources_verified": 2883,
+    "prepared_sources_verified": 3088,
+    "component": {
+      "scope": "Original expired-TURN browser tests in fresh network-disabled Linux namespaces. Original expiry refusal/zero logical offers and allocations only; no distinct-network media, provider, performance or full G6-054 qualification.",
+      "image_id": "sha256:8b74fee4514f5b63b7ee90d5de9dbc3caaf8d41782609e10a3dfffa7ade0015c",
+      "turn_image_id": "sha256:5b1932971b0573eb47c881ce1979b558ca6109b586ff5c79de7772ea37609f3c",
+      "turn_reference": "coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf",
+      "turn_version": "4.18.0",
+      "turn_binary_sha256": "7d7706104f48524ccc19636fc3dcad46de563267b84641d335c1376ea0272dfc",
+      "source_manifest_sha256": "bf8244e1fdeb70821bac7baed263c2d1aa9f8e3f85178520e810df3fd52c2e4f",
+      "binary_sha256": "72b8dfb8ae9e855f9e2494d1ef270ca89124220a8fbe9396fb9271960371f649",
+      "tool_inputs_sha256": "5b6d75fb59c2c030092d566c46dcc9cd6e667262901d09e6047736475b64d859",
+      "sources_unchanged": true,
+      "tools_unchanged": true,
+      "source_count": 5971,
+      "repository_inputs_sha256": "6b7213148274a4301eee2022b8ada090c6a38212ecf60ade5f8ad87a832fdd9f",
+      "binary_unchanged": true,
+      "cases": [
+        {
+          "transport": "udp",
+          "algorithm": "EdDSA",
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 0,
+          "browser": {
+            "status": "passed",
+            "reason": "expired",
+            "original_contexts_closed": 2,
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.13839999999999417,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.1331999999999971,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ]
+          },
+          "oracle": {
+            "logical_operations": 0,
+            "passed": true,
+            "physical_allocations": 0
+          },
+          "audio": {
+            "passed": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1"
+          },
+          "unauthorized_responses": 2,
+          "expired_credential_refusals": 2,
+          "allocation_successes": 0,
+          "original_children_joined": true,
+          "zero_allocations_before_exit": true,
+          "allocation_drain_seconds": 0.9933180000000021,
+          "turn_log_sha256": "f7014ba28201808757c4355dcd44f0e78008b4123fa9fc409d10572ffd621e1a",
+          "behavior_passed": true,
+          "audio_diagnostic": {
+            "passed": true,
+            "startup_socket_created": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "command_exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "udp",
+          "algorithm": "ES256",
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 0,
+          "browser": {
+            "status": "passed",
+            "reason": "expired",
+            "original_contexts_closed": 2,
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.1365,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.13930000000000292,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ]
+          },
+          "oracle": {
+            "logical_operations": 0,
+            "passed": true,
+            "physical_allocations": 0
+          },
+          "audio": {
+            "passed": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1"
+          },
+          "unauthorized_responses": 2,
+          "expired_credential_refusals": 2,
+          "allocation_successes": 0,
+          "original_children_joined": true,
+          "zero_allocations_before_exit": true,
+          "allocation_drain_seconds": 1.3298580569999956,
+          "turn_log_sha256": "7d7a6fad5bb7fd70509ce0d9cbb1946ebd74ba250c94b8fa48068f6b7c9222ea",
+          "behavior_passed": true,
+          "audio_diagnostic": {
+            "passed": true,
+            "startup_socket_created": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "command_exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "tcp",
+          "algorithm": "EdDSA",
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_eddsa",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 0,
+          "browser": {
+            "status": "passed",
+            "reason": "expired",
+            "original_contexts_closed": 2,
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.13310000000000582,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.138,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ]
+          },
+          "oracle": {
+            "logical_operations": 0,
+            "passed": true,
+            "physical_allocations": 0
+          },
+          "audio": {
+            "passed": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1"
+          },
+          "unauthorized_responses": 4,
+          "expired_credential_refusals": 2,
+          "allocation_successes": 0,
+          "original_children_joined": true,
+          "zero_allocations_before_exit": true,
+          "allocation_drain_seconds": 1.3193072420000078,
+          "turn_log_sha256": "2ff8b4b308ac97d10563848b0f53bdaa4bf5a4b83a9905608ff19d045d31ccea",
+          "behavior_passed": true,
+          "audio_diagnostic": {
+            "passed": true,
+            "startup_socket_created": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "command_exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          }
+        },
+        {
+          "transport": "tcp",
+          "algorithm": "ES256",
+          "passed": true,
+          "test": "canonical_webrtc_browser::canonical_chrome_relay_expired_credentials_es256",
+          "control_binding_ready": true,
+          "browser_version": "Google Chrome for Testing 156.0.8078.4",
+          "tool_sha256": {
+            "chrome": "377a9fc07b495c3b8d0ab8ec1fdfd153641759f9756fea34d8dfce4de82f5025",
+            "node": "e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb",
+            "packages": "397e92d2b0279cad1bd5c4a4d69f0ad0e19924b1e7e005e75e92074bd98f95c3"
+          },
+          "test_exit_code": 0,
+          "browser": {
+            "status": "passed",
+            "reason": "expired",
+            "original_contexts_closed": 2,
+            "results": [
+              {
+                "participant": 0,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.13310000000000582,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              },
+              {
+                "participant": 1,
+                "error_code": "unsupported-media-profile",
+                "seconds": 0.12520000000001164,
+                "limit_seconds": 8,
+                "logical_offers": 0,
+                "submission_attempted": false,
+                "owned_peer_closed": true,
+                "owned_audio_tracks_ended": true,
+                "remote_description_set": false
+              }
+            ]
+          },
+          "oracle": {
+            "logical_operations": 0,
+            "passed": true,
+            "physical_allocations": 0
+          },
+          "audio": {
+            "passed": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+            "version": "pulseaudio 16.1"
+          },
+          "unauthorized_responses": 4,
+          "expired_credential_refusals": 2,
+          "allocation_successes": 0,
+          "original_children_joined": true,
+          "zero_allocations_before_exit": true,
+          "allocation_drain_seconds": 1.1607174149999935,
+          "turn_log_sha256": "8fa74501934826ca0ca11954d1618d49cca23be3b77cd2f46de2c02666dbe2aa",
+          "behavior_passed": true,
+          "audio_diagnostic": {
+            "passed": true,
+            "startup_socket_created": true,
+            "original_process_joined": true,
+            "exit_code": 0,
+            "command_exit_code": 0,
+            "socket_exists_after_join": false,
+            "private_cookie_created": true,
+            "error_categories": []
+          },
+          "turn_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          },
+          "namespace_cleanup": {
+            "original_container_joined": true,
+            "owned_container_removed": true,
+            "forced_cleanup": false,
+            "original_exit_code": 0
+          }
+        }
+      ],
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "passed": true
+    },
+    "cached_build_seconds": 0.4147239410000054
   }
 }
