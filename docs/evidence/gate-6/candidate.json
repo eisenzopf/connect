@@ -1428,7 +1428,7 @@
     "scope": "510exact crate archives;4604Git/4094prepared/4pinned archives;28112payload files; cold external original public Rust journey cargo check. The later installed inspection example/native runtime pair remain unqualified."
   },
   "native_runtime_assets": {
-    "status": "initial-linux-compilation-passed-independent-archive-mode-audit-failed-corrected-producer-pending",
+    "status": "initial-platform-compilations-passed-both-independent-archive-mode-audits-failed-corrected-producer-executing",
     "script": "scripts/package-sdk-runtime.py",
     "workflow": ".github/workflows/gate6-runtime-candidate.yml",
     "targets": [
@@ -1448,21 +1448,22 @@
     "candidate": {
       "source_revision": "04ab1818",
       "run_id": 41250619720,
-      "status": "Linux-CI-build-completed-but-archive-audit-failed;macOS-build-still-live",
+      "status": "terminal-CI-success-both-platform-archive-mode-audits-failed",
       "jobs": {
         "aarch64-apple-darwin": 124683205404,
         "x86_64-unknown-linux-gnu": 124683205658
       }
     },
     "linux_negative_evidence": "docs/evidence/gate-6/native-runtime-linux-negative.json",
-    "finding": "Native producer inventoried 745 generated notice/linkage files as private0600 but portable tar writer emitted0644. Independent complete tar audit reports0content and745mode mismatches.",
+    "finding": "Original Linux753files has0content/745mode mismatches; originalmacOS755files has0content/748mode mismatches. Both fullGit/prepared/archive source inventories independently verify. Portable inventory correction is in373candidate.",
     "correction": "Inventory the portable archive modes before manifest publication; actual producer archive+outside extraction regression passes with original private0600 source files preserved.",
     "local_archive_guard_tests_passed": 4,
     "superseded_queued_qualification": {
       "run_id": 41252046756,
       "source_revision": "456ad6e8",
       "status": "terminal-cancelled-before-execution-for-confirmed-native-package-mode-defect"
-    }
+    },
+    "macos_negative_evidence": "docs/evidence/gate-6/native-runtime-macos-negative.json"
   },
   "installed_examples": {
     "path": "examples/sdk-installation",
@@ -1474,7 +1475,7 @@
     "verification": "Node/Python syntax checks pass; actual matching-native example execution remains pending."
   },
   "native_installed_candidate": {
-    "status": "implemented-pending-native-execution",
+    "status": "actual-macOS-execution-in-progress-no-qualified-outcome-yet",
     "checker": "scripts/check-sdk-native-installation.py",
     "archive_installer": "scripts/lib/sdk_candidate.py",
     "local_archive_boundary_tests_passed": 3,
@@ -1570,8 +1571,16 @@
   "full_platform_candidate": {
     "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
     "run_id": 41253765267,
-    "status": "pending-behind-original-macOS-production-build",
-    "scope": "Corrected portable native archive modes, actual installed Rust/Node/Python examples, cold offline source rebuilds and complete candidate assembly. No pass claim."
+    "status": "in-progress-both-native-platforms",
+    "scope": "Corrected portable native archive modes, actual installed Rust/Node/Python examples, cold offline source rebuilds and complete candidate assembly. No pass claim.",
+    "jobs": {
+      "aarch64-apple-darwin": 124694872755,
+      "x86_64-unknown-linux-gnu": 124694873000
+    },
+    "last_confirmed": {
+      "aarch64-apple-darwin": "actual installed SDK examples",
+      "x86_64-unknown-linux-gnu": "native prerequisite setup"
+    }
   },
   "superseded_platform_candidate": {
     "run_id": 41252976114,

@@ -34,4 +34,22 @@ class CacheBoundary(unittest.TestCase):
         for status in ("timeout",-9,-15):
             self.assertFalse(module.cacheable_steps([self.completed(status)]))
 
+    def test_complete_typecheck_metadata_is_cacheable_without_claiming_runtime_execution(self):
+        steps=[dict(name=name,exit_code=0,compiler_errors=[],executables=[],
+                    checked_artifacts=[dict(name=target,sha256='a'*64) for target in targets])
+               for name,targets in [('mcp-fixture-types',['connect_mcp']),
+                                    ('integration-fixture-types',['gate6_operational_visibility','gate6_hosting_limits'])]]
+        before=copy.deepcopy(steps)
+        self.assertTrue(module.cacheable_typechecks(steps))
+        self.assertFalse(module.cacheable_steps(steps))
+        self.assertEqual(steps,before)
+        for defect in ('missing','failed','compiler-error','invalid-digest','missing-target'):
+            value=copy.deepcopy(steps)
+            if defect=='missing':value.pop()
+            elif defect=='failed':value[1]['exit_code']=101
+            elif defect=='compiler-error':value[1]['compiler_errors']=[dict(code='E0308')]
+            elif defect=='invalid-digest':value[1]['checked_artifacts'][0]['sha256']='invalid'
+            else:value[1]['checked_artifacts'].pop()
+            with self.subTest(defect=defect):self.assertFalse(module.cacheable_typechecks(value))
+
 if __name__=="__main__":unittest.main()

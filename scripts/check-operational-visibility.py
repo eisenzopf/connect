@@ -32,6 +32,20 @@ def cacheable_steps(steps):
             for item in step.get("executables", [])) for step in steps)
 
 
+def cacheable_typechecks(steps):
+    required = {"mcp-fixture-types": {"connect_mcp"},
+                "integration-fixture-types": {"gate6_operational_visibility", "gate6_hosting_limits"}}
+    if {step.get("name") for step in steps} != required.keys() or len(steps) != len(required):
+        return False
+    for step in steps:
+        artifacts = step.get("checked_artifacts", [])
+        if (step.get("exit_code") != 0 or step.get("compiler_errors")
+                or {item.get("name") for item in artifacts} != required[step["name"]]
+                or not all(re.fullmatch("[0-9a-f]{64}", item.get("sha256", "")) for item in artifacts)):
+            return False
+    return True
+
+
 def generate_reference():
     spec = importlib.util.spec_from_file_location("application_reference", ROOT / "scripts/generate-application-http-openapi.py")
     module = importlib.util.module_from_spec(spec)
@@ -123,7 +137,7 @@ def main():
             step = dict(name=name, exit_code=status, elapsed_seconds=round(time.monotonic() - start, 3),
                 test_results=[line for line in lines if line.startswith("test result:")],
                 failed_tests=[line for line in lines if line.startswith("test ") and line.endswith(" ... FAILED")],
-                compiler_errors=[], executables=[], failure_locations=[])
+                compiler_errors=[], executables=[], checked_artifacts=[], failure_locations=[])
             for line in lines:
                 location = re.search(r"panicked at ([^\s]+\.rs):(\d+):(\d+)", line)
                 if location:
@@ -138,6 +152,14 @@ def main():
                         locations=[dict(file=s["file_name"], line=s["line_start"]) for s in msg["spans"] if s["is_primary"]]))
                 if event.get("reason") == "compiler-artifact" and event.get("executable") and event.get("profile", {}).get("test"):
                     step["executables"].append(dict(name=event["target"]["name"], sha256=digest(Path(event["executable"]))))
+                if (args.phase == "typecheck" and event.get("reason") == "compiler-artifact"
+                        and event.get("profile", {}).get("test") and event["target"]["name"] in
+                        {"connect_mcp", "gate6_operational_visibility", "gate6_hosting_limits"}):
+                    target = Path(env.get("CARGO_TARGET_DIR", ROOT / "target")).resolve()
+                    for filename in event.get("filenames", []):
+                        path = Path(filename)
+                        if path.suffix == ".rmeta" and path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(target):
+                            step["checked_artifacts"].append(dict(name=event["target"]["name"], sha256=digest(path)))
             report["steps"].append(step)
             print(json.dumps(step), flush=True)
             if status != 0:
@@ -155,11 +177,14 @@ def main():
         report["source_inputs_unchanged"] = before == sources()
         report["passed"] = report["passed"] and report["source_inputs_unchanged"]
         report["cacheable_build"] = args.phase == "runtime" and report["source_inputs_unchanged"] and not args.case and cacheable_steps(report["steps"])
+        report["cacheable_typecheck"] = (args.phase == "typecheck" and report["passed"]
+            and report["source_inputs_unchanged"] and cacheable_typechecks(report["steps"]))
         report["cache_scope"] = "Completed Cargo artifacts from unchanged sources only; missing/failed compilation remains unqualified and Cargo must rebuild it."
         (EVIDENCE / (key + ".json")).write_text(json.dumps(report, indent=2) + "\n")
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as output:
                 output.write("cacheable_build=" + str(report["cacheable_build"]).lower() + "\n")
+                output.write("cacheable_typecheck=" + str(report["cacheable_typecheck"]).lower() + "\n")
     assert report["passed"]
 
 

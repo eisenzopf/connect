@@ -269,5 +269,12 @@
     "artifact_id": 13059648481,
     "status": "success-independently-verified",
     "evidence": "docs/evidence/gate-6/operational-schema-verified.json"
+  },
+  "typecheck_cache_candidate": {
+    "status": "implemented-local-guards-pass-not-yet-executed-in-CI",
+    "tests": 5,
+    "metadata_only": true,
+    "requirements": "Both named preflight commands successful, no compiler errors, all3actual requested test metadata targets hashed inside Cargo target root, full original source inventory unchanged/rehashed at save time. Cache upload requires successful preservation guard; never grants a runtime pass.",
+    "runtime_qualification": false
   }
 }

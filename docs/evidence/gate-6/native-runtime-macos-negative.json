@@ -1,0 +1,42 @@
+{
+  "format": "connect/native-sdk-runtime-payload-negative/1",
+  "source_revision": "04ab18187e2b5b48bcc6025147cb59335063ef51",
+  "sources_verified": {
+    "git": 4606,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "files_read": 755,
+  "content_mismatch_count": 0,
+  "content_mismatches": [],
+  "mode_mismatch_count": 748,
+  "mode_mismatch_samples": [
+    "licenses/prepared-index.json",
+    "licenses/prepared/quinn-proto-0.11.19/LICENSE-APACHE",
+    "licenses/prepared/quinn-proto-0.11.19/LICENSE-MIT",
+    "licenses/prepared/rtc-dtls-0.20.0-alpha.1/LICENSE-APACHE",
+    "licenses/prepared/rtc-dtls-0.20.0-alpha.1/LICENSE-MIT",
+    "licenses/prepared/rtc-interceptor-0.20.0-alpha.1/LICENSE-APACHE",
+    "licenses/prepared/rtc-interceptor-0.20.0-alpha.1/LICENSE-MIT",
+    "licenses/provenance/dependencies/licenses/asn1-rs-impl/LICENSE-APACHE",
+    "licenses/provenance/dependencies/licenses/asn1-rs-impl/LICENSE-MIT",
+    "licenses/provenance/dependencies/licenses/rmcp/LICENSE"
+  ],
+  "archive_sha256": "d6b600eedcd2db02c03f33dcfe2ce3f8f96cff81b86a9888a04b6ca508a445f9",
+  "manifest_sha256": "0d15ea267d532e35309cdd5e8470e9e5292ba6cdb7b5b14025d74299f1fca66d",
+  "binary_sha256": "bfc940b63a3cca6d644f6232c68b878b13c81dad0831a798d8e44a79be4e2a78",
+  "artifact_zip_digests": {
+    "evidence": "bfdc74a013954f172eb34891ac77fb6cb278d30a591082c2a2e7176736486669",
+    "package": "517b62e93fc498f2431d0f0eb37f4433581b2681e1abc05ee814e7d999f085ab"
+  },
+  "package_input": "bounded-stdin",
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "target": "aarch64-apple-darwin",
+  "workflow_run_id": 41250619720,
+  "job_id": 124683205404,
+  "evidence_artifact_id": 13062249017,
+  "package_artifact_id": 13062722197,
+  "scope": "Source-bound original production native asset archive audit only. No successful package or installed SDK qualification. Full raw57.2MB ZIP verified in bounded RAM, not retained locally."
+}

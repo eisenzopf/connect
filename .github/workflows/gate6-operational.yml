@@ -116,11 +116,26 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
-      - name: Preserve completed unchanged-source runtime compilation
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.component.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true' }}
-        run: python3 scripts/lib/source_build_cache.py save
+      - name: Preserve completed unchanged-source compilation
+        id: preserve
+        if: ${{ !cancelled() && (steps.component.outputs.cacheable_build == 'true' || steps.types.outputs.cacheable_typecheck == 'true') && steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib,runpy,subprocess
+          root=pathlib.Path('.')
+          base=root/'.local/gate6-operational/evidence'
+          name='runtime' if '${{ steps.component.outputs.cacheable_build }}' == 'true' else 'typecheck'
+          report=json.loads((base/(name+'.json')).read_text())
+          assert report['source_inputs_unchanged']
+          assert report['source_revision'] == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          assert report['cacheable_build' if name == 'runtime' else 'cacheable_typecheck']
+          inputs=(base/('source-inputs-'+name+'.json')).read_bytes()
+          assert hashlib.sha256(inputs).hexdigest() == report['source_inputs_sha256']
+          assert json.loads(inputs) == runpy.run_path('scripts/check-gate6-linux-hosting.py')['sources']()
+          subprocess.run(['python3','scripts/lib/source_build_cache.py','save'],check=True)
+          PY
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.component.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && steps.preserve.outcome == 'success' && (steps.component.outputs.cacheable_build == 'true' || steps.types.outputs.cacheable_typecheck == 'true') && steps.cache.outputs.cache-hit != 'true' }}
         with:
           path: |
             ~/.cargo/registry
