@@ -3,6 +3,7 @@ on:
   workflow_call:
     inputs:
       source_revision:
+        description: 'Exact baseline source to build only; blank rehearses the current installed candidate'
         type: string
         default: ''
       upgrade_run:
@@ -11,6 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       source_revision:
+        description: 'Exact baseline source to build only; blank rehearses the current installed candidate'
         type: string
         default: ''
       upgrade_run:
@@ -39,11 +41,13 @@ jobs:
       - name: Require an exact source revision for a baseline checkout
         env:
           SOURCE_REVISION: ${{ inputs.source_revision }}
+          PRIOR_RUN: ${{ inputs.upgrade_run }}
         run: |
           python3 - <<'PY'
           import os, re
           value = os.environ.get('SOURCE_REVISION', '')
           assert not value or re.fullmatch('[0-9a-f]{40}', value), 'Expected a full source SHA'
+          assert not value or not os.environ.get('PRIOR_RUN'), 'A baseline producer cannot also rehearse an upgrade'
           PY
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -78,12 +82,22 @@ jobs:
           python3 scripts/lib/ci_dependency_cache.py
           cargo fetch --locked
       - name: Compile and execute canonical recovery behavior
+        if: ${{ inputs.source_revision == '' }}
         id: recovery
         run: python3 scripts/check-linux-package-build.py --phase recovery
       - name: Build and inventory the production release package
         if: ${{ !cancelled() }}
         id: build
-        run: python3 scripts/check-linux-package-build.py --phase package
+        env:
+          BASELINE_SOURCE: ${{ inputs.source_revision }}
+        run: |
+          if [ -n "$BASELINE_SOURCE" ]; then
+            # Execute the baseline's own exact-source producer. Its fixture
+            # predates the split phases; neither its code nor assertions change.
+            python3 scripts/check-linux-package-build.py
+          else
+            python3 scripts/check-linux-package-build.py --phase package
+          fi
       - name: Preserve package as an unpublished workflow artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -105,6 +119,7 @@ jobs:
           sha256sum --check *.sha256
           tar -xzf *.tar.gz
       - name: Rehearse installed systemd state and signing recovery
+        if: ${{ inputs.source_revision == '' }}
         env:
           CURRENT_PACKAGE: ${{ steps.build.outputs.package }}
           PRIOR_RUN: ${{ inputs.upgrade_run }}
@@ -118,8 +133,12 @@ jobs:
       - name: Make only curated root-created evidence readable to the runner
         if: always()
         run: |
-          if [ -d .local/gate6-installation/evidence ]; then
+          # The fixture parent is root:root 0700. Test it as root; a runner
+          # test silently reports false before the traversal grant is applied.
+          if sudo test -d .local/gate6-installation; then
             sudo chmod 0711 .local/gate6-installation
+          fi
+          if sudo test -d .local/gate6-installation/evidence; then
             sudo chown -R "$(id -u):$(id -g)" .local/gate6-installation/evidence
           fi
       - name: Upload curated source and installation evidence

@@ -14,7 +14,7 @@
     "docs/LINUX_INSTALL.md"
   ],
   "local_verification": {
-    "package_integrity_boundary_tests": "10 passed; archive/source-map/phase guards plus real descendant process timeout cleanup and completed-command exit status",
+    "package_integrity_boundary_tests": "11 passed; includes actual 0640 configuration publication under umask0077, exclusive refusal, archive/source-map/phase guards and compiler-descendant cleanup",
     "workspace_format_check": "passed",
     "python_syntax": "passed",
     "diff_whitespace_check": "passed",
@@ -100,7 +100,7 @@
     "recovery_test_crate": "Add the same recursion_limit=256 used by existing canonical integration fixtures; compilation remains unrun until the corrected candidate.",
     "cache": "Preserve completed exact-source compilation independently of runtime or package-assembly success; cache reuse never grants a runtime pass.",
     "upgrade_baseline": "Prepare a Git-pinned current-schema baseline retaining the earlier 391770ee runtime and the corrected packaging/test tooling. Build via the primary workflow branch with an explicit source SHA so the subsequent upgraded runtime can reuse the branch-scoped compiler cache. No compatibility shim or schema downgrade.",
-    "status": "Corrected current-schema baseline dispatched as41231607107 under the primary workflow branch. Wait for retained package and completed compilation cache, then dispatch the distinct upgraded primary source against that package."
+    "status": "Baseline run41231607107 retained the package and saved the compiler cache. Recover complete exact-source build evidence with a baseline-only cached replay; then use the corrected primary installer for distinct-source upgrade."
   },
   "corrected_current_schema_baseline": {
     "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
@@ -109,7 +109,7 @@
     "job_id": 124626808879,
     "url": "https://github.com/eisenzopf/connect/actions/runs/41231607107",
     "evidence": "docs/evidence/gate-6/linux-installation-baseline.json",
-    "status": "Live exact-source release build; runtime unverified"
+    "status": "Terminal failure after recovery/package success: first installed readiness absent and evidence upload EACCES; source report unretained. Warm-cache baseline replay pending."
   },
   "primary_recovery_integrity_change": {
     "status": "authored; formatting passed; Rust execution awaits the primary upgrade candidate",
@@ -143,5 +143,16 @@
     "behavior": "Each recovery/package command owns a new process group. Timeout or interruption retires the command and compiler/helper descendants before the failed step returns.",
     "regression": "A real compiler-shaped child holds an OS file lock; the test proves timeout releases the child lock, rather than terminating only its parent. Normal exit status is preserved.",
     "baseline_run_unchanged": 41231607107
+  },
+  "installer_configuration_permissions": {
+    "finding": "Creation with mode0640 under umask0077 produced root-owned0600 configuration, so the service group could not read it. This is a deterministic installer defect; installed startup awaits corrected runtime verification.",
+    "fix": "Create privately, write complete content, set root/service-group ownership and explicitly fchmod0640 before fsync/close.",
+    "regression": "Actual temporary filesystem and private umask verify final0640, complete bytes and exclusive refusal; only root ownership is stubbed in the unprivileged unit fixture.",
+    "installed_fixture": "Require actual connect-account read access before starting the service."
+  },
+  "evidence_upload_permissions": {
+    "finding": "An unprivileged test -d on the root-owned0700 parent returned false, skipping both traversal chmod and curated-report chown. Artifact action then reported EACCES.",
+    "fix": "Test parent and evidence existence with sudo, grant only parent traversal, transfer only curated evidence. Raw logs/state remain private.",
+    "runtime_verified": false
   }
 }

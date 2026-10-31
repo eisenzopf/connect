@@ -102,13 +102,19 @@ def initialize(binary, bind):
         raw, count = re.subn(r'^' + key + r' = .*$', lambda _: key + ' = ' + json.dumps(value), raw, flags=re.M)
         if count != 1:
             raise ValueError('Unexpected canonical initialization output; preserve state for review')
-    # Exclusive publication; never overwrite operator configuration on upgrade.
-    fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
+    publish_configuration(config, raw, pwd.getpwnam('connect').pw_gid)
+
+
+def publish_configuration(config, raw, service_gid):
+    # Keep creation private until the complete configuration is written, then
+    # explicitly grant the service group read access despite a private umask.
+    fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as stream:
         stream.write(raw)
         stream.flush()
+        os.fchown(stream.fileno(), 0, service_gid)
+        os.fchmod(stream.fileno(), 0o640)
         os.fsync(stream.fileno())
-    os.chown(config, 0, pwd.getpwnam('connect').pw_gid)
 
 
 def seal_directories(stage):

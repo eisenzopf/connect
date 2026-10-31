@@ -133,6 +133,8 @@ def main():
         run(['python3', installer_package / 'deploy/install.py', '--package', package, '--initialize'])
         report['installed_binary_sha256'] = digest(BINARY)
         assert report['installed_binary_sha256'] == manifest['files']['bin/connect']['sha256']
+        run(['runuser', '-u', 'connect', '--', 'test', '-r', CONFIG])
+        assert CONFIG.stat().st_mode & 0o777 == 0o640
         report['checks']['fresh_install'] = True
         set_fields(CONFIG, {'network_profile': 'remote', 'bind': '10.203.0.1:4433'})
         run(['ip', 'netns', 'add', NS])

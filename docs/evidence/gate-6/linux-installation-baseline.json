@@ -11,10 +11,41 @@
   "publication_authorized": false,
   "run_id": 41231607107,
   "job_id": 124626808879,
-  "status": "source-pinned release build live; runtime unverified",
+  "status": "Terminal failure after successful recovery tests and package build: installed readiness absent; curated evidence upload EACCES. Cached source replay pending.",
   "controller_branch": "codex/gate6-sip-duplex",
   "scope": "Current-schema Ubuntu upgrade fixture; runtime sources, Cargo manifests/lock, pinned toolchain and upstream patch set equal 391770ee. Only the integration-test recursion attribute differs under crates/.",
   "upgrade_run_dispatched": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "build_observation": {
+    "recovery_tests": "3 passed, no failures/skips/filters; 2917.343 seconds including cold compilation",
+    "package": "exit 0; 2684.064 seconds including a separate normal dependency graph build",
+    "source_report_retained": false,
+    "installation": "First actual readiness not observed within 15 seconds; no signed client, restart, upgrade or restore pass",
+    "artifact_upload": "EACCES traversing root-private installation parent; build/source report was not retained",
+    "cache_saved": true,
+    "cache_key": "g6-linux-installation-v1-795327e3044d9b49f77e9248e9f78fe39653bb5d39a86a5542cc1540695cc6a9-1128809be856ec2ea74a37174826bf99e28e406f"
+  },
+  "package_only_verification": {
+    "format": "connect/verified-git-package-only/1",
+    "run_id": 41231607107,
+    "artifact_id": 13055654490,
+    "source_revision": "1128809be856ec2ea74a37174826bf99e28e406f",
+    "controller_revision": "d251035b8788c829d1d3037139c67d36ec3c1a3f",
+    "zip_sha256": "51567d91e80da0fb15464e631d2f2ad212b2cfadb6ea30eaf5ea04519f29a6f7",
+    "sources_verified": {
+      "git": 4565,
+      "prepared": 0,
+      "pinned_archives": 0
+    },
+    "package": {
+      "archive_sha256": "1c22afe73f6a46c2d62e21b954171a4bc543fe230945d156266df8fd9c1728af",
+      "manifest_sha256": "00999c3aa93b56d60f5ae7b0b521607af919fc5ccb28578779f2e008ffde7312",
+      "binary_sha256": "aca1f9231679310d2ef2114b35ab1ef8b7f4bcf4bba4d821c78e0226e5c4fb7f",
+      "files_verified": 2403
+    },
+    "scope": "Git inputs and package bytes verified. Runner build/source manifest was lost to evidence-upload EACCES, so this is not complete compiled-source or installation qualification.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  }
 }

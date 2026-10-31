@@ -68,6 +68,24 @@ class Integrity(unittest.TestCase):
         finally:
             os.umask(prior)
 
+    def test_complete_configuration_grants_service_read_under_private_umask(self):
+        config = self.root / 'server.toml'
+        prior = os.umask(0o077)
+        try:
+            # Unit fixtures run without root; only ownership needs a stub. The
+            # file creation, umask, publication and final permissions are real.
+            with mock.patch.object(installer.os, 'fchown') as ownership:
+                installer.publish_configuration(config, 'database = "private.db"\n', 123)
+                ownership.assert_called_once()
+                self.assertEqual(ownership.call_args.args[1:], (0, 123))
+            self.assertEqual(config.stat().st_mode & 0o777, 0o640)
+            self.assertEqual(config.read_text(), 'database = "private.db"\n')
+            with self.assertRaises(FileExistsError):
+                installer.publish_configuration(config, 'replace', 123)
+            self.assertEqual(config.read_text(), 'database = "private.db"\n')
+        finally:
+            os.umask(prior)
+
     def package_zip(self):
         archive = self.root.parent / 'package.tar.gz'
         packager.archive(self.root, archive, 42)
