@@ -104,9 +104,12 @@ def main():
             binary = runtime / 'bin/connect'
             environment = fixture_environment()
             environment.update(PATH=str(runtime / 'bin') + os.pathsep + environment['PATH'],
-                RUSTUP_HOME=environment.get('RUSTUP_HOME', str(Path.home() / '.rustup')),
-                HOME=str(project / 'cold-home'))
-            Path(environment['HOME']).mkdir()
+                RUSTUP_HOME=environment.get('RUSTUP_HOME', str(Path.home() / '.rustup')))
+            # Isolate package-manager configuration directly while preserving
+            # the host's standard home/toolchain variables.
+            for key, name in [('NPM_CONFIG_USERCONFIG', 'empty-npm-user.conf'), ('NPM_CONFIG_GLOBALCONFIG', 'empty-npm-global.conf')]:
+                path = project / name; path.write_text('')
+                environment[key] = str(path)
             def run(name, command, cwd=project, budget=30):
                 started = time.monotonic(); log = private / (name + '.log')
                 status = bounded([str(c) for c in command], log, environment, budget, cwd=cwd)
