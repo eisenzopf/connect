@@ -188,7 +188,7 @@
   "acceptance_qualified": false,
   "publication": false,
   "current_linux_component": {
-    "status": "Implemented; CI execution pending, not qualified",
+    "status": "Compiled current binaries; first dispatch unrun due missing import, corrected CI pending",
     "scope": "Native Ubuntu24.04x86_64host and publicSDKLinuxx86_64client on a fresh internal bridge. Exact existing child fixture/Remote profile/signatures/CA/hostname checks; direct, every-tenth encryptedUDPdrop, unreachableport, bothEdDSA/ES256. Four-second PCMU component only; noWAN/video/fullmatrix/performance acceptance claim.",
     "entrypoint": "python3 scripts/check-gate6-linux-hosting.py --native-network",
     "workflow_lane": "gate6-linux-fixtures.yml: native-network",
@@ -200,6 +200,22 @@
       "format_check": "passed"
     },
     "execution_passed": false,
-    "acceptance_qualified": false
+    "acceptance_qualified": false,
+    "unrun_attempts": [
+      {
+        "source_revision": "559c54ecb27753b93f8d8d3ca3c0c9af1c4fd7f1",
+        "run_id": 41191812736,
+        "artifact_id": 13038564978,
+        "zip_sha256": "8ed85ce8961f70f2557641e742e83b8183bb754befb069cd769f06887264e5a5",
+        "git_sources_verified": 4515,
+        "prepared_sources_verified": 4092,
+        "pinned_archives_verified": 4,
+        "source_manifest_sha256": "e17f735652e9a237b637789b57786d51abdc877e8b04c2c4884baf1dcb1d16a4",
+        "source_inputs_unchanged": true,
+        "execution_passed": false,
+        "network_fixture_executed": false,
+        "status": "Unrun after successful actual hosting/probe builds: dispatch NameError from missing runpy import. No image pull, container or network stage began; import corrected. Cached builds34.92sand12.75s."
+      }
+    ]
   }
 }
