@@ -483,6 +483,14 @@
         "docs/evidence/gate-6/linux-rtc-compound-runtime.json"
       ],
       "limits": "All four original cases pass within the failed full browser run, with actual refusal, zero allocations and original process/container cleanup. This is expiry component evidence only."
+    },
+    {
+      "profile": "Instrumented browser SQL custody diagnostic",
+      "status": "Five actual collector functions pass; baseline and one direct cell fail AV",
+      "run_id": 41215282254,
+      "source_revision": "e8a4206b4089552ad158e13407ae1369ddd96c53",
+      "evidence": "docs/evidence/gate-6/browser-sql-custody-diagnostic.json",
+      "limits": "Only diagnostic measurement changed from RTC source494; later SIP WAL candidate excluded. SQL durations are observed wall-clock custody >=500us over whole fixture lifetime, not all query CPU or marker correlation. No full media, performance or causal qualification."
     }
   ],
   "matrix_scope": "Latest verified observations at their recorded revisions, not a claim that one current candidate passes all profiles. Historical Mac/guest and local browser scopes remain separate. A running or queued job supplies no behavior pass.",
@@ -492,27 +500,34 @@
       "run_id": 41209664880,
       "source_revision": "86b6cf7c13beec4db0a86ce35666d80f1c6a5038",
       "scope": "Original full strict browser runtime, direct/UDP/TCP bridge and four expired TURN cases",
-      "status": "runtime phase failed; original independent direct/relay and expiry phases continue; no final artifact yet"
+      "status": "completed-failed-source-verified"
     },
     {
       "run_id": 41210897174,
       "source_revision": "ba12a0c72c98bed9f07996ff856125f9a1248b32",
       "scope": "Public initial SIP WAL observer Store regressions and all four original telephone cases",
-      "status": "completed-failed-source-verified; see latest telephone matrix row"
+      "status": "completed-failed-source-verified"
     },
     {
       "run_id": 41211247494,
       "source_revision": "052838f31ad713d09132b3eaef6a2867b45ac533",
       "scope": "Same production WAL candidate with exact existing revoked-credential assertion",
-      "status": "running-no-qualified-result"
+      "status": "completed-failed-source-verified"
     },
     {
       "run_id": 41213265476,
       "source_revision": "1794632cd4923a2daf17c6734e77c4fda78efc0c",
       "scope": "Same production WAL candidate with fixed paired-read trace counters and corrected Store assertion",
-      "status": "queued-no-behavior-result"
+      "status": "completed-failed-source-verified"
     }
   ],
-  "latest_in_flight": [],
+  "latest_in_flight": [
+    {
+      "run_id": 41214524058,
+      "source_revision": "66dadd1a74673e499034f0f6d0280961dd6340fe",
+      "scope": "Paired WAL Store boundaries plus all four original telephone cases",
+      "status": "confirmed-running-no-qualified-result"
+    }
+  ],
   "paired_wal_candidate": "Implemented, runtime unrun. Actual paired Store contention at report source motivates sealed observer acquisition and complete under-interval resolution; exact public/private pair checks precede unchanged phone cases."
 }

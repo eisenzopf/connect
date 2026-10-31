@@ -2,13 +2,411 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "prepared-runtime-unrun",
+  "status": "source-verified-instrumented-diagnostic-failed",
   "base_revision": "494c85a240c12c0b79f270e035b4460154cd6ba2",
   "scope": "Existing browser baseline/direct diagnostic with bounded existing SQL custody telemetry. Production libraries unchanged from base494c85a2; later SIP candidate is not included.",
   "local_python_boundary_functions": 12,
   "local_python_passed": true,
   "required_actual_rust_trace_functions": 5,
-  "rust_runtime_executed": false,
+  "rust_runtime_executed": true,
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "runtime": {
+    "run_id": 41215282254,
+    "artifact_id": 13048206190,
+    "revision": "e8a4206b4089552ad158e13407ae1369ddd96c53",
+    "zip_sha256": "e89c614d44741ffd2197e26380c998484393cf91752684ef94228abcc5fd974a",
+    "git_sources_verified": 2887,
+    "prepared_sources_verified": 3089,
+    "producer": {
+      "scope": "Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt0. Build only.",
+      "fixture_opt_level": "0",
+      "unrequested_cli_artifacts": 0,
+      "command": [
+        "cargo",
+        "rustc",
+        "--release",
+        "--offline",
+        "--locked",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--no-default-features",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none",
+        "-C",
+        "opt-level=0"
+      ],
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 27.032798569999954,
+        "log_sha256": "91164dc55944d225167ae86cb8de30e10dd8d3c7dc3f67f081b6d55299a53156"
+      },
+      "runtime_library_profiles": {
+        "completed_artifacts": 524,
+        "profiles": {
+          "connect_client": [
+            "3"
+          ],
+          "connect_server": [
+            "3"
+          ],
+          "connect_service": [
+            "3"
+          ],
+          "connect_store": [
+            "3"
+          ],
+          "rtc": [
+            "3"
+          ],
+          "rtc_dtls": [
+            "3"
+          ],
+          "rtc_ice": [
+            "3"
+          ],
+          "rvoip_core": [
+            "3"
+          ],
+          "rvoip_media_core": [
+            "3"
+          ],
+          "rvoip_rtp_core": [
+            "3"
+          ],
+          "rvoip_webrtc": [
+            "3"
+          ]
+        },
+        "missing": [],
+        "passed": true
+      },
+      "source_count": 5965,
+      "sources_unchanged": true,
+      "source_manifest_sha256": "6154ed4d807399d72ffa1ec3a3a85381fa75aab0d1ed10686a85fd9faada1aa1",
+      "artifacts": [
+        {
+          "path": "/home/runner/work/connect/connect/.local/gate6-browser-media/target/release/deps/gate6_canonical_webtransport-ac22f5261b37a54e",
+          "sha256": "510cf4319c2a8d4e6d4f0a13dab20f2578012223d4cfdd9e5b11224da38cc808"
+        }
+      ],
+      "passed": true
+    },
+    "collector_test": {
+      "name": "trace-boundaries",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 0.007541883000044436,
+      "timed_out": false,
+      "forced_kill": false
+    },
+    "required_actual_collector_functions": 5,
+    "baseline": {
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 65.74459568700001,
+      "timed_out": false,
+      "forced_kill": false,
+      "pipeline_diagnostic": {
+        "scope": "Bounded private synthetic-lane trace event counts and numeric timing samples only; instrumentation can affect timing. No cause or performance qualification.",
+        "captured_events": 46985,
+        "omitted_events": 0,
+        "suppressed_known_successes": 80210,
+        "counts": {
+          "packet_authority_refused": 24,
+          "core_delivery_refused": 4986,
+          "audio_burst_trimmed": 3,
+          "rtc_packet_path_refused": 15
+        },
+        "authority_problems": {
+          "authority-busy": 14,
+          "forbidden": 10,
+          "storage-unavailable": 0,
+          "conflict": 0,
+          "other": 0
+        },
+        "core_delivery_refusal_stages": {
+          "mixer-target": 0,
+          "source-egress": 3841,
+          "target-egress": 1145,
+          "other": 0
+        },
+        "core_delivery_refusal_problems": {
+          "Model": 0,
+          "Unsupported": 0,
+          "Authority": 0,
+          "NotRecipient": 0,
+          "Cancelled": 0,
+          "Deadline": 0,
+          "NotReady": 4986,
+          "Backpressure": 0,
+          "CleanupUnconfirmed": 0,
+          "other": 0
+        },
+        "core_delivery_scope": "The historical audio-labelled Core message also covers other media; these events do not identify media kind.",
+        "rtc_packet_path_reported_count_max": 16,
+        "rtc_count_scope": "Power-of-two samples of cumulative counters; maximum is not an aggregate failure count.",
+        "audio_timing_samples": {
+          "source-read": {
+            "age_ms": {
+              "samples": 6320,
+              "invalid_samples": 0,
+              "median_ms": 0.039,
+              "p95_ms": 0.435,
+              "maximum_ms": 13.918
+            }
+          },
+          "core-publish": {
+            "age_ms": {
+              "samples": 6317,
+              "invalid_samples": 0,
+              "median_ms": 0.299,
+              "p95_ms": 1.499,
+              "maximum_ms": 66.933
+            },
+            "publish_ms": {
+              "samples": 6317,
+              "invalid_samples": 0,
+              "median_ms": 0.209,
+              "p95_ms": 1.051,
+              "maximum_ms": 66.839
+            }
+          },
+          "mixer-queued": {
+            "age_ms": {
+              "samples": 6220,
+              "invalid_samples": 0,
+              "median_ms": 63.4345,
+              "p95_ms": 101.929,
+              "maximum_ms": 131.541
+            }
+          },
+          "driver-write": {
+            "age_ms": {
+              "samples": 6220,
+              "invalid_samples": 0,
+              "median_ms": 2.641,
+              "p95_ms": 7.083,
+              "maximum_ms": 27.171
+            },
+            "write_ms": {
+              "samples": 6220,
+              "invalid_samples": 0,
+              "median_ms": 0.05,
+              "p95_ms": 0.112,
+              "maximum_ms": 2.562
+            }
+          }
+        },
+        "sql_custody": {
+          "scope": "Completed SQL custody units recorded at or above500us only; not all queries or policy time. File labels and integer call-site lines are source-bound; raw paths/details remain private.",
+          "minimum_recorded_duration_us": 500,
+          "sources": [
+            {
+              "source": "native-snapshot",
+              "line": 106,
+              "samples": 8,
+              "invalid_samples": 0,
+              "median_ms": 0.7565,
+              "p95_ms": 0.915,
+              "maximum_ms": 0.915
+            },
+            {
+              "source": "native-snapshot",
+              "line": 181,
+              "samples": 49,
+              "invalid_samples": 0,
+              "median_ms": 0.869,
+              "p95_ms": 2.063,
+              "maximum_ms": 2.277
+            },
+            {
+              "source": "native-snapshot",
+              "line": 265,
+              "samples": 909,
+              "invalid_samples": 0,
+              "median_ms": 2.961,
+              "p95_ms": 6.502,
+              "maximum_ms": 66.466
+            },
+            {
+              "source": "native-snapshot",
+              "line": 273,
+              "samples": 6,
+              "invalid_samples": 0,
+              "median_ms": 0.8634999999999999,
+              "p95_ms": 1.655,
+              "maximum_ms": 1.655
+            },
+            {
+              "source": "native-snapshot",
+              "line": 296,
+              "samples": 315,
+              "invalid_samples": 0,
+              "median_ms": 3.239,
+              "p95_ms": 9.519,
+              "maximum_ms": 34.085
+            },
+            {
+              "source": "other",
+              "line": 0,
+              "samples": 1421,
+              "invalid_samples": 0,
+              "median_ms": 0.942,
+              "p95_ms": 4.649,
+              "maximum_ms": 38.473
+            }
+          ]
+        }
+      },
+      "observations": [
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "failed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "failed",
+            "quality_status": "failed",
+            "reason": "strict-quality-not-met"
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 81,
+            "median_abs_skew_ms": 24.199999999954258,
+            "p95_abs_skew_ms": 128.09999999997677
+          }
+        },
+        {
+          "audio": "passed",
+          "audio_bad_samples": 0,
+          "motion": "passed",
+          "source_identity": "passed",
+          "av_sync": "passed",
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed",
+            "reason": "quality-met"
+          },
+          "retained_marker_pair_summary": {
+            "pairs": 84,
+            "median_abs_skew_ms": 32.850000000033575,
+            "p95_abs_skew_ms": 100.40000000002358
+          }
+        }
+      ]
+    },
+    "direct_bridges": [
+      {
+        "algorithm": "EdDSA",
+        "passed": false,
+        "server_exit_code": 0,
+        "original_server_joined": true,
+        "original_container_joined": true,
+        "bridge_containers_drained": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true,
+        "tools_unchanged": true,
+        "observations": [
+          {
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_sync": {
+              "status": "failed",
+              "median_abs_skew_ms": null,
+              "p95_abs_skew_ms": null
+            },
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "failed",
+              "quality_status": "failed",
+              "reason": "strict-quality-not-met"
+            }
+          },
+          {
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 34.90000000002169,
+              "p95_abs_skew_ms": 110.0999999999761
+            },
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ]
+      },
+      {
+        "algorithm": "ES256",
+        "passed": true,
+        "server_exit_code": 0,
+        "original_server_joined": true,
+        "original_container_joined": true,
+        "bridge_containers_drained": true,
+        "owned_bridge_removed": true,
+        "forced_cleanup": false,
+        "sources_unchanged": true,
+        "tools_unchanged": true,
+        "observations": [
+          {
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 28.700000000071668,
+              "p95_abs_skew_ms": 61.59999999997545
+            },
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          },
+          {
+            "audio": "passed",
+            "motion": "passed",
+            "source_identity": "passed",
+            "av_sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 30.60000000009211,
+              "p95_abs_skew_ms": 88.00000000000009
+            },
+            "av_acceptance": {
+              "policy": "connect-media-acceptance/2",
+              "scenario": "clean",
+              "status": "passed",
+              "quality_status": "passed",
+              "reason": "quality-met"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "interpretation": "All5actual collector tests pass and all12local Python boundaries pass. Baseline audio/motion/identity pass but one AVp95128.1ms fails the unchanged120ms limit. DirectES256 passes; directEdDSA has one failed AV calibration with no retained pair scores. Capture46985events/0omitted,80210suppressedknownsuccesses. Mixer-queued agep95101.929ms, max131.541ms; source-readp95.435ms, driver-writeagep957.083ms. Recorded native-snapshot acquisition SQL custody at line265 has909units >=500us, p956.502ms/max66.466ms; under-interval line296 has315,p959.519/max34.085ms. These are wall-clock custody durations over the whole fixture lifetime, including bootstrap/warmup/cleanup, not SQL CPU/all queries or a per-marker causal correlation. Do not infer a media fix or weaken limits from this diagnostic."
 }
