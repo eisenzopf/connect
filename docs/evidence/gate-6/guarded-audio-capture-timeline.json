@@ -1,0 +1,160 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "correction-unqualified",
+  "scope": "Actual Core guarded mixer original capture/RTP clock component, separate from strict browser/native/telephone quality and network qualification.",
+  "before": {
+    "source_revision": "1f3d766d43ad86a1fe54ab24cd804120b5dd063a",
+    "run_id": 41195276063,
+    "artifact_id": 13040906933,
+    "zip_sha256": "e3266f6fc0c004427c45eb1259817860718b3dca89111935a0e20f768d7bae2a",
+    "git_sources_verified": 4520,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": false,
+      "status": "failed",
+      "full_task_qualified": false,
+      "acceptance_qualified": false,
+      "scope": "Actual Core guarded mixer parent-module functions, including contiguous capture across empty input and real discarded PCM/missed quanta. No network/browser quality qualification.",
+      "binary_sha256": "dac34197ebb1e3ff56928bc06619baa76575fe550e6b221fe02a3c77060fb8a8",
+      "results": [
+        {
+          "name": "guarded_mixer_decodes_four_people_five_devices_and_excludes_all_own_devices",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_admission_excludes_old_packets_and_inactive_candidate_cannot_publish",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_rechecks_every_contributor_and_audience_after_dequeue",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_role_change_drains_send_and_invalidates_queued_old_voice",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_departure_cancels_admitted_send_and_preserves_other_members",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_replacement_keeps_logical_id_and_discards_old_decoded_samples",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_unknown_codec_replacement_rejected_before_adapter_open_preserves_audio",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_dynamic_payload_names_and_stereo_resampling_use_negotiated_codec",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_failed_role_drain_restores_original_authority_and_queue",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_queued_policy_writer_drops_tick_without_reentering_owned_reader",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_pause_resume_discards_pending_and_queued_audio_without_reopening_ports",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_wrong_static_payload_replacement_keeps_old_ready_port",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_closed_scene_never_falls_back_to_unmanaged_forwarding",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_burst_plays_newest_decoded_packet_without_replaying_backlog",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_long_original_packet_keeps_remaining_samples_without_new_input",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_new_decoded_packet_supersedes_older_partial_audio",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_contiguous_pcm_is_bounded_and_expired_original_samples_do_not_play",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_playing_long_original_keeps_its_remainder_and_latest_future_packet",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_preserves_single_source_clock_across_partial_original_quanta",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_reclocks_original_capture_time_across_codec_rate_conversion",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_contiguous_capture_keeps_one_rtp_clock_across_empty_tick",
+          "passed": false
+        },
+        {
+          "name": "guarded_mixer_clock_tracks_discarded_initial_pcm_and_missed_quanta",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_aligned_multiple_sources_keep_one_mix_clock_and_all_lifetimes",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_unaligned_or_unknown_contributors_never_fabricate_a_capture_anchor",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_waiting_clock_and_discontinuous_segments_remain_explicit",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_retired_target_never_revives_queued_clock_on_rebind",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_clock_metadata_owns_current_ingress_only_during_observation",
+          "passed": true
+        },
+        {
+          "name": "guarded_mixer_clocked_ingress_attaches_after_authorization_without_separate_packet",
+          "passed": true
+        }
+      ]
+    },
+    "finding": "New empty-input/contiguous-source regression fails at output RTP delta assertion, after original capture NTP delta20ms assertion passes. First failing loop uses8kHz output/mixing and source RTP wrap. Other30actual parent-module functions pass. The48kHz loop is unrun after the first assertion failure; no before result is claimed for it.",
+    "compile_seconds": 475.757532094
+  },
+  "after": {
+    "status": "unrun",
+    "passed": false
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false,
+  "proposed_correction": "Numeric single-source RTP/sample-offset coordinates and rational rate conversion, independent of sender-report timing. Preserve real input gaps, discarded PCM, current guards, age/queue bounds and unsupported/multi-source fallback. New real-gap/partial/pending-SR/rate-conversion cases and original regressions must execute before component qualification."
+}

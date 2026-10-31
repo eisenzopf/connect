@@ -1,0 +1,254 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -162,10 +162,26 @@
+     }
+ }
+ 
++#[derive(Clone, Copy)]
++struct CapturePosition {
++    rtp: u32,
++    offset: i128,
++    rate: u32,
++}
++struct SourceTimeline {
++    source: u128,
++    generation: u64,
++    mix_rate: u32,
++    output_rate: u32,
++    previous: CapturePosition,
++    timestamp: u32,
++    remainder: i128,
++}
+ #[derive(Clone)]
+ struct ClockPoint {
+     clock: Option<crate::stream::MediaSourceClock>,
+     start: Option<u64>,
++    position: Option<CapturePosition>,
+     supported: bool,
+ }
+ impl ClockPoint {
+@@ -207,12 +223,102 @@
+                     .wrapping_add_signed(samples),
+             )
+         });
++        let position = clock
++            .as_ref()
++            .filter(|c| c.supported)
++            .map(|c| CapturePosition {
++                rtp: frame.timestamp_rtp.wrapping_sub(c.rtp_offset),
++                offset: consumed as i128 - offset as i128,
++                rate: source_rate,
++            });
+         Self {
+             clock,
+             start,
++            position,
+             supported,
+         }
+     }
++}
++// Retain only numeric media coordinates. No packet, route, clock predicate or
++// delivery authority survives a mixer tick in this timeline.
++fn source_timestamp(
++    points: &[ClockPoint],
++    mix_rate: u32,
++    output_rate: u32,
++    fallback: u32,
++    timeline: &mut Option<SourceTimeline>,
++) -> u32 {
++    let calculate = || -> Option<(u128, u64, CapturePosition)> {
++        let first = points.first()?;
++        let clock = first.clock.as_ref()?;
++        let position = first.position?;
++        if !first.supported
++            || !clock.supported
++            || position.rate == 0
++            || mix_rate == 0
++            || output_rate == 0
++        {
++            return None;
++        }
++        for point in points {
++            let c = point.clock.as_ref()?;
++            let p = point.position?;
++            if !point.supported
++                || !c.supported
++                || c.source_id != clock.source_id
++                || c.generation != clock.generation
++                || p.rate != position.rate
++            {
++                return None;
++            }
++            let delta = p.rtp.wrapping_sub(position.rtp) as i32;
++            if delta == i32::MIN {
++                return None;
++            }
++            let distance = i128::from(delta) * i128::from(mix_rate)
++                + (p.offset - position.offset) * i128::from(position.rate);
++            // Every contributing segment must name the same original start,
++            // within one mix sample, including partial/resampled packets.
++            if distance.abs() > i128::from(position.rate) {
++                return None;
++            }
++        }
++        Some((clock.source_id, clock.generation, position))
++    };
++    let Some((source, generation, position)) = calculate() else {
++        *timeline = None;
++        return fallback;
++    };
++    let denominator = i128::from(position.rate) * i128::from(mix_rate);
++    if let Some(previous) = timeline.as_mut().filter(|t| {
++        t.source == source
++            && t.generation == generation
++            && t.previous.rate == position.rate
++            && t.mix_rate == mix_rate
++            && t.output_rate == output_rate
++    }) {
++        let delta = position.rtp.wrapping_sub(previous.previous.rtp) as i32;
++        let input = i128::from(delta) * i128::from(mix_rate)
++            + (position.offset - previous.previous.offset) * i128::from(position.rate);
++        let scaled = input * i128::from(output_rate) + previous.remainder;
++        let step = scaled.div_euclid(denominator);
++        if delta != i32::MIN && input >= 0 && step < i128::from(1u32 << 31) {
++            previous.timestamp = previous.timestamp.wrapping_add(step as u32);
++            previous.previous = position;
++            previous.remainder = scaled.rem_euclid(denominator);
++            return previous.timestamp;
++        }
++    }
++    *timeline = Some(SourceTimeline {
++        source,
++        generation,
++        mix_rate,
++        output_rate,
++        previous: position,
++        timestamp: fallback,
++        remainder: denominator / 2,
++    });
++    fallback
+ }
+ fn mixed_clock(
+     points: Vec<ClockPoint>,
+@@ -307,6 +413,7 @@
+     previous_sources: Vec<Contribution>,
+     clock_route: crate::clock_route::ClockRouteLease,
+     clock_source: u128,
++    source_timeline: Option<SourceTimeline>,
+ }
+ impl AudioMember {
+     pub(crate) fn activate(&mut self, speaks: bool) {
+@@ -340,6 +447,7 @@
+         if changed || epoch {
+             self.clock_route = crate::clock_route::ClockRouteLease::new();
+             self.clock_source = uuid::Uuid::new_v4().as_u128();
++            self.source_timeline = None;
+             let pt = port
+                 .state
+                 .lock()
+@@ -712,6 +820,7 @@
+             previous_sources: Vec::new(),
+             clock_route: crate::clock_route::ClockRouteLease::new(),
+             clock_source: uuid::Uuid::new_v4().as_u128(),
++            source_timeline: None,
+         })
+     }
+     pub(super) fn insert_registered(&self, id: ConnectionId, member: AudioMember) {
+@@ -872,6 +981,16 @@
+                 .ticks
+                 .wrapping_mul(u64::from(member.codecs.info.clock_rate_hz / 50)))
+                 as u32;
++            // Empty input ticks do not discard contiguous source PCM. Preserve
++            // its original RTP progression; genuine input gaps, trimmed PCM and
++            // missed executor quanta still advance by the actual skipped media.
++            let timestamp = source_timestamp(
++                &clocks,
++                self.rate,
++                member.codecs.info.clock_rate_hz,
++                timestamp,
++                &mut member.source_timeline,
++            );
+             let Ok(mut frame) = member.codecs.encode(
+                 total
+                     .into_iter()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1220,6 +1220,76 @@
+     }
+ }
+ #[tokio::test]
++async fn guarded_mixer_capture_timeline_preserves_real_gaps_and_waiting_rate_conversion() {
++    for output_rate in [8000, 48000] {
++        for waiting in [false, true] {
++            let output = if output_rate == 8000 {
++                audio()
++            } else {
++                MediaFormat::Encoded {
++                    name: "opus".into(),
++                    clock_rate_hz: 48000,
++                    channels: 1,
++                    fmtp: None,
++                }
++            };
++            let people = vec![
++                ("source", "alice", audio(), 0),
++                (
++                    "target",
++                    "bob",
++                    output,
++                    if output_rate == 8000 { 0 } else { 111 },
++                ),
++            ];
++            let s = Scene::new(&people, 48000).await;
++            s.bind(0, true).await;
++            s.bind(1, false).await;
++            let mut out = s.port(1).take_egress().unwrap();
++            let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++            let start = u32::MAX - 79;
++            let mut clock = source_clock(72, 8000, start, 100u64 << 32, live);
++            clock.rtp_offset = 160;
++            if waiting {
++                clock.anchor = None;
++            }
++            s.publish_clocked_ms(0, 1000, start, 10, Some(clock.clone()));
++            s.publish_clocked_ms(0, 1000, start.wrapping_add(80), 10, Some(clock.clone()));
++            s.mixer.tick();
++            let first = mixed_frame(out.try_recv().unwrap()).await;
++            s.mixer.tick();
++            assert!(out.try_recv().is_err());
++            // This time 40ms of actual source PCM is absent. Preserve that
++            // gap even though only one output tick was empty.
++            s.publish_clocked_ms(0, 1000, start.wrapping_add(480), 20, Some(clock.clone()));
++            s.mixer.tick();
++            let next = mixed_frame(out.try_recv().unwrap()).await;
++            assert_eq!(
++                next.timestamp_rtp.wrapping_sub(first.timestamp_rtp),
++                output_rate * 3 / 50
++            );
++            s.publish_clocked_ms(0, 1000, start.wrapping_add(640), 20, Some(clock));
++            s.mixer.tick();
++            let last = mixed_frame(out.try_recv().unwrap()).await;
++            assert_eq!(
++                last.timestamp_rtp.wrapping_sub(next.timestamp_rtp),
++                output_rate / 50
++            );
++            for frame in [first, next, last] {
++                let clock = frame.source_clock.unwrap();
++                assert!(clock.supported && (clock.is_current)());
++                assert_eq!(clock.anchor.is_none(), waiting);
++            }
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("numeric capture timeline retained authority"),
++            );
++        }
++    }
++}
++#[tokio::test]
+ async fn guarded_mixer_clock_tracks_discarded_initial_pcm_and_missed_quanta() {
+     let s = Scene::new(&four()[..2], 8000).await;
+     s.bind(0, true).await;

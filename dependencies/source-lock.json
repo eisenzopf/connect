@@ -1385,6 +1385,12 @@
       "path": "patches/rvoip/gate6-contiguous-mixer-capture-counterexample.patch",
       "source": "G6-054 causal counterexample only: original guarded mixer delivery must retain an affine single-source RTP/capture clock when one input tick is empty but the next original PCMU capture is contiguous, including source timestamp wrap and 8/48kHz mixer rates. Preserve absent-input silence, current delivery guards and actual missed-quanta/drop tests. No production change or full runtime qualification.",
       "sha256": "0a4e603035fd544d8bea637afc1c27a7cf74bd57a6538ba15939b4480127c109"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-source-audio-rtp-timeline.patch",
+      "source": "G6-054 after actual guarded-mixer contiguous-capture/empty-tick regression fails (1f3d766d CI41195276063), preserve a single original source RTP/sample-position timeline through empty input ticks. Numeric metadata only, including signed RTP wrap, partial PCM/rate conversion and rational remainder; actual skipped/dropped source PCM still advances by its real interval. Pending SRs do not invent capture anchors or rewrite audio timestamps. Existing current delivery guards,200ms age,ten chunks, missed executor quanta and multi/unsupported-source fallback unchanged. Added actual missing-input and pending-SR8/48kHz regressions. Full browser/native/telephone qualification remains separate.",
+      "sha256": "d3efb401f08721a993f5866fa861464d89601b3ce033d75f81e73513da3841f7"
     }
   ]
 }
