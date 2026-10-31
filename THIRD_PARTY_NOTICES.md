@@ -6,16 +6,12 @@ The build uses the pinned MIT-licensed rvoip and Parley sources recorded in
 its digest is recorded in the source lock; an upstream revision alone is not the
 complete build identity.
 
-The current lock lists 34 recorded patches, with source-lock SHA-256
-`76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71`.
-The patches cover application/session authority, bounded media and lifecycle
-handling, encoded-video transport, congestion and receiver feedback, RTP repair,
-and source-clock provenance. The latest media repairs handle negotiated outgoing
-RTX, first authenticated audio feedback, and initial sender reports arriving
-before compatible source descriptions. The Parley qualification patch explicitly
-selects the prepared dependency sources and preserves absent remote-clock
-provenance for locally synthesized prompts. Recheck the lock and patch digests
-when cutting a new source archive.
+The current patch inventory and complete source-lock digest are recorded in the
+machine-readable lock. The patches cover application/session authority, bounded
+media and lifecycle handling, encoded-video transport, congestion and receiver
+feedback, RTP repair, source-clock provenance and Gate 6 transport/lifetime
+repairs. Verify the recorded digests when preparing a build; an earlier gate's
+qualified source snapshot is not the current patch inventory.
 
 The pinned `quinn-proto` 0.11.19 crate is reproduced from its SHA-256-verified
 registry archive with the recorded BBR model correction. Its bundled MIT and
@@ -34,6 +30,18 @@ are retained under `dependencies/licenses/rtc`, with source URLs and SHA-256
 values in the lock. Preparation verifies those texts, and runtime bundles copy
 them with the patched crate provenance into `licenses/prepared/` and
 `licenses/prepared-index.json`.
+
+The `web-transport-quinn` 0.11.12 and `web-transport-trait` 0.3.7 registry
+archives declare `MIT OR Apache-2.0` and omit the repository-root license texts.
+Their archive VCS metadata selects `moq-dev/web-transport` revisions
+`4326b94ac251039964d35e9fe6490d15a14f8f66` and
+`af182f99b7ca23482e765b09e70f274295a98813`, respectively. The complete root
+`LICENSE-MIT` and `LICENSE-APACHE` files are retained under
+`dependencies/licenses/web-transport-quinn/` and
+`dependencies/licenses/web-transport-trait/`. Their immutable source URLs,
+crate checksums, VCS paths and license SHA-256 values are recorded in
+`dependencies/registry-license-lock.json`; package assembly verifies the archive
+and license provenance before copying these notices.
 
 Thelve source is not incorporated. Bridgefu informs the request binding design;
 no Bridgefu source is copied at this gate. Cargo.lock records registry dependencies.

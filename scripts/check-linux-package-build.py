@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import runpy
 import subprocess
@@ -27,7 +28,11 @@ def main():
     source = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']
     inputs = source()
     (EVIDENCE / 'source-inputs.json').write_text(json.dumps(inputs, sort_keys=True) + '\n')
-    report = {'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'source_inputs_sha256': digest(EVIDENCE / 'source-inputs.json'), 'source_count': len(inputs), 'steps': [], 'passed': False, 'whole_gate_qualified': False}
+    report = {'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'source_inputs_sha256': digest(EVIDENCE / 'source-inputs.json'), 'source_count': len(inputs), 'steps': [], 'passed': False, 'compilation_completed': False, 'whole_gate_qualified': False}
+    expected = os.environ.get('CONNECT_INSTALLATION_SOURCE_REVISION', report['source_revision'])
+    assert re.fullmatch('[0-9a-f]{40}', expected) and expected == report['source_revision'], 'Checkout differs from requested exact source'
+    report['requested_source_revision'] = expected
+    report['controller_source_revision'] = os.environ.get('GITHUB_SHA')
     env = fixture_environment()
     try:
         for name, command, budget in [
@@ -48,14 +53,23 @@ def main():
                 step['test_results'] = [line for line in lines if line.startswith('test result:')]
                 step['failed_tests'] = [line for line in lines if line.startswith('test ') and line.endswith(' ... FAILED')]
                 step['compiler_errors'] = []
+                step['test_executables'] = []
                 for line in lines:
                     try:
                         event = json.loads(line)
                     except ValueError:
                         continue
+                    if event.get('reason') == 'compiler-artifact' and event.get('executable') and event.get('profile', {}).get('test'):
+                        step['test_executables'].append({'name': event['target']['name'], 'sha256': digest(Path(event['executable']))})
                     if event.get('reason') == 'compiler-message' and event['message']['level'] == 'error':
                         message = event['message']
-                        step['compiler_errors'].append({'message': message['message'], 'code': message.get('code'), 'locations': [{'file': span['file_name'], 'line': span['line_start']} for span in message['spans'] if span['is_primary']]})
+                        step['compiler_errors'].append({'message': message['message'], 'code': (message.get('code') or {}).get('code'), 'locations': [{'file': span['file_name'], 'line': span['line_start']} for span in message['spans'] if span['is_primary']]})
+            if name == 'recovery-tests' and any(p['name'] == 'gate6_canonical_recovery' for p in step['test_executables']) and not step['compiler_errors']:
+                report['compilation_completed'] = True
+            if name == 'recovery-tests' and status == 0:
+                assert len(step['test_results']) == 1 and re.fullmatch(r'test result: ok\. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in .+', step['test_results'][0])
+                assert any(p['name'] == 'gate6_canonical_recovery' for p in step['test_executables'])
+                report['compilation_completed'] = True
             report['steps'].append(step)
             print(json.dumps(step), flush=True)
             if status != 0:
@@ -73,6 +87,10 @@ def main():
             output.write('package=' + str(package.with_suffix('').with_suffix('')) + '\n')
     finally:
         report['source_inputs_unchanged'] = inputs == source()
+        report['cacheable_build'] = report['compilation_completed'] and report['source_inputs_unchanged']
+        if os.environ.get('GITHUB_OUTPUT'):
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                output.write('cacheable_build=' + str(report['cacheable_build']).lower() + '\n')
         (EVIDENCE / 'build.json').write_text(json.dumps(report, indent=2) + '\n')
 
 

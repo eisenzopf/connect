@@ -89,7 +89,7 @@ DER certificate and PKCS#8 private key. Keep the canonical server signing key an
 its separately pinned public key distinct from TLS. Preserve peer trust and key
 validity on rotation; never learn a new signing pin from an unauthenticated peer.
 Use exact browser origins, not wildcards. Check the configured surfaces against
-the server HTTP/OpenAPI reference in `contracts/` and the hosting contract.
+the [HTTP reference](developer/server-http.md), [canonical OpenAPI](../contracts/openapi-canonical-http.json) and [hosting guide](hosting/index.html).
 
 For environment-backed secret references, create `/etc/connect/environment`
 with `sudo install -m 0600 -o root -g root /dev/null /etc/connect/environment`, then
