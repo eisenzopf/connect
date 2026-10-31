@@ -2288,7 +2288,7 @@
     }
   ],
   "interpretation": "These native cross-page paths meet the unchanged AV limits with independent source/receiver AudioContexts and the same coded pulse/render/envelope observers. This rejects a blanket claim that those browser observation paths cannot meet the limits. It does not yet locate the delay in the Connect path or qualify a Connect cell.",
-  "limitations": "AV-only control: render callback motion counters are reported but are not this control's verdict. No source-clock activation timeline, Core packet authority, transport deployment or acceptance qualification is inferred.",
+  "limitations": "Earlier native controls measured AV envelopes without continuous decoded carrier checks. The separately source-verified continuous duplex control now covers both observers in one60swindow. No Core packet authority, remote deployment, SDK or acceptance qualification is inferred; Connect current strict media failures remain open.",
   "full_task_qualified": false,
   "acceptance_qualified": false,
   "repeated_control": {
@@ -2472,5 +2472,178 @@
     },
     "full_task_qualified": false,
     "acceptance_qualified": false
+  },
+  "continuous_duplex_carrier_control": {
+    "task": "G6-054",
+    "scope": "Independent original native cross-page browser AV and throughout-window decoded carrier control; no Connect runtime or acceptance qualification",
+    "source_revision": "824af47f2b47b431b017c12ad9907dbbbca3c4b9",
+    "run_id": 41189690724,
+    "artifact_id": 13038880024,
+    "zip_sha256": "d0e3e0fca5604f3294f6b102cde121b8829b3cbd57c2795b27c2207288f7f047",
+    "git_sources_verified": 14,
+    "pinned_browser_framework_inputs_verified": 72,
+    "source_manifest_sha256": "fc5b9b25939e631b3dfba1a5790e92d5de85d6ea8f6b61983bc37594c9cef45c",
+    "source_count": 86,
+    "sources_unchanged": true,
+    "audio": {
+      "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+      "passed": true,
+      "binary_sha256": "4d77c5d7d37a389a0a309101c73b79e596ecbfe3f42bb0e14ede71be1a96d48d",
+      "version": "pulseaudio 16.1",
+      "startup_socket_created": true,
+      "command_exit_code": 0,
+      "original_process_joined": true,
+      "exit_code": 0,
+      "socket_exists_after_join": false,
+      "private_home_created": true,
+      "private_cookie_created": true,
+      "error_categories": []
+    },
+    "network": {
+      "owned_internal_bridge": true,
+      "original_bridge_removed": true,
+      "forced_cleanup": false
+    },
+    "image_id": "sha256:1c858b7c9301e4bf495d491da693e5feb7f19a5436b3156d4bef8f5a357f153a",
+    "full_task_qualified": false,
+    "acceptance_qualified": false,
+    "passed": true,
+    "original_browser_joined": true,
+    "ownership": {
+      "original_process_joined": true,
+      "forced_kill": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    "av_limits": {
+      "median_abs_skew_ms": 80,
+      "p95_abs_skew_ms": 120,
+      "minimum_paired_markers": 42
+    },
+    "rows": [
+      {
+        "index": 0,
+        "seconds": 60.008100000000006,
+        "decoded_fps": 29.97928612970582,
+        "passed": true,
+        "audio_profile": {
+          "status": "passed",
+          "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+          "expected_frequency_hz": 660,
+          "samples": 601,
+          "coverage_complete": true,
+          "maximum_sampling_gap_seconds": 0.11129999160766602,
+          "configured_interval_seconds": 0.1,
+          "coverage_bounds": {
+            "maximum_samples": 2000,
+            "minimum_expected_sample_fraction": 0.9,
+            "maximum_gap_seconds": 0.2
+          },
+          "observed_exceptions": [],
+          "bad_unexcepted_samples": 0,
+          "limits": {
+            "identified_rms_above": 0.001,
+            "frequency_error_below_hz": 35,
+            "recovery_seconds": 2,
+            "mute_silence_rms_at_most": 0.003,
+            "mute_observation_seconds": 0.5
+          },
+          "bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        "audio_readiness": {
+          "status": "identified",
+          "expected_frequency_hz": 660,
+          "consecutive_samples": 3,
+          "limit_seconds": 5
+        },
+        "audio_clock": {
+          "rate": 44100,
+          "seconds": 60.02358276643991,
+          "wall_seconds": 60.008100000000006
+        },
+        "av_sync": {
+          "status": "passed",
+          "program": "connect-av-cadence/1",
+          "method": "independently decoded low-to-high edges uniquely calibrated against nonperiodic cadence; only equal source ordinals are paired, never nearest periodic edges",
+          "video_markers": 86,
+          "audio_markers": 86,
+          "paired": 86,
+          "median_abs_skew_ms": 25.600000000006062,
+          "p95_abs_skew_ms": 61.89999999999429,
+          "calibration_tolerance_seconds": 0.15,
+          "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+          "unmatched_video_markers": 0,
+          "unmatched_audio_markers": 0
+        },
+        "audio_envelope_status": "observer-valid"
+      },
+      {
+        "index": 1,
+        "seconds": 60.00789999999999,
+        "decoded_fps": 29.96272157499263,
+        "passed": true,
+        "audio_profile": {
+          "status": "passed",
+          "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+          "expected_frequency_hz": 440,
+          "samples": 600,
+          "coverage_complete": true,
+          "maximum_sampling_gap_seconds": 0.11010026931762695,
+          "configured_interval_seconds": 0.1,
+          "coverage_bounds": {
+            "maximum_samples": 2000,
+            "minimum_expected_sample_fraction": 0.9,
+            "maximum_gap_seconds": 0.2
+          },
+          "observed_exceptions": [],
+          "bad_unexcepted_samples": 0,
+          "limits": {
+            "identified_rms_above": 0.001,
+            "frequency_error_below_hz": 35,
+            "recovery_seconds": 2,
+            "mute_silence_rms_at_most": 0.003,
+            "mute_observation_seconds": 0.5
+          },
+          "bad_sample_diagnostics": {
+            "limit": 16,
+            "omitted": 0,
+            "samples": []
+          }
+        },
+        "audio_readiness": {
+          "status": "identified",
+          "expected_frequency_hz": 440,
+          "consecutive_samples": 3,
+          "limit_seconds": 5
+        },
+        "audio_clock": {
+          "rate": 44100,
+          "seconds": 60.023582766439915,
+          "wall_seconds": 60.00789999999999
+        },
+        "av_sync": {
+          "status": "passed",
+          "program": "connect-av-cadence/1",
+          "method": "independently decoded low-to-high edges uniquely calibrated against nonperiodic cadence; only equal source ordinals are paired, never nearest periodic edges",
+          "video_markers": 86,
+          "audio_markers": 86,
+          "paired": 86,
+          "median_abs_skew_ms": 18.399999999996197,
+          "p95_abs_skew_ms": 58.79999999999086,
+          "calibration_tolerance_seconds": 0.15,
+          "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+          "unmatched_video_markers": 0,
+          "unmatched_audio_markers": 0
+        },
+        "audio_envelope_status": "observer-valid"
+      }
+    ],
+    "interpretation": "Both independently decoded native directions preserve continuous440/660Hz identity across600/601samples with zero exceptions or bad observations and complete60scoverage. Both meet unchangedAVlimits/p95=61.9/58.8ms with86pairedmarkers and~29.96/29.98decodedfps. Source verification binds14trackedinputs plus72identical pinned browser/framework inputs. This narrows the Connect-only carrier investigation; it does not identify a Core defect or qualify Connect."
   }
 }
