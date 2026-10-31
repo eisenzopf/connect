@@ -1,10 +1,14 @@
 name: Gate 6 operational visibility
 on:
   workflow_call:
+    inputs:
+      phase:
+        type: string
+        default: all
 permissions:
   contents: read
 concurrency:
-  group: gate6-operational-${{ github.ref }}
+  group: gate6-operational-${{ github.ref }}-${{ inputs.phase }}
   cancel-in-progress: false
 jobs:
   component:
@@ -14,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: [schema, runtime]
+        phase: ${{ fromJSON(inputs.phase == 'schema' && '["schema"]' || '["schema","runtime"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
       CARGO_BUILD_JOBS: '2'

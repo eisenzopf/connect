@@ -207,7 +207,9 @@ distribution and independent acceptance profiles remain separate.
 ## Operational health observations
 
 The named application `health` operation includes `data.operational` only for a
-currently authorized administrator whose recipient ceiling includes `*`.
+currently authorized administrator with the separate `installation.observe` grant
+and a recipient ceiling that includes `*`. A tenant administrator's `admin`
+permission alone does not grant installation-wide observations.
 Ordinary participant credentials may have `health` permission; that permission
 alone does not expose installation-wide operation or resource counts. Current
 revocation and scope checks apply on every read. Public `/healthz` remains a

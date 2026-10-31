@@ -65,7 +65,7 @@
   "whole_gate_qualified": false,
   "implementation_checkpoint": {
     "status": "implemented-unqualified-until-current-Rust-execution",
-    "authorization": "Current admin permission and unrestricted recipient ceiling; ordinary Health omits global counts",
+    "authorization": "Current health, admin and distinct installation.observe permissions, plus unrestricted recipient ceiling. Tenant admin alone omits global counts. Wildcard installation operator remains explicitly fully authorized.",
     "implemented": [
       "Explicit configured limits and operation-ledger state counts with no IDs or content",
       "Weak resource observer owners and busy/retired/null semantics",
@@ -124,5 +124,12 @@
     "measurement": "Bounded samples report separate group RSS and observed CPU; samples can miss short-lived children and RSS can double-count shared pages",
     "local_verification": "4 process boundary/privacy tests passed; Python and Node syntax passed",
     "original_joins_required": true
+  },
+  "authorization_correction": {
+    "finding": "Repository admin is also used for tenant administration; global observations need a distinct grant",
+    "change": "Require installation.observe in addition to admin and unrestricted recipient ceiling",
+    "regression": "A health/admin tenant administrator with wildcard recipients omits operational; the explicitly granted observer and full installation operator receive it",
+    "runtime_status": "pending-current-source-Linux-execution",
+    "http_reference": "Generator authorization description updated; current-source generated reference must be retrieved from the next schema job"
   }
 }

@@ -227,6 +227,7 @@ pub(super) fn read(
                 schema: crate::SCHEMA_VERSION,
                 readiness: None,
                 operational: if actor.permits("admin")
+                    && actor.permits("installation.observe")
                     && actor.scope.recipients.iter().any(|id| id == "*")
                 {
                     Some(Box::new(crate::operational::snapshot(c, &store.limits)?))

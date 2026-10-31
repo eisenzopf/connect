@@ -90,6 +90,30 @@ mod tests {
                 crate::now() + 60,
             )
             .unwrap();
+        let tenant_admin = store
+            .issue(
+                &identity.id,
+                Scope {
+                    operations: vec!["health".into(), "admin".into()],
+                    recipients: vec!["*".into()],
+                },
+                crate::now() + 60,
+            )
+            .unwrap();
+        let explicit_observer = store
+            .issue(
+                &identity.id,
+                Scope {
+                    operations: vec![
+                        "health".into(),
+                        "admin".into(),
+                        "installation.observe".into(),
+                    ],
+                    recipients: vec!["*".into()],
+                },
+                crate::now() + 60,
+            )
+            .unwrap();
         let secret = "private-diagnostic-intent-must-never-appear";
         {
             let c = store.connection().unwrap();
@@ -153,6 +177,24 @@ mod tests {
                 .unwrap(),
             Outcome::Health {
                 operational: None,
+                ..
+            }
+        ));
+        assert!(matches!(
+            store
+                .execute(&tenant_admin.id, &Operation::Health {})
+                .unwrap(),
+            Outcome::Health {
+                operational: None,
+                ..
+            }
+        ));
+        assert!(matches!(
+            store
+                .execute(&explicit_observer.id, &Operation::Health {})
+                .unwrap(),
+            Outcome::Health {
+                operational: Some(_),
                 ..
             }
         ));
