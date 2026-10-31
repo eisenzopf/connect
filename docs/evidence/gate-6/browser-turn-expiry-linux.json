@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "implemented-linux-runtime-unrun",
+  "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
+  "runtime_passed": false,
+  "runtime_run_id": null,
+  "original_tests_unchanged": true,
+  "original_browser_timeout_seconds": 8,
+  "original_node_deadline_seconds": 110,
+  "whole_case_deadline_seconds": 120,
+  "allocation_drain_limit_seconds": 10,
+  "post_drain_join_limit_seconds": 10,
+  "local_verification": {
+    "ownership_and_expiry_oracle_tests": 4,
+    "browser_build_profile_tests": 11,
+    "existing_turn_ownership_tests": 3,
+    "python_compile": "passed",
+    "workflow_yaml_syntax": "passed",
+    "diff_check": "passed"
+  },
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}

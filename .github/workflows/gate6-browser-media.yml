@@ -5,7 +5,7 @@ on:
       lane:
         description: 'Full matrix or an explicit isolated media/ICE component'
         type: choice
-        options: [full, diagnostic, bridge, fault, relay, native-ice, source-clock]
+        options: [full, diagnostic, bridge, fault, relay, native-ice, expired-turn, source-clock]
         default: full
       source_clock_expectation:
         description: 'For source-clock only: reproduce the missing first-report counterexample or require a passing correction'
@@ -56,6 +56,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
           python3 -m unittest discover -s scripts/tests -p test_owned_netem.py
           python3 -m unittest discover -s scripts/tests -p test_owned_bridge_turn.py
+          python3 -m unittest discover -s scripts/tests -p test_browser_expiry.py
           python3 -m unittest discover -s scripts/tests -p test_video_measurements.py
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
@@ -95,7 +96,7 @@ jobs:
           (base/'image.json').write_text(json.dumps({k:image[k] for k in ['Id','Os','Architecture','RepoDigests']},indent=2)+'\n')
           PY
       - name: Prepare pinned owned TURN image
-        if: ${{ inputs.lane == 'full' || inputs.lane == 'relay' }}
+        if: ${{ inputs.lane == 'full' || inputs.lane == 'relay' || inputs.lane == 'expired-turn' }}
         run: |
           docker pull --platform linux/amd64 coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf
           python3 - <<'PY'
@@ -108,7 +109,7 @@ jobs:
               reference=reference,**{key:value[key] for key in ['Id','Os','Architecture','RepoDigests']}),indent=2)+'\n')
           PY
       - name: Run independent bounded media and network cases
-        if: ${{ inputs.lane != 'bridge' && inputs.lane != 'relay' }}
+        if: ${{ inputs.lane != 'bridge' && inputs.lane != 'relay' && inputs.lane != 'expired-turn' }}
         run: |
           docker run --rm --read-only --network none --platform linux/amd64 --cpus 4 --memory 6g --shm-size 1g \
             ${{ (inputs.lane == 'full' || inputs.lane == 'fault') && '--cap-add NET_ADMIN' || '' }} \
@@ -132,7 +133,7 @@ jobs:
                 python3 scripts/check-gate6-browser-media.py run ${{ inputs.lane == 'diagnostic' && '--component baseline' || inputs.lane == 'fault' && '--component impairment-eddsa' || inputs.lane == 'native-ice' && '--component native-ice' || '' }}
             '
       - name: Run owned distinct-network browser bridge cases
-        if: always() && steps.build.outcome == 'success' && inputs.lane != 'fault' && inputs.lane != 'native-ice'
+        if: always() && steps.build.outcome == 'success' && inputs.lane != 'fault' && inputs.lane != 'native-ice' && inputs.lane != 'expired-turn'
         env:
           GATE6_BROWSER_LANE: ${{ inputs.lane }}
         run: |
@@ -162,6 +163,17 @@ jobs:
                   failed=failed or result.returncode!=0
           sys.exit(failed)
           PY
+      - name: Run original expired TURN refusal cases
+        if: always() && steps.build.outcome == 'success' && (inputs.lane == 'full' || inputs.lane == 'expired-turn')
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import json,subprocess
+          base=Path('.local/gate6-browser-media/evidence')
+          subprocess.run(['python3','scripts/check-gate6-browser-expiry.py',
+              '--image',json.loads((base/'image.json').read_text())['Id'],
+              '--turn-image',json.loads((base/'turn-image.json').read_text())['Id']],check=True)
+          PYTHON
       - name: Return ownership of only fixture evidence
         if: always()
         run: |
@@ -186,6 +198,9 @@ jobs:
             .local/gate6-browser-media/evidence/runtime/clock/summary.json
             .local/gate6-browser-media/evidence/bridge-*/summary.json
             .local/gate6-browser-media/evidence/bridge-*/tool-inputs.json
+            .local/gate6-browser-media/evidence/expired-turn/summary.json
+            .local/gate6-browser-media/evidence/expired-turn/tool-inputs.json
+            .local/gate6-browser-media/evidence/expired-turn/repository-inputs.json
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
