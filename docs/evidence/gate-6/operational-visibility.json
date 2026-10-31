@@ -113,6 +113,16 @@
       "Eight live signed subscriptions refuse the ninth; lease expiry and physical reconnect permit later reads"
     ],
     "ci_visibility": "Separate source-guarded Store/Service/permit/public-socket/hosting-limit steps; aggregate refuses missing, changed-source or failed reports",
-    "task_complete": false
+    "task_complete": false,
+    "operation_overload": "Current Store shared receipt/journal budget refusal with retained cancellation and its causal event is now included in the isolated lane"
+  },
+  "process_measurement_candidate": {
+    "status": "implemented-not-yet-executed-on-Linux",
+    "profile": "Three independently launched owned process trees: production server, actual Rust typed SDK helper and Chromium/Node browser HTTP",
+    "scope": "Synthetic read-only loopback capabilities/administrator health; no media/provider/model execution",
+    "ownership": "Numeric /proc stat fields only; anchored birth ticks reject PID reuse and cross-role process adoption; no argv, environment, paths or process names in reports",
+    "measurement": "Bounded samples report separate group RSS and observed CPU; samples can miss short-lived children and RSS can double-count shared pages",
+    "local_verification": "4 process boundary/privacy tests passed; Python and Node syntax passed",
+    "original_joins_required": true
   }
 }

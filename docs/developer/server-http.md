@@ -252,3 +252,15 @@ still apply earlier. During shutdown, protected bytes stop immediately; ordinary
 routes have at most five seconds to flush a cancellation response before their
 socket closes. Connection expiry never rolls back an accepted mutation: clients
 must retain the original operation IDs and inspect/recover acceptance.
+
+The G6-057 process fixture launches three explicit Linux process roots: the
+production CLI server, an actual Rust typed SDK helper, and an owned Chromium
+browser with its Node control driver. Its bounded read-only loopback profile
+samples each process tree separately. Birth-time checks prevent PID reuse from
+adopting unrelated processes. Public reports contain numeric CPU/RSS observations
+and fixed role/state codes; they contain no command lines, environment, process
+names, credentials or private payloads. Group RSS may count shared pages more
+than once, and processes that exit between samples may be missed. These are
+measurements for the selected fixture, not throughput or whole-gate guarantees.
+Current runtime qualification is tracked in
+[operational visibility evidence](../evidence/gate-6/operational-visibility.json).

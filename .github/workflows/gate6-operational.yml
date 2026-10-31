@@ -70,10 +70,31 @@ jobs:
       - name: Public participant upload and subscription limits
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case hosting-limits
+      - name: Durable operation overload retains cancellation and causal recovery room
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case operation-overload
       - name: Verify all component results share the unchanged source boundary
         id: component
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --aggregate
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: ${{ matrix.phase == 'runtime' && steps.component.outcome == 'success' }}
+        with:
+          node-version: '22'
+      - name: Verify process observation ownership and privacy boundaries
+        if: ${{ matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 -m unittest discover -s scripts/tests -p test_operational_process_resources.py
+      - name: Install locked owned browser runtime
+        if: ${{ matrix.phase == 'runtime' && steps.component.outcome == 'success' }}
+        working-directory: scripts/video/observer-tools
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --no-install playwright install --with-deps chromium
+      - name: Measure actual production server SDK helper and owned browser separately
+        if: ${{ matrix.phase == 'runtime' && steps.component.outcome == 'success' }}
+        run: python3 scripts/check-operational-processes.py
       - name: Upload curated component and generated reference evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

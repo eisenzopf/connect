@@ -37,7 +37,7 @@ def generate_reference():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("schema", "runtime"), required=True)
-    parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "public-client", "hosting-limits"))
+    parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "public-client", "hosting-limits", "operation-overload"))
     parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--generate-reference", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -75,6 +75,7 @@ def main():
         ("permit-lifetime", prefix + ["-p", "connect-service", "--lib", "resources::tests", "--", "--test-threads=1"], 1200, 2),
         ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 3),
         ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
+        ("operation-overload", prefix + ["-p", "connect-store", "--lib", "transitions::tests::shared_capacity_keeps_room_for_a_terminal_cancel_decision_and_its_causal_event", "--", "--test-threads=1"], 1200, 1),
     ]
     all_commands = commands
     if args.case:
