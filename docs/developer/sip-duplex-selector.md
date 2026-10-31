@@ -84,3 +84,17 @@ The telephone CI lane now also executes the two existing helper tests for fresh
 authorization, immediate permanent refusal and an expired original acquisition
 budget. Those and all four unchanged phone cells must pass on the candidate;
 format and Python boundary checks alone do not qualify this correction.
+
+The bounded retry is rejected and reverted after source-verified run
+`41207024225` at `b31d00c1`. Both existing helper tests pass, but all four
+original telephone cells fail. The three media cases retain only800,640and1120
+native bytes and encounter9,22and24native egress deadline refusals; direct
+ES256 fails at the original subscription. Store-busy counts fall, but that
+metric does not establish useful delivery. Hosting compilation took1367.7s and
+the newly required service test compilation/execution1206.1s; the behavioral
+failures remain explicit. No thresholds or call assertions are weakened.
+
+The initial public SIP read still uses the command SQL mutex, whereas current
+native packet metadata already uses bounded read-only WAL observers and seals
+SQL/clock versions under a fresh complete authority interval. The next change
+targets that read path instead of waiting in the synchronous media callback.

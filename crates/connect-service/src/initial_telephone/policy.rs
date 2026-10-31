@@ -486,11 +486,7 @@ impl MediaPolicy for Leg {
         self.scope(scope)?;
         let runtime = self.runtime()?;
         let started = std::time::Instant::now();
-        // Match native packet admission: only a failed Store acquisition may
-        // retry, before any lease exists. Every attempt rechecks the original
-        // runtime/origin and current Store authorization; no positive grant,
-        // SQL lock, readiness result or physical IO survives this bounded wait.
-        let result = crate::canonical_media::packet_read(|| self.current_media_read());
+        let result = self.current_media_read();
         tracing::trace!(target: "connect_service::canonical_packet",
             elapsed_us = started.elapsed().as_micros() as u64,
             publishing = matches!(scope.purpose, MediaPurpose::Publish),

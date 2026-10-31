@@ -1873,8 +1873,486 @@
     "compile_seconds": 0.36578121099999805
   },
   "bounded_store_retry_candidate": {
-    "status": "implemented-runtime-unrun",
+    "status": "rejected-and-reverted",
     "change": "Reuse the existing native packet-read helper for initial SIP current_media_read. Retry only authority-busy within10ms before any positive lease. Revalidate runtime/origin/currentStore perattempt; permanent/readiness failures stayterminal. No physical callback retry, cachedgrant, altered SIP/PCM threshold or extraqueue.",
-    "validation": "format/diff checks and19diagnostic+5telephone boundary tests pass. Two existing service packet-read helper functions and allfour originalphonecells scheduled in telephone-network CI. No localRustbuild or runtimepassclaimed."
+    "validation": "format/diff checks and19diagnostic+5telephone boundary tests pass. Two existing service packet-read helper functions and allfour originalphonecells scheduled in telephone-network CI. No localRustbuild or runtimepassclaimed.",
+    "source_revision": "b31d00c10121dc774413b3f6ec8db2094cc96a85",
+    "run_id": 41207024225,
+    "artifact_id": 13045932575,
+    "zip_sha256": "d5eabd9a95f00629440cff833208cc1b19e9d6af5f37c840fd2dfa07295a3837",
+    "git_sources_verified": 4534,
+    "prepared_sources_verified": 4093,
+    "pinned_archives_verified": 4,
+    "service_packet_read": {
+      "passed": true,
+      "actual_tests": 2,
+      "scope": "Existing production packet-read helper: fresh authorization after contention, immediate permanent refusal and original expired budget; no full telephone qualification."
+    },
+    "telephone": {
+      "scope": "Current native Linux x86_64 host and SIP/RTP peer on one owned internal bridge, controlled fixed peer-side NAT and public native SDK PCMU: original direct/20percentRTP-loss \u00d7EdDSA/ES256 decode, journal-before-INVITE, replay, signed end and drains. No WAN/provider/PSTN/model, video, full matrix, performance or acceptance qualification.",
+      "passed": false,
+      "results": [
+        {
+          "passed": false,
+          "source_revision": "b31d00c10121dc774413b3f6ec8db2094cc96a85",
+          "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+          "server_sha256": "95430b6997ceebe7ea5db1bfff38ae09fedb8427f463481f0aa28ccad858f0cb",
+          "source_inputs_unchanged": true,
+          "build_inputs_unchanged": true,
+          "server_unchanged": true,
+          "profiles": [
+            {
+              "algorithm": "EdDSA",
+              "passed": false,
+              "guest_exit_code": 1,
+              "server_exit_code": 101,
+              "forced_server_cleanup": false,
+              "forced_guest_cleanup": false,
+              "server_failure": {
+                "readiness_written": true,
+                "media_go_written": true,
+                "elapsed_observed": false,
+                "panic_locations": [
+                  {
+                    "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                    "line": 173,
+                    "column": 5
+                  }
+                ]
+              },
+              "audio_path_diagnostic": {
+                "sip_admissions": 200,
+                "sip_admitted": 85,
+                "sip_refused": 115,
+                "native_egress_configured": 1,
+                "native_egress_refused": 9,
+                "mixer_queued": 111,
+                "core_delivery_refused": 921,
+                "audio_burst_trimmed": 0,
+                "host_received_capture_written": true,
+                "host_received_bytes": 800,
+                "host_received_sha256": "c7c3f2a71fe1f3db8e0f4a05a66681f6569aac1321b582f31fae3c8dab968d94",
+                "problems": {
+                  "Model": 0,
+                  "Unsupported": 0,
+                  "Authority": 0,
+                  "NotRecipient": 0,
+                  "Cancelled": 0,
+                  "Deadline": 9,
+                  "NotReady": 970,
+                  "Backpressure": 66,
+                  "CleanupUnconfirmed": 0,
+                  "other": 0
+                },
+                "initial_sip_store_authority": {
+                  "admitted": 526,
+                  "authority-busy": 155,
+                  "forbidden": 0,
+                  "not-ready": 0,
+                  "other": 0
+                }
+              },
+              "guest": {
+                "passed": false,
+                "os": "linux",
+                "architecture": "x86_64",
+                "sip_invites": 1,
+                "sip_acks": 1,
+                "sip_byes": 0,
+                "sent_rtp": 200,
+                "received_rtp": 7,
+                "foreign_datagrams": 0,
+                "rtcp_mux_offered": false,
+                "server_advertised_media_ip_matched": true,
+                "owned_sockets_closed": true,
+                "received_bytes": 1120,
+                "received_sha256": "a3686e1afc24281a8ee3e19e236af5c53a1b9a3b6e398a712fe46bf3f71dc372"
+              },
+              "server_witness": [],
+              "host_decoded": {},
+              "guest_decoded": {},
+              "peer_nat": {
+                "foreign_datagrams": 0,
+                "journal_before_first_invite": true,
+                "worker_joined": true,
+                "unique_calls": 1,
+                "owned_rtcp_sink_packets": 5,
+                "sip": {
+                  "guest_to_server": 1,
+                  "server_to_guest": 2
+                },
+                "rtp": {
+                  "guest_to_server": 200,
+                  "server_to_guest": 7
+                },
+                "rtcp": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "pcmu_rtp_seen": {
+                  "guest_to_server": 200,
+                  "server_to_guest": 7
+                },
+                "pcmu_rtp_dropped": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                }
+              },
+              "logs_sha256": {
+                "server.log": "de549854c783fc8c43b1cdf2373f58952591e75ee37dd60259b663b1ccda99d3",
+                "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+              }
+            },
+            {
+              "algorithm": "ES256",
+              "passed": false,
+              "guest_exit_code": 1,
+              "server_exit_code": 101,
+              "forced_server_cleanup": false,
+              "forced_guest_cleanup": false,
+              "server_failure": {
+                "readiness_written": true,
+                "media_go_written": false,
+                "elapsed_observed": false,
+                "panic_locations": [
+                  {
+                    "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                    "line": 154,
+                    "column": 14
+                  }
+                ]
+              },
+              "audio_path_diagnostic": {
+                "sip_admissions": 0,
+                "sip_admitted": 0,
+                "sip_refused": 0,
+                "native_egress_configured": 1,
+                "native_egress_refused": 0,
+                "mixer_queued": 0,
+                "core_delivery_refused": 0,
+                "audio_burst_trimmed": 0,
+                "host_received_capture_written": false,
+                "problems": {
+                  "Model": 0,
+                  "Unsupported": 0,
+                  "Authority": 0,
+                  "NotRecipient": 0,
+                  "Cancelled": 0,
+                  "Deadline": 0,
+                  "NotReady": 0,
+                  "Backpressure": 0,
+                  "CleanupUnconfirmed": 0,
+                  "other": 0
+                },
+                "initial_sip_store_authority": {
+                  "admitted": 12,
+                  "authority-busy": 10,
+                  "forbidden": 0,
+                  "not-ready": 0,
+                  "other": 0
+                }
+              },
+              "guest": {
+                "passed": false,
+                "os": "linux",
+                "architecture": "x86_64",
+                "sip_invites": 1,
+                "sip_acks": 1,
+                "sip_byes": 1,
+                "sent_rtp": 0,
+                "received_rtp": 0,
+                "foreign_datagrams": 0,
+                "rtcp_mux_offered": false,
+                "server_advertised_media_ip_matched": true,
+                "unique_call_ids": 1,
+                "owned_sockets_closed": true,
+                "received_bytes": 0,
+                "received_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "server_witness": [],
+              "host_decoded": {},
+              "guest_decoded": {},
+              "peer_nat": {
+                "foreign_datagrams": 0,
+                "journal_before_first_invite": true,
+                "worker_joined": true,
+                "unique_calls": 1,
+                "owned_rtcp_sink_packets": 3,
+                "sip": {
+                  "guest_to_server": 2,
+                  "server_to_guest": 3
+                },
+                "rtp": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "rtcp": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "pcmu_rtp_seen": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "pcmu_rtp_dropped": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                }
+              },
+              "logs_sha256": {
+                "server.log": "66b0243dd680f3c03390806b32121034b7ece656467d9e4dfcbf89c3635f7c37",
+                "guest.log": "e57341d5507fb12c81e3b26668a63ad89cfdb63be55c4585bc58419dd7378664"
+              }
+            }
+          ],
+          "network_profile": "direct"
+        },
+        {
+          "passed": false,
+          "source_revision": "b31d00c10121dc774413b3f6ec8db2094cc96a85",
+          "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+          "server_sha256": "95430b6997ceebe7ea5db1bfff38ae09fedb8427f463481f0aa28ccad858f0cb",
+          "source_inputs_unchanged": true,
+          "build_inputs_unchanged": true,
+          "server_unchanged": true,
+          "profiles": [
+            {
+              "algorithm": "EdDSA",
+              "passed": false,
+              "guest_exit_code": 1,
+              "server_exit_code": 101,
+              "forced_server_cleanup": false,
+              "forced_guest_cleanup": false,
+              "server_failure": {
+                "readiness_written": true,
+                "media_go_written": true,
+                "elapsed_observed": false,
+                "panic_locations": [
+                  {
+                    "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                    "line": 173,
+                    "column": 5
+                  }
+                ]
+              },
+              "audio_path_diagnostic": {
+                "sip_admissions": 192,
+                "sip_admitted": 76,
+                "sip_refused": 116,
+                "native_egress_configured": 1,
+                "native_egress_refused": 22,
+                "mixer_queued": 119,
+                "core_delivery_refused": 1016,
+                "audio_burst_trimmed": 0,
+                "host_received_capture_written": true,
+                "host_received_bytes": 640,
+                "host_received_sha256": "8a4d09afc916035b7f07c00e2b1c187245dc98e4bfcd8fb2ddbf83b7a4f6c42a",
+                "problems": {
+                  "Model": 0,
+                  "Unsupported": 0,
+                  "Authority": 1,
+                  "NotRecipient": 0,
+                  "Cancelled": 0,
+                  "Deadline": 22,
+                  "NotReady": 1074,
+                  "Backpressure": 57,
+                  "CleanupUnconfirmed": 0,
+                  "other": 0
+                },
+                "initial_sip_store_authority": {
+                  "admitted": 514,
+                  "authority-busy": 201,
+                  "forbidden": 0,
+                  "not-ready": 0,
+                  "other": 2
+                }
+              },
+              "guest": {
+                "passed": false,
+                "os": "linux",
+                "architecture": "x86_64",
+                "sip_invites": 1,
+                "sip_acks": 1,
+                "sip_byes": 0,
+                "sent_rtp": 200,
+                "received_rtp": 4,
+                "foreign_datagrams": 0,
+                "rtcp_mux_offered": false,
+                "server_advertised_media_ip_matched": true,
+                "owned_sockets_closed": true,
+                "received_bytes": 640,
+                "received_sha256": "90cc8b8da1a40765c9f428b0adc387f73195181f711c45944c48a408789e46fd"
+              },
+              "server_witness": [],
+              "host_decoded": {},
+              "guest_decoded": {},
+              "peer_nat": {
+                "foreign_datagrams": 0,
+                "journal_before_first_invite": true,
+                "worker_joined": true,
+                "unique_calls": 1,
+                "owned_rtcp_sink_packets": 5,
+                "sip": {
+                  "guest_to_server": 1,
+                  "server_to_guest": 2
+                },
+                "rtp": {
+                  "guest_to_server": 160,
+                  "server_to_guest": 4
+                },
+                "rtcp": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "pcmu_rtp_seen": {
+                  "guest_to_server": 200,
+                  "server_to_guest": 4
+                },
+                "pcmu_rtp_dropped": {
+                  "guest_to_server": 40,
+                  "server_to_guest": 0
+                }
+              },
+              "logs_sha256": {
+                "server.log": "f9647399a918e899e2b2a5f9ba2b9cc73316bfca0595b508fe3de55aebfd0993",
+                "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+              }
+            },
+            {
+              "algorithm": "ES256",
+              "passed": false,
+              "guest_exit_code": 1,
+              "server_exit_code": 101,
+              "forced_server_cleanup": false,
+              "forced_guest_cleanup": false,
+              "server_failure": {
+                "readiness_written": true,
+                "media_go_written": true,
+                "elapsed_observed": false,
+                "panic_locations": [
+                  {
+                    "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs",
+                    "line": 173,
+                    "column": 5
+                  }
+                ]
+              },
+              "audio_path_diagnostic": {
+                "sip_admissions": 182,
+                "sip_admitted": 83,
+                "sip_refused": 99,
+                "native_egress_configured": 1,
+                "native_egress_refused": 24,
+                "mixer_queued": 131,
+                "core_delivery_refused": 1035,
+                "audio_burst_trimmed": 0,
+                "host_received_capture_written": true,
+                "host_received_bytes": 1120,
+                "host_received_sha256": "c706f9d260515ec2066268aed59257d8b5001d84279725e5b2fe97897e9e66ee",
+                "problems": {
+                  "Model": 0,
+                  "Unsupported": 0,
+                  "Authority": 4,
+                  "NotRecipient": 0,
+                  "Cancelled": 0,
+                  "Deadline": 23,
+                  "NotReady": 1085,
+                  "Backpressure": 46,
+                  "CleanupUnconfirmed": 0,
+                  "other": 0
+                },
+                "initial_sip_store_authority": {
+                  "admitted": 519,
+                  "authority-busy": 174,
+                  "forbidden": 0,
+                  "not-ready": 0,
+                  "other": 3
+                }
+              },
+              "guest": {
+                "passed": false,
+                "os": "linux",
+                "architecture": "x86_64",
+                "sip_invites": 1,
+                "sip_acks": 1,
+                "sip_byes": 0,
+                "sent_rtp": 200,
+                "received_rtp": 3,
+                "foreign_datagrams": 0,
+                "rtcp_mux_offered": false,
+                "server_advertised_media_ip_matched": true,
+                "owned_sockets_closed": true,
+                "received_bytes": 480,
+                "received_sha256": "a862c44e13a9679e2ab435b93c2ecae06fb006acd374500f63be66f0526d4a4b"
+              },
+              "server_witness": [],
+              "host_decoded": {},
+              "guest_decoded": {},
+              "peer_nat": {
+                "foreign_datagrams": 0,
+                "journal_before_first_invite": true,
+                "worker_joined": true,
+                "unique_calls": 1,
+                "owned_rtcp_sink_packets": 5,
+                "sip": {
+                  "guest_to_server": 1,
+                  "server_to_guest": 2
+                },
+                "rtp": {
+                  "guest_to_server": 160,
+                  "server_to_guest": 3
+                },
+                "rtcp": {
+                  "guest_to_server": 0,
+                  "server_to_guest": 0
+                },
+                "pcmu_rtp_seen": {
+                  "guest_to_server": 200,
+                  "server_to_guest": 3
+                },
+                "pcmu_rtp_dropped": {
+                  "guest_to_server": 40,
+                  "server_to_guest": 0
+                }
+              },
+              "logs_sha256": {
+                "server.log": "f5023183d89767182fa7c2e7c5489586c88c646f8e2ae627d2a122c6b577f0b2",
+                "guest.log": "a6f66a1fd5311cb405ed49952eed91d758c922134d47514275e546440e962bd2"
+              }
+            }
+          ],
+          "network_profile": "loss"
+        }
+      ],
+      "image_id": "sha256:d8e19ba36e1441fcd3f8a6d3d84c1eeb713ed5f1f46476918b9c3c1c6e765ead",
+      "guest_python": "Python 3.12.3",
+      "owned_network": {
+        "requested": true,
+        "internal_bridge": true,
+        "original_bridge_removed": true,
+        "remaining_containers": 0
+      },
+      "full_task_qualified": false,
+      "acceptance_qualified": false
+    },
+    "compile_steps": [
+      {
+        "name": "compile-hosting",
+        "seconds": 1367.726954312,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false
+      },
+      {
+        "name": "compile-test-service-packet-read",
+        "seconds": 1206.1162312739998,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false
+      }
+    ],
+    "finding": "Both helper functions pass, but all four original telephone cells fail. Three reach media-go and retain only800/640/1120nativebytes; directES256 fails original subscription. Store-busy155/10/201/174, with native-egress Deadline9/0/22/24 and generic Backpressure66/0/57/46. No performance or full telephone pass. Remove initial-SIP spin retry; do not relax media or deadline assertions.",
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }
