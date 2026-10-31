@@ -639,7 +639,7 @@ async fn run_with_feedback(
     assert_eq!(host.available_slots(), 2);
     if verify_feedback {
         println!(
-            "canonical-video-feedback {}",
+            "\ncanonical-video-feedback {}",
             json!({
                 "active": active_feedback, "withdrawn": withdrawn_feedback,
                 "restored": restored_feedback, "original_peers_joined": true,

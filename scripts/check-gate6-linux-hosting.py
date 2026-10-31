@@ -296,8 +296,15 @@ def video_feedback_diagnostic(value):
     return value
 
 
-def run(node_sdk=False, python_sdk=False, video_feedback=False):
-    assert not video_feedback or not (node_sdk or python_sdk), 'Independent video feedback component only'
+RUST_CONSULTATION_CASES = (
+    ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
+    ("rust-sdk-consultation-eof", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call", 1),
+)
+
+
+def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_return=False):
+    assert not (video_feedback and consultation_return), 'One isolated component at a time'
+    assert not (video_feedback or consultation_return) or not (node_sdk or python_sdk), 'Independent component only'
     preflight()
     os.environ['CONNECT_GATE6_ICE_DIAGNOSTICS'] = '1'
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -579,7 +586,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False):
             # test dependencies; it does not execute providers or remote lanes.
             ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
         ):
-            if video_feedback and name != 'webtransport':
+            if (video_feedback or consultation_return) and name != ('webtransport' if video_feedback else 'hosting'):
                 continue
             text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
                            *arguments, "--no-run", "--message-format=json"], 3600)
@@ -604,6 +611,20 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False):
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        if consultation_return:
+            report['scope'] = 'Only the two original public Rust SDK consultation-return functions with existing deadlines and bounded failure trace extraction. No installed SDK, media matrix or full Gate6 qualification.'
+            results = []
+            for name, binary, case, expected in RUST_CONSULTATION_CASES:
+                text = execute(name, [artifacts[binary], case, '--exact', '--nocapture', '--test-threads=1'],
+                    90, defer_failure=True, environment={'RUST_LOG':'connect_service::canonical_consultation=debug'})
+                step = report['steps'][-1]
+                passed = text is not None and re.findall(r'^test result: ok\. (\d+) passed; 0 failed;', text, re.M) == [str(expected)]
+                results.append(dict(name=name, passed=passed, return_boundaries=step['consultation_return_observations']))
+            report['consultation_return'] = dict(passed=all(row['passed'] for row in results), results=results,
+                full_task_qualified=False, acceptance_qualified=False)
+            assert report['consultation_return']['passed'], 'Original public SDK return component failed or was unrun'
+            report['behavior_passed'] = True
+            return
         if video_feedback:
             report['scope'] = 'Configured signed WSS/Store/Core exact-source picture-request component with decoded synthetic Opus/VP8 and current selection withdrawal/restoration. No loss-profile or full media/SDK qualification.'
             decoder = Path(shutil.which('ffmpeg') or '').resolve(strict=True)
@@ -675,8 +696,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False):
             ("native-return-reservation-contention", "store", "connection_control::tests::consultation_returns::native_return_reservation_refuses_contended_sql_or_authority_without_effect", 1),
             ("native-candidate-transfer", "store", "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor", 1),
             ("native-candidate-recovery", "store", "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping", 1),
-            ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
-            ("rust-sdk-consultation-eof", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call", 1),
+            *RUST_CONSULTATION_CASES,
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
             ("config", "library", "canonical_webrtc::config::tests::", 4),
             ("sip-config", "library", "canonical_telephone::tests::", 4),
@@ -1021,8 +1041,9 @@ def main():
     parser.add_argument("--node-sdk", action="store_true", help="Include installed synthetic caller/peer Node native control journey")
     parser.add_argument("--python-sdk", action="store_true", help="Include installed Python native restart/current-authority journey")
     parser.add_argument("--video-feedback", action="store_true", help="Only the configured exact-source picture-request component")
+    parser.add_argument("--consultation-return", action="store_true", help="Only the two original public Rust SDK return functions")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk, args.video_feedback, args.consultation_return)
 
 
 if __name__ == "__main__":

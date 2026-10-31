@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       lane:
-        description: 'Full fixtures, isolated Python 3.14 or exact-source video feedback component'
+        description: 'Full fixtures or isolated Python 3.14, video feedback or consultation return component'
         type: choice
-        options: [full, python314, video-feedback]
+        options: [full, python314, video-feedback, consultation-return]
         default: full
   push:
     branches: [main]
@@ -30,11 +30,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'python314' && '-python314' || '' }}
+  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || '' }}
   cancel-in-progress: false
 jobs:
   node-control:
-    if: ${{ inputs.lane != 'python314' && inputs.lane != 'video-feedback' }}
+    if: ${{ inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -70,7 +70,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   python-control:
-    if: ${{ inputs.lane != 'video-feedback' }}
+    if: ${{ inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -127,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ${{ fromJSON(inputs.lane == 'video-feedback' && '["22"]' || '["22","26"]') }}
+        node: ${{ fromJSON((inputs.lane == 'video-feedback' || inputs.lane == 'consultation-return') && '["22"]' || '["22","26"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-ci/target
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -184,7 +184,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
       - name: Run isolated source-bound fixtures
         id: fixtures
-        run: python3 scripts/check-gate6-linux-hosting.py ${{ inputs.lane == 'video-feedback' && '--video-feedback' || '--node-sdk --python-sdk' }}
+        run: python3 scripts/check-gate6-linux-hosting.py ${{ inputs.lane == 'video-feedback' && '--video-feedback' || inputs.lane == 'consultation-return' && '--consultation-return' || '--node-sdk --python-sdk' }}
       - name: Upload source-only fixture evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
