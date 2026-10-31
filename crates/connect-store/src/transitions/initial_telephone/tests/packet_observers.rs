@@ -74,7 +74,7 @@ fn exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights()
             .try_initial_telephone_media_read(media)
             .unwrap_err()
             .code,
-        "forbidden"
+        Error::unauthorized().code
     );
     drop(command);
 }

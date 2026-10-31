@@ -2360,6 +2360,7 @@
     "change": "Public initial SIP current media projection uses the existing bounded read-only WAL observers through the same native snapshot acquire/seal implementation. Derive full current projection and scope set; release SQL before fresh file admission; reject changed SQL/schema/clock versions and verify full interval coverage. No persistent SIP metadata cache, retry loop, positive grant reuse, new observer, or altered packet deadline. Private SIP and paired receive projections retain their existing paths.",
     "validation": "Local format/diff and19diagnostic+5telephone boundary functions pass. CI must execute both new actual Store boundary functions, all current initial telephone functions, all existing snapshot functions, then all4original telephone media cells. Rust runtime unrun locally.",
     "full_task_qualified": false,
-    "acceptance_qualified": false
+    "acceptance_qualified": false,
+    "test_contract_correction": "Static follow-up: actor_from_connection_at returns Error::unauthorized for an actually revoked credential. The withdrawal boundary now requires that exact existing code rather than forbidden. Production/read/expiry/authorization behavior is unchanged; the original ba12 run is retained and a separate corrected-source run must verify the full Store/telephone scope."
   }
 }

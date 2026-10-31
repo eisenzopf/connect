@@ -114,3 +114,8 @@ telephone lane inventories and runs these with every current initial-call and
 existing snapshot regression before assessing the four original media cases.
 Format checks and the24Python boundary functions pass locally; Rust/runtime
 verification remains unrun until the source-bound CI result is verified.
+
+Static follow-up corrects the withdrawal test's expected error to the existing
+`Error::unauthorized()` contract of a revoked credential. The production
+projection is unchanged. Run `41210897174` on `ba12a0c7` remains retained; a
+separate corrected-source run is required before qualifying its Store checks.
