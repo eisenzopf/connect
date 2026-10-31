@@ -1,7 +1,7 @@
 {
   "task": "G6-054",
   "scope": "Existing public Rust SDK native consultation-return regression; no model/provider or full SDK/hosting qualification.",
-  "status": "Before EOF preparation mismatch reproduced; fresh-planning candidate implemented, after pending",
+  "status": "Both original public Rust SDK return functions pass on source-verified Linux; installed/full SDK verification remains open",
   "before": {
     "source_revision": "6e9b771fa49ac67031440a65cbb5078d1a838c4c",
     "run_id": 41186287469,
@@ -100,12 +100,65 @@
       }
     ]
   },
-  "interpretation": "The EOF case reached a current authorized Store read with3sources and a pure Core plan with2receivers, then failed reservation. Candidate treats this as a bounded asynchronous planning mismatch and retries a fresh complete read/plan before admission. Actual convergence remains unproven.",
+  "interpretation": "Before EOF failed after a current Store read with3sources and a pure Core plan with2receivers. After the exact-source-set fresh-planning guard, both original audio and EOF functions pass, including their EdDSA/ES256 cases and no-continuing-call assertions. The passing artifact does not retain success branch traces. No Store source/revision validation or original mutation identity was weakened.",
   "change": "Compare exact runtime source and receiver sets before reserving the return. A mismatch releases all readers and uses the existing5s metadata retry loop. Original command/operation IDs, expected revision, credentials/expiry, Store exact-selection checks and attempt-once Core change remain unchanged.",
   "request_deadline_seconds": 35,
   "function_deadline_seconds": 90,
   "metadata_retry_deadline_seconds": 5,
-  "remaining": "Run both original actual Rust SDK audio and EOF functions. If mismatch persists, inspect current lifetime/registry retirement; do not weaken the Store source set or invent a continuing call.",
+  "remaining": "Verify affected installed Node/Python consultation and full current SDK matrices, plus other current G6-054 media failures. Component success does not qualify the full task.",
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "after": {
+    "source_revision": "25a2ce27de0d5aa60b45163bfa4b5776b69ae902",
+    "run_id": 41188491485,
+    "artifact_id": 13037529763,
+    "zip_sha256": "153f710bcf04ef27b73a61e57f7f70a51cd9191726d583df198a27b6841c4e49",
+    "git_sources_verified": 4511,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "5b40a70bd9b68486abca4936744414add61a8786b17c65d99d3b6eecaa09c165",
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": true,
+      "results": [
+        {
+          "name": "rust-sdk-consultation-audio",
+          "passed": true,
+          "return_boundaries": []
+        },
+        {
+          "name": "rust-sdk-consultation-eof",
+          "passed": true,
+          "return_boundaries": []
+        }
+      ],
+      "full_task_qualified": false,
+      "acceptance_qualified": false
+    },
+    "steps": [
+      {
+        "name": "rust-sdk-consultation-audio",
+        "exit_code": 0,
+        "seconds": 56.12238827400006,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 56.06s"
+        ],
+        "consultation_return_observations": [],
+        "log_sha256": "0d9564896d5337a362df7a51fcc341886188af3a7e30922a421d6e9271f59b3c"
+      },
+      {
+        "name": "rust-sdk-consultation-eof",
+        "exit_code": 0,
+        "seconds": 25.480657199999996,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 25.43s"
+        ],
+        "consultation_return_observations": [],
+        "log_sha256": "74df3f2788d44058e1f8507e75b3e4eacf880c798eaaa7cb1dd4afe993ba38d1"
+      }
+    ],
+    "passed": true,
+    "scope": "Both original public Rust SDK audio/EOF functions, each exercisingEdDSAandES256 with existing35srequest/90sfunction deadlines. No installed Node/Python or full SDK/hosting qualification.",
+    "trace_limit": "Success traces are not retained by the bounded failure-only extractor. This proves the original behavior assertions, not that a particular metadata retry branch executed in this passing run."
+  }
 }

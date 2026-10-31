@@ -1,6 +1,6 @@
 {
   "task": "G6-054",
-  "status": "Readiness barrier implemented; both source-verified full Linux SDK matrices still fail",
+  "status": "Readiness barrier and Rust EOF return component verified; current full installed SDK matrices remain unqualified",
   "scope": "Installed synthetic SDK AV file callers and example guidance only. No SDK API, Core, store, provider or acceptance qualification.",
   "problem": "The AV callers selected server streams, then began both finite media clocks without first refreshing both local Connection.media owners. The example already requires current negotiation for receive custody. Cold IPC setup can otherwise consume pacing time and form catch-up bursts against live bounded queues.",
   "change": "After both original selections, await both original Connection.media.refresh calls and verify each own audio/current selected remote video binding before starting either capture. The barrier completes for both Clients, rather than warming each independently after the other may start.",
@@ -587,5 +587,58 @@
     "cause": "Runner accepted seven of the eight phase labels emitted by the actual Rust Node driver, rejecting media-complete.",
     "verification": "19diagnostic functions pass, including extraction of all8actual Rust phase literals and unchanged15s bounds; unknown/private shapes still refuse.",
     "scope": "Upload schema only; does not change request, phase or whole-function deadlines and does not qualify the absent journey result."
+  },
+  "rust_return_after_scene_alignment": {
+    "source_revision": "25a2ce27de0d5aa60b45163bfa4b5776b69ae902",
+    "run_id": 41188491485,
+    "artifact_id": 13037529763,
+    "zip_sha256": "153f710bcf04ef27b73a61e57f7f70a51cd9191726d583df198a27b6841c4e49",
+    "git_sources_verified": 4511,
+    "prepared_sources_verified": 4092,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "5b40a70bd9b68486abca4936744414add61a8786b17c65d99d3b6eecaa09c165",
+    "source_inputs_unchanged": true,
+    "component": {
+      "passed": true,
+      "results": [
+        {
+          "name": "rust-sdk-consultation-audio",
+          "passed": true,
+          "return_boundaries": []
+        },
+        {
+          "name": "rust-sdk-consultation-eof",
+          "passed": true,
+          "return_boundaries": []
+        }
+      ],
+      "full_task_qualified": false,
+      "acceptance_qualified": false
+    },
+    "steps": [
+      {
+        "name": "rust-sdk-consultation-audio",
+        "exit_code": 0,
+        "seconds": 56.12238827400006,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 56.06s"
+        ],
+        "consultation_return_observations": [],
+        "log_sha256": "0d9564896d5337a362df7a51fcc341886188af3a7e30922a421d6e9271f59b3c"
+      },
+      {
+        "name": "rust-sdk-consultation-eof",
+        "exit_code": 0,
+        "seconds": 25.480657199999996,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 25.43s"
+        ],
+        "consultation_return_observations": [],
+        "log_sha256": "74df3f2788d44058e1f8507e75b3e4eacf880c798eaaa7cb1dd4afe993ba38d1"
+      }
+    ],
+    "passed": true,
+    "scope": "Both original public Rust SDK audio/EOF functions, each exercisingEdDSAandES256 with existing35srequest/90sfunction deadlines. No installed Node/Python or full SDK/hosting qualification.",
+    "trace_limit": "Success traces are not retained by the bounded failure-only extractor. This proves the original behavior assertions, not that a particular metadata retry branch executed in this passing run."
   }
 }
