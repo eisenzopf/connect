@@ -186,8 +186,8 @@ class BoundedBuild(unittest.TestCase):
     def test_completed_build_preserves_its_exit_status(self):
         with tempfile.TemporaryDirectory() as directory:
             self.assertEqual(build_pipeline.run_bounded(
-                [sys.executable, '-c', 'raise SystemExit(7)'],
-                Path(directory) / 'build.log', os.environ.copy(), 2), 7)
+                [sys.executable, '-c', 'import pathlib,sys; assert pathlib.Path.cwd()==pathlib.Path(sys.argv[1]).resolve(); raise SystemExit(7)', directory],
+                Path(directory) / 'build.log', os.environ.copy(), 2, cwd=directory), 7)
 
 
 class BuildPhaseGuards(unittest.TestCase):

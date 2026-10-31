@@ -1,0 +1,75 @@
+name: Gate 6 SDK candidate packages
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  rust-source:
+    name: Rust archives and cold external consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install native SDK prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev
+      - name: Prepare original locked sources
+        run: |
+          bash scripts/prepare-dependencies.sh
+          cargo fetch --locked
+      - name: Check archive and real external Cargo resolution boundaries
+        run: python3 -m unittest discover -s scripts/tests -p test_sdk_rust_package.py -v
+      - name: Record original Git prepared and archive sources
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,runpy
+          sources=runpy.run_path('scripts/check-gate6-linux-hosting.py')['sources']()
+          path=pathlib.Path('.local/gate6-sdk-candidate/evidence');path.mkdir(parents=True)
+          (path/'source-inputs.json').write_text(json.dumps(sources,sort_keys=True)+'\n')
+          PY
+      - name: Assemble versioned registry archives licenses and offline sources
+        run: python3 scripts/package-sdk-rust.py --output dist/sdk/rust/candidate
+      - name: Resolve and check actual SDK example outside repository with empty Cargo home
+        run: python3 scripts/check-sdk-rust-installation.py --candidate dist/sdk/rust/candidate --output .local/gate6-sdk-candidate/evidence/external
+      - name: Verify unchanged original sources and retain package manifest
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,runpy,shutil
+          path=pathlib.Path('.local/gate6-sdk-candidate/evidence')
+          before=json.loads((path/'source-inputs.json').read_text())
+          after=runpy.run_path('scripts/check-gate6-linux-hosting.py')['sources']()
+          assert before==after, 'Source changed during candidate build'
+          shutil.copyfile('dist/sdk/rust/candidate/manifest.json',path/'candidate-manifest.json')
+          PY
+      - name: Archive complete offline SDK candidate
+        run: |
+          tar -C dist/sdk/rust -czf dist/sdk/rust/connect-rust-sdk-candidate.tar.gz candidate
+          sha256sum dist/sdk/rust/connect-rust-sdk-candidate.tar.gz > .local/gate6-sdk-candidate/evidence/archive.sha256
+      - name: Upload curated source and external installation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-sdk-candidate-rust-evidence
+          path: .local/gate6-sdk-candidate/evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload unpublished complete offline candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-sdk-candidate-rust-package
+          path: dist/sdk/rust/connect-rust-sdk-candidate.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7

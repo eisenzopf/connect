@@ -23,10 +23,10 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def run_bounded(command, log, env, budget):
+def run_bounded(command, log, env, budget, *, cwd=ROOT):
     """Own Cargo, package helpers and their compiler descendants as one group."""
     with log.open('w') as output:
-        child = subprocess.Popen(command, cwd=ROOT, stdout=output,
+        child = subprocess.Popen(command, cwd=cwd, stdout=output,
                                  stderr=subprocess.STDOUT, env=env,
                                  start_new_session=True)
         joined = False
