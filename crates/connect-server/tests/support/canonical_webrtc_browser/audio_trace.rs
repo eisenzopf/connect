@@ -23,6 +23,7 @@ const TARGETS: &[&str] = &[
     "rvoip_webrtc::audio_timing",
     "rvoip_webrtc::canonical::media",
     "connect_service::canonical_packet",
+    "connect_store::sql_custody",
 ];
 const FIELDS: &[&str] = &[
     "log.target",
@@ -62,6 +63,9 @@ const FIELDS: &[&str] = &[
     "discarded_chunks",
     "accepted",
     "age_us",
+    "elapsed_us",
+    "file",
+    "line",
     "read_us",
     "publish_us",
     "write_us",
@@ -379,5 +383,27 @@ mod tests {
         assert_eq!(value["omitted_events"], 0);
         assert_eq!(value["events"].as_array().unwrap().len(), 1);
         assert_eq!(value["events"][0]["fields"]["problem"], "authority-busy");
+    }
+
+    #[test]
+    fn sql_custody_capture_keeps_bounded_timing_fields_without_query_text() {
+        let root = tempfile::tempdir().unwrap();
+        let capture = Capture::new(4, 4096);
+        let guard = TraceGuard::open(root.path(), root.path(), capture.clone()).unwrap();
+        let subscriber = tracing_subscriber::registry()
+            .with(capture.with_filter(filter_fn(|metadata| TARGETS.contains(&metadata.target()))));
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::trace!(target:"connect_store::sql_custody", elapsed_us=1_200u64,
+                file="crates/connect-store/src/peer_authority/connection_media/snapshot.rs", line=181u64,
+                query="synthetic-not-a-query", "Slow SQL custody unit");
+        });
+        drop(guard);
+        let text = std::fs::read_to_string(root.path().join("core-audio-timeline.json")).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(value["events"].as_array().unwrap().len(), 1);
+        assert_eq!(value["events"][0]["fields"]["elapsed_us"], 1200);
+        assert_eq!(value["events"][0]["fields"]["line"], 181);
+        assert!(!text.contains("synthetic-not-a-query"));
+        assert!(value["events"][0]["fields"].get("query").is_none());
     }
 }

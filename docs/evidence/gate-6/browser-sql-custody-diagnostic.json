@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-31",
+  "status": "prepared-runtime-unrun",
+  "base_revision": "494c85a240c12c0b79f270e035b4460154cd6ba2",
+  "scope": "Existing browser baseline/direct diagnostic with bounded existing SQL custody telemetry. Production libraries unchanged from base494c85a2; later SIP candidate is not included.",
+  "local_python_boundary_functions": 12,
+  "local_python_passed": true,
+  "required_actual_rust_trace_functions": 5,
+  "rust_runtime_executed": false,
+  "full_task_qualified": false,
+  "acceptance_qualified": false
+}
