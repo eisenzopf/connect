@@ -2,10 +2,10 @@
   "format": 1,
   "task": "G6-054",
   "date": "2026-10-31",
-  "status": "implemented-linux-runtime-unrun",
+  "status": "queued-linux-runtime-unrun",
   "scope": "Original expired-TURN browser refusal tests; UDP/TCP x EdDSA/ES256, owned isolated loopback namespaces only.",
   "runtime_passed": false,
-  "runtime_run_id": null,
+  "runtime_run_id": 41203742129,
   "original_tests_unchanged": true,
   "original_browser_timeout_seconds": 8,
   "original_node_deadline_seconds": 110,
@@ -21,5 +21,6 @@
     "diff_check": "passed"
   },
   "full_task_qualified": false,
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "runtime_source_revision": "d9bca15efa650d82719738aeca0d2babf9622916"
 }

@@ -473,5 +473,11 @@
       "acceptance_qualified": false
     }
   },
-  "finding": "The same original native input minimum fails in both EdDSA direct and 20percent-loss profiles before and after selector correction. ES256 was unrun because the old harness stopped after the first failed algorithm. The selector defect is proven, but this run does not establish it as the remaining telephone failure cause. Original processes and NAT worker joined; bridge empty and removed. No telephone or full task qualification."
+  "finding": "The same original native input minimum fails in both EdDSA direct and 20percent-loss profiles before and after selector correction. ES256 was unrun because the old harness stopped after the first failed algorithm. The selector defect is proven, but this run does not establish it as the remaining telephone failure cause. Original processes and NAT worker joined; bridge empty and removed. No telephone or full task qualification.",
+  "remaining_receive_diagnostic": {
+    "source_revision": "12231a45",
+    "run_id": 41203387431,
+    "status": "in-progress-runtime-unverified",
+    "scope": "Original four telephone cells with existing trace/native-capture counters; no changed production behavior or thresholds."
+  }
 }

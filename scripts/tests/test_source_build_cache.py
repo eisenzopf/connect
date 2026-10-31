@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts/lib"))
-from source_build_cache import restore, snapshot
+from source_build_cache import restore, snapshot, cacheable_build
 
 
 class SourceBuildCache(unittest.TestCase):
@@ -22,6 +22,21 @@ class SourceBuildCache(unittest.TestCase):
         self.source.write_text("allow = false\n")
         subprocess.run(["git", "add", "source.rs"], cwd=self.root, check=True)
         os.utime(self.source, ns=(1_000_000_000, 1_000_000_000))
+
+    def test_behavior_failure_keeps_a_completed_unchanged_build_cacheable(self):
+        report = dict(compilation_completed=True, source_inputs_unchanged=True, passed=False,
+            steps=[dict(name='compile-hosting', exit_code=0, timed_out=False, forced_kill=False),
+                dict(name='telephone-fixture', exit_code=101, timed_out=False, forced_kill=False)])
+        self.assertTrue(cacheable_build(report))
+        for change in (dict(compilation_completed=False), dict(source_inputs_unchanged=False), dict(steps=[])):
+            self.assertFalse(cacheable_build(dict(report, **change)))
+
+    def test_a_failed_later_compile_timeout_or_forced_exit_cannot_save_a_completed_build(self):
+        initial = dict(name='compile-hosting', exit_code=0, timed_out=False, forced_kill=False)
+        for defect in (dict(exit_code=101), dict(timed_out=True), dict(forced_kill=True)):
+            later = dict(initial, name='compile-native-network-probe', **defect)
+            report = dict(compilation_completed=True, source_inputs_unchanged=True, steps=[initial, later])
+            self.assertFalse(cacheable_build(report))
 
     def test_unchanged_content_and_mode_restore_the_original_source_time(self):
         saved = snapshot(self.root)

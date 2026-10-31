@@ -27,7 +27,7 @@ BASE = ROOT / ".local/gate6-linux-ci"
 EVIDENCE = BASE / "evidence"
 PRIVATE = BASE / "private-logs"
 sys.path.insert(0, str(ROOT / "scripts/lib"))
-from source_build_cache import MANIFEST, snapshot
+from source_build_cache import MANIFEST, snapshot, cacheable_build
 
 
 def digest(path):
@@ -1119,7 +1119,7 @@ def run(node_sdk=False, python_sdk=False, video_feedback=False, consultation_ret
         report["source_inputs_unchanged"] = sources() == before
         report["passed"] = report.get("behavior_passed", False) and report["source_inputs_unchanged"]
         output("source_unchanged", str(report["source_inputs_unchanged"]).lower())
-        report['cacheable_build'] = bool(report.get('compilation_completed', False) and report['source_inputs_unchanged'])
+        report['cacheable_build'] = cacheable_build(report)
         output('cacheable_build', str(report['cacheable_build']).lower())
         report["finished_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         (EVIDENCE / "summary.json").write_text(json.dumps(report, indent=2) + "\n")

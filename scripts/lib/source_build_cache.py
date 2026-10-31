@@ -16,6 +16,14 @@ ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / ".local/gate6-linux-ci/source-times.json"
 
 
+def cacheable_build(report):
+    if not report.get('compilation_completed') or not report.get('source_inputs_unchanged'):
+        return False
+    builds = [step for step in report.get('steps', []) if step.get('name', '').startswith('compile-')]
+    return bool(builds) and all(step.get('exit_code') == 0 and not step.get('timed_out')
+        and not step.get('forced_kill') for step in builds)
+
+
 def snapshot(root):
     names = subprocess.check_output(["git", "ls-files", "-z"], cwd=root).decode().split("\0")
     files = {}
