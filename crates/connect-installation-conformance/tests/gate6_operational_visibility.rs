@@ -85,7 +85,21 @@ async fn public_health_observes_real_http_and_signed_peer_lifetimes_without_secr
         let peer_secret = config.credential.clone();
         let mut peer = CanonicalClient::open(config).await.unwrap();
         peer.list_conversations(Default::default()).await.unwrap();
-        let active = snapshot(&mut admin).await;
+        let active = tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                let value = snapshot(&mut admin).await;
+                if value
+                    .runtime
+                    .as_ref()
+                    .is_some_and(|v| v.physical_owners >= 1)
+                {
+                    break value;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
         assert_eq!(usage(&active, ResourcePoolKind::NativeQuic).used, 1);
         assert_eq!(usage(&active, ResourcePoolKind::QuicIngress).used, 1);
         assert!(usage(&active, ResourcePoolKind::NativeQuic).accepted >= 1);
@@ -281,6 +295,7 @@ async fn trickling_http_headers_cannot_extend_the_absolute_connection_lifetime()
                 }
             }
         }
+        assert!(start.elapsed() >= Duration::from_secs(25));
         assert!(start.elapsed() <= Duration::from_secs(125));
         drop(input);
         drop(output);

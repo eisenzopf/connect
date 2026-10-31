@@ -104,5 +104,15 @@
       "Trickling incomplete header cannot retain its connection indefinitely"
     ],
     "quic_ingress": "Real semaphore permit holds the TLS/physical admission slot through the whole peer lifetime"
+  },
+  "hosting_limits_candidate": {
+    "status": "implemented-not-yet-runtime-verified",
+    "cases": [
+      "Signed participant capacity refusal preserves conversation state and original refusal replay; removal permits a distinct new admission",
+      "Application upload reservation and chunk limit refusal preserve bytes; completion/deletion reclaim quota while replay retains original refusal",
+      "Eight live signed subscriptions refuse the ninth; lease expiry and physical reconnect permit later reads"
+    ],
+    "ci_visibility": "Separate source-guarded Store/Service/permit/public-socket/hosting-limit steps; aggregate refuses missing, changed-source or failed reports",
+    "task_complete": false
   }
 }

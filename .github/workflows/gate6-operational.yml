@@ -47,15 +47,33 @@ jobs:
             g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
             g6-linux-installation-v1-
       - name: Prepare verified sources and locked dependencies
+        id: prepare
         run: |
           python3 scripts/lib/source_build_cache.py restore
           python3 scripts/lib/ci_dependency_cache.py
           cargo fetch --locked
-      - name: Execute bounded operational component
+      - name: Derive and verify protocol schema shape
+        if: ${{ matrix.phase == 'schema' }}
+        run: python3 scripts/check-operational-visibility.py --phase schema
+      - name: Store administrator authority and configured numeric bounds
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case store-authority
+      - name: Service resource observers and current authorization
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case service-observation
+      - name: Actual admission permits and owner retirement
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case permit-lifetime
+      - name: Public health and real socket expiry overload and drain
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case public-client
+      - name: Public participant upload and subscription limits
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case hosting-limits
+      - name: Verify all component results share the unchanged source boundary
         id: component
-        env:
-          COMPONENT_PHASE: ${{ matrix.phase }}
-        run: python3 scripts/check-operational-visibility.py --phase "$COMPONENT_PHASE"
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --aggregate
       - name: Upload curated component and generated reference evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

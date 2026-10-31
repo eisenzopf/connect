@@ -37,6 +37,8 @@ def generate_reference():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("schema", "runtime"), required=True)
+    parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "public-client", "hosting-limits"))
+    parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--generate-reference", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     os.umask(0o077)
@@ -51,9 +53,12 @@ def main():
     sources = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     before = sources()
-    source_path = EVIDENCE / ("source-inputs-" + args.phase + ".json")
+    assert not args.case or args.phase == "runtime"
+    assert not args.aggregate or (args.phase == "runtime" and not args.case)
+    key = args.phase + ("-" + args.case if args.case else "")
+    source_path = EVIDENCE / ("source-inputs-" + key + ".json")
     source_path.write_text(json.dumps(before, sort_keys=True) + "\n")
-    report = dict(format="connect/gate6-operational-component/1", phase=args.phase,
+    report = dict(format="connect/gate6-operational-component/1", phase=args.phase, selected_case=args.case,
         source_revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         source_inputs_sha256=digest(source_path), source_count=len(before), steps=[], passed=False,
         whole_gate_qualified=False, task_complete=False,
@@ -69,9 +74,31 @@ def main():
         ("service-observation", prefix + ["-p", "connect-service", "--lib", "readiness::tests", "--", "--test-threads=1"], 3600, 3),
         ("permit-lifetime", prefix + ["-p", "connect-service", "--lib", "resources::tests", "--", "--test-threads=1"], 1200, 2),
         ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 3),
+        ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
     ]
+    all_commands = commands
+    if args.case:
+        commands = [c for c in commands if c[0] == args.case]
+        assert len(commands) == 1
     try:
-        for name, command, budget, expected in commands:
+        if args.aggregate:
+            report["cases"] = []
+            for name, _, _, _ in commands:
+                path = EVIDENCE / ("runtime-" + name + ".json")
+                if not path.is_file():
+                    report["cases"].append(dict(name=name, status="not-run"))
+                    continue
+                value = json.loads(path.read_text())
+                inputs = EVIDENCE / ("source-inputs-runtime-" + name + ".json")
+                assert (value["source_revision"] == report["source_revision"]
+                    and value["phase"] == "runtime" and value["selected_case"] == name
+                    and value["source_inputs_sha256"] == digest(inputs) == report["source_inputs_sha256"]
+                    and value["source_inputs_unchanged"] and len(value["steps"]) == 1
+                    and value["steps"][0]["name"] == name), "Component source/case differs"
+                report["cases"].append(dict(name=name, report_sha256=digest(path), passed=value["passed"]))
+                report["steps"].extend(value["steps"])
+            report["passed"] = len(report["steps"]) == len(commands) and all(c.get("passed") for c in report["cases"])
+        for name, command, budget, expected in ([] if args.aggregate else commands):
             log = PRIVATE / (name + ".log")
             start = time.monotonic()
             status = bounded(command, log, env, budget)
@@ -103,15 +130,16 @@ def main():
                     r"test result: ok\. " + str(expected) + r" passed; 0 failed; 0 ignored; 0 measured; \d+ filtered out; finished in .+",
                     step["test_results"][0]), "Expected behavior cases did not execute"
                 assert step["executables"] and not step["compiler_errors"]
-        report["passed"] = True
+        if not args.aggregate:
+            report["passed"] = True
         if args.phase == "schema":
             report["generated"] = {p.name: digest(p) for p in (EVIDENCE / "generated").iterdir()}
     finally:
         report["source_inputs_unchanged"] = before == sources()
         report["passed"] = report["passed"] and report["source_inputs_unchanged"]
-        report["cacheable_build"] = args.phase == "runtime" and report["source_inputs_unchanged"] and len(report["steps"]) == 4 and all(
+        report["cacheable_build"] = args.phase == "runtime" and report["source_inputs_unchanged"] and not args.case and len(report["steps"]) == len(all_commands) and all(
             s["executables"] and not s["compiler_errors"] and s["exit_code"] != "timeout" for s in report["steps"])
-        (EVIDENCE / (args.phase + ".json")).write_text(json.dumps(report, indent=2) + "\n")
+        (EVIDENCE / (key + ".json")).write_text(json.dumps(report, indent=2) + "\n")
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as output:
                 output.write("cacheable_build=" + str(report["cacheable_build"]).lower() + "\n")
