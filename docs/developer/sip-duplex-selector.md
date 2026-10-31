@@ -227,3 +227,20 @@ components' reported executable digests and the final host/Store digests with
 the original compiled binaries. This lane may restore the verified telephone
 build cache, with the same exact-source timestamp and pinned dependency checks.
 The lane itself remains unrun until its artifact is verified.
+
+
+The first combined run41220959378 at37a0929f stops before hosting compilation:
+80 Store functions pass and one older snapshot reuse-count assertion fails at
+tests.rs486, with zero ignored. The binary hash is exactly the preceding3cca
+Store binary. Both network components remain unrun. The retained public artifact
+does not expose the assertion tuple or clock stamps, so a clock crossing is not
+reported as an observed fact.
+
+Source audit identifies a test-contract defect: the exact count assumes the
+policy-clock second remains unchanged, while the production memo deliberately
+invalidates on a clock edge. The two exact count tests now establish an unchanged
+clock interval for their complete assertions, bounded to eight attempts with
+explicit failure otherwise. Actual fact values, independent fresh guards, writer
+exclusion and every forced SQL/schema/source/clock invalidation remain asserted.
+There is no production clock override or validity grace. Corrected Rust/runtime
+verification is unrun until the next source-bound artifact.

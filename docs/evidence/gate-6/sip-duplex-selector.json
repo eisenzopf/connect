@@ -5031,5 +5031,72 @@
       "full_task_qualified": false,
       "acceptance_qualified": false
     }
+  },
+  "combined_candidate_store_boundary": {
+    "source_revision": "37a0929f73698c76a60d542948173082889011e8",
+    "run_id": 41220959378,
+    "artifact_id": 13049967277,
+    "zip_sha256": "db5b1fef70042e91c84be705ac76ed6f9fa9321639b1d179ab2f17e1512e1f60",
+    "git_sources_verified": 4546,
+    "prepared_sources_verified": 4094,
+    "pinned_archives_verified": 4,
+    "source_manifest_sha256": "6b0b0894d4bd4b05cab199c98fbb75b2aa1ab07277989417dac08c12c2c07865",
+    "source_inputs_unchanged": true,
+    "status": "verified-failed-store-boundary-network-components-unrun",
+    "store": {
+      "passed": false,
+      "binary_sha256": "449916858209e0dbf7e9f606a8261079b7e66b237f09649de984ccc423ca0f7e",
+      "binary_unchanged": true,
+      "inventory_sha256": "2fd486d6ab30e3e71274a5a40ac49272d40ffe74d3b821cce87f4edcb881907f",
+      "required_boundary_functions": [
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_media_pair_refuses_observer_exhaustion_and_rechecks_withdrawal",
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_media_pair_uses_observers_and_keeps_both_current_identity_fences",
+        "peer_authority::connection_media::snapshot::tests::erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant",
+        "transitions::initial_telephone::tests::packet_observers::cached_initial_sip_facts_do_not_cross_the_original_runtime_epoch",
+        "transitions::initial_telephone::tests::packet_observers::current_initial_sip_read_uses_committed_wal_while_command_sql_is_owned",
+        "transitions::initial_telephone::tests::packet_observers::exhausted_observers_refuse_then_recover_without_preserving_withdrawn_rights"
+      ],
+      "checks": [
+        {
+          "name": "telephone-store-current-authority",
+          "passed": true,
+          "expected_tests": 49
+        },
+        {
+          "name": "telephone-store-snapshot-regressions",
+          "passed": false,
+          "expected_tests": 22
+        },
+        {
+          "name": "telephone-store-paired-current-authority",
+          "passed": true,
+          "expected_tests": 5
+        },
+        {
+          "name": "telephone-store-private-packet-regressions",
+          "passed": true,
+          "expected_tests": 5
+        }
+      ],
+      "scope": "Actual unary/paired initial SIP Store WAL custody and all current initial-call, snapshot, paired signal and private-packet regressions. No full telephone qualification."
+    },
+    "observed_store_passes": 80,
+    "observed_store_failures": 1,
+    "observed_store_ignored": 0,
+    "failure": {
+      "function": "packet_metadata_memo_reuses_only_unchanged_facts_with_independent_fresh_readers",
+      "file": "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs",
+      "line": 486,
+      "assertion": "(one,two,derive_count) == (1,1,1)",
+      "actual_tuple_and_clock": "not exported by retained artifact; not inferred"
+    },
+    "store_compile_seconds": 0.2647270340000034,
+    "interpretation": "Source-bound binary is exactly the earlier passing3cca Store binary. Source audit finds the old exact-reuse count has no unchanged-clock precondition despite intentional policy-clock invalidation. This is a test-contract defect; the artifact does not directly establish the observed tuple or clock crossing. All original fact/fence assertions remain required after the precondition correction. Hosting compilation and both network components are unrun, never passes or media failures.",
+    "correction": {
+      "status": "test-only-implemented-runtime-unrun",
+      "change": "Both exact memo invocation-count functions must complete in one observed unchanged wall-clock second, bounded to8attempts and explicit failure otherwise. Facts and fresh independent-reader/writer-refusal assertions retained. All explicit SQL/schema/source/clock invalidation count assertions retained. No production clock override, validity grace, memo permission, observer, authority policy, media assertion or skip."
+    },
+    "full_task_qualified": false,
+    "acceptance_qualified": false
   }
 }

@@ -474,96 +474,139 @@ fn packet_snapshot_refuses_queued_writer_without_waiting_under_sql_and_recovers(
 
 #[test]
 fn packet_metadata_memo_reuses_only_unchanged_facts_with_independent_fresh_readers() {
-    let f = Fixture::new();
-    let memo = Memo::default();
-    let count = std::cell::Cell::new(0);
-    let derive = |c: &Connection| {
-        count.set(count.get() + 1);
-        f.derive(c)
-    };
-    let (one, first) = cached(&f.store, &memo, None, derive).unwrap();
-    let (two, second) = cached(&f.store, &memo, None, derive).unwrap();
-    assert_eq!((one, two, count.get()), (1, 1, 1));
-    assert!(!Arc::ptr_eq(&first, &second), "a memo never lends a guard");
-    drop(first);
-    drop(second);
-    let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
-    assert_eq!(
-        cached(&f.store, &memo, None, derive).unwrap_err().code,
-        "authority-busy",
-        "even a cache hit must enter fresh authority"
-    );
-    drop(writer);
-    assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 1);
-    assert_eq!(count.get(), 1);
+    // A real policy-clock edge must invalidate a memo. Require the reuse
+    // assertion only after observing the complete case within one second;
+    // every attempt still verifies facts and fresh file-authority custody.
+    for _ in 0..8 {
+        let f = Fixture::new();
+        let memo = Memo::default();
+        let count = std::cell::Cell::new(0);
+        let derive = |c: &Connection| {
+            count.set(count.get() + 1);
+            f.derive(c)
+        };
+        let policy_second = crate::now();
+        let (one, first) = cached(&f.store, &memo, None, derive).unwrap();
+        let (two, second) = cached(&f.store, &memo, None, derive).unwrap();
+        assert_eq!((one, two), (1, 1));
+        assert!(!Arc::ptr_eq(&first, &second), "a memo never lends a guard");
+        drop(first);
+        drop(second);
+        let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+        assert_eq!(
+            cached(&f.store, &memo, None, derive).unwrap_err().code,
+            "authority-busy",
+            "even a cache hit must enter fresh authority"
+        );
+        drop(writer);
+        assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 1);
+        if crate::now() == policy_second {
+            assert_eq!(
+                count.get(),
+                1,
+                "unchanged facts are reused through fresh independent readers"
+            );
+            return;
+        }
+    }
+    panic!("No unchanged policy-clock interval available for the memo reuse test");
 }
 
 #[test]
 fn packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes() {
-    let f = Fixture::new();
-    let memo = Memo::default();
-    let source = new_metadata();
-    let other_source = new_metadata();
-    let count = std::cell::Cell::new(0);
-    let derive = |c: &Connection| {
-        count.set(count.get() + 1);
-        f.derive(c)
-    };
-    assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 1);
-    let external = Connection::open(f.store.path()).unwrap();
-    external
-        .execute("UPDATE packet_snapshot_test SET value=2", [])
-        .unwrap();
-    assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 2);
-    assert_eq!(count.get(), 2);
-    f.store
-        .connection()
-        .unwrap()
-        .execute("UPDATE packet_snapshot_test SET value=3", [])
-        .unwrap();
-    assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
-    assert_eq!(count.get(), 3);
-    // Controlled memo timestamp models crossing an integer policy-clock edge.
-    for entry in memo.0.lock().unwrap().iter_mut() {
-        entry.version.second -= 1;
-    }
-    assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
-    assert_eq!(count.get(), 4);
-    assert_eq!(
-        cached(&f.store, &memo, Some(&other_source), derive)
+    // Each forced SQL/schema/source/clock change must derive exactly once.
+    // A second real clock change is independently valid, so establish one
+    // unchanged wall-clock interval for the exact invocation-count assertions.
+    for _ in 0..8 {
+        let f = Fixture::new();
+        let memo = Memo::default();
+        let source = new_metadata();
+        let other_source = new_metadata();
+        let count = std::cell::Cell::new(0);
+        let derive = |c: &Connection| {
+            count.set(count.get() + 1);
+            f.derive(c)
+        };
+        let second = crate::now();
+        assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 1);
+        let external = Connection::open(f.store.path()).unwrap();
+        external
+            .execute("UPDATE packet_snapshot_test SET value=2", [])
+            .unwrap();
+        assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 2);
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 2);
+        f.store
+            .connection()
+            .unwrap()
+            .execute("UPDATE packet_snapshot_test SET value=3", [])
+            .unwrap();
+        assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 3);
+        // Controlled memo timestamp models crossing an integer policy-clock edge.
+        for entry in memo.0.lock().unwrap().iter_mut() {
+            entry.version.second -= 1;
+        }
+        assert_eq!(cached(&f.store, &memo, Some(&source), derive).unwrap().0, 3);
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 4);
+        assert_eq!(
+            cached(&f.store, &memo, Some(&other_source), derive)
+                .unwrap()
+                .0,
+            3
+        );
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 5);
+        assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 3);
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 6);
+        f.store
+            .connection()
+            .unwrap()
+            .execute_batch("ALTER TABLE packet_snapshot_test ADD COLUMN marker INTEGER")
+            .unwrap();
+        assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 3);
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(
+            count.get(),
+            7,
+            "own DDL changes schema_version, not total_changes"
+        );
+        // SQLite data_version/total_changes counters are connection-local; equal
+        // counters from a different Connection can never validate this entry.
+        assert_eq!(
+            cached(
+                &Store::open_administration(f.store.path(), connect_protocol::Limits::default())
+                    .unwrap(),
+                &memo,
+                None,
+                derive
+            )
             .unwrap()
             .0,
-        3
-    );
-    assert_eq!(count.get(), 5);
-    assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 3);
-    assert_eq!(count.get(), 6);
-    f.store
-        .connection()
-        .unwrap()
-        .execute_batch("ALTER TABLE packet_snapshot_test ADD COLUMN marker INTEGER")
-        .unwrap();
-    assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 3);
-    assert_eq!(
-        count.get(),
-        7,
-        "own DDL changes schema_version, not total_changes"
-    );
-    // SQLite data_version/total_changes counters are connection-local; equal
-    // counters from a different Connection can never validate this entry.
-    assert_eq!(
-        cached(
-            &Store::open_administration(f.store.path(), connect_protocol::Limits::default())
-                .unwrap(),
-            &memo,
-            None,
-            derive
-        )
-        .unwrap()
-        .0,
-        3
-    );
-    assert_eq!(count.get(), 8);
+            3
+        );
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(count.get(), 8);
+        return;
+    }
+    panic!("No unchanged policy-clock interval available for the memo invalidation test");
 }
 
 #[test]
