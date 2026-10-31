@@ -45,7 +45,7 @@ jobs:
       - name: Reject stale or missing decoded ICE recovery proof
         run: |
           node --test scripts/tests/browser_ice_recovery.test.mjs scripts/tests/browser_bridge_proof.test.mjs scripts/tests/browser_network_path.test.mjs scripts/tests/browser_fixture_scope.test.mjs scripts/video/browser-failure.test.mjs
-          node --test scripts/video/decoded-video-frames.test.mjs
+          node --test scripts/video/decoded-video-frames.test.mjs scripts/video/render-marker-clock.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_gate6_browser_build_profiles.py
           python3 -m unittest discover -s scripts/tests -p test_ci_dependency_cache.py
           python3 -m unittest discover -s scripts/tests -p test_owned_netem.py

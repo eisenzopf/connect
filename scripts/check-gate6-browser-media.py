@@ -261,6 +261,8 @@ def runtime(component=None):
                                 decoded_fps=o['decoded']/o['elapsed_seconds'], changing_fps=o['changing']/o['elapsed_seconds'],
                                 rendered_fps=o['rendered']/o['elapsed_seconds'],
                                 video_observer=o.get('video_observer'),native_decoded_observer=o.get('native_decoded_observer'),
+                                render_marker_observation=o.get('render_marker_observation'),
+                                av_sync_marker_pairs=o.get('av_sync',{}).get('marker_pairs',[]),
                                 render_callback_changing_fps=o['render_callback_changing']/o['elapsed_seconds']
                                     if isinstance(o.get('render_callback_changing'),(int,float)) else None,
                                 presentation_counter_fps=o['presentation_counter_frames']/o['elapsed_seconds']

@@ -1,6 +1,17 @@
 /** Unique ordinal calibration of independently decoded nonperiodic pulses. */
 export const markerProgram="connect-av-cadence/1";
 const horizon=300,maxMarkers=512,maxStates=1024,tolerance=.15;
+/** Numeric render-clock diagnostics only; these never replace an AV edge. */
+export function renderedMarkerClock(callbackMs,metadata={}){
+    const timestamp=value=>Number.isFinite(value)&&value>=0&&value<=3600000;
+    if(!timestamp(callbackMs))throw new TypeError("Invalid bounded render callback clock");
+    const delta=value=>timestamp(value)?callbackMs-value:null;
+    return {callback_seconds:callbackMs/1000,
+        callback_minus_expected_display_ms:delta(metadata.expectedDisplayTime),
+        callback_minus_presentation_ms:delta(metadata.presentationTime),
+        presented_frames:Number.isSafeInteger(metadata.presentedFrames)&&metadata.presentedFrames>=0
+            ?metadata.presentedFrames:null};
+}
 export function markerFrames(){
     const digits=Array(19).fill(0),code=[];
     const visit=(at,period)=>{

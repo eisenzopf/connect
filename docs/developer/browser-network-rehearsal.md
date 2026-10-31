@@ -98,3 +98,5 @@ rendered AV-marker timing keeps its existing observer. Firefox retains its
 declared render-callback measurement. The operating profile records the controlled
 callback undercount and the unchanged quality limits. A missing or failed native
 observer cannot qualify a Chrome cell.
+
+The AV failure diagnostic retains at most 512 render-marker observations with numeric callback time, signed differences from `expectedDisplayTime` and `presentationTime`, and the presentation counter. Missing or invalid metadata stays null; omitted observations remain explicit. Equal-ordinal signed AV marker pairs remain available in numeric evidence. These diagnostics do not change the original callback-time AV edges, calibration or limits.

@@ -203,7 +203,7 @@ try {
             const {markerCells,classifySourceFrame,sourceIdentityReport}=await import("/_qualification/source-identity.mjs");
             const identityCells=markerCells(sourceId);
             const {spectralTone}=await import("/_qualification/audio-spectrum.mjs");
-            const {markerFrames}=await import("/_qualification/marker-calibration.mjs");
+            const {markerFrames,renderedMarkerClock}=await import("/_qualification/marker-calibration.mjs");
             const pulseTimes=markerFrames().map(frame=>frame/30);
             const sourceBegan=performance.now();let pulseOrdinal=0;
             const source = document.createElement("canvas"); source.width = 640; source.height = 360;
@@ -249,7 +249,7 @@ try {
             pixels.imageSmoothingEnabled=false; // Sample uniform marker centres, without neighboring background blend.
             const observation={rendered:0,changing:0,last:null,renderLast:null,renderChanging:0,presentedFrames:null,
                 nativeFrames:videoObserver==="native-decoded-frames/1",videoEdges:[],audioEdges:[],changingTimes:[],
-                audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{}};
+                audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{},renderMarkers:[],renderMarkersOmitted:0};
             const decoded=(_now,metadata)=>{
                 observation.rendered++;
                 if(Number.isSafeInteger(metadata.presentedFrames)&&metadata.presentedFrames>=0)
@@ -261,7 +261,11 @@ try {
                 if(observation.recordIdentity&&!observation.nativeFrames)
                     observation.sourceIdentityCounts[sourceKind]=(observation.sourceIdentityCounts[sourceKind]??0)+1;
                 const white=Array.from(bytes).filter((_,index)=>index%4!==3).every(value=>value>240);
-                if(white&&observation.white===false)observation.videoEdges.push(performance.now());
+                if(white&&observation.white===false){
+                    const at=performance.now();observation.videoEdges.push(at);
+                    if(observation.renderMarkers.length<512)observation.renderMarkers.push(renderedMarkerClock(at,metadata));
+                    else observation.renderMarkersOmitted++;
+                }
                 observation.white=white;
                 // Identity markers use their stable 8x8 cell centres. Motion
                 // needs a finer independent decoded sample: the source bar
@@ -467,6 +471,7 @@ try {
         renderChanging:f.observation.renderChanging,presentedFrames:f.observation.presentedFrames,
         nativeContent:f.nativeObserver?{...f.nativeContent,...f.nativeObserver.snapshot()}:null,
         videoEdges:window.videoFixture.observation.videoEdges,audioEdges:window.videoFixture.observation.audioEdges,
+        renderMarkers:f.observation.renderMarkers,renderMarkersOmitted:f.observation.renderMarkersOmitted,
         changingTimes:window.videoFixture.observation.changingTimes,
         audio:(()=>{const f=window.videoFixture;const samples=new Float32Array(f.frequencyAnalyser.fftSize);
             f.frequencyAnalyser.getFloatTimeDomainData(samples);
@@ -527,6 +532,8 @@ try {
         });
         const videoBytes=delta("bytes");
         return {stats_available:Boolean(inbound&&before),source_identity:end.sourceIdentity,video_observer:videoObserver,
+            render_marker_observation:{limit:512,omitted:end.renderMarkersOmitted,
+                samples:end.renderMarkers.filter(row=>row.callback_seconds>=initial[index].markerStart/1000)},
             render_callback_changing:end.renderChanging-initial[index].renderChanging,
             presentation_counter_frames:Number.isSafeInteger(end.presentedFrames)&&Number.isSafeInteger(initial[index].presentedFrames)
                 ?end.presentedFrames-initial[index].presentedFrames:null,
