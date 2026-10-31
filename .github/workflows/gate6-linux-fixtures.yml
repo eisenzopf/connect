@@ -54,7 +54,7 @@ jobs:
     if: ${{ inputs.lane == 'sdk-runtime' || inputs.lane == 'sdk-qualified' }}
     uses: ./.github/workflows/gate6-runtime-candidate.yml
     with:
-      qualification: ${{ inputs.lane == 'operational-typecheck' && '-operational-typecheck' || inputs.lane == 'sdk-qualified' }}
+      qualification: ${{ inputs.lane == 'sdk-qualified' }}
   sdk-candidate:
     if: ${{ inputs.lane == 'sdk-candidate' }}
     uses: ./.github/workflows/gate6-sdk-candidate.yml
