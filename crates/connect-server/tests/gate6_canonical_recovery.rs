@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Recovery must retain signed identities and reject incomplete/unsafe material.
 #![cfg(unix)]
 #![allow(clippy::unwrap_used)]

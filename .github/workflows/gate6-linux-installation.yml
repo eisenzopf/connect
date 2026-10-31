@@ -2,11 +2,17 @@ name: Gate 6 Linux installation
 on:
   workflow_call:
     inputs:
+      source_revision:
+        type: string
+        default: ''
       upgrade_run:
         type: string
         default: ''
   workflow_dispatch:
     inputs:
+      source_revision:
+        type: string
+        default: ''
       upgrade_run:
         description: 'Optional earlier successful installation package run ID (different source revision)'
         type: string
@@ -28,10 +34,21 @@ jobs:
       CARGO_INCREMENTAL: '0'
       CC: clang
       CXX: clang++
+      CONNECT_INSTALLATION_SOURCE_REVISION: ${{ inputs.source_revision || github.sha }}
     steps:
+      - name: Require an exact source revision for a baseline checkout
+        env:
+          SOURCE_REVISION: ${{ inputs.source_revision }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          value = os.environ.get('SOURCE_REVISION', '')
+          assert not value or re.fullmatch('[0-9a-f]{40}', value), 'Expected a full source SHA'
+          PY
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          ref: ${{ inputs.source_revision || github.sha }}
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
@@ -49,7 +66,7 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ inputs.source_revision || github.sha }}
           restore-keys: |
             g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
       - name: Prepare verified upstream sources and locked dependencies
@@ -110,14 +127,14 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Preserve successful exact-source build cache
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && steps.build.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true' }}
         run: python3 scripts/lib/source_build_cache.py save
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && steps.build.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true' }}
         with:
           path: |
             ~/.cargo/registry
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ inputs.source_revision || github.sha }}

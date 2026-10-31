@@ -154,6 +154,8 @@ def candidate(evidence_path, evidence_digest, package_path, package_digest, revi
         source_name = next(name for name in evidence.namelist() if PurePosixPath(name).name == 'source-inputs.json')
         if hashlib.sha256(evidence.read(source_name)).hexdigest() != report['source_inputs_sha256']:
             raise ValueError('Source manifest digest mismatch')
+        if report['requested_source_revision'] != revision or not report['controller_source_revision'] or len(report['controller_source_revision']) != 40:
+            raise ValueError('Controller/checkout source provenance is incomplete')
         counts, git_hashes = verify_sources(inputs, revision, prepared, archives)
         if [step['name'] for step in report['steps']] != ['recovery-tests', 'package'] or any(step['exit_code'] != 0 for step in report['steps']):
             raise ValueError('Missing required build/recovery steps')
@@ -167,7 +169,7 @@ def candidate(evidence_path, evidence_digest, package_path, package_digest, revi
         installation = None
         if any(PurePosixPath(name).name == 'installation.json' for name in evidence.namelist()):
             installation = json_member(evidence, 'installation.json')
-    return {'source_revision': revision, 'sources_verified': counts, 'package': proof}, manifest, installation
+    return {'source_revision': revision, 'controller_source_revision': report['controller_source_revision'], 'sources_verified': counts, 'package': proof}, manifest, installation
 
 
 def main():

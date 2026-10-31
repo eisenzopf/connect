@@ -370,6 +370,56 @@
           "upstream_path": "LICENSE-APACHE"
         }
       ]
+    },
+    "web-transport-quinn-0.11.12": {
+      "name": "web-transport-quinn",
+      "version": "0.11.12",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/moq-dev/web-transport",
+      "checksum": "48ada8c56f3dc126fa3c9e6b8f31f3bff5dfd24458f6664743d936ecad741d15",
+      "github_repository": "moq-dev/web-transport",
+      "revision": "4326b94ac251039964d35e9fe6490d15a14f8f66",
+      "path_in_vcs": "rs/web-transport-quinn",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/web-transport-quinn/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/moq-dev/web-transport/4326b94ac251039964d35e9fe6490d15a14f8f66/LICENSE-MIT",
+          "sha256": "a1073dd45800c01420a85b3cf3ed705d53162b3cc05b461d9336960c812716e3",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/web-transport-quinn/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/moq-dev/web-transport/4326b94ac251039964d35e9fe6490d15a14f8f66/LICENSE-APACHE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "web-transport-trait-0.3.7": {
+      "name": "web-transport-trait",
+      "version": "0.3.7",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/moq-dev/web-transport",
+      "checksum": "6394e09415ddc1e7c88d605443a3d2f333bf278f74c17020a2b6c44e97507883",
+      "github_repository": "moq-dev/web-transport",
+      "revision": "af182f99b7ca23482e765b09e70f274295a98813",
+      "path_in_vcs": "rs/web-transport-trait",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/web-transport-trait/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/moq-dev/web-transport/af182f99b7ca23482e765b09e70f274295a98813/LICENSE-MIT",
+          "sha256": "a1073dd45800c01420a85b3cf3ed705d53162b3cc05b461d9336960c812716e3",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/web-transport-trait/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/moq-dev/web-transport/af182f99b7ca23482e765b09e70f274295a98813/LICENSE-APACHE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
     }
   }
 }

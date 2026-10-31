@@ -25,9 +25,34 @@
     "run_id": 41228197167,
     "job_id": 124616682283,
     "url": "https://github.com/eisenzopf/connect/actions/runs/41228197167",
-    "state_at_recording": "Production release recovery tests and package build in progress; no result inferred",
+    "state_at_recording": "Terminal failure: E0275 in the recovery integration test crate; no recovery tests, package or installed runtime checks executed.",
     "scope": "Synthetic local Ubuntu host and a separate network namespace, no account/provider/model execution",
-    "upgrade": "First package producer. A second distinct source revision and retained first package are required to exercise upgrade."
+    "upgrade": "No initial package was produced. A corrected current-schema baseline is required.",
+    "negative_source_verification": {
+      "format": "connect/negative-linux-installation-producer/1",
+      "source_revision": "391770eecba4bf4936667152b4b573517fb7e8b7",
+      "run_id": 41228197167,
+      "job_id": 124616682283,
+      "artifact_id": 13052759494,
+      "zip_sha256": "09345966a6ce76a71e691e049f7231fca85448089f747e843449e8ad794c79cf",
+      "source_manifest_sha256": "b60642ca8a3a5a65c8fdfd99cb828c1253d3c9cdcf8dd5dae0b82319a32951eb",
+      "sources_verified": {
+        "git": 4559,
+        "prepared": 4094,
+        "pinned_archives": 4
+      },
+      "compiler_error": "E0275",
+      "location": [
+        {
+          "file": "crates/connect-server/tests/gate6_canonical_recovery.rs",
+          "line": 1
+        }
+      ],
+      "recovery_tests_run": false,
+      "package_built": false,
+      "installation_checks_run": false,
+      "whole_gate_qualified": false
+    }
   },
   "unresolved_verification": [
     "actual canonical recovery Rust test results",
@@ -55,7 +80,26 @@
     "run_id": 41228758112,
     "job_id": 124618332652,
     "url": "https://github.com/eisenzopf/connect/actions/runs/41228758112",
-    "state_at_recording": "Queued behind the initial production package build; no result inferred",
+    "state_at_recording": "Cancellation requested after the initial compiler failure and independent notice-assembly refusal; superseded before qualification.",
     "upgrade_source_package_run": 41228197167
+  },
+  "notice_assembly_preflight": {
+    "scope": "Local macOS source assembly using the Linux-filtered locked Cargo graph only; no Linux compilation or runtime claim.",
+    "prepared_packages": 4,
+    "registry_packages": 425,
+    "selected_registry_packages": 419,
+    "notice_files": 744,
+    "passed": true,
+    "added_exact_vcs_provenance": [
+      "web-transport-quinn-0.11.12@4326b94ac251039964d35e9fe6490d15a14f8f66",
+      "web-transport-trait-0.3.7@af182f99b7ca23482e765b09e70f274295a98813"
+    ],
+    "registry_license_guard_tests": "9 passed"
+  },
+  "corrected_procedure": {
+    "recovery_test_crate": "Add the same recursion_limit=256 used by existing canonical integration fixtures; compilation remains unrun until the corrected candidate.",
+    "cache": "Preserve completed exact-source compilation independently of runtime or package-assembly success; cache reuse never grants a runtime pass.",
+    "upgrade_baseline": "Prepare a Git-pinned current-schema baseline retaining the earlier 391770ee runtime and the corrected packaging/test tooling. Build via the primary workflow branch with an explicit source SHA so the subsequent upgraded runtime can reuse the branch-scoped compiler cache. No compatibility shim or schema downgrade.",
+    "status": "Corrected baseline preparation; no new runtime result yet."
   }
 }
