@@ -84,6 +84,8 @@ def main():
     example_manifest.pop('patch', None)
     example_manifest['dependencies']['connect-client'] = '=' + package['version']
     write_toml(example / 'Cargo.toml', example_manifest)
+    shutil.copytree(ROOT / 'examples/sdk-installation/rust', output / 'examples/sdk-installation/rust',
+                    ignore=shutil.ignore_patterns('target', 'Cargo.lock'))
     shutil.copyfile(ROOT / 'LICENSE', output / 'LICENSE')
     shutil.copyfile(ROOT / 'rust-toolchain.toml', output / 'rust-toolchain.toml')
     shutil.copyfile(ROOT / 'dependencies/source-lock.json', output / 'prepared-source-lock.json')

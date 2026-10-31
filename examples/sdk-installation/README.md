@@ -43,5 +43,15 @@ An error must be investigated; these examples do not reconnect or retry a
 mutation. The standalone Rust source bundle supplies its own offline Cargo
 configuration and public journey example in `examples/rust-sdk-journey`.
 
+For the Rust installation example, extract the standalone Rust source bundle and
+run from its root so Cargo finds the supplied offline directory source:
+
+```sh
+cargo run --offline --manifest-path examples/sdk-installation/rust/Cargo.toml -- /PRIVATE/NEW/installation/operator.sdk.toml
+```
+
+It connects through the installed `connect-client` crate directly and closes the
+original signed peer. No native helper executable is used by the Rust facade.
+
 G6-069's complete matching native/package installation qualification is still in
 progress. G6-070 owns the complete language/version/platform/facade/media matrix.

@@ -1461,5 +1461,19 @@
     ],
     "scope": "Standalone packages and matching default connect on PATH; current read-only capabilities and joined close. Separate standalone Rust source bundle has its public journey example.",
     "verification": "Node/Python syntax checks pass; actual matching-native example execution remains pending."
+  },
+  "native_installed_candidate": {
+    "status": "implemented-pending-native-execution",
+    "checker": "scripts/check-sdk-native-installation.py",
+    "archive_installer": "scripts/lib/sdk_candidate.py",
+    "local_archive_boundary_tests_passed": 3,
+    "actual_cases": [
+      "Install exact native tarball and ordinary SDK archives in a fresh project outside the repository",
+      "Run actual installed Node and Python examples through the matching default connect on PATH; observe original helper joins through standard subprocess APIs",
+      "Compile and run a cold offline ordinary Rust crate consumer without checkout paths",
+      "Observe each original signed peer admission and capacity reclamation through authenticated server health",
+      "Join the original packaged server and verify unchanged executable/source inputs"
+    ],
+    "full_language_version_facade_media_matrix": "G6-070, not claimed here"
   }
 }
