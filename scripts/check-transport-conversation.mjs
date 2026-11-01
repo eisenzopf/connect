@@ -335,7 +335,34 @@ try {
             check("six-original-native-connections-exchange-opus-vp8-and-original-source-clocks-for-sixty-two-seconds");
         }
         phase = "six-native-connections-original-end";
-        for (const item of connections) await complete(item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" }, mutation(item.prefix + "-end")));
+        if (mediaWorkload) report.data_workload.media_end_timings = [];
+        for (const [index, item] of connections.entries()) {
+            const began = performance.now();
+            const originalEnd = await item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" },
+                { ...mutation(item.prefix + "-end"), ...(mediaWorkload ? { timeoutMs: 5000 } : {}) });
+            if (mediaWorkload) {
+                const remaining = Math.floor(5000 - (performance.now() - began));
+                assert.ok(remaining > 0, "original-native-end-completion-within-five-seconds");
+                const result = await originalEnd.wait({ timeoutMs: remaining });
+                assert.equal(result.snapshot.state, "completed");
+            } else await complete(originalEnd);
+            const receiptElapsed = performance.now() - began;
+            if (mediaWorkload) {
+                for (;;) {
+                    const remaining = Math.floor(5000 - (performance.now() - began));
+                    assert.ok(remaining > 0, "original-native-connection-retirement-within-five-seconds");
+                    const current = await connectionSnapshots(owner, cid, [{ id: item.connection.id,
+                        sessionId: plan["session" + item.sid] }], { timeoutMs: remaining });
+                    const [original] = current.connections;
+                    if (original.state === "retired" && original.generation > before[index].generation) break;
+                    await new Promise(done => setTimeout(done, Math.min(50, Math.max(0, remaining))));
+                }
+                const retiredElapsed = performance.now() - began;
+                assert.ok(retiredElapsed <= 5000);
+                report.data_workload.media_end_timings.push({ index, end_receipt_ms: receiptElapsed,
+                    original_retirement_observed_ms: retiredElapsed, limit_ms: 5000 });
+            }
+        }
         report.data_workload.original_end_operations_completed = connections.length;
         // End completion proves local engine termination. Its separate durable
         // retirement snapshot may follow later (the public end contract). Read

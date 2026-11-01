@@ -1,0 +1,31 @@
+{
+  "format": "connect/native-av-lifetime-bounds/1",
+  "task": "G6-058",
+  "before_revision": "7f26ea7a",
+  "changes": [
+    "Every RTP fragment checks remaining original200ms source age; public request deadline cannot outlive that age. Expired tails are discarded without timestamp reset.",
+    "Per-route retained codec payloads are bounded to16MiB in addition to packet/frame count bounds.",
+    "Six original native Ends separately measure submission, completed receipt and observed durable retirement under one original5s deadline perConnection. Data-only component keeps its existing budget."
+  ],
+  "before": {
+    "write_age_case_failed": true,
+    "log_sha256": "0dc9469ef877e2ae712b12aec18f96fc2670c5d4dbf0cc8f0fe4f3a8a233583f"
+  },
+  "after": {
+    "node_transport_cases_passed": 8,
+    "python_transport_cases_passed": 47,
+    "skipped": 0,
+    "node_log_sha256": "4cf8e48441057d097ad01858f035c883538e96368e1d539648c54f5e9f9055c4"
+  },
+  "implementation_inputs": {
+    "scripts/lib/transport_av.mjs": "b75b7d80e02f9566fe1eb79e4f2eaf6f67f9442e3e115c71895e0777647965ac",
+    "scripts/check-transport-conversation.mjs": "4b041a5ddfcf5ebd67d50275fa65ba05f57d72061c7be3b8c600a71d056b59d7",
+    "scripts/lib/transport_verification.py": "7619bf4690cbb650c808db6f7f0f2e9fedeaa942854d453b0d2d41bc578ad4d7",
+    "scripts/tests/transport_av.test.mjs": "176440367e76f43bfdb158779d4c769daf2f4c8d67fd01bf00ae0efcaff6d9c1"
+  },
+  "native_runtime_after_change_verified": false,
+  "original_run_continues": 41292563962,
+  "scope": "Fixture source-age bounds, bounded recordings and original End timing instrumentation. No actual native deadline/teardown/profile pass yet. Earlier b4ad run continues unchanged.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

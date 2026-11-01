@@ -23,7 +23,10 @@ test("first send failure joins all twelve native readers and releases the measur
         sources: connections.map(() => ({ input_sha256: createHash("sha256").update(raw).digest("hex") })) };
     await writeFile(join(sources, "manifest.json"), JSON.stringify(manifest));
     const stream = {
-        async sendRtp() { throw failure; }, async sendClock() { throw failure; },
+        async sendRtp(_packet, options) {
+            assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 200, "public-write-cannot-outlive-original-200ms-source-age");
+            throw failure;
+        }, async sendClock() { throw failure; },
         receivePacket({ signal }) {
             waiting++;
             return new Promise((_, reject) => {

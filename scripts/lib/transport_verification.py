@@ -217,7 +217,13 @@ def verify_rehearsal(report, component, members):
         require(native["original_receive_tasks_joined"] is True and native["observation_seconds"] == 60 and
             report["packet_capture"]["media_workload"] is True and report["packet_capture"]["packet_limit"] == 200000,
             "media-work-or-capture-owner-missing")
-        result.update(native_av_decoded_routes=6, full_media_profile_qualified=False)
+        timings = child["data_workload"].get("media_end_timings")
+        if timings is not None:
+            require([v["index"] for v in timings] == list(range(6)) and all(v["limit_ms"] == 5000 and
+                0 <= v["end_receipt_ms"] <= v["original_retirement_observed_ms"] <= 5000 for v in timings),
+                "original-media-end-timing-incomplete")
+        result.update(native_av_decoded_routes=6, native_end_timings_verified=0 if timings is None else 6,
+            full_media_profile_qualified=False)
     return result
 
 

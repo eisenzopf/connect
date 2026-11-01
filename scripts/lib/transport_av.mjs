@@ -42,7 +42,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
             receiveAudio: item.connection.streams.byId(ownAudio.id).media,
             receiveVideo: item.connection.streams.byId(plan[peer.prefix + "-video"]).media,
-            audio: [], video: [], clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
+            audio: [], video: [], capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
     }
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
     const end = start + 62000, tasks = []; let error, timer;
@@ -59,13 +59,16 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             if (performance.now() - start - elapsed >= 200) { route.lateSendFrames++; continue; }
             const timestamp = video ? entries[index].timestamp : index * 960;
             const encoded = Buffer.from(video ? entries[index].payload : entries[index], "base64");
+            let frameCompleted = true;
             for (const packet of sender.packetize(encoded, timestamp)) {
+                const remaining = Math.floor(200 - (performance.now() - start - elapsed));
+                if (remaining <= 0) { route.lateSendFrames++; frameCompleted = false; break; }
                 const sequence = new DataView(packet.buffer, packet.byteOffset).getUint32(4);
-                const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: 1000, signal: controller.signal });
+                const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: remaining, signal: controller.signal });
                 assert.equal(result.boundary, "local-media-queue"); submitted = sender.submitted(packet);
                 route.sent[medium]++;
             }
-            if (elapsed - lastClock >= 500) {
+            if (frameCompleted && elapsed - lastClock >= 500) {
                 await stream.sendClock(sender.nextDatagramSequence(), { ...submitted, ntp: ntp(unixStart + elapsed), rtp: timestamp,
                     cname: "g6-native-av-" + route.index }, { timeoutMs: 1000, signal: controller.signal });
                 lastClock = elapsed;
@@ -88,12 +91,16 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             assert.equal(value.kind, "rtp"); assert.ok(value.bytes.length <= 1180);
             if (medium === "audio") {
                 assert.ok(route.audio.length < 3200);
+                route.capturedBytes += value.payload.byteLength;
+                assert.ok(route.capturedBytes <= 16 * 1024 * 1024, "bounded-native-media-recording-bytes");
                 route.audio.push({ elapsed_ms: elapsed, timestamp: value.header.timestamp, sequence: value.header.sequenceNumber,
                     ssrc: value.header.ssrc, payload: Buffer.from(value.payload).toString("base64") });
             } else {
                 const frame = assembler.push({ ...value.header, sequence: value.header.sequenceNumber, payload: value.payload });
                 if (frame) {
                     assert.ok(route.video.length < 2000);
+                    route.capturedBytes += frame.bytes.byteLength;
+                    assert.ok(route.capturedBytes <= 16 * 1024 * 1024, "bounded-native-media-recording-bytes");
                     route.video.push({ elapsed_ms: elapsed, timestamp: frame.timestamp, key: frame.key,
                         payload: Buffer.from(frame.bytes).toString("base64") });
                 }
@@ -112,7 +119,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         clearTimeout(timer); controller.abort(); await Promise.all(tasks);
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
-            received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
+            captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
     }
