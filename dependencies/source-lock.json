@@ -1448,6 +1448,11 @@
       "path": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
       "sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
       "source": "G6-058 controlled retained-video model-lock regressions matching the existing retained-audio contract. Require external policy outside model State, revalidate original model/credential/port/route, retain no idle reader and refuse initial/post-policy metadata contention without waiting. Test-only; no production fix, readiness or decoded quality claim."
+    },
+    {
+      "path": "patches/rvoip/gate6-retained-media-policy-state.patch",
+      "sha256": "b150b2672710c12f88705753150cd966b42fe8de38bced2c5b2171d8c690850b",
+      "source": "G6-058: extend existing retained-audio external-policy detachment to retained real-time video/screen frames. Keep original model revision, credential, consumer/scene/port/route tickets and expiry checks; no data-path, authority grant, retry, deadline, source clock, readiness or quality-threshold change. Format the unchanged controlled video tests. Original four video counterexamples fail before this change; current Core regression and native throughput verification required."
     }
   ]
 }

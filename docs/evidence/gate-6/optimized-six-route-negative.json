@@ -564,11 +564,6 @@
         "maximum_us": 18151
       }
     ],
-    "guarded_audio_refusal_stages": {
-      "source-egress": 1183,
-      "target-egress": 375,
-      "mixer-target": 1
-    },
     "closure": {
       "server_joined": true,
       "server_forced": false,
@@ -576,21 +571,48 @@
       "source_assets_unchanged": true,
       "inputs_unchanged": true
     },
-    "scope": "Trace logging perturbs timing. These are Store-read durations and original refusal counts, not CPU/resource qualification or an identified lock cause. Retained video still holds model State across external policy in the inspected source; a controlled regression is required before attributing these native losses to it."
+    "scope": "Trace logging perturbs timing. These are Store-read durations and original refusal counts, not CPU/resource qualification or an identified lock cause. Retained video still holds model State across external policy in the inspected source; a controlled regression is required before attributing these native losses to it.",
+    "guarded_media_refusal_stages": {
+      "source-egress": 1183,
+      "target-egress": 375,
+      "mixer-target": 1
+    },
+    "refusal_medium_limit": "The audio_path label and Guarded audio delivery refused text are also used by queued video. These counts cannot identify every refusal as audio."
   },
   "full_transport_cells_qualified": 0,
   "task_complete": false,
   "whole_gate_qualified": false,
   "controlled_retained_video_regression": {
-    "status": "compiling-original-production-code",
+    "status": "before-counterexample-confirmed-after-verification-in-progress",
     "patch": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
     "patch_sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
     "source_lock_sha256": "13f13f83449adb4a837ee54f9b43dc6c1ac7a7e5452536dfd11b819c4f430f1f",
     "patch_count": 266,
     "tests_added": 4,
     "original_audio_tests_unchanged": true,
-    "production_code_changed": false,
-    "observed_counterexample_verified": false,
-    "contract": "Retained video policy runs outside model State; old model/credential/port/route callbacks cannot poll IO; contended initial or post-policy model metadata owns no idle reader and refuses without waiting. Same controlled fixture as existing audio tests; no decoded readiness or native loss cause inferred."
+    "production_code_changed": true,
+    "observed_counterexample_verified": true,
+    "contract": "Retained video policy runs outside model State; old model/credential/port/route callbacks cannot poll IO; contended initial or post-policy model metadata owns no idle reader and refuses without waiting. Same controlled fixture as existing audio tests; no decoded readiness or native loss cause inferred.",
+    "before": {
+      "counterexample_verified": true,
+      "exit_code": 101,
+      "cases_passed": 0,
+      "cases_failed": 4,
+      "cases_ignored": 0,
+      "test_binary_sha256": "924dc0c1f45fc873a08d48001144929ccd667595ac6bf8fd1a3aad4516b6bec0",
+      "elapsed_seconds": 447.94232220901176,
+      "source_inputs_unchanged": true
+    },
+    "before_input_manifest_sha256": "80d0f7e02ca420c3a87aea5108f1a02f68ad752fdcff8ca4d26518e1d66dd3f9",
+    "original_failing_binary_preserved": true,
+    "fix": {
+      "patch": "patches/rvoip/gate6-retained-media-policy-state.patch",
+      "patch_sha256": "b150b2672710c12f88705753150cd966b42fe8de38bced2c5b2171d8c690850b",
+      "source_lock_sha256": "49c9f00fbf0c272cdd28a93085d7b8d3cdddcd3c1f89280e0ef2500def113a6c",
+      "patch_count": 267,
+      "mechanism": "Extend retained audio external-policy detachment to all non-data realtime stream kinds, including video/screen. Keep original model/credential/port/consumer/scene checks after the callback; refuse metadata contention without retaining a fresh reader. No data-policy change, retry, deadline or media-threshold change.",
+      "after_core_verification": "in-progress",
+      "fresh_native_after_result": "not-run"
+    }
   }
 }

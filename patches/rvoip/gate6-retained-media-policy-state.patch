@@ -1,0 +1,55 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2059,8 +2059,11 @@
+             && port.binding.negotiated.requested.medium != Medium::Data
+             && matches!(&consumer, audio_consumer::ConsumerCheck::Current)
+             && scene.is_current_publish();
++        // Retained realtime media pins the original consumer and scene. Video
++        // (including screen media) must leave model metadata available while
++        // external policy is read, just as retained audio does.
+         let detached = fresh_publication
+-            || (port.binding.negotiated.requested.medium == Medium::Audio
++            || (port.kind() != StreamKind::Data
+                 && data.is_none()
+                 && held.is_none()
+                 && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -218,7 +218,6 @@
+     assert!(dropped, "fresh reader survived while waiting for State");
+ }
+ 
+-
+ // The same retained-packet contract applies to video. These are guarded IO
+ // callbacks over controlled RTP bytes, not a decoded-video readiness claim.
+ async fn queued_video(
+@@ -236,11 +235,14 @@
+     outgoing(output).await
+ }
+ async fn assert_video_packet(queued: QueuedMedia) {
+-    queued.deliver(|frame| async move {
+-        assert_eq!(frame.kind, StreamKind::Video);
+-        assert!(!frame.payload.is_empty());
+-        Ok(())
+-    }).await.unwrap();
++    queued
++        .deliver(|frame| async move {
++            assert_eq!(frame.kind, StreamKind::Video);
++            assert!(!frame.payload.is_empty());
++            Ok(())
++        })
++        .await
++        .unwrap();
+ }
+ #[tokio::test]
+ async fn retained_video_policy_releases_state_and_fresh_delivery_keeps_no_idle_reader() {
+@@ -330,7 +332,8 @@
+             "refused attempt retained a reader"
+         );
+         if changed <= 1 {
+-            assert_video_packet(queued_video(&f, &source, &mut input, &mut output, 320).await).await;
++            assert_video_packet(queued_video(&f, &source, &mut input, &mut output, 320).await)
++                .await;
+         }
+     }
+ }
