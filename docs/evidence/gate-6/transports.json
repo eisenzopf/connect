@@ -1196,7 +1196,7 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "verified-six-payloads-original-retirement-drain-and-recovery-one-ubuntu-local-EdDSA-component",
+    "status": "three-separately-verified-ubuntu-native-data-components-full-matrix-unqualified",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "b8d63c0ffea38967a663d90fa52b92407a8bce762504d830549647b3cb88ce95",
       "scripts/check-transport-fixtures.py": "ecdd677d372db97528945e686c696546280debec94a93b8775bb13461f8bc245",
@@ -1373,8 +1373,9 @@
         "target": "ubuntu24-x86_64",
         "signing": "ES256",
         "network": "local",
-        "status": "confirmed-live",
-        "runtime_verified": false
+        "status": "terminal-success-independently-source-verified",
+        "runtime_verified": true,
+        "verification_evidence": "docs/evidence/gate-6/native-data-workload-es256-verified.json"
       },
       {
         "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
@@ -1383,8 +1384,32 @@
         "target": "ubuntu24-x86_64",
         "signing": "EdDSA",
         "network": "remote-profile-fixture",
-        "status": "confirmed-live",
-        "runtime_verified": false
+        "status": "terminal-success-independently-source-verified",
+        "runtime_verified": true,
+        "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json"
+      }
+    ],
+    "verified_components": [
+      {
+        "signing": "EdDSA",
+        "network": "local",
+        "evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
+        "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
+        "runtime_verified": true
+      },
+      {
+        "signing": "ES256",
+        "network": "local",
+        "evidence": "docs/evidence/gate-6/native-data-workload-es256-verified.json",
+        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+        "runtime_verified": true
+      },
+      {
+        "signing": "EdDSA",
+        "network": "remote-profile-fixture",
+        "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json",
+        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+        "runtime_verified": true
       }
     ]
   },

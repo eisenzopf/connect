@@ -1,0 +1,445 @@
+{
+  "format": "connect/native-data-workload-independent-verification/1",
+  "task": "G6-058",
+  "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+  "workflow_run_id": 41277280763,
+  "job_id": 124761917118,
+  "artifact_id": 13071981110,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": true,
+    "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+    "artifact_sha256": "d463c75916996eae6f5fad4bc7fbc308a2794ee6628efa175341c914ad84402c",
+    "report_sha256": "62790c93147fc3e4b22a2c0de11e83c24eaa457d67a40128e3912714e33c6dae",
+    "source_inputs_sha256": "fb2e5c5b9df547eae61c0d2ad2b05bbbba4adf4ae80e2c8a08a2f6768df92475",
+    "sources_verified": {
+      "git": 4724,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "ES256",
+    "network": "local",
+    "reported_runtime_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "e2785b7686d3dc4b6aa7cb07c0b887deaf609d50aa679299f5c196fc564ce841",
+      "conversation_passed": true,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_host": {
+    "os": "linux",
+    "architecture": "x86_64",
+    "kernel_release": "7.0.0-1017-azure",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-x86_64"
+  },
+  "node": "v22.23.4",
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+    "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+    "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+    "private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "child_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+    "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+    "native-data-original-replay-recovers-receipt-without-second-delivery",
+    "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+    "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+    "both-original-session-intents-end-through-public-sdk",
+    "independent-device-recovers-original-create-and-history-after-original-helper-close"
+  ],
+  "commands": [
+    {
+      "name": "initialize",
+      "exit_code": 0
+    },
+    {
+      "name": "unsupported-init-signing",
+      "exit_code": 2
+    },
+    {
+      "name": "existing-init-signing-refusal",
+      "exit_code": 1
+    },
+    {
+      "name": "seed-create",
+      "exit_code": 0
+    },
+    {
+      "name": "seed-list",
+      "exit_code": 0
+    },
+    {
+      "name": "stopped-backup",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-list",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-original",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-replacement-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "actor-cannot-provision",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-cannot-verify-endpoint",
+      "exit_code": 1
+    },
+    {
+      "name": "trusted-endpoint-verify-0",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-0",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-1",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-1",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-2",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-2",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-3",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-3",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-4",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-4",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-1",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-2",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-3",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-4",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-replacement-1",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-before-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-before-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-before-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-before-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "revoke-primary-device",
+      "exit_code": 0
+    },
+    {
+      "name": "revoked-primary-native-refusal",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-2-after-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-after-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-after-revocation",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-after-revocation",
+      "exit_code": 0
+    }
+  ],
+  "workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 4615,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true,
+    "original_end_operations_completed": 6,
+    "retirement_observation_budget_ms": 8000,
+    "retirement_observations": 6,
+    "retirement_observer": "single-current-authorized-conversation-snapshot",
+    "retirement_snapshot_pages": 1,
+    "retirement_snapshot_revision": 4,
+    "after_end_states": [
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired"
+    ],
+    "retirement_observation_elapsed_ms": 2866,
+    "original_connections_retired": 6
+  },
+  "topology": {
+    "host": {
+      "platform": "ubuntu24-x86_64",
+      "os": "linux",
+      "architecture": "x64",
+      "kernel_release": "7.0.0-1017-azure",
+      "ordinary_user": true
+    },
+    "same_network_namespace_observed": true,
+    "server_owned_loopback_udp_bind_observed": true,
+    "helpers_in_server_namespace": 5,
+    "server_executable_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+    "namespace_sha256": "faa2d2822eaf7944616d9d45da25314cd09b54d6cffed4ffa4d2ad80a6315d29"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "3db21e620a18dc56dc39cb52a108519087404aadcf4178b53624ae9e920a3577",
+    "pcap_bytes": 4297798,
+    "captured_seconds": 20.957794419999985,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 1376,
+      "to_server_packets": 679,
+      "from_server_packets": 697,
+      "captured_bytes": 4275758,
+      "udp_payload_bytes": 4217966,
+      "to_server_udp_bytes": 852865,
+      "from_server_udp_bytes": 3365101
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "helpers_observed": 5,
+  "all_helpers_joined": true,
+  "cleanup_stage_counts": {
+    "durable-retirement-recorded": 6,
+    "durable-retirement-retry": 22,
+    "durable-retirement-join": 0
+  },
+  "component_passed": true,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One source-bound Ubuntu24 x86_64 native data component, with separately observed signing and topology. Six exact64KiB payloads, original IDs/replay, audiences, six durable retirements within the unchanged8s bound, empty queues, Session ends, independent-device history recovery, current revocation and original-owner joins. Ciphertext capture is not decoded media. No other cohort, full transport cell, audio/video/upgrade/replacement media ownership, browser or Gate qualification."
+}

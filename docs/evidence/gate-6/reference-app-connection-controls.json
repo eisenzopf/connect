@@ -4,12 +4,12 @@
   "status": "corrected-local-components-pass-installed-runtime-required",
   "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
   "implementation_inputs": {
-    "examples/parley-on-connect/app/gateway.mjs": "bfc708d912d7b9a392c209c089b434542756d26a5a772c15e9c7ee402115c348",
-    "examples/parley-on-connect/app/gateway.test.mjs": "988db63e8f7035a01c30491dd80e319778cbb785f41d8c8d176fe3c10119c299",
+    "examples/parley-on-connect/app/gateway.mjs": "4d7e66e9cfecefb87cecbc20f73171cccb960771afc9a3aed32e12e79f090f10",
+    "examples/parley-on-connect/app/gateway.test.mjs": "950f6f701661c6f107271eafe17d4d22e89572109f5fac20a9d63e14854506c3",
     "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
     "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
-    "examples/parley-on-connect/app/ui/app.mjs": "8a174e9a37e0bba29fcd24a1b39bbf9b49be39f906901922f57b356a0e605bfe",
-    "scripts/check-reference-app-installed.mjs": "7d27c9d8ef98a33077b18f279e9d34fb1d088f0d61673767dd52c7d3a404dc65",
+    "examples/parley-on-connect/app/ui/app.mjs": "693f80ead16763b3e092e809333a3f683697600ddfa8d9372d128d52921e0088",
+    "scripts/check-reference-app-installed.mjs": "7f147681a3cd7418861de34ab851a34be4f460c470b7586d58462bed65070110",
     ".github/workflows/gate6-reference-app.yml": "e64eef8d16de0168acdc7fd669db74a24d222b02bf5f2ed6b7f970e5076762d5"
   },
   "local_verification": {
@@ -41,7 +41,7 @@
       "Join audio",
       "Join audio and video",
       "Listen to peer",
-      "Stop listening to peer",
+      "Stop listening (current incoming Streams)",
       "Mute",
       "Unmute",
       "Hold",
@@ -50,10 +50,15 @@
     ]
   },
   "installed_check": {
-    "status": "corrected-runtime-not-run",
+    "status": "confirmed-live-both-installed-platforms",
     "expected_checks": 21,
     "runtime_verified": false,
-    "description": "Same complete native-control scenario and deadlines. Explicit negotiated receiver IDs for unsubscribe, negotiated publication directions for mute, exact original scope assertions for every receipt, bounded latest API/action diagnostics."
+    "description": "Same complete native-control scenario and deadlines. Explicit negotiated receiver IDs for unsubscribe, negotiated publication directions for mute, exact original scope assertions for every receipt, bounded latest API/action diagnostics.",
+    "workflow_run_id": 41277784529,
+    "job_ids": {
+      "linux": 124763376434,
+      "mac": 124763376602
+    }
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -62,7 +67,7 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "provider_or_model_execution": false,
-  "implementation_source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+  "implementation_source_revision": "1f3b6d22eb2f7f2dd69f143b50e20509b4d09ca2",
   "previous_installed_check": {
     "status": "terminal-negative-independently-source-verified",
     "expected_checks": 21,
