@@ -1,0 +1,40 @@
+{
+  "format": "connect/gate-6/queued-realtime-recovery/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Controlled local rvoip Core queued Audio/Video admission counterexamples only; synthetic RTP bytes, no decoded media, movement or transport-cell qualification.",
+  "before": {
+    "production_change": false,
+    "patch_count": 268,
+    "test_patch_sha256": "3eebbae1f0f39a18c324c54f73eb9ed565a80a545e7d71fd5a1e78c1b37d2a10",
+    "source_lock_sha256": "9f2816daa050086f7ca89b7ed45edc10c61ab2e0278f51c3164b09455a301639",
+    "test_binary_sha256": "759a914be1cd74c176d85f31c6366aabf005924bad0119f92802bfaf24fe6eb8",
+    "binary_preserved": true,
+    "elapsed_seconds": 38.7083410830237,
+    "source_inputs_unchanged": true,
+    "passed": 0,
+    "failed": 6,
+    "ignored": 0,
+    "video_counterexamples": 5,
+    "audio_first_policy_expiry_counterexample": true,
+    "io_retry": false
+  },
+  "fixture_correction": {
+    "initial_compile_failed_before_tests": true,
+    "cause": "Test used synchronous unwrap on Tokio policy write future. Replaced only with try_write; production unchanged; failed build record and original snapshot retained.",
+    "corrected_fixture_tests_actually_executed": true
+  },
+  "required_after": [
+    "Recover temporary pre-IO source/target metadata refusals for original queued Audio/Video with no authority reader while waiting.",
+    "Preserve original packet age and earliest observed policy expiry across every admission attempt.",
+    "Recheck current authorization, original tickets, generations and shutdown; poll original send closure at most once.",
+    "Run affected Core expiry, policy, direct video, reliable data and mixer packet-context cases.",
+    "Independently rerun unchanged native six-route quality workload before claiming throughput improvement."
+  ],
+  "after": {
+    "implemented": false,
+    "verified": false
+  },
+  "transport_cells_qualified": 0
+}

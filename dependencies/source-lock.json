@@ -1453,6 +1453,11 @@
       "path": "patches/rvoip/gate6-retained-media-policy-state.patch",
       "sha256": "b150b2672710c12f88705753150cd966b42fe8de38bced2c5b2171d8c690850b",
       "source": "G6-058: extend existing retained-audio external-policy detachment to retained real-time video/screen frames. Keep original model revision, credential, consumer/scene/port/route tickets and expiry checks; no data-path, authority grant, retry, deadline, source clock, readiness or quality-threshold change. Format the unchanged controlled video tests. Original four video counterexamples fail before this change; current Core regression and native throughput verification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-queued-realtime-recovery-regression.patch",
+      "sha256": "3eebbae1f0f39a18c324c54f73eb9ed565a80a545e7d71fd5a1e78c1b37d2a10",
+      "source": "G6-058 controlled queued realtime metadata recovery and earliest policy expiry regressions. Require audio/video original admission to wait without a policy reader, poll original IO at most once, retain original packet age and earliest policy expiry, and recheck revocation/shutdown. Test-only; no new recovery, readiness or quality claim."
     }
   ]
 }

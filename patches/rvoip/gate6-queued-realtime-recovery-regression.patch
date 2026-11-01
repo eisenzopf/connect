@@ -1,0 +1,203 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -392,3 +392,199 @@
+     assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
+     assert!(dropped, "fresh reader survived while waiting for State");
+ }
++
++// Queued realtime recovery owns no policy reader while metadata is unavailable.
++async fn queued_realtime_for_recovery(f: &Fixture, medium: Medium) -> QueuedMedia {
++    let source = f.aa.port(medium);
++    let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++    let mut output = f.ba.port(medium).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(medium).logical_id)
++        .unwrap();
++    outgoing(&mut output).await
++}
++async fn queued_realtime_collision(target: bool, changed: u8) {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, _) = fixture();
++        f.start(&[medium]).await;
++        let packet = queued_realtime_for_recovery(&f, medium).await;
++        let calls = Arc::new(AtomicUsize::new(0));
++        let count = calls.clone();
++        let sending = packet.deliver(move |frame| async move {
++            count.fetch_add(1, Ordering::AcqRel);
++            assert_eq!(frame.timestamp_rtp, 160);
++            Ok(())
++        });
++        tokio::pin!(sending);
++        let controller = if target { f.b.clone() } else { f.a.clone() };
++        let held = controller.state.lock().unwrap();
++        let first = std::future::poll_fn(|cx| {
++            std::task::Poll::Ready(std::future::Future::poll(sending.as_mut(), cx))
++        })
++        .await;
++        let reader_free = f.policy.0.try_write().is_ok();
++        match changed {
++            0 => (),
++            1 => tokio::time::sleep(Duration::from_millis(205)).await,
++            2 => {
++                f.policy.0.try_write().unwrap().revoked.insert("alice".into());
++            }
++            3 => f.a.shutdown.cancel(),
++            _ => unreachable!(),
++        }
++        drop(held);
++        assert!(
++            first.is_pending(),
++            "queued metadata refusal discarded original: {medium:?}"
++        );
++        assert!(
++            reader_free,
++            "queued metadata wait retained authority: {medium:?}"
++        );
++        assert_eq!(calls.load(Ordering::Acquire), 0);
++        let result = sending.await;
++        if changed == 0 {
++            result.unwrap();
++            assert_eq!(calls.load(Ordering::Acquire), 1);
++        } else {
++            assert!(result.is_err(), "changed={changed} medium={medium:?}");
++            if changed == 1 {
++                assert!(matches!(result, Err(StreamControlError::Deadline)));
++            }
++            assert_eq!(calls.load(Ordering::Acquire), 0);
++        }
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
++#[tokio::test]
++async fn queued_realtime_source_metadata_collision_recovers_one_original_without_idle_authority() {
++    queued_realtime_collision(false, 0).await;
++}
++#[tokio::test]
++async fn queued_realtime_target_metadata_collision_recovers_one_original_without_idle_authority() {
++    queued_realtime_collision(true, 0).await;
++}
++#[tokio::test]
++async fn queued_realtime_metadata_wait_never_renews_original_packet_age() {
++    queued_realtime_collision(false, 1).await;
++}
++#[tokio::test]
++async fn queued_realtime_metadata_wait_rechecks_revocation_before_polling_original_io() {
++    queued_realtime_collision(false, 2).await;
++}
++#[tokio::test]
++async fn queued_realtime_metadata_wait_rechecks_shutdown_before_polling_original_io() {
++    queued_realtime_collision(false, 3).await;
++}
++struct QueuedShortLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    expires: chrono::DateTime<chrono::Utc>,
++}
++impl MediaAuthorityLease for QueuedShortLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        Some(self.expires)
++    }
++    fn packet_context(&self) -> Option<&(dyn std::any::Any + Send + Sync)> {
++        self.inner.packet_context()
++    }
++}
++struct QueuedExpiryPolicy {
++    inner: Arc<dyn MediaPolicy>,
++    armed: Arc<AtomicBool>,
++}
++impl MediaPolicy for QueuedExpiryPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let lease = self.inner.current(scope)?;
++        if scope.connection.as_str() == "alice"
++            && matches!(scope.purpose, MediaPurpose::Publish)
++            && self.armed.swap(false, Ordering::AcqRel)
++        {
++            Ok(Box::new(QueuedShortLease {
++                inner: lease,
++                expires: chrono::Utc::now() + chrono::Duration::milliseconds(50),
++            }))
++        } else {
++            Ok(lease)
++        }
++    }
++}
++#[tokio::test]
++async fn queued_realtime_metadata_retry_preserves_first_policy_expiry_without_polling_io() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let actions: Actions = Arc::new(Mutex::new(None));
++        let target = Arc::new(Mutex::new(Weak::new()));
++        let armed = Arc::new(AtomicBool::new(false));
++        let f = Fixture::with_policy(
++            8,
++            Some(Box::new({
++                let actions = actions.clone();
++                let target = target.clone();
++                let armed = armed.clone();
++                move |inner| {
++                    Arc::new(QueuedExpiryPolicy {
++                        inner: Arc::new(CallbackPolicy {
++                            inner,
++                            target,
++                            actions,
++                        }),
++                        armed,
++                    })
++                }
++            })),
++        );
++        *target.lock().unwrap() = Arc::downgrade(&f.a);
++        f.start(&[medium]).await;
++        let packet = queued_realtime_for_recovery(&f, medium).await;
++        let (release, released) = std::sync::mpsc::channel();
++        let worker = Arc::new(Mutex::new(None));
++        *actions.lock().unwrap() = Some(Box::new({
++            let worker = worker.clone();
++            move |controller| {
++                let controller = controller.clone();
++                let (ready, waiting) = std::sync::mpsc::channel();
++                *worker.lock().unwrap() = Some(std::thread::spawn(move || {
++                    let held = controller.state.lock().unwrap();
++                    ready.send(()).unwrap();
++                    let _ = released.recv_timeout(Duration::from_secs(1));
++                    drop(held);
++                }));
++                waiting.recv_timeout(Duration::from_secs(1)).unwrap();
++            }
++        }));
++        armed.store(true, Ordering::Release);
++        let calls = Arc::new(AtomicUsize::new(0));
++        let count = calls.clone();
++        let sending = packet.deliver(move |_| async move {
++            count.fetch_add(1, Ordering::AcqRel);
++            Ok(())
++        });
++        tokio::pin!(sending);
++        let first = std::future::poll_fn(|cx| {
++            std::task::Poll::Ready(std::future::Future::poll(sending.as_mut(), cx))
++        })
++        .await;
++        let reader_free = f.policy.0.try_write().is_ok();
++        tokio::time::sleep(Duration::from_millis(80)).await;
++        let _ = release.send(());
++        if let Some(worker) = worker.lock().unwrap().take() {
++            worker.join().unwrap();
++        }
++        assert!(
++            first.is_pending(),
++            "queued metadata refusal discarded original: {medium:?}"
++        );
++        assert!(reader_free, "queued expiry wait retained policy reader");
++        let result = sending.await;
++        assert!(
++            matches!(result, Err(StreamControlError::Deadline)),
++            "queued retry renewed original policy expiry: {medium:?}"
++        );
++        assert_eq!(calls.load(Ordering::Acquire), 0);
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
