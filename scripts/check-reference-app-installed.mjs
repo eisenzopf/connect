@@ -65,33 +65,41 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
         "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
         " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
-// Chromium 156 can repeat the top viewport when fullPage capture extends a
-// short surface. Capture a real document-height viewport, then restore the
-// original viewport and scroll. Keyboard/media checks keep their own viewport.
-report.screenshot_capture_profile = "document-height-viewport/1";
+// Full Chromium on macOS can repeat a short strip at the bottom of a
+// viewport capture. Keep uncaptured viewport slack and clip to the intrinsic
+// body height, then restore the original viewport and scroll. Functional
+// keyboard/media checks retain their own viewport and unchanged assertions.
+report.screenshot_capture_profile = "document-height-viewport/2";
 report.screenshot_captures = [];
 async function capturePage(target, name) {
     const viewport = target.viewportSize();
     assert.ok(viewport);
     const scroll = await target.evaluate(() => ({ x: scrollX, y: scrollY }));
-    let height = viewport.height;
+    const padding = 128;
+    const bodyHeight = () => target.evaluate(() => Math.ceil(Math.max(
+        document.body.scrollHeight, document.body.getBoundingClientRect().height)));
+    let height = viewport.height, contentHeight;
     try {
         for (let attempt = 0; attempt < 3; attempt++) {
-            const needed = await target.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight));
-            assert.ok(Number.isInteger(needed) && needed > 0 && needed <= 20000, "bounded-owned-document-height");
-            if (needed <= height) break;
-            height = needed;
+            contentHeight = await bodyHeight();
+            assert.ok(Number.isInteger(contentHeight) && contentHeight > 0 && contentHeight <= 20000, "bounded-owned-document-height");
+            if (contentHeight + padding <= height) break;
+            height = contentHeight + padding;
             await target.setViewportSize({ width: viewport.width, height });
         }
-        assert.ok(await target.evaluate(() => document.documentElement.scrollHeight <= innerHeight), "complete-document-in-capture-viewport");
+        contentHeight = await bodyHeight();
+        assert.ok(contentHeight + padding <= height, "complete-document-inside-capture-surface");
         await target.evaluate(() => scrollTo(0, 0));
-        await target.screenshot({ path: join(output, name), fullPage: false });
+        await target.screenshot({ path: join(output, name), fullPage: false,
+            clip: { x: 0, y: 0, width: viewport.width, height: contentHeight } });
     } finally {
         await target.setViewportSize(viewport);
         await target.evaluate(({ x, y }) => scrollTo(x, y), scroll);
     }
     assert.deepEqual(target.viewportSize(), viewport);
-    report.screenshot_captures.push({ name, original_viewport: viewport, captured_viewport: { width: viewport.width, height }, restored: true });
+    report.screenshot_captures.push({ name, original_viewport: viewport,
+        captured_viewport: { width: viewport.width, height },
+        captured_clip: { width: viewport.width, height: contentHeight }, padding, restored: true });
 }
 let processChild, finished, context, browser, page, release, chrome, nativeSample, stage = "startup";
 const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];

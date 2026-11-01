@@ -1,0 +1,121 @@
+{
+  "format": "connect/reference-app-source-paired-sql-local/1",
+  "task": "G6-072",
+  "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+  "behavior_checks_passed": 37,
+  "behavior_checks_required": 37,
+  "all37_behavior_checks_passed": true,
+  "full_private_report_sha256": "279c8a9b8e2f4239b5c7bc01cc47896fc2c01c30dc203631204164759307bd8e",
+  "binary_sha256": "1507bbd9da36ecf7652607e2a1343bf97df151fa7c074714bff803097e12d8d1",
+  "node": "v22.16.0",
+  "browser": "156.0.8078.4",
+  "source_and_payload_audit": {
+    "git_app_checker_installer_cpu_sampler": 31,
+    "node_producer_inputs": 197,
+    "actual_node_payload_files": 195,
+    "png_bytes_verified": 6,
+    "all_source_guards": true
+  },
+  "runtime_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+    "target": "aarch64-apple-darwin",
+    "sources_verified": {
+      "git": 4820,
+      "prepared": 4094,
+      "pinned_archives": 0
+    },
+    "files_verified": 755,
+    "binary_sha256": "1507bbd9da36ecf7652607e2a1343bf97df151fa7c074714bff803097e12d8d1",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "fc84c01252132de5c56e3c6ce2503985f604e0b5b31b3c79f677d1cf394d76cb",
+    "manifest_sha256": "09a05f40972e3ed2bfe384cc9588aab37311b1d029d18446c3ebdc0cd6cef039",
+    "artifact_zip_digests": {
+      "evidence": "127a21576f387163452629b4950d51c9defa3fbf32e6b439affe518ac34ee564",
+      "package": "9dc697fdd488353d8549ae6fe48e1f2d4e2ae4f9a1c1bf4226407b3568529aa1"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "native_server_observation": {
+    "observed": true,
+    "original_observer_joined": true,
+    "forced": false,
+    "seconds_requested": 8,
+    "elapsed_ms": 8197,
+    "server_cpu_delta_ms": 2060,
+    "raw_sample_sha256": "cb057481e03a8babc68b4bb63e2b46d8d3d495f3113c1253e47774021cf902d9"
+  },
+  "profile_curation_audit": {
+    "native_stack_curation_recomputed": true,
+    "raw_native_sha256": "cb057481e03a8babc68b4bb63e2b46d8d3d495f3113c1253e47774021cf902d9",
+    "app_cpu_curations_recomputed": 2,
+    "app_cpu_raw_digests": [
+      "3cb9d98785ea5232cb6124b557c45a100c9159b57d691d48fec99a1d4dca9ce4",
+      "4a4a52e3e4e0c7b63f057793aecddc2102791416446dc4bbdb2cb3681ecc7224"
+    ],
+    "raw_profiles_uploaded": false
+  },
+  "visual_capture_qualified": false,
+  "narrow_capture_negatives": [
+    {
+      "name": "native-controls-narrow.png",
+      "png_sha256": "665d002ab2addc7898d6c5ad06e779a5674ff41dcc94a6908e50d520e615b8d0",
+      "width": 320,
+      "height": 3899,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_rows": [
+        3822
+      ]
+    },
+    {
+      "name": "capture-controls-narrow.png",
+      "png_sha256": "89d603c0e02d28045195a2a63c074432855266ceb1ccc2f1982102491b38023c",
+      "width": 320,
+      "height": 3753,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_rows": [
+        3676
+      ]
+    },
+    {
+      "name": "video-controls-narrow.png",
+      "png_sha256": "6b2cdbac0722f6f1a873b60014ba754694c4cfb420586964026bf683ad9c2e41",
+      "width": 320,
+      "height": 4695,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_rows": [
+        4618
+      ]
+    }
+  ],
+  "visual_interpretation": "All37actual behavior checks pass, but profile1 capture repeats the first87pixels at the bottom edge. The prior70-row comparison at20:90 could not see a truncated87pixel repeat;10:60 detects it in all3narrow images. Preserve the behavior pass and image negative separately. Do not claim visual qualification.",
+  "wrapper_failure": {
+    "stage": "local-verifier-input-shape",
+    "reason": "Expected one tarball ZIP member; initial wrapper included expanded runtime files. Corrected ZIP verifies without any build or product rehearsal replay. Original ZIP/log retained."
+  },
+  "scope": "Actual production optimized no-test-support macOSarm64 runtime; independently verified755files/4820Git/4094prepared/0pinnedarchives. Complete SDK, hosted app, matrix and acceptance qualification remain separate. Native and2appCPU raw curation independently recomputed; original process counters and joins remain controller observations.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

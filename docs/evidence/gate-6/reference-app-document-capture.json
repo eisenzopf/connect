@@ -50,9 +50,33 @@
     },
     "remaining_group_members": 0
   },
-  "observation": "One DOM header in both captures. Standard fullPage capture repeats the top viewport; actual320px document-height viewport captures every section without repeated header blocks. Both screenshot surfaces had reproduced the artifact. Browser and original app joined without force or group survivors.",
-  "checker_change": "Capture actual document-height viewport, then restore original viewport and scroll. Retain width, bounded height and restoration checks. Media, keyboard, timeout and quality assertions unchanged.",
+  "observation": "One DOM header. Standard fullPage capture repeats the viewport; profile1 real document-height capture removed internal repetition but still repeats a truncated87pixel strip at the bottom. Initial20:90pixel reference was too tall to detect that final strip. It is not a visual pass.",
+  "checker_change": "Profile2 captures the intrinsic body with128pixels of spare viewport height and clips the actual native screenshot to the body. Record viewport/clip/padding/restoration. Pending actual current full rehearsal.",
   "current_checker_full_run_passed": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "profile1_visual_qualified": false,
+  "profile1_partial_repeat_evidence": "docs/evidence/gate-6/reference-app-source-paired-sql-local.json",
+  "profile2_diagnostic": {
+    "change": "Reserve128pixels of uncaptured viewport slack; native screenshot clips to intrinsic body height. Restore original viewport/scroll/focus. No image editing and no media/functional criterion changes.",
+    "pixel_audit": {
+      "png_sha256": "273658530b09b710405cb6df1c525f650e69cebc8624dafd371e0a146b978988",
+      "rgb_sha256": "ac6d9de68ec9a445340e296b5b5e5298b52bf8908bcf96c31e7031471a98dc86",
+      "width": 320,
+      "height": 3971,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_rows": []
+    },
+    "actual_original_app_joined": {
+      "code": 0,
+      "signal": null
+    },
+    "remaining_group_members": 0,
+    "footer_visually_inspected": true,
+    "passed": true,
+    "current_corrected_full_rehearsal_pending": true
+  }
 }
