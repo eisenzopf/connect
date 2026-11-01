@@ -1,0 +1,72 @@
+{
+  "format": "connect/gate6-native-live-upgrade-negative/1",
+  "workflow_run_id": 41334860497,
+  "job_id": 124932419194,
+  "artifact_id": 13095668378,
+  "verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "ac7b16d24c0113357c4116b16f8c76d4f1f583e0",
+    "artifact_sha256": "d3b0601d00d86713a5b2f3d6457696dfe67ef7ad2a8df3552cf990b5728e607e",
+    "report_sha256": "f6b48afee786c7a3e2ef0c68531f443e37356c8f5a4d0477640fe0ff7cdb0c94",
+    "source_inputs_sha256": "abf1647bcb51809c5b328247bf7dafc6cf9321ab24518f564d1ca746714e110f",
+    "sources_verified": {
+      "git": 4871,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "813abd6ec8c33d76c81fa29631c5c3f881dbb9aa901ea58f567b6a8fc98bbe72",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "af0ade0f5a83b28e0f030e99c798fbb572395351aab175e8377626d3b3ed3eeb",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 0,
+      "native_data_submissions": 0,
+      "native_data_completions": 0,
+      "native_data_receives": 0
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "failure": {
+    "phase": "live-original-data-connections-across-session-av-upgrade",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "all_observed_helpers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "av_work_started": false,
+  "original_failed_mutations_replayed": false,
+  "current_diagnostic_checks": {
+    "node_version": "22.16.0",
+    "focused_cases_passed": 10,
+    "source_inputs_unchanged": true,
+    "test_log_sha256": "57ed14b10f22b03d8059e58bde174e4f82bdd79a6e9e62141fe535351bc28780",
+    "inputs": {
+      "scripts/lib/transport_live_upgrade.mjs": "c2f835c07d9a96e70c113492bafa0063350a0903d7d89fde3bac9e38bece06e2",
+      "scripts/lib/transport_replacement_target.mjs": "2aadf5d6a117d80dafc67f31b7a0245a8917b83c33a772183b670b449bf89eaf",
+      "scripts/tests/transport_live_upgrade.test.mjs": "8086c52d6106d0d2b7c4958bacc59c1f953417518c8c3f1757656bdafc9529f7",
+      "scripts/tests/transport_replacement_target.test.mjs": "21e0fe8f90552b9b19abac12f33cc983279b9bc33451c7913b713930c201b907"
+    }
+  },
+  "scope": "The original media lane failed with a read-only deadline during the preceding live-data Session upgrade. It did not reach six-Connection offers or AV work, so AV first-work diagnostics are absent. All five observed helpers and both server owners joined. Current diagnostics expose the original awaited stage and bounded counters, with no mutation retry or timeout increase; controlled receive-deadline and authority-refusal cases preserve the original failure. This does not resolve the runtime failure, the earlier uncertain AV result, or qualify any full transport cell.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -223,7 +223,8 @@ try {
     if (mediaWorkload) {
         phase = "live-original-data-connections-across-session-av-upgrade";
         const live = await liveSessionUpgrade({ clients, sessions, plan, options, complete, refused,
-            participants: Object.fromEntries(["participant-1", "participant-2"].map(role => [role, member(view, role).id])) });
+            participants: Object.fromEntries(["participant-1", "participant-2"].map(role => [role, member(view, role).id])),
+            observe: observation => { report.live_data_session_upgrade_observation = observation; } });
         ownerNativeMessageIds.push(...live.messages.filter(v => v.source === "participant-1" || v.target === "participant-1").map(v => v.messageId));
         report.live_data_session_upgrade = live.observation;
         check("original-data-connections-carry-identified-content-before-and-after-both-session-av-upgrades-and-retire-before-main-workload");

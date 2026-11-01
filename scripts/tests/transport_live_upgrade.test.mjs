@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { liveSessionUpgrade } from "../lib/transport_live_upgrade.mjs";
 
-function fixture({ corruptAfter = false, changeGeneration = false, refusal } = {}) {
+function fixture({ corruptAfter = false, changeGeneration = false, refusal, receiveRefusal } = {}) {
     const roles = ["participant-1", "participant-2"], participants = Object.fromEntries(roles.map(v => [v, "member-" + v]));
-    const plan = { upgrade: "original-upgrade", unsupported: "original-unsupported" }, queues = new Map(), connections = [], calls = [];
+    const plan = { upgrade: "original-upgrade", unsupported: "original-unsupported" }, queues = new Map(), connections = [], calls = [], observations = [];
     for (const sid of [0, 1]) for (const role of roles) for (const field of ["connection", "stream", "offer", "select", "before", "after", "before-message", "after-message", "end"])
         plan["live-" + sid + "-" + role + "-" + field] = "original-" + sid + "-" + role + "-" + field;
     const operation = (value, action = () => {}) => ({ wait: async () => {
@@ -39,6 +39,7 @@ function fixture({ corruptAfter = false, changeGeneration = false, refusal } = {
                         payload: { kind: "binary", value: bytes } });
                     return operation({ boundary: "core-queue-admission", connectionId: connection.id });
                 }, receiveData: async () => {
+                    if (receiveRefusal) throw receiveRefusal;
                     const key = participants[role] + ":" + stream, value = queues.get(key); assert.ok(value);
                     queues.delete(key); return value;
                 } } }) };
@@ -49,8 +50,8 @@ function fixture({ corruptAfter = false, changeGeneration = false, refusal } = {
     } } }]));
     const complete = async work => (await (await work).wait({ timeoutMs: 8000 })).value;
     const refused = async (call, code, reason) => assert.rejects(call, error => error.problem.code === code && error.problem.reason === reason);
-    return { calls, connections, queues, run: () => liveSessionUpgrade({ clients, sessions, plan, participants,
-        options: { timeoutMs: 8000 }, complete, refused }) };
+    return { calls, connections, queues, observations, run: () => liveSessionUpgrade({ clients, sessions, plan, participants,
+        options: { timeoutMs: 8000 }, complete, refused, observe: v => observations.push(v) }) };
 }
 
 test("original data Connections and unique payloads span both upgrades; retirement is observed after each end", async () => {
@@ -63,6 +64,11 @@ test("original data Connections and unique payloads span both upgrades; retireme
     assert.equal(f.calls.slice(0, firstUpgrade).filter(v => v.type === "send").length, 4);
     assert.equal(f.calls.slice(firstUpgrade).filter(v => v.type === "send").length, 4);
     assert.ok(f.calls.every(v => v.options.operationId.startsWith("original-")));
+    assert.equal(f.observations.length, 1);
+    assert.equal(f.observations[0].passed, true);
+    assert.equal(f.observations[0].failure, null);
+    assert.equal(f.observations[0].data_received, 8);
+    assert.equal(f.observations[0].retirements_observed, 4);
 });
 test("a changed original generation cannot count as live continuity", async () => {
     const f = fixture({ changeGeneration: true }); await assert.rejects(f.run());
@@ -77,4 +83,22 @@ test("current authority refusal propagates without another mutation or replaceme
     await assert.rejects(f.run(), error => error === refusal);
     assert.equal(f.calls.filter(v => v.type === "send").length, 1);
     assert.equal(f.calls.filter(v => v.type === "upgrade").length, 0);
+    assert.deepEqual(f.observations[0].failure,
+        { stage: "data-send", session_index: 0, role_index: 0, round: "before" });
+    assert.equal(f.observations[0].data_completed, 0);
+});
+
+test("an original receive deadline is located after one completed send without replay or invented receipt", async () => {
+    const receiveRefusal = Object.assign(Error("original-read-deadline"), { kind: "deadline", certainty: "read-only" });
+    const f = fixture({ receiveRefusal });
+    await assert.rejects(f.run(), error => error === receiveRefusal);
+    assert.equal(f.calls.filter(v => v.type === "send").length, 1);
+    assert.equal(f.calls.filter(v => v.type === "upgrade").length, 0);
+    assert.equal(f.observations.length, 1);
+    assert.equal(f.observations[0].passed, false);
+    assert.deepEqual(f.observations[0].failure,
+        { stage: "data-receive", session_index: 0, role_index: 0, round: "before" });
+    assert.equal(f.observations[0].data_completed, 1);
+    assert.equal(f.observations[0].data_received, 0);
+    assert.equal(f.observations[0].retirements_observed, 0);
 });
