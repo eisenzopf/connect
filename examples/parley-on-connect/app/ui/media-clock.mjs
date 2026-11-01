@@ -22,7 +22,7 @@ export function senderReport(timestampUs, rate, stats, cname, unixOriginUs = Mat
     return { ...stats, rtp, ntp: ntp.toString(), cname };
 }
 export class MediaTimeline {
-    #tracks = new Map(); #base; #now;
+    #tracks = new Map(); #base; #version = 0; #now;
     constructor(nowUs = () => Math.round(performance.now() * 1000)) { this.#now = nowUs; }
     register(id, rate) {
         if (this.#tracks.has(id) || this.#tracks.size >= 8 || ![48000, 90000].includes(rate)) fail();
@@ -37,13 +37,26 @@ export class MediaTimeline {
         if (ntp === 0n || !report.packets) return false;
         if (t.report?.ssrc === report.ssrc && BigInt.asIntN(64, ntp - t.report.ntp) <= 0n) return false;
         t.report = { ...report, ntp, seen: now };
-        this.#base ??= { ntp, local: now };
+        // Use the minimum observed receive offset for this common NTP clock.
+        // A later SR may correct an initial mixer/capture clock offset. An SR
+        // cannot have been generated after its reception; if the old mapping
+        // says so, lower the shared offset. This only makes older packets older
+        // and preserves original NTP differences across all AV tracks.
+        const lead = this.#base ? this.#base.local +
+            Number(BigInt.asIntN(64, ntp - this.#base.ntp) * 1000000n / (1n << 32n)) - now : Infinity;
+        if (lead > 0) {
+            this.#base = { ntp, local: now };
+            // Sub-frame clock refinements do not retire otherwise valid output.
+            if (lead >= 20000) this.#version++;
+        }
         return true;
     }
     timestamp(id, ssrc, timestamp) {
         const t = this.#tracks.get(id);
         if (!t || !uint(ssrc) || !uint(timestamp)) fail();
         const now = this.#now(), changed = t.ssrc !== undefined && t.ssrc !== ssrc;
+        const clockChanged = t.clockVersion !== undefined && t.clockVersion !== this.#version;
+        t.clockVersion = this.#version;
         if (t.ssrc !== ssrc) {
             t.ssrc = ssrc; t.first = t.newest = timestamp; t.local = now;
             if (t.report?.ssrc !== ssrc) t.report = undefined;
@@ -55,9 +68,9 @@ export class MediaTimeline {
             const sample = BigInt.asUintN(64, t.report.ntp + (BigInt((timestamp - t.report.rtp) | 0) << 32n) / BigInt(t.rate));
             const mapped = this.#base.local + Number(BigInt.asIntN(64, sample - this.#base.ntp) * 1000000n / (1n << 32n));
             if (Number.isSafeInteger(mapped) && Math.abs(mapped - now) <= 10000000)
-                return { timestampUs: mapped, synchronized: true, changed };
+                return { timestampUs: mapped, synchronized: true, changed, clockChanged };
         }
-        return { timestampUs: fallback, synchronized: false, changed };
+        return { timestampUs: fallback, synchronized: false, changed, clockChanged };
     }
-    clear() { this.#tracks.clear(); this.#base = undefined; }
+    clear() { this.#tracks.clear(); this.#base = undefined; this.#version = 0; }
 }

@@ -129,7 +129,7 @@
     "installed_runtime_verified": false,
     "capture_playback_verified": false,
     "previous_negative_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-bf780.json",
-    "local_component_functions_passed": 66,
+    "local_component_functions_passed": 67,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
     "installed_audio_evidence": "docs/evidence/gate-6/reference-app-installed-browser-audio.json"
   }

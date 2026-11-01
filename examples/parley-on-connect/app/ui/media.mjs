@@ -21,7 +21,7 @@ export class BrowserAppMedia {
         droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0,
         audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
         videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0,
-        lastAudioOffsetMs: null, lastVideoOffsetMs: null };
+        lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0 };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
@@ -276,8 +276,11 @@ export class BrowserAppMedia {
             this.#counts.receivedRtp++;
             const timing = this.#timeline.timestamp(route.binding.streamId, parsed.ssrc, parsed.timestamp);
             if (timing.synchronized) this.#counts.synchronizedPackets++; else this.#counts.unsynchronizedPackets++;
-            if (timing.changed) {
-                this.#decoder(route); route.assembler.clear(); route.lastAudio = -Infinity;
+            if (timing.changed || timing.clockChanged) {
+                // Pending decoder output belongs to the old clock epoch too.
+                this.#decoder(route); route.assembler.clear();
+                if (timing.clockChanged) this.#counts.receiveClockCorrections++;
+                route.lastAudio = -Infinity;
                 for (const source of route.sources) { try { source.stop(); } catch {} source.disconnect(); this.#sources.delete(source); }
                 route.sources.clear(); route.pendingVideo?.frame.close(); route.pendingVideo = null; clearTimeout(route.paintTimer);
             }

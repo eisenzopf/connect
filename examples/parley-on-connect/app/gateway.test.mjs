@@ -101,6 +101,7 @@ function fixture() {
                 if (envelope.type === "conversation.list") return [frame("ack", { details: { page: { conversations: [{ id: "conversation-created", closed: false }], next_cursor: null } } })];
                 if (envelope.type === "message.history") return [frame("message.send", { msg_id: "message-1", from: "participant-owner", body: "visible text", content_type: "text/plain", body_encoding: "utf8" }), frame("ack", {})];
                 assert.equal(envelope.type, "conversation.get");
+                service.snapshotReaders ??= []; service.snapshotReaders.push(current);
                 assert.ok((envelope.payload.limit ?? service.pageSize) <= service.pageSize, "Configured server page limits also apply");
                 const items = [
                     { kind: "conversation", data: { conversation_id: envelope.cid, closed: false } },
@@ -358,10 +359,12 @@ test("media opening uses current coherent membership/physical facts and refuses 
         const service = fixture(); Object.assign(service, patch); const f = await setup(service); t.after(f.close);
         await assert.rejects(f.gateway.mediaOpen("owner", {}, binding), { code: "app-resync-required" });
         assert.equal(service.mediaDescribeReads ?? 0, 0);
+        assert.ok(service.clients.slice(1).every(v => v.closed && v.closes === 1));
     }
     const service = fixture(); service.pageSize = 1; const f = await setup(service); t.after(f.close);
     const result = await f.gateway.mediaOpen("owner", {}, binding);
     assert.equal(result.generation, 1); assert.equal(service.mediaDescribeReads, 1);
+    assert.ok(service.snapshotReaders.every(v => v === service.clients[1]));
     assert.equal(service.conversationRefreshReads ?? 0, 0);
     assert.equal(service.topologyPages, 8);
 });

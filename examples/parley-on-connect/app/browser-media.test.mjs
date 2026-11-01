@@ -37,6 +37,28 @@ test("audio and video use one NTP playout origin across independent RTP clock ra
     assert.equal(audio.timestampUs, 1099999);
     assert.equal(clock.report("audio", report(7, 0, ntp)), false);
 });
+test("a corrected SR cannot map its generation into the future or make delayed media fresh", () => {
+    let now = 1000000; const clock = new MediaTimeline(() => now), ntp = 10n << 32n;
+    clock.register("audio", 48000); clock.register("video", 90000);
+    clock.report("audio", report(7, 0, ntp)); clock.timestamp("audio", 7, 0);
+    now = 1100000;
+    const corrected = ntp + (3n << 32n) / 10n;
+    assert.ok(clock.report("audio", report(7, 4800, corrected)));
+    const audio = clock.timestamp("audio", 7, 4800);
+    assert.equal(audio.clockChanged, true); assert.equal(audio.timestampUs, now);
+    clock.report("video", report(8, 27000, corrected));
+    const video = clock.timestamp("video", 8, 27000);
+    assert.equal(video.timestampUs, audio.timestampUs);
+    assert.ok(Math.abs(clock.timestamp("audio", 7, 0).timestampUs - 1000000) <= 1);
+    // A later report with a larger receive delay cannot move the shared
+    // offset forward and replay queued old content as newly captured media.
+    now = 3000000;
+    clock.report("audio", report(7, 9600, corrected + (1n << 32n) / 10n));
+    const delayed = clock.timestamp("audio", 7, 9600);
+    assert.equal(delayed.clockChanged, false);
+    assert.ok(Math.abs(delayed.timestampUs - 1200000) <= 1);
+    assert.ok(playoutTime(delayed.timestampUs, now, 2) < 2);
+});
 test("RTP wrap is continuous; an expired report or source change supplies no old synchronization", () => {
     let now = 1000000; const clock = new MediaTimeline(() => now);
     clock.register("audio", 48000); clock.report("audio", report(7, 0xffffff00, 10n << 32n));

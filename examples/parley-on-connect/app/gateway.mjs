@@ -99,8 +99,7 @@ export class AppGateway {
         const value = await this.#client(role).capabilities.refresh(this.#options());
         return { transport: value.selectedTransport, features: [...value.features] };
     }
-    async #raw(role, type, payload, conversationId, options = this.#options()) {
-        const client = this.#client(role);
+    async #raw(role, type, payload, conversationId, options = this.#options(), client = this.#client(role)) {
         const envelope = { v: 2, id: "app_read_" + randomUUID(), ts: new Date().toISOString(), type, payload,
             ...(conversationId ? { cid: conversationId } : {}) };
         return (await client.raw.request(client.raw.validate(envelope), options)).map(item => item.value);
@@ -115,13 +114,13 @@ export class AppGateway {
             return { id: value.id, closed: value.closed };
         }), cursor: page.next_cursor ?? null };
     }
-    async #topology(role, cid, options) {
+    async #topology(role, cid, options, client) {
         let page, cursor, revision, watermark; const items = [];
         // Let the server select a page within its configured limit. The wire
         // maximum (127) can exceed an installation's page size (100 by default).
         // Even a one-item page keeps the same total ceiling and shared deadline.
         for (let count = 0; count < 2048; count++) {
-            const frames = await this.#raw(role, "conversation.get", page ? { page } : {}, cid, options);
+            const frames = await this.#raw(role, "conversation.get", page ? { page } : {}, cid, options, client);
             const snapshot = frames.find(frame => frame.type === "conversation.snapshot")?.payload;
             if (!snapshot || !Array.isArray(snapshot.items) || typeof snapshot.has_more !== "boolean") fail("app-resync-required");
             if (revision === undefined) { revision = snapshot.revision; watermark = snapshot.cursor; }
@@ -175,12 +174,17 @@ export class AppGateway {
     }
     async #openMedia(role, binding, options) {
         const client = this.#client(role);
+        // Admission and supervision share one separately owned read-only
+        // client. Neither can queue behind or fence the UI mutation owner.
+        const observer = this.#factory(this.#actor(role));
+        let closing;
+        const close = () => closing ??= observer.close({ timeoutMs: 2000 });
         let phase = "open-current-snapshot";
         try {
             // One coherent current snapshot already contains the Conversation,
             // active membership/epoch, accepted Session, appearance and physical
             // Connection generation. Do not compose several serialized reads.
-            const items = await this.#topology(role, binding.conversationId, options);
+            const items = await this.#topology(role, binding.conversationId, options, observer);
             const unique = (kind, select) => {
                 const matches = items.filter(v => v.kind === kind && select(v.data));
                 if (matches.length !== 1) fail("app-resync-required"); return matches[0].data;
@@ -216,11 +220,8 @@ export class AppGateway {
             // supervision on its own read-only client so UI snapshot/mutation
             // traffic cannot queue ahead of it or lose its original owner.
             // The original client alone retains the native media handles.
-            const observer = this.#factory(this.#actor(role));
             const observed = observer.conversations.byId(binding.conversationId).sessions.byId(binding.sessionId)
                 .connections.byId(binding.connectionId);
-            let closing;
-            const close = () => closing ??= observer.close({ timeoutMs: 2000 });
             const controlCheck = async opts => {
                 try {
                     if (this.#client(role) !== client) fail("app-media-stopped");
@@ -231,7 +232,7 @@ export class AppGateway {
                 }
             };
             return { generation: physical.generation, negotiation, media, check, controlCheck, close };
-        } catch (error) { this.#onError(error, { phase }); throw error; }
+        } catch (error) { this.#onError(error, { phase }); await close(); throw error; }
     }
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }
     mediaSend(role, owner, input) { this.#actor(role); return this.#media.send(role, owner, input); }
