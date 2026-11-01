@@ -14,14 +14,14 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-COMPONENTS = {"materializer", "actors", "conversation", "data", "control"}
+COMPONENTS = {"materializer", "actors", "conversation", "data", "media", "control"}
 REFUSALS = {"unsupported-init-signing", "existing-init-signing-refusal",
     "actor-cannot-provision", "revoked-primary-native-refusal"}
 
 
 def verify_command_outcomes(commands, component):
-    expected = REFUSALS | ({"participant-cannot-verify-endpoint"} if component == "data" else set())
-    if component == "data":
+    expected = REFUSALS | ({"participant-cannot-verify-endpoint"} if component in {"data", "media"} else set())
+    if component in {"data", "media"}:
         require(expected <= {command["name"] for command in commands}, "data-authority-refusal-missing")
     for command in commands:
         require(type(command["exit_code"]) is int and
@@ -153,7 +153,7 @@ def verify_rehearsal(report, component, members):
                 "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable"})
         require(required <= set(report["checks"]), "positive-rehearsal-checks-missing")
     result = dict(commands_observed=len(report["commands"]), original_servers_joined=sum(v["original_joined"] is True for v in servers))
-    if component not in {"conversation", "data"}:
+    if component not in {"conversation", "data", "media"}:
         return result
     raw = members.get(component + "/conversation.json")
     require(raw is not None and hashlib.sha256(raw).hexdigest() == report["conversation_report_sha256"], "conversation-report-binding-mismatch")
@@ -171,7 +171,7 @@ def verify_rehearsal(report, component, members):
             "positive-conversation-workload-missing")
     result.update(conversation_report_sha256=hashlib.sha256(raw).hexdigest(), conversation_passed=child["passed"],
         helpers_observed=child["observed_helpers"], helpers_joined=child["all_observed_helpers_joined"])
-    if component == "data":
+    if component in {"data", "media"}:
         if report["passed"]:
             workload = child["data_workload"]
             require(child["actual_connection_workload_observed"] is True and child["actual_topology_verified"] is True and
@@ -187,6 +187,37 @@ def verify_rehearsal(report, component, members):
         result.update(native_offers_completed=child.get("native_offers_completed", 0),
             native_data_submissions=child.get("native_data_submissions", 0),
             native_data_completions=child.get("native_data_completions", 0), native_data_receives=child.get("native_data_receives", 0))
+    if component == "media" and report["passed"]:
+        decoded = report["native_av_decoded"]
+        require(decoded["format"] == "connect/native-av-decoded-component/1" and decoded["passed"] is True and
+            decoded["connections"] == 6 and decoded["participants"] == 4 and decoded["sessions"] == 2 and
+            decoded["observation_seconds"] == 60 and decoded["warmup_seconds"] == 2 and len(decoded["routes"]) == 6,
+            "positive-media-workload-missing")
+        require(all(decoded[k] is False for k in ("task_complete", "cell_qualified", "matrix_qualified", "whole_gate_qualified")),
+            "media-component-cannot-promote-cell")
+        expected_peers = [3, 0, 1, 2, 5, 4]
+        require([route["index"] for route in decoded["routes"]] == list(range(6)) and
+            [route["peer_index"] for route in decoded["routes"]] == expected_peers,
+            "decoded-original-route-set-mismatch")
+        source_digest = hashlib.sha256((json.dumps(decoded["source_manifest"], indent=2) + "\n").encode()).hexdigest()
+        require(source_digest == report["native_av_source_manifest_sha256"] == child["native_av"]["source_manifest_sha256"] and
+            report["endpoint_verification"]["full_media_endpoints_verified"] == 5 and
+            report["endpoint_verification"]["unchanged_unverified_issuance_resumes"] == 5,
+            "media-source-or-endpoint-binding-missing")
+        for route in decoded["routes"]:
+            video, audio = route["video"], route["audio"]
+            require(route["passed"] is True and audio["all_blocks_identified"] is True and audio["bad_identity_blocks"] == 0 and
+                audio["decoded_seconds"] >= 59.9 and route["maximum_audio_arrival_gap_ms"] <= 200 and
+                (video["width"], video["height"]) == (640, 360) and video["decoded_window_frames"] >= 1440 and
+                video["changing_window_frames"] >= 1440 and len(video["frames_by_observation_second"]) == 60 and
+                min(video["frames_by_observation_second"]) >= 24 and video["wrong_source_pixel_frames"] == 0 and
+                route["received_clocks"]["audio"] > 0 and route["received_clocks"]["video"] > 0,
+                "positive-decoded-media-observation-missing")
+        native = child["native_av"]
+        require(native["original_receive_tasks_joined"] is True and native["observation_seconds"] == 60 and
+            report["packet_capture"]["media_workload"] is True and report["packet_capture"]["packet_limit"] == 200000,
+            "media-work-or-capture-owner-missing")
+        result.update(native_av_decoded_routes=6, full_media_profile_qualified=False)
     return result
 
 
@@ -251,7 +282,7 @@ def verify(path, expected_sha256, revision, component, target, signing, network,
         binary = report["binary_sha256"]
     require(re.fullmatch(r"[0-9a-f]{64}", binary) is not None, "runtime-binary-digest-missing")
     sdk_count = 0
-    if component in {"control", "conversation", "data"}:
+    if component in {"control", "conversation", "data", "media"}:
         require(report["sdk_dist_inputs_unchanged"] is True, "sdk-integrity-unconfirmed")
         sdk_count = verify_sdk(report["sdk_dist_inputs"], sdk)
     return dict(format="connect/transport-component-independent-verification/1", evidence_verified=True,

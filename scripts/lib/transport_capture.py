@@ -16,12 +16,15 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1"):
+def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", *, media_workload=False):
     """Validate every captured Ethernet/IPv4/UDP record, without emitting bodies."""
+    assert type(media_workload) is bool
     assert type(server_port) is int and 1 <= server_port <= 65535
     assert (server_ip, peer_ip) in {("127.0.0.1", "127.0.0.1"), ("10.203.0.1", "10.203.0.2")}
     server_address, peer_address = socket.inet_aton(server_ip), socket.inet_aton(peer_ip)
-    assert 24 <= path.stat().st_size <= 64 * 1024 * 1024
+    packet_limit = 200000 if media_workload else 8192
+    maximum_bytes = (256 if media_workload else 64) * 1024 * 1024
+    assert 24 <= path.stat().st_size <= maximum_bytes
     counts = dict(packets=0, to_server_packets=0, from_server_packets=0,
         captured_bytes=0, udp_payload_bytes=0, to_server_udp_bytes=0, from_server_udp_bytes=0)
     with path.open("rb") as stream:
@@ -62,14 +65,17 @@ def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1"):
             counts["packets"] += 1
             counts["captured_bytes"] += size
             counts["udp_payload_bytes"] += len(udp) - 8
-            assert counts["packets"] <= 8192, "capture-packet-bound"
+            assert counts["packets"] <= packet_limit, "capture-packet-bound"
     assert counts["to_server_packets"] > 0 and counts["from_server_packets"] > 0, "capture-no-duplex-traffic"
     return counts
 
 
 class NativeCapture:
     """The caller owns this process and must finish it on success and failure."""
-    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1"):
+    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1", media_workload=False):
+        assert type(media_workload) is bool
+        self.media_workload = media_workload
+        self.packet_limit = 200000 if media_workload else 8192
         self.directory = directory
         self.port = server_port
         self.env = env
@@ -102,7 +108,7 @@ class NativeCapture:
         self.stream = self.log.open("xb")
         self.started = time.monotonic()
         self.process = subprocess.Popen([str(binary), "-p", "-n", "-i", self.interface, "-U", "-s", "262144",
-            "-c", "8192", "-w", str(self.path), "udp", "and", "host", self.server_ip, "and", "host", self.peer_ip, "and", "port", str(self.port)],
+            "-c", str(self.packet_limit), "-w", str(self.path), "udp", "and", "host", self.server_ip, "and", "host", self.peer_ip, "and", "port", str(self.port)],
             env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=self.stream, start_new_session=True)
         until = time.monotonic() + 10
         while ("listening on " + self.interface + ",").encode() not in self.log.read_bytes():
@@ -142,11 +148,11 @@ class NativeCapture:
             captured = re.search(r"(?m)^(\d+) packets captured$", raw)
             dropped = re.search(r"(?m)^(\d+) packets dropped by kernel$", raw)
             assert captured and dropped and int(dropped[1]) == 0, "capture-loss-or-incomplete-status"
-            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip)
-            assert counts["packets"] < 8192, "capture-packet-limit-reached"
+            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip, media_workload=self.media_workload)
+            assert counts["packets"] < self.packet_limit, "capture-packet-limit-reached"
             assert counts["packets"] == int(captured[1]), "capture-count-disagreement"
             link_type = counts.pop("link_type")
-            report.update(observed=True, version=self.version, executable_sha256=self.binary_sha256,
+            report.update(observed=True, packet_limit=self.packet_limit, media_workload=self.media_workload, version=self.version, executable_sha256=self.binary_sha256,
                 pcap_sha256=digest(self.path), pcap_bytes=self.path.stat().st_size,
                 captured_seconds=time.monotonic() - self.started, kernel_dropped_packets=0,
                 interface=self.interface if self.server_ip == "127.0.0.1" else "owned-veth", link_type=link_type,

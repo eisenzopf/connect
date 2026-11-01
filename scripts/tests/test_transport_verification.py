@@ -20,6 +20,7 @@ class EvidenceVerification(unittest.TestCase):
             "revoked-primary-native-refusal", "participant-cannot-verify-endpoint"]
         commands = [dict(name=name, exit_code=1) for name in names] + [dict(name="normal-native-read", exit_code=0)]
         verify_command_outcomes(commands, "data")
+        verify_command_outcomes(commands, "media")
         for changed in [commands[:-2] + commands[-1:], commands + [dict(name="unexpected-failure", exit_code=1)],
                 [dict(value, exit_code=0) if value["name"] == "participant-cannot-verify-endpoint" else value for value in commands]]:
             with self.subTest(commands=changed), self.assertRaises(ValueError):

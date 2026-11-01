@@ -18,6 +18,7 @@ from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors, exact
 from lib.transport_capture import NativeCapture
+from lib.transport_av import prepare as prepare_av, verify as verify_av
 from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
@@ -39,9 +40,12 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local"):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False):
     global PRIVATE, OUTPUT
-    if data_workload:
+    if media_workload:
+        data_workload = actors = conversation = True
+        PRIVATE, OUTPUT = BASE / "private/media", BASE / "evidence/media"
+    elif data_workload:
         actors = conversation = True
         PRIVATE, OUTPUT = BASE / "private/data", BASE / "evidence/data"
     elif conversation:
@@ -81,7 +85,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
@@ -91,6 +95,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     capture = None
     namespace = None
     server_pid = None
+    media_sources = None
     try:
         code = bounded(["bash", "scripts/prepare-dependencies.sh"], PRIVATE / "dependencies.log", env, 600)
         assert code == 0
@@ -98,6 +103,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         source_path = OUTPUT / "source-inputs.json"
         source_path.write_text(json.dumps(before, sort_keys=True) + "\n")
         report.update(source_inputs_sha256=digest(source_path), source_count=len(before))
+        if media_workload:
+            phase = "synthetic-opus-vp8-source-preparation"
+            media_sources = prepare_av(PRIVATE / "av-sources")
+            report["native_av_source_manifest_sha256"] = digest(PRIVATE / "av-sources/manifest.json")
         phase = "compile"
         log = PRIVATE / "compile.log"
         code = bounded(["cargo", "build", "--release", "--locked", "--message-format=json",
@@ -356,6 +365,25 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     evidence = "native-signed-control-sha256-" + digest(proof)
                     verification.append(dict(type="verify_endpoint", operation_id="transport-verify-" + name + "-1",
                         endpoint_id=endpoint["endpoint_id"], expected_revision=endpoint["revision"], evidence_ref=evidence))
+                if media_workload:
+                    # Verify the separate full-capability receipts. The original
+                    # data-only issuance receipts stay unverified, as in app setup.
+                    verification = []
+                    for name, actor in records.items():
+                        issued = tomllib.loads(Path(actor["config"]).read_text())
+                        command = dict(type="endpoint", operation_id="transport-media-endpoint-" + name + "-1",
+                            identity_id=actor["identity_id"], device=dict(id=actor["device_id"],
+                                kind=issued["device_kind"], platform=issued["device_platform"]), transport="quic",
+                            address="quic://" + original_operator["endpoint"] + "/transport-media/" + actor["device_id"],
+                            capabilities=["audio", "data", "video"], secret_ref=None)
+                        result = json.loads(run("media-endpoint-" + name, ["provision", "--config", state / "operator.application.toml"], command))["result"]["Ok"]
+                        assert result["device_id"] == actor["device_id"] and result["capabilities"] == command["capabilities"]
+                        assert result["verification_state"] == "unverified" and result["transport"] == "quic"
+                        replay = json.loads(run("media-endpoint-original-" + name, ["provision", "--config", state / "operator.application.toml"], command))["result"]["Ok"]
+                        assert replay == result
+                        verification.append(dict(type="verify_endpoint", operation_id="transport-media-verify-" + name + "-1",
+                            endpoint_id=result["endpoint_id"], expected_revision=result["revision"],
+                            evidence_ref="native-signed-control-sha256-" + digest(PRIVATE / (name + "-scoped-native-read.output"))))
                 assert len({v["endpoint_id"] for v in verification}) == 5
                 plan_path = PRIVATE / "endpoint-verifications.json"
                 exact(plan_path, (json.dumps(verification, sort_keys=True, indent=2) + "\n").encode())
@@ -372,11 +400,13 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 for name, actor in records.items():
                     resumed_output = json.loads(run("post-verification-resume-" + name,
                         ["issue-resume", "--config", state / "operator.application.toml", "--installation", Path(actor["config"]).parent]))
-                    assert resumed_output["endpoint"]["verification_state"] == "verified"
+                    assert resumed_output["endpoint"]["verification_state"] == ("unverified" if media_workload else "verified")
                     assert resumed_output["endpoint"]["device_id"] == actor["device_id"]
                 assert files(directory) == installed
-                report["endpoint_verification"] = dict(initial_unverified=5, signed_control_proofs=5,
-                    endpoints_verified=5, original_verification_replays=5, verified_endpoint_issuance_resumes=5,
+                report["endpoint_verification"] = dict(initial_unverified=len(verification), signed_control_proofs=5,
+                    endpoints_verified=len(verification), original_verification_replays=len(verification), verified_endpoint_issuance_resumes=0 if media_workload else 5,
+                    unchanged_unverified_issuance_resumes=5 if media_workload else 0,
+                    full_media_endpoints_verified=5 if media_workload else 0,
                     participant_self_verification_refused=True,
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
@@ -384,7 +414,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 capture = NativeCapture(PRIVATE / "packet-capture", native, env,
                     interface=None if namespace is None else namespace.interface,
                     server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
-                    peer_ip="127.0.0.1" if namespace is None else namespace.client_ip)
+                    peer_ip="127.0.0.1" if namespace is None else namespace.client_ip,
+                    media_workload=media_workload)
                 capture.start()
             if conversation:
                 phase = "public-sdk-conversation-control"
@@ -405,15 +436,19 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
                     server_pid=server_pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm,
                     server_platform=server_platform, network_profile=network_profile,
-                    client_ip=None if namespace is None else namespace.client_ip), indent=2) + "\n").encode())
+                    client_ip=None if namespace is None else namespace.client_ip,
+                    media_source_directory=str(PRIVATE / "av-sources") if media_workload else None,
+                    media_output_directory=str(PRIVATE / "av-received") if media_workload else None), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
                 command = ["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
-                if data_workload:
+                if media_workload:
+                    command.append("--media-workload")
+                elif data_workload:
                     command.append("--data-workload")
-                code = (bounded(command, PRIVATE / "conversation-control.log", env, 180) if namespace is None else
-                    namespace.run_client(command, PRIVATE / "conversation-control.log", 180))
+                code = (bounded(command, PRIVATE / "conversation-control.log", env, 300 if media_workload else 180) if namespace is None else
+                    namespace.run_client(command, PRIVATE / "conversation-control.log", 300 if media_workload else 180))
                 report["conversation_exit_code"] = code
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
@@ -429,6 +464,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     assert workload["connections"] == 6 and workload["participants"] == 4 and workload["sessions"] == 2
                     assert workload["verified_payloads"] == workload["original_connections_retired"] == 6
                     assert workload["total_received_bytes"] == 6 * 65536
+                if media_workload:
+                    phase = "independent-native-opus-vp8-decode"
+                    decoded = verify_av(PRIVATE / "av-received", media_sources)
+                    report["native_av_decoded"] = decoded
+                    assert decoded["passed"]
+                    report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
                 report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
                 before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}
                 assert all(len(value) == 1 for value in before_revocation.values())
@@ -559,7 +600,8 @@ if __name__ == "__main__":
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
+    parser.add_argument("--media-workload", action="store_true", help="Include six native Opus/VP8/data Connections with independent decoded 60-second observations; not complete matrix qualification")
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload))

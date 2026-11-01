@@ -341,3 +341,45 @@ The artifact contains reported binary hashes, not binary bytes; the verifier
 checks their report bindings without claiming an independent binary download.
 No component audit qualifies a complete transport cell or Gate 6 task. Missing
 media, browser, replacement and full workload evidence remains required.
+
+## Native Opus/VP8 workload
+
+The `transport-media` workflow lane and `--media-workload` fixture mode add six
+native Opus/VP8/data Connections across four Participants and two Sessions. The
+original data checks still run on those Connections. Before media admission,
+the backend provisions and verifies five separate full-capability native
+Endpoints through public administration. Data-only issuance receipts stay
+unverified; participant credentials cannot verify their own Endpoint.
+
+```sh
+python3 scripts/check-transport-fixtures.py --media-workload --signing-algorithm EdDSA
+```
+
+This requires FFmpeg/libopus/libvpx and the same private packet-capture access
+as the data workload. CI supplies the scoped tcpdump prerequisite on its owned
+runner. It generates six distinguishable 48 kHz mono/32 kbit/s Opus sources in
+20 ms frames and six moving 640×360/30 fps VP8 sources at a 500 kbit/s target,
+1 Mbit/s encoder maximum and at most one second between keyframes. Each source
+has a distinct tone and colored pixel marker. Files and raw observations stay
+in the private `media` directory.
+
+All original owners must expose their negotiated media before a shared clock
+starts. Sender deadlines retain original source time; frames delayed by 200 ms
+are discarded. Six simultaneous native routes run for 62 seconds, with the
+first two seconds reserved for clock establishment. The next 60 seconds must
+have independently decoded expected audio, at least 24 decoded moving video
+frames per second, correct source pixels and source-clock reports. FFmpeg PTS
+must match the retained original RTP timestamps. Failed work cancels and joins
+all twelve readers before original Connection ends and SDK owner closure.
+
+The decoder calibration uses encoded sources directly, without Connect. Its
+success proves only the observer: wrong tones and corrupt/truncated containers
+must fail. Actual transport execution has its own result and source identities.
+The media capture budget is explicitly 200,000 packets/256 MiB for the larger
+workload; the existing data capture budget remains 8,192 packets/64 MiB. Both
+inspect every packet for the exact owned UDP addresses and server port.
+
+This is a required component of complete cells. Paired decoded AV alignment,
+source-age measurements, live upgrade/replacement, impairment, resource profile
+and all browser paths still require their own observations. A green component
+retains `cell_qualified: false` and cannot promote any of the 32 matrix cells.

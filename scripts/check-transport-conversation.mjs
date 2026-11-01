@@ -1,4 +1,4 @@
-// Actual public Node SDK/native helper scenario. No Store, media or provider IO.
+// Actual public Node SDK/native helper scenario. No Store or provider IO.
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, stat, realpath, open } from "node:fs/promises";
@@ -7,10 +7,12 @@ import { fileURLToPath } from "node:url";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
 import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
 import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
+import { nativeAv } from "./lib/transport_av.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
-const dataWorkload = process.argv[4] === "--data-workload";
+const mediaWorkload = process.argv[4] === "--media-workload";
+const dataWorkload = mediaWorkload || process.argv[4] === "--data-workload";
 assert.ok(process.argv.length === 4 || (process.argv.length === 5 && dataWorkload));
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const encode = value => JSON.stringify(value, null, 2) + "\n";
@@ -34,7 +36,7 @@ for (const name of ["before", "included", "from4", "after"]) plan[name + "Messag
 const sessionRoles = dataWorkload ? [["participant-1", "participant-2", "participant-3", "participant-4"], ["participant-1", "participant-2"]] : [["participant-1", "participant-2"], ["participant-1", "participant-3"]];
 if (dataWorkload) for (const [sid, roles] of sessionRoles.entries()) for (const role of roles) {
     const prefix = sid + "-" + role;
-    for (const field of ["connection", "stream", "offer", "select", "data", "message", "end", "accept"]) plan[prefix + "-" + field] = "workload_" + randomUUID();
+    for (const field of ["connection", "stream", "audio", "video", "offer", "select", "data", "message", "end", "accept"]) plan[prefix + "-" + field] = "workload_" + randomUUID();
 }
 const planFile = await open(join(privateDirectory, "plan.json"), "wx", 0o600);
 try { await planFile.writeFile(encode(plan)); await planFile.sync(); } finally { await planFile.close(); }
@@ -53,8 +55,8 @@ const report = { format: "connect/transport-conversation-control/1", passed: fal
     actual_connection_workload_observed: false, live_media_upgrade_observed: false,
     replacement_media_ownership_observed: false, actual_topology_verified: false,
     cell_qualified: false, task_complete: false, whole_gate_qualified: false,
-    workload_mode: dataWorkload ? "six-native-data-connections" : "control-only",
-    scope: "One source-bound native OS/signing/network fixture public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, complete remote transport cells, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
+    workload_mode: mediaWorkload ? "six-native-opus-vp8-data-connections" : dataWorkload ? "six-native-data-connections" : "control-only",
+    scope: "One source-bound native OS/signing/network fixture public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Optional media workload adds six native Opus/VP8 sources and RTP/source-clock reception; independent decoding is checked by the parent. Paired AV-sync, live upgrade/replacement ownership, browser, complete remote transport cells, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
 let phase = "client-setup";
 function check(name) { report.checks.push(name); phase = name; }
 async function complete(operation) {
@@ -186,7 +188,7 @@ try {
     await send(owner, cid, "after", recipients(view));
     assert.deepEqual(await history(late), [plan.afterMessage]);
     check("remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay");
-    const caps = { data: ["reliable-ordered"], audio: ["g.711-mu"] };
+    const caps = mediaWorkload ? { data: ["reliable-ordered"], audio: ["opus"], video: ["vp8"] } : { data: ["reliable-ordered"], audio: ["g.711-mu"] };
     for (const [index, roles] of sessionRoles.entries()) {
         const session = await complete(conversation.sessions.invite({ sessionId: plan["session" + index],
             to: roles.slice(1).map(role => member(view, role).id), medium: "text-chat", intent: "synchronous-engagement", capabilities: caps }, mutation("invite" + index)));
@@ -206,9 +208,18 @@ try {
     await complete(sessions[0].update({ action: "medium-upgrade", media: { first: "audio", rest: [] } }, initialSession.topologyRevision, mutation("upgrade")));
     const upgraded = await sessions[0].refresh(options);
     assert.deepEqual([...upgraded.media].sort(), ["audio", "data"]);
-    await refused(() => complete(sessions[0].update({ action: "medium-upgrade", media: { first: "video", rest: [] } }, upgraded.topologyRevision, mutation("unsupported"))), 501, "unsupported_feature");
+    await refused(() => complete(sessions[0].update({ action: "medium-upgrade", media: { first: mediaWorkload ? "screen" : "video", rest: [] } }, upgraded.topologyRevision, mutation("unsupported"))), 501, "unsupported_feature");
     assert.deepEqual(await sessions[0].refresh(options), upgraded);
-    check("additive-session-capability-intent-and-unoffered-video-refusal-without-state-change");
+    check(mediaWorkload ? "additive-session-capability-intent-and-unoffered-screen-refusal-without-state-change" : "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change");
+    if (mediaWorkload) {
+        for (const session of sessions) {
+            const current = await session.refresh(options);
+            await complete(session.update({ action: "medium-upgrade", media: { first: "audio", rest: ["video"] } }, current.topologyRevision, { ...options, operationId: plan.upgrade + "-av-" + session.id }));
+            const updated = await session.refresh(options);
+            assert.deepEqual([...updated.media].sort(), ["audio", "data", "video"]);
+        }
+        check("both-original-session-intents-admit-offered-opus-vp8-before-native-workload");
+    }
     if (dataWorkload) {
         phase = "six-native-data-connection-offers";
         report.native_offers_completed = 0;
@@ -220,7 +231,10 @@ try {
             phase = "native-data-offer-session-" + sid + "-" + role;
             const prefix = sid + "-" + role, source = clients.get(role).conversations.byId(cid).sessions.byId(plan["session" + sid]);
             const connection = await complete(source.connections.offer({ connectionId: plan[prefix + "-connection"],
-                streams: { first: { id: plan[prefix + "-stream"], kind: "data", direction: "sendrecv", codecs: { first: "binary", rest: [] } }, rest: [] } }, mutation(prefix + "-offer")));
+                streams: { first: { id: plan[prefix + "-stream"], kind: "data", direction: "sendrecv", codecs: { first: "binary", rest: [] } }, rest: mediaWorkload ? [
+                    { id: plan[prefix + "-audio"], kind: "audio", direction: "sendrecv", codecs: { first: "opus", rest: [] } },
+                    { id: plan[prefix + "-video"], kind: "video", direction: "sendonly", codecs: { first: "vp8", rest: [] } },
+                ] : [] } }, mutation(prefix + "-offer")));
             connections.push({ sid, role, prefix, connection });
             report.native_offers_completed = connections.length;
         }
@@ -231,7 +245,9 @@ try {
             const source = connections.find(v => v.sid === target.sid && v.role === previous);
             const current = await target.connection.refresh(options);
             assert.ok(current.streamRevision > 0);
-            await complete(target.connection.streams.subscribe({ selectors: { first: { stream: plan[source.prefix + "-stream"] }, rest: [] },
+            await complete(target.connection.streams.subscribe({ selectors: { first: { stream: plan[source.prefix + "-stream"] }, rest: mediaWorkload ? [
+                { stream: plan[source.prefix + "-audio"] }, { stream: plan[source.prefix + "-video"] },
+            ] : [] },
                 expectedStreamRevision: current.streamRevision }, mutation(target.prefix + "-select")));
             const negotiated = await target.connection.media.refresh(options);
             assert.ok(negotiated.streams.some(s => s.id === plan[target.prefix + "-stream"] && s.medium === "data"));
@@ -313,6 +329,11 @@ try {
         }
         report.data_workload.frozen_message_history_audiences_verified = true;
         check("native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences");
+        if (mediaWorkload) {
+            phase = "six-native-opus-vp8-sixty-second-workload";
+            report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan);
+            check("six-original-native-connections-exchange-opus-vp8-and-original-source-clocks-for-sixty-two-seconds");
+        }
         phase = "six-native-connections-original-end";
         for (const item of connections) await complete(item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" }, mutation(item.prefix + "-end")));
         report.data_workload.original_end_operations_completed = connections.length;

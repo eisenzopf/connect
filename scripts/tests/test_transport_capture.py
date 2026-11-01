@@ -60,6 +60,16 @@ class CaptureBoundary(unittest.TestCase):
             with self.subTest(packet=foreign.hex()), self.assertRaisesRegex(AssertionError, "foreign"):
                 self.inspect(pcap([*self.duplex, foreign]))
 
+    def test_media_capture_budget_is_explicit_and_does_not_relax_packet_scope(self):
+        self.path.write_bytes(pcap(self.duplex * 4097))
+        with self.assertRaisesRegex(AssertionError, "packet-bound"):
+            inspect_pcap(self.path, 4433)
+        result = inspect_pcap(self.path, 4433, media_workload=True)
+        self.assertEqual(result["packets"], 8194)
+        self.path.write_bytes(pcap([*self.duplex, packet(50123, 9999)]))
+        with self.assertRaisesRegex(AssertionError, "foreign-port"):
+            inspect_pcap(self.path, 4433, media_workload=True)
+
     def test_unknown_link_type_and_file_format_refuse(self):
         for data in (pcap(self.duplex, link=101), b"xxxx" + pcap(self.duplex)[4:]):
             with self.assertRaisesRegex(AssertionError, "capture-(link-profile|format)"):

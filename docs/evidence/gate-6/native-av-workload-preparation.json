@@ -1,0 +1,174 @@
+{
+  "format": "connect/native-av-workload-preparation/1",
+  "task": "G6-058",
+  "status": "implemented-observer-calibrated-runtime-unrun",
+  "implementation_inputs": {
+    "scripts/check-transport-fixtures.py": "1b7955374a4f060a95a981a108a2513673eb0bcd31a9cb85ce77465ba7327eb8",
+    "scripts/check-transport-conversation.mjs": "8d8e315a15b71379e4a81a0bb1695c3301f8a2437f2f8a4a5e0bbe6002815221",
+    "scripts/lib/transport_av.py": "1af5fa3897a41291f579799bd8233c09aec6cb9ee9b860e984c01f9c23ab68dc",
+    "scripts/lib/transport_av.mjs": "25ee27d39148f359cb9f8a20fa92ca4d1187f4b0a0c953c1d505f16127ea51f7",
+    "scripts/lib/transport_capture.py": "48b6992666eba6216ad7731513ff85d5af1b3e7d27dbec0216a9f85441f1fe23",
+    "scripts/lib/transport_verification.py": "a24f286d472aaa6eee645d836dee7fd166c0d8c3507dfdd82a6bbb5a02056296",
+    "scripts/tests/test_transport_av.py": "9e2a5e115527abe84df32375c613eb058d0090544f41f999629e3178b7c5e3a2",
+    "scripts/tests/transport_av.test.mjs": "06e5cad8190079c5187adb37da86b732ee418d279926d1289a06f5bdda4e59f1",
+    ".github/workflows/gate6-transport-matrix.yml": "f1d5778a8baa006507149b6c0c7e8614a7fcc0d7c6f05250e4de59736ae9964b",
+    ".github/workflows/gate6-linux-fixtures.yml": "e274f6d3d89715ca849e4064eb903b4b5c3ddc9ac0f28c75bb43e15920910111"
+  },
+  "workload": {
+    "participants": 4,
+    "connections": 6,
+    "concurrent_sessions": 2,
+    "media": [
+      "opus-48k-mono-20ms-32kbit",
+      "vp8-640x360-30fps-500kbit-target-1Mbit-max",
+      "six-64KiB-reliable-data-payloads"
+    ],
+    "duration_seconds": 62,
+    "warmup_seconds": 2,
+    "observation_seconds": 60,
+    "full_capability_endpoints_verified_through_public_admin": 5,
+    "data_only_issuance_receipts_remain_unverified": true
+  },
+  "observer_calibration": {
+    "scope": "Encoded sources directly recontainerized/decoded without Connect transport. This is an observer calibration only.",
+    "passed": true,
+    "report_sha256": "bab918ae1108c44ebb7165f562eb7664ca87eea8968990a05567903cc380a2ab",
+    "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "sources": [
+      {
+        "index": 0,
+        "audio_hz": 440,
+        "video_color": "red",
+        "input_sha256": "81c1c40e5c449592803591442df5f94de7cfff8e466de5d612d6f9ea90b34029",
+        "ogg_sha256": "356b737a0ad021c70a50aa3e7c3d7e3e4e37b608ae8c341b5d2eff4fb39f2792",
+        "ivf_sha256": "799d2f79be7b25413e6fc6973437e0138117e40fc0d9f61e6fe3caa22aba2ddc"
+      },
+      {
+        "index": 1,
+        "audio_hz": 600,
+        "video_color": "lime",
+        "input_sha256": "3618bc8254b805169a84499cde000f406b6deef80677d0b1d624168ae32b6989",
+        "ogg_sha256": "bec11600a7e0c76d346caf1da844ccf70b6e6094a2146cf4ebba2a984775b003",
+        "ivf_sha256": "9606ffeaa2f73d8a5b0b0ad48d597faf041a8e63e9c11f4d142fb747d9b0a356"
+      },
+      {
+        "index": 2,
+        "audio_hz": 760,
+        "video_color": "blue",
+        "input_sha256": "d31baf7633546fc7a0d8c2103035b92ca68df7b8d35c725ad43e698bdefe9ad1",
+        "ogg_sha256": "ae96459268f5fdbd0dda0bdd973af24eb225cf11efd7cf896e5a8ab3a1fe44b3",
+        "ivf_sha256": "33da47a3b32236f56c43f01c5fc303bf949718fa2ee743bf5b2edbadd9b380f9"
+      },
+      {
+        "index": 3,
+        "audio_hz": 920,
+        "video_color": "yellow",
+        "input_sha256": "b728623d6e8333fb06e1d8e3e1e544491cb47f00831ed6bd3999ef81d26d3c1f",
+        "ogg_sha256": "bd577bbe2f505150ec88a3b4730171fbd236389978a23657f199bcc9ff667fb9",
+        "ivf_sha256": "c65cc90d0f866645e9952dd04938dea310f2c450e78593a8a72d8bc2765c0f57"
+      },
+      {
+        "index": 4,
+        "audio_hz": 1080,
+        "video_color": "cyan",
+        "input_sha256": "26bb7ac928b71fe3c50b94e4ea08d9c571478dc9116ebb1efb423080c2f193b6",
+        "ogg_sha256": "0759be1c297da5561d5d79a80fc104f0201094a70b8d457423bada7252e6348a",
+        "ivf_sha256": "df5169b3afffcfdfcec4c9126c8132ce9f329a20e25e4a7f90bda4402c9d51d4"
+      },
+      {
+        "index": 5,
+        "audio_hz": 1240,
+        "video_color": "magenta",
+        "input_sha256": "85e0437f2e3e4fa1c40ed5937a138abf3b1e85d899fda4c5a9396d00f6fd3b30",
+        "ogg_sha256": "8e5c8a46370bd39447c5842d35f5bc564423a89ac6794cc298a9c4cd466e424c",
+        "ivf_sha256": "c521081c519d916dc2c427f7dd65959e5c59b22e47d5c0816955de353451f0fc"
+      }
+    ],
+    "routes": [
+      {
+        "index": 0,
+        "peer_index": 3,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      },
+      {
+        "index": 1,
+        "peer_index": 0,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      },
+      {
+        "index": 2,
+        "peer_index": 1,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      },
+      {
+        "index": 3,
+        "peer_index": 2,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      },
+      {
+        "index": 4,
+        "peer_index": 5,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      },
+      {
+        "index": 5,
+        "peer_index": 4,
+        "passed": true,
+        "decoded_audio_seconds": 60.0,
+        "audio_bad_identity_blocks": 0,
+        "moving_video_fps": 29.983333333333334,
+        "wrong_video_source_frames": 0
+      }
+    ]
+  },
+  "checks": {
+    "python_transport_cases": 47,
+    "node_transport_cases": 8,
+    "skipped": 0,
+    "real_wrong_tone_refused": true,
+    "corrupt_truncated_and_chained_containers_refused": true,
+    "first_native_write_failure_joins_all_twelve_readers_and_clears_timer": true,
+    "yaml_syntax_parsed": true
+  },
+  "capture": {
+    "data_defaults_unchanged": true,
+    "media_packet_limit": 200000,
+    "media_max_bytes": 268435456,
+    "same_exact_udp_addresses_and_port_filter": true,
+    "foreign_packets_still_refuse": true
+  },
+  "runtime_execution": {
+    "executed": false,
+    "reason": "Native Ubuntu workflow is prepared for execution. Local Mac packet-capture device is root-only and noninteractive sudo is unavailable; no local privilege change performed."
+  },
+  "remaining": [
+    "Actual six-Connection native workload execution",
+    "Independent source-age and paired AV-alignment observations",
+    "Live upgrade/replacement, impairment and measured resource profile",
+    "All browser profiles and full32-cell qualification"
+  ],
+  "scope": "Required native Opus/VP8 workload implementation and observer calibration. Not a Connect media runtime pass or complete matrix cell. G6-054 remains deferred; no SIP, TURN, named remote, model or provider execution.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
