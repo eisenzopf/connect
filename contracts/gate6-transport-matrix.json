@@ -1,0 +1,60 @@
+{
+  "format": "connect/gate6-transport-matrix/1",
+  "task": "G6-058",
+  "profile": "docs/decisions/015-gate-6-operating-profile.md",
+  "service_contract": [
+    "contracts/connect-uctp.md",
+    "contracts/connect-media-v2.md",
+    "contracts/openapi-canonical-http.json",
+    "contracts/openapi-application-http.json"
+  ],
+  "dimensions": {
+    "server": ["macos-arm64", "ubuntu24-x86_64"],
+    "network": ["local", "remote-profile-fixture"],
+    "transport": ["native-quic", "chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"],
+    "signing": ["EdDSA", "ES256"]
+  },
+  "required_cell_count": 32,
+  "signing_profile": "Each cohort uses its named algorithm for client and server signing. Record every actual peer/key algorithm; do not infer one from a TLS certificate.",
+  "expected_browsers_by_client_platform": {
+    "macos-arm64": {"chrome": "156.0.8078.48", "firefox": "158.0.1"},
+    "ubuntu24-x86_64": {"chrome": "156.0.8078.4", "firefox": "158.0.1"}
+  },
+  "workload": {"participants": 4, "connections": 6, "concurrent_sessions": 2},
+  "required_checks": [
+    "identified-candidate-client-server-versions",
+    "normal-tls-and-current-device-key-authority",
+    "selected-transport-and-authenticated-discovery",
+    "one-service-contract-and-original-operation-recovery",
+    "participant-add-update-remove-and-current-audiences",
+    "session-upgrade-and-current-capability-refusal",
+    "device-replacement-and-old-owner-retirement",
+    "declared-concurrent-workload",
+    "actual-private-packet-capture",
+    "independently-decoded-duplex-media-and-profile-budgets",
+    "current-revocation-expiry-and-conflicting-operation-refusals",
+    "owned-drain-and-resource-reclamation"
+  ],
+  "browser_selection_checks": [
+    "wt-unavailable-selects-documented-wss-fallback-with-reason",
+    "neither-path-usable-refuses-without-mutation-resubmission"
+  ],
+  "network_scope": {
+    "local": "Owned clients/server on the named native OS using loopback and configured trust.",
+    "remote-profile-fixture": "Isolated Remote-profile boundaries. Mac server/Linux guest and Ubuntu systemd server/separate network-namespace client are existing bounded fixture precedents, not named WAN hosts. Record the actual topology/addresses/kernel/emulation per cell; a precedent is not a current cell pass.",
+    "named_remote": "Concrete external-host execution belongs to the separately authorized G6-093/G6-095 lane. No such execution is authorized or implied by this manifest."
+  },
+  "qualification_rules": [
+    "All 32 cells require their own exact source, platform, runtime, topology and result evidence.",
+    "A native peer, independent Rust HTTP3 peer or Node WebSocket SDK control result cannot qualify a Chrome, Firefox or decoded-media cell.",
+    "The media profile, frozen browser versions and all behavior requirements remain binding while G6-054 is deferred.",
+    "Uninstalled browser/remote environments and unexecuted cell producers remain not-run.",
+    "Capture files, synthetic state, credentials and raw logs stay private; only bounded redacted results and hashes are published."
+  ],
+  "fixture_templates": [
+    "scripts/fixtures/transport-matrix/local.json",
+    "scripts/fixtures/transport-matrix/remote-profile.json"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

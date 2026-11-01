@@ -1,0 +1,9 @@
+{
+  "format": "connect/transport-matrix-fixture-inputs/1",
+  "network_profile": "remote",
+  "mount_path": "/connect",
+  "required_private_inputs": ["owned-isolated-network-or-guest", "concrete-assigned-native-and-wss-bind-addresses", "actual-client-route-and-server-contact", "exact-advertised-https-wss-origins", "normal-ca-trust-and-matching-server-name", "separate-pinned-server-signing-key", "scoped-enrolled-device-credentials", "joined-network-and-host-cleanup"],
+  "precedents": ["scripts/fixtures/native-remote/README.md", "scripts/check-linux-installation.py"],
+  "forbidden_defaults": ["unassigned-or-wildcard-client-destination", "assumed-public-host", "certificate-error-bypass", "learned-unauthenticated-signing-pin", "copied-user-provider-keys"],
+  "status": "fixture-input-template-full-cell-materializer-required"
+}

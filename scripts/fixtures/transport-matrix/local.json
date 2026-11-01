@@ -1,0 +1,13 @@
+{
+  "format": "connect/transport-matrix-fixture-inputs/1",
+  "network_profile": "local",
+  "native_bind": "127.0.0.1:0",
+  "websocket_bind": "127.0.0.1:0",
+  "http_bind": "127.0.0.1:0",
+  "mount_path": "/connect",
+  "allowed_origins": ["https://browser.fixture.invalid"],
+  "server_name": "localhost",
+  "required_private_inputs": ["owned-new-state-directory", "tls-leaf-and-key", "explicit-client-ca-trust", "separate-pinned-server-signing-key", "scoped-enrolled-device-credentials"],
+  "publication": "Capture actual assigned ports and protected configuration hashes before peers open; raw configuration stays private.",
+  "status": "fixture-input-template-full-cell-materializer-required"
+}

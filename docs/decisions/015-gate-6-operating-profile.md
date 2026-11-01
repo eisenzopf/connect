@@ -130,6 +130,20 @@ version2 observation before rerunning; no media/profile threshold changes.
 
 ## Default bounds
 
+October31 G6-058 inventory freeze: enumerate Local and isolated Remote-profile
+fixtures on macOSarm64 and native Ubuntu24.04x86_64 for nativeQUIC, ChromeWT,
+ChromeWSS/WebRTC and FirefoxWSS/WebRTC, with EdDSA/ES256 signing cohorts. Keep
+Chrome156.0.8078.48 on macOS and CFT156.0.8078.4 on Linux. Select Firefox158.0.1
+as the Linux fallback target too, before its first affected run; an uninstalled
+Linux Firefox is unrun, never an inherited macOS result. The Mac/Linux guest and
+Ubuntu systemd/network-namespace fixtures are existing bounded Remote-profile
+precedents, not named public hosts. Record each actual topology and execution
+independently. This adds the explicit inventory, not a result or any change to
+media/quality thresholds. Full cell producers still require all work-order
+verification while G6-054 is deferred. See the
+[matrix](../../contracts/gate6-transport-matrix.json) and
+[procedure](../../scripts/fixtures/transport-matrix/README.md).
+
 | Resource | Default / hard check |
 |---|---|
 | UCTP reliable envelope | 1 MiB |
