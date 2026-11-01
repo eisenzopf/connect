@@ -97,5 +97,12 @@
     ],
     "independently_verified": true,
     "remaining": "Negotiated media/capture implementation and behavior verification. No model/provider/WAN claim."
+  },
+  "media_endpoint_setup_candidate": {
+    "evidence": "docs/evidence/gate-6/reference-app-media-endpoint-setup.json",
+    "status": "implemented-local-components-pass-installed-runtime-unverified",
+    "runtime_verified": false,
+    "component_tests_passed": 33,
+    "setup_profile": "parley-local-setup/2"
   }
 }

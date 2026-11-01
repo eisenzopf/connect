@@ -71,13 +71,14 @@ export async function verifyBootstrap(directory, newlyInitialized) {
 }
 export function newSetupPlan(binarySha256, ports) {
     const prefix = "parley-" + randomUUID().replaceAll("-", "");
-    return { profile: "parley-local-setup/1", sdkVersion: "0.1.0", binarySha256, ports,
+    return { profile: "parley-local-setup/2", sdkVersion: "0.1.0", binarySha256, ports,
         expiresAt: Math.floor(Date.now() / 1000) + 86400,
         actors: actorDefinitions.map(actor => ({ ...actor, alias: prefix + "-" + actor.role,
-            identityOperationId: "identity_" + randomUUID(), credentialOperationId: "credential_" + randomUUID() })) };
+            identityOperationId: "identity_" + randomUUID(), credentialOperationId: "credential_" + randomUUID(),
+            endpointOperationId: "endpoint_" + randomUUID(), verificationOperationId: "verify_" + randomUUID() })) };
 }
 function validatePlan(plan) {
-    if (!plan || plan.profile !== "parley-local-setup/1" || plan.sdkVersion !== "0.1.0" ||
+    if (!plan || plan.profile !== "parley-local-setup/2" || plan.sdkVersion !== "0.1.0" ||
         !/^[a-f0-9]{64}$/.test(plan.binarySha256) || !Number.isSafeInteger(plan.expiresAt) ||
         plan.expiresAt <= Math.floor(Date.now() / 1000) || !plan.ports || Object.keys(plan.ports).sort().join() !== "http,native,ui" ||
         Object.values(plan.ports).some(value => !Number.isSafeInteger(value) || value < 1024 || value > 65535) ||
@@ -86,8 +87,9 @@ function validatePlan(plan) {
     for (const [index, actor] of plan.actors.entries()) {
         const expected = actorDefinitions[index];
         if (actor.role !== expected.role || actor.label !== expected.label || actor.kind !== expected.kind ||
-            !/^[a-z0-9-]{1,64}$/.test(actor.alias) || !id(actor.identityOperationId) || !id(actor.credentialOperationId)) fail("app-setup-plan-refused");
-        for (const value of [actor.alias, actor.identityOperationId, actor.credentialOperationId]) {
+            !/^[a-z0-9-]{1,64}$/.test(actor.alias) || !id(actor.identityOperationId) || !id(actor.credentialOperationId) ||
+            !id(actor.endpointOperationId) || !id(actor.verificationOperationId)) fail("app-setup-plan-refused");
+        for (const value of [actor.alias, actor.identityOperationId, actor.credentialOperationId, actor.endpointOperationId, actor.verificationOperationId]) {
             if (originals.has(value)) fail("app-setup-plan-refused"); originals.add(value);
         }
     }
@@ -110,7 +112,7 @@ export async function combineSdkConfig(directory, nativeFile, applicationFile, o
 }
 /** `execute` runs the installed public CLI with bounded private output. The SDK
  * factory is supplied by run.mjs's ordinary installed-package import. */
-export async function configureActors({ directory, plan, execute, createAdministrativeClient, signal }) {
+export async function configureActors({ directory, plan, execute, createAdministrativeClient, createParticipantClient, signal }) {
     validatePlan(plan);
     const installation = join(directory, "installation");
     await combineSdkConfig(installation, "operator.toml", "operator.application.toml", "operator.sdk.toml");
@@ -156,8 +158,82 @@ export async function configureActors({ directory, plan, execute, createAdminist
         }
         actors[actor.role] = { label: actor.label, identityId: identities[actor.role], config: "actors/" + actor.role + "/sdk.toml", assets };
     }
+    await configureNativeMediaEndpoints({ directory, plan, actors, createAdministrativeClient, createParticipantClient, signal });
     const config = { profile: "parley-local-app/1", mode: "fixture", sdkVersion: plan.sdkVersion, port: plan.ports.ui,
         runtime: { executable: "runtime/connect", sha256: plan.binarySha256 }, actors };
     await writeExact(join(directory, "app.json"), encode(config));
     return config;
+}
+
+// These are public CLI-generated client fields, not its private issuance intent.
+// Accept only the exact bounded local profile created by this setup command.
+function nativeDevice(bytes, identityId, port) {
+    const text = bytes.toString("utf8"), result = {};
+    for (const name of ["identity_id", "device_id", "device_kind", "device_platform", "endpoint"]) {
+        const values = [...text.matchAll(new RegExp("^" + name + ' = "([^"\\r\\n\\\\]*)"$', "gm"))];
+        if (values.length !== 1) fail("app-native-device-refused");
+        result[name] = values[0][1];
+    }
+    if (result.identity_id !== identityId || !id(result.device_id) || result.device_kind !== "desktop" ||
+        result.device_platform !== "connect-cli-issued" || result.endpoint !== "127.0.0.1:" + port) fail("app-native-device-refused");
+    return { id: result.device_id, kind: result.device_kind, platform: result.device_platform };
+}
+async function configureNativeMediaEndpoints({ directory, plan, actors, createAdministrativeClient, createParticipantClient, signal }) {
+    if (typeof createParticipantClient !== "function") fail("app-native-client-required");
+    const admin = createAdministrativeClient(join(directory, "installation/operator.sdk.toml"));
+    const options = { timeoutMs: 8000, ...(signal ? { signal } : {}) }, endpoints = new Set();
+    const completed = async command => {
+        const operation = await admin.provision(admin.validateProvisioning(command), { ...options, operationId: command.operation_id });
+        const result = await operation.wait(options);
+        if (result.snapshot.state !== "completed" || result.value?.kind !== "endpoint") fail("app-native-endpoint-unobserved");
+        return result.value;
+    };
+    try {
+        for (const actor of plan.actors) {
+            signal?.throwIfAborted();
+            const installed = actors[actor.role], native = await privateBytes(join(directory, "actors", actor.role, "client.toml"));
+            const nativeName = "actors/" + actor.role + "/client.toml", sdkPath = join(directory, installed.config);
+            if (createHash("sha256").update(native).digest("hex") !== installed.assets[nativeName] ||
+                await digest(sdkPath) !== installed.assets[installed.config]) fail("app-native-device-refused");
+            const device = nativeDevice(native, installed.identityId, plan.ports.native);
+            const client = createParticipantClient(sdkPath);
+            let capability;
+            try {
+                capability = await client.capabilities.refresh(options);
+                if (capability.selectedTransport !== "quic" || !capability.features.has("native-programmatic-media")) fail("app-native-media-unavailable");
+            } finally { await client.close({ timeoutMs: 5000 }); }
+            if (await digest(sdkPath) !== installed.assets[installed.config] ||
+                await digest(join(directory, nativeName)) !== installed.assets[nativeName]) fail("app-native-device-refused");
+            const command = { type: "endpoint", operation_id: actor.endpointOperationId, identity_id: installed.identityId,
+                device, transport: "quic", address: "quic://127.0.0.1:" + plan.ports.native + "/parley-media/" + device.id,
+                capabilities: ["audio", "data", "video"], secret_ref: null };
+            await writeExact(join(directory, "requests", actor.role + "-endpoint.json"), encode(command));
+            const endpoint = await completed(command);
+            if (!id(endpoint.endpoint_id) || endpoint.identity_id !== installed.identityId || endpoint.device_id !== device.id ||
+                endpoint.transport !== "quic" || JSON.stringify(endpoint.capabilities) !== JSON.stringify(command.capabilities) ||
+                !Number.isSafeInteger(endpoint.revision) || endpoint.revision < 0 ||
+                !["unverified", "verified"].includes(endpoint.verification_state) || endpoints.has(endpoint.endpoint_id)) fail("app-native-endpoint-unobserved");
+            endpoints.add(endpoint.endpoint_id);
+            const verificationPath = join(directory, "requests", actor.role + "-verify.json"), saved = await optionalBytes(verificationPath);
+            // A verified result without our original saved verification is not
+            // evidence that this setup performed the attributed decision.
+            if (!saved && endpoint.verification_state !== "unverified") fail("app-native-endpoint-unobserved");
+            const evidence = createHash("sha256").update(native).update(plan.binarySha256).update(JSON.stringify({
+                selectedTransport: capability.selectedTransport, features: [...capability.features].sort(),
+            })).digest("hex");
+            const verification = saved ? JSON.parse(saved) : { type: "verify_endpoint", operation_id: actor.verificationOperationId,
+                endpoint_id: endpoint.endpoint_id, expected_revision: endpoint.revision, evidence_ref: "parley-native-health-sha256-" + evidence };
+            if (Object.keys(verification).sort().join() !== "endpoint_id,evidence_ref,expected_revision,operation_id,type" ||
+                verification.type !== "verify_endpoint" || verification.operation_id !== actor.verificationOperationId ||
+                verification.endpoint_id !== endpoint.endpoint_id || !Number.isSafeInteger(verification.expected_revision) ||
+                verification.expected_revision < 0 || verification.evidence_ref !== "parley-native-health-sha256-" + evidence ||
+                endpoint.revision !== verification.expected_revision + (endpoint.verification_state === "verified" ? 1 : 0)) fail("app-native-verification-changed");
+            await writeExact(verificationPath, encode(verification));
+            const verified = await completed(verification);
+            if (verified.endpoint_id !== endpoint.endpoint_id || verified.identity_id !== installed.identityId || verified.device_id !== device.id ||
+                verified.transport !== "quic" || JSON.stringify(verified.capabilities) !== JSON.stringify(command.capabilities) ||
+                verified.verification_state !== "verified" || verified.revision !== verification.expected_revision + 1) fail("app-native-endpoint-unobserved");
+            installed.mediaEndpoint = { id: verified.endpoint_id, deviceId: verified.device_id, revision: verified.revision };
+        }
+    } finally { await admin.close({ timeoutMs: 5000 }); }
 }

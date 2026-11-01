@@ -1,29 +1,37 @@
 # Parley reference scenario
 
-The G6-072 application shell is in progress under `app/`. Its private intent
+The G6-072 application shell is in progress under app/. Its private intent
 journal, public Node SDK gateway, local HTTP boundary and responsive UI are
-implemented. Run `npm run test:app` here for the application component checks.
-These checks use a simulated SDK-shaped backend; they do not qualify installed
-SDK execution or the complete browser application. A separate owned Chrome
-component has passed desktop keyboard creation, text and invitation decisions,
-actual microphone/camera denial, 320px layout and offline/reload recovery of an
-original accepted action without a second effect. It serves the installed browser
-SDK with a simulated application backend. Native participant dropdown keyboard
-interaction remains unqualified on macOS headless Chrome; perspective selection
-uses the normal select automation for fixture preparation. See
-[the browser component evidence](../../docs/evidence/gate-6/reference-app-browser-component.json).
-One-command setup and scoped credential installation are now implemented in
-`app/run.mjs` and `app/setup.mjs`. Their three fixture tests cover literal peer
-ceilings, original setup IDs after lost responses, partial installer recovery
-and changed bootstrap refusal. The installed production package/server control
-flow passes all 15 checks on Node 22/Ubuntu x86_64 and macOS arm64: scoped setup,
-keyboard participant selection, conversations/text/invitations, permission denial,
-narrow layout, original-ID offline recovery, restart continuity and owned-process
-shutdown. See [the two-platform control evidence](../../docs/evidence/gate-6/reference-app-installed-control.json).
-Negotiated media/capture integration remains unfinished. `app/main.mjs` requires an
-app-owned private setup manifest and an ordinary installed `@rudeless/connect`;
-operator configuration is never served to the browser. The application state is
-separate from Connect's authoritative journal and database.
+implemented. Run npm run test:app here for the application component checks.
+Those checks use simulated SDK-shaped clients and do not qualify installed
+SDK execution.
+
+The local browser component uses the installed browser SDK with a simulated
+application backend. Its 15 checks cover keyboard participant selection and
+focus, conversation/text/invitations, actual microphone/camera denial, 320px
+layout and original-action offline/reload recovery. See
+[the keyboard component evidence](../../docs/evidence/gate-6/reference-app-keyboard-component.json).
+
+The independently verified installed app at a2e9b511 passes all 15 control checks
+on Node 22/Ubuntu x86_64 and macOS arm64, including native keyboard participant
+selection, cold scoped setup, original-ID recovery, restart and owned shutdown.
+See [the installed keyboard evidence](../../docs/evidence/gate-6/reference-app-installed-keyboard.json).
+That result predates the media Endpoint setup below.
+
+The current setup also provisions one application-owned native media Endpoint
+per installed Device through the public administrative SDK. It reads only public
+CLI client configuration, checks signed native access and media capability, and
+saves original provisioning and verification commands before submission.
+Verification binds the Device, Identity, local contact, configuration and runtime.
+It represents an attributed local setup decision; actual Connection negotiation
+and decoded media must still be demonstrated. Nine setup fixture functions are
+included in the 33 passing app component tests. Actual installed execution of
+this new setup is pending; it does not inherit the earlier control result.
+
+Negotiated media/capture integration remains unfinished. The app keeps its
+private setup manifest, administrator configuration and credentials on the
+backend. Application recovery state remains separate from Connect's journal
+and database. Only installed public SDK packages perform Connect operations.
 
 With Node 22.16 or later, the ordinary `@rudeless/connect` 0.1.0 package installed
 here, and the matching candidate's `connect` executable on PATH, run:
@@ -38,6 +46,12 @@ prints the loopback UI URL. It starts neither a model nor a communications
 provider. An explicit installed executable or application state location can be
 selected with `npm run app -- --connect /installed/bin/connect --state .local/demo`.
 No participant IDs, tokens or database changes are entered manually.
+
+Setup profile 2 saves separate original media Endpoint provisioning and
+verification IDs. An earlier profile-1 directory is refused unchanged. Use a
+fresh explicit state directory such as `--state .local/parley-media` for the new
+setup; existing identities, credentials and saved operations are never expanded
+or rewritten to adopt the new workflow.
 
 Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
 command preserves the original ports, identities, issuance IDs, absolute expiry

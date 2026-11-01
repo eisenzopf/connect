@@ -62,7 +62,7 @@ async function main() {
     const packageInfo = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
     if (!entry.split("/").includes("node_modules") || (await lstat(packageRoot)).isSymbolicLink() ||
         packageInfo.name !== "@rudeless/connect" || packageInfo.version !== "0.1.0") fail("installed-sdk-required");
-    const { NodeAdministrativeClient } = await import("@rudeless/connect");
+    const { NodeAdministrativeClient, NodeClient } = await import("@rudeless/connect");
     const installed = await executablePath(selected), binarySha = await digest(installed);
     await privateDirectory(state);
     const entries = await readdir(state);
@@ -164,7 +164,8 @@ async function main() {
         await ready(server, plan.ports.http);
         stage = "scoped-actor-setup";
         await configureActors({ directory: state, plan, execute, signal: controller.signal,
-            createAdministrativeClient: config => new NodeAdministrativeClient({ config, executable: runtime }) });
+            createAdministrativeClient: config => new NodeAdministrativeClient({ config, executable: runtime }),
+            createParticipantClient: config => new NodeClient({ config, executable: runtime }) });
         stage = "application-startup";
         const app = await child(process.execPath, [fileURLToPath(new URL("./main.mjs", import.meta.url)), "--config", join(state, "app.json")], "app");
         await ready(app, plan.ports.ui);

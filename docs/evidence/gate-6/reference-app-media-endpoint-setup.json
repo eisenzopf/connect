@@ -1,0 +1,65 @@
+{
+  "format": "connect/reference-app-media-endpoint-setup/1",
+  "task": "G6-072",
+  "status": "implemented-local-components-pass-installed-runtime-unverified",
+  "source_revision_before_change": "b268bec5fe2466e0dfb800f52c2821e5d31a6e3c",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/setup.mjs": "5dc9067d682feec15c1d0c138992201699981a8b31343d029e11e01ee7e06354",
+    "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
+    "examples/parley-on-connect/app/setup.test.mjs": "9fbade0a8d0e45a34220368ea24f8ad54f84b5bf510f55d349127ffb9b9a0c66",
+    "scripts/check-reference-app-installed.mjs": "33ec1159765b974bb3e2dfaa77ab8eb99f8f39c9811c0887e510b2d3de92a900",
+    "examples/parley-on-connect/README.md": "13aa6a9a877b8d6df63d20018041543e4a26c2bf65defe9b31dc2c508556554a"
+  },
+  "local_verification": {
+    "node": "v26.7.0",
+    "app_component_tests_passed": 33,
+    "setup_component_tests_passed": 9,
+    "node_syntax": true,
+    "git_diff_check": true,
+    "rust_format_check": true,
+    "scope": "Simulated public SDK-shaped clients and application-owned private files. Not actual installed Connect or negotiated media proof."
+  },
+  "implementation": {
+    "setup_profile": "parley-local-setup/2",
+    "fresh_original_setup_ids_saved_before_io": true,
+    "participants": 4,
+    "native_media_endpoints": 4,
+    "endpoint_capabilities": [
+      "audio",
+      "data",
+      "video"
+    ],
+    "participant_scopes_expanded": false,
+    "public_native_config_fields": [
+      "identity_id",
+      "device_id",
+      "device_kind",
+      "device_platform",
+      "endpoint"
+    ],
+    "private_installer_intent_opened": false,
+    "readiness": "Require current signed QUIC capabilities and native-programmatic-media via the installed participant client before each attributed backend decision; bind unchanged public native/combined SDK configuration and runtime digest. This is not decoded-media or external network readiness.",
+    "public_mutations": [
+      "NodeAdministrativeClient.provision(endpoint)",
+      "NodeAdministrativeClient.provision(verify_endpoint)"
+    ],
+    "current_original_recovery": "Save immutable Endpoint and verification commands before submission. Replay original IDs and expected revision; refuse changed config, current-access failure, altered original verification or a verified Endpoint without the saved original decision. Close every participant and administrative SDK owner.",
+    "existing_setup": "Profile-1 state is refused unchanged. No legacy migration or added grants; document a fresh explicit private state directory."
+  },
+  "installed_check": {
+    "implemented": true,
+    "status": "not-run",
+    "expected_checks": 16,
+    "description": "After one-command setup, replay all four original Endpoint provisioning and verification decisions through the installed public administrative SDK, require the exact original Identity/Device/Endpoint, verified state, revision and audio/data/video capabilities, then retain all earlier browser/control/restart/owner checks.",
+    "runtime_verified": false
+  },
+  "remaining": [
+    "Actual installed Node22 Linux and macOS execution and independent source/ZIP audit",
+    "Public SDK Connection offer/end and Stream selection controls",
+    "Negotiated browser capture, packet IO, decoded playback and ownership verification"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "provider_or_model_execution": false,
+  "scope": "Local synthetic reference-app setup only. G6-054 remains parked; no PSTN/SMS/provider calls or model execution."
+}

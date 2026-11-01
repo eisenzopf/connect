@@ -108,6 +108,40 @@ try {
     check("actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages");
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
     const origin = await start(1); check("one-command-four-actor-scoped-setup-ready");
+    stage = "trusted-native-media-endpoint-original-recovery";
+    const setup = JSON.parse(await readFile(join(state, "setup.json"), "utf8"));
+    const configured = JSON.parse(await readFile(join(state, "app.json"), "utf8"));
+    assert.equal(setup.profile, "parley-local-setup/2");
+    const { NodeAdministrativeClient } = await import(pathToFileURL(join(consumer, "node_modules/@rudeless/connect/dist/index.js")).href);
+    const admin = new NodeAdministrativeClient({ config: join(state, "installation/operator.sdk.toml"), executable: installation.executable });
+    const endpointIds = new Set();
+    try {
+        for (const actor of setup.actors) {
+            const local = configured.actors[actor.role], commands = await Promise.all(["endpoint", "verify"].map(async name =>
+                JSON.parse(await readFile(join(state, "requests", actor.role + "-" + name + ".json"), "utf8"))));
+            assert.equal(commands[0].operation_id, actor.endpointOperationId);
+            assert.equal(commands[1].operation_id, actor.verificationOperationId);
+            assert.equal(commands[0].device.id, local.mediaEndpoint.deviceId);
+            assert.equal(commands[1].endpoint_id, local.mediaEndpoint.id);
+            for (const command of commands) {
+                const original = await admin.provision(admin.validateProvisioning(command), { timeoutMs: 8000, operationId: command.operation_id });
+                const result = await original.wait({ timeoutMs: 8000 });
+                assert.equal(result.snapshot.state, "completed");
+                assert.equal(result.value.kind, "endpoint");
+                assert.equal(result.value.endpoint_id, local.mediaEndpoint.id);
+                assert.equal(result.value.identity_id, local.identityId);
+                assert.equal(result.value.device_id, local.mediaEndpoint.deviceId);
+                assert.equal(result.value.verification_state, "verified");
+                assert.equal(result.value.revision, local.mediaEndpoint.revision);
+                assert.deepEqual(result.value.capabilities, ["audio", "data", "video"]);
+            }
+            endpointIds.add(local.mediaEndpoint.id);
+        }
+    } finally { await admin.close({ timeoutMs: 5000 }); }
+    assert.equal(endpointIds.size, 4);
+    report.current_native_media_endpoints_verified = 4;
+    report.original_endpoint_decision_recovery_verified = true;
+    check("four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery");
     context = await chromium.launchPersistentContext(join(output, "profile"), { headless: true,
         ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
         viewport: { width: 1440, height: 1100 }, args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions"] });
