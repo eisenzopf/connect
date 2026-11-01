@@ -23,7 +23,18 @@ pub(super) fn setup() -> (
     NativeReplacementOrigin,
     Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
 ) {
-    let (f, key, _, command, sources) = fixture_with_sources();
+    setup_with_capabilities(vec!["audio".into()])
+}
+pub(super) fn setup_with_capabilities(
+    capabilities: Vec<String>,
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    NativeReplacementOrigin,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+) {
+    let (f, key, _, command, sources) = fixture_with_source_capabilities(capabilities);
     f.store
         .admit_transition_command(&key, command.clone())
         .unwrap();

@@ -10,43 +10,56 @@ const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
     BigInt(Math.floor((milliseconds % 1000) * 2 ** 32 / 1000));
 
-export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan) {
+export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan, observe = () => {}) {
     assert.equal(connections.length, 6);
     const manifest = JSON.parse(await readFile(join(sourceDirectory, "manifest.json"), "utf8"));
     assert.equal(manifest.format, "connect/native-av-sources/2");
     assert.equal(manifest.seconds, 62); assert.equal(manifest.observation_seconds, 60);
     await mkdir(outputDirectory, { mode: 0o700 });
-    const routes = [];
+    const routes = [], setupStarted = performance.now();
+    let setupRoute = 0, setupStage = "media-refresh";
     // Complete every original owner's media readiness before starting any clock.
-    for (const [index, item] of connections.entries()) {
-        const roles = rolesBySession[item.sid], previous = roles[(roles.indexOf(item.role) + roles.length - 1) % roles.length];
-        const peer = connections.find(v => v.sid === item.sid && v.role === previous);
-        const negotiation = await item.connection.media.refresh({ timeoutMs: 8000 });
-        assert.equal(negotiation.sourceClock, true);
-        const byId = id => { const stream = negotiation.streams.find(v => v.id === id); assert.ok(stream); return stream; };
-        const snapshot = await item.connection.refresh({ timeoutMs: 8000 });
-        const ownAudio = byId(plan[item.prefix + "-audio"]), ownVideo = byId(plan[item.prefix + "-video"]);
-        byId(plan[peer.prefix + "-video"]);
-        const sender = (stream, codec) => {
-            assert.equal(stream.codec.name.toLowerCase(), codec);
-            return new RtpSender({ handle: stream.streamLocalId, streamId: stream.id, connectionId: item.connection.id,
-                sessionId: negotiation.binding.sessionId, generation: snapshot.generation, kind: stream.medium, codec,
-                payloadType: stream.codec.params.payload_type, direction: stream.direction });
-        };
-        const raw = await readFile(join(sourceDirectory, "source-" + index + ".json"));
-        assert.equal(sha(raw), manifest.sources[index].input_sha256);
-        const input = JSON.parse(raw);
-        assert.equal(input.audio.length, 3100); assert.equal(input.video.length, 1860);
-        routes.push({ index, item, peerIndex: connections.indexOf(peer), input,
-            audioSender: sender(ownAudio, "opus"), videoSender: sender(ownVideo, "vp8"),
-            sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
-            receiveAudio: item.connection.streams.byId(ownAudio.id).media,
-            receiveVideo: item.connection.streams.byId(plan[peer.prefix + "-video"]).media,
-            audio: [], video: [], submittedAudio: [], clockReports: { audio: [], video: [] },
-            capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
+    try {
+        for (const [index, item] of connections.entries()) {
+            const roles = rolesBySession[item.sid], previous = roles[(roles.indexOf(item.role) + roles.length - 1) % roles.length];
+            const peer = connections.find(v => v.sid === item.sid && v.role === previous);
+            setupRoute = index; setupStage = "media-refresh";
+            const negotiation = await item.connection.media.refresh({ timeoutMs: 8000 });
+            assert.equal(negotiation.sourceClock, true);
+            const byId = id => { const stream = negotiation.streams.find(v => v.id === id); assert.ok(stream); return stream; };
+            setupStage = "connection-refresh";
+            const snapshot = await item.connection.refresh({ timeoutMs: 8000 });
+            const ownAudio = byId(plan[item.prefix + "-audio"]), ownVideo = byId(plan[item.prefix + "-video"]);
+            byId(plan[peer.prefix + "-video"]);
+            const sender = (stream, codec) => {
+                assert.equal(stream.codec.name.toLowerCase(), codec);
+                return new RtpSender({ handle: stream.streamLocalId, streamId: stream.id, connectionId: item.connection.id,
+                    sessionId: negotiation.binding.sessionId, generation: snapshot.generation, kind: stream.medium, codec,
+                    payloadType: stream.codec.params.payload_type, direction: stream.direction });
+            };
+            setupStage = "source-input";
+            const raw = await readFile(join(sourceDirectory, "source-" + index + ".json"));
+            assert.equal(sha(raw), manifest.sources[index].input_sha256);
+            const input = JSON.parse(raw);
+            assert.equal(input.audio.length, 3100); assert.equal(input.video.length, 1860);
+            routes.push({ index, item, peerIndex: connections.indexOf(peer), input,
+                audioSender: sender(ownAudio, "opus"), videoSender: sender(ownVideo, "vp8"),
+                sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
+                receiveAudio: item.connection.streams.byId(ownAudio.id).media,
+                receiveVideo: item.connection.streams.byId(plan[peer.prefix + "-video"]).media,
+                audio: [], video: [], submittedAudio: [], clockReports: { audio: [], video: [] }, stages: { send: {}, receive: {} },
+                capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
+        }
+    } catch (failure) {
+        observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+            original_tasks_started: 0, elapsed_ms: performance.now() - setupStarted,
+            failure: { route_index: setupRoute, medium: null, direction: "setup", stage: setupStage },
+            prepared_routes: routes.length, routes: [],
+            scope: "Original setup failure before media tasks or source clocks start. No retries, payloads, identities or quality qualification." });
+        throw failure;
     }
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
-    const end = start + 62000, tasks = []; let error, timer;
+    const end = start + 62000, tasks = []; let error, workFailure, timer;
     async function sending(route, medium) {
         const video = medium === "video", entries = route.input[medium], sender = video ? route.videoSender : route.audioSender,
             stream = video ? route.sendVideo : route.sendAudio;
@@ -66,6 +79,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 if (remaining <= 0) { route.lateSendFrames++; frameCompleted = false; break; }
                 const sequence = new DataView(packet.buffer, packet.byteOffset).getUint32(4);
                 const submittedAt = performance.now() - start;
+                route.stages.send[medium] = "rtp";
                 const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: remaining, signal: controller.signal });
                 assert.equal(result.boundary, "local-media-queue"); submitted = sender.submitted(packet);
                 if (!video) {
@@ -78,6 +92,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 route.sent[medium]++;
             }
             if (frameCompleted && elapsed - lastClock >= 500) {
+                route.stages.send[medium] = "clock";
                 await stream.sendClock(sender.nextDatagramSequence(), { ...submitted, ntp: ntp(unixStart + elapsed), rtp: timestamp,
                     cname: "g6-native-av-" + route.index }, { timeoutMs: 1000, signal: controller.signal });
                 lastClock = elapsed;
@@ -88,6 +103,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         const stream = medium === "audio" ? route.receiveAudio : route.receiveVideo, assembler = new Vp8Assembler();
         while (!controller.signal.aborted && performance.now() < end + 100) {
             let value;
+            route.stages.receive[medium] = "packet";
             try { value = await stream.receivePacket({ timeoutMs: 500, signal: controller.signal }); }
             catch (failure) {
                 if (controller.signal.aborted && failure.kind === "cancelled") return;
@@ -123,10 +139,17 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             }
         }
     }
-    const launch = task => tasks.push(task.catch(failure => { error ??= failure; controller.abort(); }));
+    const launch = (task, route, medium, direction) => tasks.push(task.catch(failure => {
+        if (!error) {
+            error = failure;
+            workFailure = { route_index: route.index, medium, direction, stage: route.stages[direction][medium] ?? "pending" };
+        }
+        controller.abort();
+    }));
     try {
         for (const route of routes) for (const medium of ["audio", "video"]) {
-            launch(receiving(route, medium)); launch(sending(route, medium));
+            launch(receiving(route, medium), route, medium, "receive");
+            launch(sending(route, medium), route, medium, "send");
         }
         // The deadline aborts only reads owned by this component; originals and
         // their control/mutation owners are still closed by the caller.
@@ -139,6 +162,12 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             clock_reports: route.clockReports, submitted_audio: route.submittedAudio,
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
+        observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+            original_tasks_started: tasks.length, elapsed_ms: performance.now() - start, failure: workFailure ?? null,
+            routes: routes.map(route => ({ index: route.index, received_audio: route.audio.length,
+                received_video: route.video.length, submitted_packets: { ...route.sent },
+                received_clocks: { ...route.clocks }, gap_packets: route.gaps, late_send_frames: route.lateSendFrames })),
+            scope: "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification." });
     }
     if (error) throw error;
     return { connections: 6, participants: 4, sessions: 2, source_manifest_sha256: sha(await readFile(join(sourceDirectory, "manifest.json"))),

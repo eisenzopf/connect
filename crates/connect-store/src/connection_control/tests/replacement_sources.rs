@@ -49,10 +49,21 @@ fn fixture_with_sources() -> (
     TransitionCommand,
     Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
 ) {
+    fixture_with_source_capabilities(vec!["audio".into()])
+}
+fn fixture_with_source_capabilities(
+    capabilities: Vec<String>,
+) -> (
+    Fixture,
+    String,
+    String,
+    TransitionCommand,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+) {
     let f = Fixture::new();
     let old = consultation_reads::ready(&f, 0);
     let remote = consultation_reads::ready(&f, 1);
-    let target = endpoint(&f, vec!["audio".into()], "replacement");
+    let target = endpoint(&f, capabilities, "replacement");
     let key = key(&f);
     let command = TransitionCommand {
         operation_id: "move-native-endpoint".into(),

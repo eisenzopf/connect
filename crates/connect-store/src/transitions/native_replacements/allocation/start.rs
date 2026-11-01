@@ -157,7 +157,7 @@ fn projection(
         endpoint_capabilities: ctx
             .target_capabilities
             .iter()
-            .filter(|v| v.as_str() == "audio")
+            .filter(|v| matches!(v.as_str(), "audio" | "video"))
             .cloned()
             .collect(),
         accepted_capabilities: original.accepted_capabilities().clone(),

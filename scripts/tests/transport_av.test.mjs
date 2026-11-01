@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { nativeAv } from "../lib/transport_av.mjs";
 
-async function checkFailure(firstSubmissionAccepted) {
+async function checkFailure(firstSubmissionAccepted, setupFailure = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "transport-av-cancel-"));
     const sources = join(directory, "sources"); await mkdir(sources, { mode: 0o700 });
@@ -52,12 +52,31 @@ async function checkFailure(firstSubmissionAccepted) {
             { id: plan[peer.prefix + "-video"], medium: "video", direction: "recvonly", streamLocalId: 3, codec: { name: "vp8", params: { payload_type: 96 } } },
         ];
         item.connection = { id: "connection-" + item.index, async refresh() { return { generation: 1 }; },
-            media: { async refresh() { return { sourceClock: true, binding: { sessionId: "session-" + item.sid }, streams: negotiated }; } },
+            media: { async refresh() { if (setupFailure && item.index === 1) throw failure; return { sourceClock: true, binding: { sessionId: "session-" + item.sid }, streams: negotiated }; } },
             streams: { byId() { return { media: stream }; } } };
     }
     try {
         const started = performance.now();
-        await assert.rejects(nativeAv(connections, roles, sources, join(directory, "received"), plan), error => error === failure);
+        const observations = [];
+        await assert.rejects(nativeAv(connections, roles, sources, join(directory, "received"), plan,
+            observation => { assert.equal(waiting, 0); observations.push(observation); }), error => error === failure);
+        assert.equal(observations.length, 1);
+        const observed = observations[0];
+        assert.equal(observed.original_tasks_joined, true);
+        if (setupFailure) {
+            assert.deepEqual(observed.failure, { route_index: 1, medium: null, direction: "setup", stage: "media-refresh" });
+            assert.equal(observed.original_tasks_started, 0); assert.equal(observed.prepared_routes, 1);
+            assert.deepEqual(observed.routes, []); assert.equal(waiting, 0); assert.equal(aborted, 0);
+            assert.equal(JSON.stringify(observed).includes("synthetic first-write refusal"), false);
+            return;
+        }
+        assert.equal(observed.original_tasks_started, 24);
+        assert.deepEqual(observed.failure, { route_index: 0, medium: "audio", direction: "send",
+            stage: firstSubmissionAccepted ? "clock" : "rtp" });
+        assert.equal(observed.routes.length, 6);
+        assert.equal(observed.routes.reduce((sum, r) => sum + r.submitted_packets.audio, 0), Number(firstSubmissionAccepted));
+        for (const hidden of ["private-synthetic-clock", "synthetic first-write refusal", "connection-", "ssrc", "ntp", "payload"])
+            assert.equal(JSON.stringify({ ...observed, scope: undefined }).includes(hidden), false);
         assert.ok(performance.now() - started < 1000);
         assert.equal(waiting, 0); assert.equal(aborted, 12);
         let submissions = 0;
@@ -88,3 +107,5 @@ async function checkFailure(firstSubmissionAccepted) {
 
 test("first send failure joins all twelve native readers and retains original clocks", () => checkFailure(false));
 test("clock failure retains only the completed original audio queue receipt and joins readers", () => checkFailure(true));
+
+test("original media setup failure remains explicit before any source clock or media task starts", () => checkFailure(false, true));

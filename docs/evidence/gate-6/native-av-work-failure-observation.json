@@ -1,0 +1,23 @@
+{
+  "format": "connect/gate6-native-av-failure-observation/1",
+  "base_revision": "33ce2fc8d994925bb85116d561ae573cf3cbebd3",
+  "tests": {
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0
+  },
+  "observations": [
+    "Original setup failure before tasks start",
+    "Original RTP send refusal joins all24 tasks including12 readers",
+    "Original clock send failure keeps only the completed original audio queue receipt"
+  ],
+  "bounds": {
+    "route_slots": 6,
+    "setup_tasks_started": 0,
+    "work_tasks_started": 24,
+    "maximum_original_rtp_source_age_ms": 200
+  },
+  "privacy": "Only route slots, medium, direction, stage, relative elapsed time and bounded counters. No payload, original identifier, SSRC, NTP, CNAME or SDK error message.",
+  "scope": "Diagnostic observation; preserves the first original failure and existing deadlines, cancellation, packet clocks and media qualification. No retry or media-quality claim.",
+  "task_complete": false
+}

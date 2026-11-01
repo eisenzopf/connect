@@ -353,7 +353,8 @@ try {
                 original_create_reference_preserved: false, mutation_replayed: false };
             check("reserved-device-initial-helper-joins-before-sixty-second-workload");
             phase = "six-native-opus-vp8-sixty-second-workload";
-            report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan);
+            report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
+                observation => { report.native_av_observation = observation; });
             check("six-original-native-connections-exchange-opus-vp8-and-original-source-clocks-for-sixty-two-seconds");
         }
         phase = "six-native-connections-original-end";

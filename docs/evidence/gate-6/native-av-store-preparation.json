@@ -1,0 +1,47 @@
+{
+  "format": "connect/gate6-store-av-preparation/1",
+  "base_revision": "33ce2fc8d994925bb85116d561ae573cf3cbebd3",
+  "scope": "Store metadata and preparation custody only; no Core IO, media readiness, physical movement, SIP or provider execution.",
+  "original_regression": {
+    "exit": 101,
+    "expected_failure": true,
+    "binary_sha256": "52de7f11308006772b50968e99fbe865d95b07c3a3074ac5a1f192a129b7a4b3",
+    "passed": 0,
+    "failed": 1,
+    "filtered": 1310,
+    "original_profile_refusal": true,
+    "test_source_sha256": "17d5196a99b07d8f85684570f12cdf4aaa845f9e44e08848d3a80ca519fa9b1c",
+    "failure": "unsupported-media-profile: Replacement target requires one isolated duplex audio stream"
+  },
+  "corrected": {
+    "cases_passed": 145,
+    "cases_failed": 0,
+    "filtered": 1167,
+    "source_inputs_unchanged": true,
+    "store_rust_files_verified": 447,
+    "source_inventory_sha256": "fabd2f416ea51affbeb6254f9db6537055671500e986396290720f0ff0842732",
+    "profile": "one duplex audio plus optional video explicitly provisioned for the target; publication suspended and media_ready false"
+  },
+  "refusals": [
+    "missing duplex audio",
+    "multiple audio streams",
+    "one-way audio",
+    "data/screen media",
+    "video without provisioned target video capability"
+  ],
+  "prior_unsealed_test_run": {
+    "cases_passed": 145,
+    "cases_failed": 0,
+    "source_inputs_unchanged": false,
+    "excluded": true,
+    "reason": "Formatter changed the new allocation test while its source guard was active; retained separately and replaced by a new guarded run."
+  },
+  "remaining": [
+    "Core AV quarantine fix and retirement guards",
+    "UCTP initial AV mute",
+    "Service capability projection and complete resource identities",
+    "Public physical AV replacement and complete transport matrix"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

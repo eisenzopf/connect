@@ -1,0 +1,88 @@
+{
+  "format": "connect/gate6-six-native-av-negative/1",
+  "workflow_run_id": 41329716149,
+  "job_id": 124917059330,
+  "artifact_id": 13094287088,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "6ce1c16863abbdb5077b427ac40089e004a9b71b",
+    "artifact_sha256": "112bda61ec72b36eb3993fc92b231ed4f11f5475ebc57b4df74a0f3593bc8cf4",
+    "report_sha256": "9b618e60a4163198ed58f7d3e789f99c74f1959305f7629d09f1561d1809f2bf",
+    "source_inputs_sha256": "3433087f1ff55f82133c7e65251880a6a7f668cda58d55e086e356f651e2cb2f",
+    "sources_verified": {
+      "git": 4859,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "aa123711d75df5dbdc96c0eff96ced0949f82873083744a8fd293990f9334404",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "d26b7195c26b088b3f26fc290f7689f896efcee35efe4cd4d2563bdd1654cfdd",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "uncertain",
+    "source_stack": []
+  },
+  "full_native_av_report_returned": false,
+  "reported_packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "5e642b3940a819122240e0673a26886e149d41975772c26e1b9e63b4eabe5bea",
+    "pcap_bytes": 6214316,
+    "captured_seconds": 25.244754623000063,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 2594,
+      "to_server_packets": 1311,
+      "from_server_packets": 1283,
+      "captured_bytes": 6172788,
+      "udp_payload_bytes": 6063840,
+      "to_server_udp_bytes": 1239873,
+      "from_server_udp_bytes": 4823967
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "scope": "Six original native offers and six reliable full-size data completions precede a deadline/uncertain failure during native AV work. All five observed helper owners and both servers join. No sixty-second decoded quality, AV marker, complete transition or transport-cell pass. Runtime binary bytes and private raw packet capture are absent from this artifact; their reported digests do not independently verify those bytes.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

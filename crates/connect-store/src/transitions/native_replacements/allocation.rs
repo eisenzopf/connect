@@ -172,11 +172,23 @@ fn target_facts_for_profile(
     let streams = intent.offer["streams_offered"]
         .as_array()
         .ok_or_else(invalid)?;
-    if streams.len() != 1 || streams[0]["kind"] != "audio" || streams[0]["direction"] != "sendrecv"
+    let audio = streams
+        .iter()
+        .filter(|s| s["kind"] == "audio")
+        .collect::<Vec<_>>();
+    if audio.len() != 1
+        || audio[0]["direction"] != "sendrecv"
+        || streams.iter().any(|s| {
+            !matches!(s["kind"].as_str(), Some("audio" | "video"))
+                || !context
+                    .target_capabilities
+                    .iter()
+                    .any(|c| Some(c.as_str()) == s["kind"].as_str())
+        })
     {
         return Err(Error::new(
             "unsupported-media-profile",
-            "Replacement target requires one isolated duplex audio stream",
+            "Replacement target requires one isolated duplex audio stream and provisioned optional video",
         ));
     }
     // Reuse this exact admitted fence. Never acquire a nested original-source
