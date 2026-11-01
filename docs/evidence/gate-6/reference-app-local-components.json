@@ -2,7 +2,7 @@
   "format": "connect/reference-app-local-components/1",
   "task": "G6-072",
   "runtime_source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
-  "status": "local-components-installed-initial-rehearsal-negative",
+  "status": "local-components-installed-all-37-local-checks-pass",
   "installation": {
     "format": "connect/reference-app-local-components/1",
     "target": "aarch64-apple-darwin",
@@ -85,12 +85,12 @@
   },
   "refusal_tests_passed": 5,
   "retained_behavior_checks": 37,
-  "scope": "Source-bound local production Mac runtime and actual public Node archive, independently verified and installed together. First app rehearsal timed out in read-only CLI validation before setup; corrected validation budget and selected-installer final guard await rerun. Not complete Rust/Node/Python SDK candidate qualification or an inherited Gate pass.",
+  "scope": "Source-bound production Mac runtime and public Node archive independently verified and installed offline. All37 local Node26/Chromium153 app checks pass; initial pre-setup CLI timeout remains retained. Not Node22/Linux CI, complete SDK candidate or whole Gate qualification.",
   "full_sdk_qualification_pending_runs": [
     41288711516,
     41289033374
   ],
-  "installed_app_verified": false,
+  "installed_app_verified": true,
   "task_complete": false,
   "whole_gate_qualified": false,
   "initial_rehearsal": {
@@ -136,5 +136,6 @@
     "media_thresholds_changed": false,
     "behavior_checks_removed": false,
     "selected_installer_guard": true
-  }
+  },
+  "installed_app_evidence": "docs/evidence/gate-6/reference-app-current-runtime-local.json"
 }
