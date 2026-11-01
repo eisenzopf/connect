@@ -354,12 +354,14 @@ dependencies = [
 name = "connect-client"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "chrono",
  "connect-protocol",
  "parking_lot",
  "quinn",
  "reqwest",
+ "ring",
  "rustls",
  "rvoip-auth-core",
  "rvoip-core",
@@ -392,6 +394,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "percent-encoding",
  "serde",
  "serde_jcs",
  "serde_json",

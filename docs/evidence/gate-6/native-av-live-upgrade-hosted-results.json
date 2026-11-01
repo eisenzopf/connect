@@ -1,0 +1,637 @@
+{
+  "format": "connect/native-av-duplex-startup-live-upgrade-results/1",
+  "task": "G6-058",
+  "results": [
+    {
+      "run_id": 41313000540,
+      "job_id": 124867121555,
+      "terminal": true,
+      "conclusion": "failure",
+      "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+      "artifact": {
+        "id": 13087001392,
+        "size": 440424,
+        "sha256": "ae361e8b1fe985b5ef88031226f2cead9e78fc2763f3c499885a6b786f2a925d"
+      },
+      "independent_verification": {
+        "format": "connect/transport-component-independent-verification/1",
+        "evidence_verified": true,
+        "component": "media",
+        "component_passed": false,
+        "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+        "artifact_sha256": "ae361e8b1fe985b5ef88031226f2cead9e78fc2763f3c499885a6b786f2a925d",
+        "report_sha256": "6c17ec0ed6795fb98fd6fd48fe2fe0232f7a973806d798bfb824a0fe61e37ea6",
+        "source_inputs_sha256": "89a06197b2fc65993ade6c13f2d360dd6df7c11ae3040bea4a97dfde21601364",
+        "sources_verified": {
+          "git": 4830,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "sdk_dist_files_verified": 192,
+        "target": "ubuntu24-x86_64",
+        "signing": "ES256",
+        "network": "local",
+        "reported_runtime_binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+        "binary_bytes_in_artifact": false,
+        "outcomes": {
+          "commands_observed": 58,
+          "original_servers_joined": 2,
+          "conversation_report_sha256": "d6fdeb098c77faba70f8bf13d085ab05f800b2184b2cf48f49af108c37e4eae6",
+          "conversation_passed": false,
+          "helpers_observed": 5,
+          "helpers_joined": true,
+          "native_offers_completed": 6,
+          "native_data_submissions": 6,
+          "native_data_completions": 6,
+          "native_data_receives": 6
+        },
+        "full_matrix_cells_qualified": 0,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "reported_runtime_matches_independently_audited_753_file_linux_package": true,
+      "checks_passed": 14,
+      "conversation_component_passed": false,
+      "failure": {
+        "phase": "public-sdk-conversation-control",
+        "name": "AssertionError",
+        "line": 468
+      },
+      "child_failure": {
+        "phase": "six-native-connections-original-end",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "file": "scripts/check-transport-conversation.mjs",
+          "line": 371,
+          "column": 37
+        },
+        "source_stack": [
+          {
+            "line": 371,
+            "column": 37
+          }
+        ],
+        "assertion": {
+          "actual": {
+            "type": "boolean"
+          },
+          "expected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6,
+      "native_data_failure_stages": [],
+      "actual_live_session_upgrade": null,
+      "original_media_end_timings": [],
+      "actual_native_routes": [
+        {
+          "index": 0,
+          "peer_index": 3,
+          "received_audio": 2934,
+          "received_video": 1852,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4404
+          }
+        },
+        {
+          "index": 1,
+          "peer_index": 0,
+          "received_audio": 2846,
+          "received_video": 1857,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4410
+          }
+        },
+        {
+          "index": 2,
+          "peer_index": 1,
+          "received_audio": 2921,
+          "received_video": 1851,
+          "gap_packets": 3,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4394
+          }
+        },
+        {
+          "index": 3,
+          "peer_index": 2,
+          "received_audio": 2926,
+          "received_video": 1856,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4398
+          }
+        },
+        {
+          "index": 4,
+          "peer_index": 5,
+          "received_audio": 3078,
+          "received_video": 1859,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4413
+          }
+        },
+        {
+          "index": 5,
+          "peer_index": 4,
+          "received_audio": 3069,
+          "received_video": 1859,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4409
+          }
+        }
+      ],
+      "decoded_routes": [
+        {
+          "index": 0,
+          "passed": false,
+          "audio_decoded_seconds": 56.86,
+          "bad_audio_identity_blocks": 1,
+          "missing_original_audio_timestamp_steps": 157,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.85,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 91
+        },
+        {
+          "index": 1,
+          "passed": false,
+          "audio_decoded_seconds": 55.16,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 241,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.933333333333334,
+          "minimum_video_frames_per_second": 28,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 9
+        },
+        {
+          "index": 2,
+          "passed": false,
+          "audio_decoded_seconds": 56.58,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 170,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.883333333333333,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 27
+        },
+        {
+          "index": 3,
+          "passed": false,
+          "audio_decoded_seconds": 56.72,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 165,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.95,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 19
+        },
+        {
+          "index": 4,
+          "passed": false,
+          "audio_decoded_seconds": 59.62,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 19,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.966666666666665,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 4
+        },
+        {
+          "index": 5,
+          "passed": false,
+          "audio_decoded_seconds": 59.4,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 28,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.966666666666665,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 7
+        }
+      ],
+      "private_capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "2ac01401f9600d4c9d627bf1c2a0ce6d7e32f8eb92b4c8bd802814c3c6fd4f98"
+      },
+      "helpers_observed": 5,
+      "helpers_joined": true
+    },
+    {
+      "run_id": 41314747164,
+      "job_id": 124874934199,
+      "terminal": true,
+      "conclusion": "failure",
+      "source_revision": "aebc80496de2d06876d6c3e7f6ba7fbac8bac753",
+      "artifact": {
+        "id": 13087610656,
+        "size": 441414,
+        "sha256": "ad533b024dc12029de575f27c8bf9784072b61e99b65a922a34e14afef92e003"
+      },
+      "independent_verification": {
+        "format": "connect/transport-component-independent-verification/1",
+        "evidence_verified": true,
+        "component": "media",
+        "component_passed": false,
+        "source_revision": "aebc80496de2d06876d6c3e7f6ba7fbac8bac753",
+        "artifact_sha256": "ad533b024dc12029de575f27c8bf9784072b61e99b65a922a34e14afef92e003",
+        "report_sha256": "22ff9b190f51fb282e9a17c26619db0988e965c7a0735414370ab00684561ad3",
+        "source_inputs_sha256": "9ad856cffcaf2a2f4a12220db5ba2eaacb5557c54cfc5e4735a4e7bd65d7b462",
+        "sources_verified": {
+          "git": 4835,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "sdk_dist_files_verified": 192,
+        "target": "ubuntu24-x86_64",
+        "signing": "ES256",
+        "network": "local",
+        "reported_runtime_binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+        "binary_bytes_in_artifact": false,
+        "outcomes": {
+          "commands_observed": 58,
+          "original_servers_joined": 2,
+          "conversation_report_sha256": "73dac0912b87ea8ca51a80b94aa2662994b5da49c1673f585c43b64f5d6d13b8",
+          "conversation_passed": true,
+          "helpers_observed": 6,
+          "helpers_joined": true,
+          "native_offers_completed": 6,
+          "native_data_submissions": 6,
+          "native_data_completions": 6,
+          "native_data_receives": 6
+        },
+        "full_matrix_cells_qualified": 0,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "reported_runtime_matches_independently_audited_753_file_linux_package": true,
+      "checks_passed": 18,
+      "conversation_component_passed": true,
+      "failure": {
+        "phase": "independent-native-opus-vp8-decode",
+        "name": "AssertionError",
+        "line": 481
+      },
+      "child_failure": null,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6,
+      "native_data_failure_stages": [],
+      "actual_live_session_upgrade": {
+        "original_connections": 4,
+        "original_sessions": 2,
+        "verified_payloads_before": 4,
+        "verified_payloads_after": 4,
+        "bytes_per_payload": 4096,
+        "payload_sha256": [
+          "d41e374936455022d733f764a64d703e69d14522de67c7114ef8a5c43a798cb4",
+          "daf79852461993f687e8e126356e4acb2d8c328b8ab40fa1b016e31e08bd2669",
+          "a6724eb46a98ea5671be230d5b83713363a25c2e5465ffb5efa80b1e8a917f64",
+          "e69a82f516b3742dc5890d6526bbac0dab97522f5b9278dca23f6b216077b520",
+          "9470bcd3115b0eadc432bde3c5ad9c4dec0b5ba5360371049a37a5be829da8b7",
+          "fc958b80b55b59fb547b3c5aae4d64aafec136ecac92e8f17e9a3b463d2b02e4",
+          "a0cb65dbfa285c488629992bc2d6f4d61557b15473d66e5f795ee9ee8ccd18bd",
+          "2ffb1cba2f67fcd01a55a2aac5150a88bff6f2818e61ec966c93c6311e12a6d6"
+        ],
+        "original_ids_and_generations_preserved_across_upgrade": true,
+        "current_unoffered_screen_refusals": 2,
+        "upgraded_sessions": [
+          {
+            "session_index": 0,
+            "before": [
+              "audio",
+              "data"
+            ],
+            "after": [
+              "audio",
+              "data",
+              "video"
+            ]
+          },
+          {
+            "session_index": 1,
+            "before": [
+              "data"
+            ],
+            "after": [
+              "audio",
+              "data",
+              "video"
+            ]
+          }
+        ],
+        "original_connections_retired": 4,
+        "scope": "Actual data packets before/after capability addition on the same original live Connections. Subsequent AV decoding is separate; no claim of uninterrupted preexisting audio, physical Device replacement or complete cell qualification."
+      },
+      "original_media_end_timings": [
+        {
+          "index": 0,
+          "end_receipt_ms": 25.236334999994142,
+          "original_retirement_observed_ms": 470.2154559999908,
+          "limit_ms": 5000
+        },
+        {
+          "index": 1,
+          "end_receipt_ms": 23.75461499999801,
+          "original_retirement_observed_ms": 219.5912069999904,
+          "limit_ms": 5000
+        },
+        {
+          "index": 2,
+          "end_receipt_ms": 22.537905000004685,
+          "original_retirement_observed_ms": 533.6108760000061,
+          "limit_ms": 5000
+        },
+        {
+          "index": 3,
+          "end_receipt_ms": 24.179861000011442,
+          "original_retirement_observed_ms": 709.4589120000019,
+          "limit_ms": 5000
+        },
+        {
+          "index": 4,
+          "end_receipt_ms": 23.65732699999353,
+          "original_retirement_observed_ms": 477.87548499999684,
+          "limit_ms": 5000
+        },
+        {
+          "index": 5,
+          "end_receipt_ms": 24.339353999996092,
+          "original_retirement_observed_ms": 236.01810399998794,
+          "limit_ms": 5000
+        }
+      ],
+      "actual_native_routes": [
+        {
+          "index": 0,
+          "peer_index": 3,
+          "received_audio": 2936,
+          "received_video": 1856,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4404
+          }
+        },
+        {
+          "index": 1,
+          "peer_index": 0,
+          "received_audio": 2923,
+          "received_video": 1858,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4410
+          }
+        },
+        {
+          "index": 2,
+          "peer_index": 1,
+          "received_audio": 2927,
+          "received_video": 1859,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4394
+          }
+        },
+        {
+          "index": 3,
+          "peer_index": 2,
+          "received_audio": 2930,
+          "received_video": 1855,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4398
+          }
+        },
+        {
+          "index": 4,
+          "peer_index": 5,
+          "received_audio": 3011,
+          "received_video": 1854,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4413
+          }
+        },
+        {
+          "index": 5,
+          "peer_index": 4,
+          "received_audio": 3011,
+          "received_video": 1857,
+          "gap_packets": 0,
+          "late_send_frames": 0,
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4409
+          }
+        }
+      ],
+      "decoded_routes": [
+        {
+          "index": 0,
+          "passed": false,
+          "audio_decoded_seconds": 56.82,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 158,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.916666666666668,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 116
+        },
+        {
+          "index": 1,
+          "passed": false,
+          "audio_decoded_seconds": 56.54,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 171,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.966666666666665,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 27
+        },
+        {
+          "index": 2,
+          "passed": false,
+          "audio_decoded_seconds": 56.64,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 167,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.966666666666665,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 29
+        },
+        {
+          "index": 3,
+          "passed": false,
+          "audio_decoded_seconds": 56.7,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 164,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.916666666666668,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 116
+        },
+        {
+          "index": 4,
+          "passed": false,
+          "audio_decoded_seconds": 58.24,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 86,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.9,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 145
+        },
+        {
+          "index": 5,
+          "passed": false,
+          "audio_decoded_seconds": 58.28,
+          "bad_audio_identity_blocks": 0,
+          "missing_original_audio_timestamp_steps": 86,
+          "missing_audio_rtp_sequence_packets": 0,
+          "changing_video_fps": 29.95,
+          "minimum_video_frames_per_second": 29,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 58
+        }
+      ],
+      "private_capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "be5ca1b333f7f83ad55e874855acde918c991898852c36bd68afb4ef861a06bd"
+      },
+      "helpers_observed": 6,
+      "helpers_joined": true
+    }
+  ],
+  "interpretation": "Both exact-source native scenes complete all6 original data submissions/receipts/receives without a recorded data-invocation failure. This does not establish a particular SQL-cache change as the cause. The10abb934 child fails while observing durable retirement after its first end receipt; the recorded assertion does not establish a root cause. Theaebc8049 child passes all18control/lifecycle checks, its live data-to-AV stage, all6 original end budgets and independent-Device original-reference recovery. Both still fail all6 decoded-media quality routes. All supplied audio packets are submitted with zero late-source drops, while received audio headers skip original timestamp steps without RTP sequence gaps. All mismatched video-marker pixels are unclassified; no other identified source marker appears. Missing/ambiguous media remains failure.",
+  "scope": "Source/artifact/runtime identities independently verify; private hosted codec outputs and packet captures were not downloaded or independently re-decoded. Decoded quality numbers are the source-bound producer observations. No full-cell promotion or G6-054/SIP/TURN/model/provider execution.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "matched_runtime_archive_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4830,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "da43ee6750b28ed91d3ffedb6a60f62abc0b9599a02d2836bb7b30c27ce545db",
+    "manifest_sha256": "d9299ec11394f620704a405633996231afa9b263ba3c8c2d28132a129d5127c9",
+    "artifact_zip_digests": {
+      "evidence": "d8c2f49448ac79bb3a8350162416083b8ccc467c1674780e578ad65708278c9d",
+      "package": "a6eec3ddf4d1216b42f075450a4e0726e568683c992263cbc5bee2692b70319a"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  }
+}

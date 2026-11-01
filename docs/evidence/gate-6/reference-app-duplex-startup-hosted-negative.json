@@ -1,0 +1,202 @@
+{
+  "format": "connect/reference-app-duplex-startup-hosted-negative/1",
+  "task": "G6-072",
+  "run_id": 41313002887,
+  "results": [
+    {
+      "host": "linux",
+      "job_id": 124867496341,
+      "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+      "artifact": {
+        "id": 13086988895,
+        "size": 828603,
+        "sha256": "b1a9d6a25e5254ea153996c2062636a43f1646b645e795aed4ba081b3189725a"
+      },
+      "checks_passed": 25,
+      "checks_required": 37,
+      "failure": {
+        "stage": "sustained-combined-browser-audio-video",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 716,
+            "column": 20
+          }
+        ]
+      },
+      "media": [
+        {
+          "role": "owner",
+          "decoded_audio": 92,
+          "played_audio": 2,
+          "late_audio": 90,
+          "future_audio": 0,
+          "last_audio_offset_ms": -233.441,
+          "painted_video": 58,
+          "last_video_offset_ms": 20.355,
+          "receive_started_ms": 253,
+          "camera_setup_ms": 20,
+          "queued_send_frames": 9
+        },
+        {
+          "role": "organizer",
+          "decoded_audio": 88,
+          "played_audio": 15,
+          "late_audio": 73,
+          "future_audio": 0,
+          "last_audio_offset_ms": -74.239,
+          "painted_video": 63,
+          "last_video_offset_ms": 44.336,
+          "receive_started_ms": 498,
+          "camera_setup_ms": 16,
+          "queued_send_frames": 8
+        }
+      ],
+      "native_video_component": {
+        "painted": 3,
+        "dropped": 0,
+        "queued": 0,
+        "pixel": [
+          0,
+          255,
+          0,
+          255
+        ],
+        "frame_construction_ms": 0,
+        "enqueue_ms": 0,
+        "observation_ms": 301
+      },
+      "identity_audit": {
+        "git_app_checker_installer_cpu_native_inputs_verified": 32,
+        "node_package_source_inputs_verified": 197,
+        "installed_sdk_files_verified": 195,
+        "png_bytes_verified": 4,
+        "source_guards_passed": true
+      },
+      "runtime_independent_verification": {
+        "format": "connect/verified-native-sdk-runtime/1",
+        "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+        "target": "x86_64-unknown-linux-gnu",
+        "sources_verified": {
+          "git": 4830,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 753,
+        "binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+        "helper_profiles": {
+          "helper.rs:PROFILE": "connect-sdk-helper/4",
+          "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+          "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+          "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+          "helper/media.rs:PROFILE": "connect-sdk-media/2",
+          "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+        },
+        "archive_sha256": "da43ee6750b28ed91d3ffedb6a60f62abc0b9599a02d2836bb7b30c27ce545db",
+        "manifest_sha256": "d9299ec11394f620704a405633996231afa9b263ba3c8c2d28132a129d5127c9",
+        "artifact_zip_digests": {
+          "evidence": "d8c2f49448ac79bb3a8350162416083b8ccc467c1674780e578ad65708278c9d",
+          "package": "a6eec3ddf4d1216b42f075450a4e0726e568683c992263cbc5bee2692b70319a"
+        },
+        "passed": true,
+        "production_build_verified": true,
+        "sdk_installation_qualified": false,
+        "package_input": "retained-file",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "hosted_raw_profiles_independently_recomputed": false,
+      "job_terminal": true,
+      "job_conclusion": "failure"
+    },
+    {
+      "host": "mac",
+      "job_id": 124867495988,
+      "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+      "artifact": {
+        "id": 13087164673,
+        "size": 24071,
+        "sha256": "c31b5b59b680c03c117ba9189c1589839a52ad09f4225df37248a28182fb2496"
+      },
+      "checks_passed": 5,
+      "checks_required": 37,
+      "failure": {
+        "stage": "native-browser-video-playout-component",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 267,
+            "column": 12
+          }
+        ]
+      },
+      "media": [],
+      "native_video_component": {
+        "painted": 0,
+        "dropped": 3,
+        "queued": 0,
+        "pixel": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "frame_construction_ms": 6,
+        "enqueue_ms": 0,
+        "observation_ms": 739
+      },
+      "identity_audit": {
+        "git_app_checker_installer_cpu_native_inputs_verified": 32,
+        "node_package_source_inputs_verified": 197,
+        "installed_sdk_files_verified": 195,
+        "png_bytes_verified": 0,
+        "source_guards_passed": true
+      },
+      "runtime_independent_verification": {
+        "format": "connect/verified-native-sdk-runtime/1",
+        "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+        "target": "aarch64-apple-darwin",
+        "sources_verified": {
+          "git": 4830,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 755,
+        "binary_sha256": "322131ce37d0be6282a51fbe9bc04887ba8bf0c2fa441d965ccdb25e953b1f8d",
+        "helper_profiles": {
+          "helper.rs:PROFILE": "connect-sdk-helper/4",
+          "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+          "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+          "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+          "helper/media.rs:PROFILE": "connect-sdk-media/2",
+          "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+        },
+        "archive_sha256": "1a7fd61b161ba2dc60596a1ec102b5e41920b5878dbf380f3d09a82aa1c4937f",
+        "manifest_sha256": "896fb56e224cba786e71fc607e8ffcd74ac930e3235362f4c752758b52b94a86",
+        "artifact_zip_digests": {
+          "evidence": "7a5d28ea453c9fc4d2b1abf07de3eee1a1b25354457bee9d13781edbc135d58d",
+          "package": "1828da93afaf7b88c43ee9c98bb413b72b3b63f3fb4732bd69a40cea457aff58"
+        },
+        "passed": true,
+        "production_build_verified": true,
+        "sdk_installation_qualified": false,
+        "package_input": "retained-file",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "hosted_raw_profiles_independently_recomputed": false,
+      "job_terminal": true,
+      "job_conclusion": "failure"
+    }
+  ],
+  "interpretation": "Linux still fails combinedAV after25checks: audio loses playback progress to late drops while both devices remain active. Measured camera setup is only20/16ms; early receiving did not resolve this actual late-audio outcome. Mac fails the native timer/cloned-video component after5checks, with0paint/3late drops and a739ms final observation; it never reaches actual browser audio or AV. The739ms final observation alone does not identify precisely which browser/OS work delayed the callback. Neither failed host inherits the local37-check pass.",
+  "scope": "Both native archive contents and app/actual installed SDK/source identities independently verify. Mac failure occurs before screenshot initialization and therefore legitimately has no PNGs. Raw hosted CPU/native profiles are unavailable for independent recomputation. No full SDK, matrix or acceptance promotion.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "run_terminal": true,
+  "run_conclusion": "failure"
+}

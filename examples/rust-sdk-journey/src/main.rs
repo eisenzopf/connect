@@ -6,11 +6,20 @@ use serde_json::{json, Value};
 use std::{path::PathBuf, time::Duration};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 mod media;
+mod replacement_peer;
 mod transition;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[derive(Deserialize)]
 #[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
 enum Journey {
+    ReplacementPeer {
+        config_path: PathBuf,
+        command: TransitionCommand,
+        root: connect_client::canonical::payloads::OperationUpdated,
+        offer: connect_client::canonical::payloads::ConnectionOffer,
+        media: replacement_peer::Source,
+        output: PathBuf,
+    },
     Media {
         publisher: ClientConfig,
         subscriber: ClientConfig,
@@ -69,6 +78,14 @@ async fn run() -> Result<()> {
     // Load the complete, durably saved original case before any network IO.
     let input: Journey = serde_json::from_slice(&std::fs::read(path)?)?;
     match input {
+        Journey::ReplacementPeer {
+            config_path,
+            command,
+            root,
+            offer,
+            media,
+            output,
+        } => replacement_peer::run(config_path, command, root, offer, media, output).await,
         Journey::Media {
             publisher,
             subscriber,

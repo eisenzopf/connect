@@ -1,0 +1,145 @@
+{
+  "format": "connect/physical-native-opus-replacement-local/1",
+  "task": "G6-058",
+  "source_files_sha256": {
+    "examples/rust-sdk-journey/src/main.rs": "11e39d9105d90fccfbb43ef0c08ed9a341a39b0e1a90decabe1972351a1ce42a",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "2dfcc3b8d0842b982fa37b103672d6ea4fd74a833aedfb7628aca74d8c875936",
+    "examples/rust-sdk-journey/Cargo.lock": "7a69eb7fb77f1d2d93cd8dddd989cc090dd4f678160fa01835346f7cde7fcabb"
+  },
+  "runtime_source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "runtime_binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+  "target_consumer_binary_sha256": "8581499e9589f0c3cfd5f71f6160a1a42a1c8b4e0765acaad2e47b33260b356b",
+  "host": "macos-arm64",
+  "node": "v22.16.0",
+  "signing": "EdDSA",
+  "scope": "One actual local native Opus Device-replacement component on an isolated synthetic clone. Public SDK controller and a physically independent destination peer; no Connect Store/service/server interface in the consumer. No AV, remote/browser matrix, twenty-transition or whole acceptance qualification.",
+  "controller": {
+    "original_move_completed": true,
+    "original_reference_recovered": true,
+    "move_completion_from_media_start_ms": 2255.736,
+    "original_owner_durable_retirement_observed": true,
+    "original_owner_receive_quiet_ms": 500,
+    "original_owner_explicitly_closed": true,
+    "original_session_end_completed": true,
+    "local_queue_receipt_is_not_delivery_permission": true
+  },
+  "physical_peer": {
+    "allocation_and_parameter_negotiation_completed": true,
+    "original_rtp_packets_sent": 500,
+    "skipped_original_frames": 0,
+    "raw_datagrams_received": 484,
+    "rtcp_clock_compounds": 10,
+    "independently_decoded_opus_packets": 474,
+    "original_client_joined": true,
+    "operation_completion_inferred": false
+  },
+  "decoded_audio": {
+    "decoder": "independent FFmpeg Opus/f32le; per-original-packet spectral identity",
+    "decoded": {
+      "owner": {
+        "packets": 102,
+        "samples": 97920,
+        "identified_counts": {
+          "440": 0,
+          "660": 0,
+          "880": 102
+        },
+        "unclassified": 0,
+        "pcm_sha256": "52e804bc998998c05ccbf51dd33e4ec62afeabeab0183e15ad8097dac54e96aa",
+        "ogg_sha256": "745ada7d8f09cc4e371711ae579ffcefd01d452e2cda1702c333b2fbc854729f"
+      },
+      "remote": {
+        "packets": 577,
+        "samples": 553920,
+        "identified_counts": {
+          "440": 104,
+          "660": 472,
+          "880": 0
+        },
+        "unclassified": 1,
+        "pcm_sha256": "6deef69ea8ac6d7879f35fb776d6a3f560e4ca48d5a1262f50525b3b900ee0b9",
+        "ogg_sha256": "24422424185921a8c7e96338b30b960c79b43f825ab73405f80724d1cb093ce9"
+      },
+      "target": {
+        "packets": 474,
+        "samples": 455040,
+        "identified_counts": {
+          "440": 0,
+          "660": 0,
+          "880": 473
+        },
+        "unclassified": 1,
+        "pcm_sha256": "ab2ccfaa775a442408ecd751ef9c0892616e30fc71efbe1ac423967ffd5655d4",
+        "ogg_sha256": "68d54145ecdfe47429e36659fc3e66b1de87179d2ea3c3eeb8798f2efbee6691"
+      }
+    },
+    "retained_receiver_last_original_speaker_ms": 2126.427875,
+    "retained_receiver_first_destination_speaker_ms": 2186.460959,
+    "decoded_packet_arrival_gap_ms": 40.033084000000144,
+    "original_speaker_after_identified_destination_frames": 0,
+    "one_observation_within_1000ms": true,
+    "observations": 1,
+    "twenty_transition_profile_qualified": false,
+    "paired_av_sync_qualified": false,
+    "full_media_quality_qualified": false,
+    "scope": "Original received packet order maps each960-sample decoder output to its original monotonic receive observation; no PLC or invented samples. Packet arrival timing is not decoder completion or device presentation timing."
+  },
+  "fresh_recovery": {
+    "original_reference_restored": true,
+    "original_captured_destination_device_matches": true,
+    "state": "completed",
+    "mutation_submitted": false,
+    "reader_and_server_joined": true
+  },
+  "cleanup": {
+    "original_helpers_observed": 3,
+    "original_helpers_joined": true,
+    "all_sdk_close_results": [
+      true,
+      true,
+      true
+    ],
+    "destination_worker_joined": true,
+    "server_joined": true,
+    "server_forced": false,
+    "original_qualified_fixture_unchanged": true
+  },
+  "private_report_sha256": "0d22b673aab012fbe8445bce990b8d9d5ec5479dd6edb897b0e557c7f36c9035",
+  "private_controller_sha256": "3580d04632b0380a688d4715e04e9f7d99386eab306df09dfc79edeb3f9a50b1",
+  "private_source_plan_sha256": "16ab6893c5103d1dbf3c2fd114bab58ca7ebb655fb8f951ae45b5f605cc549dd",
+  "private_target_input_sha256": "e4a11db9448d7a980244bf6df670ea5acd671db1439a38a7d54bdb1a8ae56f95",
+  "private_target_observation_sha256": "7b19f99fc825429fdb8c24a79e424990252dbc8fc9c2ff68a9208c3e7dab621a",
+  "prior_negative_attempts": [
+    {
+      "case": "a",
+      "phase": "baseline-audio",
+      "result": "Diagnostic passed a string NTP value to the bigint SDK clock interface; validation refused before target launch."
+    },
+    {
+      "case": "b",
+      "phase": "move-completion",
+      "result": "Original root recovered failed/allocation-stopped. Following case corrects native codec-capability shape; exact historical failure chain is unproven."
+    },
+    {
+      "case": "c",
+      "phase": "destination-media",
+      "result": "Move and physical packets completed; incorrect diagnostic demanded immediate local-queue rejection after retirement. Corrected verification reads original retirement and observes old delivery/owner drain."
+    },
+    {
+      "case": "d",
+      "phase": "session-end",
+      "result": "Diagnostic used the closed original owner handle. Final scene uses the still-authorized controller under the same Session."
+    }
+  ],
+  "audit_correction": "First offline decode misclassified10RTCP clock compounds as Opus and failed its exact sample-count assertion. Corrected demultiplexing audits the same original capture; no transport rerun or invented PCM.",
+  "verification": {
+    "locked_offline_build_passed": true,
+    "independent_consumer_tests": 2,
+    "format_check": true,
+    "sdk_before_after_file_guard_captured": false
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "base_source_revision": "c2c5d09b7f0f12aa5a342510642113e8d47889a2"
+}

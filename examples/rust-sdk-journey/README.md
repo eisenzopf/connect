@@ -34,6 +34,18 @@ the transition controller never obtains it from the returned metadata.
 unsuccessful transition. The case contains the full original intent before IO.
 No case accesses server internals or silently resubmits a mutation.
 
+`replacement_peer` owns the separately signed physical target for a saved
+`connection.replace` operation. Its private case supplies the original command,
+current operation root, native Opus offer, native configuration path and bounded
+original encoded packets. It allocates the target, validates both negotiation
+legs, answers the parameter callback, sends paced RTP/source clocks and records
+received native datagrams before joining its client. The current mode is mono
+48 kHz Opus with 20 ms packets for at most 30 seconds. Its `passed` observation
+does not infer operation completion, decoded media or readiness from an answer
+or clock report; the controller and independent decoder prove those separately.
+Capture its diagnostic stdout under ignored `.local/` beside the private case
+and output. See the [replacement procedure](../../docs/developer/native-physical-replacement-peer.md).
+
 The isolated server tests are ignored by default because they require a concrete
 built consumer. To run only those tests against this example build:
 
