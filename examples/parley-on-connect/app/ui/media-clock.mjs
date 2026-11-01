@@ -1,6 +1,14 @@
 // Application playout timing over the public SDK's typed RTP/SR observations.
 const fail = () => { throw Object.assign(Error("Invalid media clock"), { code: "app-media-clock" }); };
 const uint = n => Number.isInteger(n) && n >= 0 && n <= 0xffffffff;
+// MediaTimeline already maps RTP/NTP into this page's monotonic clock.
+// Convert that clock into current WebAudio time; the first decoded frame must
+// not introduce a second origin that survives an initial SR correction.
+export function playoutTime(timestampUs, nowUs, audioNow) {
+    if (!Number.isSafeInteger(timestampUs) || !Number.isSafeInteger(nowUs) ||
+        !Number.isFinite(audioNow) || audioNow < 0) fail();
+    return audioNow + (timestampUs - nowUs) / 1000000 + 0.08;
+}
 export function rtpTimestamp(timestampUs, rate) {
     if (!Number.isSafeInteger(timestampUs) || timestampUs < 0 || ![48000, 90000].includes(rate)) fail();
     return Number(BigInt.asUintN(32, (BigInt(timestampUs) * BigInt(rate) + 500000n) / 1000000n));

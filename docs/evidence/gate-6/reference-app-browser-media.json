@@ -1,11 +1,11 @@
 {
   "format": "connect/reference-app-browser-media/1",
   "task": "G6-072",
-  "status": "installed-audio-verified-video-selection-and-marker-rehearsal-implemented-unverified",
+  "status": "direct-mapped-playout-clock-correction-component-tested-installed-required",
   "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
   "implementation_inputs": {
     ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
-    "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
+    "examples/parley-on-connect/app/browser-media.test.mjs": "1604c7e5060cde6222c7967224574441874cdf9c597120a12061212f195e9368",
     "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
     "examples/parley-on-connect/app/gateway.mjs": "cd1bb90745a8b37b17658d8dff54569c4119349f176589d062e4d697c04fd890",
@@ -24,16 +24,16 @@
     "examples/parley-on-connect/app/ui/app.mjs": "2a724a2a7813c04c3393fb263f2361f23aaaff8cdd9e47c15b1464dad94587c2",
     "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
-    "examples/parley-on-connect/app/ui/media-clock.mjs": "a7ca18825a6cb7971b00a02ef8b9e0fa2c37234c4578820861bb593b68d6b430",
-    "examples/parley-on-connect/app/ui/media.mjs": "67968a109103bad05cc5a4bed98ff381bfdff764affeedf630b0214e2609aa7c",
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "e1dfc2c59d9ee9323b29d7fa649c1357993fd5ae2c1b328a403fd60de6a2aff3",
+    "examples/parley-on-connect/app/ui/media.mjs": "8245fee690eb5018233d29aec7dce564226e0fa736e28c84b93b4cc9cb80856e",
     "scripts/check-reference-app-installed.mjs": "219610c2a2029766ab5621289c8b15a9ab15718911fe6711f4b9182b6b8c2dd8",
     "examples/parley-on-connect/README.md": "2fbded77e5019d1858ae1142ff562391936ecc7564b26327f02a7bdfa323c5b5"
   },
   "local_verification": {
-    "app_component_functions_passed": 65,
+    "app_component_functions_passed": 66,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "65 local application/HTTP/worklet/clock cases. Independent abee installed Mac/Linux audio/control24/24checks retained separately. Current video selector, unsubscribe, capture counters and28check AV rehearsal require installed execution."
+    "scope": "66 local application/HTTP/worklet/source-clock/playout-conversion cases. Current correction maps already-local RTP/SR timestamps directly into current AudioContext time without retaining a second first-decoded origin; test preserves stale/future rejection and AV offsets. Installed28check result remains required."
   },
   "implementation": {
     "public_sdk": [
@@ -98,7 +98,7 @@
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "source_revision_before_correction": "abeea973142e46374e3135371bb5e79ebcff85da",
+  "source_revision_before_correction": "760064aaa3297c77c23b3b2d3edfb4a8014ae5b4",
   "opening_correction": "One coherent current signed snapshot establishes original participant/epoch, accepted present Session and physical Connection/generation, followed by public native negotiation. Signed Connection/current-generation supervision runs one owned read at a time with500ms cadence and unchanged2s bound, separately from per-packet native handle/revision/format checks. SDK and Core authorization remain authoritative on actual IO. Read-only opening/supervision drains on local retirement, because cancelling a live stdio RPC fences the shared SDK control owner; packet work remains cancellable and joined. Local capture/render stops immediately. All2s/8s/30s and200ms media bounds remain; no success or timing/stability claim is inferred. Current correction isolates each lease's signed generation watcher in an independently owned read-only public NodeClient, with unchanged2s bounds. Original client retains native media and mutation ownership. Observer drains/joins on original lease retirement, failed admission, reconnect and shutdown; a watcher deadline remains fail-closed but cannot fence the shared UI control owner.",
   "previous_runtime_failures": [
     {
@@ -114,7 +114,30 @@
       "checks_passed_per_platform": 16,
       "actual_capture_and_native_packets_observed": true,
       "identified_audio_verified": false
+    },
+    {
+      "workflow_run_id": 41283924995,
+      "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-760.json",
+      "checks_passed": {
+        "mac": 21,
+        "linux": 16
+      },
+      "actual_mac_captured_video_frames": [
+        64,
+        63
+      ],
+      "actual_mac_decoded_video_frames": [
+        64,
+        62
+      ],
+      "actual_mac_painted_video_frames": [
+        2,
+        1
+      ],
+      "identified_video_verified": false,
+      "all_cancellation_causes_resolved": false
     }
   ],
-  "component_harness_finding": "docs/evidence/gate-6/reference-app-browser-media-harness-negative-4ca.json"
+  "component_harness_finding": "docs/evidence/gate-6/reference-app-browser-media-harness-negative-4ca.json",
+  "playout_correction": "MediaTimeline already maps original RTP/SR to page monotonic time. Convert directly to current WebAudio time plus unchanged80ms jitter. Remove redundant first-decoded origin; it could pin a wrong offset after fallback/SR transition. No frame retimestamping, queue expansion or horizon relaxation. Closed audio/video late/horizon/capacity/timer drop counters and current offset in milliseconds support actual runtime diagnosis."
 }

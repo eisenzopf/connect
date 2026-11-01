@@ -1,6 +1,6 @@
 import { BrowserOpusCodec, BrowserVp8Codec, RtpSender, Vp8Assembler,
     decodeRtpDatagram, browserCodecSupport } from "/sdk/browser.js";
-import { MediaTimeline, rtpTimestamp, senderReport } from "./media-clock.mjs";
+import { MediaTimeline, rtpTimestamp, senderReport, playoutTime } from "./media-clock.mjs";
 const fail = code => { throw Object.assign(Error(code), { code }); };
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 function unbase64(value) {
@@ -11,14 +11,17 @@ export class BrowserAppMedia {
     #stopped = false; #started = false; #abort = new AbortController(); #closing;
     #calls = new Set(); #loops = new Set(); #routes = new Map(); #sources = new Set();
     #context; #input; #worklet; #silent; #stream; #lease; #binding; #video; #videoCallback;
-    #preview; #remote; #timer; #presentation; #audioOrigin; #timeline = new MediaTimeline();
+    #preview; #remote; #timer; #audioOrigin; #timeline = new MediaTimeline();
     #phase = "idle"; #stoppedAt = null;
     #cname = "parley-" + crypto.randomUUID(); #onState;
     #counts = { capturedAudioFrames: 0, capturedVideoFrames: 0, encodedFrames: 0,
         sentRtp: 0, receivedRtp: 0, clockReportsSent: 0, clockReportsReceived: 0,
         videoClockReportsSent: 0, videoClockReportsReceived: 0,
         decodedAudioFrames: 0, playedAudioFrames: 0, decodedVideoFrames: 0, paintedVideoFrames: 0,
-        droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0 };
+        droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0,
+        audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
+        videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0,
+        lastAudioOffsetMs: null, lastVideoOffsetMs: null };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
@@ -289,13 +292,16 @@ export class BrowserAppMedia {
         }
     }
     #desired(timestampUs) {
-        this.#presentation ??= { source: timestampUs, local: this.#context.currentTime + 0.08 };
-        return this.#presentation.local + (timestampUs - this.#presentation.source) / 1000000;
+        return playoutTime(timestampUs, Math.round(performance.now() * 1000), this.#context.currentTime);
     }
     #playAudio(route, frame) {
         this.#counts.decodedAudioFrames++;
         const now = this.#context.currentTime, desired = this.#desired(frame.timestamp);
+        this.#counts.lastAudioOffsetMs = Math.round((desired - now) * 1000000) / 1000;
         if (this.#context.state !== "running" || this.#sources.size >= 10 || desired < now - 1 / 48000 || desired + 0.02 > now + 0.2) {
+            if (this.#sources.size >= 10) this.#counts.audioCapacityDrops++;
+            if (desired < now - 1 / 48000) this.#counts.audioLateDrops++;
+            if (desired + 0.02 > now + 0.2) this.#counts.audioHorizonDrops++;
             this.#counts.droppedFrames++; return;
         }
         const samples = new Float32Array(960);
@@ -311,7 +317,12 @@ export class BrowserAppMedia {
     #paintVideo(route, frame) {
         this.#counts.decodedVideoFrames++;
         const now = this.#context.currentTime, desired = this.#desired(frame.timestamp);
-        if (desired < now - 0.02 || desired > now + 0.2) { this.#counts.droppedFrames++; return; }
+        this.#counts.lastVideoOffsetMs = Math.round((desired - now) * 1000000) / 1000;
+        if (desired < now - 0.02 || desired > now + 0.2) {
+            if (desired < now - 0.02) this.#counts.videoLateDrops++;
+            if (desired > now + 0.2) this.#counts.videoHorizonDrops++;
+            this.#counts.droppedFrames++; return;
+        }
         if (route.pendingVideo) { route.pendingVideo.frame.close(); this.#counts.droppedFrames++; }
         clearTimeout(route.paintTimer); const owned = { frame: frame.clone(), desired }; route.pendingVideo = owned;
         route.paintTimer = setTimeout(() => {
@@ -320,7 +331,7 @@ export class BrowserAppMedia {
             try {
                 if (!this.#stopped && this.#context.currentTime - owned.desired < 0.05) {
                     route.canvas.drawImage(owned.frame, 0, 0, 640, 360); this.#counts.paintedVideoFrames++;
-                } else this.#counts.droppedFrames++;
+                } else { this.#counts.videoTimerDrops++; this.#counts.droppedFrames++; }
             } finally { owned.frame.close(); }
         }, Math.max(0, (desired - now) * 1000));
     }

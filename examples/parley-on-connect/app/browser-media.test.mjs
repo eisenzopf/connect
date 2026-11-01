@@ -2,8 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { MediaTimeline, senderReport, rtpTimestamp } from "./ui/media-clock.mjs";
+import { MediaTimeline, senderReport, rtpTimestamp, playoutTime } from "./ui/media-clock.mjs";
 const report = (ssrc, rtp, ntp) => ({ ssrc, rtp, ntp: ntp.toString(), packets: 1, octets: 3, cname: "synthetic" });
+test("playout uses the mapped local clock after SR correction and never makes a delayed frame fresh", () => {
+    // An old first decoded packet cannot pin the presentation origin. Later SR
+    // mapped AV frames must use their real local monotonic targets directly.
+    assert.ok(playoutTime(1000000, 2020000, 0.5) < 0.5);
+    assert.ok(Math.abs(playoutTime(2000000, 2020000, 0.5) - 0.56) < 1e-10);
+    assert.ok(Math.abs(playoutTime(2010000, 2020000, 0.5) - 0.57) < 1e-10);
+    assert.ok(playoutTime(2300000, 2020000, 0.5) > 0.7);
+    // A suspended or differently advancing audio clock introduces no retained
+    // offset; the same local target still has60ms remaining at current audioNow.
+    assert.ok(Math.abs(playoutTime(5000000, 5020000, 1.1) - 1.16) < 1e-10);
+    assert.throws(() => playoutTime(1, 2, NaN), { code: "app-media-clock" });
+});
 test("capture clock uses exact NTP integers and wraps RTP without truncating the source timeline", () => {
     const value = senderReport(1000000, 48000, { ssrc: 7, packets: 1, octets: 3 }, "synthetic", 0);
     assert.equal(value.ntp, (2208988801n << 32n).toString());
