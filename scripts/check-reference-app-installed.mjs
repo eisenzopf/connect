@@ -247,9 +247,29 @@ try {
         const input = new OffscreenCanvas(8, 8), source = input.getContext("2d");
         source.fillStyle = "rgb(0,255,0)"; source.fillRect(0, 0, 8, 8);
         const output = new OffscreenCanvas(8, 8), target = output.getContext("2d");
-        let painted = 0, dropped = 0;
+        let painted = 0, dropped = 0, omittedTimerSamples = 0;
+        const timerSamples = [], paintSamples = [], dropReasons = {};
+        const pageState = { visibility: document.visibilityState, focused: document.hasFocus() };
         const queue = new VideoPlayout({ now: () => performance.now() / 1000,
-            paint: frame => { target.drawImage(frame, 0, 0); painted++; }, drop: () => { dropped++; } });
+            paint: frame => {
+                const began = performance.now();
+                target.drawImage(frame, 0, 0); painted++;
+                if (paintSamples.length < 3) paintSamples.push({ began_ms: began, duration_ms: performance.now() - began });
+            },
+            drop: reason => { dropped++; dropReasons[reason] = (dropReasons[reason] ?? 0) + 1; },
+            // Observe the original native timer without changing its delay,
+            // callback, cancellation or the queue's freshness decisions.
+            setTimer: (callback, delay) => {
+                const sample = { requested_at_ms: performance.now(), requested_delay_ms: delay };
+                if (timerSamples.length < 64) timerSamples.push(sample);
+                else omittedTimerSamples++;
+                return setTimeout(() => {
+                    sample.fired_at_ms = performance.now();
+                    sample.wake_lateness_ms = sample.fired_at_ms - sample.requested_at_ms - delay;
+                    try { callback(); }
+                    finally { sample.callback_duration_ms = performance.now() - sample.fired_at_ms; }
+                }, delay);
+            } });
         const originals = [], constructionStart = performance.now();
         try {
             // This component tests cloned-frame ownership and native timers.
@@ -265,6 +285,8 @@ try {
             await new Promise(done => setTimeout(done, 300));
             return { painted, dropped, queued: queue.size, pixel: [...target.getImageData(4, 4, 1, 1).data],
                 frame_construction_ms: Math.round(frameConstructionMs), enqueue_ms: Math.round(enqueueMs),
+                page_state: pageState, drop_reasons: dropReasons, timer_samples: timerSamples,
+                omitted_timer_samples: omittedTimerSamples, paint_samples: paintSamples,
                 observation_ms: Math.round(performance.now() - start * 1000) };
         } finally { for (const frame of originals) frame.close(); queue.close(); }
     });

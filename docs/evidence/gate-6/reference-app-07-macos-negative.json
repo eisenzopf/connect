@@ -72,5 +72,12 @@
     "runtime_evidence": "d621ec4aca2b766aff862c93914b3e8993922b9fb7ef1efd37af254dbc60ad7c",
     "runtime_package": "d922a67a8abea616320cbe187ad7bffcbd74fa013b06bdf200ce89860f808061",
     "node_package": "06d52ec1f33ec24d1529cea1720e63b779153e0639e8f2f83e1c4d2cba3566d6"
+  },
+  "next_probe_prepared": {
+    "checker_sha256": "38c28813366e1f4a979379cc1d74cd1f8f2123ca0ab7c80f10e5656c37856b5c",
+    "syntax_check": "Node22 --check passed",
+    "actual_browser_execution": false,
+    "observations": "At most64 original timer requests/wakes/callback durations,3draw durations, exact drop reasons and initial page visibility/focus. Uses original native setTimeout delay/cancellation, unchanged queue decisions and all original assertions.",
+    "fix_claimed": false
   }
 }
