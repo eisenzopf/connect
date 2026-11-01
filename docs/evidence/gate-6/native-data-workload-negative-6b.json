@@ -1,0 +1,164 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "6b0f9aea8adbba590060837b1ede88a0661470b3",
+  "workflow_run_id": 41271516266,
+  "job_id": 124745082285,
+  "artifact_id": 13070104054,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": false,
+    "source_revision": "6b0f9aea8adbba590060837b1ede88a0661470b3",
+    "artifact_sha256": "1391d6910b0c9d9c22c1aad3aab919efb5231fd24848374feefa9fa5cd4b0082",
+    "report_sha256": "2cd9128c04955e0494d4777c1cbf970085f36089bc7984f9cae2fa7cc7ea0ec6",
+    "source_inputs_sha256": "01451b37f99123e68698fe1766f92080630c39df6d2273689338ed32936b6ad0",
+    "sources_verified": {
+      "git": 4702,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "674cafd5b2a7f661179334f1f6b2db54203cccdd2b1887b2d214b8af86c6f033",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 48,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "f50e1b7351394841e2b418677e2da714035af3d25fb7c16149c556f779256629",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 0,
+      "native_data_completions": 0,
+      "native_data_receives": 0
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "data_context": {
+      "step": "submission",
+      "source_role": "participant-4",
+      "session_index": 0
+    },
+    "command": "message.send",
+    "problem": {
+      "code": 400,
+      "category": "validation",
+      "reason": "invalid_request"
+    },
+    "source_stack": []
+  },
+  "native_data_failure_stages": [
+    {
+      "stage": "durable-admission",
+      "code": "invalid-request",
+      "origin": "other"
+    },
+    {
+      "stage": "durable-admission",
+      "code": "invalid-request",
+      "origin": "other"
+    },
+    {
+      "stage": "durable-admission",
+      "code": "invalid-request",
+      "origin": "other"
+    },
+    {
+      "stage": "durable-admission",
+      "code": "invalid-request",
+      "origin": "other"
+    }
+  ],
+  "native_data_checkpoints": [
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "handler-entered",
+    "handler-entered",
+    "worker-entered",
+    "handler-entered",
+    "worker-entered",
+    "handler-entered",
+    "worker-entered",
+    "authority-entered",
+    "handler-entered",
+    "worker-entered"
+  ],
+  "source_identified_fixture_mismatch": {
+    "initialized_message_bytes": 16384,
+    "required_decoded_payload_bytes": 65536,
+    "actual_encoded_body_bytes": 87384,
+    "configured_encoded_body_guard": 21849,
+    "diagnostic_origin_label": "other",
+    "runtime_boundary": "durable-admission",
+    "guard_error_message_not_in_curated_log": true,
+    "source_inputs_sha256": {
+      "crates/connect-protocol/src/lib.rs": "baaf23e18933ab36c4ce80eb20ae4c1b1bb673416ec593c67682013399a8b347",
+      "crates/connect-server/src/cli/canonical_init.rs": "b531d27fdbe0819208c1449dabe41c9b5ceeea2c502405dcfefb9ed7a67f6925",
+      "crates/connect-server/src/canonical.rs": "955eb4d94364bf517022257a83488c8bb48b1b2af15d2d434f7ab23635fc8cb0",
+      "crates/connect-store/src/messages.rs": "af2efac27bbb7e4a559eeb44aa03b50ff8daed25d319f23a56db4742dca40d64",
+      "crates/connect-store/src/transitions/native_streams/data.rs": "da6ff9301fe7b3c9738f15dbf80025f00e19ad7752115ce59343a51ad221dc91"
+    },
+    "interpretation": "The verified initializer selects Limits::default with a16KiB message limit; the fixture previously retained that limit. Native64KiB input passes source/format preflight, then durable admission calls the shared message writer. Its configured encoded/decoded byte guard deterministically refuses this payload. The runtime diagnostic identifies durable-admission/invalid-request/other; it does not contain the exact error message. Corrected configuration must still pass the actual workload."
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native loopback UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "f2f1aa991d833fd2e1ccdd9d02975bc82da09f6d5fc752acf615f7f04d1ebbd4",
+    "pcap_bytes": 1234308,
+    "captured_seconds": 15.034366766999938,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and loopback host and exact owned native server port",
+    "counts": {
+      "packets": 643,
+      "to_server_packets": 348,
+      "from_server_packets": 295,
+      "captured_bytes": 1223996,
+      "udp_payload_bytes": 1196990,
+      "to_server_udp_bytes": 584940,
+      "from_server_udp_bytes": 612050
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "correction": {
+    "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
+    "configured_message_bytes": 65536,
+    "production_default_changed": false,
+    "workload_payload_shrunk": false,
+    "insufficient_existing_seed_refuses_without_rewrite": true,
+    "exact_native_sender_recipient_history_added": true,
+    "local_transport_guards_passed": 42,
+    "node_python_syntax_passed": true,
+    "workflow_run_id": 41273896036,
+    "job_id": 124752048854,
+    "runtime_verified": false
+  },
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

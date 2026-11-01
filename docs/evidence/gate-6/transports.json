@@ -1194,22 +1194,24 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "source-verified-data-submission-negative-admission-diagnostics",
+    "status": "durable-admission-negative-source-identified-fixture-limit-correction-pending",
     "implementation_hashes": {
-      "scripts/check-transport-conversation.mjs": "81a011503bc9dab73e5fb7f21b907fd2f349b301dc94c304dd4a9a5d689f49c3",
-      "scripts/check-transport-fixtures.py": "4ae4e8eef5b5e4783228cd05275ba6133881757639f38c13952718f7f5702bd7",
+      "scripts/check-transport-conversation.mjs": "7dac2942c8fd2c7b3306aa100853911595819037ecb9f64b36bf4eec68880f36",
+      "scripts/check-transport-fixtures.py": "dd8cb005ed3585afd2af35cb575f802c3afc3ae933755b0df7431e1a9edb0e6f",
       "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
       "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
       ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
       ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff",
       "crates/connect-server/src/cli/credential_installation.rs": "2d7cac6ff307f43f6772138c485ac1e8a93ee40b61e7697f7228439f2a05baa5",
-      "scripts/fixtures/transport-matrix/README.md": "a1c502dffb0f830c04631fa627d4170520f0d5c37613d4eea9379fd0c9fae7d5",
+      "scripts/fixtures/transport-matrix/README.md": "fdff827f4956e4a87775ae5129b441ad8aec31dd3899196d51b5849572bd8b56",
       "docs/operations/README.md": "54bc66e4b48f20b035b3ad822752d227d70dda410023b86880224cd9b7f057b2",
       "crates/connect-service/src/canonical_native_data.rs": "12c29fcaa56fdd21d7692eacac6fe1a1b42c8b2dc7fbe85463041d17a692a11d",
       "crates/connect-service/src/canonical.rs": "ab56c7bdbc74283011e534f10c48b8efebac07075f270a1fe14132a7daad2327",
-      "crates/connect-service/src/peer_authority.rs": "5d8ab1aa9426b516f4ba140310b1e812ccba9578e2785aef4196ffe33c894769"
+      "crates/connect-service/src/peer_authority.rs": "5d8ab1aa9426b516f4ba140310b1e812ccba9578e2785aef4196ffe33c894769",
+      "scripts/lib/transport_fixture.py": "376bcc7670b54c49986afa26d22b0a18acc17144bb12bdb8992476265d30227d",
+      "scripts/tests/test_transport_fixture.py": "5112f037bae27c4031ec96f6118561142d0001132e9ff8300101cb89082ea9e6"
     },
-    "local_transport_guards_passed": 21,
+    "local_transport_guards_passed": 42,
     "node_python_syntax": true,
     "workflow_yaml_parsed": true,
     "fresh_scope_operations": 28,
@@ -1243,7 +1245,7 @@
       "job_id": 124738696422,
       "status": "completed-failure-prepare-status-not-ready"
     },
-    "observed": "Six native offers complete, but the first reliable-data failure is message.send submission/session0/participant1. Zero returned data Operation handles/completions/receives. Result recovery was not reached. Five helpers/two servers/capture owner join without force; current private capture659packets/zero kernel drops. Concrete refusal origin not yet established.",
+    "observed": "Source-verified6b diagnostic reaches authority/handler/worker/source-format and then four durable-admission invalid-request/other refusals. Six offers complete; zero payload submissions/completions/receives. The fixture keeps the normal16KiB message limit while sending required64KiB decoded bodies. The shared journal writer necessarily rejects that size. Exact error text is not logged. Five helpers/two servers/capture owner join without force; configured-limit correction awaits runtime.",
     "diagnostic_follow_up": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics. Reached-stage markers distinguish requests that never enter authority/handler/worker from later admission/publication/receipt failures; no identifiers or payloads enter curated diagnostics.",
     "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
     "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
@@ -1258,8 +1260,21 @@
       "data_workload_passed": false
     },
     "endpoint_precondition_runtime_verified": true,
-    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-abff.json",
-    "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json"
+    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-6b.json",
+    "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json",
+    "message_limit_correction_candidate": {
+      "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
+      "configured_message_bytes": 65536,
+      "production_default_changed": false,
+      "workload_payload_shrunk": false,
+      "insufficient_existing_seed_refuses_without_rewrite": true,
+      "exact_native_sender_recipient_history_added": true,
+      "local_transport_guards_passed": 42,
+      "node_python_syntax_passed": true,
+      "workflow_run_id": 41273896036,
+      "job_id": 124752048854,
+      "runtime_verified": false
+    }
   },
   "native_signing_cohorts": {
     "status": "source-verified-ES256-configuration-and-actor-stage-pass",
