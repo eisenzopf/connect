@@ -52,7 +52,10 @@ function fixture() {
                             service.connectionPresent = true; service.connectionId = sdk.connectionId;
                             return mutate("connection.offer", { conversationId: cid, sessionId: sid, connectionId: sdk.connectionId }, sdk, options, { id: sdk.connectionId });
                         }, byId: connectionId => ({
-                        refresh: async () => { permitted(); return { id: connectionId, generation: service.connectionGeneration ?? 1, streamRevision: service.streamRevision, state: "ready" }; },
+                        refresh: async () => { permitted(); service.signedConnectionReads ??= []; service.signedConnectionReads.push(current);
+                            if (service.failSupervision && current !== service.clients[0]) { current.fenced = true;
+                                throw { kind: "deadline", certainty: "read-only" }; }
+                            return { id: connectionId, generation: service.connectionGeneration ?? 1, streamRevision: service.streamRevision, state: "ready" }; },
                         update: (update, revision, options) => mutate("connection.update", { conversationId: cid, sessionId: sid, connectionId },
                             { update, revision }, options, { connection: { id: connectionId } }),
                         end: (sdk, options) => mutate("connection.end", { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { id: connectionId }),
@@ -367,4 +370,27 @@ test("media opening refuses a changed snapshot revision across pages before any 
     await assert.rejects(f.gateway.mediaOpen("owner", {}, {
         conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" }), { code: "app-resync-required" });
     assert.equal(service.mediaDescribeReads ?? 0, 0);
+});
+
+test("media supervision owns an isolated read-only client and joins it without retiring the original control owner", async t => {
+    const f = await setup(); t.after(() => f.close());
+    const owner = {}, binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
+    const lease = await f.gateway.mediaOpen("owner", owner, binding);
+    assert.equal(f.service.clients.length, 2);
+    const [original, supervisor] = f.service.clients;
+    f.service.failSupervision = true;
+    await new Promise(done => setTimeout(done, 550));
+    assert.deepEqual(f.service.signedConnectionReads, [supervisor]);
+    assert.equal(supervisor.fenced, true);
+    assert.equal(supervisor.closed, true);
+    assert.equal(supervisor.closes, 1);
+    assert.equal(original.closed, false);
+    assert.equal(original.fenced, undefined);
+    await assert.rejects(f.gateway.mediaReceive("owner", owner, { leaseId: lease.leaseId, streamId: "stream-1" }),
+        { code: "app-media-stopped" });
+    assert.equal((await f.gateway.capabilities("owner")).transport, "quic");
+    assert.equal(f.service.clients.length, 2);
+    await f.gateway.reconnect("owner");
+    assert.equal(original.closed, true);
+    assert.equal(supervisor.closes, 1);
 });

@@ -211,16 +211,25 @@ export class AppGateway {
                     return { generation: physical.generation, negotiation };
                 } catch (error) { this.#onError(error, { phase: "packet-native-negotiation" }); throw error; }
             };
+            // A deadline fences its entire Node SDK control owner. Keep media
+            // supervision on its own read-only client so UI snapshot/mutation
+            // traffic cannot queue ahead of it or lose its original owner.
+            // The original client alone retains the native media handles.
+            const observer = this.#factory(this.#actor(role));
+            const observed = observer.conversations.byId(binding.conversationId).sessions.byId(binding.sessionId)
+                .connections.byId(binding.connectionId);
+            let closing;
+            const close = () => closing ??= observer.close({ timeoutMs: 2000 });
             const controlCheck = async opts => {
                 try {
                     if (this.#client(role) !== client) fail("app-media-stopped");
-                    return await connection.refresh(opts);
+                    return await observed.refresh(opts);
                 } catch (error) {
                     if (opts.signal?.reason?.name !== "AbortError") this.#onError(error, { phase: "media-control-supervision" });
                     throw error;
                 }
             };
-            return { generation: physical.generation, negotiation, media, check, controlCheck };
+            return { generation: physical.generation, negotiation, media, check, controlCheck, close };
         } catch (error) { this.#onError(error, { phase }); throw error; }
     }
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }

@@ -34,6 +34,7 @@ export class AppMediaBridge {
             // A cancelled stdio control read fences its whole SDK owner.
             // Drain bounded read-only admission instead; discard its late result.
             const result = await this.#open(role, lease.binding, this.#controlOptions());
+            lease.handle = result; // Own disposal even if admission finishes after retirement.
             if (lease.abort.signal.aborted || this.#owners.get(owner) !== lease) fail("app-media-stopped");
             if (!Number.isSafeInteger(result.generation) || result.generation < 1 ||
                 typeof result.controlCheck !== "function" ||
@@ -47,6 +48,7 @@ export class AppMediaBridge {
         try { return await lease.opening; }
         catch (error) {
             lease.abort.abort(); clearTimeout(lease.timer);
+            await this.#dispose(lease);
             if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
             throw error;
         }
@@ -171,7 +173,11 @@ export class AppMediaBridge {
         const lease = this.#owners.get(owner); if (!lease) return;
         lease.abort.abort(); clearTimeout(lease.timer);
         await Promise.allSettled([lease.opening, lease.supervision, ...lease.active.values()]);
+        await this.#dispose(lease);
         if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
+    }
+    #dispose(lease) {
+        return lease.disposal ??= Promise.resolve().then(() => lease.handle?.close?.());
     }
     async closeRole(role) {
         await Promise.all([...this.#owners.values()].filter(v => v.role === role).map(v => this.closeOwner(v.owner)));
