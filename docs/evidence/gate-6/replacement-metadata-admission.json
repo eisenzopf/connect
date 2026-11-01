@@ -1,0 +1,259 @@
+{
+  "format": "connect/gate6-replacement-metadata-admission/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Endpoint replacement immutable metadata admission under current packet readers, plus independent Session control owners. Admission regression passes; full Store verification and complete media workload remain open.",
+  "source_files_sha256": {
+    "crates/connect-store/src/transitions/admission.rs": "2f0b9c57cabc7ef41dc19d2eb824ce5f322230e32bc1e18f51b250af4bef38f9",
+    "crates/connect-store/src/transitions/tests/peer_operations.rs": "3dcacef0de015fd0f2d8e8ea5e668eefa96a5b65361e6008ad0f5df5d8dbdae8",
+    "scripts/lib/transport_movement_workload.mjs": "cdcaa0c49fbf0cd76547abba73e5397761d57b2701402bc7aed17bf959805244",
+    "scripts/tests/transport_movement_workload.test.mjs": "6bd4cc1f4c0abb8f705ec6f6547e6379a461fa0f1ce6b834eb293d1d39180264"
+  },
+  "controlled_admission": {
+    "baseline": {
+      "exit_code": 101,
+      "test_binary_sha256": "36e5825e227bc1000780d8ca026ec578591cc598f5d6c9f74170a1e7f1e70405",
+      "inputs": {
+        "crates/connect-store/src/transitions/admission.rs": "f5ec46b923e88b689029348776254e27805dbf437e9dd7cac5dc28d65da75c06",
+        "crates/connect-store/src/transitions/tests/peer_operations.rs": "04f32ac24db8481e28284c7f5b7a8f085949278c15f3969c7526e2274914f5b0",
+        "dependencies/source-lock.json": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+        "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da"
+      },
+      "source_inputs_unchanged": true,
+      "cases_failed": 1,
+      "scope": "Isolated controlled fresh fixture; not a retry of the actual uncertain movement operation"
+    },
+    "corrected": {
+      "exit_code": 0,
+      "test_binary_sha256": "8a71ec7faa97817f2d7e9ec93d0fc10645132790d87e85d94dee8db060146780",
+      "passed": true
+    },
+    "verified": "Current shared packet readers stay held while exact original metadata admission and receipt replay succeed. Source connection state/endpoint/generation and native preparation rows remain unchanged, changed-intent proof refuses, and an actual graph writer remains blocked until readers release."
+  },
+  "correction": "Endpoint replacement admission and its retained ledger row use shared current source/Conversation authority for immutable intent and transactional reservations, as existing candidate admission does. Actual graph/role/binding mutation keeps its separate write fences and native custody. Existing candidate-specific worker exclusions remain unchanged.",
+  "node_control_owner_tests": {
+    "exit_code": 0,
+    "source_inputs_unchanged": true,
+    "node_cases": 26,
+    "passed": true
+  },
+  "production_build": {
+    "stage": "complete",
+    "controller_pid": 73749,
+    "passed": true,
+    "cases": [],
+    "exit_code": 0,
+    "elapsed_seconds": 76.0035872082226,
+    "binary": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/debug/connect",
+    "binary_sha256": "c956581bf62fd71a18b42276a8d221ab8f4c8b6e7248ef60a230ec3dacfab9d1",
+    "source_inputs_unchanged": true
+  },
+  "full_store_suite": {
+    "status": "in-progress",
+    "observed_at": "2026-11-01T21:18:51.490409+00:00",
+    "passed_so_far": 914,
+    "failed_cases_so_far": [
+      "test connection_control::tests::native_stream_authority::dtmf::native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_original_source_or_replay ... FAILED"
+    ],
+    "qualified": false,
+    "isolated_failed_dtmf_case": {
+      "exit_code": 0,
+      "test_binary_sha256": "8a71ec7faa97817f2d7e9ec93d0fc10645132790d87e85d94dee8db060146780",
+      "passed": true
+    },
+    "limitation": "The isolated DTMF case passes, but the full-run failure remains. Await original suite completion and inspect its exact assertion before deciding its cause."
+  },
+  "actual_scenes": [
+    {
+      "private_directory": ".local/gate-6/movement-workload-native-admission",
+      "passed": false,
+      "runtime_sha256": "c956581bf62fd71a18b42276a8d221ab8f4c8b6e7248ef60a230ec3dacfab9d1",
+      "original_operation_rows": [
+        {
+          "source_index": 0,
+          "ordinal": 0,
+          "state": "failed",
+          "revision": 12
+        }
+      ],
+      "stages": [
+        {
+          "source": "0-0",
+          "original_root_completed": false,
+          "target_launched": true,
+          "target_joined": true,
+          "target_forced": false,
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        },
+        {
+          "source": "4-0",
+          "original_root_completed": false,
+          "target_launched": false,
+          "target_joined": false,
+          "target_forced": false,
+          "failure": {
+            "phase": "original-submission",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "not-submitted"
+          }
+        }
+      ],
+      "first_failure": {
+        "kind": "deadline",
+        "certainty": "not-submitted",
+        "protocol_problem_code": null
+      },
+      "all24packet_tasks_joined": true,
+      "helpers_joined": true,
+      "server_joined": true,
+      "server_forced": false,
+      "source_inputs_unchanged": true
+    },
+    {
+      "private_directory": ".local/gate-6/movement-workload-native-independent-controls",
+      "passed": false,
+      "runtime_sha256": "c956581bf62fd71a18b42276a8d221ab8f4c8b6e7248ef60a230ec3dacfab9d1",
+      "original_operation_rows": [],
+      "stages": [
+        {
+          "source": "0-0",
+          "original_root_completed": false,
+          "target_launched": false,
+          "target_joined": false,
+          "target_forced": false,
+          "failure": {
+            "phase": "original-submission",
+            "name": "NodeSdkError",
+            "kind": "authentication",
+            "certainty": "refused"
+          }
+        }
+      ],
+      "first_failure": {
+        "kind": "authentication",
+        "certainty": "refused",
+        "protocol_problem_code": 403
+      },
+      "all24packet_tasks_joined": true,
+      "helpers_joined": true,
+      "server_joined": true,
+      "server_forced": false,
+      "source_inputs_unchanged": true
+    },
+    {
+      "private_directory": ".local/gate-6/movement-workload-native-scoped-controls",
+      "passed": false,
+      "runtime_sha256": "c956581bf62fd71a18b42276a8d221ab8f4c8b6e7248ef60a230ec3dacfab9d1",
+      "original_operation_rows": [
+        {
+          "source_index": 0,
+          "ordinal": 0,
+          "state": "failed",
+          "revision": 8
+        },
+        {
+          "source_index": 4,
+          "ordinal": 0,
+          "state": "failed",
+          "revision": 10
+        }
+      ],
+      "stages": [
+        {
+          "source": "0-0",
+          "original_root_completed": false,
+          "target_launched": true,
+          "target_joined": true,
+          "target_forced": false,
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        },
+        {
+          "source": "4-0",
+          "original_root_completed": false,
+          "target_launched": true,
+          "target_joined": true,
+          "target_forced": false,
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        }
+      ],
+      "first_failure": {
+        "kind": "deadline",
+        "certainty": "read-only",
+        "protocol_problem_code": null
+      },
+      "all24packet_tasks_joined": true,
+      "helpers_joined": true,
+      "server_joined": true,
+      "server_forced": false,
+      "source_inputs_unchanged": true
+    }
+  ],
+  "findings": [
+    "Corrected runtime admits an original endpoint replacement and launches its physical target; the preceding runtime had no move row before its503refusal. This does not establish complete replacement or media qualification.",
+    "One shared Node helper serializes ordinary control RPCs; its first original wait can leave the other Session mutation queued until not-submitted deadline. Controller now requires two distinct existing helpers, selected per Session.",
+    "The application fixture owner credential lacks connection.replace and correctly refuses403. The next fresh fixture uses the existing appropriately scoped controller and target credentials, without broadening application permissions.",
+    "With two appropriately scoped control helpers, both original roots are admitted and both physical target workers join without force; original eight-second completion reads still expire before either move completes. Cleanup records native-target-stopped; neither original is replayed.",
+    "One corrected-runtime scene logs repeated private decoder Media(Model(Conflict)) deferrals. The later two-controller scene stops earlier in negotiation/attachment. These are distinct observations and do not establish one root cause.",
+    "Media rehearsals overlap the original two-thread Store regression run, and one overlaps runtime compilation. Those task-owned loads must be accounted for; these runs cannot establish clean performance/resource qualification. Next performance producer must run after those jobs finish."
+  ],
+  "limitations": [
+    "Main producer invocation, final Connection/Session end handling and complete physical-segment/timeline decoding remain required.",
+    "No actual twenty-move,60second,impairment,paired-presentation or full32-cell pass. Earlier deadlines, authentication refusal and uncertain outcomes remain retained."
+  ],
+  "private_evidence_sha256": {
+    ".local/gate-6/endpoint-replacement-admission-baseline/state.json": "dd4dcdbad26c28a8022c3dc970769a19dd2f9a0bbe2aed2424d16ca489b29ac0",
+    ".local/gate-6/endpoint-replacement-admission-baseline/test.log": "1d51a68f9a5fc41121c9c0847f8b4be91d6e70443c355d1c8bf04dc1504841c9",
+    ".local/gate-6/endpoint-replacement-admission-fixed/inputs.json": "14e48a406b446b5ebf2ad4e6f0c03e5a110cb9b56cc267c0089cd3ea69252900",
+    ".local/gate-6/endpoint-replacement-admission-fixed/causal-case.json": "041390fdc716569717440695b76e008409e1f1d6af45e60789b3dc40b3c9efbd",
+    ".local/gate-6/endpoint-replacement-admission-fixed/causal-case.log": "78b91c519e2507f57d60fd6669c7ff83c2a617e5cca07278776f1a9f664aabfe",
+    ".local/gate-6/endpoint-replacement-admission-fixed/isolated-dtmf-case.json": "041390fdc716569717440695b76e008409e1f1d6af45e60789b3dc40b3c9efbd",
+    ".local/gate-6/endpoint-replacement-admission-fixed/isolated-dtmf-case.log": "4bb5994aac44a3b2bd691b450df8ada820f687c4d544ca56760c1ad2d327c55a",
+    ".local/gate-6/endpoint-admission-runtime-build/inputs.json": "6881245fb8f7ee5a38faa3c3f7c3033bbe391c18e356056c5df9e394ad0b030a",
+    ".local/gate-6/endpoint-admission-runtime-build/state.json": "c884cd57b31b43ba41946d7d8aa569883a79eeafdccd84e37865ef72748add4f",
+    ".local/gate-6/movement-independent-control-owners-final/inputs.json": "af8ba60ee9c1913f4d1d7df77b40a923ccdd3086505e380e3284b8c0b71de597",
+    ".local/gate-6/movement-independent-control-owners-final/state.json": "152f969f5bfa4f033a302ebbceb4b2ee3bee65eeafcd829044be5f7d50ab45d2",
+    ".local/gate-6/movement-independent-control-owners-final/test.log": "6ff81dcc5d239825690b32c8abb3adc207d7f2da663a62011d2394dbceb38456",
+    ".local/gate-6/movement-workload-native-admission/moves/0-0/stage.json": "455ef14eb298bde360e9218600299d1526a8da0eeba0b8f97f8f0f3c7e8deddd",
+    ".local/gate-6/movement-workload-native-admission/moves/4-0/stage.json": "aacc1f4bacb57322c5bb1c442182305fe196bb27525deae3df31a2a434d6c28f",
+    ".local/gate-6/movement-workload-native-admission/controller.json": "812cfdbb080a0036173dd942bfcd82055064bd5843a201b54947ff3926a2d19c",
+    ".local/gate-6/movement-workload-native-admission/prepare.json": "d0beb1e0cfcc799b3006f94545e3582db3e562cfab1498963d67bf8b283f8d88",
+    ".local/gate-6/movement-workload-native-admission/probe.json": "f9cb4c053f91f12b301e054d6893e6fd90677effe03f194d4c8aac39c24e4cfb",
+    ".local/gate-6/movement-workload-native-admission/probe.mjs": "fbd2c22e05d4f43dbfdb8984806cc228816599d6ffae2b497ebcf67d07bb1b82",
+    ".local/gate-6/movement-workload-native-admission/moves/plan.json": "2341741cbe17c303e2a23365430bdfd59748dd3b145e94839e2e7a631effbb45",
+    ".local/gate-6/movement-workload-native-admission/moves/movement-failure.json": "538528c7059709019084ac1a4d43ff1611f94c95aac0ba428e1ba00716715a6b",
+    ".local/gate-6/movement-workload-native-independent-controls/moves/0-0/stage.json": "58f616991e1c69eba4027b3a926c855a992472c61ff2525d1aca419efd107964",
+    ".local/gate-6/movement-workload-native-independent-controls/controller.json": "676f7f07789dfc4da8bfc61bb4965f29873fd47051f684560e6a4b1489b9dd4b",
+    ".local/gate-6/movement-workload-native-independent-controls/prepare.json": "d0beb1e0cfcc799b3006f94545e3582db3e562cfab1498963d67bf8b283f8d88",
+    ".local/gate-6/movement-workload-native-independent-controls/probe.json": "89429ff2ccd60e4b134ae63f05624f7c7cc603f2ed64c53c6a534eda777d5a0a",
+    ".local/gate-6/movement-workload-native-independent-controls/probe.mjs": "de56ade905607e3de0fa2ca642b0b62d2f3ce21a0b94b21a8a601eb2e3845873",
+    ".local/gate-6/movement-workload-native-independent-controls/moves/plan.json": "e73068998e6d4fbe971b9c434eac29a22bda292e5afcdded3edfc382c970258f",
+    ".local/gate-6/movement-workload-native-independent-controls/moves/movement-failure.json": "66bfcbb31b38dc9a44e9b40d85053fb52db56f038e7b310ff0742d7f02b0e603",
+    ".local/gate-6/movement-workload-native-scoped-controls/moves/0-0/stage.json": "362b582c432c364b6eac4a40adcf7cffaa49baaa30688c01131c3a07e5bf9e2d",
+    ".local/gate-6/movement-workload-native-scoped-controls/moves/4-0/stage.json": "2c8afdd648c42d4813a2b670b8ee7711238f5f356dc8312d7fabe958f261ba71",
+    ".local/gate-6/movement-workload-native-scoped-controls/controller.json": "61c4c51ce91365bff6dff86082674f85e178b7063f66de8f063d1134f7be349b",
+    ".local/gate-6/movement-workload-native-scoped-controls/prepare.json": "d0beb1e0cfcc799b3006f94545e3582db3e562cfab1498963d67bf8b283f8d88",
+    ".local/gate-6/movement-workload-native-scoped-controls/probe.json": "7c41384c9b89b58c38763baeafa5e33949498f9f3d2d4554f7fdf0a9d1ced26a",
+    ".local/gate-6/movement-workload-native-scoped-controls/probe.mjs": "c3b04fe77f44f82bd2e8075b27bcf0826a8cd651225464f456ecff220855260e",
+    ".local/gate-6/movement-workload-native-scoped-controls/moves/plan.json": "829f3a0811dcc3b185ee6be3feb2fdd8499ad7c735571cb79184f2da807b48cf",
+    ".local/gate-6/movement-workload-native-scoped-controls/moves/movement-failure.json": "37a1dcc12c8caf5f27e7d8faa95513c1e03e38d874c594aab4f65214dec5968c"
+  },
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -896,6 +896,100 @@ fn transition_command(
     command
 }
 #[test]
+fn endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned() {
+    let f = Fixture::new();
+    {
+        let c = f.store.connection().unwrap();
+        c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('replacement-device',?1,'tnt_default','fixture','fixture')", [&f.ids[0]]).unwrap();
+        c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at) VALUES('replacement-endpoint',?1,'tnt_default','replacement-device','quic','quic://fixture.invalid/replacement','[\"audio\"]','verified','fixture-proof',?2)", params![f.ids[0],crate::now()]).unwrap();
+    }
+    let mut command = f.request("endpoint-replace-with-live-readers");
+    command.connection_id = Some("conn-alice".into());
+    command.intent = TransitionIntent::Replace {
+        retained_connid: "conn-bob".into(),
+        endpoint_id: Some("replacement-endpoint".into()),
+        candidate_connid: None,
+    };
+    let command = transition_command(command);
+    let mut signed = request(&f, get("unused"));
+    signed.command = PeerCommand::Transition(command.clone());
+    let packet_readers = f
+        .store
+        .acquire_authority(
+            &[
+                AuthorityScope::identity(&f.ids[0], AuthorityMode::Read).unwrap(),
+                AuthorityScope::conversation(&f.cid, AuthorityMode::Read).unwrap(),
+            ],
+            &AuthorityWait::new(Duration::from_millis(50)),
+        )
+        .unwrap();
+    let proof = f
+        .store
+        .admit_peer_authority(&signed, &AuthorityWait::new(Duration::from_millis(50)))
+        .unwrap();
+    let original = f
+        .store
+        .admit_transition_with_peer(&f.keys[0], command.clone(), &proof)
+        .unwrap();
+    assert_eq!(original.state, OperationState::Accepted);
+    assert!(original.result.is_none());
+    assert_eq!(
+        f.store
+            .admit_transition_with_peer(&f.keys[0], command.clone(), &proof)
+            .unwrap(),
+        original
+    );
+    let c = f.store.connection().unwrap();
+    assert_eq!(
+        c.query_row("SELECT COUNT(*) FROM native_replacements", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(c.query_row("SELECT COUNT(*) FROM operations WHERE operation_id='endpoint-replace-with-live-readers'", [], |r| r.get::<_,u64>(0)).unwrap(), 1);
+    assert_eq!(
+        c.query_row(
+            "SELECT state,endpoint_id,generation FROM connections WHERE id='conn-alice'",
+            [],
+            |r| Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, u64>(2)?
+            ))
+        )
+        .unwrap(),
+        ("active".into(), "ep-0".into(), 1)
+    );
+    drop(c);
+    assert_eq!(
+        f.store
+            .acquire_authority(
+                &[AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap()],
+                &AuthorityWait::new(Duration::from_millis(20))
+            )
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    let mut changed = command.clone();
+    changed.expected_revision += 1;
+    assert_eq!(
+        f.store
+            .admit_transition_with_peer(&f.keys[0], changed, &proof)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    drop(proof);
+    drop(packet_readers);
+    f.store
+        .acquire_authority(
+            &[AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap()],
+            &AuthorityWait::new(Duration::from_millis(50)),
+        )
+        .unwrap();
+}
+#[test]
 fn canonical_transition_admission_reuses_exact_proof_and_never_renews_original_expiry() {
     let f = Fixture::new();
     let command = transition_command(f.request("canonical-transition"));

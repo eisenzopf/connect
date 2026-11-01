@@ -10,6 +10,7 @@ async function scenario(mode) {
     const signal = new AbortController(), starts = [], admitted = [], subscriptions = [], stopped = [], joined = [], retired = [], finalWaits = new Map();
     const roles = ["owner", "two", "three", "four", "owner", "two"], peers = [3, 0, 1, 2, 5, 4];
     const revisions = [1, 1];
+    const controllers = [{ owner: "existing-original-helper" }, { owner: "existing-controller-helper" }];
     const connection = (id, generation) => ({ id, async refresh() { return { id, generation, streamRevision: 2 }; },
         streams: { async subscribe(intent, options) {
             subscriptions.push({ intent, options });
@@ -35,6 +36,7 @@ async function scenario(mode) {
     if (mode === "cancelled") signal.abort();
     const startTarget = async options => {
         const sid = Number(options.sessionId.at(-1)), ordinal = starts.filter(v => v.sessionId === options.sessionId).length;
+        assert.equal(options.controller, controllers[sid]);
         starts.push(options);
         const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
         assert.equal(saved.length, 20);
@@ -72,7 +74,7 @@ async function scenario(mode) {
             } };
     };
     try {
-        const run = deviceMovementWorkload({ workload, controller: {}, conversationId: "original-room", sessions,
+        const run = deviceMovementWorkload({ workload, controllers, conversationId: "original-room", sessions,
             connections, streamIds: roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i })),
             participantIds: roles.map(v => "participant-" + v),
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
@@ -112,3 +114,8 @@ test("twenty distinct original moves retain one source clock across two ten-move
 test("an unknown original prevents further moves and joins every already admitted physical owner", () => scenario("unknown"));
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));
+test("two Session chains cannot silently share one serialized ordinary control helper", async () => {
+    const shared = {};
+    await assert.rejects(deviceMovementWorkload({ workload: { routes: Array(6) }, connections: Array(6),
+        sessions: Array(2), controllers: [shared, shared] }), error => error.code === "ERR_ASSERTION");
+});

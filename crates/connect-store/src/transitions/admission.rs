@@ -22,19 +22,20 @@ pub(super) fn candidate_row(row: &rows::Saved) -> Result<bool> {
             }
         ))
 }
+fn replacement_row(row: &rows::Saved) -> Result<bool> {
+    Ok(row.ledger
+        && row.record.command_type == "connection.replace"
+        && matches!(rows::request(row)?.intent, TransitionIntent::Replace { .. }))
+}
 pub(super) fn request_scopes(
     owner: &str,
     request: &TransitionRequest,
 ) -> Result<Vec<AuthorityScope>> {
-    if matches!(
-        request.intent,
-        TransitionIntent::Replace {
-            candidate_connid: Some(_),
-            ..
-        }
-    ) {
-        // This admits immutable metadata only. Actual graph/binding changes
-        // retain their later write footprint and opaque native custody.
+    if matches!(request.intent, TransitionIntent::Replace { .. }) {
+        // Endpoint and existing-candidate requests both admit immutable intent
+        // and SQL reservations only. Packet readers can retain their current
+        // authority. Actual graph/binding changes keep their separate write
+        // footprint and opaque native custody.
         return Ok(vec![
             AuthorityScope::identity(owner, AuthorityMode::Read)?,
             AuthorityScope::conversation(&request.conversation_id, AuthorityMode::Read)?,
@@ -49,7 +50,7 @@ pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
         || (row.native_consultation || row.native_provider)
         || (row.native_return || row.native_handoff || row.native_replacement)
         || row.native_decision
-        || candidate_row(row)?
+        || replacement_row(row)?
     {
         let mut result = vec![AuthorityScope::identity(&row.owner, AuthorityMode::Read)?];
         if let Some(cid) = &row.record.conversation_id {

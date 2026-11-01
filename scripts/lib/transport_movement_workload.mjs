@@ -12,18 +12,23 @@ async function save(path, value) {
     finally { await file.close(); }
 }
 
-export async function deviceMovementWorkload({ workload, controller, conversationId, sessions,
+export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
     executable, executableSha256, startTarget = startPhysicalReplacementTarget }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
+    // Each Node helper serializes its ordinary control RPCs. A long original
+    // wait in one Session must not queue the other Session's original mutation.
+    assert.equal(controllers.length, 2);
+    assert.notEqual(controllers[0], controllers[1]);
     assert.equal(targets.length, 2);
     assert.notEqual(targets[0].deviceId, targets[1].deviceId);
     assert.equal(workload.routes[0].role, workload.routes[4].role);
     assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
     assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
     const sources = [0, 4];
+    assert.deepEqual(sources.map(index => workload.routes[index].sessionIndex), [0, 1]);
     for (const index of sources) {
         assert.equal(sourcePrograms[index].audioPackets.length, 3100);
         assert.equal(sourcePrograms[index].videoFrames.length, 1860);
@@ -67,7 +72,7 @@ export async function deviceMovementWorkload({ workload, controller, conversatio
         const route = workload.routes[sourceIndex], incoming = route.peerIndex;
         const receiver = workload.routes.find(v => v.peerIndex === sourceIndex);
         assert.ok(receiver);
-        const sid = route.sessionIndex, source = sourcePrograms[sourceIndex];
+        const sid = route.sessionIndex, source = sourcePrograms[sourceIndex], controller = controllers[sid];
         let current = connections[sourceIndex].connection, previous, previousDirectory;
         for (const step of plan.filter(v => v.sourceIndex === sourceIndex)) {
             assertCurrent();
