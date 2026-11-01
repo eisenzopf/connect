@@ -1,0 +1,43 @@
+{
+  "format": "connect/verified-operational-typecheck-negative/1",
+  "source_revision": "a78c18957cf29f3a3abd7e16df61b3aeed0bf4a0",
+  "workflow_run_id": 41253516677,
+  "job_id": 124691759237,
+  "artifact_id": 13062419321,
+  "artifact_zip_sha256": "11ce19beca219c5163b48745114c4cbf97006f89fd29f75eb350fb5b9dc28a6a",
+  "sources_verified": {
+    "git": 4623,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "report": {
+    "format": "connect/gate6-operational-component/1",
+    "phase": "typecheck",
+    "selected_case": null,
+    "source_revision": "a78c18957cf29f3a3abd7e16df61b3aeed0bf4a0",
+    "source_inputs_sha256": "e8f882d85d515988605e25916b161ce07532b4201f54fec2e2b5c5890a77ad1f",
+    "source_count": 8721,
+    "steps": [
+      {
+        "name": "integration-fixture-types",
+        "exit_code": "timeout",
+        "elapsed_seconds": 1200.013,
+        "test_results": [],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [],
+        "failure_locations": []
+      }
+    ],
+    "passed": false,
+    "whole_gate_qualified": false,
+    "task_complete": false,
+    "scope": "Integration fixture type checking only; no tests executed or runtime qualification.",
+    "source_inputs_unchanged": true,
+    "cacheable_build": false,
+    "cache_scope": "Completed Cargo artifacts from unchanged sources only; missing/failed compilation remains unqualified and Cargo must rebuild it."
+  },
+  "finding": "Cold integration fixture cargo check reached1200secondcompilerbudget withoutreported compilererror. Typecheck incomplete; no runtime executed. Current c6runtime remains live and mustbeobserved toterminal.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

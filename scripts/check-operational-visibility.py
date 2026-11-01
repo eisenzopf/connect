@@ -60,7 +60,7 @@ def generate_reference():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("schema", "runtime", "typecheck"), required=True)
-    parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "mcp-capacity", "public-client", "hosting-limits", "operation-overload"))
+    parser.add_argument("--case", choices=("store-authority", "service-observation", "permit-lifetime", "mcp-capacity", "mcp-listener", "public-client", "hosting-limits", "operation-overload"))
     parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--generate-reference", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -97,16 +97,17 @@ def main():
         ("service-observation", prefix + ["-p", "connect-service", "--lib", "readiness::tests", "--", "--test-threads=1"], 3600, 3),
         ("permit-lifetime", prefix + ["-p", "connect-service", "--lib", "resources::tests", "--", "--test-threads=1"], 1200, 2),
         ("mcp-capacity", prefix + ["-p", "connect-mcp", "--lib", "capacity::tests", "--", "--test-threads=1"], 1800, 5),
+        ("mcp-listener", prefix + ["-p", "connect-mcp", "--lib", "listener::tests", "--", "--test-threads=1"], 1200, 4),
         ("public-client", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_operational_visibility", "--", "--test-threads=1"], 3600, 3),
         ("hosting-limits", prefix + ["-p", "connect-installation-conformance", "--test", "gate6_hosting_limits", "--", "--test-threads=1"], 1800, 2),
         ("operation-overload", prefix + ["-p", "connect-store", "--lib", "transitions::tests::shared_capacity_keeps_room_for_a_terminal_cancel_decision_and_its_causal_event", "--", "--test-threads=1"], 1200, 1),
     ]
     if args.phase == "typecheck":
         commands = [("mcp-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
-            "-p", "connect-mcp", "--lib", "--tests"], 1200, None),
+            "-p", "connect-mcp", "--lib", "--tests"], 3600, None),
             ("integration-fixture-types", ["cargo", "check", "--release", "--locked", "--message-format=json",
             "-p", "connect-installation-conformance", "--test", "gate6_operational_visibility",
-            "--test", "gate6_hosting_limits"], 1200, None)]
+            "--test", "gate6_hosting_limits"], 3600, None)]
         report["scope"] = "MCP unit and integration fixture type checking only; no tests executed or runtime qualification."
     if args.case:
         commands = [c for c in commands if c[0] == args.case]

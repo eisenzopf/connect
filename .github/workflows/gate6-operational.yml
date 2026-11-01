@@ -14,7 +14,7 @@ jobs:
   component:
     name: Operational ${{ matrix.phase }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +81,9 @@ jobs:
       - name: Shared MCP raw sockets requests expiry overload and joined drain
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case mcp-capacity
+      - name: MCP abort ownership and independent endpoint retirement
+        if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
+        run: python3 scripts/check-operational-visibility.py --phase runtime --case mcp-listener
       - name: Public participant upload and subscription limits
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase runtime --case hosting-limits

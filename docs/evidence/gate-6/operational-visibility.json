@@ -259,8 +259,9 @@
     "source_revision": "a78c18957cf29f3a3abd7e16df61b3aeed0bf4a0",
     "run_id": 41253516677,
     "job_id": 124691759237,
-    "status": "in-progress-fixture-typecheck",
-    "runtime_qualification": false
+    "status": "terminal-timeout1200s-no-reported-compiler-error",
+    "runtime_qualification": false,
+    "evidence": "docs/evidence/gate-6/operational-typecheck-a78.json"
   },
   "previous_schema_candidate": {
     "run_id": 41247152591,
@@ -276,5 +277,18 @@
     "metadata_only": true,
     "requirements": "Both named preflight commands successful, no compiler errors, all3actual requested test metadata targets hashed inside Cargo target root, full original source inventory unchanged/rehashed at save time. Cache upload requires successful preservation guard; never grants a runtime pass.",
     "runtime_qualification": false
+  },
+  "compiler_budget_correction": {
+    "reason": "Source-verified a78coldintegration typecheck reached1200seconds withoutcompletedresult orreportedcompilererror",
+    "per_command_seconds": 3600,
+    "job_minutes": 240,
+    "execution_assertions_or_deadlines_relaxed": false,
+    "existing_c6_run": "Still live; retain and inspect original result, no restart"
+  },
+  "mcp_listener_regression_candidate": {
+    "status": "existing-cases-added-to-next-aggregate-not-yet-executed",
+    "functions": 4,
+    "scope": "Actual listener abort-before-poll, primary/auxiliary retirement, drop and cancelled shutdown ownership",
+    "total_next_focused_functions": 22
   }
 }
