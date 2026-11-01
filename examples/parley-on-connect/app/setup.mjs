@@ -17,7 +17,7 @@ export const participantOperations = Object.freeze([
     "resolve", "create", "conversation.list", "conversation.get", "conversation.subscribe",
     "send", "history", "inbox", "operation.get", "health", "session_get", "session.observation",
     "session.invite", "session.accept", "session.reject", "session.cancel", "session.end", "session.update",
-    "connection.offer", "connection.update", "capability.advertise",
+    "connection.offer", "connection.update", "connection.end", "stream.subscribe", "stream.unsubscribe", "capability.advertise",
 ].sort());
 export async function digest(path) {
     const hash = createHash("sha256"); for await (const block of createReadStream(path)) hash.update(block); return hash.digest("hex");
@@ -71,14 +71,14 @@ export async function verifyBootstrap(directory, newlyInitialized) {
 }
 export function newSetupPlan(binarySha256, ports) {
     const prefix = "parley-" + randomUUID().replaceAll("-", "");
-    return { profile: "parley-local-setup/2", sdkVersion: "0.1.0", binarySha256, ports,
+    return { profile: "parley-local-setup/3", sdkVersion: "0.1.0", binarySha256, ports,
         expiresAt: Math.floor(Date.now() / 1000) + 86400,
         actors: actorDefinitions.map(actor => ({ ...actor, alias: prefix + "-" + actor.role,
             identityOperationId: "identity_" + randomUUID(), credentialOperationId: "credential_" + randomUUID(),
             endpointOperationId: "endpoint_" + randomUUID(), verificationOperationId: "verify_" + randomUUID() })) };
 }
 function validatePlan(plan) {
-    if (!plan || plan.profile !== "parley-local-setup/2" || plan.sdkVersion !== "0.1.0" ||
+    if (!plan || plan.profile !== "parley-local-setup/3" || plan.sdkVersion !== "0.1.0" ||
         !/^[a-f0-9]{64}$/.test(plan.binarySha256) || !Number.isSafeInteger(plan.expiresAt) ||
         plan.expiresAt <= Math.floor(Date.now() / 1000) || !plan.ports || Object.keys(plan.ports).sort().join() !== "http,native,ui" ||
         Object.values(plan.ports).some(value => !Number.isSafeInteger(value) || value < 1024 || value > 65535) ||

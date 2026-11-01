@@ -111,7 +111,7 @@ try {
     stage = "trusted-native-media-endpoint-original-recovery";
     const setup = JSON.parse(await readFile(join(state, "setup.json"), "utf8"));
     const configured = JSON.parse(await readFile(join(state, "app.json"), "utf8"));
-    assert.equal(setup.profile, "parley-local-setup/2");
+    assert.equal(setup.profile, "parley-local-setup/3");
     const { NodeAdministrativeClient } = await import(pathToFileURL(join(consumer, "node_modules/@rudeless/connect/dist/index.js")).href);
     const admin = new NodeAdministrativeClient({ config: join(state, "installation/operator.sdk.toml"), executable: installation.executable });
     const endpointIds = new Set();
@@ -222,6 +222,53 @@ try {
     await page.waitForFunction(() => localStorage.getItem("parley-original-action-organizer") === null);
     await page.waitForFunction(marker => document.querySelector("#timeline").textContent.includes(marker), marker);
     assert.equal(await page.locator("#timeline li").filter({ hasText: marker }).count(), 1); check("keyboard-original-status-recovery-one-visible-message");
+    // These controls negotiate two real native audio Connections. Browser
+    // microphone/camera remain denied; this does not claim decoded media IO.
+    const activate = async (name, command) => {
+        const before = await page.locator("#operations li").filter({ hasText: command + " · completed" }).count();
+        await page.getByRole("button", { name, exact: true }).focus(); await page.keyboard.press("Enter");
+        await page.waitForFunction(({ command, before }) =>
+            [...document.querySelectorAll("#operations li")].filter(v => v.textContent.includes(command + " · completed")).length > before &&
+            !document.querySelector("#actor").disabled, { command, before });
+    };
+    const perspective = async (role, key) => {
+        await page.locator("#actor input:checked").focus(); await page.keyboard.press(key);
+        await page.waitForFunction(role => document.querySelector("#actor input:checked")?.value === role &&
+            !document.querySelector("#actor").disabled && document.querySelector("#conversations button"), role);
+        await page.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await page.keyboard.press("Enter");
+    };
+    await page.locator("#medium").selectOption("voice");
+    await activate("Invite", "Invite");
+    await perspective("owner", "ArrowDown");
+    await activate("Accept", "Accept invitation");
+    await activate("Join audio", "Join media");
+    assert.equal(await page.locator("#connections li").count(), 1);
+    await perspective("organizer", "ArrowUp");
+    await activate("Join audio", "Join media");
+    assert.equal(await page.locator("#connections li").count(), 1);
+    report.actual_native_audio_connections_opened = 2;
+    check("keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session");
+    await activate("Listen to Owner", "Listen");
+    await activate("Stop listening to Owner", "Stop listening");
+    report.native_stream_subscription_roundtrip_verified = true;
+    check("keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions");
+    for (const name of ["Mute", "Unmute", "Hold", "Resume"]) await activate(name, "Update media");
+    report.native_connection_gate_controls_verified = true;
+    check("keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk");
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.screenshot({ path: join(output, "native-controls.png"), fullPage: true });
+    await page.setViewportSize({ width: 320, height: 850 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: join(output, "native-controls-narrow.png"), fullPage: true });
+    report.ui_screenshots = Object.fromEntries(await Promise.all(["native-controls.png", "native-controls-narrow.png"].map(async name =>
+        [name, sha(await readFile(join(output, name)))])));
+    check("negotiated-connection-controls-fit-320px-without-horizontal-overflow");
+    await activate("End connection", "End connection");
+    await perspective("owner", "ArrowDown");
+    await activate("End connection", "End connection");
+    report.original_native_connection_end_receipts_verified = 2;
+    check("keyboard-both-original-native-audio-connections-end-with-the-original-session-scope");
+    report.negotiated_capture_playback_verified = false;
     await page.screenshot({ path: join(output, "narrow.png"), fullPage: true });
     const setupSha = sha(await readFile(join(state, "setup.json"))), appSha = sha(await readFile(join(state, "app.json")));
     await stop(); check("original-app-server-and-all-native-helper-processes-joined");

@@ -48,7 +48,7 @@ jobs:
         if: always()
         run: |
           python3 - <<'PY'
-          import json,pathlib
+          import json,pathlib,shutil
           base=pathlib.Path('.local/gate6-reference-app')
           out=base/'evidence';out.mkdir(parents=True,exist_ok=True)
           for name,source in [('installation.json',base/'candidate/installation.json'),('browser.json',base/'browser/summary.json')]:
@@ -56,6 +56,11 @@ jobs:
               value=json.loads(source.read_text())
               for key in ('consumer','executable'):value.pop(key,None)
               (out/name).write_text(json.dumps(value,indent=2)+'\n')
+          # Owned synthetic UI only: no browser chrome, credentials or private
+          # configuration is rendered. Keep these out of repository evidence.
+          for name in ['native-controls.png','native-controls-narrow.png']:
+              source=base/'browser'/name
+              if source.is_file():shutil.copyfile(source,out/name)
           PY
       - name: Upload curated installation and browser reports
         if: always()

@@ -159,11 +159,13 @@ test("current native access refusal creates no media Endpoints and closes both p
 });
 test("previous setup plans are refused unchanged rather than acquiring new setup IDs", async () => {
     const f = await fixture(), path = join(f.directory, "setup.json");
-    const old = { ...f.plan, profile: "parley-local-setup/1" };
-    await writeFile(path, JSON.stringify(old), { mode: 0o600 });
-    const before = await privateBytes(path);
-    await assert.rejects(loadOrCreatePlan(f.directory, binarySha, ports), { code: "app-setup-plan-refused" });
-    assert.deepEqual(await privateBytes(path), before); assert.equal(f.calls.length, 0);
+    for (const profile of ["parley-local-setup/1", "parley-local-setup/2"]) {
+        const old = { ...f.plan, profile };
+        await writeFile(path, JSON.stringify(old), { mode: 0o600 });
+        const before = await privateBytes(path);
+        await assert.rejects(loadOrCreatePlan(f.directory, binarySha, ports), { code: "app-setup-plan-refused" });
+        assert.deepEqual(await privateBytes(path), before); assert.equal(f.calls.length, 0);
+    }
 });
 test("a Device configuration changed during signed observation cannot authorize another Endpoint", async () => {
     const f = await fixture(); f.changeNativeDeviceDuringRead();

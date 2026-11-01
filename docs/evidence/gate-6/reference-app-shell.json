@@ -107,5 +107,11 @@
     "verification_evidence": "docs/evidence/gate-6/reference-app-installed-media-endpoint-setup.json",
     "source_revision": "61166d45b6a465556392b5ce9ce4324b86913c37",
     "workflow_run_id": 41276528574
+  },
+  "connection_controls_candidate": {
+    "evidence": "docs/evidence/gate-6/reference-app-connection-controls.json",
+    "runtime_verified": false,
+    "component_functions_passed": 37,
+    "setup_profile": "parley-local-setup/3"
   }
 }

@@ -1,0 +1,65 @@
+{
+  "format": "connect/reference-app-connection-controls/1",
+  "task": "G6-072",
+  "status": "implemented-local-components-pass-installed-runtime-unverified",
+  "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/gateway.mjs": "bfc708d912d7b9a392c209c089b434542756d26a5a772c15e9c7ee402115c348",
+    "examples/parley-on-connect/app/gateway.test.mjs": "988db63e8f7035a01c30491dd80e319778cbb785f41d8c8d176fe3c10119c299",
+    "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
+    "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
+    "examples/parley-on-connect/app/ui/app.mjs": "8a174e9a37e0bba29fcd24a1b39bbf9b49be39f906901922f57b356a0e605bfe",
+    "scripts/check-reference-app-installed.mjs": "7d27c9d8ef98a33077b18f279e9d34fb1d088f0d61673767dd52c7d3a404dc65",
+    ".github/workflows/gate6-reference-app.yml": "e64eef8d16de0168acdc7fd669db74a24d222b02bf5f2ed6b7f970e5076762d5"
+  },
+  "local_verification": {
+    "app_component_functions_passed": 37,
+    "node": "v26.7.0",
+    "scope": "SDK-shaped component clients and application-owned state only. No installed audio Connection or media IO proof yet."
+  },
+  "implementation": {
+    "public_sdk_actions": [
+      "connections.offer",
+      "connection.end",
+      "connection.update",
+      "connection.streams.subscribe",
+      "connection.streams.unsubscribe"
+    ],
+    "original_ids": "Prepare Connection and Stream IDs once in the durable application intent before submission. Original-ID recovery never sends another offer and retains distinct Conversation/Session/Connection scope.",
+    "current_authority": "Accepted Session, present current membership, offered media and original owned Connection checks precede preparation. Stream selection captures a current negotiated revision. Mute targets only this participant publication, excluding projected incoming peer Streams. Server and SDK current authorization remain required.",
+    "fresh_setup_profile": "parley-local-setup/3",
+    "new_literal_permissions": [
+      "connection.end",
+      "stream.subscribe",
+      "stream.unsubscribe"
+    ],
+    "previous_profiles_refused_without_grant_changes": [
+      1,
+      2
+    ],
+    "ui_controls": [
+      "Join audio",
+      "Join audio and video",
+      "Listen to peer",
+      "Stop listening to peer",
+      "Mute",
+      "Unmute",
+      "Hold",
+      "Resume",
+      "End connection"
+    ]
+  },
+  "installed_check": {
+    "status": "not-run",
+    "expected_checks": 21,
+    "description": "Retain 16 prior checks, then keyboard-open two real audio Connections, select/unselect current peer Streams, exercise all four gates, verify 320px layout, and end both originals through the installed public Node SDK. Retain synthetic desktop/narrow control screenshots for visual review. Microphone and camera remain denied; no decoded media claim.",
+    "runtime_verified": false
+  },
+  "remaining": [
+    "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
+    "Negotiated browser capture, actual packet IO and decoded playback with owned lifecycle"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "provider_or_model_execution": false
+}

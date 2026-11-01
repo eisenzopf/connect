@@ -6,7 +6,9 @@ import { isDeepStrictEqual, inspect } from "node:util";
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
 const kinds = Object.freeze({ "conversation.create": "conversation_create", "message.send": "message_send",
     "session.invite": "session_invite", "session.accept": "session_accept", "session.reject": "session_reject",
-    "session.cancel": "session_cancel", "session.end": "session_end", "connection.update": "connection_update" });
+    "session.cancel": "session_cancel", "session.end": "session_end", "connection.update": "connection_update",
+    "connection.offer": "connection_offer", "connection.end": "connection_end",
+    "stream.subscribe": "stream_subscribe", "stream.unsubscribe": "stream_unsubscribe" });
 const fail = code => { const error = Error(code); error.code = code; throw error; };
 const copy = value => structuredClone(value);
 function closed(value, keys) {
@@ -23,6 +25,12 @@ function request(value) {
             if (!["text-chat", "voice", "voice+video"].includes(value.medium)) fail("unsupported-app-action"); break;
         case "connection.update": closed(value, ["type", "conversationId", "sessionId", "connectionId", "action"]);
             if (!["mute", "unmute", "hold", "resume"].includes(value.action)) fail("unsupported-app-action"); break;
+        case "connection.offer": closed(value, ["type", "conversationId", "sessionId", "medium"]);
+            if (!["voice", "voice+video"].includes(value.medium)) fail("unsupported-app-action"); break;
+        case "connection.end": closed(value, ["type", "conversationId", "sessionId", "connectionId"]); break;
+        case "stream.subscribe": case "stream.unsubscribe":
+            closed(value, ["type", "conversationId", "sessionId", "connectionId", "peer"]);
+            if (!id(value.peer)) fail("invalid-app-request"); break;
         default: closed(value, ["type", "conversationId", "sessionId"]);
     }
     for (const key of ["conversationId", "sessionId", "connectionId"])
@@ -151,7 +159,13 @@ export class AppGateway {
             sessions: sessions.map(session => ({ id: session.id, state: session.state, media: session.media,
                 appearance: appearances.find(p => p.session_id === session.id)?.state ?? "unavailable" })),
             connections: items.filter(item => item.kind === "connection" && item.data.participant_id === own.id)
-                .map(item => ({ id: item.data.connection_id, sessionId: item.data.session_id, state: item.data.state })),
+                .map(item => ({ id: item.data.connection_id, sessionId: item.data.session_id, state: item.data.state,
+                    peers: participants.filter(peer => peer.id !== own.id && peer.role && items.some(v =>
+                        v.kind === "session_participant" && v.data.session_id === item.data.session_id &&
+                        v.data.participant_id === peer.id && v.data.state === "present" && v.data.membership_epoch ===
+                            conversation.participants.find(p => p.id === peer.id)?.membershipEpoch) && items.some(v =>
+                        v.kind === "connection" && v.data.session_id === item.data.session_id && v.data.participant_id === peer.id &&
+                        ["ready", "active"].includes(v.data.state))).map(peer => ({ role: peer.role, label: peer.label })) })),
             sampledAt: Date.now() };
     }
     #recipients(role, names) {
@@ -179,12 +193,37 @@ export class AppGateway {
         }
         scope.sessionId = action.sessionId;
         const session = await conversation.sessions.byId(action.sessionId).refresh(options);
-        if (action.type === "connection.update") {
-            scope.connectionId = action.connectionId;
-            const connection = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).refresh(options);
-            if (connection.streamRevision === undefined) fail("app-resync-required");
+        if (["connection.offer", "connection.update", "connection.end", "stream.subscribe", "stream.unsubscribe"].includes(action.type)) {
+            const own = current.participants.find(p => p.identityId === this.#actor(role).identityId && p.active);
+            if (!own) fail("app-resync-required");
             const items = await this.#topology(role, action.conversationId, options);
-            const streams = items.filter(v => v.kind === "stream" && v.data.connection_id === action.connectionId).map(v => v.data.stream_id);
+            if (action.type === "connection.offer") {
+                const media = action.medium === "voice" ? ["audio"] : ["audio", "video"];
+                const present = items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
+                    v.data.participant_id === own.id && v.data.membership_epoch === own.membershipEpoch && v.data.state === "present");
+                if (session.state !== "accepted" || !present || !media.every(v => session.media.includes(v))) fail("invalid-app-request");
+                if (items.some(v => v.kind === "connection" && v.data.session_id === action.sessionId &&
+                    v.data.participant_id === own.id && v.data.state !== "retired")) fail("invalid-app-request");
+                scope.connectionId = "conn_app_" + randomUUID();
+                const streams = media.map(kind => ({ id: "stream_app_" + randomUUID(), kind, direction: "sendrecv",
+                    codecs: { first: kind === "audio" ? "opus" : "vp8", rest: [] } }));
+                return { scope, sdk: { connectionId: scope.connectionId, streams: { first: streams[0], rest: streams.slice(1) } } };
+            }
+            scope.connectionId = action.connectionId;
+            if (!items.some(v => v.kind === "connection" && v.data.connection_id === action.connectionId &&
+                v.data.session_id === action.sessionId && v.data.participant_id === own.id && ["ready", "active"].includes(v.data.state))) fail("invalid-app-request");
+            const connection = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).refresh(options);
+            if (action.type === "connection.end") return { scope, sdk: { reasonCode: 200, reason: "Reference app connection ended" } };
+            if (connection.streamRevision === undefined) fail("app-resync-required");
+            if (action.type.startsWith("stream.")) {
+                const identity = this.#recipients(role, [action.peer])[0];
+                const peer = current.participants.find(p => p.identityId === identity && p.active);
+                if (!peer || !items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
+                    v.data.participant_id === peer.id && v.data.membership_epoch === peer.membershipEpoch && v.data.state === "present")) fail("invalid-app-request");
+                return { scope, sdk: { selectors: { first: { participant: peer.id }, rest: [] }, expectedStreamRevision: connection.streamRevision } };
+            }
+            const streams = items.filter(v => v.kind === "stream" && v.data.connection_id === action.connectionId &&
+                v.data.participant_id === own.id).map(v => v.data.stream_id);
             if (["mute", "unmute"].includes(action.action) && !streams.length) fail("app-resync-required");
             const update = action.action === "hold" ? { action: "hold", direction: "inactive" } :
                 ["mute", "unmute"].includes(action.action) ? { action: action.action, streams: { first: streams[0], rest: streams.slice(1) } } : { action: "resume" };
@@ -202,6 +241,10 @@ export class AppGateway {
         if (command === "message.send") return conversation.send(sdk, options);
         if (command === "session.invite") return conversation.sessions.invite(sdk, options);
         const session = conversation.sessions.byId(scope.sessionId);
+        if (command === "connection.offer") return session.connections.offer(sdk, options);
+        if (command === "connection.end") return session.connections.byId(scope.connectionId).end(sdk, options);
+        if (command === "stream.subscribe" || command === "stream.unsubscribe")
+            return session.connections.byId(scope.connectionId).streams[command === "stream.subscribe" ? "subscribe" : "unsubscribe"](sdk, options);
         if (command === "connection.update") return session.connections.byId(scope.connectionId).update(sdk.update, sdk.expectedRevision, options);
         return session[({ "session.accept": "accept", "session.reject": "reject", "session.cancel": "cancelInvitation", "session.end": "end" })[command]](sdk, options);
     }
@@ -215,6 +258,8 @@ export class AppGateway {
             const value = completion.value, scope = saved.intent.scope;
             const result = saved.intent.command === "conversation.create" ? { conversationId: value.id } :
                 saved.intent.command === "message.send" ? { conversationId: scope.conversationId, messageId: value.messageId } :
+                saved.intent.command.startsWith("connection.") || saved.intent.command.startsWith("stream.") ?
+                    { ...scope, connectionId: value.connection?.id ?? value.id ?? scope.connectionId } :
                 { ...scope, sessionId: value.session?.id ?? value.id ?? scope.sessionId };
             this.#journal.rememberResult(saved.operationId, result);
         }

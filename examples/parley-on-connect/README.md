@@ -52,11 +52,20 @@ provider. An explicit installed executable or application state location can be
 selected with `npm run app -- --connect /installed/bin/connect --state .local/demo`.
 No participant IDs, tokens or database changes are entered manually.
 
-Setup profile 2 saves separate original media Endpoint provisioning and
-verification IDs. An earlier profile-1 directory is refused unchanged. Use a
-fresh explicit state directory such as `--state .local/parley-media` for the new
-setup; existing identities, credentials and saved operations are never expanded
-or rewritten to adopt the new workflow.
+Setup profile 3 retains the original media Endpoint decisions and adds only the
+literal connection.end, stream.subscribe and stream.unsubscribe participant
+permissions needed for the new controls. Earlier profile-1 and profile-2
+directories are refused unchanged. Use a fresh explicit state directory such as
+`--state .local/parley-media`; existing grants and saved operations are not
+expanded or rewritten to adopt the new workflow.
+
+The current UI opens audio or audio/video Connections in accepted Sessions,
+subscribes to a present peer, and exposes mute/unmute, hold/resume and original
+Connection end. Original Connection/Stream IDs are saved before SDK submission.
+These additions pass 37 app component functions; installed execution of the new
+controls is still pending. Joining a Connection currently negotiates native
+resources only. Browser capture, packet IO and decoded playback integration
+remain required.
 
 Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
 command preserves the original ports, identities, issuance IDs, absolute expiry

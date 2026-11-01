@@ -5,7 +5,8 @@ let historyCursor = null, nextHistory = null, nextConversations = null, current 
 const requests = new Set(), previews = new Set(); let captureEpoch = 0;
 const label = { "conversation.create": "Create conversation", "message.send": "Send message", "session.invite": "Invite",
     "session.accept": "Accept invitation", "session.reject": "Decline invitation", "session.cancel": "Cancel invitation",
-    "session.end": "End session", "connection.update": "Update media" };
+    "session.end": "End session", "connection.update": "Update media", "connection.offer": "Join media",
+    "connection.end": "End connection", "stream.subscribe": "Listen", "stream.unsubscribe": "Stop listening" };
 const explanations = {
     "offline-or-uncertain": "Connection unavailable or outcome uncertain. Recover the original action.",
     "permission-denied": "Access refused. Reconnect with current access before trying again.",
@@ -187,13 +188,24 @@ async function view() {
             const item = node("li"); item.append(node("strong", session.media.join(" + ") || "Session"), document.createTextNode(" · " + session.state));
             const action = type => mutate({ type, conversationId: cid, sessionId: session.id });
             if (session.appearance === "invited") item.append(button("Accept", () => action("session.accept"), true), button("Decline", () => action("session.reject"), true));
+            if (session.state === "accepted" && session.appearance === "present" && session.media.includes("audio") &&
+                !value.connections.some(v => v.sessionId === session.id && v.state !== "retired")) {
+                const join = medium => mutate({ type: "connection.offer", conversationId: cid, sessionId: session.id, medium });
+                item.append(button("Join audio", () => join("voice"), true));
+                if (session.media.includes("video")) item.append(button("Join audio and video", () => join("voice+video"), true));
+            }
             if (!["ended", "failed", "cancelled", "rejected"].includes(session.state)) item.append(button("End session", () => action("session.end"), true));
             return item;
         }));
         $("connections").replaceChildren(...value.connections.map(connection => {
             const item = node("li", "Connection · " + connection.state);
-            if (connection.state === "ready") for (const [text, action] of [["Mute", "mute"], ["Unmute", "unmute"], ["Hold", "hold"], ["Resume", "resume"]])
-                item.append(button(text, () => mutate({ type: "connection.update", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, action }), true));
+            if (["ready", "active"].includes(connection.state)) {
+                for (const [text, action] of [["Mute", "mute"], ["Unmute", "unmute"], ["Hold", "hold"], ["Resume", "resume"]])
+                    item.append(button(text, () => mutate({ type: "connection.update", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, action }), true));
+                for (const peer of connection.peers ?? []) for (const [text, type] of [["Listen to ", "stream.subscribe"], ["Stop listening to ", "stream.unsubscribe"]])
+                    item.append(button(text + peer.label, () => mutate({ type, conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, peer: peer.role }), true));
+                item.append(button("End connection", () => mutate({ type: "connection.end", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id }), true));
+            }
             return item;
         })); controls();
     } catch (error) { if (error.code !== "view-changed") clearView(); throw error; }
