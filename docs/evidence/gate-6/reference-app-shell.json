@@ -25,11 +25,11 @@
     "examples/parley-on-connect/app/ui/app.mjs": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
     "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
-    "examples/parley-on-connect/app/run.mjs": "f14f8c7a26660ed9f929c3306e38845702be817598bdc1bfd3df75beb6011b0d",
+    "examples/parley-on-connect/app/run.mjs": "b0ddb546157ad18f4edf6fe592c37b28f08200f82e7aff7b7f20d6480b5e7025",
     "examples/parley-on-connect/app/setup.mjs": "ec3f07a139a34f6c1496b982fa4c5f6daff12eaa3d2ec76c6c77c3dc6fe49305",
     "examples/parley-on-connect/app/setup.test.mjs": "fb88625ce027f0e29ffa909896a6a6c00142aac416c2342260480e02f5a4e58b",
     "scripts/install-reference-app-candidate.py": "2588fab32696f86362e739ffc4921e865296c9a697600ca4a4b62a3f10731de7",
-    "scripts/check-reference-app-installed.mjs": "3f5ef3cf551b20913be66f047167d3703950851152bb8b06f6f775c119f70a5a",
+    "scripts/check-reference-app-installed.mjs": "291ea276785f8c8c14adee16c7e9cc7680c7ea2de29fdfdc5db9302f3055d802",
     ".github/workflows/gate6-reference-app.yml": "e4a3343646c60eaf2b11a1cce64aabc8cd2b415f85be9ca13d306efe644fcff2"
   },
   "local_verification": {
@@ -68,12 +68,13 @@
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "prepared; not run",
+    "status": "First actual run 41258658962 at 02c29255 failed on both platforms during one-command startup, with zero browser checks executed. Exact packages/cold installs and all23 Node22 component tests passed. Negative reports retained and app/checker/installer source hashes independently compared with original Git objects. Closed startup stage/code/source-location diagnostics added; next run required.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"
     ],
     "runtime_candidate_source": "3732254f379a83a33da42024872ea0ec1481c9fc",
-    "scope": "Exact previously independently verified complete candidate ZIP/tar/manifest and selected native/npm assets; cold offline ordinary SDK install; current app source copied outside checkout; actual one-command startup, browser keyboard text/invitations, lost-response offline/original recovery, same-command restart and original group/browser joins. No compilation/media/model/provider lane."
+    "scope": "Exact previously independently verified complete candidate ZIP/tar/manifest and selected native/npm assets; cold offline ordinary SDK install; current app source copied outside checkout; actual one-command startup, browser keyboard text/invitations, lost-response offline/original recovery, same-command restart and original group/browser joins. No compilation/media/model/provider lane.",
+    "negative_evidence": "docs/evidence/gate-6/reference-app-installed-negative.json"
   }
 }

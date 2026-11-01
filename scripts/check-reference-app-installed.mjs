@@ -62,7 +62,11 @@ async function start(number) {
         const origin = await deadline(Promise.race([line, finished.then(() => { throw Object.assign(Error(), { code: "one-command-startup-failed" }); })]), 180000);
         report["owned_group_size_" + number] = groupMembers(original.pid).length;
         return origin;
-    } finally { await writeFile(join(output, "run-" + number + "-output.log"), stdout + stderr, { mode: 0o600 }); }
+    } finally {
+        await writeFile(join(output, "run-" + number + "-output.log"), stdout + stderr, { mode: 0o600 });
+        const diagnostic = /^PARLEY_SETUP_FAILURE (\{[^\n]+\})$/m.exec(stderr);
+        if (diagnostic) report["startup_failure_" + number] = JSON.parse(diagnostic[1]);
+    }
 }
 async function stop() {
     if (!processChild) return;

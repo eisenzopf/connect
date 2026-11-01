@@ -130,12 +130,14 @@ async function main() {
             const copied = await open(runtime, "r"); try { await copied.sync(); } finally { await copied.close(); }
         }
         const info = await lstat(runtime);
-        if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || (info.mode & 0o077) || !(info.mode & 0o100) ||
+        if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size < 1 || info.size > 512 * 1024 * 1024 ||
+            (info.mode & 0o077) || !(info.mode & 0o100) ||
             await realpath(runtime) !== runtime || await digest(runtime) !== binarySha || await digest(installed) !== binarySha) fail("app-runtime-changed");
         const ports = { native: await unusedPort(true), http: await unusedPort(), ui: await unusedPort() };
         // HTTP and UI are distinct TCP listeners, even if sequential ephemeral
         // reservations happen to return the same number.
-        while (ports.ui === ports.http) ports.ui = await unusedPort();
+        for (let attempt = 0; ports.ui === ports.http && attempt < 8; attempt++) ports.ui = await unusedPort();
+        if (ports.ui === ports.http) fail("app-port-reservation");
         const plan = await loadOrCreatePlan(state, binarySha, ports);
         const execute = async args => bounded(await child(runtime, args, args[0], 128 * 1024), 30000);
         const installation = join(state, "installation");
@@ -176,6 +178,12 @@ async function main() {
 }
 await main().catch(error => {
     if (error.code === "app-stopped") return;
+    const location = /\/app\/([a-z_]+\.mjs):(\d+):(\d+)/.exec(String(error.stack));
+    const code = typeof error.code === "string" && /^app-[a-z-]{1,48}$/.test(error.code) ? error.code : "setup-action-failed";
+    const kinds = ["validation", "configuration", "authentication", "authorization", "deadline", "cancelled", "protocol", "remote-error", "transport-uncertain"];
+    process.stderr.write("PARLEY_SETUP_FAILURE " + JSON.stringify({ stage, code,
+        kind: kinds.includes(error.kind) ? error.kind : null,
+        location: location ? { file: location[1], line: Number(location[2]), column: Number(location[3]) } : null }) + "\n");
     process.stderr.write("Local setup/run did not complete during " + stage + ". Preserve its original .local state and inspect its private logs before restarting.\n");
     process.exitCode = 1;
 });
