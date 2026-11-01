@@ -26,12 +26,14 @@
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
     "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
     "examples/parley-on-connect/app/ui/media.mjs": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
-    "scripts/check-reference-app-installed.mjs": "ffe402d26860feb68d3a16ec6287fb9f20a85dd205f0e8287fcba91a0c1db782",
+    "scripts/check-reference-app-installed.mjs": "6f89077373c7e6afc770d38558c307d91de4f73f6c724e45ce7db7b9bb856e37",
     "examples/parley-on-connect/README.md": "19de07583d202bc333bcd4f5d78ac0962c7a186dd7aafc7340145bbe05cc7aca",
     "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
     "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968",
     "examples/parley-on-connect/app/media-playout.test.mjs": "214be0a23931a335ef80140e434247fff81817987001d36d8836d159fed066ba",
-    "examples/parley-on-connect/app/ui/media-playout.mjs": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c"
+    "examples/parley-on-connect/app/ui/media-playout.mjs": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c",
+    "scripts/install-reference-app-components.py": "6649906d2af0533aa9692ad62ab1b5627788d8ea474b2ac7a2543edb14605698",
+    "scripts/tests/test_reference_app_components.py": "637256620324d76d3f530152dc352ac3e1e520500f07b067b5b51492dfb6315d"
   },
   "local_verification": {
     "app_component_functions_passed": 76,
@@ -251,5 +253,6 @@
   },
   "current_ci_negative": "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json",
   "read_timing_diagnostics": "On failed media admission/signed supervision reads, record current phase elapsed and Node event-loop active/idle milliseconds. Admission additionally records total elapsed across coherent snapshot/native describe. Only known phases and integer0..60000 values survive the closed diagnostic projection; exception messages, arbitrary context, credentials and resource IDs remain excluded. No new timer, polling, retry, cache or deadline change.",
-  "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json"
+  "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json",
+  "local_current_components_evidence": "docs/evidence/gate-6/reference-app-local-components.json"
 }

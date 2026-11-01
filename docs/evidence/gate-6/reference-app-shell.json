@@ -29,7 +29,7 @@
     "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
     "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "ffe402d26860feb68d3a16ec6287fb9f20a85dd205f0e8287fcba91a0c1db782",
+    "scripts/check-reference-app-installed.mjs": "6f89077373c7e6afc770d38558c307d91de4f73f6c724e45ce7db7b9bb856e37",
     ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
     "examples/parley-on-connect/app/diagnostics.mjs": "8bfdbbfb120487779a6973f4ec4e7c064ce857feb02cb146acff46f50902a710",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "8e5b24fcb066cbd421f0c32247e69c54de69440616d519d90cf598398a3bcd51",
@@ -42,7 +42,9 @@
     "examples/parley-on-connect/app/ui/media.mjs": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
     "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
     "examples/parley-on-connect/app/ui/media-playout.mjs": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c",
-    "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5"
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
+    "scripts/install-reference-app-components.py": "6649906d2af0533aa9692ad62ab1b5627788d8ea474b2ac7a2543edb14605698",
+    "scripts/tests/test_reference_app_components.py": "637256620324d76d3f530152dc352ac3e1e520500f07b067b5b51492dfb6315d"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
@@ -145,7 +147,8 @@
     "retained_adapter_freshness_evidence": "docs/evidence/gate-6/sdk-retained-live-media-expiration.json",
     "sdk_inbox_freshness_evidence": "docs/evidence/gate-6/sdk-native-inbox-expiration.json",
     "current_full_candidate_qualified": false,
-    "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json"
+    "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json",
+    "local_current_components_evidence": "docs/evidence/gate-6/reference-app-local-components.json"
   },
   "requirements_audit": [
     {

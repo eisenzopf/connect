@@ -1,0 +1,96 @@
+{
+  "format": "connect/reference-app-local-components/1",
+  "task": "G6-072",
+  "runtime_source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
+  "status": "local-components-installed-rehearsal-pending",
+  "installation": {
+    "format": "connect/reference-app-local-components/1",
+    "target": "aarch64-apple-darwin",
+    "source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
+    "runtime_proof_sha256": "a29f46dfb5cc5b3085f3394d4ef4d6ea3a3f27fc497008707550154623794d2b",
+    "runtime_archive_sha256": "0a12a2ff86565a47df061d21d76a80f90c6b5db469a28b870cf3e4473df95519",
+    "node_proof_sha256": "bbf5fd149b21f605447b7a57072dd71dc2277bd35670b51857d15d3648d0ed5e",
+    "node_inputs_sha256": "a8a3a488fb2cc6be8b6423e0a4240e234bdad3b8c73115c599f307beafe0c6e0",
+    "manifest_sha256": "5dec9d9ba3b28c875534c859f1f537aeccc73008c25df8340fbfefc2a99e2f3e",
+    "binary_sha256": "ecbd9e973d7bfdcab305370e906f362f3152c01ff1d5dd7ff8999f6d20c2cea6",
+    "node_archive_sha256": "e1e7870b29893b5300402191fa500e18a54a7ba106ad855f23f8e72549d87f6a",
+    "regular_offline_install": true,
+    "complete_sdk_candidate_qualified": false,
+    "source_inputs_matched": true,
+    "installer_sha256": "6649906d2af0533aa9692ad62ab1b5627788d8ea474b2ac7a2543edb14605698",
+    "passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "native_archive_independent_audit": {
+    "source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
+    "passed": true,
+    "runtime_archive_sha256": "0a12a2ff86565a47df061d21d76a80f90c6b5db469a28b870cf3e4473df95519",
+    "manifest_sha256": "5dec9d9ba3b28c875534c859f1f537aeccc73008c25df8340fbfefc2a99e2f3e",
+    "binary_sha256": "ecbd9e973d7bfdcab305370e906f362f3152c01ff1d5dd7ff8999f6d20c2cea6",
+    "source_inputs_sha256": "8cf1f207c322db92395520553d2ee40ff3e7a44bca91928cbefa899e7db8fdaf",
+    "files_verified": 755,
+    "scope": "Independent local production runtime archive/content/source/architecture audit only; no installed app or complete SDK candidate claim.",
+    "source_file_counts": {
+      "parley": 195,
+      "quinn-proto": 59,
+      "rtc-dtls": 98,
+      "rtc-interceptor": 32,
+      "rvoip": 3693,
+      "web-transport-proto": 17,
+      "git": 4768
+    }
+  },
+  "native_build": {
+    "target": "aarch64-apple-darwin",
+    "version": "0.1.0",
+    "production_release": true,
+    "test_support": false,
+    "build_settings": {
+      "MACOSX_DEPLOYMENT_TARGET": "15.0",
+      "OPUS_STATIC": "1",
+      "LIBOPUS_NO_PKG": "1",
+      "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+    },
+    "source_count": 8862,
+    "source_inputs_sha256": "8cf1f207c322db92395520553d2ee40ff3e7a44bca91928cbefa899e7db8fdaf",
+    "source_inputs_unchanged": true,
+    "binary_sha256": "ecbd9e973d7bfdcab305370e906f362f3152c01ff1d5dd7ff8999f6d20c2cea6",
+    "archive_name": "connect-runtime-0.1.0-aarch64-apple-darwin-39d038811a43.tar.gz",
+    "archive_sha256": "0a12a2ff86565a47df061d21d76a80f90c6b5db469a28b870cf3e4473df95519",
+    "manifest_sha256": "5dec9d9ba3b28c875534c859f1f537aeccc73008c25df8340fbfefc2a99e2f3e",
+    "passed": true
+  },
+  "node_archive": {
+    "package_name": "@rudeless/connect",
+    "version": "0.1.0",
+    "archive_name": "rudeless-connect-0.1.0.tgz",
+    "archive_sha256": "e1e7870b29893b5300402191fa500e18a54a7ba106ad855f23f8e72549d87f6a",
+    "files_verified": 195,
+    "consumer_outside_repository": true,
+    "empty_cache": true,
+    "install_scripts_disabled": true,
+    "license_text_verified": true,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "a8a3a488fb2cc6be8b6423e0a4240e234bdad3b8c73115c599f307beafe0c6e0",
+    "external_declarations_checked": true,
+    "typescript_version": "7.0.2",
+    "node_version": "v26.7.0",
+    "passed": true
+  },
+  "implementation_inputs": {
+    "scripts/install-reference-app-components.py": "6649906d2af0533aa9692ad62ab1b5627788d8ea474b2ac7a2543edb14605698",
+    "scripts/tests/test_reference_app_components.py": "637256620324d76d3f530152dc352ac3e1e520500f07b067b5b51492dfb6315d",
+    "scripts/check-reference-app-installed.mjs": "6f89077373c7e6afc770d38558c307d91de4f73f6c724e45ce7db7b9bb856e37"
+  },
+  "refusal_tests_passed": 5,
+  "retained_behavior_checks": 37,
+  "scope": "Source-bound local production Mac runtime and actual public Node archive, each independently audited/verified then installed together through normal offline npm with no scripts or user npm configuration. All Node package input bytes match native runtime Git39d. App rehearsal is still unrun. This is not complete Rust/Node/Python SDK candidate qualification or an inherited Gate pass.",
+  "full_sdk_qualification_pending_runs": [
+    41288711516,
+    41289033374
+  ],
+  "installed_app_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -14,6 +14,17 @@ assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(
 await mkdir(output, { recursive: false, mode: 0o700 });
 const installation = JSON.parse(await readFile(join(base, "installation.json"), "utf8"));
 assert.equal(installation.passed, true);
+const producers = {
+    "connect/reference-app-candidate-installation/1": { kind: "sealed-sdk-candidate", installer: "scripts/install-reference-app-candidate.py" },
+    "connect/reference-app-local-components/1": { kind: "verified-local-components", installer: "scripts/install-reference-app-components.py" },
+};
+assert.ok(Object.hasOwn(producers, installation.format), "known-actual-installation-producer-required");
+const producer = producers[installation.format];
+if (producer.kind === "verified-local-components") {
+    assert.equal(installation.complete_sdk_candidate_qualified, false);
+    assert.equal(installation.source_inputs_matched, true);
+    assert.equal(installation.regular_offline_install, true);
+}
 const consumer = installation.consumer, state = join(base, "consumer/.local/parley");
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 async function tree(directory) {
@@ -31,15 +42,20 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     installed_sdk: await tree(join(consumer, "node_modules/@rudeless/connect")),
     runtime: await digest(installation.executable),
     checker: sha(await readFile(fileURLToPath(import.meta.url))),
-    installer: sha(await readFile(join(root, "scripts/install-reference-app-candidate.py"))) };
+    installer: sha(await readFile(join(root, producer.installer))) };
+if (producer.kind === "verified-local-components") assert.equal(installation.installer_sha256, sourceInputs.installer);
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
 assert.equal(sourceInputs.runtime, installation.binary_sha256);
 const report = { format: "connect/reference-app-installed-control/1", passed: false, checks: [],
     source_revision: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
     source_inputs: sourceInputs, runtime_source_revision: installation.source_revision,
+    installation_kind: producer.kind, complete_sdk_candidate_qualified: producer.kind === "sealed-sdk-candidate",
+    installation_proof_sha256: sha(await readFile(join(base, "installation.json"))),
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
-    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
+    scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
+        "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
+        " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
 let processChild, finished, context, browser, page, release, chrome, stage = "startup";
 const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
