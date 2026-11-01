@@ -100,9 +100,12 @@
   },
   "media_endpoint_setup_candidate": {
     "evidence": "docs/evidence/gate-6/reference-app-media-endpoint-setup.json",
-    "status": "implemented-local-components-pass-installed-runtime-unverified",
-    "runtime_verified": false,
+    "status": "independently-source-verified-installed-positive-both-platforms",
+    "runtime_verified": true,
     "component_tests_passed": 33,
-    "setup_profile": "parley-local-setup/2"
+    "setup_profile": "parley-local-setup/2",
+    "verification_evidence": "docs/evidence/gate-6/reference-app-installed-media-endpoint-setup.json",
+    "source_revision": "61166d45b6a465556392b5ce9ce4324b86913c37",
+    "workflow_run_id": 41276528574
   }
 }

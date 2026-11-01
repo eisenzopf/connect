@@ -1,7 +1,7 @@
 {
   "format": "connect/reference-app-media-endpoint-setup/1",
   "task": "G6-072",
-  "status": "implemented-local-components-pass-installed-runtime-unverified",
+  "status": "independently-source-verified-installed-positive-both-platforms",
   "source_revision_before_change": "b268bec5fe2466e0dfb800f52c2821e5d31a6e3c",
   "implementation_inputs": {
     "examples/parley-on-connect/app/setup.mjs": "5dc9067d682feec15c1d0c138992201699981a8b31343d029e11e01ee7e06354",
@@ -48,18 +48,26 @@
   },
   "installed_check": {
     "implemented": true,
-    "status": "not-run",
+    "status": "independently-source-verified-positive",
     "expected_checks": 16,
     "description": "After one-command setup, replay all four original Endpoint provisioning and verification decisions through the installed public administrative SDK, require the exact original Identity/Device/Endpoint, verified state, revision and audio/data/video capabilities, then retain all earlier browser/control/restart/owner checks.",
-    "runtime_verified": false
+    "runtime_verified": true,
+    "workflow_run_id": 41276528574,
+    "job_ids": {
+      "mac": 124759720976,
+      "linux": 124759720876
+    },
+    "verification_evidence": "docs/evidence/gate-6/reference-app-installed-media-endpoint-setup.json",
+    "checks_passed_per_platform": 16,
+    "native_endpoints_verified_per_platform": 4
   },
   "remaining": [
-    "Actual installed Node22 Linux and macOS execution and independent source/ZIP audit",
     "Public SDK Connection offer/end and Stream selection controls",
     "Negotiated browser capture, packet IO, decoded playback and ownership verification"
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
   "provider_or_model_execution": false,
-  "scope": "Local synthetic reference-app setup only. G6-054 remains parked; no PSTN/SMS/provider calls or model execution."
+  "scope": "Local synthetic reference-app setup only. G6-054 remains parked; no PSTN/SMS/provider calls or model execution.",
+  "implementation_source_revision": "61166d45b6a465556392b5ce9ce4324b86913c37"
 }

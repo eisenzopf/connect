@@ -25,8 +25,13 @@ saves original provisioning and verification commands before submission.
 Verification binds the Device, Identity, local contact, configuration and runtime.
 It represents an attributed local setup decision; actual Connection negotiation
 and decoded media must still be demonstrated. Nine setup fixture functions are
-included in the 33 passing app component tests. Actual installed execution of
-this new setup is pending; it does not inherit the earlier control result.
+included in the 33 passing app component tests. At source 61166d45, installed
+Node 22.23.4/macOS arm64 and Ubuntu x86_64 each pass all 16 checks, including
+original recovery of all four verified media Endpoint decisions. Independent
+ZIP, source and package audits are recorded in
+[the installed media setup evidence](../../docs/evidence/gate-6/reference-app-installed-media-endpoint-setup.json).
+Connection offer/end, Stream selection and negotiated capture/playback remain
+required.
 
 Negotiated media/capture integration remains unfinished. The app keeps its
 private setup manifest, administrator configuration and credentials on the
