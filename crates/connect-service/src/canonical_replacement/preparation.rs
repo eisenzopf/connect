@@ -261,15 +261,37 @@ impl Runtime {
                     Phase::Signal(DeviceReplacementEndpointEvent::MediaObserved),
                 )
                 .await?;
-            let event = self
+            let observed = self
                 .core
                 .capture_device_replacement_event(
                     &root.handle,
                     DeviceReplacementSignalSource::NativePeer(peer.clone()),
                     DeviceReplacementEndpointEvent::MediaObserved,
                 )
-                .map_err(|_| Error::forbidden())?;
-            let observed=event.observe_with_held(&i).map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement actual media observation refused");Error::forbidden()})?;
+                .and_then(|event| event.observe_with_held(&i));
+            let observed = match observed {
+                Ok(observed) => observed,
+                Err(
+                    rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
+                        rvoip_core::staged_streams::StreamControlError::Model(
+                            rvoip_core::stream_lifecycle::MediaTransitionError::Conflict,
+                        ),
+                    ),
+                ) => {
+                    // Readiness uses try-locks while holding connection fences.
+                    // Release this invocation before the next bounded poll and
+                    // capture a fresh event with fresh current authority. The
+                    // original root/deadline remain unchanged; no media phase
+                    // or movement has been recorded by this observation.
+                    drop(i);
+                    tracing::debug!(target:"connect_service::canonical_replacement","Replacement readiness observation deferred by media contention");
+                    continue;
+                }
+                Err(error) => {
+                    tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement actual media observation refused");
+                    return Err(Error::forbidden());
+                }
+            };
             if !matches!(
                 observed,
                 rvoip_core::participant_transitions::EndpointConfirmationObservation::NotRequired

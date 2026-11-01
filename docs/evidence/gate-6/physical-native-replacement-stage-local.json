@@ -231,14 +231,70 @@
   "task_complete": false,
   "full_transport_cell_qualified": false,
   "twenty_transition_profile_qualified": false,
-  "scope": "Local macOS arm64 EdDSA native audio-only component. Original controller and physical target have separate owners; public Rust native allocation, real RTP and independent Opus decoding are observed. Two positive moves do not qualify the failed 20-move sequence, device presentation, paired AV, six-connection workload, other matrix cells or G6-054. Current metadata writer-admission correction still needs its own compiled/runtime evidence.",
+  "scope": "Local macOS arm64 EdDSA native audio-only component. Original controller and physical target have separate owners; public Rust native allocation, real RTP and independent Opus decoding are observed. Two positive moves do not qualify the failed 20-move sequence, device presentation, paired AV, six-connection workload, other matrix cells or G6-054. New production metadata writer-admission evidence follows separately; the twenty-move sequence remains failed.",
   "writer_correction_controlled_verification": {
     "optimized_store_custody_tests_passed": 15,
     "controlled_controller_cases_passed": 3,
     "independent_decoder_cases_passed": 4,
     "store_test_binary_sha256": "23ba1b7851009793f8a9522ebb668e7b2e24e34cbefd2c9f09968012f43f6dcd",
     "store_test_log_sha256": "c8bbb7d978fa799fbf16e04a821e70e7d7b0d9ffdb9bd71a733b9ff214eba9e5",
-    "production_runtime_verified": false,
+    "production_runtime_verified": true,
     "scope": "Compiled local optimized Store custody regression, current controller and decoder controlled cases. One existing custody case validates configured telephone digits without dialing; no SIP/TURN/provider lane or deferred G6-054 qualification is executed. Future native CI selection excludes that configuration case."
+  },
+  "writer_correction_production_verification": {
+    "runtime_source_revision": "36c9bd3e590d8accc5177dbc27a075c4e15d3fb3",
+    "binary_sha256": "648556a23eb5413aa5ee82eb112ad38c6fdba1205fa49454bdafa4300bb80fc4",
+    "independent_runtime_proof_sha256": "1e86fdbb8e79eea20da8bf44cf6e6d196a5ab6c2fec050b5dd793e036d6d2ccc",
+    "original_controller_sha256": "5f2d7d48f8401bde20dcf148aca10e1674c0d997912316e3e290791ea08f6f85",
+    "independent_audio_audit_sha256": "868f200ec4cf8f3775e03dd516b9dfbc7af49fb331eed5f4f3242b5d1ac3d121",
+    "requested_transitions": 20,
+    "attempted_transitions": 8,
+    "completed_original_roots_with_independently_decoded_audio": 7,
+    "all_twenty_passed": false,
+    "maximum_decoded_packet_arrival_gap_ms": 100.78245800000036,
+    "per_completed_original_arrival_gaps_ms": [
+      39.02287499999966,
+      41.14912499999991,
+      41.852542000000085,
+      100.78245800000036,
+      79.57237500000019,
+      93.3600419999998,
+      58.889624999999796
+    ],
+    "source_guards": {
+      "sdk_dist_files_unchanged": true,
+      "sdk_dist_files": 192,
+      "credentials_unchanged": true,
+      "credential_files_guarded": 491,
+      "controller_module_unchanged": true,
+      "runtime_unchanged": true,
+      "harness_sources_unchanged": true
+    },
+    "server_joined": true,
+    "server_forced": false,
+    "eighth_original": {
+      "state_after_shutdown": "failed",
+      "revision": 12,
+      "problem_code": "native-target-stopped",
+      "captured_media_phases": [
+        "attach",
+        "activate"
+      ],
+      "readiness_captured": false,
+      "movement_captured": false,
+      "failure_phase": "original-completion",
+      "existing_debug_error": "Media(Model(Conflict))",
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "all_three_sdk_helpers_joined": true,
+      "original_root_resubmitted": false
+    },
+    "next_correction": "Defer a conflicted read-only media-readiness observation, release the held invocation, and acquire fresh authority plus a newly captured event on the same root and original deadline. Other errors remain fatal. New production behavior verification pending.",
+    "device_presentation_measured": false,
+    "paired_av_sync_qualified": false,
+    "full_transport_cell_qualified": false,
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "scope": "Original seven completed local native audio moves independently decode unchanged original packet payloads. Eighth original fails after attach/activation; sequence stops without retry. This is component evidence, not twenty transitions, device presentation, full media quality, six concurrent connections or a complete matrix cell."
   }
 }

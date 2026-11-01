@@ -76,9 +76,21 @@ the second root stays accepted without preparation/effects, and the target's
 early allocation is refused. A separate two-move reproduction records repeated
 reservation authority contention. See
 [the stage evidence](../evidence/gate-6/physical-native-replacement-stage-local.json).
-The writer-admission correction and preparation wait still require verification
-against a newly compiled production runtime; these older captures cannot prove
-that correction or the twenty-transition profile.
+A newly compiled and independently verified production runtime with the writer
+correction completes seven consecutive original moves with independently decoded
+duplex audio; its largest decoded-packet arrival gap is 100.783 ms. The eighth
+original fails after attach/activation when a read-only readiness observation
+returns `Media(Model(Conflict))`. The sequence stops without resubmitting that
+original, and all physical peers/server join without force. The journal retains
+`native-target-stopped` with no readiness or movement capture.
+
+Readiness capture and observation use nonblocking media-state locks while Core
+holds connection fences. The service now defers that conflict until its next
+50 ms poll, releases the held invocation and captures a fresh event under fresh
+current authority. It keeps the original operation and deadline; every other
+error still refuses. This correction requires new production behavior evidence.
+Neither these seven observations nor the correction qualify twenty transitions
+or the full transport matrix.
 
 `scripts/lib/transport_replacement_audio.py` independently decodes the private
 original RTP payloads after native RTCP demultiplexing. It requires exactly 960
