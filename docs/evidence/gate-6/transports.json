@@ -1138,7 +1138,7 @@
   },
   "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection.",
   "conversation_control": {
-    "status": "implemented-runtime-unrun",
+    "status": "source-verified-incomplete-history-assertion-negative",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "5a868d9d9f5e6483f7ef56a2ef258c388412d8c69c0072360a76b814c2d55426",
       "scripts/check-transport-fixtures.py": "a9f5e30f2e509dfb17a95abf4ca7d12cd482395780f6f4f7422457ef9dd71313",
@@ -1164,6 +1164,15 @@
     "replacement_media_ownership_observed": false,
     "actual_topology_verified": false,
     "cell_qualified": false,
-    "task_complete": false
+    "task_complete": false,
+    "negative_evidence": "docs/evidence/gate-6/transport-conversation-negative.json",
+    "runtime_candidate": {
+      "source_revision": "58def7bc1403ecf7d5be2aefeb941790131023ee",
+      "workflow_run_id": 41267938078,
+      "job_id": 124734562373,
+      "status": "rehearsal-failed-history-assertion-follow-up-required"
+    },
+    "observed": "9configuration/enrollment checks and2Nodecontrol checks pass;4activeConversationmembers and5originalSDKhelperjoins observed. History comparison failed with no assertion source/shape; no audience cause inferred.",
+    "diagnostic_correction": "Fixed Node script coordinates plus type/count-only assertion shapes; keep all assertions and outcomes. Fixture server failure cleanup now attempts original graceful stop and records force/exit/group outcome."
   }
 }

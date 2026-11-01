@@ -311,8 +311,22 @@ def main(actors=False, conversation=False):
             report["failure"]["code"] = str(error)
     finally:
         if server is not None and server.poll() is None:
-            os.killpg(server.pid, signal.SIGKILL)
-            server.wait()
+            server.send_signal(signal.SIGTERM)
+            forced = False
+            try:
+                code = server.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                forced = True
+                os.killpg(server.pid, signal.SIGKILL)
+                code = server.wait()
+            retired = False
+            try:
+                os.killpg(server.pid, 0)
+            except ProcessLookupError:
+                retired = True
+            report["failure_cleanup"] = dict(server_exit_code=code, forced=forced, original_group_retired=retired)
+            if code == 0 and not forced and retired and report["servers"]:
+                report["servers"][-1]["original_joined"] = True
         for stream in streams:
             stream.close()
         report["source_inputs_unchanged"] = before is not None and source() == before

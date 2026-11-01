@@ -1,0 +1,39 @@
+{
+  "format": "connect/transport-conversation-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "58def7bc1403ecf7d5be2aefeb941790131023ee",
+  "workflow_run_id": 41267938078,
+  "job_id": 124734562373,
+  "artifact_id": 13068126930,
+  "zip_sha256": "12329be7bdfb4fb959372a737b03f7c4f5cee3fcd6a1543ed61b21b29dcbf022",
+  "source_inputs_sha256": "d77abd487c7d3fc1e7255da22ffb2fdad2e24b16aab156c04347566d277ffee4",
+  "report_sha256": "1f82a0adfd0e4332c0737c3617df0d33508e99b53a34edc5e6ebffff8a795b42",
+  "conversation_report_sha256": "c9272e5b751c1c7c6cd5735aaeea29818cf3080c7682505b12a707a3209a52ff",
+  "sources_verified": {
+    "git": 4689,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "configuration_actor_checks_passed": 9,
+  "conversation_checks_passed": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal"
+  ],
+  "failure": {
+    "phase": "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "name": "AssertionError",
+    "kind": null,
+    "certainty": null
+  },
+  "observed_sdk_helpers_joined": 5,
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 0,
+  "materialized_server_graceful_join_verified": false,
+  "missing_diagnostics": "Assertion source coordinates and assertion shapes absent in this report; do not infer whether the old audience or current-message comparison failed.",
+  "follow_up": "Add fixed script source coordinates and type/count-only assertion diagnostics, then execute the same assertions. No product behavior or expected audience change.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

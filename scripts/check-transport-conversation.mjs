@@ -110,8 +110,11 @@ try {
     assert.equal(view.participants.filter(p => p.active).length, 4);
     report.maximum_active_members_observed = 4;
     const firstMembership = member(view, "participant-4");
+    phase = "added-member-old-history";
     assert.deepEqual(await history(late), []);
+    phase = "included-message-send";
     await send(owner, cid, "included", recipients(view));
+    phase = "added-member-current-history";
     assert.deepEqual(await history(late), [plan.includedMessage]);
     check("four-active-participants-and-addition-does-not-expand-older-message-audience");
     view = await conversation.refresh(options);
@@ -183,6 +186,11 @@ try {
     report.passed = true;
 } catch (error) {
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+    const position = /scripts\/check-transport-conversation\.mjs:(\d+):(\d+)/.exec(String(error.stack));
+    if (position) report.failure.source = { file: "scripts/check-transport-conversation.mjs", line: Number(position[1]), column: Number(position[2]) };
+    // Describe assertion shapes without uploading identifiers, bodies or keys.
+    const shape = value => Array.isArray(value) ? { type: "array", length: value.length, elements: [...new Set(value.map(v => typeof v))] } : { type: typeof value };
+    if (error.name === "AssertionError") report.failure.assertion = { actual: shape(error.actual), expected: shape(error.expected) };
     await writeFile(join(privateDirectory, "failure.log"), String(error.stack), { mode: 0o600 });
 } finally {
     for (const client of clients.values()) {
