@@ -22,14 +22,14 @@
     "examples/parley-on-connect/app/server.mjs": "f80df1a83278628acf45901b5d174848a06f8ead2b171c00a74ad5ba67b60cf4",
     "examples/parley-on-connect/app/server.test.mjs": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
     "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
-    "examples/parley-on-connect/app/ui/app.mjs": "8fb3097d8b3afa56bce8a61b36faa178b51a73d78b3f1325900e0d0014f4c015",
+    "examples/parley-on-connect/app/ui/app.mjs": "b5e81200661a9115bb4af3d82e770c6cd83b08607cd0b6f51f4e655ae02700df",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
     "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
     "examples/parley-on-connect/app/run.mjs": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
     "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
     "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "4eac1e71721f1f7eb0fd5a3342ec6a9d859525f432b77bcb5897b3e2c8d4036d",
+    "scripts/check-reference-app-installed.mjs": "89c5d94bee1ba718d6a6937d8bbdf57961c149dc6524ed6399a69bd7c71d7d2d",
     ".github/workflows/gate6-reference-app.yml": "e7930fa4636a4b8306760bf732d07eeb472ea4597489b77d16a81ea25c2b6cee",
     "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
@@ -65,12 +65,17 @@
     "native_select_keyboard": "Unqualified: fixture perspective selected through selectOption after stock native-select keyboard counterexamples.",
     "original_recovery": "One simulated accepted message with withheld HTTP response, actual browser offline and reload/reconnect, recovery of original ID, one effect only; browser stores keys/IDs only.",
     "sources_unchanged": true,
-    "original_owners_joined": true
+    "original_owners_joined": true,
+    "latest_private_run": {
+      "run": "ui-06",
+      "checks_passed": 12,
+      "scope": "Actual Chrome/installed browser SDK, simulated backend; verifies denied-state handling and original offline recovery after preview change. Exact source map is in its private summary; a later source comment changed without behavior."
+    }
   },
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "Mac-only8f8606cf/run41260004956 source-verified failed: production wire128/127 guard, actual setup and installed SDK/browser connection pass. Original create completes, but explicit127 view pages exceed configured server100 and refuse. Omit explicit topology size and follow server pages under unchanged total-item/deadline bounds; production before/after/default guard and full app flow must rerun. Separate full two-platform261ec098/run41259849923 remains pending behind live dfb Linux prerequisite installation; its code predates server-default-page correction. Mac-only lane is diagnostic, not two-platform qualification.",
+    "status": "Mac3b39fd6d/run41260435669 source/runtime-verified:7 actual checks pass through keyboard selection/create, real text history and invitation/acceptance. Denial flow times out after browser Permissions.query reports denied; exact hardware exception unrecorded. Honor authoritative denial before device acquisition; owned Chrome component UI06 passes12 assertions after the behavior change (before a subsequent comment-only edit). Full production offline/restart and both-platform checks remain required.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"

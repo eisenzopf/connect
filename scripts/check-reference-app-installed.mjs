@@ -200,6 +200,7 @@ try {
     report.failure = { stage, name: error.name, code: typeof error.code === "string" ? error.code : null };
     if (page && !page.isClosed()) {
         report.failure_notice = await page.locator("#notice").textContent().catch(() => null);
+        report.failure_permission = await page.locator("#permission").textContent().catch(() => null);
         await page.screenshot({ path: join(output, "failure.png"), fullPage: true }).catch(() => {});
     }
     process.exitCode = 1;

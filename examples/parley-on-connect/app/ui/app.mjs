@@ -225,6 +225,12 @@ async function preview(kind) {
     $("permission").textContent = "Waiting for " + kind + " permission…";
     const timeout = setTimeout(() => { expired = true; if (captured === captureEpoch) $("permission").textContent = "Permission is still pending. No device is active."; }, 8000);
     try {
+        // Honor an existing browser denial before requesting hardware,
+        // including on hosts without capture devices.
+        let denied = false;
+        try { denied = (await navigator.permissions?.query({ name: kind }))?.state === "denied"; } catch { /* This browser may not expose device permission queries. */ }
+        if (expired || captured !== captureEpoch) return;
+        if (denied) { $("permission").textContent = kind + " permission denied. You can continue with text."; return; }
         const stream = await navigator.mediaDevices.getUserMedia(kind === "microphone" ? { audio: true } : { video: true });
         if (expired || captured !== captureEpoch) { for (const track of stream.getTracks()) track.stop(); return; }
         previews.add(stream); if (kind === "camera") $("preview").srcObject = stream;
