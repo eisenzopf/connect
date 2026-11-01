@@ -1,0 +1,407 @@
+{
+  "format": "connect/native-data-workload-independent-verification/1",
+  "task": "G6-058",
+  "source_revision": "d19f059c57d534821b67b8a88169ed09806649db",
+  "workflow_run_id": 41274490677,
+  "job_id": 124753792159,
+  "artifact_id": 13071685872,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": false,
+    "source_revision": "d19f059c57d534821b67b8a88169ed09806649db",
+    "artifact_sha256": "6d5d86717aeb0c2fe4064d9530cbc83b54ec1b23f7196937d0948fc386d09a4c",
+    "report_sha256": "d5800077afb79caaeef26545aad335ce2df845126d009abff7696b0ccc51ea50",
+    "source_inputs_sha256": "e8661b97b2be2503b26267116447cc4584ecccbe26f096aefce8071dc7d4e87e",
+    "sources_verified": {
+      "git": 4712,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 48,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "19393b353b6bc8cb196ffa308eaf837e1ad12c671a891b0da2212f971c1f7baa",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_host": {
+    "os": "linux",
+    "architecture": "x86_64",
+    "kernel_release": "7.0.0-1017-azure",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-x86_64"
+  },
+  "node": "v22.23.4",
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification"
+  ],
+  "child_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+    "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+    "native-data-original-replay-recovers-receipt-without-second-delivery",
+    "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences"
+  ],
+  "commands": [
+    {
+      "name": "initialize",
+      "exit_code": 0
+    },
+    {
+      "name": "unsupported-init-signing",
+      "exit_code": 2
+    },
+    {
+      "name": "existing-init-signing-refusal",
+      "exit_code": 1
+    },
+    {
+      "name": "seed-create",
+      "exit_code": 0
+    },
+    {
+      "name": "seed-list",
+      "exit_code": 0
+    },
+    {
+      "name": "stopped-backup",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-list",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-original",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-identity",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-replacement-1-enrollment",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-scoped-native-read",
+      "exit_code": 0
+    },
+    {
+      "name": "actor-cannot-provision",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-cannot-verify-endpoint",
+      "exit_code": 1
+    },
+    {
+      "name": "trusted-endpoint-verify-0",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-0",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-1",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-1",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-2",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-2",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-3",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-3",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-4",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-4",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-1",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-2",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-3",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-4",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-replacement-1",
+      "exit_code": 0
+    }
+  ],
+  "workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 9576,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true,
+    "original_end_operations_completed": 6,
+    "retirement_observation_budget_ms": 8000,
+    "retirement_observations": 2,
+    "after_end_states": [
+      "retired",
+      "ready",
+      "ready",
+      "ready",
+      "retired",
+      "ready"
+    ]
+  },
+  "topology": {
+    "host": {
+      "platform": "ubuntu24-x86_64",
+      "os": "linux",
+      "architecture": "x64",
+      "kernel_release": "7.0.0-1017-azure",
+      "ordinary_user": true
+    },
+    "same_network_namespace_observed": true,
+    "server_owned_loopback_udp_bind_observed": true,
+    "helpers_in_server_namespace": 5,
+    "server_executable_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+    "namespace_sha256": "faa2d2822eaf7944616d9d45da25314cd09b54d6cffed4ffa4d2ad80a6315d29"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "215f84ad9b271a24a11dce3364a97039c1efdd3db6e7e75cf628513a361df9ed",
+    "pcap_bytes": 3789885,
+    "captured_seconds": 34.587371738,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 1163,
+      "to_server_packets": 570,
+      "from_server_packets": 593,
+      "captured_bytes": 3771253,
+      "udp_payload_bytes": 3722407,
+      "to_server_udp_bytes": 790692,
+      "from_server_udp_bytes": 2931715
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "helpers_observed": 5,
+  "all_helpers_joined": true,
+  "cleanup_stage_counts": {
+    "durable-retirement-recorded": 6,
+    "durable-retirement-retry": 182,
+    "durable-retirement-join": 0
+  },
+  "cleanup_diagnostic_scope": "Closed stage counts cover the complete original runtime, including cleanup after a failed observation. Counts do not prove per-Connection timing or associate a particular retry with a particular original ID.",
+  "component_passed": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One Ubuntu24.04 x86_64/local/native QUIC/EdDSA data component. Same normal production CLI byte digest in both runs. No audio/video duplex, live media upgrade, replacement media ownership, browser, Remote-profile, other signing/platform cohort or complete-cell qualification. Ciphertext capture is not decoded media proof.",
+  "failure": {
+    "parent": {
+      "phase": "public-sdk-conversation-control",
+      "name": "AssertionError",
+      "line": 420
+    },
+    "child": {
+      "phase": "six-native-connections-original-end",
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "certainty": "read-only",
+      "source_stack": []
+    }
+  }
+}

@@ -11,10 +11,22 @@ import warnings
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.transport_verification import decode, read_members, verify_control, verify_rehearsal, verify_sdk
+from lib.transport_verification import decode, read_members, verify_control, verify_rehearsal, verify_sdk, verify_command_outcomes
 
 
 class EvidenceVerification(unittest.TestCase):
+    def test_data_requires_original_endpoint_self_verification_refusal_without_accepting_other_failures(self):
+        names = ["unsupported-init-signing", "existing-init-signing-refusal", "actor-cannot-provision",
+            "revoked-primary-native-refusal", "participant-cannot-verify-endpoint"]
+        commands = [dict(name=name, exit_code=1) for name in names] + [dict(name="normal-native-read", exit_code=0)]
+        verify_command_outcomes(commands, "data")
+        for changed in [commands[:-2] + commands[-1:], commands + [dict(name="unexpected-failure", exit_code=1)],
+                [dict(value, exit_code=0) if value["name"] == "participant-cannot-verify-endpoint" else value for value in commands]]:
+            with self.subTest(commands=changed), self.assertRaises(ValueError):
+                verify_command_outcomes(changed, "data")
+        with self.assertRaisesRegex(ValueError, "unexpected-command-outcome"):
+            verify_command_outcomes(commands, "actors")
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

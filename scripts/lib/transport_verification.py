@@ -19,6 +19,15 @@ REFUSALS = {"unsupported-init-signing", "existing-init-signing-refusal",
     "actor-cannot-provision", "revoked-primary-native-refusal"}
 
 
+def verify_command_outcomes(commands, component):
+    expected = REFUSALS | ({"participant-cannot-verify-endpoint"} if component == "data" else set())
+    if component == "data":
+        require(expected <= {command["name"] for command in commands}, "data-authority-refusal-missing")
+    for command in commands:
+        require(type(command["exit_code"]) is int and
+            ((command["exit_code"] != 0) == (command["name"] in expected)), "unexpected-command-outcome")
+
+
 def require(condition, reason):
     if not condition:
         raise ValueError(reason)
@@ -128,9 +137,7 @@ def verify_rehearsal(report, component, members):
     if report["passed"]:
         require(report["compile_exit_code"] == 0 and len(servers) == 2 and
             all(server["original_joined"] is True for server in servers), "positive-rehearsal-owner-or-build-missing")
-        for command in report["commands"]:
-            require(type(command["exit_code"]) is int and
-                ((command["exit_code"] != 0) == (command["name"] in REFUSALS)), "unexpected-command-outcome")
+        verify_command_outcomes(report["commands"], component)
         require(not report.get("failure") and not report.get("failure_cleanup", {}).get("forced", False), "positive-rehearsal-has-failure")
         required = {"production-restore-and-private-config-preserve-original-trust-validity-and-credential",
             "occupied-instance-refuses-without-overwrite", "wrong-signing-seed-refuses-before-state-publication",

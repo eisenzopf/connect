@@ -1196,7 +1196,7 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "six-full-size-payloads-repeated-five-durable-retirements-last-owner-under-diagnosis",
+    "status": "verified-six-payloads-original-retirement-drain-and-recovery-one-ubuntu-local-EdDSA-component",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "b8d63c0ffea38967a663d90fa52b92407a8bce762504d830549647b3cb88ce95",
       "scripts/check-transport-fixtures.py": "ecdd677d372db97528945e686c696546280debec94a93b8775bb13461f8bc245",
@@ -1235,7 +1235,7 @@
       "owned_data_queued_bytes_after_drain": 0
     },
     "local_topology_observation": "Actual server-owned IPv4loopbackUDPsocket and matching actual server/helper network namespaces, with source/binary/config bindings. Raw process/socket state private.",
-    "runtime_verified": false,
+    "runtime_verified": true,
     "audio_video_workload_verified": false,
     "packet_capture_observed": false,
     "replacement_media_ownership_verified": false,
@@ -1305,17 +1305,20 @@
       "source_revision": "d19f059c57d534821b67b8a88169ed09806649db",
       "workflow_run_id": 41274490677,
       "job_id": 124753792159,
-      "status": "confirmed-live-native-prerequisites",
+      "status": "terminal-negative-independently-source-verified",
       "runtime_verified": false,
-      "description": "Private DEBUG records only fixed durable-cleanup stages/error codes and terminal custodian booleans; bounded curated arrays and complete stage counts. No IDs, payloads, Error.message, changed grants, effects, mutation replay or deadline extension. Rust compilation/runtime pending;42Python guards, syntax and Rust format checks pass."
+      "description": "Private DEBUG records only fixed durable-cleanup stages/error codes and terminal custodian booleans; bounded curated arrays and complete stage counts. No IDs, payloads, Error.message, changed grants, effects, mutation replay or deadline extension. Rust compilation/runtime pending;42Python guards, syntax and Rust format checks pass.",
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-d19.json",
+      "cleanup_recorded": 6,
+      "authority_busy_retries": 182
     },
     "coherent_retirement_observer_candidate": {
-      "status": "confirmed-pending-original-diagnostic-run-retained",
+      "status": "terminal-positive-independently-source-verified",
       "description": "One current-authorized public Conversation snapshot per round for all six original IDs and Sessions, with one revision/watermark across pages and unchanged eight-second common deadline, retired state and later generation requirements. No change to production cleanup, end effects, enrollment scopes or the complete workload.",
       "node_observer_tests_passed": 5,
       "actual_host_owner_tests_passed": 2,
       "python_transport_guards_passed": 42,
-      "runtime_verified": false,
+      "runtime_verified": true,
       "full_matrix_cells_qualified": 0,
       "implementation_hashes": {
         "scripts/lib/transport_snapshot.mjs": "2f4e2c0ba32b3b2ea578dc082e7219d7c060ca583a95a6854ce37d8ea73c7b8b",
@@ -1324,7 +1327,35 @@
         ".github/workflows/gate6-transport-matrix.yml": "d7d877c2bc4311f12af0a73a15e6b729d3b358990dd08e35074dbb7c71b99edf"
       },
       "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-      "workflow_run_id": 41276040539
+      "workflow_run_id": 41276040539,
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
+      "job_id": 124760562911,
+      "artifact_id": 13070454465,
+      "artifact_sha256": "84beabafc5031199c42fec1a723d83986a4f1626922fb0f210f33ee598fba1f5",
+      "original_connections_retired": 6,
+      "observation_elapsed_ms": 4179,
+      "local_python_transport_guards_passed": 43
+    },
+    "complete_native_data_component_verified": {
+      "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
+      "parent_checks": 17,
+      "sdk_checks": 14,
+      "commands_observed": 58,
+      "payloads": 6,
+      "bytes_per_payload": 65536,
+      "original_end_receipts": 6,
+      "durably_retired_originals": 6,
+      "original_replay_without_duplicate": true,
+      "frozen_history_audiences": true,
+      "empty_owned_data_queues": true,
+      "both_session_ends": true,
+      "independent_device_original_history_recovery": true,
+      "current_primary_revocation": true,
+      "servers_joined": 2,
+      "native_helpers_joined": 5,
+      "packet_capture_owned_joined": true,
+      "full_matrix_cells_qualified": 0
     }
   },
   "native_signing_cohorts": {
