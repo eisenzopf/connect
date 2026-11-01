@@ -125,3 +125,20 @@ test("abandoned browser leases retire after the fixed idle bound", async t => {
     await assert.rejects(f.bridge.send("owner", a, input(lease.leaseId)), { code: "app-media-stopped" });
     assert.equal(f.calls.some(c => c.kind === "send"), false);
 });
+
+
+test("a delayed close for an old lease cannot retire the current replacement", async t => {
+    const f = fixture(t), a = owner(), one = await f.bridge.open("owner", a, binding);
+    const two = await f.bridge.open("owner", a, binding);
+    await assert.rejects(f.bridge.retire("owner", a, { leaseId: one.leaseId }), { code: "app-media-stopped" });
+    assert.equal((await f.bridge.send("owner", a, input(two.leaseId))).boundary, "local-media-queue");
+    assert.deepEqual(await f.bridge.retire("owner", a, { leaseId: two.leaseId }), { stopped: true });
+});
+
+test("an empty authorized receive queue is idle; authority and cancellation remain failures", async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding);
+    f.stream.receivePacket = async () => { throw { kind: "deadline", certainty: "read-only" }; };
+    assert.deepEqual(await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "idle" });
+    f.stream.receivePacket = async () => { throw { kind: "authentication", certainty: "read-only" }; };
+    await assert.rejects(f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "authentication" });
+});

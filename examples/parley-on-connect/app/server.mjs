@@ -79,7 +79,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
             response.setHeader("Set-Cookie", cookieName + "=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600");
             await serve(response, join(assets, "index.html"), "text/html"); return;
         }
-        if (request.method === "GET" && ["/app.mjs", "/app.css"].includes(url.pathname)) {
+        if (request.method === "GET" && ["/app.mjs", "/app.css", "/media.mjs", "/audio-worklet.mjs", "/media-clock.mjs"].includes(url.pathname)) {
             await serve(response, join(assets, url.pathname.slice(1)), url.pathname.endsWith(".css") ? "text/css" : "text/javascript"); return;
         }
         if (request.method === "GET" && url.pathname.startsWith("/sdk/")) {
@@ -102,6 +102,10 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
             const result = await action();
             if (session.role !== actor || session.mediaOwner !== mediaOwner) {
                 await gateway.mediaCloseOwner(mediaOwner); fail("app-media-stopped");
+            }
+            if (response.destroyed && result?.leaseId) {
+                await gateway.mediaRetire(actor, mediaOwner, { leaseId: result.leaseId });
+                fail("app-media-stopped");
             }
             return result;
         };
@@ -133,8 +137,8 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
                 object(input, ["leaseId", "streamId"]);
                 value = await mediaAction(() => gateway.mediaReceive(actor, mediaOwner, input)); break;
             case "/api/media/close":
-                object(input, []);
-                await gateway.mediaCloseOwner?.(mediaOwner); value = { stopped: true }; break;
+                object(input, ["leaseId"]);
+                value = await mediaAction(() => gateway.mediaRetire(actor, mediaOwner, input)); break;
             case "/api/view": object(input, ["conversationId"], ["cursor"]); value = await gateway.view(actor, input.conversationId, input.cursor); break;
             case "/api/prepare": object(input, ["key", "action"]); value = await gateway.prepareIntent(actor, input.key, input.action); break;
             case "/api/lookup": object(input, ["key"]); value = { operation: gateway.lookupKey(actor, input.key) }; break;

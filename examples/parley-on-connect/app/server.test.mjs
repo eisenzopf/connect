@@ -107,3 +107,31 @@ test("media HTTP routes keep owner identity private and actor switch fences late
     assert.equal((await f.api("media/open", { conversationId: "c1", sessionId: "s1", connectionId: "conn1" }, { Origin: "https://foreign.example" })).status, 403);
     assert.equal(owners.length, count);
 });
+
+
+test("HTTP media retirement names the original lease and rejects extra untrusted scope", async t => {
+    const f = await fixture(t), retired = [];
+    f.gateway.mediaRetire = async (role, owner, input) => { retired.push({ role, owner, input }); return { stopped: true }; };
+    assert.equal((await f.api("media/close", {})).status, 400);
+    assert.equal((await f.api("media/close", { leaseId: "one", actor: "organizer" })).status, 400);
+    assert.deepEqual(retired, []);
+    assert.deepEqual(await (await f.api("media/close", { leaseId: "one" })).json(), { stopped: true });
+    assert.equal(retired[0].role, "owner"); assert.deepEqual(retired[0].input, { leaseId: "one" });
+    assert.equal(typeof retired[0].owner, "object");
+});
+
+test("abandoned HTTP open retires only the lease returned by that original request", async t => {
+    const f = await fixture(t); let release, entered, retired;
+    const ready = new Promise(done => { entered = done; }), barrier = new Promise(done => { release = done; });
+    const closed = new Promise(done => { retired = done; }); t.after(() => release());
+    f.gateway.mediaOpen = async () => { entered(); await barrier; return { leaseId: "original-http-lease" }; };
+    f.gateway.mediaRetire = async (role, owner, input) => { retired({ role, input }); return { stopped: true }; };
+    const abort = new AbortController();
+    const request = fetch(f.server.origin + "/api/media/open", { method: "POST", signal: abort.signal,
+        headers: { "Content-Type": "application/json", "X-Parley-Request": "1", Origin: f.server.origin, Cookie: f.cookie },
+        body: JSON.stringify({ conversationId: "c1", sessionId: "s1", connectionId: "conn1" }) });
+    const rejected = assert.rejects(request, { name: "AbortError" }); await ready; abort.abort(); await rejected;
+    await new Promise(done => setTimeout(done, 25)); release();
+    const result = await Promise.race([closed, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error("original-close-not-observed")), 2000); timer.unref(); })]);
+    assert.deepEqual(result, { role: "owner", input: { leaseId: "original-http-lease" } });
+});

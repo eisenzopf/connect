@@ -1,6 +1,6 @@
 // Real installed SDK + production Connect, one-command app setup and browser.
-// Synthetic local control and native audio negotiation. No capture/playback,
-// model or provider execution; device permissions remain denied.
+// Synthetic local control, native audio negotiation and two owned fake-device
+// browser audio capture/playback paths. No model, provider or personal devices.
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
@@ -39,9 +39,9 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     source_inputs: sourceInputs, runtime_source_revision: installation.source_revision,
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
-    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. No captured or decoded media, model, provider or WAN qualification." };
+    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Video capture/playback, full lifecycle/failure, model, provider and WAN qualification remain open." };
 let processChild, finished, context, browser, page, release, stage = "startup";
-const apiReads = new Set();
+const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
 async function deadline(promise, ms) {
     let timer;
@@ -227,17 +227,17 @@ try {
     // These controls negotiate two real native audio Connections. Browser
     // microphone/camera remain denied; this does not claim decoded media IO.
     report.native_control_actions = [];
-    const activate = async (name, command) => {
+    const activate = async (name, command, target = page) => {
         stage = "keyboard-action-" + name;
         const until = Date.now() + 30000, remaining = () => {
             const value = until - Date.now(); assert.ok(value > 0, "native-control-observation-deadline"); return value;
         };
-        const submitted = page.waitForRequest(request => new URL(request.url()).pathname === "/api/submit" && request.method() === "POST", { timeout: remaining() });
+        const submitted = target.waitForRequest(request => new URL(request.url()).pathname === "/api/submit" && request.method() === "POST", { timeout: remaining() });
         void submitted.catch(() => {});
-        await page.getByRole("button", { name, exact: true }).focus(); await page.keyboard.press("Enter");
+        await target.getByRole("button", { name, exact: true }).focus(); await target.keyboard.press("Enter");
         const operationId = (await submitted).postDataJSON().operationId;
         assert.match(operationId, /^[A-Za-z0-9._~-]{1,128}$/);
-        const observeUi = async () => (await page.waitForFunction(operationId => {
+        const observeUi = async () => (await target.waitForFunction(operationId => {
             const original = JSON.parse(document.querySelector("#operations").dataset.values ?? "[]").find(v => v.operationId === operationId);
             const role = document.querySelector("#actor input:checked").value;
             const pending = JSON.parse(localStorage.getItem("parley-original-action-" + role) ?? "null");
@@ -248,7 +248,7 @@ try {
         }, operationId, { timeout: remaining() })).jsonValue();
         let ui = await observeUi();
         for (let read = 0; ui.pending && read < 3; read++) {
-            await page.getByRole("button", { name: "Recover original action", exact: true }).focus(); await page.keyboard.press("Enter");
+            await target.getByRole("button", { name: "Recover original action", exact: true }).focus(); await target.keyboard.press("Enter");
             ui = await observeUi();
             report.native_control_original_recoveries = (report.native_control_original_recoveries ?? 0) + 1;
         }
@@ -257,7 +257,7 @@ try {
         // Observe the same completed original through the public app API. CDP
         // may no longer retain a no-store Fetch body after the UI consumed it.
         // This is a status observation, never another offer/control mutation.
-        const observed = await page.evaluate(async ({ operationId, timeout }) => {
+        const observed = await target.evaluate(async ({ operationId, timeout }) => {
             const response = await fetch("/api/recover", { method: "POST", credentials: "same-origin", redirect: "error", cache: "no-store",
                 referrerPolicy: "no-referrer", headers: { "Content-Type": "application/json", "X-Parley-Request": "1" },
                 body: JSON.stringify({ operationId }), signal: AbortSignal.timeout(timeout) });
@@ -308,12 +308,119 @@ try {
     report.ui_screenshots = Object.fromEntries(await Promise.all(["native-controls.png", "native-controls-narrow.png"].map(async name =>
         [name, sha(await readFile(join(output, name)))])));
     check("negotiated-connection-controls-fit-320px-without-horizontal-overflow");
+
+    // Two separate owned Chromium processes consume different local PCM files.
+    // This exercises real getUserMedia/AudioWorklet/WebCodecs and installed
+    // Node/native packet handles; no personal devices or providers are used.
+    stage = "synthetic-browser-audio-capture-playback";
+    mediaPages.length = 0;
+    const tones = [{ role: "owner", frequency: 440, peer: "Organizer", other: 880 },
+        { role: "organizer", frequency: 880, peer: "Owner", other: 440 }];
+    for (const tone of tones) {
+        const samples = 96000, wav = Buffer.alloc(44 + samples * 2);
+        wav.write("RIFF"); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
+        wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+        wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(96000, 28); wav.writeUInt16LE(2, 32);
+        wav.writeUInt16LE(16, 34); wav.write("data", 36); wav.writeUInt32LE(samples * 2, 40);
+        for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(10000 * Math.sin(2 * Math.PI * tone.frequency * i / 48000)), 44 + i * 2);
+        const audioPath = join(output, tone.role + "-synthetic.wav"); await writeFile(audioPath, wav, { mode: 0o600 });
+        const owned = await chromium.launch({ headless: true,
+            ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
+            args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions",
+                "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath] });
+        mediaBrowsers.push(owned);
+        assert.equal(owned.version(), report.browser);
+        const captureContext = await owned.newContext({ viewport: { width: 1440, height: 1100 } });
+        await captureContext.grantPermissions(["microphone"], { origin });
+        await captureContext.addInitScript(() => {
+            // Observe actual scheduled output buffers only after their rendering
+            // interval ends in a running AudioContext. No PCM is retained.
+            const stats = { frames: 0, energy: 0, tone440: 0, tone880: 0 };
+            Object.defineProperty(window, "__parley_audio_probe__", { value: stats });
+            const original = AudioBufferSourceNode.prototype.start;
+            AudioBufferSourceNode.prototype.start = function (...args) {
+                const value = original.apply(this, args), buffer = this.buffer;
+                if (buffer?.sampleRate === 48000 && buffer.numberOfChannels === 1 && buffer.length === 960) {
+                    const end = Math.max(this.context.currentTime, args[0] ?? 0) + 0.02;
+                    this.addEventListener("ended", () => {
+                        if (this.context.state !== "running" || this.context.currentTime + 1 / 48000 < end) return;
+                        const pcm = buffer.getChannelData(0); let energy = 0, a = 0, b = 0, c = 0, d = 0;
+                        for (let i = 0; i < pcm.length; i++) {
+                            energy += pcm[i] * pcm[i];
+                            a += pcm[i] * Math.sin(2 * Math.PI * 440 * i / 48000);
+                            b += pcm[i] * Math.cos(2 * Math.PI * 440 * i / 48000);
+                            c += pcm[i] * Math.sin(2 * Math.PI * 880 * i / 48000);
+                            d += pcm[i] * Math.cos(2 * Math.PI * 880 * i / 48000);
+                        }
+                        stats.frames++; stats.energy += energy / 960;
+                        stats.tone440 += (a * a + b * b) / (960 * 960);
+                        stats.tone880 += (c * c + d * d) / (960 * 960);
+                    }, { once: true });
+                }
+                return value;
+            };
+        });
+        const target = await captureContext.newPage(); mediaPages.push({ ...tone, page: target, context: captureContext });
+        await target.goto(origin); await target.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
+        if (tone.role === "organizer") {
+            await target.locator("#actor input:checked").focus(); await target.keyboard.press("ArrowUp");
+            await target.waitForFunction(() => document.querySelector("#actor input:checked").value === "organizer" &&
+                !document.querySelector("#actor").disabled && document.querySelector("#conversations button"));
+        }
+        await target.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await target.keyboard.press("Enter");
+        await activate("Listen to " + tone.peer, "Listen", target);
+    }
+    await Promise.all(mediaPages.map(async ({ page: target }) => {
+        await target.getByRole("button", { name: "Start microphone", exact: true }).focus(); await target.keyboard.press("Enter");
+    }));
+    report.synthetic_browser_audio = [];
+    for (const tone of mediaPages) {
+        const result = await (await tone.page.waitForFunction(() => {
+            const raw = document.querySelector("#media-status").dataset.metrics, metrics = raw && JSON.parse(raw);
+            const output = window.__parley_audio_probe__;
+            if (metrics?.stopped || (metrics?.playedAudioFrames >= 12 && metrics?.clockReportsSent >= 1 &&
+                metrics?.clockReportsReceived >= 1 && output.frames >= 12))
+                return { metrics, output, status: document.querySelector("#media-status").textContent };
+            return false;
+        }, undefined, { timeout: 30000 })).jsonValue();
+        report.synthetic_browser_audio.push({ role: tone.role, expected_received_hz: tone.other, ...result });
+        assert.equal(result.metrics.stopped, false);
+        assert.ok(result.metrics.capturedAudioFrames > 0 && result.metrics.sentRtp > 0 && result.metrics.receivedRtp > 0);
+        assert.ok(result.metrics.decodedAudioFrames >= 12 && result.metrics.playedAudioFrames >= 12 && result.output.frames >= 12);
+        assert.ok(result.output.energy / result.output.frames > 0.0001);
+        const desired = result.output["tone" + tone.other], excluded = result.output["tone" + tone.frequency];
+        assert.ok(desired > 8 * Math.max(excluded, 1e-12), "identified-remote-audio-without-local-source-crossover");
+    }
+    report.synthetic_capture_decoded_audio_verified = true;
+    check("keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions");
+    await mediaPages[0].page.screenshot({ path: join(output, "capture-controls.png"), fullPage: true });
+    await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
+    assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await mediaPages[0].page.screenshot({ path: join(output, "capture-controls-narrow.png"), fullPage: true });
+    for (const name of ["capture-controls.png", "capture-controls-narrow.png"])
+        report.ui_screenshots[name] = sha(await readFile(join(output, name)));
+    await Promise.all(mediaPages.map(async ({ page: target }) => {
+        await target.getByRole("button", { name: "Stop media", exact: true }).focus(); await target.keyboard.press("Enter");
+        await target.waitForFunction(() => {
+            const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            return metrics?.stopped && metrics.activeTracks === 0 && metrics.activeContexts === 0 &&
+                metrics.queuedAudioSources === 0 && metrics.queuedSendFrames === 0 &&
+                metrics.queuedVideoFrames === 0 && metrics.pendingRequests === 0;
+        });
+    }));
+    report.synthetic_capture_render_owners_joined = true;
+    check("keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work");
+    report.owned_group_size_after_media = groupMembers(processChild.pid).length;
+    await Promise.all(mediaBrowsers.map(owned => owned.close()));
+    assert.ok(mediaBrowsers.every(owned => !owned.isConnected())); mediaBrowsers.length = 0;
+    check("additional-owned-synthetic-media-browser-owners-close");
+
     assert.deepEqual((await activate("End connection", "End connection")).result, organizerAudio);
     await perspective("owner", "ArrowDown");
     assert.deepEqual((await activate("End connection", "End connection")).result, ownerAudio);
     report.original_native_connection_end_receipts_verified = 2;
     check("keyboard-both-original-native-audio-connections-end-with-the-original-session-scope");
-    report.negotiated_capture_playback_verified = false;
+    report.negotiated_capture_playback_verified = false; // AV and failure/restart lifecycle still require qualification.
     await page.screenshot({ path: join(output, "narrow.png"), fullPage: true });
     const setupSha = sha(await readFile(join(state, "setup.json"))), appSha = sha(await readFile(join(state, "app.json")));
     await stop(); check("original-app-server-and-all-native-helper-processes-joined");
@@ -331,6 +438,10 @@ try {
     report.failure = { stage, name: error.name, code: typeof error.code === "string" ? error.code : null,
         source_stack: [...String(error.stack ?? "").matchAll(/check-reference-app-installed\.mjs:(\d+):(\d+)/g)]
             .slice(0, 4).map(value => ({ line: Number(value[1]), column: Number(value[2]) })) };
+    report.failure_media_pages = await Promise.all(mediaPages.map(async tone => ({ role: tone.role,
+        observation: await tone.page.evaluate(() => ({ status: document.querySelector("#media-status")?.textContent,
+            metrics: JSON.parse(document.querySelector("#media-status")?.dataset.metrics ?? "null"),
+            output: window.__parley_audio_probe__ })).catch(() => null) })));
     if (page && !page.isClosed()) {
         report.failure_notice = await page.locator("#notice").textContent().catch(() => null);
         report.failure_permission = await page.locator("#permission").textContent().catch(() => null);
@@ -339,6 +450,7 @@ try {
     process.exitCode = 1;
 } finally {
     release?.();
+    await Promise.all(mediaBrowsers.map(owned => owned.close().catch(() => { report.synthetic_browser_cleanup_failed = true; report.passed = false; })));
     if (context) await context.close().catch(() => { report.browser_cleanup_failed = true; report.passed = false; });
     await deadline(Promise.allSettled([...apiReads]), 2000).catch(() => { report.api_diagnostics_incomplete = true; });
     if (processChild) await stop().catch(async () => {

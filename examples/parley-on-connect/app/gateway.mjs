@@ -163,6 +163,7 @@ export class AppGateway {
                 appearance: appearances.find(p => p.session_id === session.id)?.state ?? "unavailable" })),
             connections: items.filter(item => item.kind === "connection" && item.data.participant_id === own.id)
                 .map(item => ({ id: item.data.connection_id, sessionId: item.data.session_id, state: item.data.state,
+                    media: [...new Set(items.filter(v => v.kind === "stream" && v.data.connection_id === item.data.connection_id).map(v => v.data.medium))],
                     peers: participants.filter(peer => peer.id !== own.id && peer.role && items.some(v =>
                         v.kind === "session_participant" && v.data.session_id === item.data.session_id &&
                         v.data.participant_id === peer.id && v.data.state === "present" && v.data.membership_epoch ===
@@ -198,6 +199,7 @@ export class AppGateway {
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }
     mediaSend(role, owner, input) { this.#actor(role); return this.#media.send(role, owner, input); }
     mediaReceive(role, owner, input) { this.#actor(role); return this.#media.receive(role, owner, input); }
+    mediaRetire(role, owner, input) { this.#actor(role); return this.#media.retire(role, owner, input); }
     mediaCloseOwner(owner) { return this.#media.closeOwner(owner); }
     #recipients(role, names) {
         return names.map(name => { if (name === role) fail("invalid-app-request"); return this.#actor(name).identityId; });

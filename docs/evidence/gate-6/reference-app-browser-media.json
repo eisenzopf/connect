@@ -1,0 +1,80 @@
+{
+  "format": "connect/reference-app-browser-media/1",
+  "task": "G6-072",
+  "status": "owned-browser-capture-render-implemented-component-tested-runtime-required",
+  "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/gateway.mjs": "d30177917293038b1ed25e337d507f4454196519b89e6157c36f13a43eea2ed1",
+    "examples/parley-on-connect/app/media.mjs": "62e70ee33510ff9d5bae89ebfe190a0f8b785fb7e2921f73a861daa601eedb45",
+    "examples/parley-on-connect/app/media.test.mjs": "25efd8cfe1811e271e6bd4d6983c27da01abbfa3bdaf3ec309b52aefeefa6033",
+    "examples/parley-on-connect/app/server.mjs": "adf4cda962a805449965b40cbf3faf24dd608eee118eadd2ef077d6d49cd947c",
+    "examples/parley-on-connect/app/server.test.mjs": "21aa28f1ae350f2e5bb40a8b5ce5f4fb3c413128e93f89470fe445e3831835ef",
+    "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
+    "examples/parley-on-connect/app/ui/app.mjs": "8667e99c80942ca06afeae23e0857ed4d68a813531ea37af8aca53dffd67564c",
+    "examples/parley-on-connect/app/ui/app.css": "167ce3761c48ca12d4b24e90d8c0d060e1b34fe1ec0deb178c6ba4a34cdff0f3",
+    "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
+    "examples/parley-on-connect/app/ui/media.mjs": "b56c604bf376ac45083d7e01d0fffc05fca42dd695d2caa510146c57f530ecc9",
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "a7ca18825a6cb7971b00a02ef8b9e0fa2c37234c4578820861bb593b68d6b430",
+    "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
+    "scripts/check-reference-app-installed.mjs": "e173353e81a11b0c3beb2aadfd8100b25ebdd66e1b78f53a00b13b693a25b186",
+    ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7"
+  },
+  "local_verification": {
+    "app_component_functions_passed": 58,
+    "command": "npm run test:app --prefix examples/parley-on-connect",
+    "node": "v26.7.0",
+    "scope": "Node application, actual HTTP boundary, PCM worklet in VM, and exact source/receive clock cases. No actual browser capture or installed packet playback proof yet."
+  },
+  "implementation": {
+    "public_sdk": [
+      "BrowserOpusCodec",
+      "BrowserVp8Codec",
+      "RtpSender",
+      "Vp8Assembler",
+      "decodeRtpDatagram",
+      "browserCodecSupport",
+      "installed NodeClient media handles"
+    ],
+    "capture": "Explicit keyboard/button intent only. Real getUserMedia,48kHz AudioWorklet mono20ms frames and camera VideoFrame callbacks; source sample/frame timestamps retained across gaps. A pending late permission grant is stopped after cancellation.",
+    "packet_io": "HTTP lease scoped to browser owner, current actor and exact original Connection/negotiation. Capture is encoded through installed public codecs; typed SDK packets and source clocks retain their original sequence. No retry after uncertain send.",
+    "playback": "Decoded borrowed frames are copied into owned48kHz WebAudio buffers or bounded retained VideoFrames, using one NTP presentation origin; missing/stale SR remains explicitly unsynchronized. Source changes close the original decoder/output resources.",
+    "bounds": {
+      "worklet_pending_messages": 1,
+      "pcm_frame_samples": 960,
+      "audio_send_queue_frames": 10,
+      "video_send_queue_frames": 2,
+      "send_queue_bytes_per_stream": 76032,
+      "send_frame_age_ms": 200,
+      "playout_audio_sources": 10,
+      "playout_video_frames_per_stream": 1,
+      "receive_streams": 8,
+      "playout_horizon_ms": 200
+    },
+    "lifecycle": "Local tracks, requests, codecs, worklet, graph and retained frames retire on stop, hidden page, offline, actor/conversation switch, view loss, control binding changes and reconnect. Late original replies cannot become a replacement lease. A close must name its original lease; abandoned-open replies retire only that original.",
+    "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
+  },
+  "installed_rehearsal": {
+    "expected_checks": 24,
+    "prior_checks_retained": 21,
+    "two_separate_owned_chromium_processes": true,
+    "synthetic_capture_only": true,
+    "source_markers_hz": [
+      440,
+      880
+    ],
+    "requirements": [
+      "actual getUserMedia,Worklet,WebCodecs and public Node/native packet IO",
+      "12 completed output buffers per side, received source tone dominates local source by8x",
+      "source clocks received and original capture/render/requests join"
+    ],
+    "runtime_verified": false
+  },
+  "remaining": [
+    "Installed synthetic audio rehearsal and exact-source artifact audit",
+    "Actual video capture, source selection and identified decoded playback",
+    "Late permission, device loss, offline/actor/resource-change and stop/restart queue freshness behavior",
+    "Full desktop/narrow visual review of active capture and all required platform/browser profiles"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

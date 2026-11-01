@@ -1,8 +1,9 @@
+import { BrowserAppMedia } from "./media.mjs";
 import { browserCaptureSupport } from "/sdk/browser.js";
 const $ = id => document.getElementById(id);
 let actor = "owner", epoch = 0, working = false, switching = false, pending = null, storageBlocked = false, selectedId = null;
 let historyCursor = null, nextHistory = null, nextConversations = null, current = null, contacts = [], timer;
-const requests = new Set(), previews = new Set(); let captureEpoch = 0;
+const requests = new Set(), previews = new Set(); let captureEpoch = 0, media = null;
 const label = { "conversation.create": "Create conversation", "message.send": "Send message", "session.invite": "Invite",
     "session.accept": "Accept invitation", "session.reject": "Decline invitation", "session.cancel": "Cancel invitation",
     "session.end": "End session", "connection.update": "Update media", "connection.offer": "Join media",
@@ -23,6 +24,15 @@ const explanations = {
     "configuration": "The configured client is unavailable. Check local setup and reconnect.",
     "unsupported": "This action is unavailable with the current capabilities.",
     "unsupported-app-action": "This action is unavailable with the current capabilities.",
+    "app-media-denied": "Microphone or camera permission denied. You can continue with text.",
+    "app-media-busy": "This connection is already sharing media in another page.",
+    "app-media-stopped": "Media stopped. Refresh the connection before starting again.",
+    "app-media-permission-timeout": "Permission is still pending. No device is active.",
+    "app-media-playback": "Playback paused or unavailable. Start media again from this page.",
+    "app-media-network": "Media connection unavailable. Reconnect before starting media again.",
+    "app-media-device-ended": "The selected device stopped. Choose Start media to try again.",
+    "app-media-capture": "Media capture unavailable. Check browser device settings.",
+    "app-media-codec": "The negotiated media format is unavailable in this browser.",
     "action-refused": "The action was refused. Check the current conversation and permissions.",
 };
 function notice(text, error = false) { $("notice").textContent = text; $("notice").dataset.error = String(error); }
@@ -54,11 +64,12 @@ function savePending(value) {
 function controls() {
     for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || switching || storageBlocked || Boolean(pending) ||
         navigator.onLine === false || (value.closest("#message-form,#invite-form") !== null && (!selectedId || !current || current.conversation.closed));
+    $("stop-media").disabled = !media;
     $("reconnect").disabled = working || switching; $("actor").disabled = working || switching;
     for (const value of document.querySelectorAll("[data-recovery]")) value.disabled = working || switching || navigator.onLine === false;
 }
 function clearView() {
-    current = null;
+    void stopMedia(); stopPreview(); current = null;
     for (const id of ["timeline", "sessions", "connections", "participants"]) $(id).replaceChildren();
     $("conversation-title").textContent = selectedId ? "Conversation unavailable" : "Choose a conversation";
     $("more-messages").hidden = true; controls();
@@ -140,7 +151,7 @@ function actorSelection() {
 async function state(append = false) {
     const value = await api("state", append && nextConversations ? { cursor: nextConversations } : {});
     if (typeof value.actor !== "string" || !Array.isArray(value.roles)) { clearView(); problem(value.error ?? {}); return; }
-    if (actor !== value.actor) { actor = value.actor; readPending(); }
+    if (actor !== value.actor) { await stopMedia(); stopPreview(); selectedId = null; clearView(); actor = value.actor; readPending(); }
     const roles = JSON.stringify(value.roles), selector = $("actor-choices");
     if (selector.dataset.roles !== roles) {
         selector.dataset.roles = roles; selector.replaceChildren(...(value.roles ?? []).map(role => {
@@ -160,7 +171,7 @@ async function state(append = false) {
         const select = button("Conversation " + ($("conversations").children.length + 1) + (conversation.closed ? " · closed" : ""), async () => {
             if (working || switching) return;
             if (selectedId !== conversation.id) $("message").value = "";
-            retire(); selectedId = conversation.id; historyCursor = null; clearView(); await view();
+            await stopMedia(); retire(); stopPreview(); selectedId = conversation.id; historyCursor = null; clearView(); await view();
         });
         select.setAttribute("aria-current", String(conversation.id === selectedId)); item.append(select); $("conversations").append(item);
     }
@@ -175,6 +186,10 @@ async function view() {
     if (!selectedId) return;
     try {
         const value = await api("view", { conversationId: selectedId, ...(historyCursor ? { cursor: historyCursor } : {}) });
+        if (media && !media.closed && (!value.connections.some(c => c.id === media.binding?.connectionId &&
+            c.sessionId === media.binding?.sessionId && ["ready", "active"].includes(c.state)) ||
+            !value.sessions.some(s => s.id === media.binding?.sessionId && s.state === "accepted" && s.appearance === "present")))
+            await stopMedia();
         const signature = JSON.stringify([value.conversation, value.participants, value.messages, value.sessions, value.connections, value.historyCursor]);
         if (current?.signature === signature) return;
         current = { ...value, signature }; contactChoices(); const cid = value.conversation.id;
@@ -200,6 +215,9 @@ async function view() {
         $("connections").replaceChildren(...value.connections.map(connection => {
             const item = node("li", "Connection · " + connection.state);
             if (["ready", "active"].includes(connection.state)) {
+                const binding = { conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id };
+                item.append(button("Start microphone", () => startMedia(binding, false), true));
+                if (connection.media?.includes("video")) item.append(button("Start microphone and camera", () => startMedia(binding, true), true));
                 for (const [text, action] of [["Mute", "mute"], ["Unmute", "unmute"], ["Hold", "hold"], ["Resume", "resume"]])
                     item.append(button(text, () => mutate({ type: "connection.update", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, action }), true));
                 for (const peer of connection.peers ?? [])
@@ -216,6 +234,8 @@ const settled = value => value.operation?.submission === "refused" || ["failed",
 async function mutate(action) {
     if (working || switching || pending || storageBlocked) return; working = true; controls();
     try {
+        // Stop local capture/render before a control can change its binding.
+        if (action.type.startsWith("connection.") || action.type.startsWith("stream.") || action.type === "session.end") await stopMedia();
         savePending({ key: "ui_" + crypto.randomUUID(), operationId: null });
         const prepared = await api("prepare", { key: pending.key, action });
         savePending({ ...pending, operationId: prepared.operation.operationId });
@@ -244,12 +264,39 @@ async function recover(operationId) {
         await state(); await view(); if (value.error) problem(value.error);
     } finally { working = false; controls(); }
 }
+async function stopMedia() {
+    const old = media; if (!old) return;
+    media = null; controls();
+    await old.stop();
+    if (!media) {
+        $("media-status").textContent = "Media stopped. No device is active.";
+        $("media-status").dataset.metrics = JSON.stringify(old.diagnostics);
+    }
+}
+async function startMedia(binding, video) {
+    if (working || switching || pending || storageBlocked) return;
+    working = true; controls(); stopPreview();
+    try {
+        await stopMedia();
+        const next = new BrowserAppMedia({ onState: (state, metrics) => {
+            if (media !== next) return;
+            $("media-status").dataset.metrics = JSON.stringify(metrics);
+            $("media-status").textContent = state === "active" ? "Microphone shared" + (video ? " with camera" : "") + ". " +
+                (metrics.playedAudioFrames ? "Incoming audio playing." : "Waiting for incoming audio.") :
+                state === "permission" ? "Waiting for microphone" + (video ? " and camera" : "") + " permission…" :
+                state === "starting" ? "Starting media…" : explanations[state] ?? "Media stopped. No device is active.";
+        } });
+        media = next; controls();
+        await next.start(binding, { video, preview: $("preview"), remote: $("remote-video") });
+    } catch (error) { problem(error); }
+    finally { working = false; controls(); }
+}
 function stopPreview() {
     captureEpoch++; for (const stream of previews) for (const track of stream.getTracks()) track.stop();
     previews.clear(); $("preview").srcObject = null;
 }
 async function preview(kind) {
-    stopPreview(); const captured = captureEpoch; let expired = false;
+    await stopMedia(); stopPreview(); const captured = captureEpoch; let expired = false;
     $("permission").textContent = "Waiting for " + kind + " permission…";
     const timeout = setTimeout(() => { expired = true; if (captured === captureEpoch) $("permission").textContent = "Permission is still pending. No device is active."; }, 8000);
     try {
@@ -272,7 +319,7 @@ $("actor").addEventListener("change", async event => {
     if (working || switching) { actorSelection(); return; }
     const requested = event.target.value, restoreFocus = document.activeElement === event.target;
     switching = true;
-    retire(); stopPreview(); selectedId = null; historyCursor = null; contacts = []; $("message").value = "";
+    retire(); await stopMedia(); stopPreview(); selectedId = null; historyCursor = null; contacts = []; $("message").value = "";
     $("conversations").replaceChildren(); delete $("conversations").dataset.page;
     clearView(); contactChoices();
     try { const value = await api("actor", { role: requested }); actor = value.actor; readPending(); await state(); }
@@ -287,7 +334,7 @@ $("create-form").addEventListener("submit", event => { event.preventDefault(); m
 $("message-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "message.send", conversationId: selectedId, recipients: selected("message-contacts"), text: $("message").value }); });
 $("invite-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "session.invite", conversationId: selectedId, recipients: selected("invite-contacts"), medium: $("medium").value }); });
 $("reconnect").addEventListener("click", async () => {
-    if (working || switching) return; working = true; retire(); stopPreview(); controls();
+    if (working || switching) return; working = true; retire(); await stopMedia(); stopPreview(); controls();
     notice("Reconnecting. Reading current access and original outcomes…");
     try { await api("reconnect"); await state(); await view(); }
     catch (error) { clearView(); problem(error); } finally { working = false; controls(); }
@@ -296,11 +343,12 @@ $("refresh").addEventListener("click", async () => { historyCursor = null; try {
 $("more-conversations").addEventListener("click", () => state(true).catch(problem));
 $("more-messages").addEventListener("click", () => { historyCursor = nextHistory; view().catch(problem); });
 $("microphone").addEventListener("click", () => preview("microphone")); $("camera").addEventListener("click", () => preview("camera"));
+$("stop-media").addEventListener("click", () => { void stopMedia().catch(problem); });
 $("stop-preview").addEventListener("click", () => { stopPreview(); $("permission").textContent = "Local preview stopped."; });
-window.addEventListener("offline", () => { retire(); stopPreview(); clearView(); renderPending(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
+window.addEventListener("offline", () => { retire(); void stopMedia(); stopPreview(); clearView(); renderPending(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
 window.addEventListener("online", () => notice("Network available. Reconnect to refresh current access and outcomes."));
-window.addEventListener("pagehide", () => { clearTimeout(timer); retire(); stopPreview(); });
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") stopPreview(); });
+window.addEventListener("pagehide", () => { clearTimeout(timer); retire(); void stopMedia(); stopPreview(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { void stopMedia(); stopPreview(); } });
 async function tick() {
     if (!working && !switching && navigator.onLine !== false && document.visibilityState !== "hidden") try { await state(); await view(); } catch (error) { problem(error); }
     timer = setTimeout(tick, 5000);

@@ -120,7 +120,13 @@ export class AppMediaBridge {
     receive(role, owner, input) {
         exact(input, ["leaseId", "streamId"]);
         return this.#run(role, owner, input, "receive", async (stream, options) => {
-            const packet = await stream.receivePacket(options);
+            let packet;
+            try { packet = await stream.receivePacket({ ...options, timeoutMs: 1000 }); }
+            catch (error) {
+                if (error?.kind === "deadline" && error?.certainty === "read-only")
+                    return { kind: "idle" };
+                throw error;
+            }
             if (packet.kind === "rtp") return { kind: "rtp", sequence: packet.datagramSequence,
                 base64: Buffer.from(packet.bytes).toString("base64") };
             if (packet.kind === "clock") return { kind: "clock", sequence: packet.datagramSequence,
@@ -128,6 +134,13 @@ export class AppMediaBridge {
             if (packet.kind === "gap") return { kind: "gap", droppedPackets: packet.droppedPackets.toString() };
             fail("app-resync-required");
         });
+    }
+    async retire(role, owner, input) {
+        exact(input, ["leaseId"]);
+        if (!id(input.leaseId)) fail("invalid-app-request");
+        this.#require(role, owner, input.leaseId);
+        await this.closeOwner(owner);
+        return { stopped: true };
     }
     async closeOwner(owner) {
         const lease = this.#owners.get(owner); if (!lease) return;

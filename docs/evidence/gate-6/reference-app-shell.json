@@ -122,5 +122,11 @@
     "component_functions_passed": 49,
     "runtime_verified": false,
     "capture_playback_verified": false
+  },
+  "browser_media_candidate": {
+    "evidence": "docs/evidence/gate-6/reference-app-browser-media.json",
+    "app_component_functions_passed": 58,
+    "installed_runtime_verified": false,
+    "capture_playback_verified": false
   }
 }
