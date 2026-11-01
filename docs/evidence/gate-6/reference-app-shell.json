@@ -87,10 +87,15 @@
     "macos_diagnostic_dispatch": "gate6-linux-fixtures.yml lane reference-app-macos; independent concurrency; whole-app qualification still requires both platforms"
   },
   "installed_control_verification": {
-    "evidence": "docs/evidence/gate-6/reference-app-installed-control-macos.json",
-    "checks_passed": 15,
-    "platform": "macOS Node22",
-    "full_two_platform_run": 41262453814,
-    "full_two_platform_status": "live-not-yet-qualified"
+    "evidence": "docs/evidence/gate-6/reference-app-installed-control.json",
+    "workflow_run_id": 41262453814,
+    "source_revision": "230374daa39c01033f2e94dd3d481963facb5acd",
+    "checks_passed_per_platform": 15,
+    "platforms": [
+      "Ubuntu24.04x86_64 Node22.23.4",
+      "macOSarm64 Node22.23.4"
+    ],
+    "independently_verified": true,
+    "remaining": "Negotiated media/capture implementation and behavior verification. No model/provider/WAN claim."
   }
 }

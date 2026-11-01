@@ -15,9 +15,12 @@ uses the normal select automation for fixture preparation. See
 One-command setup and scoped credential installation are now implemented in
 `app/run.mjs` and `app/setup.mjs`. Their three fixture tests cover literal peer
 ceilings, original setup IDs after lost responses, partial installer recovery
-and changed bootstrap refusal. Actual production package/server execution is
-being checked separately on Node 22/Linux and macOS. The remaining browser/media
-controls still require verification. `app/main.mjs` requires an
+and changed bootstrap refusal. The installed production package/server control
+flow passes all 15 checks on Node 22/Ubuntu x86_64 and macOS arm64: scoped setup,
+keyboard participant selection, conversations/text/invitations, permission denial,
+narrow layout, original-ID offline recovery, restart continuity and owned-process
+shutdown. See [the two-platform control evidence](../../docs/evidence/gate-6/reference-app-installed-control.json).
+Negotiated media/capture integration remains unfinished. `app/main.mjs` requires an
 app-owned private setup manifest and an ordinary installed `@rudeless/connect`;
 operator configuration is never served to the browser. The application state is
 separate from Connect's authoritative journal and database.
