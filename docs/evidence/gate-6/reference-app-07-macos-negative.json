@@ -1,0 +1,76 @@
+{
+  "format": "connect/gate6-reference-app-07-macos-negative/1",
+  "source_revision": "07ec393a27be6ac205d0752b2f5f0156ed376451",
+  "diagnostic_archive_sha256": "430ef893fd233c3f88746e4adff306d95f44d375af308f8002fddac361050850",
+  "diagnostic_node_producer_cross_hashes_verified": true,
+  "curated_installation_is_not_original_proof": true,
+  "app_checker_sources_against_exact_git_revision": 35,
+  "node_producer_inputs_verified": 197,
+  "reported_installed_sdk_files": 195,
+  "reported_installed_sdk_hashes_against_current_distribution_mismatches": [],
+  "runtime_binary_sha256_reported": "a89e497018a83a8b038eeb9455601d1e20be33a04d57edb27274ae9c06a6866a",
+  "actual_runtime_archive_independently_verified": true,
+  "actual_remote_installed_files_independently_verified": false,
+  "completed_checks": 5,
+  "expected_full_checks": 37,
+  "failure": {
+    "stage": "native-browser-video-playout-component",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 271,
+        "column": 12
+      }
+    ]
+  },
+  "native_video_component": {
+    "painted": 0,
+    "dropped": 3,
+    "queued": 0,
+    "pixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "frame_construction_ms": 3,
+    "enqueue_ms": 0,
+    "observation_ms": 753
+  },
+  "native_server_sample": {
+    "observed": false,
+    "reason": "workload-not-reached"
+  },
+  "cpu_summary_only": true,
+  "raw_cpu_profile_present": false,
+  "screenshots_present": false,
+  "passed": false,
+  "scope": "Exact downloaded production runtime archive, binary,755file hashes/modes, source inventory and reported installed Node hashes independently verified. Curated installation omits local paths so original raw installation proof cannot be reconstructed. Browser failure remains5/37 before native media; no causal scheduling or media quality conclusion. Actual remote execution is evidenced by retained browser/producer observations, not independently re-executed.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "runtime_proof_original_cross_hash_verified": true,
+  "source_manifest_inputs_verified": {
+    "archives": 4,
+    "prepared": 4094,
+    "git": 4898
+  },
+  "runtime_regular_files_hash_and_mode_verified": 755,
+  "runtime_archive_manifest_and_exact_binary_verified": true,
+  "node_archive_installed_hashes_verified": 195,
+  "actual_remote_installed_file_hashes_match_exact_archive": true,
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "updated": "2026-11-01",
+  "task": "G6-072",
+  "run_id": 41345703314,
+  "job_id": 124964931028,
+  "diagnostics_artifact_id": 13101380697,
+  "original_playback_target_ms": 80,
+  "original_video_lateness_limit_ms": 50,
+  "timing_limits_unchanged": true,
+  "artifact_zip_sha256": {
+    "runtime_evidence": "d621ec4aca2b766aff862c93914b3e8993922b9fb7ef1efd37af254dbc60ad7c",
+    "runtime_package": "d922a67a8abea616320cbe187ad7bffcbd74fa013b06bdf200ce89860f808061",
+    "node_package": "06d52ec1f33ec24d1529cea1720e63b779153e0639e8f2f83e1c4d2cba3566d6"
+  }
+}
