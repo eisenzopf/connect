@@ -1410,6 +1410,13 @@
         "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json",
         "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
         "runtime_verified": true
+      },
+      {
+        "signing": "ES256",
+        "network": "remote-profile-fixture",
+        "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
+        "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
+        "runtime_verified": true
       }
     ],
     "later_cohort_candidates": [
@@ -1439,12 +1446,14 @@
       "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
       "workflow_run_id": 41279346285,
       "job_id": 124767884653,
-      "status": "confirmed-live-cache-restore",
+      "status": "terminal-success-independently-source-verified",
       "target": "ubuntu24-x86_64",
       "signing": "ES256",
       "network": "remote-profile-fixture",
-      "runtime_verified": false,
-      "scope": "Only add fixed call-phase labels after Session ends to distinguish original SDK close, original create recovery, current membership and history. IO, IDs and all budgets/assertions unchanged."
+      "runtime_verified": true,
+      "scope": "Only add fixed call-phase labels after Session ends to distinguish original SDK close, original create recovery, current membership and history. IO, IDs and all budgets/assertions unchanged.",
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
+      "prior_cancellation_cause_resolved": false
     }
   },
   "native_signing_cohorts": {

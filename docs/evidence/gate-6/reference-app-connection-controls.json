@@ -1,7 +1,7 @@
 {
   "format": "connect/reference-app-connection-controls/1",
   "task": "G6-072",
-  "status": "original-observation-correction-local-components-pass-runtime-required",
+  "status": "installed-control-scope-independently-verified-both-platforms",
   "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
   "implementation_inputs": {
     "examples/parley-on-connect/app/gateway.mjs": "b25e427c342399113a03cc62c793ccfb390f11eb00f785a29c7497e85d23b797",
@@ -52,18 +52,20 @@
     ]
   },
   "installed_check": {
-    "status": "confirmed-live-both-installed-platforms",
+    "status": "terminal-success-independently-source-verified-both-platforms",
     "expected_checks": 21,
-    "runtime_verified": false,
+    "runtime_verified": true,
     "description": "Capture only the original submit request ID; require exact-original UI completion and cleared pending state, using at most three existing keyboard original-recovery reads if needed. Observe the same completed original resource scope through the public recovery API. One shared30s action budget; no new submit IDs, dropped assertions or wider SDK/frontend deadlines.",
     "workflow_run_id": 41279343901,
     "job_ids": {
       "linux": 124767877165,
       "mac": 124767877301
-    }
+    },
+    "verification_evidence": "docs/evidence/gate-6/reference-app-installed-connection-controls.json",
+    "checks_per_platform": 21,
+    "visual_review_four_artifact_pngs": true
   },
   "remaining": [
-    "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
     "Negotiated browser capture, actual packet IO and decoded playback with owned lifecycle"
   ],
   "task_complete": false,

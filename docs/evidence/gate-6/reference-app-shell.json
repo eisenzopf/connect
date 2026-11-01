@@ -110,8 +110,11 @@
   },
   "connection_controls_candidate": {
     "evidence": "docs/evidence/gate-6/reference-app-connection-controls.json",
-    "runtime_verified": false,
-    "component_functions_passed": 37,
-    "setup_profile": "parley-local-setup/3"
+    "runtime_verified": true,
+    "component_functions_passed": 38,
+    "setup_profile": "parley-local-setup/3",
+    "installed_verification_evidence": "docs/evidence/gate-6/reference-app-installed-connection-controls.json",
+    "installed_checks_per_platform": 21,
+    "capture_playback_verified": false
   }
 }
