@@ -1087,6 +1087,14 @@
     "runtime_verified": false,
     "full_cell_materializer": false,
     "cell_qualified": false,
-    "remaining": "Participant/device enrollment, actual topology observation, full workload, browser/fallback, capture/media and per-cell runtime collection remain required."
+    "remaining": "Participant/device enrollment, actual topology observation, full workload, browser/fallback, capture/media and per-cell runtime collection remain required.",
+    "runtime_candidate": {
+      "source_revision": "e4afeb1f1333a24529570a9eb9433d16a519642f",
+      "workflow_run_id": 41266891701,
+      "job_id": 124731450985,
+      "status": "live-cache-restoration",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41266891701",
+      "runtime_verified": false
+    }
   }
 }
