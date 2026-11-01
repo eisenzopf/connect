@@ -1,0 +1,504 @@
+{
+  "format": "connect/native-data-workload-independent-verification/1",
+  "task": "G6-058",
+  "source_revision": "f958ae260c1c06ff072b51b3fef88603dfe6b28d",
+  "workflow_run_id": 41280724658,
+  "job_id": 124771937335,
+  "artifact_id": 13073406221,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": true,
+    "source_revision": "f958ae260c1c06ff072b51b3fef88603dfe6b28d",
+    "artifact_sha256": "35bf2c05b6a5b351b58b85cffcc0ed2d07bd7cf581f5a832fe3c754f6474aa2f",
+    "report_sha256": "cc4b17c09517680d49f6607d9b25d910d0e58b69be150080e7a336af49d2e5f7",
+    "source_inputs_sha256": "397e51168c2351d254a2720aaae28f0c7403b40b9f44d996730405bcc89b3c79",
+    "sources_verified": {
+      "git": 4730,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "macos-arm64",
+    "signing": "ES256",
+    "network": "local",
+    "reported_runtime_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "9fc6ee68f436a71fa062d7fc4c02c39ed8678c718e90ea95dc96dd28cd8a385e",
+      "conversation_passed": true,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_host": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "kernel_release": "24.6.0",
+    "version": "15.8.2",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "macos-arm64"
+  },
+  "node": "v22.23.4",
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+    "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+    "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+    "private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "child_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+    "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+    "native-data-original-replay-recovers-receipt-without-second-delivery",
+    "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+    "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+    "both-original-session-intents-end-through-public-sdk",
+    "independent-device-recovers-original-create-and-history-after-original-helper-close"
+  ],
+  "commands": [
+    {
+      "name": "initialize",
+      "verb": "init",
+      "exit_code": 0
+    },
+    {
+      "name": "unsupported-init-signing",
+      "verb": "init",
+      "exit_code": 2
+    },
+    {
+      "name": "existing-init-signing-refusal",
+      "verb": "init",
+      "exit_code": 1
+    },
+    {
+      "name": "seed-create",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "seed-list",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "stopped-backup",
+      "verb": "backup",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-list",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-original",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-replacement-1-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "actor-cannot-provision",
+      "verb": "provision",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-cannot-verify-endpoint",
+      "verb": "provision",
+      "exit_code": 1
+    },
+    {
+      "name": "trusted-endpoint-verify-0",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-0",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-1",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-1",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-2",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-2",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-3",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-3",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-4",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-4",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-1",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-2",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-3",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-4",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-replacement-1",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-before-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-before-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-before-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-before-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "revoke-primary-device",
+      "verb": "revoke",
+      "exit_code": 0
+    },
+    {
+      "name": "revoked-primary-native-refusal",
+      "verb": "request",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-2-after-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-after-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-after-revocation",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-after-revocation",
+      "verb": "request",
+      "exit_code": 0
+    }
+  ],
+  "workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 4345,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true,
+    "original_end_operations_completed": 6,
+    "retirement_observation_budget_ms": 8000,
+    "retirement_observations": 11,
+    "retirement_observer": "single-current-authorized-conversation-snapshot",
+    "retirement_snapshot_pages": 1,
+    "retirement_snapshot_revision": 4,
+    "after_end_states": [
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired"
+    ],
+    "retirement_observation_elapsed_ms": 5464,
+    "original_connections_retired": 6
+  },
+  "topology": {
+    "host": {
+      "platform": "macos-arm64",
+      "os": "darwin",
+      "architecture": "arm64",
+      "kernel_release": "24.6.0",
+      "ordinary_user": true
+    },
+    "server_owned_loopback_udp_bind_observed": true,
+    "helpers_observed_on_native_host": 5,
+    "server_executable_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+    "native_kernel_identity_sha256": "70f590729d2d17dc71049a38dbc8f3f904e86c7bd996cd362268fa9b74d92141"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.1 -- Apple version 148",
+    "executable_sha256": "d2795643c46818192727289c100dbf862ef66d791356e29ca2a4cfd511fd31fe",
+    "pcap_sha256": "804fa19b9f894dae7990425911352de4e7babc8f89730241c6055edd3b7e38ed",
+    "pcap_bytes": 4579596,
+    "captured_seconds": 22.951950582999984,
+    "kernel_dropped_packets": 0,
+    "interface": "lo0",
+    "link_type": "BSD-loopback/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 4339,
+      "to_server_packets": 1414,
+      "from_server_packets": 2925,
+      "captured_bytes": 4510148,
+      "udp_payload_bytes": 4371300,
+      "to_server_udp_bytes": 845228,
+      "from_server_udp_bytes": 3526072
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "helpers_observed": 5,
+  "all_helpers_joined": true,
+  "cleanup_stage_counts": {
+    "durable-retirement-recorded": 6,
+    "durable-retirement-retry": 58,
+    "durable-retirement-join": 0
+  },
+  "component_passed": true,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Mac15.8.2 arm64/local/ES256 native data component. Six independent64KiB payloads over four participants/two Sessions, exact replay/history audiences, six original retirements, queue drain, original Session ends, independent-device receipt/history recovery and current primary revocation. Owned listener, lo0 capture, original helpers and servers checked. No audio/video, upgrade, replacement media ownership, browser, remote or full-cell qualification.",
+  "prior_macos_eddsa_negative": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json",
+  "prior_authority_busy_cause_resolved": false
+}

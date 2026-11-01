@@ -47,5 +47,15 @@
   "installed_runtime_verified": false,
   "browser_capture_playback_verified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "implementation_source_revision": "380f276afe6fed9bf84ae12ec59edeb12213687c",
+  "installed_control_regression": {
+    "runtime_verified": true,
+    "workflow_run_id": 41280721705,
+    "checks_per_platform": 21,
+    "git_content_hashes_per_platform": 19,
+    "sdk_hashes_per_platform": 195,
+    "evidence": "docs/evidence/gate-6/reference-app-installed-media-bridge-control.json",
+    "packet_routes_exercised": false
+  }
 }

@@ -1395,27 +1395,39 @@
         "network": "local",
         "evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
         "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-        "runtime_verified": true
+        "runtime_verified": true,
+        "target": "ubuntu24-x86_64"
       },
       {
         "signing": "ES256",
         "network": "local",
         "evidence": "docs/evidence/gate-6/native-data-workload-es256-verified.json",
         "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "runtime_verified": true
+        "runtime_verified": true,
+        "target": "ubuntu24-x86_64"
       },
       {
         "signing": "EdDSA",
         "network": "remote-profile-fixture",
         "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json",
         "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "runtime_verified": true
+        "runtime_verified": true,
+        "target": "ubuntu24-x86_64"
       },
       {
         "signing": "ES256",
         "network": "remote-profile-fixture",
         "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
         "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
+        "runtime_verified": true,
+        "target": "ubuntu24-x86_64"
+      },
+      {
+        "target": "macos-arm64",
+        "signing": "ES256",
+        "network": "local",
+        "source_revision": "f958ae260c1c06ff072b51b3fef88603dfe6b28d",
+        "evidence": "docs/evidence/gate-6/native-data-workload-macos-es256-verified.json",
         "runtime_verified": true
       }
     ],
@@ -1427,8 +1439,9 @@
         "target": "macos-arm64",
         "signing": "EdDSA",
         "network": "local",
-        "status": "confirmed-live-combined-build-rehearsal",
-        "runtime_verified": false
+        "status": "terminal-failure-independently-source-verified",
+        "runtime_verified": false,
+        "verification_evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json"
       },
       {
         "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
@@ -1464,7 +1477,9 @@
       "data_submissions": 6,
       "data_completions": 5,
       "receive_assertions_reached": false,
-      "cause_resolved": false
+      "cause_resolved": false,
+      "runtime_verified": false,
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json"
     }
   },
   "native_signing_cohorts": {
