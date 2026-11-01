@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Independently inspect the sealed SDK ZIP without extracting its payload."""
 import argparse
+import ast
 import hashlib
 import io
 import json
@@ -19,6 +20,25 @@ DOCUMENTS = {'manifest.json', 'publication.json', 'sdk/rust/manifest.json', 'sou
 
 def digest(body):
     return hashlib.sha256(body).hexdigest()
+
+
+def original_path(name):
+    for prefix, replacement in [('sources/typescript-source/', 'sdk/typescript/'),
+                                ('sources/python-source/', 'sdk/python/')]:
+        if name.startswith(prefix):
+            return replacement + name.removeprefix(prefix)
+    if name in ('LICENSE', 'THIRD_PARTY_NOTICES.md') or name.startswith(('docs/', 'contracts/', 'examples/sdk-installation/')):
+        return name
+    return None
+
+
+def generated_readme(source):
+    values = [node.args[0].value for node in ast.walk(ast.parse(source))
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'write_text'
+              and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
+              and node.args[0].value.startswith('# Connect SDK candidate\n')]
+    value, = values
+    return value.encode()
 
 
 def inspect_archive(stream, identity, manifest_sha256):
@@ -208,14 +228,14 @@ def main():
     # original Git bytes, independently of the producer's declared inventory.
     original_count = 0
     for name, record in files.items():
-        original = name
-        for prefix, replacement in [('sources/typescript-source/', 'sdk/typescript/'),
-                                    ('sources/python-source/', 'sdk/python/')]:
-            if name.startswith(prefix): original = replacement + name.removeprefix(prefix)
-        if original in git_hashes:
-            if record['sha256'] != git_hashes[original]:
+        original = original_path(name)
+        if original is not None:
+            if record['sha256'] != git_hashes.get(original):
                 raise ValueError('Shipped original source differs: ' + name)
             original_count += 1
+    producer_source = subprocess.check_output(['git', 'show', args.revision + ':scripts/assemble-sdk-candidate.py'], cwd=ROOT)
+    if files.get('README.md', {}).get('sha256') != digest(generated_readme(producer_source)):
+        raise ValueError('Generated candidate instructions differ from original producer source')
     report = {'format': 'connect/verified-sealed-sdk-candidate/1', 'source_revision': args.revision,
               'target': args.target, 'sources_verified': counts, 'files_verified': len(files),
               'original_git_payload_files_verified': original_count, 'archive_sha256': sealed['archive_sha256'],

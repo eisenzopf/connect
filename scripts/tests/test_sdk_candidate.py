@@ -9,12 +9,32 @@ import runpy
 import tarfile
 import tempfile
 import unittest
+import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.sdk_candidate import digest, install_runtime, runtime_inventory
 
 
 class NativeCandidate(unittest.TestCase):
+    def test_full_artifact_binds_runtime_to_its_own_inventory_among_three_components(self):
+        verifier = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'verify-sdk-runtime.py'))
+        for with_runtime_source in (True, False):
+            stream = io.BytesIO()
+            with zipfile.ZipFile(stream, 'w') as archive:
+                archive.writestr('target/runtime.json', '{"source_revision":"original"}')
+                archive.writestr('target/installed/source-inputs.json', b'installed')
+                archive.writestr('target/offline/source-inputs.json', b'offline')
+                if with_runtime_source: archive.writestr('target/source-inputs.json', b'original-native-inputs')
+            stream.seek(0)
+            with zipfile.ZipFile(stream) as archive:
+                if with_runtime_source:
+                    proof, original = verifier['runtime_evidence'](archive)
+                    self.assertEqual(proof, {'source_revision': 'original'})
+                    self.assertEqual(original, b'original-native-inputs')
+                else:
+                    with self.assertRaisesRegex(ValueError, 'own unique sibling'):
+                        verifier['runtime_evidence'](archive)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

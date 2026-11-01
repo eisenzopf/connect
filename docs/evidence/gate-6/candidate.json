@@ -2,8 +2,8 @@
   "format": "connect/gate6-sdk-candidate/1",
   "task": "G6-069",
   "date": "2026-10-31",
-  "status": "implementation-in-progress",
-  "task_complete": false,
+  "status": "complete-candidate-packaging-independently-verified-both-platforms",
+  "task_complete": true,
   "whole_gate_qualified": false,
   "publication_authorized": false,
   "registry_listing_audit": {
@@ -1397,13 +1397,7 @@
       "result": "External install and strict declarations passed; synthetic consumer incorrectly expected Outcome.kind from health(), which returns the typed health data. Corrected assertion now checks the exact fixture data."
     }
   ],
-  "remaining_requirements": [
-    "Standalone versioned Rust registry-equivalent archives and complete offline dependency closure without repository/.deps paths",
-    "Exact same-candidate production server/helper assets for macOS arm64 and native Linux x86_64 with licenses and platform metadata",
-    "Offline source inputs and usable outside-repository examples",
-    "Full candidate external installation and native dependency resolution verification",
-    "Publication manifests and names/account ownership review; no publication performed"
-  ],
+  "remaining_requirements": [],
   "scope": "Python3.14.7 and Node26.7.0 on local macOS arm64; clean external pure SDK archives and synthetic HTTP only. No actual browser/native helper/server/platform pair or complete candidate qualification.",
   "rust_source_candidate": {
     "status": "corrected-source-candidate-independently-verified",
@@ -1428,7 +1422,7 @@
     "scope": "510exact crate archives;4604Git/4094prepared/4pinned archives;28112payload files; cold external original public Rust journey cargo check. The later installed inspection example/native runtime pair remain unqualified."
   },
   "native_runtime_assets": {
-    "status": "initial-platform-compilations-passed-both-independent-archive-mode-audits-failed-corrected-producer-executing",
+    "status": "corrected373-both-platform-native-archives-independently-verified",
     "script": "scripts/package-sdk-runtime.py",
     "workflow": ".github/workflows/gate6-runtime-candidate.yml",
     "targets": [
@@ -1463,7 +1457,9 @@
       "source_revision": "456ad6e8",
       "status": "terminal-cancelled-before-execution-for-confirmed-native-package-mode-defect"
     },
-    "macos_negative_evidence": "docs/evidence/gate-6/native-runtime-macos-negative.json"
+    "macos_negative_evidence": "docs/evidence/gate-6/native-runtime-macos-negative.json",
+    "installed_native_examples_qualified": true,
+    "runtime_asset_packaging_qualified": true
   },
   "installed_examples": {
     "path": "examples/sdk-installation",
@@ -1475,10 +1471,10 @@
     "verification": "Node/Python syntax checks pass; actual matching-native example execution remains pending."
   },
   "native_installed_candidate": {
-    "status": "actual-macOS-execution-in-progress-no-qualified-outcome-yet",
+    "status": "passed-both-platform-clean-native-examples",
     "checker": "scripts/check-sdk-native-installation.py",
     "archive_installer": "scripts/lib/sdk_candidate.py",
-    "local_archive_boundary_tests_passed": 3,
+    "local_archive_boundary_tests_passed": 5,
     "actual_cases": [
       "Install exact native tarball and ordinary SDK archives in a fresh project outside the repository",
       "Run actual installed Node and Python examples through the matching default connect on PATH; observe original helper joins through standard subprocess APIs",
@@ -1571,15 +1567,15 @@
   "full_platform_candidate": {
     "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
     "run_id": 41253765267,
-    "status": "in-progress-both-native-platforms",
+    "status": "terminal-success-both-platforms-independently-verified",
     "scope": "Corrected portable native archive modes, actual installed Rust/Node/Python examples, cold offline source rebuilds and complete candidate assembly. No pass claim.",
     "jobs": {
       "aarch64-apple-darwin": 124694872755,
       "x86_64-unknown-linux-gnu": 124694873000
     },
     "last_confirmed": {
-      "aarch64-apple-darwin": "actual installed SDK examples",
-      "x86_64-unknown-linux-gnu": "native prerequisite setup"
+      "aarch64-apple-darwin": "Complete native/installed/offline/assembled audit passed",
+      "x86_64-unknown-linux-gnu": "Complete native/installed/offline/assembled audit passed"
     }
   },
   "superseded_platform_candidate": {
@@ -1588,10 +1584,24 @@
     "status": "terminal-cancelled-before-execution-to-use-corrected-fixtures-and-package-manager-isolation"
   },
   "sealed_candidate_verifier": {
-    "status": "implemented-local-guards-pass-awaiting-real-sealed-artifacts",
+    "status": "both-real-sealed-candidates-independently-verified",
     "script": "scripts/verify-sdk-candidate.py",
-    "local_tests": 7,
+    "local_tests": 8,
     "scope": "Independent full tar payload bytes/modes, identical CI native/installed/offline source inventories, original Git/prepared/registry provenance, actual helper joins/reclamation and cold cache evidence, original component archive identities. Requires independently verified native asset; rejects publication/release/full-gate promotion.",
-    "actual_sealed_candidate_verified": false
-  }
+    "actual_sealed_candidate_verified": true
+  },
+  "historical_remaining_requirements": [
+    "Standalone versioned Rust registry-equivalent archives and complete offline dependency closure without repository/.deps paths",
+    "Exact same-candidate production server/helper assets for macOS arm64 and native Linux x86_64 with licenses and platform metadata",
+    "Offline source inputs and usable outside-repository examples",
+    "Full candidate external installation and native dependency resolution verification",
+    "Publication manifests and names/account ownership review; no publication performed"
+  ],
+  "completed_candidate_verification": "docs/evidence/gate-6/sdk-candidates-verified.json",
+  "release_work_separate_from_G6_069": [
+    "G6-070 full SDK/facade/version matrix",
+    "G6-102 final reviewed matching release and public Cargo fork/name/version strategy",
+    "G6-104 registry account ownership and concrete publication handoff",
+    "G6-105 owner acceptance; no publication authorized by this record"
+  ]
 }

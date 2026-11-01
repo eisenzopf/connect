@@ -15,6 +15,14 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def runtime_evidence(evidence):
+    proof_name, = [name for name in evidence.namelist() if PurePosixPath(name).name == 'runtime.json']
+    inputs_name = str(PurePosixPath(proof_name).parent / 'source-inputs.json')
+    if evidence.namelist().count(inputs_name) != 1:
+        raise ValueError('Native runtime requires its own unique sibling source inventory')
+    return json.loads(evidence.read(proof_name)), evidence.read(inputs_name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('evidence', 'prepared', 'output'):
@@ -28,9 +36,7 @@ def main():
     args = parser.parse_args()
     verifier = runpy.run_path(str(ROOT / 'scripts/verify-linux-installation.py'))
     with verifier['artifact'](args.evidence, args.evidence_sha256) as evidence:
-        proof = verifier['json_member'](evidence, 'runtime.json')
-        inputs_name, = [name for name in evidence.namelist() if PurePosixPath(name).name == 'source-inputs.json']
-        source_bytes = evidence.read(inputs_name)
+        proof, source_bytes = runtime_evidence(evidence)
     if not (proof['passed'] and proof['source_inputs_unchanged'] and proof['build_exit_code'] == 0
             and proof['production_release'] and not proof['test_support'] and proof['source_revision'] == args.revision
             and hashlib.sha256(source_bytes).hexdigest() == proof['source_inputs_sha256']):

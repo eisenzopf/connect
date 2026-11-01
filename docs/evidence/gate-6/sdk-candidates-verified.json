@@ -1,0 +1,806 @@
+{
+  "format": "connect/gate6-sdk-candidates-verified/1",
+  "task": "G6-069",
+  "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+  "workflow_run_id": 41253765267,
+  "workflow_conclusion": "success",
+  "platforms": {
+    "aarch64-apple-darwin": {
+      "job_id": 124694872755,
+      "artifacts": {
+        "evidence": 13061864685,
+        "native": 13062965101,
+        "complete_sdk": 13061939455
+      },
+      "native_verification": {
+        "format": "connect/verified-native-sdk-runtime/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "aarch64-apple-darwin",
+        "sources_verified": {
+          "git": 4623,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 755,
+        "binary_sha256": "bfc940b63a3cca6d644f6232c68b878b13c81dad0831a798d8e44a79be4e2a78",
+        "helper_profiles": {
+          "helper.rs:PROFILE": "connect-sdk-helper/4",
+          "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+          "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+          "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+          "helper/media.rs:PROFILE": "connect-sdk-media/2",
+          "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+        },
+        "archive_sha256": "801f8dcd139f10ac4bc1a2ea80d5533d90e592c79897c3ef1f5b843e80185dfd",
+        "manifest_sha256": "92c1507941aa78cc223fe8c81cdf7c94412d133be1d324fe7c105bcb6199239b",
+        "artifact_zip_digests": {
+          "evidence": "7192b1415d7a41776b8504e71306e7dc46231efd1e6f137fb80d0295cce0557a",
+          "package": "16aea715e93cf462008786a0bbe59b98504429c1c60222ce9706172704131705"
+        },
+        "passed": true,
+        "production_build_verified": true,
+        "sdk_installation_qualified": false,
+        "package_input": "bounded-stdin",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "sealed_verification": {
+        "format": "connect/verified-sealed-sdk-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "aarch64-apple-darwin",
+        "sources_verified": {
+          "git": 4623,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 28300,
+        "original_git_payload_files_verified": 162,
+        "archive_sha256": "1a109d41f1a8b4390e57aa0ec50d4fdeedf4f87611b13706490d210188935aa1",
+        "manifest_sha256": "46e19119febe4271c093e14e88908c5d09759383acf1ae423331761691e45488",
+        "passed": true,
+        "artifact_zip_digests": {
+          "evidence": "7192b1415d7a41776b8504e71306e7dc46231efd1e6f137fb80d0295cce0557a",
+          "package": "0962b45e074abfaec8cb7ca3c5628ec59e1f6b18f8b2e433db414d92b332ffdd"
+        },
+        "scope": "Matching platform SDK candidate, original component identities and cold installed/offline evidence; not full SDK parity, final release, publication or Gate 6 acceptance.",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "installed": {
+        "format": "connect/installed-sdk-native-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "aarch64-apple-darwin",
+        "source_inputs_sha256": "ac030117c8fa3663d7411640f544b83b2d2000d78780e87ff68dbb5300f5b638",
+        "runtime_archive_sha256": "801f8dcd139f10ac4bc1a2ea80d5533d90e592c79897c3ef1f5b843e80185dfd",
+        "steps": [
+          {
+            "name": "initialize",
+            "exit_code": 0,
+            "elapsed_seconds": 0.311,
+            "log_sha256": "0532f62f6da01f18be26071b143b6bd56b9dd89b543fe46b7a8a4fc8798676c2"
+          },
+          {
+            "name": "configuration",
+            "exit_code": 0,
+            "elapsed_seconds": 0.072,
+            "log_sha256": "2118d8fcef170ac53488842fff0396a083e2190e7d38657c9dc86f6237fd62c7"
+          },
+          {
+            "name": "node-install",
+            "exit_code": 0,
+            "elapsed_seconds": 1.485,
+            "log_sha256": "553d61b96b1bd3629e971657c6269afcc6bce06407cf4936d31a5b5cfed0a010"
+          },
+          {
+            "name": "node-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.235,
+            "log_sha256": "7ce2a0e41bde68ee73758c005191d86ceabce4cc7584029ef553c04dd6ecaa8c"
+          },
+          {
+            "name": "python-install",
+            "exit_code": 0,
+            "elapsed_seconds": 1.039,
+            "log_sha256": "acd129e42ca0b64216a8119c02e13bd6607e417ba988f1243072695cad562645"
+          },
+          {
+            "name": "python-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.361,
+            "log_sha256": "60d522f73e6ccfed21c8ca2a35b654deecc48719eea0f584bd032d350b9dcb36"
+          },
+          {
+            "name": "rust-resolve",
+            "exit_code": 0,
+            "elapsed_seconds": 0.863,
+            "log_sha256": "1ce3f264640d3a15f26af9bf882a0504eb824b29f93c0df7277649d57f08e284"
+          },
+          {
+            "name": "rust-build",
+            "exit_code": 0,
+            "elapsed_seconds": 255.868,
+            "log_sha256": "9c0ef746293a75cf6072ef3940c0e187b366f0b4fad8508da89d765df145802f"
+          },
+          {
+            "name": "rust-metadata",
+            "exit_code": 0,
+            "elapsed_seconds": 1.065,
+            "log_sha256": "92732e0037fbc3a6285b825d83ae3f1eb35c87020d217a01781fcf6f311093bd"
+          },
+          {
+            "name": "rust-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.252,
+            "log_sha256": "30018584a8743c618bd62d5b8b80609929ac1085f8440294eb255aecaa09c6ae"
+          }
+        ],
+        "passed": true,
+        "scope": "Clean external archive installations and original read-only native Rust/Node/Python signed peers against matching packaged production server. No full facade/version/media/remote matrix.",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "node": {
+          "example": {
+            "profile": "connect/2",
+            "feature_count": 6
+          },
+          "helper": {
+            "native_helpers_joined": 1,
+            "actual_default_executable": true
+          },
+          "peer_capacity_reclaimed": true
+        },
+        "python": {
+          "example": {
+            "profile": "connect/2",
+            "feature_count": 6
+          },
+          "helper": {
+            "native_helpers_joined": 1,
+            "actual_default_executable": true
+          },
+          "peer_capacity_reclaimed": true
+        },
+        "rust": {
+          "example": {
+            "feature_count": 6,
+            "profile": "connect/2"
+          },
+          "cold_offline_crate_installation": true,
+          "peer_capacity_reclaimed": true,
+          "consumer_sha256": "abb9c9fb6f6a784c029e238043c9b34be57d0561f349042b9f93a7a3c7db2bb7",
+          "resolved_packages": 354
+        },
+        "original_server_joined": true,
+        "consumer_outside_repository": true,
+        "native_helpers_joined": 2,
+        "node_archive_sha256": "b7a6b7649a82d6fa26b0f37ed4765d57f67cfe1a11fd0a92e060e9ae1214e435",
+        "python_wheel_sha256": "54da0ee6f1989493cbb8c7d87e0763182f84745e4287974719c4eda6f806a8ef",
+        "rust_source_manifest_sha256": "505803ab79a49c5e915f00d0ab9f2730a66a2d46c488dd24e31d0e4dbd170ec1",
+        "source_inputs_unchanged": true
+      },
+      "offline": {
+        "format": "connect/sdk-offline-build-inputs/1",
+        "passed": true,
+        "steps": [
+          {
+            "name": "download-locked-python-tools",
+            "exit_code": 0,
+            "log_sha256": "5f38667882f464f1ed32cde5b61aac3740a98f37d47dce069f9076324819532e"
+          },
+          {
+            "name": "npm-cache-0",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-1",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-2",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-3",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-4",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-5",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-offline-ci",
+            "exit_code": 0,
+            "log_sha256": "6bcac9f195dedd52c375b5b03a447bc37ec229e33bbdb4d3976cfd6efa5dc667"
+          },
+          {
+            "name": "typescript-offline-build",
+            "exit_code": 0,
+            "log_sha256": "bb7d4f1f50df624fccbe4ab6f9722d235cd0bdd45234194b099e598d1949b77e"
+          },
+          {
+            "name": "python-offline-builder-install",
+            "exit_code": 0,
+            "log_sha256": "c726751d4508f9d9bdb0345372eddcf56d84b9539f737c7e7d8e53091f6f1725"
+          },
+          {
+            "name": "python-offline-build",
+            "exit_code": 0,
+            "log_sha256": "ae9ed7bb60ed1fee9ddc01351795689d7d0a5b9300c8d72729e5d3a07f08e03c"
+          }
+        ],
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "supported_source_targets": [
+          "darwin-arm64",
+          "linux-x64"
+        ],
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "source_inputs_sha256": "ac030117c8fa3663d7411640f544b83b2d2000d78780e87ff68dbb5300f5b638",
+        "npm_archives": [
+          {
+            "name": "@types/node",
+            "version": "26.6.4",
+            "file_name": "types-node-26.6.4.tgz",
+            "sha256": "bf2dbf11cfccd34681fc4d5e4d150afce77fd6610224757dbe6c92c8e5149700",
+            "integrity": "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==",
+            "source_url": "https://registry.npmjs.org/@types/node/-/node-26.6.4.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          },
+          {
+            "name": "@typescript/typescript-darwin-arm64",
+            "version": "7.0.2",
+            "file_name": "typescript-typescript-darwin-arm64-7.0.2.tgz",
+            "sha256": "902e2fe1cf0799198ef902c6b8c310a450fef629a6baba41d45641ef75c04ebd",
+            "integrity": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
+            "source_url": "https://registry.npmjs.org/@typescript/typescript-darwin-arm64/-/typescript-darwin-arm64-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "@typescript/typescript-linux-x64",
+            "version": "7.0.2",
+            "file_name": "typescript-typescript-linux-x64-7.0.2.tgz",
+            "sha256": "7ecad6f67377e831856367ab062ef394f21506a611405bf8ac0ff039348637d3",
+            "integrity": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
+            "source_url": "https://registry.npmjs.org/@typescript/typescript-linux-x64/-/typescript-linux-x64-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "prettier",
+            "version": "3.9.9",
+            "file_name": "prettier-3.9.9.tgz",
+            "sha256": "c3b162d30c45126873cc6338a539383e92120a390d10de78f373f42c2045b338",
+            "integrity": "sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==",
+            "source_url": "https://registry.npmjs.org/prettier/-/prettier-3.9.9.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          },
+          {
+            "name": "typescript",
+            "version": "7.0.2",
+            "file_name": "typescript-7.0.2.tgz",
+            "sha256": "da2513f4b95176d6dde8b51aab7afe8a927656c9d277369793f77f7e59371c08",
+            "integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
+            "source_url": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "undici-types",
+            "version": "8.9.0",
+            "file_name": "undici-types-8.9.0.tgz",
+            "sha256": "3a587851ccbf1021b20eac8a38eb819d7e2a1ab77aa477cb24cae5473a3e78c6",
+            "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==",
+            "source_url": "https://registry.npmjs.org/undici-types/-/undici-types-8.9.0.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          }
+        ],
+        "python_build_tools": [
+          {
+            "file_name": "setuptools-80.9.0-py3-none-any.whl",
+            "sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+            "original_notice_members": [
+              "setuptools/_vendor/platformdirs-4.2.2.dist-info/licenses/LICENSE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE.APACHE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE.BSD",
+              "setuptools/config/NOTICE",
+              "setuptools/config/_validate_pyproject/NOTICE",
+              "setuptools-80.9.0.dist-info/licenses/LICENSE",
+              "setuptools/_vendor/autocommand-2.2.2.dist-info/LICENSE",
+              "setuptools/_vendor/backports.tarfile-1.2.0.dist-info/LICENSE",
+              "setuptools/_vendor/importlib_metadata-8.0.0.dist-info/LICENSE",
+              "setuptools/_vendor/inflect-7.3.1.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.collections-5.1.0.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.context-5.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.functools-4.0.1.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.text-3.12.1.dist-info/LICENSE",
+              "setuptools/_vendor/more_itertools-10.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.APACHE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.BSD",
+              "setuptools/_vendor/tomli-2.0.1.dist-info/LICENSE",
+              "setuptools/_vendor/typeguard-4.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/typing_extensions-4.12.2.dist-info/LICENSE",
+              "setuptools/_vendor/wheel-0.45.1.dist-info/LICENSE.txt",
+              "setuptools/_vendor/zipp-3.19.2.dist-info/LICENSE"
+            ]
+          },
+          {
+            "file_name": "wheel-0.45.1-py3-none-any.whl",
+            "sha256": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248",
+            "original_notice_members": [
+              "wheel/vendored/packaging/LICENSE",
+              "wheel/vendored/packaging/LICENSE.APACHE",
+              "wheel/vendored/packaging/LICENSE.BSD",
+              "wheel-0.45.1.dist-info/LICENSE.txt"
+            ]
+          }
+        ],
+        "typescript_distribution_byte_identical": true,
+        "python_wheel_byte_identical": true,
+        "consumer_outside_repository": true,
+        "empty_caches": true,
+        "manifest_sha256": "e9a51e313d30a3fe4538e42480c848ea10d6134d68281e25a41db07ce6b9e954",
+        "source_inputs_unchanged": true
+      },
+      "assembled": {
+        "format": "connect/sealed-platform-sdk-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "aarch64-apple-darwin",
+        "archive_name": "connect-sdk-0.1.0-aarch64-apple-darwin-3732254f379a.tar.gz",
+        "archive_sha256": "1a109d41f1a8b4390e57aa0ec50d4fdeedf4f87611b13706490d210188935aa1",
+        "manifest_sha256": "46e19119febe4271c093e14e88908c5d09759383acf1ae423331761691e45488",
+        "files": 28300,
+        "candidate_installation_verified": true,
+        "publication_authorized": false,
+        "release_ready": false,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      }
+    },
+    "x86_64-unknown-linux-gnu": {
+      "job_id": 124694873000,
+      "artifacts": {
+        "evidence": 13062708444,
+        "native": 13062529270,
+        "complete_sdk": 13062289861
+      },
+      "native_verification": {
+        "format": "connect/verified-native-sdk-runtime/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "x86_64-unknown-linux-gnu",
+        "sources_verified": {
+          "git": 4623,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 753,
+        "binary_sha256": "556a2e59217c87ca3a80f118a9a1a94fac250ae494adb1782305dc8041f39c13",
+        "helper_profiles": {
+          "helper.rs:PROFILE": "connect-sdk-helper/4",
+          "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+          "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+          "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+          "helper/media.rs:PROFILE": "connect-sdk-media/2",
+          "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+        },
+        "archive_sha256": "9839639049c27e31a32277008ae5781d843704f0327e3a1fb2766c714a58178c",
+        "manifest_sha256": "3209b7f4e1a4812d5fa995ab17f7001dab11e4ff941f6b1d2f8be1c41bbde9fa",
+        "artifact_zip_digests": {
+          "evidence": "0732e5ff23e8200d573cea398e3467cf312a669fe8e4a00abaa8c29728fb75a9",
+          "package": "baa1ec9c55caf07ff5203514417d4140eb6e1130c7d513565da5099859127b34"
+        },
+        "passed": true,
+        "production_build_verified": true,
+        "sdk_installation_qualified": false,
+        "package_input": "bounded-stdin",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "sealed_verification": {
+        "format": "connect/verified-sealed-sdk-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "x86_64-unknown-linux-gnu",
+        "sources_verified": {
+          "git": 4623,
+          "prepared": 4094,
+          "pinned_archives": 4
+        },
+        "files_verified": 28300,
+        "original_git_payload_files_verified": 162,
+        "archive_sha256": "632ce416e36a3042428fd982494b8392a1794191665dc84ceaf817f7d6851a7b",
+        "manifest_sha256": "997bbf73ad1927b1e3b450e18b224627389986358ad0641bad993036fa761747",
+        "passed": true,
+        "artifact_zip_digests": {
+          "evidence": "0732e5ff23e8200d573cea398e3467cf312a669fe8e4a00abaa8c29728fb75a9",
+          "package": "4a6c4132ca9285615ce3f57a80a93a386cc6f1029aefa52d8ed99bfbd95d2fb2"
+        },
+        "scope": "Matching platform SDK candidate, original component identities and cold installed/offline evidence; not full SDK parity, final release, publication or Gate 6 acceptance.",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "publication_authorized": false
+      },
+      "installed": {
+        "format": "connect/installed-sdk-native-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "x86_64-unknown-linux-gnu",
+        "source_inputs_sha256": "ac030117c8fa3663d7411640f544b83b2d2000d78780e87ff68dbb5300f5b638",
+        "runtime_archive_sha256": "9839639049c27e31a32277008ae5781d843704f0327e3a1fb2766c714a58178c",
+        "steps": [
+          {
+            "name": "initialize",
+            "exit_code": 0,
+            "elapsed_seconds": 0.264,
+            "log_sha256": "481b25b03a0328bdfe7598f5f31036f15e08c223a21d5599c8398af8a47d1048"
+          },
+          {
+            "name": "configuration",
+            "exit_code": 0,
+            "elapsed_seconds": 0.064,
+            "log_sha256": "2118d8fcef170ac53488842fff0396a083e2190e7d38657c9dc86f6237fd62c7"
+          },
+          {
+            "name": "node-install",
+            "exit_code": 0,
+            "elapsed_seconds": 0.766,
+            "log_sha256": "56b57f8f47f00bb490f352c4f3d1357b31536886bef017394a231f97b625c366"
+          },
+          {
+            "name": "node-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.215,
+            "log_sha256": "7ce2a0e41bde68ee73758c005191d86ceabce4cc7584029ef553c04dd6ecaa8c"
+          },
+          {
+            "name": "python-install",
+            "exit_code": 0,
+            "elapsed_seconds": 0.715,
+            "log_sha256": "acd129e42ca0b64216a8119c02e13bd6607e417ba988f1243072695cad562645"
+          },
+          {
+            "name": "python-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.315,
+            "log_sha256": "60d522f73e6ccfed21c8ca2a35b654deecc48719eea0f584bd032d350b9dcb36"
+          },
+          {
+            "name": "rust-resolve",
+            "exit_code": 0,
+            "elapsed_seconds": 0.266,
+            "log_sha256": "1ce3f264640d3a15f26af9bf882a0504eb824b29f93c0df7277649d57f08e284"
+          },
+          {
+            "name": "rust-build",
+            "exit_code": 0,
+            "elapsed_seconds": 194.934,
+            "log_sha256": "f3ee856a347ddcf9c9f6139a7718472d72d67941d4d3ea185e33363c5d6ffa24"
+          },
+          {
+            "name": "rust-metadata",
+            "exit_code": 0,
+            "elapsed_seconds": 0.264,
+            "log_sha256": "428522715c2422f647018eadc8a75d86535556d7acf053dfea1292a4b9f67997"
+          },
+          {
+            "name": "rust-example",
+            "exit_code": 0,
+            "elapsed_seconds": 0.114,
+            "log_sha256": "30018584a8743c618bd62d5b8b80609929ac1085f8440294eb255aecaa09c6ae"
+          }
+        ],
+        "passed": true,
+        "scope": "Clean external archive installations and original read-only native Rust/Node/Python signed peers against matching packaged production server. No full facade/version/media/remote matrix.",
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "node": {
+          "example": {
+            "profile": "connect/2",
+            "feature_count": 6
+          },
+          "helper": {
+            "native_helpers_joined": 1,
+            "actual_default_executable": true
+          },
+          "peer_capacity_reclaimed": true
+        },
+        "python": {
+          "example": {
+            "profile": "connect/2",
+            "feature_count": 6
+          },
+          "helper": {
+            "native_helpers_joined": 1,
+            "actual_default_executable": true
+          },
+          "peer_capacity_reclaimed": true
+        },
+        "rust": {
+          "example": {
+            "feature_count": 6,
+            "profile": "connect/2"
+          },
+          "cold_offline_crate_installation": true,
+          "peer_capacity_reclaimed": true,
+          "consumer_sha256": "e3bc83d891961e68b29253b6429e7f68b91c1f56f522f65947bff7bdf789193f",
+          "resolved_packages": 354
+        },
+        "original_server_joined": true,
+        "consumer_outside_repository": true,
+        "native_helpers_joined": 2,
+        "node_archive_sha256": "b7a6b7649a82d6fa26b0f37ed4765d57f67cfe1a11fd0a92e060e9ae1214e435",
+        "python_wheel_sha256": "54da0ee6f1989493cbb8c7d87e0763182f84745e4287974719c4eda6f806a8ef",
+        "rust_source_manifest_sha256": "505803ab79a49c5e915f00d0ab9f2730a66a2d46c488dd24e31d0e4dbd170ec1",
+        "source_inputs_unchanged": true
+      },
+      "offline": {
+        "format": "connect/sdk-offline-build-inputs/1",
+        "passed": true,
+        "steps": [
+          {
+            "name": "download-locked-python-tools",
+            "exit_code": 0,
+            "log_sha256": "5f0d15993b8bc0fb19339968373601ba138377112a9c0e8d0141bdfefa124a1c"
+          },
+          {
+            "name": "npm-cache-0",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-1",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-2",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-3",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-4",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-cache-5",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "npm-offline-ci",
+            "exit_code": 0,
+            "log_sha256": "e5f820afb84967f54185a1f12749551aa6e3eaa89ea6df2f9dc076fc60c6a9a3"
+          },
+          {
+            "name": "typescript-offline-build",
+            "exit_code": 0,
+            "log_sha256": "bb7d4f1f50df624fccbe4ab6f9722d235cd0bdd45234194b099e598d1949b77e"
+          },
+          {
+            "name": "python-offline-builder-install",
+            "exit_code": 0,
+            "log_sha256": "ae4e9d0dd318eb409b23e6f3449801d4e35a880e1977cb1bc9e2fd2bc40001ce"
+          },
+          {
+            "name": "python-offline-build",
+            "exit_code": 0,
+            "log_sha256": "5bcde6a8a0fbcc92ec4bb73d0ee516cab1b7f7e1ed1608729bc5067ad3cfbf6d"
+          }
+        ],
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "supported_source_targets": [
+          "darwin-arm64",
+          "linux-x64"
+        ],
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "source_inputs_sha256": "ac030117c8fa3663d7411640f544b83b2d2000d78780e87ff68dbb5300f5b638",
+        "npm_archives": [
+          {
+            "name": "@types/node",
+            "version": "26.6.4",
+            "file_name": "types-node-26.6.4.tgz",
+            "sha256": "bf2dbf11cfccd34681fc4d5e4d150afce77fd6610224757dbe6c92c8e5149700",
+            "integrity": "sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==",
+            "source_url": "https://registry.npmjs.org/@types/node/-/node-26.6.4.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          },
+          {
+            "name": "@typescript/typescript-darwin-arm64",
+            "version": "7.0.2",
+            "file_name": "typescript-typescript-darwin-arm64-7.0.2.tgz",
+            "sha256": "902e2fe1cf0799198ef902c6b8c310a450fef629a6baba41d45641ef75c04ebd",
+            "integrity": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
+            "source_url": "https://registry.npmjs.org/@typescript/typescript-darwin-arm64/-/typescript-darwin-arm64-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "@typescript/typescript-linux-x64",
+            "version": "7.0.2",
+            "file_name": "typescript-typescript-linux-x64-7.0.2.tgz",
+            "sha256": "7ecad6f67377e831856367ab062ef394f21506a611405bf8ac0ff039348637d3",
+            "integrity": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
+            "source_url": "https://registry.npmjs.org/@typescript/typescript-linux-x64/-/typescript-linux-x64-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "prettier",
+            "version": "3.9.9",
+            "file_name": "prettier-3.9.9.tgz",
+            "sha256": "c3b162d30c45126873cc6338a539383e92120a390d10de78f373f42c2045b338",
+            "integrity": "sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==",
+            "source_url": "https://registry.npmjs.org/prettier/-/prettier-3.9.9.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          },
+          {
+            "name": "typescript",
+            "version": "7.0.2",
+            "file_name": "typescript-7.0.2.tgz",
+            "sha256": "da2513f4b95176d6dde8b51aab7afe8a927656c9d277369793f77f7e59371c08",
+            "integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
+            "source_url": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz",
+            "original_notice_members": [
+              "LICENSE",
+              "NOTICE.txt"
+            ],
+            "license": "Apache-2.0"
+          },
+          {
+            "name": "undici-types",
+            "version": "8.9.0",
+            "file_name": "undici-types-8.9.0.tgz",
+            "sha256": "3a587851ccbf1021b20eac8a38eb819d7e2a1ab77aa477cb24cae5473a3e78c6",
+            "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==",
+            "source_url": "https://registry.npmjs.org/undici-types/-/undici-types-8.9.0.tgz",
+            "original_notice_members": [
+              "LICENSE"
+            ],
+            "license": "MIT"
+          }
+        ],
+        "python_build_tools": [
+          {
+            "file_name": "setuptools-80.9.0-py3-none-any.whl",
+            "sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+            "original_notice_members": [
+              "setuptools/_vendor/platformdirs-4.2.2.dist-info/licenses/LICENSE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE.APACHE",
+              "setuptools/_vendor/wheel/vendored/packaging/LICENSE.BSD",
+              "setuptools/config/NOTICE",
+              "setuptools/config/_validate_pyproject/NOTICE",
+              "setuptools-80.9.0.dist-info/licenses/LICENSE",
+              "setuptools/_vendor/autocommand-2.2.2.dist-info/LICENSE",
+              "setuptools/_vendor/backports.tarfile-1.2.0.dist-info/LICENSE",
+              "setuptools/_vendor/importlib_metadata-8.0.0.dist-info/LICENSE",
+              "setuptools/_vendor/inflect-7.3.1.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.collections-5.1.0.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.context-5.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.functools-4.0.1.dist-info/LICENSE",
+              "setuptools/_vendor/jaraco.text-3.12.1.dist-info/LICENSE",
+              "setuptools/_vendor/more_itertools-10.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.APACHE",
+              "setuptools/_vendor/packaging-24.2.dist-info/LICENSE.BSD",
+              "setuptools/_vendor/tomli-2.0.1.dist-info/LICENSE",
+              "setuptools/_vendor/typeguard-4.3.0.dist-info/LICENSE",
+              "setuptools/_vendor/typing_extensions-4.12.2.dist-info/LICENSE",
+              "setuptools/_vendor/wheel-0.45.1.dist-info/LICENSE.txt",
+              "setuptools/_vendor/zipp-3.19.2.dist-info/LICENSE"
+            ]
+          },
+          {
+            "file_name": "wheel-0.45.1-py3-none-any.whl",
+            "sha256": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248",
+            "original_notice_members": [
+              "wheel/vendored/packaging/LICENSE",
+              "wheel/vendored/packaging/LICENSE.APACHE",
+              "wheel/vendored/packaging/LICENSE.BSD",
+              "wheel-0.45.1.dist-info/LICENSE.txt"
+            ]
+          }
+        ],
+        "typescript_distribution_byte_identical": true,
+        "python_wheel_byte_identical": true,
+        "consumer_outside_repository": true,
+        "empty_caches": true,
+        "manifest_sha256": "e9a51e313d30a3fe4538e42480c848ea10d6134d68281e25a41db07ce6b9e954",
+        "source_inputs_unchanged": true
+      },
+      "assembled": {
+        "format": "connect/sealed-platform-sdk-candidate/1",
+        "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+        "target": "x86_64-unknown-linux-gnu",
+        "archive_name": "connect-sdk-0.1.0-x86_64-unknown-linux-gnu-3732254f379a.tar.gz",
+        "archive_sha256": "632ce416e36a3042428fd982494b8392a1794191665dc84ceaf817f7d6851a7b",
+        "manifest_sha256": "997bbf73ad1927b1e3b450e18b224627389986358ad0641bad993036fa761747",
+        "files": 28300,
+        "candidate_installation_verified": true,
+        "publication_authorized": false,
+        "release_ready": false,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      }
+    }
+  },
+  "requirements_verified": {
+    "versioned_rust_typescript_python_archives": true,
+    "matching_production_server_helper_assets_both_platforms": true,
+    "original_licenses_and_platform_metadata": true,
+    "cold_external_installs_and_native_examples_all_three_languages": true,
+    "no_active_checkout_or_private_historical_dependencies": true,
+    "offline_source_build_inputs_and_byte_identical_rebuilds": true,
+    "registry_listing_names_checked": true,
+    "publication_manifests_prepared_without_publication": true
+  },
+  "registry_audit": "docs/evidence/gate-6/candidate.json",
+  "verification_tools": {
+    "native": {
+      "path": "scripts/verify-sdk-runtime.py",
+      "sha256": "b8fd7f8740b5951902994190f5dd39c15e7442e9bc418083fe7eb758ec802cf1",
+      "local_guards": 5
+    },
+    "complete": {
+      "path": "scripts/verify-sdk-candidate.py",
+      "sha256": "3f0111248ffa31a309f5edc128521bd8572bbaa1744c12e49612e7629b141b54",
+      "local_guards": 8
+    }
+  },
+  "raw_packages": "Whole original native and SDK ZIPs independently digested and streamed in bounded memory without local extraction. Complete packages remain the named workflow artifacts, uploaded from dist/sdk; curated original evidence ZIPs retained privately.",
+  "scope": "G6-069 candidate packaging and matching clean installed/offline native examples on macOS15arm64 andUbuntu24.04x86_64. Full SDK/facade/version/remote/media matrix remainsG6-070; registry ownership/fork strategy/final matching release remainG6-102/104; no publication or Gate6acceptance.",
+  "task_complete": true,
+  "whole_gate_qualified": false,
+  "acceptance_qualified": false,
+  "publication_authorized": false
+}

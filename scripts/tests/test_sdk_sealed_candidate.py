@@ -14,6 +14,15 @@ VERIFIER = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'verify-sdk-
 
 
 class SealedCandidate(unittest.TestCase):
+    def test_generated_package_readme_is_bound_to_original_producer_without_executing_it(self):
+        body = '# Connect SDK candidate\nOriginal generated instructions.\n'
+        source = "raise RuntimeError('must never execute')\n(candidate/'README.md').write_text(" + repr(body) + ")\n"
+        self.assertEqual(VERIFIER['generated_readme'](source), body.encode())
+        self.assertIsNone(VERIFIER['original_path']('README.md'))
+        self.assertEqual(VERIFIER['original_path']('docs/developer/rust-sdk.md'), 'docs/developer/rust-sdk.md')
+        self.assertEqual(VERIFIER['original_path']('sources/python-source/connect_sdk/operational.py'), 'sdk/python/connect_sdk/operational.py')
+        with self.assertRaises(ValueError): VERIFIER['generated_readme']('raise RuntimeError("unrelated source")')
+
     def components(self):
         revision, target = 'a' * 40, 'fixture'
         runtime = {'passed': True, 'source_inputs_unchanged': True, 'source_revision': revision,
