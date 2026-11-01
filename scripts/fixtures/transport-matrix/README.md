@@ -163,3 +163,29 @@ standalone tool does not revoke an enrolled device. Enrollment does not create
 Conversation participants or establish actual concurrent connections, sessions,
 device replacement, browser transport, media or topology outcomes. Those remain
 required complete-cell execution stages.
+
+## Conversation and Session control
+
+The isolated `transport-conversation` lane runs the same production bootstrap,
+restore and scoped enrollment, then executes
+`scripts/check-transport-conversation.mjs` through the current public Node SDK.
+Five real SDK helpers use the normal production binary; the fixture binds their
+actual `/proc` executable hashes and requires their original exits. Raw inputs,
+operation references and diagnostic logs remain private. Generated SDK files are
+hashed before and after execution.
+
+The scenario observes four active Conversation participants, add/update/remove
+and readmission with a stable Participant ID and a new membership epoch, original
+mutation replay, conflicting content and stale revision refusals, and message
+audiences before/after membership changes. It creates and accepts two simultaneous
+data Session intents, adds an offered audio capability to one intent, refuses an
+unoffered video upgrade without changing that Session, and ends both intents.
+After the original helper closes, an independently enrolled Device recovers the
+original creation and authorized history. Logical IDs are fsynced before public
+IO; no private Store or direct database access is used.
+
+These are actual control observations. An accepted capability intent does not
+prove live audio/video, a media ownership replacement or the six-Connection
+workload. Actual owned topology, browser transport selection/fallback, packet
+capture and decoded duplex observations still belong to the full cell executor.
+The scenario's reports keep every complete matrix cell unqualified.

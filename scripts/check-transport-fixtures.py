@@ -17,7 +17,7 @@ import traceback
 from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors
-from lib.transport_fixture import FixtureError, materialize
+from lib.transport_fixture import FixtureError, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,9 +37,12 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False):
+def main(actors=False, conversation=False):
     global PRIVATE, OUTPUT
-    if actors:
+    if conversation:
+        actors = True
+        PRIVATE, OUTPUT = BASE / "private/conversation", BASE / "evidence/conversation"
+    elif actors:
         PRIVATE, OUTPUT = BASE / "private/actors", BASE / "evidence/actors"
     os.umask(0o077)
     assert platform.system() == "Linux" and platform.machine() == "x86_64"
@@ -55,12 +58,13 @@ def main(actors=False):
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore, private server/operator configuration and native control probe. Optional actor stage enrolls four identities/five devices and checks current authority and original-ID recovery. No Conversation participant workload, actual browser, packet capture, media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified.")
+        scope="Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore and private configuration. Optional actor and public Node SDK conversation stages verify scoped devices, membership/audiences and two accepted Session intents. No six-Connection workload, actual browser, packet capture, live media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
     phase = "dependencies"
     binary = None
+    sdk_before = None
     try:
         code = bounded(["bash", "scripts/prepare-dependencies.sh"], PRIVATE / "dependencies.log", env, 600)
         assert code == 0
@@ -250,13 +254,48 @@ def main(actors=False):
                 raise AssertionError("Changed issuer configuration adopted an old plan")
             assert files(directory) == installed
             report["checks"].append("changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan")
+            before_revocation = {name: [] for name in records.keys() - {"participant-1"}}
+            if conversation:
+                phase = "public-sdk-conversation-control"
+                config_directory = PRIVATE / "sdk-configs"
+                config_directory.mkdir(mode=0o700)
+                configured_actors = {}
+                for name, actor in records.items():
+                    native_path = Path(actor["config"])
+                    native_config = tomllib.loads(native_path.read_text())
+                    for key in ("trust_certificate", "signing_private_key", "server_public_key"):
+                        native_config[key] = str(native_path.parent / native_config[key])
+                    application_config = tomllib.loads((native_path.parent / "application.toml").read_text())
+                    sdk_config = config_directory / (name + ".toml")
+                    publish(sdk_config, toml_bytes(dict(tenant_id="tnt_default", control=native_config, application=application_config)))
+                    configured_actors[name] = dict(identity_id=actor["identity_id"], config=str(sdk_config))
+                input_path = PRIVATE / "conversation-input.json"
+                publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
+                    executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"]), indent=2) + "\n").encode())
+                sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
+                sdk_before = sdk_inputs()
+                report["sdk_dist_inputs"] = sdk_before
+                code = bounded(["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")],
+                    PRIVATE / "conversation-control.log", env, 180)
+                report["conversation_exit_code"] = code
+                if (OUTPUT / "conversation.json").is_file():
+                    report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
+                assert code == 0
+                observed = json.loads((OUTPUT / "conversation.json").read_text())
+                assert observed["passed"] and observed["all_observed_helpers_joined"]
+                assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
+                assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report["binary_sha256"]
+                report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
+                before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}
+                assert all(len(value) == 1 for value in before_revocation.values())
+                assert len({value[0]["id"] for value in before_revocation.values()}) == 1
             revoke = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
             assert json.loads(run("revoke-primary-device", revoke))["result"]["Ok"]["revoked"] is True
             refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
                 dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
             assert refusal["result"]["Err"]["code"] == "unauthorized"
             for name in sorted(records.keys() - {"participant-1"}):
-                assert rooms(name + "-after-revocation", Path(records[name]["config"])) == []
+                assert rooms(name + "-after-revocation", Path(records[name]["config"])) == before_revocation[name]
             assert files(directory) == installed
             report["checks"].append("revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable")
         stop()
@@ -278,6 +317,9 @@ def main(actors=False):
             stream.close()
         report["source_inputs_unchanged"] = before is not None and source() == before
         report["executables_unchanged"] = binary is not None and digest(binary) == report["binary_sha256"]
+        if sdk_before is not None:
+            report["sdk_dist_inputs_unchanged"] = sdk_inputs() == sdk_before
+            report["passed"] = bool(report["passed"] and report["sdk_dist_inputs_unchanged"])
         report["passed"] = bool(report["passed"] and report["source_inputs_unchanged"] and report["executables_unchanged"])
         report["cacheable_build"] = bool(report.get("compile_exit_code") == 0 and report["source_inputs_unchanged"] and report["executables_unchanged"])
         (OUTPUT / "rehearsal.json").write_text(json.dumps(report, indent=2) + "\n")
@@ -291,4 +333,6 @@ def main(actors=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
-    raise SystemExit(main(parser.parse_args().actors))
+    parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
+    args = parser.parse_args()
+    raise SystemExit(main(args.actors, args.conversation))

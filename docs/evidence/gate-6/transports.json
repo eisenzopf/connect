@@ -1136,5 +1136,34 @@
     "verification_evidence": "docs/evidence/gate-6/transport-actors-verified.json",
     "runtime_scope": "One Ubuntu24.04 local native EdDSA stage;12configuration/enrollment behavior checks,36publicCLI commands including2expectedrefusals,2originalservergroupsjoined. No actual Conversation workload, replacement transition, topology, browser or media qualification."
   },
-  "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection."
+  "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection.",
+  "conversation_control": {
+    "status": "implemented-runtime-unrun",
+    "implementation_hashes": {
+      "scripts/check-transport-conversation.mjs": "5a868d9d9f5e6483f7ef56a2ef258c388412d8c69c0072360a76b814c2d55426",
+      "scripts/check-transport-fixtures.py": "a9f5e30f2e509dfb17a95abf4ca7d12cd482395780f6f4f7422457ef9dd71313",
+      ".github/workflows/gate6-linux-fixtures.yml": "4665c3a64d3ee84fb0f22c309137fa1208a5081cb76360ae65a77fa96b57cde3",
+      ".github/workflows/gate6-transport-matrix.yml": "153a6afb83347d0f05b95ab11033ca3971060f678059139d62fe8b6352bb296d"
+    },
+    "local_transport_guard_tests_passed": 21,
+    "node_syntax": true,
+    "python_syntax": true,
+    "workflow_yaml_parsed": true,
+    "runtime_verified": false,
+    "intended_observations": [
+      "four active members; participant add/update/remove/readmission",
+      "old message audience and old membership-epoch history/replay fencing",
+      "original replay, changed content and stale revision refusal",
+      "two simultaneous accepted data Session intents with one main",
+      "offered additive audio intent and unoffered video refusal",
+      "original operation/history recovered by separate Device after original helper close",
+      "all five original SDK helpers identified and joined"
+    ],
+    "live_connection_workload_observed": false,
+    "live_media_upgrade_observed": false,
+    "replacement_media_ownership_observed": false,
+    "actual_topology_verified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  }
 }
