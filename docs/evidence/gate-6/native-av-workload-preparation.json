@@ -170,5 +170,6 @@
   "scope": "Required native Opus/VP8 workload implementation and observer calibration. Not a Connect media runtime pass or complete matrix cell. G6-054 remains deferred; no SIP, TURN, named remote, model or provider execution.",
   "full_matrix_cells_qualified": 0,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "implementation_source_revision": "b4ad0b90e259668a9946c0a4eb508ea71361ddb8"
 }

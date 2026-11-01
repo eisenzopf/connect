@@ -1,0 +1,28 @@
+{
+  "format": "connect/transport-sdk-cache-selection/1",
+  "task": "G6-058",
+  "prior_source_revision": "b4ad0b90e259668a9946c0a4eb508ea71361ddb8",
+  "observation": {
+    "available_branch_cache_id": 9824890042,
+    "available_cache_key": "g6-sdk-runtime-v1-x86_64-unknown-linux-gnu-3fbd4398b40c6f83ba5dcb49d3c82de650be129b9ba56387f8fd10fca5619809-9005ebe34fae7de8d1bbd1e9801be9ae4df77d3d",
+    "available_cache_bytes": 760725938,
+    "available_cache_created_at": "2026-11-01T08:56:41.469612Z",
+    "old_linux_requested_prefix": "g6-linux-installation-v1",
+    "can_old_prefix_select_available_sdk_cache": false
+  },
+  "correction": {
+    "prefer_same_platform_sdk_runtime_cache": true,
+    "same_lock_digest_preferred": true,
+    "retain_older_installation_fallback": true,
+    "restore_save_prefixes_match": true,
+    "source_and_executable_integrity_checks_unchanged": true,
+    "cargo_build_and_production_profile_checks_unchanged": true
+  },
+  "workflow_sha256": "54b7ae8228f53b019ea7b5c407ffbff623a76f49119a81d1395e14f03be25b51",
+  "yaml_parse_and_selection_checks_pass": true,
+  "runtime_savings_measured": false,
+  "original_live_run_preserved": 41292563962,
+  "scope": "Static cache selection correction supported by branch cache inventory. No build or behavior qualification is inferred from cache existence or selection. Existing actual run continues at original source.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -79,8 +79,10 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu-' }}
             ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
             ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-linux-installation-v1-' }}
       - name: Prepare verified sources and locked dependencies
@@ -154,4 +156,4 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
