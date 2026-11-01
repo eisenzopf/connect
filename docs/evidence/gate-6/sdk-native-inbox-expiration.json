@@ -39,14 +39,15 @@
   },
   "behavior": "Live RTP and source clocks are timestamped on admission to the Rust SDK inbox. A read discards packets with local residence>=200ms and reports prefix expiration before a remaining fresh suffix. Existing capacity loss follows originally admitted packets. Capacity/age losses count toward overflow_drops; perStream32/total256/4MiB bounds and cancelled-read ownership remain. Reliable application data is separate and unchanged.",
   "browser_regression": "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json",
-  "scope": "Local SDK unit/component proof only. Does not prove newly installed production helper, cross-process retained read results, end-to-end source age, AV synchronization or matrix cells. The sealed373runtime predates this fix.",
+  "scope": "Original local Rust before/after regressions retained. Subsequent current production Mac/Linux native and complete SDK archives now independently verified, with actual installed examples and cold offline builds; local Mac Node22/26 app original-Connection quiet/resume also passes. No full transport/source-age/AV-sync qualification.",
   "production_runtime_verified": true,
   "full_transport_cells_qualified": 0,
   "task_complete": false,
   "whole_gate_qualified": false,
   "production_runtime_evidence": [
     "docs/evidence/gate-6/sdk-inbox-linux-candidate.json",
-    "docs/evidence/gate-6/reference-app-current-runtime-local.json"
+    "docs/evidence/gate-6/reference-app-current-runtime-local.json",
+    "docs/evidence/gate-6/sdk-candidates-verified-d9928b1d.json"
   ],
   "production_runtime_scope": "Rust inbox expiry is now present in independently audited Ubuntu source9005 and Mac source39d production runtimes. Current Mac local Node26 original-Connection quiet/resume check passes; no Linux installed-browser or full matrix pass."
 }

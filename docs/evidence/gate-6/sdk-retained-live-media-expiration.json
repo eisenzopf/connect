@@ -72,11 +72,32 @@
   },
   "behavior": "Stamp original validated result completion with the adapter monotonic clock. When a live RTP/clock result resides in a retained slot>=200ms, the next reader consumes it as Gap(1), without replay or helper replacement. Fresh results, reliable data and exact prior gaps preserve original semantics. Queue/slot/window bounds remain. Rust inbox stats exclude adapter discards, which are explicit in returned gaps.",
   "compiler": "npm run build --prefix sdk/typescript passed; generated distribution committed with source",
-  "minimum_ci_profiles_pending": [
-    "Node22",
-    "Python3.12"
-  ],
-  "production_package_verified": false,
+  "minimum_ci_profiles_pending": [],
+  "production_package_verified": true,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "production_package_evidence": "docs/evidence/gate-6/sdk-candidates-verified-d9928b1d.json",
+  "minimum_ci_profiles": {
+    "x86_64-unknown-linux-gnu": {
+      "node": "v22.23.4",
+      "python": "3.12.15",
+      "node_cases": 18,
+      "python_media_cases": 15,
+      "python_data_cases": 12,
+      "failed": 0,
+      "skipped": 0,
+      "decoded_job_log_sha256": "d399fbe924155fe1542de243b4edc8a99f0ae9b1bda94c97e3b8c6076e5eab6e"
+    },
+    "aarch64-apple-darwin": {
+      "node": "v22.23.4",
+      "python": "3.12.10",
+      "node_cases": 18,
+      "python_media_cases": 15,
+      "python_data_cases": 12,
+      "failed": 0,
+      "skipped": 0,
+      "decoded_job_log_sha256": "74615af9c1140da81c27c19d674b447a973b874d8fe296e45460095345875752"
+    }
+  },
+  "production_scope": "Current-source d992 matching native/Rust/Node/Python packages pass both platform installed/offline qualification and independent native/archive/source inspection. Both Node22/Python3.12 media/data component groups pass45cases without skips. Current Linux installed app and full transport matrix remain separate."
 }
