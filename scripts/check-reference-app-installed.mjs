@@ -370,6 +370,7 @@ try {
         await target.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await target.keyboard.press("Enter");
         await activate("Listen to " + tone.peer, "Listen", target);
     }
+    stage = "synthetic-browser-audio-capture-playback";
     await Promise.all(mediaPages.map(async ({ page: target }) => {
         await target.getByRole("button", { name: "Start microphone", exact: true }).focus(); await target.keyboard.press("Enter");
     }));
@@ -380,7 +381,7 @@ try {
             const output = window.__parley_audio_probe__;
             if (metrics?.stopped || (metrics?.playedAudioFrames >= 12 && metrics?.clockReportsSent >= 1 &&
                 metrics?.clockReportsReceived >= 1 && output.frames >= 12))
-                return { metrics, output, status: document.querySelector("#media-status").textContent };
+                return { metrics, output, state: document.querySelector("#media-status").dataset.state, status: document.querySelector("#media-status").textContent };
             return false;
         }, undefined, { timeout: 30000 })).jsonValue();
         report.synthetic_browser_audio.push({ role: tone.role, expected_received_hz: tone.other, ...result });
@@ -439,7 +440,7 @@ try {
         source_stack: [...String(error.stack ?? "").matchAll(/check-reference-app-installed\.mjs:(\d+):(\d+)/g)]
             .slice(0, 4).map(value => ({ line: Number(value[1]), column: Number(value[2]) })) };
     report.failure_media_pages = await Promise.all(mediaPages.map(async tone => ({ role: tone.role,
-        observation: await tone.page.evaluate(() => ({ status: document.querySelector("#media-status")?.textContent,
+        observation: await tone.page.evaluate(() => ({ state: document.querySelector("#media-status")?.dataset.state, status: document.querySelector("#media-status")?.textContent,
             metrics: JSON.parse(document.querySelector("#media-status")?.dataset.metrics ?? "null"),
             output: window.__parley_audio_probe__ })).catch(() => null) })));
     if (page && !page.isClosed()) {

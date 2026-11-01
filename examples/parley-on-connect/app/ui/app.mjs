@@ -280,6 +280,7 @@ async function startMedia(binding, video) {
         await stopMedia();
         const next = new BrowserAppMedia({ onState: (state, metrics) => {
             if (media !== next) return;
+            $("media-status").dataset.state = state;
             $("media-status").dataset.metrics = JSON.stringify(metrics);
             $("media-status").textContent = state === "active" ? "Microphone shared" + (video ? " with camera" : "") + ". " +
                 (metrics.playedAudioFrames ? "Incoming audio playing." : "Waiting for incoming audio.") :

@@ -12,6 +12,7 @@ export class BrowserAppMedia {
     #calls = new Set(); #loops = new Set(); #routes = new Map(); #sources = new Set();
     #context; #input; #worklet; #silent; #stream; #lease; #binding; #video; #videoCallback;
     #preview; #remote; #timer; #presentation; #audioOrigin; #timeline = new MediaTimeline();
+    #phase = "idle"; #stoppedAt = null;
     #cname = "parley-" + crypto.randomUUID(); #onState;
     #counts = { capturedAudioFrames: 0, capturedVideoFrames: 0, encodedFrames: 0,
         sentRtp: 0, receivedRtp: 0, clockReportsSent: 0, clockReportsReceived: 0,
@@ -21,7 +22,7 @@ export class BrowserAppMedia {
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
     get diagnostics() {
-        return { ...this.#counts, activeTracks: this.#stream?.getTracks().filter(t => t.readyState === "live").length ?? 0,
+        return { ...this.#counts, phase: this.#phase, stoppedAt: this.#stoppedAt, activeTracks: this.#stream?.getTracks().filter(t => t.readyState === "live").length ?? 0,
             activeContexts: this.#context && this.#context.state !== "closed" ? 1 : 0,
             queuedAudioSources: this.#sources.size,
             queuedSendFrames: [...this.#routes.values()].reduce((n, r) => n + r.queue.length, 0),
@@ -52,7 +53,7 @@ export class BrowserAppMedia {
             for (const block of blocks) { bytes.set(block, offset); offset += block.length; }
             const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
             if (!cleanup) this.#check();
-            if (!response.ok) fail(value.error?.code ?? "app-media-network");
+            if (!response.ok) fail(value.error?.code === "offline-or-uncertain" ? "app-media-network" : value.error?.code ?? "app-media-network");
             return value;
         })();
         if (!cleanup) { this.#calls.add(work); void work.finally(() => this.#calls.delete(work)).catch(() => {}); }
@@ -60,7 +61,7 @@ export class BrowserAppMedia {
     }
     #loop(work) {
         const owned = work.catch(error => {
-            if (!this.#stopped) void this.stop(error.code ?? "app-media-network");
+            if (!this.#stopped) void this.stop(typeof error.code === "string" ? error.code : "app-media-network");
         }).finally(() => this.#loops.delete(owned));
         this.#loops.add(owned);
     }
@@ -85,6 +86,7 @@ export class BrowserAppMedia {
                 fail("unsupported-app-action");
             // Start playback within the explicit user's gesture, before awaiting
             // permissions, negotiation or codec support.
+            this.#phase = "playback-start";
             this.#context = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
             const resumed = this.#context.resume();
             if (this.#context.sampleRate !== 48000) fail("unsupported-app-action");
@@ -94,8 +96,10 @@ export class BrowserAppMedia {
                 if (!this.#stopped && this.#context.state !== "running") void this.stop("app-media-playback");
             };
             this.#audioOrigin = performance.now() / 1000 - this.#context.currentTime;
+            this.#phase = "codec-support";
             const support = await this.#bound(browserCodecSupport());
             if (!support.audio || (video && !support.video)) fail("unsupported-app-action");
+            this.#phase = "native-media-open";
             this.#lease = await this.#call("open", this.#binding);
             this.#check(); this.#configure(this.#lease);
             const audioRoute = [...this.#routes.values()].find(r => r.binding.kind === "audio" && r.sender);
@@ -106,6 +110,7 @@ export class BrowserAppMedia {
                 try { denied = (await navigator.permissions.query({ name })).state === "denied"; } catch {}
                 if (denied) fail("app-media-denied");
             }
+            this.#phase = "device-permission";
             this.#check(); this.#publish("permission");
             const requested = navigator.mediaDevices.getUserMedia({
                 audio: { sampleRate: { ideal: 48000 }, channelCount: { ideal: 1, max: 2 } },
@@ -123,6 +128,7 @@ export class BrowserAppMedia {
                 this.#stream.getTracks().some(t => t.readyState !== "live")) fail("unsupported-app-action");
             for (const track of this.#stream.getTracks())
                 track.addEventListener("ended", () => { void this.stop("app-media-device-ended"); }, { once: true });
+            this.#phase = "capture-graph";
             await this.#bound(this.#context.audioWorklet.addModule("/audio-worklet.mjs"));
             this.#check();
             this.#input = this.#context.createMediaStreamSource(new MediaStream(this.#stream.getAudioTracks()));
@@ -141,15 +147,17 @@ export class BrowserAppMedia {
                     this.#worklet.port.postMessage("credit");
                 } catch (error) { void this.stop(error.code ?? "app-media-capture"); }
             };
-            if (video) await this.#camera(videoRoute);
+            if (video) { this.#phase = "camera-capture"; await this.#camera(videoRoute); }
             this.#check();
             for (const route of this.#routes.values())
                 if (["recvonly", "sendrecv"].includes(route.binding.direction)) this.#loop(this.#receive(route));
+            this.#phase = "active";
             this.#timer = setInterval(() => this.#publish(), 500);
             this.#publish();
             return this;
         } catch (error) {
-            const code = error?.name === "NotAllowedError" ? "app-media-denied" : error.code ?? "app-media-capture";
+            const code = error?.name === "NotAllowedError" ? "app-media-denied" :
+                typeof error.code === "string" ? error.code : "app-media-capture";
             await this.stop(code); throw Object.assign(Error(), { code });
         }
     }
@@ -158,6 +166,9 @@ export class BrowserAppMedia {
             lease.negotiation.streams.length > 8) fail("unsupported-app-action");
         for (const stream of lease.negotiation.streams) {
             if (!["audio", "video"].includes(stream.medium) || stream.direction === "inactive") continue;
+            if (!Number.isInteger(stream.streamLocalId) || stream.streamLocalId < 1 || stream.streamLocalId > 65535) continue;
+            if (!Number.isInteger(stream.codec?.params?.payload_type) || stream.codec.params.payload_type < 0 ||
+                stream.codec.params.payload_type > 127) fail("unsupported-app-action");
             const codec = stream.medium === "audio" ? "opus" : "vp8", rate = codec === "opus" ? 48000 : 90000;
             if (stream.codec?.name !== codec) fail("unsupported-app-action");
             const binding = { handle: stream.streamLocalId, streamId: stream.id, connectionId: this.#binding.connectionId,
@@ -333,6 +344,7 @@ export class BrowserAppMedia {
     }
     stop(reason = "stopped") {
         if (this.#closing) return this.#closing;
+        this.#stoppedAt = this.#phase; this.#phase = "stopped";
         this.#stopped = true; this.#abort.abort(); clearInterval(this.#timer);
         if (this.#videoCallback !== undefined) this.#video?.cancelVideoFrameCallback(this.#videoCallback);
         this.#video?.pause(); if (this.#preview) this.#preview.srcObject = null;

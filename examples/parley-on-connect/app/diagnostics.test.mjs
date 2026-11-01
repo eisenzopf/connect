@@ -18,3 +18,12 @@ test("SDK diagnostics retain only known module coordinates without a private pat
     error.stack = error.stack.replace("node_media.js", "private_secret.js");
     assert.equal(appDiagnostic(error).sdk_location, null);
 });
+
+
+test("media diagnostics admit only fixed operation phases and omit arbitrary context", () => {
+    const error = Object.assign(Error("private message"), { kind: "cancelled", name: "NodeSdkError" });
+    const safe = appDiagnostic(error, { phase: "open-native-negotiation", credential: "private-token" });
+    assert.equal(safe.phase, "open-native-negotiation"); assert.ok(!JSON.stringify(safe).includes("private"));
+    const unknown = appDiagnostic(error, { phase: "private-token" });
+    assert.equal(Object.hasOwn(unknown, "phase"), false);
+});

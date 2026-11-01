@@ -1,26 +1,35 @@
 {
   "format": "connect/reference-app-browser-media/1",
   "task": "G6-072",
-  "status": "owned-browser-capture-render-implemented-component-tested-runtime-required",
+  "status": "coherent-current-media-opening-component-tested-runtime-required",
   "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
   "implementation_inputs": {
-    "examples/parley-on-connect/app/gateway.mjs": "d30177917293038b1ed25e337d507f4454196519b89e6157c36f13a43eea2ed1",
+    ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7",
+    "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
+    "examples/parley-on-connect/app/diagnostics.mjs": "a85e06e970f9c8e17f66171af3bc3dcff22ba4ae7ccc943c64abea98c6d04670",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
+    "examples/parley-on-connect/app/gateway.mjs": "1e00aff5d3cfdd93bc6875fbd59a181071e5b6b12b98357df5ff997da8ca546f",
+    "examples/parley-on-connect/app/gateway.test.mjs": "9603facd15e9d8112fce7bdd6377c4a0cce2523669b4ec998beb65600020f6b6",
+    "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
+    "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
+    "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
     "examples/parley-on-connect/app/media.mjs": "62e70ee33510ff9d5bae89ebfe190a0f8b785fb7e2921f73a861daa601eedb45",
     "examples/parley-on-connect/app/media.test.mjs": "25efd8cfe1811e271e6bd4d6983c27da01abbfa3bdaf3ec309b52aefeefa6033",
+    "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
     "examples/parley-on-connect/app/server.mjs": "adf4cda962a805449965b40cbf3faf24dd608eee118eadd2ef077d6d49cd947c",
     "examples/parley-on-connect/app/server.test.mjs": "21aa28f1ae350f2e5bb40a8b5ce5f4fb3c413128e93f89470fe445e3831835ef",
-    "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
-    "examples/parley-on-connect/app/ui/app.mjs": "8667e99c80942ca06afeae23e0857ed4d68a813531ea37af8aca53dffd67564c",
+    "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
+    "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "examples/parley-on-connect/app/ui/app.css": "167ce3761c48ca12d4b24e90d8c0d060e1b34fe1ec0deb178c6ba4a34cdff0f3",
-    "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
-    "examples/parley-on-connect/app/ui/media.mjs": "b56c604bf376ac45083d7e01d0fffc05fca42dd695d2caa510146c57f530ecc9",
-    "examples/parley-on-connect/app/ui/media-clock.mjs": "a7ca18825a6cb7971b00a02ef8b9e0fa2c37234c4578820861bb593b68d6b430",
+    "examples/parley-on-connect/app/ui/app.mjs": "d5ff90926cdbdd392917109049280bd3aae3740bd9e230cf24c4f8783c869ff5",
     "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
-    "scripts/check-reference-app-installed.mjs": "e173353e81a11b0c3beb2aadfd8100b25ebdd66e1b78f53a00b13b693a25b186",
-    ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7"
+    "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "a7ca18825a6cb7971b00a02ef8b9e0fa2c37234c4578820861bb593b68d6b430",
+    "examples/parley-on-connect/app/ui/media.mjs": "455c1ee865c975b399436b4198685a412f0e5254158453e15e182afa2d47f372",
+    "scripts/check-reference-app-installed.mjs": "cbef1f4251730a11d6261b2777efc361523521150bed34dd82514e169fea4b9c"
   },
   "local_verification": {
-    "app_component_functions_passed": 58,
+    "app_component_functions_passed": 61,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
     "scope": "Node application, actual HTTP boundary, PCM worklet in VM, and exact source/receive clock cases. No actual browser capture or installed packet playback proof yet."
@@ -76,5 +85,14 @@
     "Full desktop/narrow visual review of active capture and all required platform/browser profiles"
   ],
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "source_revision_before_correction": "ac9508fa02d96eb1cc987b047d401982d1f807d1",
+  "previous_runtime_failure": {
+    "workflow_run_id": 41281859253,
+    "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-ac950.json",
+    "checks_passed_per_platform": 16,
+    "captured_frames": 0,
+    "precise_original_cancelled_request_phase_unknown": true
+  },
+  "opening_correction": "Replace separately serialized Conversation,Session and initial Connection reads with their facts from one coherent current public Conversation snapshot: exact active participant/epoch, accepted present Session and owned ready physical Connection/generation. Native media.describe is still required; per-packet signed Connection and native negotiation checks remain. All2s/8s/30s and queue/playout bounds stay unchanged. Fixed allowlisted phase diagnostics identify any future opening/check failure; no root-cause resolution or performance pass is inferred."
 }

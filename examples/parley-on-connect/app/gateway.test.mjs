@@ -40,7 +40,7 @@ function fixture() {
             return operation(reference);
         };
         const conversation = cid => ({
-            refresh: async () => { permitted(); return { id: cid, closed: false, participants: Object.entries(actors).map(([role, value]) =>
+            refresh: async () => { permitted(); service.conversationRefreshReads = (service.conversationRefreshReads ?? 0) + 1; return { id: cid, closed: false, participants: Object.entries(actors).map(([role, value]) =>
                 ({ id: "participant-" + role, identityId: value.identityId, active: true, membershipEpoch: service.membershipEpoch })) }; },
             send: (sdk, options) => mutate("message.send", { conversationId: cid }, sdk, options, { messageId: sdk.messageId }),
             sessions: {
@@ -56,7 +56,7 @@ function fixture() {
                         update: (update, revision, options) => mutate("connection.update", { conversationId: cid, sessionId: sid, connectionId },
                             { update, revision }, options, { connection: { id: connectionId } }),
                         end: (sdk, options) => mutate("connection.end", { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { id: connectionId }),
-                        media: { refresh: async () => { permitted(); return { binding: { conversationId: cid, sessionId: sid, connectionId }, sourceClock: true, streamRevision: service.streamRevision, streams: [
+                        media: { refresh: async () => { permitted(); service.mediaDescribeReads = (service.mediaDescribeReads ?? 0) + 1; return { binding: { conversationId: cid, sessionId: sid, connectionId }, sourceClock: true, streamRevision: service.streamRevision, streams: [
                             { id: "stream-1", medium: "audio", direction: "sendrecv" },
                             ...(service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
                         ] }; }, streamById: streamId => ({
@@ -98,10 +98,15 @@ function fixture() {
                 assert.equal(envelope.type, "conversation.get");
                 assert.ok((envelope.payload.limit ?? service.pageSize) <= service.pageSize, "Configured server page limits also apply");
                 const items = [
+                    { kind: "conversation", data: { conversation_id: envelope.cid, closed: false } },
+                    ...Object.entries(actors).map(([role, actor]) => ({ kind: "participant", data: {
+                        participant_id: "participant-" + role, identity_id: actor.identityId, conversation_id: envelope.cid,
+                        active: true, membership_epoch: service.membershipEpoch } })),
                     { kind: "session", data: { id: "session-1", state: service.sessionState, media: service.media } },
                     { kind: "session_participant", data: { session_id: "session-1", participant_id: "participant-organizer", membership_epoch: service.membershipEpoch, state: service.peerState } },
                     { kind: "session_participant", data: { session_id: "session-1", participant_id: "participant-owner", membership_epoch: service.membershipEpoch, state: "present" } },
-                    ...(service.connectionPresent ? [{ kind: "connection", data: { connection_id: service.connectionId, session_id: "session-1", participant_id: "participant-owner", state: "ready" } }] : []),
+                    ...(service.connectionPresent ? [{ kind: "connection", data: { connection_id: service.connectionId, session_id: "session-1", participant_id: "participant-owner", membership_epoch: service.connectionEpoch ?? service.membershipEpoch,
+                        generation: service.connectionGeneration ?? 1, state: "ready" } }] : []),
                     ...(service.peerConnectionPresent ? [
                         { kind: "connection", data: { connection_id: "peer-connection", session_id: "session-1", participant_id: "participant-organizer", state: "ready" } },
                         { kind: "stream", data: { connection_id: "peer-connection", stream_id: "peer-audio", participant_id: "participant-organizer", medium: "audio", session_id: "session-1", state: "active" } },
@@ -110,11 +115,12 @@ function fixture() {
                     ...(service.projectForeignStream ? [{ kind: "stream", data: { connection_id: service.connectionId,
                         stream_id: "foreign-stream", participant_id: "participant-owner", medium: "audio", session_id: "session-1" } }] : []),
                 ];
+                if (service.duplicateSnapshotParticipant) items.push(structuredClone(items.find(v => v.kind === "participant" && v.data.identity_id === actors.owner.identityId)));
                 const offset = envelope.payload.page ? Number(envelope.payload.page.replace("page_", "")) : 0;
                 assert.ok(Number.isInteger(offset) && offset >= 0 && offset < items.length);
                 service.topologyPages++;
                 const end = Math.min(offset + service.pageSize, items.length);
-                return [frame("conversation.snapshot", { revision: 1, cursor: "watermark", has_more: end < items.length,
+                return [frame("conversation.snapshot", { revision: service.changeSnapshotRevision && offset > 0 ? 2 : 1, cursor: "watermark", has_more: end < items.length,
                     ...(end < items.length ? { next_page: "page_" + end } : {}), items: items.slice(offset, end) })];
             } },
             close: async () => { current.closes++; service.closeStarted?.(); if (service.closeBarrier) await service.closeBarrier; current.closed = true; },
@@ -186,7 +192,7 @@ test("timeline and invitation recovery use current authorized SDK snapshots rath
 test("topology follows the server's small configured pages and preserves one coherent invitation view", async () => {
     const service = fixture(); service.pageSize = 1;
     const f = await setup(service), view = await f.gateway.view("organizer", "conversation-created");
-    assert.equal(service.topologyPages, 5); assert.equal(view.sessions.length, 1);
+    assert.equal(service.topologyPages, 8); assert.equal(view.sessions.length, 1);
     assert.equal(view.sessions[0].appearance, "invited"); assert.equal(view.messages[0].text, "visible text");
     await f.close();
 });
@@ -338,4 +344,27 @@ test("media bridge opens only the current own present Session and fences SDK IO 
     assert.equal(f.service.clients[0].closed, true);
     const replacement = await f.gateway.mediaOpen("owner", owner, binding);
     assert.notEqual(replacement.leaseId, lease.leaseId);
+});
+
+
+test("media opening uses current coherent membership/physical facts and refuses epoch or duplicate ambiguity", async t => {
+    const binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
+    for (const patch of [{ connectionEpoch: 0 }, { connectionGeneration: 0 }, { duplicateSnapshotParticipant: true }]) {
+        const service = fixture(); Object.assign(service, patch); const f = await setup(service); t.after(f.close);
+        await assert.rejects(f.gateway.mediaOpen("owner", {}, binding), { code: "app-resync-required" });
+        assert.equal(service.mediaDescribeReads ?? 0, 0);
+    }
+    const service = fixture(); service.pageSize = 1; const f = await setup(service); t.after(f.close);
+    const result = await f.gateway.mediaOpen("owner", {}, binding);
+    assert.equal(result.generation, 1); assert.equal(service.mediaDescribeReads, 1);
+    assert.equal(service.conversationRefreshReads ?? 0, 0);
+    assert.equal(service.topologyPages, 8);
+});
+
+test("media opening refuses a changed snapshot revision across pages before any physical describe", async t => {
+    const service = fixture(); service.pageSize = 1; service.changeSnapshotRevision = true;
+    const f = await setup(service); t.after(f.close);
+    await assert.rejects(f.gateway.mediaOpen("owner", {}, {
+        conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" }), { code: "app-resync-required" });
+    assert.equal(service.mediaDescribeReads ?? 0, 0);
 });

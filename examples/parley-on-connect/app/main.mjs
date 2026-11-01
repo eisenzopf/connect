@@ -53,7 +53,7 @@ async function main() {
         actors[role] = { identityId: actor.identityId, label: actor.label, config: inside(directory, actor.config) };
     }
     const journal = await AppIntents.open(resolve(directory, "application-state"));
-    const onError = error => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error)) + "\n");
+    const onError = (error, context) => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error, context)) + "\n");
     const gateway = new AppGateway({ journal, actors, createRtpPacket: (sequence, bytes) => new SdkRtpPacket(sequence, bytes), createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
     let app, closing;
     async function close(failed = false) {

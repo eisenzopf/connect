@@ -173,28 +173,50 @@ export class AppGateway {
             sampledAt: Date.now() };
     }
     async #openMedia(role, binding, options) {
-        const client = this.#client(role), conversation = client.conversations.byId(binding.conversationId);
-        const current = await conversation.refresh(options);
-        const own = current.participants.find(p => p.identityId === this.#actor(role).identityId && p.active);
-        if (current.closed || !own) fail("app-resync-required");
-        const session = conversation.sessions.byId(binding.sessionId), state = await session.refresh(options);
-        const items = await this.#topology(role, binding.conversationId, options);
-        if (state.state !== "accepted" || !items.some(v => v.kind === "session_participant" &&
-            v.data.session_id === binding.sessionId && v.data.participant_id === own.id &&
-            v.data.membership_epoch === own.membershipEpoch && v.data.state === "present") ||
-            !items.some(v => v.kind === "connection" && v.data.connection_id === binding.connectionId &&
-                v.data.session_id === binding.sessionId && v.data.participant_id === own.id &&
-                ["ready", "active"].includes(v.data.state))) fail("app-resync-required");
-        const connection = session.connections.byId(binding.connectionId), media = connection.media;
-        const check = async opts => {
+        const client = this.#client(role);
+        let phase = "open-current-snapshot";
+        try {
+            // One coherent current snapshot already contains the Conversation,
+            // active membership/epoch, accepted Session, appearance and physical
+            // Connection generation. Do not compose several serialized reads.
+            const items = await this.#topology(role, binding.conversationId, options);
+            const unique = (kind, select) => {
+                const matches = items.filter(v => v.kind === kind && select(v.data));
+                if (matches.length !== 1) fail("app-resync-required"); return matches[0].data;
+            };
+            const conversation = unique("conversation", v => v.conversation_id === binding.conversationId);
+            const own = unique("participant", v => v.identity_id === this.#actor(role).identityId && v.active === true &&
+                v.conversation_id === binding.conversationId);
+            const session = unique("session", v => v.id === binding.sessionId);
+            const physical = unique("connection", v => v.connection_id === binding.connectionId &&
+                v.session_id === binding.sessionId && v.participant_id === own.participant_id &&
+                v.membership_epoch === own.membership_epoch);
+            if (conversation.closed !== false || session.state !== "accepted" ||
+                !id(own.participant_id) || !Number.isSafeInteger(own.membership_epoch) || own.membership_epoch < 1 ||
+                !Number.isSafeInteger(physical.generation) || physical.generation < 1 ||
+                !["ready", "active"].includes(physical.state) ||
+                !items.some(v => v.kind === "session_participant" && v.data.session_id === binding.sessionId &&
+                    v.data.participant_id === own.participant_id && v.data.membership_epoch === own.membership_epoch &&
+                    v.data.state === "present")) fail("app-resync-required");
+            const connection = client.conversations.byId(binding.conversationId).sessions.byId(binding.sessionId)
+                .connections.byId(binding.connectionId), media = connection.media;
+            phase = "open-native-negotiation";
+            const negotiation = await media.refresh(options);
             if (this.#client(role) !== client) fail("app-media-stopped");
-            const snapshot = await connection.refresh(opts);
-            if (!["ready", "active"].includes(snapshot.state)) fail("app-media-stopped");
-            const negotiation = await media.refresh(opts);
-            if (this.#client(role) !== client) fail("app-media-stopped");
-            return { generation: snapshot.generation, negotiation };
-        };
-        return { ...await check(options), media, check };
+            const check = async opts => {
+                let phase = "packet-current-connection";
+                try {
+                    if (this.#client(role) !== client) fail("app-media-stopped");
+                    const current = await connection.refresh(opts);
+                    if (!["ready", "active"].includes(current.state)) fail("app-media-stopped");
+                    phase = "packet-native-negotiation";
+                    const negotiation = await media.refresh(opts);
+                    if (this.#client(role) !== client) fail("app-media-stopped");
+                    return { generation: current.generation, negotiation };
+                } catch (error) { this.#onError(error, { phase }); throw error; }
+            };
+            return { generation: physical.generation, negotiation, media, check };
+        } catch (error) { this.#onError(error, { phase }); throw error; }
     }
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }
     mediaSend(role, owner, input) { this.#actor(role); return this.#media.send(role, owner, input); }
