@@ -1065,10 +1065,13 @@
     "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
     "workflow_run_id": 41267483044,
     "job_id": 124733201072,
-    "status": "confirmed-live-exact-control-step",
+    "status": "completed-negative-14-of15-source-verified",
     "url": "https://github.com/eisenzopf/connect/actions/runs/41267483044",
     "expected_functions": 15,
-    "full_matrix_cells_qualified": 0
+    "full_matrix_cells_qualified": 0,
+    "verification_evidence": "docs/evidence/gate-6/transport-control-negative-505.json",
+    "passed_functions": 14,
+    "failed_functions": 1
   },
   "protected_fixture_configuration": {
     "status": "source-verified-configuration-stage-pass",
@@ -1136,7 +1139,7 @@
     "verification_evidence": "docs/evidence/gate-6/transport-actors-verified.json",
     "runtime_scope": "One Ubuntu24.04 local native EdDSA stage;12configuration/enrollment behavior checks,36publicCLI commands including2expectedrefusals,2originalservergroupsjoined. No actual Conversation workload, replacement transition, topology, browser or media qualification."
   },
-  "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection.",
+  "control_fixture_correction": "Keep duplicate operational-owner refusal explicit; bind the unrelated discovery listener to its own Service/observations with the same current Store. Disabled-WT and unconfigured-discovery assertions remain required.",
   "conversation_control": {
     "status": "source-verified-public-sdk-conversation-control-stage-pass",
     "implementation_hashes": {
@@ -1365,5 +1368,21 @@
         "job_id": 124743962150
       }
     ]
+  },
+  "control_compilation_policy": {
+    "type_validation": "full-optimized-test-compilation",
+    "separate_cargo_check": false,
+    "full_integration_target": true,
+    "fixture_features": [
+      "test-support"
+    ],
+    "runtime_functions": 15,
+    "compile_budget_seconds": 5400,
+    "per_function_budget_seconds": 180
+  },
+  "control_correction_hashes": {
+    "crates/connect-server/tests/support/canonical_webtransport_discovery.rs": "7107b2798689e8d459a8717a59f1ddf5997bb9b0baac2f0da8f4c494760c52cf",
+    "scripts/check-gate-6-transports.py": "22c650e063f5d635208c7462c0b49551759fd439836861aa0e58c9db7d984105",
+    "scripts/fixtures/transport-matrix/README.md": "757deb2c4397dc9fd7408efd961987088c6fb72804bb8e35c78e092d2d73ff3d"
   }
 }

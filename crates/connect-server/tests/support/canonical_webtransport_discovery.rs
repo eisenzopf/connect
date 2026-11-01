@@ -117,9 +117,29 @@ async fn disabled_webtransport_and_unrelated_http_listener_do_not_invent_transpo
         .unwrap()
         .webtransport
         .is_none());
-    let unrelated = connect_server::HttpListener::bind(
+    // One service has one owner per operational pool. A second application
+    // listener cannot silently replace that owner's observations.
+    let duplicate = connect_server::HttpListener::bind(
         "127.0.0.1:0".parse().unwrap(),
         f.server.service.clone(),
+        None,
+    )
+    .await;
+    let Err(error) = duplicate else {
+        panic!("A second HTTP resource owner was accepted");
+    };
+    assert!(
+        matches!(error.downcast_ref::<connect_protocol::Error>(), Some(error) if error.code == "conflict")
+    );
+    assert!(client
+        .transport_discovery()
+        .await
+        .unwrap()
+        .webtransport
+        .is_none());
+    let unrelated = connect_server::HttpListener::bind(
+        "127.0.0.1:0".parse().unwrap(),
+        connect_service::Service::new(f.server.store.clone()),
         None,
     )
     .await

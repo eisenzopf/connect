@@ -44,8 +44,10 @@ npm run build --prefix sdk/typescript
 python3 scripts/check-gate-6-transports.py --phase control
 ```
 
-The runner prepares verified dependencies before building. It type-checks before
-optimized compilation, identifies/seals the actual test executable, verifies the
+The runner prepares verified dependencies before building. Full optimized test
+compilation performs Rust type validation and produces the actual executable;
+the report explicitly records that no separate `cargo check` was run. It
+identifies/seals that executable, verifies the
 selected names exist, executes one exact function at a time, refuses zero/ignored
 test passes, and rehashes source/executable/generated SDK inputs. Compiler and
 runtime commands own bounded process groups. Raw logs, credentials and fixture

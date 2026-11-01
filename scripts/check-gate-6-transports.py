@@ -123,8 +123,11 @@ def main():
         control["host"] = dict(system=system, machine=machine, platform=platform.platform(), rust=rust, node=node)
         runtime_inputs = sdk_inputs()
         control["sdk_dist_inputs"] = runtime_inputs
+        # Full test compilation includes Rust type validation. A separate
+        # cargo-check dependency graph duplicated most of the cold build cost.
+        control["type_validation"] = "full-optimized-test-compilation"
+        control["separate_typecheck_run"] = False
         for name, command, budget in [
-            ("typecheck", ["cargo", "check", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_webtransport"], 3600),
             ("compile", ["cargo", "test", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_webtransport", "--no-run"], 5400),
         ]:
             phase = name

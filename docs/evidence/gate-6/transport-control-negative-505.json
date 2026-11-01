@@ -1,0 +1,250 @@
+{
+  "format": "connect/transport-control-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
+  "workflow_run_id": 41267483044,
+  "job_id": 124733201072,
+  "artifact_id": 13069341718,
+  "zip_sha256": "7f18ba279a9c7a43dd241e9a45e1ee5ebc3b6f7500d5a958cc0589a6cebc70ab",
+  "source_inputs_sha256": "ba9e94d6175ad979a28ff9f462f3405f1c005e4ebe9efad1fcdf1ea845c2619f",
+  "report_sha256": "cf985970a1cf8c109384bec0c6bf2f5fe12064b7ffe99d7479f2d45a280137f7",
+  "sources_verified": {
+    "git": 4687,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "fixture_features": [
+    "cli",
+    "default",
+    "test-support"
+  ],
+  "executable_sha256": "0b4f20be686fa046db8c3d62b1dca2121104c1547fc537c802e5d4823ac7df81",
+  "all_cases_executed": true,
+  "passed_functions": 14,
+  "failed_functions": 1,
+  "cases": [
+    {
+      "name": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.615,
+      "log_sha256": "6593a579f4cf3c07ba4a83d7351242f8aefc98d6702db69c49f3cc070e7ce53c",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.61s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.615,
+      "log_sha256": "46a75f71d1a7c570b6ffd5da76060937462965ce9f474d9b7eca4468f52918ef",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.60s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+      "exit_code": 0,
+      "elapsed_seconds": 0.765,
+      "log_sha256": "204cb4cc4eff214785b139629bb56304b3e730a76392119fda0d1e3277833b35",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.75s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+      "exit_code": 0,
+      "elapsed_seconds": 1.116,
+      "log_sha256": "95313f858fdedf772281a3febc5e6e22d2ca54c6b77887af213ae82a19251ca0",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 1.07s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+      "exit_code": 101,
+      "elapsed_seconds": 0.315,
+      "log_sha256": "801084977c0ee86e1b85420c5307bd048a69eed251447f73027a843ee7da9209",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.27s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_webtransport_discovery.rs",
+          "line": 126,
+          "column": 6
+        }
+      ],
+      "status": "failed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+      "exit_code": 0,
+      "elapsed_seconds": 0.315,
+      "log_sha256": "e75884a309c2b44ffc9c102f1b48b31ef8442408a20c35d65f6882a9aadb4460",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.28s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.515,
+      "log_sha256": "abe9f28bd7cc1c6c35421134d425f14a474efc341006c801c0c8754318ca71e9",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.50s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.565,
+      "log_sha256": "f9bfa6cd5f283289c17051026ee65b138df48e35117742cf79aaf0f05c55f6ac",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.53s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_origin_mount_refusals_do_not_consume_canonical_slots",
+      "exit_code": 0,
+      "elapsed_seconds": 0.415,
+      "log_sha256": "6fc82ae74d620e8f6c9cf17bcf56e2fe3dc73e5ec856c783919490dc4dbece75",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.40s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots",
+      "exit_code": 0,
+      "elapsed_seconds": 0.665,
+      "log_sha256": "351c4fb271b3910ada8e13c520d56d6d15a64210fc3d2cab530f6e16274aa7ab",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.63s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::dropping_host_closes_live_wss_and_releases_tcp_listener",
+      "exit_code": 0,
+      "elapsed_seconds": 0.465,
+      "log_sha256": "289d3529590abda0c2036c6e7b345b1e0231ce3dfd0d07a117ff063368815726",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.44s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::cancelling_host_shutdown_keeps_wss_and_pending_tls_owned",
+      "exit_code": 0,
+      "elapsed_seconds": 0.365,
+      "log_sha256": "55264807713b158a6a3e9bf0dca7b58804f5566ab1997d3c8843d775b6a02251",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.34s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::signing_expiry_retires_wss_and_linked_native_and_http3",
+      "exit_code": 0,
+      "elapsed_seconds": 3.42,
+      "log_sha256": "ed6136e162786e1b234dbf53664c36f5f5c7f41d551946da51d14d46d85d173d",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 3.38s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.616,
+      "log_sha256": "ded100d17d7a086e69b65aa3b1e79cf4980d97513ded2515552da4ee731ffaf8",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.56s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.665,
+      "log_sha256": "0b5b76279c907a4de5ab5ea75ce365bff072a76ad4916b9d84bc6be71993b248",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.61s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    }
+  ],
+  "build_steps": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "elapsed_seconds": 0.164,
+      "log_sha256": "02d3c179c544c718824f5fdd2fe5b63ae5748c84a10a6bda04d5c8ec873687a2",
+      "test_results": [],
+      "compiler_errors": [],
+      "failure_locations": []
+    },
+    {
+      "name": "typecheck",
+      "exit_code": 0,
+      "elapsed_seconds": 1673.909,
+      "log_sha256": "0a912f55b12dbb4ac6cef282843c6bbb6a27d0bd05122616853724267a33ee07",
+      "test_results": [],
+      "compiler_errors": [],
+      "failure_locations": []
+    },
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "elapsed_seconds": 1796.064,
+      "log_sha256": "4893e8db9e24dafe0e1b8ff045ec03d53a564c7d49ce5ebf0bf5762ec730efbb",
+      "test_results": [],
+      "compiler_errors": [],
+      "failure_locations": []
+    }
+  ],
+  "historical_error_message_observed": false,
+  "source_identified_fixture_conflict": "The failed line unwraps a second HttpListener::bind on the same Service. HttpConnections/HttpRequests already have operational resource owners; registration refuses conflict before the unrelated socket is created.",
+  "correction": "Assert the duplicate-owner conflict and continued original discovery, then use a fresh Service with the same Store for the unrelated listener lacking canonical discovery. Keep disabled-WT and unrelated-discovery refusal assertions.",
+  "build_efficiency": "Full cargo test --release --no-run performs Rust type validation and creates the exact same complete integration target. Omit the separate cargo check graph; retain test-support, locked release profile, compile budget5400, all15 exact runtime functions and per-function budget180.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
