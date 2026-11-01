@@ -32,6 +32,47 @@ test("unbounded sources, duplicate physical legs and invalid originals refuse be
     }
 });
 
+const avIntent = () => {
+    const value = intent();
+    const frame = [4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01];
+    value.source.video = { streamId: "original-target-camera", receiveAudioStreamId: "retained-audio",
+        receiveVideoStreamId: "retained-camera", ssrc: 8, frames: Array.from({ length: 30 }, () => [...frame]) };
+    return value;
+};
+
+test("AV target retains independent stream identities and copies originals for the full 62-second source", () => {
+    const value = avIntent();
+    value.source.seconds = 62;
+    value.source.audioPackets = Array.from({ length: 62 * 50 }, () => [1, 2, 3]);
+    value.source.video.frames = Array.from({ length: 62 * 30 }, () => [...value.source.video.frames[0]]);
+    const captured = replacementInput(value);
+    value.source.video.frames[0][3] = 0;
+    assert.equal(captured.media.video.frames[0][3], 0x9d);
+    assert.equal(captured.media.seconds, 62);
+    assert.deepEqual(captured.offer.capabilities.video_codecs,
+        [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }]);
+    assert.deepEqual(captured.offer.streams_offered.map(s => [s.id, s.kind, s.direction]),
+        [[value.streamId, "audio", "sendrecv"], [value.source.video.streamId, "video", "sendrecv"]]);
+    assert.equal(captured.media.video.receive_audio_stream_id, "retained-audio");
+    assert.equal(captured.media.video.receive_video_stream_id, "retained-camera");
+});
+
+test("AV source collision, dimensions, missing originals and keyframe starvation refuse before target IO", () => {
+    for (const change of [v => { v.source.seconds = 63; },
+        v => { v.source.video.ssrc = v.source.ssrc; },
+        v => { v.source.video.streamId = v.streamId; },
+        v => { v.source.video.receiveVideoStreamId = v.source.video.receiveAudioStreamId; },
+        v => { v.source.video.frames.pop(); },
+        v => { v.source.video.frames[0][6] = 0; },
+        v => { v.source.video.frames[0][3] = 0; },
+        v => { v.source.video.frames[0][0] |= 1; },
+        v => { v.source.seconds = 2; v.source.audioPackets.push(...v.source.audioPackets);
+            v.source.video.frames = Array.from({ length: 60 }, (_, i) => i ? [1, 0, 0] : v.source.video.frames[0]); },
+        v => { v.source.video.frames[0] = Array(256 * 1024 + 1).fill(0); }]) {
+        const value = avIntent(); change(value); assert.throws(() => replacementInput(value));
+    }
+});
+
 test("accepted-root reads share the original deadline and a changed preparation cannot launch a target", async () => {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "physical-original-root-"));

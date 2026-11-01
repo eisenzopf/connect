@@ -243,6 +243,10 @@ async fn handoff_case_with_control(
     browser_kind: Option<&'static str>,
 ) {
     assert!(!transport_recovery || (mcp && host.is_none()));
+    assert!(
+        !transport_recovery || cfg!(feature = "test-support"),
+        "live transport-recovery fixture requires the test-support feature"
+    );
     assert!(browser_kind.is_none() || transport_recovery);
     if std::env::var_os("CONNECT_GATE6_NATIVE_DIAGNOSTICS").as_deref()
         == Some(std::ffi::OsStr::new("1"))
@@ -637,6 +641,7 @@ async fn handoff_case_with_control(
         // Keep the actual admitted handoff pending at its existing coordinator
         // mutex while controller peers close/reopen. No grants, metadata facts
         // or media routes are invented, and packet readers remain unheld.
+        #[cfg(feature = "test-support")]
         let roles = f
             .server
             .service
@@ -681,6 +686,7 @@ async fn handoff_case_with_control(
             "reconnect-pending-handoff-reverse",
         )
         .await;
+        #[cfg(feature = "test-support")]
         drop(roles);
         Some(probe)
     } else {

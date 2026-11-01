@@ -135,3 +135,37 @@ not qualify the concurrent four-participant/six-Connection/two-Session workload,
 device presentation, paired AV, impairment or a complete transport cell.
 
 The same twenty-move log records two actual readiness-conflict deferrals that\ncomplete after the service releases its invocation and reacquires fresh\nauthority/event state for the original root. This exercises the readiness\ncorrection; it does not diagnose or resolve the separate uncertain commit.\n
+The current AV target implementation extends the private source input with an
+optional `video` object: `stream_id`, `receive_audio_stream_id`,
+`receive_video_stream_id`, `ssrc` and `frames`. This profile accepts up to 62
+seconds of original 30 fps VP8 at 640×360, with an original keyframe at least
+every second, a 256 KiB per-frame bound and 16 MiB total encoded video. The
+three video-related IDs and original audio ID must be distinct; Audio and Video
+use separate SSRCs. Audio-only sources retain their 30-second bound. Selected
+codec/rate/channel values and unique hop handles are matched by original stream
+IDs, including when the signed answer changes array order.
+
+Both media timelines keep their original source coordinates. Video uses 90 kHz
+RTP timestamps and fragmented VP8 within the unchanged 1180-byte complete-RTP
+limit. The target first reads the same original replacement operation. It keeps
+Video closed while that root is accepted/preparing/ready/committing, and requires the completed
+root to retain the designated physical Device and every original negotiated
+resource. It then durably saves separate current-authorized video-unmute and
+retained-stream subscription intents before submitting them. The corresponding
+signed receipts and actual incoming Video negotiation stay private beside the
+original root. A failed or uncertain control stops the target without another
+mutation or a new operation ID. Opening audio does not open Video.
+
+This AV implementation is still undergoing Rust and signed integration
+verification. Its source-input and original-root boundary checks pass, but those
+checks establish neither an actual physical AV move nor decoded quality,
+paired synchronization, uninterrupted audio during control waits, twenty moves
+or any complete transport-matrix cell. The independent retained-packet decoder
+and the full required workload remain separate completion obligations.
+
+The target reads the full signature-verified operation payload through public
+`request_value("operation.get", ...)`, retaining the correlated ACK and original
+journal fields. The narrower typed `OperationUpdated` projection omits
+`command_type` and `expected_revision`; serializing that projection cannot prove
+these original preconditions. Audio and Video sender reports share the original
+source clock and CNAME. Pending status reads never authorize Video.

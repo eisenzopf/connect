@@ -1,0 +1,63 @@
+{
+  "format": "connect/gate6-native-av-replacement-peer-candidate/1",
+  "implementation_status": "candidate-awaiting-guarded-rust-and-signed-runtime-verification",
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "candidate_source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "83e7f3e1863c68a485732144bc2fea093f8a185d693ed46fb85f412766eaa72b",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "c7491ac8163d3aef69c66574ab4fb6947a059107d62690c5bf8102f8bc18f7b0",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/av.rs": "97a4c05136f77a2c60d0b6108b84f27702488b0187a66df152944dd0b6dbe17e",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "31e2b132d1d9826c0699670b81024241976322f32684af4c410fa341c4e42c86",
+    "scripts/lib/transport_replacement_target.mjs": "2aadf5d6a117d80dafc67f31b7a0245a8917b83c33a772183b670b449bf89eaf",
+    "scripts/tests/transport_replacement_target.test.mjs": "21e0fe8f90552b9b19abac12f33cc983279b9bc33451c7913b713930c201b907",
+    "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "f207bac4ad97a2832f170424215c5b60052458ae0cb5059bcfcdc0cd55a24e7f",
+    "examples/rust-sdk-journey/src/replacement_peer/video.rs": "092392cfa79d6fa7d91c894541c46730ddbd53456989a1cb0a055dacff2e7dae",
+    "examples/rust-sdk-journey/src/replacement_peer/selected.rs": "ba82ace5cfc364115e11331241591c40bd74fc3b86319e1f88e6fc6c945ab9b4"
+  },
+  "controlled_node_checks": {
+    "cases_passed": 10,
+    "replacement_target_cases_passed": 5,
+    "source_inputs_unchanged": true,
+    "guarded_inputs": 196,
+    "log_sha256": "57ed14b10f22b03d8059e58bde174e4f82bdd79a6e9e62141fe535351bc28780",
+    "matching_replacement_inputs": {
+      "scripts/lib/transport_replacement_target.mjs": "2aadf5d6a117d80dafc67f31b7a0245a8917b83c33a772183b670b449bf89eaf",
+      "scripts/tests/transport_replacement_target.test.mjs": "21e0fe8f90552b9b19abac12f33cc983279b9bc33451c7913b713930c201b907"
+    }
+  },
+  "retained_preflight_failures": [
+    {
+      "private_directory": ".local/gate-6/replacement-av-signed-runtime",
+      "stage": "complete",
+      "exit_code": 101,
+      "source_inputs_unchanged": false,
+      "log_sha256": "134f80ad10d825d6a039ae0248675c810fa45874ef0d0036a7d20b359ee82e14",
+      "runtime_or_peer_cases_executed": 0
+    },
+    {
+      "private_directory": ".local/gate-6/replacement-av-signed-runtime-normal-guarded",
+      "stage": "complete",
+      "exit_code": 101,
+      "source_inputs_unchanged": true,
+      "log_sha256": "efab6be66877ca13d5154cc94678c423ebc08cd449860ab3e05a8efb45571f0c",
+      "runtime_or_peer_cases_executed": 0
+    },
+    {
+      "private_directory": ".local/gate-6/replacement-av-peer-component",
+      "stage": "complete",
+      "exit_code": 101,
+      "source_inputs_unchanged": true,
+      "log_sha256": "0b9e68ab9fefd13ee4847a434e6a75cad008052b1daf5b80659ad7dd30389312",
+      "runtime_or_peer_cases_executed": 0
+    }
+  ],
+  "preflight_disposition": [
+    "First signed target compile failed at an existing unguarded test-support-only handoff hook; no native operation ran. Fixture now explicitly requires that feature for recovery and compiles that hold/drop only under it.",
+    "The following default-feature integration compile and independent Rust consumer compile failed on ENOSPC: debug/deps resolved to the system drive through a symlink, while D2 had314GiB free. No native test or Rust consumer cases ran.",
+    "The task-owned dependency cache is being relocated with per-file byte verification and preserved original paths; neither failed build is a runtime or physical AV result."
+  ],
+  "scope": "Candidate adds original-ID matched AV negotiation, original-clock VP8 fragmentation, original journal observation using full correlated signed payloads, separate durable video gates/subscription, and a signed service AV fixture. Pending states do not open Video; unknown controls are not retried. Current source still needs guarded Rust compilation, its seven peer cases, the exact signed integration case and existing audio regression. Actual full AV move, decoded/paired quality, uninterrupted audio during control waits, twenty-transition workload and all32 required transport cells remain unqualified.",
+  "physical_av_replacement_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -6,6 +6,9 @@ use connect_client::canonical::{
     Envelope, Scope, SenderClockDatagram, SenderClockReport,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
+mod controls;
+mod selected;
+mod video;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -14,10 +17,12 @@ pub(super) struct Source {
     ssrc: u32,
     // The parent preserves identifiable, externally encoded 20ms Opus originals.
     audio_packets: Vec<Vec<u8>>,
+    video: Option<video::Video>,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
-        if !(1..=30).contains(&self.seconds)
+        let maximum = if self.video.is_some() { 62 } else { 30 };
+        if !(1..=maximum).contains(&self.seconds)
             || self.ssrc == 0
             || self.audio_packets.len() != usize::from(self.seconds) * 50
             || self
@@ -26,6 +31,9 @@ impl Source {
                 .any(|v| v.is_empty() || v.len() > 1168)
         {
             return Err("replacement source exceeds the declared Opus profile".into());
+        }
+        if let Some(video) = &self.video {
+            video.validate(self.seconds, self.ssrc)?;
         }
         Ok(())
     }
@@ -83,28 +91,6 @@ async fn negotiation(
     .await?
 }
 
-fn stream(payload: &Value) -> Result<(u16, u8, Value)> {
-    let streams = payload["substrate_setup"]["streams"]
-        .as_array()
-        .filter(|v| v.len() == 1)
-        .ok_or("replacement requires exactly one negotiated audio stream")?;
-    let s = &streams[0];
-    let handle = s["stream_local_id"]
-        .as_u64()
-        .and_then(|v| u16::try_from(v).ok())
-        .filter(|v| *v != 0)
-        .ok_or("invalid replacement stream handle")?;
-    let pt = s["codec"]["params"]["payload_type"]
-        .as_u64()
-        .and_then(|v| u8::try_from(v).ok())
-        .filter(|v| *v < 128)
-        .ok_or("invalid replacement payload type")?;
-    if s["kind"] != "audio" || s["direction"] != "sendrecv" || s["codec"]["name"] != "opus" {
-        return Err("replacement negotiation changed the offered medium or codec".into());
-    }
-    Ok((handle, pt, s.clone()))
-}
-
 fn wire(
     handle: u16,
     datagram: u32,
@@ -141,16 +127,44 @@ pub(super) async fn run(
     let offer_json = serde_json::to_value(&offer)?;
     let offered = offer_json["streams_offered"]
         .as_array()
-        .filter(|v| v.len() == 1)
-        .ok_or("one original replacement audio stream required")?;
-    if offered[0]["kind"] != "audio"
-        || offered[0]["direction"] != "sendrecv"
-        || offered[0]["codec_preferences"] != json!(["opus"])
+        .ok_or("replacement offer streams missing")?;
+    let audio = offered
+        .iter()
+        .filter(|s| s["kind"] == "audio")
+        .collect::<Vec<_>>();
+    let maximum = if source.video.is_some() { 2 } else { 1 };
+    if offered.len() != maximum
+        || audio.len() != 1
+        || audio[0]["direction"] != "sendrecv"
+        || audio[0]["codec_preferences"] != json!(["opus"])
         || offer_json["capabilities"]["source_clock"] != "rtcp-sr-sdes/1"
         || offer_json["capabilities"]["audio_codecs"]
             != json!([{"name":"opus","params":{"sample_rate":48000,"channels":1}}])
     {
-        return Err("replacement target requires explicit Opus/source-clock capability".into());
+        return Err(
+            "replacement target requires its original duplex Opus/source-clock profile".into(),
+        );
+    }
+    if let Some(video) = &source.video {
+        let v = offered
+            .iter()
+            .filter(|s| s["kind"] == "video")
+            .collect::<Vec<_>>();
+        if v.len() != 1
+            || v[0]["id"] != video.stream_id
+            || v[0]["direction"] != "sendrecv"
+            || v[0]["codec_preferences"] != json!(["vp8"])
+            || audio[0]["id"] == video.stream_id
+            || audio[0]["id"] == video.receive_audio_stream_id
+            || audio[0]["id"] == video.receive_video_stream_id
+            || offer_json["capabilities"]["video_codecs"]
+                != json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}])
+            || !offer_json["capabilities"]["max_streams_per_connection"]
+                .as_u64()
+                .is_some_and(|v| (3..=8).contains(&v))
+        {
+            return Err("replacement video differs from the declared bounded AV profile".into());
+        }
     }
     let parent = output
         .parent()
@@ -168,12 +182,18 @@ pub(super) async fn run(
     }
     let mut file = tokio::fs::File::from_std(file.open(&output)?);
     let config = CanonicalClientConfig::load(&path)?;
+    let device = config.device_id.clone();
     let mut client = CanonicalClient::open(config).await?;
     let mut rows = vec![];
     let mut sent = 0u32;
     let mut skipped = 0u32;
     let mut captured_bytes = 0usize;
     let mut phase = "allocation";
+    let mut sent_video = 0u32;
+    let mut skipped_video = 0u32;
+    let mut video_open = false;
+    let mut root_observed = false;
+    let mut negotiated = Vec::<Value>::new();
     let work = async {
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
@@ -185,94 +205,106 @@ pub(super) async fn run(
             .await?;
         phase = "media-answer";
         let answer = negotiation(&mut client, &scope, "connection.answer", Some(&request)).await?;
-        let (handle, pt, selected) = stream(&answer.original()["payload"])?;
-        if selected["strm_id"] != offered[0]["id"] {
-            return Err("replacement stream ID changed".into());
-        }
+        let selected = selected::own(&answer.original()["payload"], &offer_json)?;
+        let audio = selected.iter().find(|s|s.raw["kind"]=="audio").ok_or("original audio binding missing")?.clone();
+        let handle=audio.handle;let pt=audio.pt;
+        let video_binding=selected.iter().find(|s|s.raw["kind"]=="video").cloned();
         phase = "parameter-callback";
         let callback = negotiation(&mut client, &scope, "connection.offer", None).await?;
-        let p = &callback.original()["payload"];
-        let (callback_handle, callback_pt, callback_stream) = stream(p)?;
-        if callback_handle != handle
-            || callback_pt != pt
-            || callback_stream != selected
-            || p["by_participant"] != answer.original()["payload"]["by_participant"]
-        {
-            return Err("replacement parameter callback changed negotiated resources".into());
+        let payload = &callback.original()["payload"];
+        if selected::own(payload,&offer_json)? != selected
+            || payload["by_participant"] != answer.original()["payload"]["by_participant"] {
+            return Err("replacement callback changed negotiated resources".into());
         }
-        let response = json!({"by_participant":p["by_participant"],"substrate":"quic",
-            "capabilities":offer_json["capabilities"],"streams_answered":[{"id":selected["strm_id"],
-                "kind":"audio","direction":"sendrecv","codec":selected["codec"]}],
-            "substrate_setup":p["substrate_setup"]});
-        client
-            .answer_connection_offer(&callback, serde_json::from_value(response)?, &scope)
-            .await?;
+        client.answer_connection_offer(&callback, selected::answer(payload,&offer_json["capabilities"])?, &scope).await?;
+        negotiated=selected.iter().map(|s|s.raw.clone()).collect();
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
         let start = tokio::time::Instant::now();
         let unix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
         let until = start + Duration::from_secs(u64::from(source.seconds));
         let mut index = 0usize;
+        let mut video_index = 0usize;
         let mut datagram = 0u32;
         let mut octets = 0u32;
         let mut rtp_seq = 0u16;
+        let mut video_seq = 0u16;
+        let mut video_octets = 0u32;
+        let mut first_video_key = true;
+        let mut last_video_clock = None;
+        let mut root_revision = root.revision;
+        let mut next_poll = start + Duration::from_millis(50);
         while tokio::time::Instant::now() < until {
-            let next = (start + Duration::from_millis(index as u64 * 20)).min(until);
+            let next_audio = if index<source.audio_packets.len() {start+Duration::from_millis(index as u64*20)} else {until};
+            let next_video = source.video.as_ref().filter(|v|video_index<v.frames.len())
+                .map(|_|start+Duration::from_micros(video_index as u64*1_000_000/30)).unwrap_or(until);
+            let poll = if source.video.is_some() && !video_open {next_poll} else {until};
+            let next=next_audio.min(next_video).min(poll).min(until);
             match tokio::time::timeout_at(next, client.receive_native_media_datagram()).await {
                 Ok(packet) => {
-                    let packet = packet?;
-                    captured_bytes += packet.len();
-                    if rows.len() >= 4000 || captured_bytes > 16 * 1024 * 1024 {
+                    let packet=packet?;captured_bytes+=packet.len();
+                    let maximum_rows=if source.video.is_some() {16000} else {4000};
+                    if rows.len()>=maximum_rows || captured_bytes>16*1024*1024 {
                         return Err("replacement receive observation bound exceeded".into());
                     }
                     rows.push(json!({"elapsed_us":start.elapsed().as_micros(),"datagram":packet}));
                 }
                 Err(_) => {
-                    if index >= source.audio_packets.len() {
-                        break;
+                    if let Some(video)=&source.video {
+                        if !video_open && tokio::time::Instant::now()>=next_poll {
+                            phase="original-completion-observation";
+                            if let Some(admission)=controls::completion(&mut client,&command,&root,
+                                scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,&device,&selected,&mut root_revision).await? {
+                                root_observed=true;phase="original-post-commit-video-controls";
+                                let incoming=controls::open(&mut client,&scope,&root,&admission,video,&selected,&offer_json["capabilities"],&output).await?;
+                                negotiated.push(incoming.raw);video_open=true;
+                                emit(json!({"phase":"target-video-controls-completed","original_root_observed":true,"decoded_media_inferred":false})).await?;
+                            }
+                            next_poll=tokio::time::Instant::now()+Duration::from_millis(50);phase="physical-media";
+                        }
                     }
-                    let elapsed = start.elapsed().as_millis();
-                    let timestamp = index as u32 * 960;
-                    if elapsed.saturating_sub(index as u128 * 20) >= 200 {
-                        skipped += 1;
-                        index += 1;
-                        continue;
+                    if index<source.audio_packets.len() && tokio::time::Instant::now()>=next_audio {
+                        let elapsed=start.elapsed().as_millis();let timestamp=index as u32*960;
+                        if elapsed.saturating_sub(index as u128*20)>=200 {skipped+=1;} else {
+                            let bytes=&source.audio_packets[index];
+                            client.send_native_media_datagram(&wire(handle,datagram,rtp_seq,timestamp,source.ssrc,pt,bytes))?;
+                            datagram+=1;rtp_seq=rtp_seq.wrapping_add(1);sent+=1;octets+=bytes.len() as u32;
+                            if index%25==0 {
+                                client.send_native_media_datagram(&pack_sender_clock_datagram(&SenderClockDatagram {
+                                    stream_local_id:handle,seq:datagram,report:SenderClockReport {ssrc:source.ssrc,rtp:timestamp,
+                                        ntp:ntp(unix+index as u128*20_000),packets:sent,octets,cname:"g6-replacement-target".into()}})?)?;
+                                datagram+=1;
+                            }
+                        }
+                        index+=1;
                     }
-                    let bytes = &source.audio_packets[index];
-                    client.send_native_media_datagram(&wire(
-                        handle,
-                        datagram,
-                        rtp_seq,
-                        timestamp,
-                        source.ssrc,
-                        pt,
-                        bytes,
-                    ))?;
-                    datagram += 1;
-                    rtp_seq = rtp_seq.wrapping_add(1);
-                    sent += 1;
-                    octets += bytes.len() as u32;
-                    if index % 25 == 0 {
-                        let report = SenderClockDatagram {
-                            stream_local_id: handle,
-                            seq: datagram,
-                            report: SenderClockReport {
-                                ssrc: source.ssrc,
-                                rtp: timestamp,
-                                ntp: ntp(unix + index as u128 * 20_000),
-                                packets: sent,
-                                octets,
-                                cname: "g6-replacement-target".into(),
-                            },
-                        };
-                        let packet = pack_sender_clock_datagram(&report)?;
-                        client.send_native_media_datagram(&packet)?;
-                        datagram += 1;
+                    if let (Some(video),Some(binding))=(&source.video,&video_binding) {
+                        if video_index<video.frames.len() && tokio::time::Instant::now()>=next_video {
+                            let frame=&video.frames[video_index];let original_us=video_index as u128*1_000_000/30;
+                            if !video_open || start.elapsed().as_micros().saturating_sub(original_us)>=200_000
+                                || (first_video_key && !video::key(frame)) {skipped_video+=1;} else {
+                                let timestamp=video_index as u32*3000;let mut complete=true;
+                                for packet in video::packets(binding,video.ssrc,timestamp,&mut video_seq,&mut datagram,frame) {
+                                    if start.elapsed().as_micros().saturating_sub(original_us)>=200_000 {complete=false;skipped_video+=1;break;}
+                                    client.send_native_media_datagram(&packet)?;sent_video+=1;video_octets+=(packet.len()-20) as u32;
+                                }
+                                if complete {
+                                    first_video_key=false;
+                                    if last_video_clock.is_none_or(|last|video_index-last>=15) {
+                                        client.send_native_media_datagram(&pack_sender_clock_datagram(&SenderClockDatagram {
+                                            stream_local_id:binding.handle,seq:datagram,report:SenderClockReport {ssrc:video.ssrc,rtp:timestamp,
+                                                ntp:ntp(unix+original_us),packets:sent_video,octets:video_octets,cname:"g6-replacement-target".into()}})?)?;
+                                        datagram+=1;last_video_clock=Some(video_index);
+                                    }
+                                }
+                            }
+                            video_index+=1;
+                        }
                     }
-                    index += 1;
                 }
             }
         }
+        if source.video.is_some() && (!video_open || sent_video==0) {return Err("replacement AV source ended without original completed video controls and original video packets".into());}
         Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     }
     .await;
@@ -289,7 +321,10 @@ pub(super) async fn run(
         "passed":work.is_ok() && shutdown.is_ok(),"sent_audio_packets":sent,"skipped_original_frames":skipped,
         "captured_bytes":captured_bytes,"received":rows,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
-        "operation_completed_inferred":false,"decoded_media_verified":false});
+        "operation_completed_inferred":false,"decoded_media_verified":false,
+        "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
+        "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
+        "negotiated_streams":negotiated});
     file.write_all(&serde_json::to_vec(&result)?).await?;
     file.sync_all().await?;
     shutdown?;
@@ -310,26 +345,31 @@ mod tests {
                 seconds: 0,
                 ssrc: 1,
                 audio_packets: vec![],
+                video: None,
             },
             Source {
                 seconds: 31,
                 ssrc: 1,
                 audio_packets: vec![vec![1]; 1550],
+                video: None,
             },
             Source {
                 seconds: 1,
                 ssrc: 0,
                 audio_packets: vec![vec![1]; 50],
+                video: None,
             },
             Source {
                 seconds: 1,
                 ssrc: 1,
                 audio_packets: vec![vec![1]; 49],
+                video: None,
             },
             Source {
                 seconds: 1,
                 ssrc: 1,
                 audio_packets: vec![vec![1; 1169]; 50],
+                video: None,
             },
         ] {
             assert!(source.validate().is_err());
@@ -340,8 +380,9 @@ mod tests {
     fn unoffered_codec_direction_and_hop_handle_are_not_media_readiness() {
         let good = json!({"substrate_setup":{"streams":[{"strm_id":"original-audio",
             "kind":"audio","direction":"sendrecv","stream_local_id":7,
-            "codec":{"name":"opus","params":{"payload_type":111}}}]}});
-        assert!(stream(&good).is_ok());
+            "codec":{"name":"opus","params":{"payload_type":111,"sample_rate":48000,"channels":1}}}]}});
+        let offer = json!({"streams_offered":[{"id":"original-audio","kind":"audio"}]});
+        assert!(selected::own(&good, &offer).is_ok());
         for (field, value) in [
             ("kind", json!("video")),
             ("direction", json!("sendonly")),
@@ -350,7 +391,7 @@ mod tests {
         ] {
             let mut changed = good.clone();
             changed["substrate_setup"]["streams"][0][field] = value;
-            assert!(stream(&changed).is_err());
+            assert!(selected::own(&changed, &offer).is_err());
         }
     }
 }

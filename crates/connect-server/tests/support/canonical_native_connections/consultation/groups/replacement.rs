@@ -1,5 +1,7 @@
 //! Public replacement now owns a real Core ticket, with original media intact.
 use super::*;
+#[path = "replacement/av.rs"]
+mod av;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
@@ -163,6 +165,32 @@ async fn exercise_replacement_with_control(
     selected_case: Option<(bool, bool, bool)>,
     candidate_target: bool,
 ) {
+    exercise_replacement_with_av_control(
+        allocate,
+        start_media,
+        reject_answer,
+        movement,
+        deferred_projection,
+        sdk_algorithm,
+        mcp,
+        selected_case,
+        candidate_target,
+        false,
+    )
+    .await;
+}
+async fn exercise_replacement_with_av_control(
+    allocate: bool,
+    start_media: bool,
+    reject_answer: bool,
+    movement: bool,
+    deferred_projection: bool,
+    sdk_algorithm: Option<&'static str>,
+    mcp: bool,
+    selected_case: Option<(bool, bool, bool)>,
+    candidate_target: bool,
+    av: bool,
+) {
     if candidate_target {
         assert!(
             allocate
@@ -204,28 +232,37 @@ async fn exercise_replacement_with_control(
         .into_iter()
         .filter(|case| selected_case.is_none_or(|selected| *case == selected))
     {
+        let (running, source_video_handle) = if av {
+            let (running, handle) = av::setup().await;
+            (running, Some(handle))
+        } else {
+            (
+                if let Some(algorithm) = sdk_algorithm {
+                    codecs::setup_started(
+                        if mcp {
+                            Fixture::with_native_mcp(algorithm, 16).await
+                        } else {
+                            Fixture::with_native_end_scope(algorithm, 16).await
+                        },
+                        (),
+                        "codec-target-offer",
+                        "codec-source-offer",
+                    )
+                    .await
+                    .0
+                } else {
+                    codecs::setup().await
+                },
+                None,
+            )
+        };
         let codecs::Running {
             f,
             mut clients,
             cid,
             sh,
             th,
-        } = if let Some(algorithm) = sdk_algorithm {
-            codecs::setup_started(
-                if mcp {
-                    Fixture::with_native_mcp(algorithm, 16).await
-                } else {
-                    Fixture::with_native_end_scope(algorithm, 16).await
-                },
-                (),
-                "codec-target-offer",
-                "codec-source-offer",
-            )
-            .await
-            .0
-        } else {
-            codecs::setup().await
-        };
+        } = running;
         let room = clients[1]
             .list_conversations(Default::default())
             .await
@@ -272,7 +309,11 @@ async fn exercise_replacement_with_control(
             &f,
             &f.client.identity_id,
             281,
-            vec!["audio".into()],
+            if av {
+                vec!["audio".into(), "video".into()]
+            } else {
+                vec!["audio".into()]
+            },
             target_scope,
         );
         let endpoint: String = rusqlite::Connection::open(&f.config.database)
@@ -509,13 +550,18 @@ async fn exercise_replacement_with_control(
             1
         );
         let mut replacement_handle = None;
+        let mut replacement_video_handle = None;
         let mut allocated_target = if allocate {
             let mut client = if let Some(client) = preparing_target.take() {
                 client
             } else {
                 CanonicalClient::open(target.clone()).await.unwrap()
             };
-            let offer = json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}],"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}});
+            let mut offer = json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}],"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}});
+            if av {
+                offer["capabilities"] = av_capabilities();
+                offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
+            }
             let offer_scope = CommandScope {
                 conversation_id: Some(cid.clone()),
                 session_id: Some("native-session".into()),
@@ -609,7 +655,15 @@ async fn exercise_replacement_with_control(
                 );
                 assert_eq!(answer.original()["in_reply_to"], request_id);
                 if !reject_answer {
-                    replacement_handle = Some(handle(&answer));
+                    replacement_handle = Some(if av {
+                        av::stream_handle(&answer, "replacement-voice")
+                    } else {
+                        handle(&answer)
+                    });
+                    if av {
+                        replacement_video_handle =
+                            Some(av::stream_handle(&answer, "replacement-camera"));
+                    }
                 }
                 let callback = client.receive_control().await.unwrap();
                 assert_eq!(
@@ -620,7 +674,7 @@ async fn exercise_replacement_with_control(
                 );
                 let payload = &callback.original()["payload"];
                 let streams=payload["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
-                let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":capabilities(),"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
+                let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":if av {av_capabilities()} else {capabilities()},"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
                 if reject_answer {
                     response["substrate_setup"]["revision"] = json!(999);
                 }
@@ -887,6 +941,17 @@ async fn exercise_replacement_with_control(
                 "replace-moved-target-preserves-original-role",
             )
             .await;
+            if av {
+                av::after_commit(
+                    &f,
+                    &mut peers,
+                    &cid,
+                    candidate,
+                    source_video_handle.unwrap(),
+                    replacement_video_handle.unwrap(),
+                )
+                .await;
+            }
             let remote_revision = stream_revision(&f, "codec-source");
             stream_control(
                 &mut peers[0].client,
@@ -982,7 +1047,7 @@ async fn exercise_replacement_with_control(
                 }
             );
             drop(c);
-            let active = if !observer && !revoke_endpoint && !revoke_target_key {
+            let active = if !av && !observer && !revoke_endpoint && !revoke_target_key {
                 subsequent_move(
                     &f,
                     &mut controller,

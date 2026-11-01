@@ -32,7 +32,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     assert.notEqual(connectionId, retainedConnectionId);
     assert.ok(Number.isSafeInteger(expectedTopologyRevision) && expectedTopologyRevision > 0);
     assert.ok([originalGeneration, retainedGeneration].every(value => Number.isSafeInteger(value) && value > 0));
-    assert.ok(Number.isInteger(source?.seconds) && source.seconds >= 1 && source.seconds <= 30);
+    assert.ok(Number.isInteger(source?.seconds) && source.seconds >= 1 && source.seconds <= (source.video ? 62 : 30));
     assert.ok(Number.isInteger(source.ssrc) && source.ssrc > 0 && source.ssrc <= 0xffffffff);
     assert.ok(Array.isArray(source.audioPackets) && source.audioPackets.length === source.seconds * 50);
     const audio = source.audioPackets.map(bytes => {
@@ -40,6 +40,29 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             bytes.every(value => Number.isInteger(value) && value >= 0 && value <= 255));
         return [...bytes];
     });
+    let video;
+    if (source.video) {
+        const v = source.video;
+        assert.ok([v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId].every(id));
+        assert.equal(new Set([streamId, v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId]).size, 4);
+        assert.ok(Number.isInteger(v.ssrc) && v.ssrc > 0 && v.ssrc <= 0xffffffff && v.ssrc !== source.ssrc);
+        assert.ok(Array.isArray(v.frames) && v.frames.length === source.seconds * 30);
+        let bytes = 0, lastKey;
+        const frames = v.frames.map((frame, index) => {
+            assert.ok(Array.isArray(frame) && frame.length >= 3 && frame.length <= 256 * 1024 &&
+                frame.every(value => Number.isInteger(value) && value >= 0 && value <= 255));
+            bytes += frame.length; assert.ok(bytes <= 16 * 1024 * 1024);
+            if (!(frame[0] & 1)) {
+                assert.ok(frame.length >= 10 && frame[3] === 0x9d && frame[4] === 1 && frame[5] === 0x2a &&
+                    ((frame[6] | frame[7] << 8) & 0x3fff) === 640 && ((frame[8] | frame[9] << 8) & 0x3fff) === 360);
+                lastKey = index;
+            }
+            assert.ok(lastKey !== undefined && index - lastKey < 30);
+            return [...frame];
+        });
+        video = { stream_id: v.streamId, receive_audio_stream_id: v.receiveAudioStreamId,
+            receive_video_stream_id: v.receiveVideoStreamId, ssrc: v.ssrc, frames };
+    }
     const command = { operation_id: operationId, conversation_id: conversationId,
         session_id: sessionId, connection_id: connectionId, expected_revision: expectedTopologyRevision,
         intent: { type: "connection.replace", endpoint_id: target.endpointId,
@@ -47,10 +70,12 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     return { mode: "replacement_peer", config_path: target.nativeConfig, command,
         offer: { substrate: "quic", capabilities: {
             audio_codecs: [{ name: "opus", params: { sample_rate: 48000, channels: 1 } }],
-            video_codecs: [], data_protocols: [], max_streams_per_connection: 1,
+            video_codecs: video ? [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }] : [],
+            data_protocols: [], max_streams_per_connection: video ? 8 : 1,
             identity_assurance_offered: "identified", source_clock: "rtcp-sr-sdes/1",
-        }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] }] },
-        media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio }, output };
+        }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] },
+            ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : [])] },
+        media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}) }, output };
 }
 
 export async function physicalReplacementTarget({ controller, retireOriginal, privateRoot,
@@ -75,6 +100,7 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         original_reference_preserved: false, original_root_completed: false,
         original_source_owner_joined: false, target_worker_joined: false, target_worker_forced: false,
         target_config_unchanged: false, target_executable_unchanged: false,
+        source_input_sha256: hash(Buffer.from(JSON.stringify(input.media))), video_enabled: Boolean(intent.source.video),
         decoded_media_verified: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
     let phase = "original-submission", worker, completed, log;
     try {
@@ -158,7 +184,7 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         const exit = await bounded(completed, (intent.source.seconds + 10) * 1000);
         report.target_worker_joined = true;
         assert.equal(exit.code, 0); assert.equal(exit.signal, null); assert.equal(exit.error, undefined);
-        const info = await stat(output); assert.ok(info.size > 0 && info.size <= 24 * 1024 * 1024);
+        const info = await stat(output); assert.ok(info.size > 0 && info.size <= (intent.source.video ? 80 : 24) * 1024 * 1024);
         assert.equal(info.mode & 0o077, 0);
         const observed = JSON.parse(await readFile(output, "utf8"));
         assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
@@ -166,7 +192,23 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         assert.equal(observed.operation_completed_inferred, false); assert.equal(observed.decoded_media_verified, false);
         assert.ok(Number.isInteger(observed.sent_audio_packets) && observed.sent_audio_packets > 0 &&
             observed.sent_audio_packets <= intent.source.seconds * 50);
-        assert.ok(Array.isArray(observed.received) && observed.received.length <= 4000);
+        assert.equal(observed.video_enabled, Boolean(intent.source.video));
+        assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
+        if (intent.source.video) {
+            assert.equal(observed.original_root_completed_observed, true);
+            assert.equal(observed.video_controls_completed, true);
+            const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
+            assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
+            assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
+                [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId].sort());
+            report.video_control_files = {};
+            for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
+                const path = output.replace(/\.json$/, "." + suffix + ".json");
+                const info = await stat(path); assert.equal(info.mode & 0o077, 0); assert.ok(info.size > 0 && info.size <= 65536);
+                report.video_control_files[suffix] = hash(await readFile(path));
+            }
+            report.target_sent_video_packets = observed.sent_video_packets;
+        }
         report.target_observation_sha256 = hash(await readFile(output));
         report.target_sent_packets = observed.sent_audio_packets;
         report.target_skipped_frames = observed.skipped_original_frames;
