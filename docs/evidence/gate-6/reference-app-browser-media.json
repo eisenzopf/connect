@@ -26,7 +26,7 @@
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
     "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
     "examples/parley-on-connect/app/ui/media.mjs": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
-    "scripts/check-reference-app-installed.mjs": "f0f1a50fe9b097a7585d06d6d0a9bdee4ef974c32c52902d94192f066031e282",
+    "scripts/check-reference-app-installed.mjs": "a048a7232fb98734a1c795c1bdefd858d35a062599f37db8c726c9919fad4ffd",
     "examples/parley-on-connect/README.md": "19de07583d202bc333bcd4f5d78ac0962c7a186dd7aafc7340145bbe05cc7aca",
     "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
     "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968",
@@ -72,7 +72,7 @@
     "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
   },
   "installed_rehearsal": {
-    "expected_checks": 36,
+    "expected_checks": 37,
     "prior_checks_retained": 21,
     "two_separate_owned_chromium_processes": true,
     "synthetic_capture_only": true,
@@ -85,7 +85,8 @@
       "12 completed output buffers per side, received source tone dominates local source by8x",
       "source clocks received and original capture/render/requests join",
       "separate accepted original AV Session/Connections, current peer video selectors, identified VP8 output and original video unsubscribe/end/helper cleanup",
-      "Five two-second combined AV windows; each side >=50 newly completed identified audio buffers and >=6 newly painted video frames. Liveness component only; no quality or latency qualification inferred."
+      "Five two-second combined AV windows; each side >=50 newly completed identified audio buffers and >=6 newly painted video frames. Liveness component only; no quality or latency qualification inferred.",
+      "Pause original receiver while75peer packets queue; stop publisher, restart receiver without replacement Connection or SDKowner, require no old identified audio, then resume current remote audio. Unrun."
     ],
     "runtime_verified": false,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
@@ -236,6 +237,8 @@
     "installed_runtime_after_correction_verified": false,
     "bound": "6decoded frames per video route; original200ms horizon and50ms late timer limit unchanged",
     "finding": "Restarting the timer on every incoming frame starves steady video. Keep original head deadline as later frames arrive.",
-    "native_timer_component_verified": true
+    "native_timer_component_verified": true,
+    "installed_local_runtime_after_correction_verified": true,
+    "evidence_after": "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json"
   }
 }

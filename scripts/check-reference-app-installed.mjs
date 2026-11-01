@@ -500,6 +500,42 @@ try {
     await mediaPages[0].page.screenshot({ path: join(output, "capture-controls-narrow.png"), fullPage: true });
     for (const name of ["capture-controls.png", "capture-controls-narrow.png"])
         report.ui_screenshots[name] = sha(await readFile(join(output, name)));
+    stage = "original-audio-connection-restart-queue-freshness";
+    const pausedReceiver = mediaPages[0], continuingPublisher = mediaPages[1];
+    await pausedReceiver.page.getByRole("button", { name: "Stop media", exact: true }).focus();
+    await pausedReceiver.page.keyboard.press("Enter"); await stoppedMedia(pausedReceiver.page);
+    const publisherBefore = await continuingPublisher.page.evaluate(() =>
+        JSON.parse(document.querySelector("#media-status").dataset.metrics).sentRtp);
+    // More than the native inbox's32packet capacity arrives while this original
+    // Connection is not being read. No new offer, SDK owner or logical ID.
+    await continuingPublisher.page.waitForFunction(before => {
+        const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics);
+        return !metrics.stopped && metrics.sentRtp >= before + 75;
+    }, publisherBefore, { timeout: 10000 });
+    await continuingPublisher.page.getByRole("button", { name: "Stop media", exact: true }).focus();
+    await continuingPublisher.page.keyboard.press("Enter"); await stoppedMedia(continuingPublisher.page);
+    await new Promise(done => setTimeout(done, 500));
+    await pausedReceiver.page.evaluate(() => {
+        const output = window.__parley_audio_probe__;
+        for (const key of Object.keys(output)) output[key] = 0;
+    });
+    await startMicrophone(pausedReceiver.page);
+    await new Promise(done => setTimeout(done, 2000));
+    report.original_connection_restart = await pausedReceiver.page.evaluate(() => ({
+        metrics: JSON.parse(document.querySelector("#media-status").dataset.metrics),
+        output: { ...window.__parley_audio_probe__ },
+    }));
+    assert.equal(report.original_connection_restart.metrics.stopped, false);
+    // The peer has stopped publishing. Old identified tone must not be made
+    // fresh by resetting the page's RTP/playout origin on local Start.
+    assert.ok(report.original_connection_restart.output.energy < 0.0001, "no-old-remote-audio-after-original-connection-restart");
+    await startMicrophone(continuingPublisher.page);
+    report.original_connection_restart.resumed_remote_audio = await (await pausedReceiver.page.waitForFunction(() => {
+        const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics), output = window.__parley_audio_probe__;
+        return !metrics.stopped && output.frames >= 12 && output.tone880 > 8 * Math.max(output.tone440, 1e-12) &&
+            output.energy / output.frames > .0001 ? { metrics, output: { ...output } } : false;
+    }, undefined, { timeout: 10000 })).jsonValue();
+    check("original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer");
     await Promise.all(mediaPages.map(async ({ page: target }) => {
         await target.getByRole("button", { name: "Stop media", exact: true }).focus(); await target.keyboard.press("Enter");
         await target.waitForFunction(() => {
