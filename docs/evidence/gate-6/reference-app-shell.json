@@ -1,0 +1,34 @@
+{
+  "format": "connect/gate6-reference-app-shell/1",
+  "task": "G6-072",
+  "status": "in-progress",
+  "dependencies": "G6-061/066/069/071 done; exact two-platform candidate packaging proof is sdk-candidates-verified.json",
+  "implementation": {
+    "app_owned_intent_journal": "Bounded128-record private application SQLite state; original IDs before dispatch, no automatic reattempt after uncertainty/process exit, immutable replay, monotone bound observations, known not-submitted refusal, actor-scoped body/reference-free progress.",
+    "connect_database_access": false,
+    "communication_transport": "Not implemented here; gateway must use installed public SDK clients with current authorization."
+  },
+  "source_hashes": {
+    "examples/parley-on-connect/app/intents.mjs": "12bccc5fe4fb78107c517e085f7260f22c083cbfb0454ee8d14506f0ff1bd2d1",
+    "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
+    "examples/parley-on-connect/package.json": "90a265d90f6cefe1e1e27768c071f6a6d163268a80ba2857c9f54da77a655b0d"
+  },
+  "local_verification": {
+    "command": "npm run test:app --prefix examples/parley-on-connect",
+    "functions_passed": 7,
+    "node": "v26.7.0",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "scope": "Private application persistence/ownership/recovery/projection only, including real child process exit. No Connect/SDK/backend/UI/browser journey is qualified."
+  },
+  "remaining_requirements": [
+    "One-command local setup using installed SDK and matching packaged runtime",
+    "Scoped client enrollment and backend secret ownership through public provisioning/installation interfaces",
+    "Participant selection, conversation timeline and incoming invitations",
+    "Usable media controls, capability and current operation/recovery presentation",
+    "Desktop/narrow keyboard flows, denied microphone/camera and offline recovery",
+    "No manual Connect database edits, copied IDs or repository-specific absolute paths; real installed package app execution"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "acceptance_qualified": false
+}
