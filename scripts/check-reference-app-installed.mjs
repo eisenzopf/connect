@@ -107,7 +107,7 @@ try {
     for (const actor of sample.actors) {
         const command = { type: "identity", operation_id: actor.identityOperationId, alias: actor.alias, kind: actor.kind, display_name: actor.label };
         const validate = input => JSON.parse(execFileSync(installation.executable, ["sdk-validate-provisioning"], {
-            input: JSON.stringify(input), timeout: 2000, maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
+            input: JSON.stringify(input), timeout: 8000, maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
         const before = validate({ ...command, alias: command.alias.replaceAll("-", "_") });
         assert.equal(before.profile, "connect-sdk-provisioning-validation/1"); assert.equal(before.valid, false);
         const result = validate(command);
@@ -118,7 +118,7 @@ try {
     const envelope = { v: 2, id: "snapshot-contract-probe", ts: new Date().toISOString(), type: "conversation.get", cid: "conversation-contract-probe" };
     for (const [limit, valid] of [[128, false], [127, true], [undefined, true]]) {
         const result = JSON.parse(execFileSync(installation.executable, ["sdk-validate-envelope"], {
-            input: JSON.stringify({ ...envelope, payload: limit === undefined ? {} : { limit } }), timeout: 2000,
+            input: JSON.stringify({ ...envelope, payload: limit === undefined ? {} : { limit } }), timeout: 8000,
             maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
         assert.equal(result.profile, "connect-sdk-validation/1"); assert.equal(result.valid, valid);
     }
@@ -799,7 +799,7 @@ try {
         JSON.stringify(await tree(join(consumer, "app"))) === JSON.stringify(sourceInputs.app) &&
         JSON.stringify(await tree(join(consumer, "node_modules/@rudeless/connect"))) === JSON.stringify(sourceInputs.installed_sdk) &&
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
-        sha(await readFile(join(root, "scripts/install-reference-app-candidate.py"))) === sourceInputs.installer;
+        sha(await readFile(join(root, producer.installer))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
     report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;
     report.application_runtime_matches = await digest(join(state, "runtime/connect")).then(value => value === sourceInputs.runtime).catch(() => null);

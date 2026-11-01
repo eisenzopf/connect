@@ -2,7 +2,7 @@
   "format": "connect/reference-app-local-components/1",
   "task": "G6-072",
   "runtime_source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
-  "status": "local-components-installed-rehearsal-pending",
+  "status": "local-components-installed-initial-rehearsal-negative",
   "installation": {
     "format": "connect/reference-app-local-components/1",
     "target": "aarch64-apple-darwin",
@@ -81,16 +81,60 @@
   "implementation_inputs": {
     "scripts/install-reference-app-components.py": "6649906d2af0533aa9692ad62ab1b5627788d8ea474b2ac7a2543edb14605698",
     "scripts/tests/test_reference_app_components.py": "637256620324d76d3f530152dc352ac3e1e520500f07b067b5b51492dfb6315d",
-    "scripts/check-reference-app-installed.mjs": "6f89077373c7e6afc770d38558c307d91de4f73f6c724e45ce7db7b9bb856e37"
+    "scripts/check-reference-app-installed.mjs": "00fdee994eb850161f8233b08f76e58a1ac2fa1a6aa3bfb675c1a9ebfd76c384"
   },
   "refusal_tests_passed": 5,
   "retained_behavior_checks": 37,
-  "scope": "Source-bound local production Mac runtime and actual public Node archive, each independently audited/verified then installed together through normal offline npm with no scripts or user npm configuration. All Node package input bytes match native runtime Git39d. App rehearsal is still unrun. This is not complete Rust/Node/Python SDK candidate qualification or an inherited Gate pass.",
+  "scope": "Source-bound local production Mac runtime and actual public Node archive, independently verified and installed together. First app rehearsal timed out in read-only CLI validation before setup; corrected validation budget and selected-installer final guard await rerun. Not complete Rust/Node/Python SDK candidate qualification or an inherited Gate pass.",
   "full_sdk_qualification_pending_runs": [
     41288711516,
     41289033374
   ],
   "installed_app_verified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "initial_rehearsal": {
+    "source_revision": "d93a3223ef2baf41fde414c7f7fb035da03f252d",
+    "summary_sha256": "e0a9b11193e6d769be8b5d967acae98fbc099d9d0cf9b22a01b3b77c7db3a04c",
+    "passed": false,
+    "checks_passed": 0,
+    "failure": {
+      "stage": "actual-public-provisioning-validation",
+      "name": "Error",
+      "code": "ETIMEDOUT",
+      "source_stack": [
+        {
+          "line": 109,
+          "column": 46
+        },
+        {
+          "line": 111,
+          "column": 24
+        }
+      ]
+    },
+    "runtime_unchanged": true,
+    "application_started": false,
+    "source_guard_defect": "Final guard hashed sealed-candidate installer instead of selected component installer; corrected to use producer.installer."
+  },
+  "startup_diagnostic": {
+    "scope": "Read-only CLI invocations after initial timeout; no cold-start or app qualification.",
+    "elapsed_ms": [
+      22,
+      5
+    ],
+    "exit_codes": [
+      0,
+      0
+    ],
+    "cause_of_initial_delay": "unproven"
+  },
+  "harness_correction": {
+    "readonly_cli_validation_timeout_ms": 8000,
+    "previous_timeout_ms": 2000,
+    "reason": "Bounded CLI process launch/validation budget aligned with existing setup request budget. Initial timeout retained; no automatic retry.",
+    "media_thresholds_changed": false,
+    "behavior_checks_removed": false,
+    "selected_installer_guard": true
+  }
 }
