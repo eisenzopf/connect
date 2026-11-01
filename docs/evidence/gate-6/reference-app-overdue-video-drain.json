@@ -1,0 +1,33 @@
+{
+  "format": "connect/reference-app-overdue-video-drain/1",
+  "task": "G6-072",
+  "behavior": "One overdue native callback drains the bounded due-frame queue before returning to unrelated timers. Each frame keeps its original target and 50ms late allowance. Future frames retain one head timer. A callback processes no more than its initial queue length, even under reentrant callbacks.",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/ui/media-playout.mjs": "fdad4d847eeae824322bc02bc38e94981133a6e1c1e3ca1c0e6a4c0f1be61595",
+    "examples/parley-on-connect/app/media-playout.test.mjs": "9a03dcb4eb0399002d7f3c98fc262ca857278f9826a2370d7d09b09e8ebfddc7"
+  },
+  "regression": {
+    "original_base": "6ce1c168",
+    "original_cases_passed": 3,
+    "original_cases_failed": 2,
+    "original_log_sha256": "2c14500e4bba98ac6a725c8056ee6bc29949f252d2c847810077406af52336d4",
+    "counterexamples": [
+      "After a 1686ms wake only one of three expired originals is released; two remain queued.",
+      "At a 140ms wake an expired80ms frame is dropped but the due113ms frame is postponed behind a new timer."
+    ]
+  },
+  "verification": {
+    "all_app_cases_passed": 96,
+    "video_playout_cases_included": 7,
+    "failed": 0,
+    "skipped": 0,
+    "app_log_sha256": "26d7ff4d754bb122d0afb41491b5d2efed4f140d2457af28b47e20341f469efd",
+    "coverage": "Steady30Hz native target scheduling, six-frame capacity, original source horizon/late discard, clear/close, delayed full/mixed drains, early wake and close from a paint callback."
+  },
+  "actual_installed_browser_after_fix": false,
+  "quality_thresholds_changed": false,
+  "hosted_scheduler_delay_cause_resolved": false,
+  "hosted_av_failure_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

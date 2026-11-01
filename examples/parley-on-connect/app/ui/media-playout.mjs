@@ -1,7 +1,7 @@
 // Own a bounded set of decoded frames until their original presentation time.
 // Later arrivals must never postpone the head frame's timer.
 export class VideoPlayout {
-    #frames = []; #timer; #head; #closed = false;
+    #frames = []; #timer; #head; #closed = false; #draining = false;
     #now; #paint; #drop; #setTimer; #clearTimer;
     constructor({ now, paint, drop, setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = timer => clearTimeout(timer) }) {
         this.#now = now; this.#paint = paint; this.#drop = drop;
@@ -20,6 +20,7 @@ export class VideoPlayout {
         this.#arm();
     }
     #arm() {
+        if (this.#draining) return;
         const head = this.#frames[0];
         if (head === this.#head) return;
         if (this.#timer !== undefined) this.#clearTimer(this.#timer);
@@ -27,14 +28,23 @@ export class VideoPlayout {
         if (!head || this.#closed) return;
         this.#timer = this.#setTimer(() => {
             this.#timer = undefined; this.#head = undefined;
-            // The audio clock can advance differently from the timer clock.
-            // An early wake retains the same target; it never paints early.
-            if (this.#now() < head.desired) { this.#arm(); return; }
-            this.#frames.shift();
+            // One overdue wake can make several frames due. Release each in
+            // this bounded queue before returning to unrelated timer callbacks.
+            // Recheck the audio clock for each original target: an early wake
+            // retains future frames, and a delayed wake never refreshes age.
+            this.#draining = true;
+            let remaining = this.#frames.length;
             try {
-                if (this.#now() - head.desired < 0.05) this.#paint(head.frame);
-                else this.#drop("late");
-            } finally { head.frame.close(); this.#arm(); }
+                while (!this.#closed && this.#frames.length && remaining-- > 0) {
+                    const due = this.#frames[0], now = this.#now();
+                    if (now < due.desired) break;
+                    this.#frames.shift();
+                    try {
+                        if (now - due.desired < 0.05) this.#paint(due.frame);
+                        else this.#drop("late");
+                    } finally { due.frame.close(); }
+                }
+            } finally { this.#draining = false; this.#arm(); }
         }, Math.max(1, Math.ceil((head.desired - this.#now()) * 1000)));
     }
     clear() {
