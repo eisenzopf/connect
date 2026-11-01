@@ -24,10 +24,45 @@
     "app_log_sha256": "26d7ff4d754bb122d0afb41491b5d2efed4f140d2457af28b47e20341f469efd",
     "coverage": "Steady30Hz native target scheduling, six-frame capacity, original source horizon/late discard, clear/close, delayed full/mixed drains, early wake and close from a paint callback."
   },
-  "actual_installed_browser_after_fix": false,
+  "actual_installed_browser_after_fix": true,
   "quality_thresholds_changed": false,
   "hosted_scheduler_delay_cause_resolved": false,
   "hosted_av_failure_resolved": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "installed_verification": {
+    "passed": true,
+    "source_revision": "b3a6f20142b1290132bdad52b63e71d6bcb46e30",
+    "runtime_source_revision": "73aca98138715ed514f9903524fac08ffdfe040d",
+    "runtime_binary_sha256": "b5e8199cf4e5291a6c195bd4628d504831c8b86b443d30b1513b64007a5ed4de",
+    "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+    "node": "v22.16.0",
+    "browser": "156.0.8078.4",
+    "checks_passed": 37,
+    "native_video_playout": {
+      "painted": 3,
+      "dropped": 0,
+      "queued": 0,
+      "pixel": [
+        0,
+        255,
+        0,
+        255
+      ],
+      "frame_construction_ms": 0,
+      "enqueue_ms": 0,
+      "observation_ms": 306
+    },
+    "five_two_second_av_windows_each_direction": true,
+    "max_audio_late_drops": 0,
+    "max_queued_send_frames": 0,
+    "app_git_inputs_verified": 35,
+    "node_git_inputs_verified": 197,
+    "installed_sdk_files_verified": 195,
+    "png_captures_independently_decoded": 8,
+    "narrow_video_capture_visually_reviewed": true,
+    "original_browser_helpers_app_restart_joins_passed": true,
+    "original_browser_report_sha256": "db66369606f71adfe271f74cdbbe53162167df42e7e9a8ad565da556ee45e557",
+    "scope": "Actual current app installed offline with previously independently verified native source73aca981 and unchanged matching Node source42eaafe8 package; all197Node Git inputs and35current app/harness inputs checked independently,8PNGs CRC/decompression/RGB/geometry/no repeated header checked. Local macOSarm64 only; source42hosted builds and full media profile remain separate."
+  }
 }

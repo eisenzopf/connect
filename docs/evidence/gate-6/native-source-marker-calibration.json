@@ -1,0 +1,139 @@
+{
+  "format": "connect/native-source-marker-calibration/1",
+  "source_revision": "b3a6f20142b1290132bdad52b63e71d6bcb46e30",
+  "source_generator_sha256": "b7a2bea69a3adfcd4f82c272e808c17978f707667af0d68d79c448297df5c468",
+  "source_manifest_sha256": "cd73b525b5f0f069e4c008b39dd4ad8b3ba04317f4d5b676a3a23c673b400c98",
+  "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+  "elapsed_seconds": 14.102374624926597,
+  "passed": true,
+  "results": [
+    {
+      "expected_source_index": 0,
+      "source_marker_counts": [
+        1860,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 0,
+      "decoded_frames": 1860,
+      "ivf_sha256": "799d2f79be7b25413e6fc6973437e0138117e40fc0d9f61e6fe3caa22aba2ddc",
+      "rgb_sha256": "c7ad58a1549d8d3a595f7e003b2b8609e1c7cb791f0007e90c9dee2c52e24a30",
+      "passed": true
+    },
+    {
+      "expected_source_index": 1,
+      "source_marker_counts": [
+        0,
+        1860,
+        0,
+        0,
+        0,
+        0
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 1,
+      "decoded_frames": 1860,
+      "ivf_sha256": "9606ffeaa2f73d8a5b0b0ad48d597faf041a8e63e9c11f4d142fb747d9b0a356",
+      "rgb_sha256": "33a506f74dddf56fe34b32158a0554ad4faa2ca2ae32a0f2c1b3dcff80e3ebe4",
+      "passed": true
+    },
+    {
+      "expected_source_index": 2,
+      "source_marker_counts": [
+        0,
+        0,
+        1860,
+        0,
+        0,
+        0
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 2,
+      "decoded_frames": 1860,
+      "ivf_sha256": "33da47a3b32236f56c43f01c5fc303bf949718fa2ee743bf5b2edbadd9b380f9",
+      "rgb_sha256": "5194fa695f2cec60f0ca8bdc675fd3ab179ec4ba9e6f55426b19ef39117fdc75",
+      "passed": true
+    },
+    {
+      "expected_source_index": 3,
+      "source_marker_counts": [
+        0,
+        0,
+        0,
+        1860,
+        0,
+        0
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 3,
+      "decoded_frames": 1860,
+      "ivf_sha256": "c65cc90d0f866645e9952dd04938dea310f2c450e78593a8a72d8bc2765c0f57",
+      "rgb_sha256": "ed6103574197c473e65a5b635f7e46465bee4b6583ca6e2363d572a392b57482",
+      "passed": true
+    },
+    {
+      "expected_source_index": 4,
+      "source_marker_counts": [
+        0,
+        0,
+        0,
+        0,
+        1860,
+        0
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 4,
+      "decoded_frames": 1860,
+      "ivf_sha256": "df5169b3afffcfdfcec4c9126c8132ce9f329a20e25e4a7f90bda4402c9d51d4",
+      "rgb_sha256": "869e361d16d4c1d4488b09198631cadea715ae72d28251a22197a6f280e9ae38",
+      "passed": true
+    },
+    {
+      "expected_source_index": 5,
+      "source_marker_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1860
+      ],
+      "expected_source_frames": 1860,
+      "other_identified_source_frames": 0,
+      "unclassified_pixel_frames": 0,
+      "wrong_source_pixel_frames": 0,
+      "index": 5,
+      "decoded_frames": 1860,
+      "ivf_sha256": "c521081c519d916dc2c427f7dd65959e5c59b22e47d5c0816955de353451f0fc",
+      "rgb_sha256": "e3ae3deda8c0c23491786c93bb2bd89b32f2ddaf41aedab005ab9add9a060d36",
+      "passed": true
+    }
+  ],
+  "scope": "Original six independently encoded 62-second 360p30 moving VP8 sources decoded directly with the existing fixed source pixel assay. No transport, receiver, impairment or cell qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "task": "G6-058",
+  "quality_thresholds_changed": false,
+  "marker_assay": "Independent FFmpeg VP8 decoder; original crop=16:16:8:8,scale=1:1; rgb24 source classification with unchanged40/255 channel tolerance.",
+  "total_decoded_frames": 11160,
+  "interpretation": "All11160 original encoded source frames classify correctly in this local FFmpeg9.0.2 calibration. This checks the current generator/assay pair; it does not establish where the earlier hosted received-frame corruption arose or qualify any transport cell."
+}

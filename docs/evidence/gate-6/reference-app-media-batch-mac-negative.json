@@ -1,0 +1,86 @@
+{
+  "format": "connect/reference-app-media-batch-mac-negative/1",
+  "task": "G6-072",
+  "run_id": 41319848403,
+  "source_revision": "317c02a80d81bce644dc398bca9d7b9fcf79a6d2",
+  "artifact": {
+    "id": 13092218992,
+    "size": 24723,
+    "sha256": "f0fa0a2986ebfcbed8a1095218a1e95e167b65dc481ddcf08e99fe64ff553ff9"
+  },
+  "passed": false,
+  "checks_passed": 5,
+  "checks_required": 37,
+  "failure": {
+    "stage": "native-browser-video-playout-component",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 271,
+        "column": 12
+      }
+    ]
+  },
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "native_video_playout_component": {
+    "painted": 0,
+    "dropped": 1,
+    "queued": 2,
+    "pixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "frame_construction_ms": 1,
+    "enqueue_ms": 0,
+    "observation_ms": 1686
+  },
+  "identity_audit": {
+    "git_app_checker_installer_cpu_native_inputs_verified": 35,
+    "node_package_source_inputs_verified": 197,
+    "installed_sdk_files_verified": 195,
+    "source_guards_passed": true
+  },
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "317c02a80d81bce644dc398bca9d7b9fcf79a6d2",
+    "target": "aarch64-apple-darwin",
+    "sources_verified": {
+      "git": 4847,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 755,
+    "binary_sha256": "322131ce37d0be6282a51fbe9bc04887ba8bf0c2fa441d965ccdb25e953b1f8d",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "4eb7f7b046617eb9a5359e2e060c48fea23d442e6455c299fa0f8a7b26687e2b",
+    "manifest_sha256": "8351b4dd2d4beccd3a3a50d612439405549fbe14ba167c65b4dea46377048421",
+    "artifact_zip_digests": {
+      "evidence": "eef96dba2c9fa0cd201fa4b30ac85f119599faf0a6bfaebfcc578a10ea514bdb",
+      "package": "7762efcb043d56d0f682b7b8e6cc68977b697ca182e3ea0a8a98fbe7467ee373"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "png_captures": 0,
+  "interpretation": "Original source317 Mac rehearsal stopped before actual microphone/AV scenes. The three original video targets were80/113/146ms after start; the native300ms observer actually ran at1686ms, after one expired-frame drop with two frames still queued. The scheduler delay cause is unproved. Controlled overdue-queue regressions separately reproduce and correct the one-per-timer drain in sourceb3a6f201; all-late frames still must be discarded under the unchanged50ms allowance, so the correction does not imply this native paint assertion would pass under the same stall.",
+  "related_correction": "docs/evidence/gate-6/reference-app-overdue-video-drain.json",
+  "hosted_av_failure_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
