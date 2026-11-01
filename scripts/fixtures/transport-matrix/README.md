@@ -189,3 +189,11 @@ prove live audio/video, a media ownership replacement or the six-Connection
 workload. Actual owned topology, browser transport selection/fallback, packet
 capture and decoded duplex observations still belong to the full cell executor.
 The scenario's reports keep every complete matrix cell unqualified.
+
+The Ubuntu/local/native EdDSA control stage is independently verified at
+`5552d367` in [the source-bound report](../../../docs/evidence/gate-6/transport-conversation-verified.json):
+13 configuration/enrollment/rehearsal checks, nine SDK scenario checks, 40 public
+CLI commands, five joined SDK helpers and two joined servers. Nonempty history
+reads followed their cursor through the terminal page. Earlier pagination and
+active-snapshot fixture assumptions are retained as negative evidence. This
+result grants no other platform, topology, signing cohort or complete cell a pass.

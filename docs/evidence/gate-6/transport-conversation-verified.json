@@ -1,0 +1,86 @@
+{
+  "format": "connect/verified-transport-conversation-control/1",
+  "task": "G6-058",
+  "source_revision": "5552d367c7e90eaeab21342a0d4e944370686865",
+  "workflow_run_id": 41268492370,
+  "job_id": 124736200265,
+  "artifact_id": 13068082746,
+  "zip_sha256": "2866a20ac6b6489527b855e363fea582789d8f76b0265cf6056894ff841c24e8",
+  "source_inputs_sha256": "cd2fbe9210997e17f2040b016fa7d7f44f1e3072b79606ce4cc41f24a1e8c8e9",
+  "report_sha256": "a35013f961b276bcebcd6ba9b70058eebce1805e876508f8ba5d0f3bf45d22ca",
+  "conversation_report_sha256": "0bd2b8da4399ce129ed9850c98ed88f326841922d1d9c1c09ab464a5326fe31b",
+  "sources_verified": {
+    "git": 4691,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "configuration_actor_checks": [
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+    "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "conversation_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "both-original-session-intents-end-through-public-sdk",
+    "independent-device-recovers-original-create-and-history-after-original-helper-close"
+  ],
+  "history_page_counts": [
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 2,
+      "messages": 4
+    }
+  ],
+  "public_cli_commands": 40,
+  "expected_cli_refusals": [
+    "actor-cannot-provision",
+    "revoked-primary-native-refusal"
+  ],
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 2,
+  "node": "v22.23.4",
+  "control_stage_verified": true,
+  "actual_connection_workload_observed": false,
+  "live_media_upgrade_observed": false,
+  "replacement_media_ownership_observed": false,
+  "actual_topology_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One actual Ubuntu/local/native EdDSA public Node SDK control scenario: membership/audiences, two accepted Session intents, additive capability intent/refusal and original-operation recovery across an independent Device. No six-Connection workload, media ownership/duplex, packet capture, browser, remote topology, SIP, TURN, model or provider execution."
+}

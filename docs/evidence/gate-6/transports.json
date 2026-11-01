@@ -1138,7 +1138,7 @@
   },
   "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection.",
   "conversation_control": {
-    "status": "corrected-current-snapshot-removal-assertion-runtime-unrun",
+    "status": "source-verified-public-sdk-conversation-control-stage-pass",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "f05f1bd491ada00a355a1e899cc04705e604243dbd168f3b7de948c047752d19",
       "scripts/check-transport-fixtures.py": "4bfc9e2ea15a5bd228be135cf3a9f6cbae3645690419354a4f728c867a2725aa",
@@ -1149,7 +1149,7 @@
     "node_syntax": true,
     "python_syntax": true,
     "workflow_yaml_parsed": true,
-    "runtime_verified": false,
+    "runtime_verified": true,
     "intended_observations": [
       "four active members; participant add/update/remove/readmission",
       "old message audience and old membership-epoch history/replay fencing",
@@ -1167,12 +1167,13 @@
     "task_complete": false,
     "negative_evidence": "docs/evidence/gate-6/transport-conversation-negative.json",
     "runtime_candidate": {
-      "source_revision": "9d71229fe4e1d72307f9cdfaefba9fa65e88e076",
-      "workflow_run_id": 41268267081,
-      "job_id": 124735527518,
-      "status": "rehearsal-failed-removed-member-snapshot-assumption"
+      "source_revision": "5552d367c7e90eaeab21342a0d4e944370686865",
+      "workflow_run_id": 41268492370,
+      "job_id": 124736200265,
+      "status": "completed-success-independently-verified",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41268492370"
     },
-    "observed": "4Nodechecks pass including unchanged old/current message audiences with1pageempty/2pagenonempty history.5SDKhelpers and2originalservergroups join withno force. Removal/current-access and old-operation checks precede a fixture assertion that incorrectly expects an inactive member in an active-only current snapshot.",
+    "observed": "13configuration/actor/rehearsal checks andall9NodeSDKscenario checks pass.4activeConversationmembers,2acceptedSessionintents, offeredadditiveaudiointent/unofferedvideorefusal, membershipepoch/audience/replayfencing and independentDeviceoriginalrecovery.40publicCLIcommands,5originalSDKhelperjoins+2originalservergroupjoins; current192SDKfiles bound. Complete transport cells remain unqualified.",
     "diagnostic_correction": "Fixed Node script coordinates plus type/count-only assertion shapes; keep all assertions and outcomes. Fixture server failure cleanup now attempts original graceful stop and records force/exit/group outcome.",
     "source_contract_correction": {
       "source": "crates/connect-store/src/conversation_queries.rs::history_query",
@@ -1186,6 +1187,7 @@
       "disposition": "Cancellation requested during cache restore for the identified deterministic short-page terminal assertion defect; no runtime result claimed."
     },
     "negative_evidence_9d": "docs/evidence/gate-6/transport-conversation-negative-9d.json",
-    "snapshot_correction": "Require three active participants and absence of the removed identity in the current snapshot; current-access denial, old-epoch denial, stable-ID readmission and all later checks remain required. No product behavior change."
+    "snapshot_correction": "Require three active participants and absence of the removed identity in the current snapshot; current-access denial, old-epoch denial, stable-ID readmission and all later checks remain required. No product behavior change.",
+    "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   }
 }
