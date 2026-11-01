@@ -36,7 +36,7 @@ pub(super) fn prepared_target_scene_scoped(
 ) {
     prepared_target_with_capabilities(extra_operations, vec!["audio".into()])
 }
-fn prepared_target_with_capabilities(
+pub(super) fn prepared_target_with_capabilities(
     extra_operations: &[&str],
     capabilities: Vec<String>,
 ) -> (

@@ -61,9 +61,25 @@ impl NativeReplacementCommitAttempt {
         let mut unique = std::collections::BTreeSet::new();
         for stream in &ready.streams {
             id(stream)?;
-            if !unique.insert(stream) || !offered.iter().any(|s| s["id"].as_str() == Some(stream)) {
+            if !unique.insert(stream.as_str())
+                || !offered.iter().any(|s| s["id"].as_str() == Some(stream))
+            {
                 return Err(conflict());
             }
+        }
+        // Preserve every identity captured at the once-only native resource
+        // start. Omitting quarantined video must not erase its durable binding.
+        let resources: serde_json::Value =
+            serde_json::from_str(&self.origin.started.observation).map_err(|_| Error::storage())?;
+        let expected_streams = resources["streams"]
+            .as_array()
+            .ok_or_else(Error::storage)?
+            .iter()
+            .map(serde_json::Value::as_str)
+            .collect::<Option<std::collections::BTreeSet<_>>>()
+            .ok_or_else(Error::storage)?;
+        if unique != expected_streams {
+            return Err(conflict());
         }
         let observation = crate::provisioning::canonical_json(&serde_json::json!({
             "movement":movement,

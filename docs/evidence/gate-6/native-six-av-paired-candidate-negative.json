@@ -1,0 +1,58 @@
+{
+  "format": "connect/gate6-six-native-paired-candidate-negative/1",
+  "workflow_run_id": 41330999735,
+  "job_id": 124929544358,
+  "artifact_id": 13095060725,
+  "verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "b8498a21c8789adf3e00c46ca242f7a1f0437cb5",
+    "artifact_sha256": "398f0d91ba9cdb69fb1146643dc4ca07167c5e61513e9a19b1fd341b5807358d",
+    "report_sha256": "a507ee65eedc781516da0ae392f1d7f6fe1be49ff80ffd37bcd5487e995f327b",
+    "source_inputs_sha256": "eb8b115f0e9a0c3ed395ac7b44d6f9258df9f97a652541d6c4728744a309625e",
+    "sources_verified": {
+      "git": 4864,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "aa123711d75df5dbdc96c0eff96ced0949f82873083744a8fd293990f9334404",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "c511dfb930aebe425ee8a6395faf0c23775c85a17fd7d9a20e0a795429a26fa3",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "uncertain",
+    "source_stack": []
+  },
+  "all_observed_helpers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "scope": "Paired-marker source2 candidate fails during native AV work before a complete report. Six original native offers and six reliable full-size transfers precede the exception. Source and SDK inputs independently verify; binary/PCAP bytes are absent from this archive. No paired decoded-sync, sixty-second quality, replacement or complete matrix-cell pass.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

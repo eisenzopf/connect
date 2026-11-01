@@ -1,0 +1,22 @@
+{
+  "format": "connect/gate6-store-av-commit-resource-custody/1",
+  "base_revision": "ac7b16d2",
+  "original_regression": {
+    "passed": 0,
+    "failed": 1,
+    "source_inputs_unchanged": true,
+    "failure": "Committed capture incorrectly accepts omission of the original negotiated camera identity.",
+    "source_inventory_sha256": "36766bc49180e3710a0ccbb2d5ea389e5207fbcb59771820e4820ef66c15f2a3"
+  },
+  "corrected_commit_suite": {
+    "passed": 13,
+    "failed": 0,
+    "filtered": 1300,
+    "source_inputs_unchanged": true,
+    "source_inventory_sha256": "4bfc60798595b760e88fa3e90ee0f914bd60160babb479bdca66cb0a1f6a3740"
+  },
+  "behavior": "Commit capture requires exactly the complete set of resource identities captured by the once-only native start. Missing audio or camera, duplicates and unnegotiated identities refuse. Full exact set is accepted as captured metadata only.",
+  "scope": "Store metadata only; no physical movement, decoded video readiness, video unmute, provider calls or transport qualification. Service must still supply all immutable actual negotiated identities.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

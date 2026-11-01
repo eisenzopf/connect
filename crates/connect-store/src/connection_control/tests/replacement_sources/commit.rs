@@ -1029,3 +1029,44 @@ fn replacement_known_commit_projection_preserves_later_topology_without_replayin
         .unwrap()
         .current());
 }
+
+#[test]
+fn replacement_av_commit_capture_requires_every_original_negotiated_resource_identity() {
+    for omitted in [Some("camera"), Some("audio"), None] {
+        let (f, key, command, prepared, mut request, sources) =
+            super::allocation::prepared_target_with_capabilities(
+                &[],
+                vec!["audio".into(), "video".into()],
+            );
+        let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+            panic!()
+        };
+        intent.offer["streams_offered"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+            "id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
+        let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
+        let read =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let attempt =
+            m.f.store
+                .begin_native_replacement_commit(m.origin.clone(), &read)
+                .unwrap();
+        let expected = attempt.expected().unwrap();
+        let mut observed = ready(&read, &expected);
+        if let Some(stream) = omitted {
+            observed.streams.retain(|s| s != stream);
+        }
+        let result = attempt.committed(expected, &observed);
+        assert_eq!(result.is_ok(), omitted.is_none(), "omitted={omitted:?}");
+        drop(read);
+        assert_eq!(
+            m.f.count("connections"),
+            2,
+            "capture alone projected target readiness"
+        );
+    }
+}
