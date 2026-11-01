@@ -119,7 +119,7 @@ jobs:
           cargo test --release --locked -p connect-store --lib native_stream_authority::data_reads -- --nocapture
       - name: Check native media failure joins
         if: inputs.component == 'media'
-        run: node --test scripts/tests/transport_av.test.mjs scripts/tests/transport_live_upgrade.test.mjs
+        run: node --test scripts/tests/transport_av.test.mjs scripts/tests/transport_live_upgrade.test.mjs scripts/tests/transport_replacement_target.test.mjs
       - name: Run exact non-media QUIC HTTP3 and WSS control functions
         if: inputs.component == 'control'
         id: control

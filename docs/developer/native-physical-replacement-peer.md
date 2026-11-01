@@ -41,3 +41,22 @@ failures and the corrected RTCP/audio demultiplexing audit remain recorded in
 the [local evidence](../evidence/gate-6/physical-native-opus-replacement-local.json).
 Integration of this target and its independent decoder into every required
 matrix producer remains open.
+
+`scripts/lib/transport_replacement_target.mjs` now owns the public SDK controller
+and Rust target stage. It copies and validates the bounded source, saves the
+complete original command and both observed Connection generations before
+submission, saves the returned original reference and checks the allocation
+root's command, operation, expected revision and record. It starts only the
+source-hashed independent executable with private input/output. Completion comes
+from the original operation; retirement uses bounded reads of the same source
+Connection and a newer generation. The retained Connection keeps its original
+generation and the completed destination binding must identify the designated
+Device. The caller joins the original source owner through an explicit callback.
+
+The stage restores the same original reference, waits for the original worker,
+records forced cleanup as failure, and verifies unchanged executable/config
+bytes. It neither decodes packets nor infers completion from negotiation or
+traffic. Controlled tests cover copied sources/native capability shape,
+bounds/refusal and a mismatched original root that cannot launch a physical
+target. Actual repeated transition and full matrix integration evidence remain
+separate requirements.
