@@ -89,6 +89,13 @@ fn native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_origi
         drop(proof);
         // A later, longer admitted proof can read the original reservation;
         // replay must not grant it a new schedule or later expiry.
+        // Cross a real clock boundary so renewing at replay time would be
+        // observable even when the original source has plenty of time left.
+        let boundary_deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while crate::now() <= created {
+            assert!(std::time::Instant::now() < boundary_deadline);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         let replay = accept(&f, &request);
         assert_eq!(replay, record);
     }

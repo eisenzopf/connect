@@ -1,0 +1,53 @@
+{
+  "format": "connect/gate6-stream-reservation-clock/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Store reservation timestamp consistency and current audience refusal assertions. No physical DTMF, transport cell, media quality or Gate 6 completion claim.",
+  "source_files_sha256": {
+    "crates/connect-store/src/transitions/native_streams.rs": "5fb62067d04ab1cd112c5b4e133b6df8060ef400fbe80a9428b31f7b87d018fd",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/dtmf.rs": "b23f1032e35c119d95238072c2eaea127b635c64e4b7aaf5cb88b0bfdf34c2e7",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/data_reads.rs": "14decb1160994b02dd1a4380e51b1733046be9e07c75a58f4af2a83634481e37"
+  },
+  "source_inputs_sha256": "6c5d2eb1ac18fb063d3eac06cc36985e30f1bae3113a32a150963557e7772a8e",
+  "source_inputs_unchanged_at_test_completion": true,
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "test_binary_sha256": "3e26f0be20bb56f53af71e2ccbb56d31c8cfa225fe4c0951ad70878b60fdbe3b",
+  "prior_full_suite": {
+    "passed": 1312,
+    "failed": 1,
+    "ignored": 3,
+    "status": "failed",
+    "test_binary_sha256": "8a71ec7faa97817f2d7e9ec93d0fc10645132790d87e85d94dee8db060146780",
+    "failure": "DTMF expires_at was one second earlier than the separately sampled created_at plus the original40-second budget. Three ignored subprocess workers are invoked by parent tests.",
+    "preserved_in": "replacement-metadata-admission.json"
+  },
+  "initial_affected_suite": {
+    "passed": 184,
+    "failed": 1,
+    "ignored": 0,
+    "status": "failed",
+    "dtmf_corrected_case_passed": true,
+    "failure": "Audience denial returned authority-busy on policy-clock rollover; exact not-recipient assertion had no stable-clock condition.",
+    "inputs_sha256": "8c18b87d1612e708901aee5306287d6359d88f5979a9226d8c7f6009dc822219"
+  },
+  "correction": "Use one reservation clock sample for created_at, updated_at and expiry budget. Keep40-second DTMF/30-second ordinary limits, original source expiry and receipt replay unchanged. Replay test crosses a real second. Audience test requires every read to refuse and exact not-recipient during an unchanged clock interval; rollover may only report authority-busy or not-recipient.",
+  "verification": {
+    "native_stream_authority": {
+      "passed": 185,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "da9df45ed5f0d2a5eb4909a5cdedbc89c483350f667092f5f4a3debd3ff5f4ee"
+    },
+    "endpoint_replacement_admission": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "5d44987e4112e3695b05cac9862ee152b6f394042380901d2a102441e8994be8"
+    },
+    "format_exit_code": 0
+  },
+  "full_current_source_suite_executed": false,
+  "task_complete": false,
+  "full_transport_cells_qualified": 0,
+  "whole_gate_qualified": false
+}

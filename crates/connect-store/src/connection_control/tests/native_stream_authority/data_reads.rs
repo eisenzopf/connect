@@ -166,7 +166,22 @@ fn native_data_read_exact_intent_and_original_audience_cannot_be_substituted() {
     let d = fixture(2, true);
     let (_, proof) = d.begin();
     drop(proof);
-    assert_eq!(d.fresh().unwrap_err().code, "not-recipient");
+    // A policy-clock rollover invalidates the read snapshot and deliberately
+    // returns authority-busy. Every attempt must refuse; an unchanged-clock
+    // attempt must also establish the exact audience refusal.
+    for _ in 0..8 {
+        let before = crate::now();
+        let error = d.fresh().unwrap_err();
+        if crate::now() == before {
+            assert_eq!(error.code, "not-recipient");
+            return;
+        }
+        assert!(matches!(
+            error.code.as_str(),
+            "authority-busy" | "not-recipient"
+        ));
+    }
+    panic!("No unchanged clock interval for the audience refusal");
 }
 #[test]
 fn native_data_read_current_target_permission_presence_and_data_floor_are_independent() {

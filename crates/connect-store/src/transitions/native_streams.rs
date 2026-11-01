@@ -392,7 +392,11 @@ impl Store {
         } else {
             30
         };
-        let expires = (crate::now() + budget).min(source_expiry);
+        // The reservation's budget and creation time share one clock sample.
+        // Capacity checks can cross a wall-clock second before the insert;
+        // sampling again there would make the recorded budget inconsistent.
+        let created = crate::now();
+        let expires = (created + budget).min(source_expiry);
         if expires <= crate::now() {
             return Err(Error::forbidden());
         }
@@ -404,7 +408,7 @@ impl Store {
             ));
         }
         let record = format!("opr_{}", uuid::Uuid::new_v4());
-        tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,expected_revision,intent_json,state,created_at,updated_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'accepted',?12,?12,?13)",params![record,tenant,actor.identity_id,wire.operation_id,hash,wire.command.name(),wire.conversation_id,wire.session_id,wire.connection_id,wire.expected_revision,json,crate::now(),expires]).map_err(|_|Error::storage())?;
+        tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,expected_revision,intent_json,state,created_at,updated_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'accepted',?12,?12,?13)",params![record,tenant,actor.identity_id,wire.operation_id,hash,wire.command.name(),wire.conversation_id,wire.session_id,wire.connection_id,wire.expected_revision,json,created,expires]).map_err(|_|Error::storage())?;
         let connection = &source.connection.connection;
         tx.execute("INSERT INTO native_stream_operations(operation_record_id,parent_record_id,credential_id,key_id,device_id,participant_id,membership_epoch,generation,resources_json,source_expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",params![record,source.parent_record_id,credential,proof.request.key_id,proof.key.device_id,connection.participant_id,connection.membership_epoch,connection.generation,resources,source_expiry]).map_err(|_|Error::storage())?;
         if wire.is_ice_restart() {

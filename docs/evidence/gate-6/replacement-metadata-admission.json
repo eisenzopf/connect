@@ -2,7 +2,7 @@
   "format": "connect/gate6-replacement-metadata-admission/1",
   "updated": "2026-11-01",
   "task": "G6-058",
-  "scope": "Endpoint replacement immutable metadata admission under current packet readers, plus independent Session control owners. Admission regression passes; full Store verification and complete media workload remain open.",
+  "scope": "Endpoint replacement immutable metadata admission under current packet readers, plus independent Session control owners. Admission regression passes; complete media workload remains open.",
   "source_files_sha256": {
     "crates/connect-store/src/transitions/admission.rs": "2f0b9c57cabc7ef41dc19d2eb824ce5f322230e32bc1e18f51b250af4bef38f9",
     "crates/connect-store/src/transitions/tests/peer_operations.rs": "3dcacef0de015fd0f2d8e8ea5e668eefa96a5b65361e6008ad0f5df5d8dbdae8",
@@ -49,19 +49,35 @@
     "source_inputs_unchanged": true
   },
   "full_store_suite": {
-    "status": "in-progress",
-    "observed_at": "2026-11-01T21:18:51.490409+00:00",
-    "passed_so_far": 914,
-    "failed_cases_so_far": [
-      "test connection_control::tests::native_stream_authority::dtmf::native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_original_source_or_replay ... FAILED"
-    ],
+    "stage": "complete",
+    "controller_pid": 73260,
+    "passed": false,
+    "exit_code": 101,
+    "elapsed_seconds": 858.7946328748949,
+    "source_inputs_unchanged": true,
+    "cases_passed": 1312,
+    "cases_failed": 1,
+    "cases_ignored": 3,
+    "test_binary_sha256": "8a71ec7faa97817f2d7e9ec93d0fc10645132790d87e85d94dee8db060146780",
+    "status": "terminal-failure",
     "qualified": false,
-    "isolated_failed_dtmf_case": {
-      "exit_code": 0,
-      "test_binary_sha256": "8a71ec7faa97817f2d7e9ec93d0fc10645132790d87e85d94dee8db060146780",
-      "passed": true
-    },
-    "limitation": "The isolated DTMF case passes, but the full-run failure remains. Await original suite completion and inspect its exact assertion before deciding its cause."
+    "failed_case": "connection_control::tests::native_stream_authority::dtmf::native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_original_source_or_replay",
+    "failure": "Expiry was one second earlier than created_at + 40 due to separate wall-clock samples; strict test unchanged. Subsequent clock correction is separately verified.",
+    "intentional_ignored_workers": [
+      {
+        "test": "authority_fences::tests::process_worker",
+        "reason": "Explicitly executed by the cross-process parent tests"
+      },
+      {
+        "test": "installation_ownership::tests::process_worker",
+        "reason": "Subprocess fixture explicitly invoked by ownership refusal and process-death parents"
+      },
+      {
+        "test": "transitions::tests::crash_worker",
+        "reason": "Subprocess fixture explicitly invoked by crash and administration parent tests"
+      }
+    ],
+    "limitation": "This full-suite result is bound to the retained pre-clock-correction inputs and test binary. It remains failed; targeted later results do not replace it."
   },
   "actual_scenes": [
     {
