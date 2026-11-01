@@ -104,8 +104,10 @@ export class AppGateway {
     }
     async #topology(role, cid, options) {
         let page, cursor, revision, watermark; const items = [];
-        for (let count = 0; count < 16; count++) {
-            const frames = await this.#raw(role, "conversation.get", { limit: 128, ...(page ? { page } : {}) }, cid, options);
+        // The frozen wire limit is 127 items; the remaining reply slot is the
+        // acknowledgement. Keep the application's 2048-item ceiling across pages.
+        for (let count = 0; count < Math.ceil(2048 / 127); count++) {
+            const frames = await this.#raw(role, "conversation.get", { limit: 127, ...(page ? { page } : {}) }, cid, options);
             const snapshot = frames.find(frame => frame.type === "conversation.snapshot")?.payload;
             if (!snapshot || !Array.isArray(snapshot.items) || typeof snapshot.has_more !== "boolean") fail("app-resync-required");
             if (revision === undefined) { revision = snapshot.revision; watermark = snapshot.cursor; }

@@ -2,13 +2,14 @@
 // actual installed-package/server/browser qualification remains separate.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { AppIntents } from "./intents.mjs";
 import { AppGateway, publicError } from "./gateway.mjs";
 const root = fileURLToPath(new URL("../../../.local/gate-6/reference-app/", import.meta.url));
 await mkdir(root, { recursive: true, mode: 0o700 });
+const frozen = JSON.parse(await readFile(new URL("../../../contracts/schemas/uctp-envelope-2.schema.json", import.meta.url), "utf8"));
 const actors = { owner: { identityId: "id-owner", config: "private-owner.toml", label: "Owner" },
     organizer: { identityId: "id-organizer", config: "private-organizer.toml", label: "Organizer" } };
 const commands = ["conversation.create", "message.send", "session.invite", "session.accept", "session.reject", "session.cancel", "session.end", "connection.update"];
@@ -60,7 +61,14 @@ function fixture() {
             operations: { restore: (reference, kind) => { assert.equal(kind.command, reference.command); return operation(reference); } },
             capabilities: { refresh: async () => { permitted(); return { selectedTransport: "quic", features: new Set(["original-id-operations"]) }; } },
             conversations: { byId: conversation, create: (sdk, options) => mutate("conversation.create", {}, sdk, options, { id: "conversation-created" }) },
-            raw: { validate: value => ({ value }), request: async checked => {
+            raw: { validate: value => {
+                if (value.type === "conversation.get") {
+                    const limit = frozen.$defs.ConversationGet.properties.limit;
+                    assert.ok(Number.isInteger(value.payload.limit) && value.payload.limit >= limit.minimum && value.payload.limit <= limit.maximum,
+                        "Application topology requests must satisfy the frozen public wire limit");
+                }
+                return { value };
+            }, request: async checked => {
                 permitted(); const envelope = checked.value, frame = (type, payload) => ({ value: { type, cid: envelope.cid, payload } });
                 if (envelope.type === "conversation.list") return [frame("ack", { details: { page: { conversations: [{ id: "conversation-created", closed: false }], next_cursor: null } } })];
                 if (envelope.type === "message.history") return [frame("message.send", { msg_id: "message-1", from: "participant-owner", body: "visible text", content_type: "text/plain", body_encoding: "utf8" }), frame("ack", {})];

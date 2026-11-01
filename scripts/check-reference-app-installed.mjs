@@ -96,6 +96,14 @@ try {
         assert.equal(result.value.alias, actor.alias);
     }
     check("actual-public-helper-validates-all-generated-identity-intents");
+    const envelope = { v: 2, id: "snapshot-contract-probe", ts: new Date().toISOString(), type: "conversation.get", cid: "conversation-contract-probe" };
+    for (const [limit, valid] of [[128, false], [127, true]]) {
+        const result = JSON.parse(execFileSync(installation.executable, ["sdk-validate-envelope"], {
+            input: JSON.stringify({ ...envelope, payload: { limit } }), timeout: 2000,
+            maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
+        assert.equal(result.profile, "connect-sdk-validation/1"); assert.equal(result.valid, valid);
+    }
+    check("actual-public-helper-refuses-128-and-accepts-127-snapshot-items");
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
     const origin = await start(1); check("one-command-four-actor-scoped-setup-ready");
     context = await chromium.launchPersistentContext(join(output, "profile"), { headless: true,

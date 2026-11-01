@@ -14,8 +14,8 @@
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "60e461a32483263409a114ee8fc64a3135b5c9171ab7d67cbb6fd167cb1a87a7",
-    "examples/parley-on-connect/app/gateway.test.mjs": "ec73d36cd0586d502dd4561c5f9cbc7ed3dc60e590b5cbcc27cbfd31e1f57fc6",
+    "examples/parley-on-connect/app/gateway.mjs": "2afda1c687667d39c6b16d6097104c1e3c530f6bd3009382be5c468f3431ef2e",
+    "examples/parley-on-connect/app/gateway.test.mjs": "84c607bb7a7e1163b9048d4769248de7f81bb21346c388705e2be7852f64d4fe",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
@@ -29,7 +29,7 @@
     "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
     "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "6ac64efb7a290df2ea4356bf70d66457fed6895cf32bbaa0b8b3b2cd44db952a",
+    "scripts/check-reference-app-installed.mjs": "a3a876e5826815370ea8237607028578b6b0c50c29d3773a8e4f974738b208dd",
     ".github/workflows/gate6-reference-app.yml": "dd7a4962113142bebed2d65a2fc3fa5e75a32b27dca334e2b8d4060d67db805b",
     "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
@@ -70,7 +70,7 @@
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "Run41259152049/98f71e78 Mac source-verified: production helper before/after alias guard passes all4 roles, actual one-command scoped setup ready and installed native SDK/browser control connected. Next conversation creation fails; backend cause unresolved. Linux still live in prerequisite installation. Add redacted backend classes/source locations and body-free public API observations for diagnosis; full app requirements unchanged.",
+    "status": "Both98f71e78 platform reports source-verified: production alias guard, actual one-command setup and native SDK/browser connection pass. Diagnostic dfb6df98 Mac confirms conversation.create completes but view fails frozen validation: topology limit128 exceeds127. Correct wire limit and preserve2048 total items through17pages; add actual production parser before/after check. All24 local cases pass. No full installed app or task pass yet.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"
