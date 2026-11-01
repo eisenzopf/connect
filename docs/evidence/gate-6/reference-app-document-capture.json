@@ -77,6 +77,13 @@
     "remaining_group_members": 0,
     "footer_visually_inspected": true,
     "passed": true,
-    "current_corrected_full_rehearsal_pending": true
+    "current_corrected_full_rehearsal_pending": false
+  },
+  "profile2_actual_installed_rehearsal": {
+    "source_revision": "f1c1715740cc70f4f2b98ae589603186bc77cff5",
+    "checks_passed": 37,
+    "all6images_rgb_verified_no_partial_repetition": true,
+    "viewport_clip_restoration_verified": true,
+    "evidence": "docs/evidence/gate-6/reference-app-capture-profile2-local.json"
   }
 }

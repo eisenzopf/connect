@@ -1,0 +1,157 @@
+{
+  "format": "connect/reference-app-capture-profile2-local/1",
+  "task": "G6-072",
+  "source_revision": "f1c1715740cc70f4f2b98ae589603186bc77cff5",
+  "runtime_source_revision": "f1c1715740cc70f4f2b98ae589603186bc77cff5",
+  "binary_sha256": "1507bbd9da36ecf7652607e2a1343bf97df151fa7c074714bff803097e12d8d1",
+  "all37_original_behavior_checks_passed": true,
+  "checks_passed": 37,
+  "checks_required": 37,
+  "node": "v22.16.0",
+  "browser": "156.0.8078.4",
+  "browser_launcher_sha256": "c8509aee32abd6977968e9999769980b7a420dea05402d90042d9e5b41db15ef",
+  "private_report_sha256": "16e01cbae65c6ff59a58ebb04c17f4cfd033cf5b7bc6c8930684b4cef1fb913b",
+  "identity_audit": {
+    "app_checker_installer_summary_git_inputs_verified": 31,
+    "node_producer_sources_verified": 197,
+    "installed_node_payload_files_verified": 195,
+    "png_bytes_verified": 6,
+    "image_rgb_decodes": [
+      {
+        "name": "native-controls.png",
+        "png_sha256": "a56a4b4e8f294176c677e474eee61e044edbdce38112b69766241d397146b782",
+        "width": 1440,
+        "height": 2559,
+        "rgb_sha256": "26d6ce6fe5f4c44dffaefb5444773526d40133071e140901d58a7f513b3bbcc3",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "png_sha256": "1496d07353cb7b8e39d0a1df2e393fc53b76d5f1ed7df5b5ee08d64c67f176bc",
+        "width": 320,
+        "height": 3900,
+        "rgb_sha256": "99e0ff2650a4a90a1f8fc1c756e7f7a3b460dd487046d2efc54ed768611f448f",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "capture-controls.png",
+        "png_sha256": "bde35bcc33c5fa4f68ae0ec5d461aa3a8df1585872cecfc1feae5a34491028af",
+        "width": 1440,
+        "height": 2389,
+        "rgb_sha256": "7ac16463464d53c62a46ed5caeabfda6f88cd21c649e63ae53ef0ebbc36bc58d",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "png_sha256": "87a3649f68e145b702473375c15fb5001b759b55b6e6edc67f47e1c9ab81f1c0",
+        "width": 320,
+        "height": 3753,
+        "rgb_sha256": "a23d5d986f54138ff995424956d486a06607bab187d0f480cd311111b21f3526",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "video-controls.png",
+        "png_sha256": "9fc23f75b2ffe6a41de4569e7a85a7f1c0f891d31f376bac5e8f1138785dab75",
+        "width": 1440,
+        "height": 3587,
+        "rgb_sha256": "38c874622c49f974d35ece2198b1537ef2e15a34b912ea95bd11f7eb6cdcbbfc",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "video-controls-narrow.png",
+        "png_sha256": "22d141519732a5d385cf65bf7baf7b94774d7dc9080b2143841796e1fd0e7246",
+        "width": 320,
+        "height": 4696,
+        "rgb_sha256": "289bada310a92be8c4c8263bbe2f3791f7aeb2378c24cc0e34be288966062cd6",
+        "repeated_header_rows": []
+      }
+    ],
+    "checks_exactly_match_all37": true,
+    "production_runtime_evidence": {
+      "format": "connect/verified-native-sdk-runtime/1",
+      "source_revision": "f1c1715740cc70f4f2b98ae589603186bc77cff5",
+      "target": "aarch64-apple-darwin",
+      "sources_verified": {
+        "git": 4821,
+        "prepared": 4094,
+        "pinned_archives": 0
+      },
+      "files_verified": 755,
+      "binary_sha256": "1507bbd9da36ecf7652607e2a1343bf97df151fa7c074714bff803097e12d8d1",
+      "helper_profiles": {
+        "helper.rs:PROFILE": "connect-sdk-helper/4",
+        "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+        "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+        "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+        "helper/media.rs:PROFILE": "connect-sdk-media/2",
+        "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+      },
+      "archive_sha256": "259b46d3ffac1be2aa5ccd7bcb8046ee50b2a61602a5ae700df0205596334ed0",
+      "manifest_sha256": "176b28734295b250c1ff1f60648d15703373bbaa5d7ae3acc19b76f580e58f7f",
+      "artifact_zip_digests": {
+        "evidence": "2ebae6c08f374c7b1f4acdff5e0f2c3f309e01ded454e552239f9c40296cc6c5",
+        "package": "db5da4352131d6bbe2971180327f85e0883175217c7d0f5a83bae6af558f7958"
+      },
+      "passed": true,
+      "production_build_verified": true,
+      "sdk_installation_qualified": false,
+      "package_input": "retained-file",
+      "task_complete": false,
+      "whole_gate_qualified": false,
+      "publication_authorized": false
+    },
+    "profile_curation_audit": {
+      "native_stack_curation_recomputed": true,
+      "raw_native_sha256": "5f15c1a1226623f795bc93f9da8b0dda0c018f38cef22f970ea18fab99f4a4e4",
+      "app_cpu_curations_recomputed": 2,
+      "app_cpu_raw_digests": [
+        "f6bda44f779ed4118f918de7602ea887b44c580654baac59f3957b1413a1421d",
+        "1f817de0fd3ccc9720e64886e4b141b91029bf88c66497dfe256ce499edd3d1e"
+      ],
+      "raw_profiles_uploaded": false
+    }
+  },
+  "original_owner_cleanup": {
+    "native_observer_joined": true,
+    "native_observer_forced": false,
+    "original_and_restarted_app_and_native_helpers_joined": true,
+    "original_and_additional_browsers_joined": true
+  },
+  "native_server_observation": {
+    "seconds_requested": 8,
+    "elapsed_ms": 8160,
+    "server_cpu_delta_ms": 2280,
+    "raw_sample_sha256": "5f15c1a1226623f795bc93f9da8b0dda0c018f38cef22f970ea18fab99f4a4e4"
+  },
+  "visual_capture_profile": "document-height-viewport/2",
+  "visual_review": {
+    "all6actual_pngs_byte_verified": true,
+    "all6independently_rgb_decoded": true,
+    "reference_header_rows": [
+      10,
+      60
+    ],
+    "repeated_header_blocks_found": 0,
+    "actual_narrow_av_footer_visually_inspected": true,
+    "viewport_clip_padding_and_restoration_checked": true,
+    "local_capture_qualified": true
+  },
+  "native_video_component": {
+    "painted": 3,
+    "dropped": 0,
+    "queued": 0,
+    "pixel": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "frame_construction_ms": 0,
+    "enqueue_ms": 0,
+    "observation_ms": 307
+  },
+  "unchanged_rust_binary_from": "8a5421d98eae8e4e80630722d76940185132f082",
+  "scope": "Actual fresh local production macOSarm64 runtime/Node SDK installation and all37current app checks on full pinnedChromium156. 755nativefiles independently verify4821Git+4094prepared+0pinnedarchives.31app/checker/installer/CPU/native inputs,197Nodeproducer records and actual195-fileSDK/dependencies verify. Native raw stack and2appCPU curations recomputed. Exact original cleanup observations are controller results. Not a hosted app, fullSDK,32-cell matrix or acceptance qualification; namedmodel/provider/SIP/TURN lanes not executed.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
