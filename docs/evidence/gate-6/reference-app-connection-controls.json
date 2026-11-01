@@ -1,15 +1,15 @@
 {
   "format": "connect/reference-app-connection-controls/1",
   "task": "G6-072",
-  "status": "corrected-local-components-pass-installed-runtime-required",
+  "status": "audio-source-id-correction-local-components-pass-runtime-required",
   "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
   "implementation_inputs": {
-    "examples/parley-on-connect/app/gateway.mjs": "4d7e66e9cfecefb87cecbc20f73171cccb960771afc9a3aed32e12e79f090f10",
-    "examples/parley-on-connect/app/gateway.test.mjs": "950f6f701661c6f107271eafe17d4d22e89572109f5fac20a9d63e14854506c3",
+    "examples/parley-on-connect/app/gateway.mjs": "b25e427c342399113a03cc62c793ccfb390f11eb00f785a29c7497e85d23b797",
+    "examples/parley-on-connect/app/gateway.test.mjs": "e842dc5e07b774419d222743da5f669e363127a2453f7c7161a3875253a1d124",
     "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
     "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "examples/parley-on-connect/app/ui/app.mjs": "693f80ead16763b3e092e809333a3f683697600ddfa8d9372d128d52921e0088",
-    "scripts/check-reference-app-installed.mjs": "7f147681a3cd7418861de34ab851a34be4f460c470b7586d58462bed65070110",
+    "scripts/check-reference-app-installed.mjs": "731cccdc5be7164fa737a80e60f59b6228cf4e146d38b0437672ce9a8a768403",
     ".github/workflows/gate6-reference-app.yml": "e64eef8d16de0168acdc7fd669db74a24d222b02bf5f2ed6b7f970e5076762d5"
   },
   "local_verification": {
@@ -50,15 +50,9 @@
     ]
   },
   "installed_check": {
-    "status": "confirmed-live-both-installed-platforms",
+    "status": "source-id-correction-runtime-not-run",
     "expected_checks": 21,
-    "runtime_verified": false,
-    "description": "Same complete native-control scenario and deadlines. Explicit negotiated receiver IDs for unsubscribe, negotiated publication directions for mute, exact original scope assertions for every receipt, bounded latest API/action diagnostics.",
-    "workflow_run_id": 41277784529,
-    "job_ids": {
-      "linux": 124763376434,
-      "mac": 124763376602
-    }
+    "runtime_verified": false
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -67,7 +61,6 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "provider_or_model_execution": false,
-  "implementation_source_revision": "1f3b6d22eb2f7f2dd69f143b50e20509b4d09ca2",
   "previous_installed_check": {
     "status": "terminal-negative-independently-source-verified",
     "expected_checks": 21,
@@ -82,5 +75,34 @@
     "passed_checks_per_platform": 13,
     "actual_native_audio_connections_per_platform": 2
   },
-  "correction": "Use participant selectors only for subscribe; stop listening selects current recvonly negotiated IDs and their negotiated revision. Mute selects only send-capable audio bindings. Different SDK argument shapes are enforced in component fixtures. The installed checker records each completed native action, exact original result scopes and the latest64 body-free API observations; existing deadlines and all21checks remain unchanged."
+  "correction": "Audio selection is route-only on an existing duplex binding. Subscribe and unsubscribe use current visible remote audio source IDs, not presumed local recvonly bindings. Source mute uses send-capable audio bindings. All original IDs/scopes,21checks and deadlines remain required.",
+  "previous_installed_checks": [
+    {
+      "status": "terminal-negative-independently-source-verified",
+      "expected_checks": 21,
+      "description": "Retain 16 prior checks, then keyboard-open two real audio Connections, select/unselect current peer Streams, exercise all four gates, verify 320px layout, and end both originals through the installed public Node SDK. Retain synthetic desktop/narrow control screenshots for visual review. Microphone and camera remain denied; no decoded media claim.",
+      "runtime_verified": false,
+      "workflow_run_id": 41277276479,
+      "job_ids": {
+        "mac": 124761904247,
+        "linux": 124761904417
+      },
+      "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-f414.json",
+      "passed_checks_per_platform": 13,
+      "actual_native_audio_connections_per_platform": 2
+    },
+    {
+      "status": "terminal-negative-independently-source-verified",
+      "expected_checks": 21,
+      "runtime_verified": false,
+      "description": "Same complete native-control scenario and deadlines. Explicit negotiated receiver IDs for unsubscribe, negotiated publication directions for mute, exact original scope assertions for every receipt, bounded latest API/action diagnostics.",
+      "workflow_run_id": 41277784529,
+      "job_ids": {
+        "linux": 124763376434,
+        "mac": 124763376602
+      },
+      "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-1f3.json"
+    }
+  ],
+  "implementation_source_revision_before_fix": "1f3b6d22eb2f7f2dd69f143b50e20509b4d09ca2"
 }

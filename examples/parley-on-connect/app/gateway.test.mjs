@@ -58,13 +58,13 @@ function fixture() {
                         end: (sdk, options) => mutate("connection.end", { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { id: connectionId }),
                         media: { refresh: async () => ({ streamRevision: service.streamRevision, streams: [
                             { id: "stream-1", medium: "audio", direction: "sendrecv" },
-                            ...(service.receiving || service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
+                            ...(service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
                         ] }) },
                         streams: Object.fromEntries(["subscribe", "unsubscribe"].map(action => [action, (sdk, options) => {
                             // The installed public methods intentionally have
                             // different shapes: selectors versus Stream IDs.
                             assert.deepEqual(Object.keys(sdk).sort(), ["expectedStreamRevision", action === "subscribe" ? "selectors" : "streams"].sort());
-                            if (action === "unsubscribe") assert.equal(sdk.streams.first, "foreign-stream");
+                            if (action === "unsubscribe") assert.equal(sdk.streams.first, "peer-audio");
                             service.receiving = action === "subscribe";
                             return mutate("stream." + action, { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { connection: { id: connectionId } });
                         }])),
@@ -98,6 +98,10 @@ function fixture() {
                     { kind: "session_participant", data: { session_id: "session-1", participant_id: "participant-organizer", membership_epoch: service.membershipEpoch, state: service.peerState } },
                     { kind: "session_participant", data: { session_id: "session-1", participant_id: "participant-owner", membership_epoch: service.membershipEpoch, state: "present" } },
                     ...(service.connectionPresent ? [{ kind: "connection", data: { connection_id: service.connectionId, session_id: "session-1", participant_id: "participant-owner", state: "ready" } }] : []),
+                    ...(service.peerConnectionPresent ? [
+                        { kind: "connection", data: { connection_id: "peer-connection", session_id: "session-1", participant_id: "participant-organizer", state: "ready" } },
+                        { kind: "stream", data: { connection_id: "peer-connection", stream_id: "peer-audio", participant_id: "participant-organizer", medium: "audio", session_id: "session-1", state: "active" } },
+                    ] : []),
                     { kind: "stream", data: { connection_id: service.connectionId, stream_id: "stream-1", participant_id: "participant-owner", medium: "audio", session_id: "session-1" } },
                     ...(service.projectForeignStream ? [{ kind: "stream", data: { connection_id: service.connectionId,
                         stream_id: "foreign-stream", participant_id: "participant-owner", medium: "audio", session_id: "session-1" } }] : []),
@@ -243,14 +247,17 @@ test("Stream selection uses current present membership and the negotiated revisi
     await assert.rejects(f.gateway.prepareIntent("owner", "not-present", action), { code: "invalid-app-request" });
     assert.equal(f.service.calls.length, 0);
     f.service.peerState = "present";
+    await assert.rejects(f.gateway.prepareIntent("owner", "no-source", action), { code: "app-resync-required" });
+    assert.equal(f.service.calls.length, 0);
+    f.service.peerConnectionPresent = true;
     const selected = await f.gateway.command("owner", "listen", action);
-    assert.deepEqual(f.service.calls[0].sdk, { selectors: { first: { participant: "participant-organizer" }, rest: [] }, expectedStreamRevision: 8 });
+    assert.deepEqual(f.service.calls[0].sdk, { selectors: { first: { stream: "peer-audio" }, rest: [] }, expectedStreamRevision: 8 });
     assert.deepEqual(selected.result, { conversationId: action.conversationId, sessionId: action.sessionId, connectionId: action.connectionId });
     f.service.streamRevision = 17;
     const { peer, ...connectionScope } = action;
     await f.gateway.command("owner", "stop-listening", { ...connectionScope, type: "stream.unsubscribe" });
     assert.equal(f.service.calls[1].sdk.expectedStreamRevision, 17);
-    assert.deepEqual(f.service.calls[1].sdk.streams, { first: "foreign-stream", rest: [] });
+    assert.deepEqual(f.service.calls[1].sdk.streams, { first: "peer-audio", rest: [] });
     assert.equal(f.service.calls[1].command, "stream.unsubscribe");
     f.service.allowed = false;
     await assert.rejects(f.gateway.prepareIntent("owner", "revoked-listen", action), { kind: "authentication" });

@@ -297,7 +297,9 @@ try {
     await stop(); check("restarted-app-server-and-all-native-helper-processes-joined");
     report.passed = true;
 } catch (error) {
-    report.failure = { stage, name: error.name, code: typeof error.code === "string" ? error.code : null };
+    report.failure = { stage, name: error.name, code: typeof error.code === "string" ? error.code : null,
+        source_stack: [...String(error.stack ?? "").matchAll(/check-reference-app-installed\.mjs:(\d+):(\d+)/g)]
+            .slice(0, 4).map(value => ({ line: Number(value[1]), column: Number(value[2]) })) };
     if (page && !page.isClosed()) {
         report.failure_notice = await page.locator("#notice").textContent().catch(() => null);
         report.failure_permission = await page.locator("#permission").textContent().catch(() => null);

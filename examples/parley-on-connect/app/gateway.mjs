@@ -215,10 +215,21 @@ export class AppGateway {
             const connection = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).refresh(options);
             if (action.type === "connection.end") return { scope, sdk: { reasonCode: 200, reason: "Reference app connection ended" } };
             if (connection.streamRevision === undefined) fail("app-resync-required");
+            // Audio selection changes the mix routing on an existing duplex
+            // binding. Unsubscribe names remote source Streams, not invented
+            // local recvonly bindings. Resolve current visible source records
+            // under this same Session; SDK/server admission still authorizes IO.
+            const audioSources = participant => [...new Set(items.filter(v => v.kind === "stream" &&
+                v.data.session_id === action.sessionId && v.data.medium === "audio" && v.data.state !== "ended" &&
+                v.data.participant_id !== own.id && (!participant || v.data.participant_id === participant) &&
+                items.some(source => source.kind === "connection" && source.data.connection_id === v.data.connection_id &&
+                    source.data.session_id === action.sessionId && source.data.participant_id === v.data.participant_id &&
+                    ["ready", "active"].includes(source.data.state))).map(v => v.data.stream_id))];
             if (action.type === "stream.unsubscribe") {
                 const negotiation = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).media.refresh(options);
-                const streams = negotiation.streams.filter(v => v.direction === "recvonly").map(v => v.id);
+                const streams = audioSources();
                 if (!streams.length) fail("app-resync-required");
+                if (streams.length > 32) fail("app-snapshot-capacity");
                 return { scope, sdk: { streams: { first: streams[0], rest: streams.slice(1) }, expectedStreamRevision: negotiation.streamRevision } };
             }
             if (action.type === "stream.subscribe") {
@@ -226,7 +237,11 @@ export class AppGateway {
                 const peer = current.participants.find(p => p.identityId === identity && p.active);
                 if (!peer || !items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
                     v.data.participant_id === peer.id && v.data.membership_epoch === peer.membershipEpoch && v.data.state === "present")) fail("invalid-app-request");
-                return { scope, sdk: { selectors: { first: { participant: peer.id }, rest: [] }, expectedStreamRevision: connection.streamRevision } };
+                const streams = audioSources(peer.id);
+                if (!streams.length) fail("app-resync-required");
+                if (streams.length > 32) fail("app-snapshot-capacity");
+                const selectors = streams.map(stream => ({ stream }));
+                return { scope, sdk: { selectors: { first: selectors[0], rest: selectors.slice(1) }, expectedStreamRevision: connection.streamRevision } };
             }
             let streams = [], revision = connection.streamRevision;
             if (["mute", "unmute"].includes(action.action)) {
