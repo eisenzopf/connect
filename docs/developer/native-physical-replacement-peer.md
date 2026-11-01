@@ -197,5 +197,11 @@ current Store proof of an exact, unreserved, effect-free original is required
 before another preflight attempt. Reservations or effects prevent whole-preflight
 repetition. Current cancellation/revocation/expiry continue to refuse execution.
 Three Store guards, three worker cases and the full service typecheck pass.
-Fresh signed/native runtime verification of this fix is still pending. See
+Fresh normal-feature signed AV and all four existing audio scenes now pass,
+including the subsequent generation-three move. Full source/binary guards and
+a read-only audit of six completed original roots across five isolated scenes
+pass; all phase attempts stay one and all Connections/lifetimes retire. The
+failed original remains retained and is never replayed. These healthy scenes
+do not reproduce its original contention; the deterministic guard/worker tests
+separately cover that recovery decision. All150 Store replacement cases pass. See
 [the original failure and scoped checks](../evidence/gate-6/native-replacement-preflight-deferral.json).

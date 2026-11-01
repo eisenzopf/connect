@@ -43,10 +43,403 @@
     "worker_log_sha256": "c610fef16f9f3b4add1e1d9729af18ed7975155eb7b13702203ca4c5468b5d15",
     "service_check_exit": 0,
     "service_check_seconds": 67.7603380838409,
-    "service_check_source_inputs_unchanged": true
+    "service_check_source_inputs_unchanged": true,
+    "full_store_replacement_cases_passed": 150,
+    "full_store_replacement_seconds": 157.66932733310387,
+    "full_store_replacement_source_inputs_unchanged": true,
+    "full_store_log_sha256": "8ef37ae0aebb324814773256963fc008c946e77c637c1f6af585b87f4b0636b7"
   },
-  "fixed_native_runtime_verified": false,
-  "scope": "The existing composite audio function fails in its fourth independent scene before preparation, after three observed successful scenes including a subsequent generation-three move. The deferred job currently exits without a saved preparation, leaving the original accepted row unowned. New guarded worker/Store logic retains the same job and permits preflight repetition only after current read-only proof of an exact unreserved/effect-free original; begun/unknown IO is never retried. Three Store and three direct worker tests and the full service typecheck pass. Fresh normal-feature signed AV and four-scene native audio runtime cohort is running; this record does not claim that runtime fix or any full transport cell.",
+  "fixed_native_runtime_verified": true,
+  "scope": "The existing composite audio function fails in its fourth independent scene before preparation, after three observed successful scenes including a subsequent generation-three move. The deferred job currently exits without a saved preparation, leaving the original accepted row unowned. New guarded worker/Store logic retains the same job and permits preflight repetition only after current read-only proof of an exact unreserved/effect-free original; begun/unknown IO is never retried. Three Store and three direct worker tests and the full service typecheck pass. The fresh normal-feature Cargo cohort now passes both the signed AV case and all four existing audio scenes, including the healthy subsequent generation-three move; all source/binary guards pass. Six original replacement roots in five isolated scenes are completed with exactly one confirmed commit/phase attempt and all Connections/lifetimes retired. The earlier failed original is retained and never replayed; these current healthy scenes do not reproduce its original metadata contention. The deterministic worker and Store tests separately verify deferred-job recovery safety. The full150Store replacement cases also pass. No independently owned AV peer workload, decoded quality or full transport cell is qualified.",
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "fixed_source_revision": "de19e1559afc372b96bf4b44197dcae6547232c2",
+  "fixed_runtime": {
+    "compile_exit": 0,
+    "compile_seconds": 172.96962445788085,
+    "cases": [
+      {
+        "label": "av",
+        "case": "canonical_native_connections::consultation::groups::replacement::av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+        "exit_code": 0,
+        "runtime_seconds": 40.91626708302647,
+        "exact_function_passed": true
+      },
+      {
+        "label": "audio",
+        "case": "canonical_native_connections::consultation::groups::replacement::production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires",
+        "exit_code": 0,
+        "runtime_seconds": 114.80768283316866,
+        "exact_function_passed": true
+      }
+    ],
+    "binary_sha256": "a0cc6c30c8f88af788e7de2ecea4f69083470b0c9372e3cf82a258315d1c2445",
+    "binary_unchanged": true,
+    "source_inputs_unchanged": true,
+    "source_inputs_manifest_sha256": "3b38e4b6723315a34403c3b289f8074bb70743bc61f7cd4e6da8605a4ce4a6f9",
+    "logs_sha256": {
+      "av": "ae123e7aed7f334825cffba5e1f8ff1aea759f2ce66a4f6d60d2711aff7911b3",
+      "audio": "471455dfd4c63e67783a7c4cbb3b24651d41c42cb994aa549caef122d0256912"
+    },
+    "retained_journal_audit": {
+      "passed": true,
+      "scenes": [
+        {
+          "label": "av",
+          "replacement_roots": [
+            {
+              "state": "completed",
+              "generation": 2,
+              "readiness_streams": [
+                "replacement-camera",
+                "replacement-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            }
+          ],
+          "connections": [
+            {
+              "state": "retired",
+              "count": 3
+            }
+          ],
+          "lifetimes": [
+            {
+              "retired": 1,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "label": "audio",
+          "replacement_roots": [
+            {
+              "state": "completed",
+              "generation": 2,
+              "readiness_streams": [
+                "replacement-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            }
+          ],
+          "connections": [
+            {
+              "state": "retired",
+              "count": 3
+            }
+          ],
+          "lifetimes": [
+            {
+              "retired": 1,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "label": "audio",
+          "replacement_roots": [
+            {
+              "state": "completed",
+              "generation": 2,
+              "readiness_streams": [
+                "replacement-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            }
+          ],
+          "connections": [
+            {
+              "state": "retired",
+              "count": 3
+            }
+          ],
+          "lifetimes": [
+            {
+              "retired": 1,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "label": "audio",
+          "replacement_roots": [
+            {
+              "state": "completed",
+              "generation": 2,
+              "readiness_streams": [
+                "replacement-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            }
+          ],
+          "connections": [
+            {
+              "state": "retired",
+              "count": 3
+            }
+          ],
+          "lifetimes": [
+            {
+              "retired": 1,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "label": "audio",
+          "replacement_roots": [
+            {
+              "state": "completed",
+              "generation": 2,
+              "readiness_streams": [
+                "replacement-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            },
+            {
+              "state": "completed",
+              "generation": 3,
+              "readiness_streams": [
+                "replacement-third-voice"
+              ],
+              "phases": [
+                {
+                  "provider": "native-replacement-activate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-allocate",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-attach",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-commit",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-prepare",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-readiness",
+                  "state": "confirmed",
+                  "attempt": 1
+                },
+                {
+                  "provider": "native-replacement-start",
+                  "state": "confirmed",
+                  "attempt": 1
+                }
+              ]
+            }
+          ],
+          "connections": [
+            {
+              "state": "retired",
+              "count": 4
+            }
+          ],
+          "lifetimes": [
+            {
+              "retired": 1,
+              "count": 4
+            }
+          ]
+        }
+      ],
+      "scene_count": 5,
+      "completed_replacement_roots": 6,
+      "all_confirmed_phase_attempts_one": true,
+      "all_connections_and_native_lifetimes_retired": true,
+      "failed_baseline_original_replayed": false
+    }
+  }
 }
