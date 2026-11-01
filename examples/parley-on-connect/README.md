@@ -79,6 +79,18 @@ The AV rehearsal uses separate owned synthetic red/green cameras and requires
 the other marker at decoded, painted output, with video source-clock reports;
 those checks do not use a local preview as evidence of reception.
 
+Source RTP timestamps retain each device's original clock. The application
+calibrates that clock to the page's monotonic time at first accepted capture and
+pairs its extrapolated current RTP point with current NTP time in sender reports.
+This avoids treating a device clock's arbitrary origin as page elapsed time.
+
+The installed rehearsal additionally checks actual tracks after explicit stop,
+a controlled late device result after cancellation, real microphone permission
+revocation, offline retirement and participant switching. The delayed result
+uses a real owned synthetic browser stream; it models promise delivery rather
+than claiming an OS permission dialog was exercised. These new lifecycle checks
+and the current sender-clock calibration still require installed verification.
+
 Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
 command preserves the original ports, identities, issuance IDs, absolute expiry
 and application state. Interrupted child installations use `connect issue-resume`;

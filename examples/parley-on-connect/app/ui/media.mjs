@@ -1,6 +1,6 @@
 import { BrowserOpusCodec, BrowserVp8Codec, RtpSender, Vp8Assembler,
     decodeRtpDatagram, browserCodecSupport } from "/sdk/browser.js";
-import { MediaTimeline, rtpTimestamp, senderReport, playoutTime } from "./media-clock.mjs";
+import { MediaTimeline, rtpTimestamp, CaptureClock, playoutTime } from "./media-clock.mjs";
 const fail = code => { throw Object.assign(Error(code), { code }); };
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 function unbase64(value) {
@@ -21,7 +21,8 @@ export class BrowserAppMedia {
         droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0,
         audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
         videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0,
-        lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0 };
+        lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0,
+        lastAudioCaptureOffsetMs: null, lastVideoCaptureOffsetMs: null };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
@@ -146,8 +147,10 @@ export class BrowserAppMedia {
                     if (!(data.samples instanceof Float32Array) || data.samples.length !== 960 ||
                         !Number.isSafeInteger(data.firstFrame) || data.firstFrame < 0) fail("app-media-capture");
                     this.#counts.capturedAudioFrames++;
-                    if (!audioRoute.encoder.encode(data.samples, Math.round((this.#audioOrigin + data.firstFrame / 48000) * 1000000)))
-                        this.#counts.droppedFrames++;
+                    const timestamp = Math.round((this.#audioOrigin + data.firstFrame / 48000) * 1000000);
+                    this.#counts.lastAudioCaptureOffsetMs = Math.round(timestamp / 1000 - performance.now());
+                    if (audioRoute.encoder.encode(data.samples, timestamp)) audioRoute.captureClock.observe(timestamp);
+                    else this.#counts.droppedFrames++;
                     this.#worklet.port.postMessage("credit");
                 } catch (error) { void this.stop(error.code ?? "app-media-capture"); }
             };
@@ -178,7 +181,7 @@ export class BrowserAppMedia {
             const binding = { handle: stream.streamLocalId, streamId: stream.id, connectionId: this.#binding.connectionId,
                 sessionId: this.#binding.sessionId, generation: lease.generation, kind: stream.medium, codec,
                 payloadType: stream.codec.params?.payload_type, direction: stream.direction };
-            const route = { binding, rate, queue: [], queuedBytes: 0, sending: false, lastReport: -Infinity,
+            const route = { binding, rate, queue: [], queuedBytes: 0, sending: false, lastReport: -Infinity, captureClock: new CaptureClock(),
                 lastAudio: -Infinity, sources: new Set(), assembler: new Vp8Assembler() };
             this.#routes.set(binding.streamId, route);
             if (["sendonly", "sendrecv"].includes(binding.direction)) {
@@ -244,8 +247,10 @@ export class BrowserAppMedia {
                 // both RTP and clock writes preserve their original order.
                 if (stats && performance.now() - route.lastReport >= 1000) {
                     const sequence = route.sender.nextDatagramSequence();
+                    const report = route.captureClock.sample(route.rate, stats, this.#cname);
+                    if (!report) fail("app-media-clock");
                     const clock = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId, sequence,
-                        packet: { kind: "clock", report: senderReport(frame.timestampUs, route.rate, stats, this.#cname) } });
+                        packet: { kind: "clock", report } });
                     if (clock.boundary !== "local-media-queue" || clock.datagramSequence !== sequence) fail("app-media-packet");
                     this.#counts.clockReportsSent++;
                     if (route.binding.kind === "video") this.#counts.videoClockReportsSent++;
@@ -353,9 +358,14 @@ export class BrowserAppMedia {
                     fail("app-media-clock");
                 origin ??= presentationUs - mediaUs;
                 const timestamp = metadata.captureTime === undefined ? origin + mediaUs : Math.round(metadata.captureTime * 1000);
+                this.#counts.lastVideoCaptureOffsetMs = Math.round(timestamp / 1000 - performance.now());
                 out.drawImage(this.#video, 0, 0, 640, 360);
                 const image = new VideoFrame(canvas, { timestamp });
-                try { this.#counts.capturedVideoFrames++; if (!route.encoder.encode(image)) this.#counts.droppedFrames++; }
+                try {
+                    this.#counts.capturedVideoFrames++;
+                    if (route.encoder.encode(image)) route.captureClock.observe(timestamp);
+                    else this.#counts.droppedFrames++;
+                }
                 finally { image.close(); }
             } catch { void this.stop("app-media-capture"); return; }
             this.#videoCallback = this.#video.requestVideoFrameCallback(frame);

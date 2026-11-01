@@ -2,8 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { MediaTimeline, senderReport, rtpTimestamp, playoutTime } from "./ui/media-clock.mjs";
+import { MediaTimeline, CaptureClock, senderReport, rtpTimestamp, playoutTime } from "./ui/media-clock.mjs";
 const report = (ssrc, rtp, ntp) => ({ ssrc, rtp, ntp: ntp.toString(), packets: 1, octets: 3, cname: "synthetic" });
+test("capture reports pair distinct original device clocks with the same current wall clock without refreshing old frames", () => {
+    let now = 1000000;
+    const audio = new CaptureClock(() => now, 0), video = new CaptureClock(() => now, 0);
+    const stats = { ssrc: 7, packets: 1, octets: 3 };
+    assert.equal(audio.sample(48000, stats, "synthetic"), null);
+    audio.observe(9000000); video.observe(15000000); now = 1300000;
+    const a = audio.sample(48000, stats, "synthetic"), v = video.sample(90000, { ...stats, ssrc: 8 }, "synthetic");
+    assert.equal(a.ntp, v.ntp);
+    assert.equal(a.rtp, rtpTimestamp(9300000, 48000)); assert.equal(v.rtp, rtpTimestamp(15300000, 90000));
+    const receive = new MediaTimeline(() => now);
+    receive.register("audio", 48000); receive.register("video", 90000);
+    receive.report("audio", a); receive.report("video", v);
+    assert.equal(receive.timestamp("audio", 7, a.rtp).timestampUs, receive.timestamp("video", 8, v.rtp).timestampUs);
+    const old = receive.timestamp("audio", 7, rtpTimestamp(9000000, 48000));
+    assert.ok(Math.abs(old.timestampUs - 1000000) <= 1);
+    assert.ok(playoutTime(old.timestampUs, now, 0.5) < 0.5);
+    audio.observe(99000000); // Later observations cannot replace the original clock.
+    assert.equal(audio.sample(48000, stats, "synthetic").rtp, a.rtp);
+});
 test("playout uses the mapped local clock after SR correction and never makes a delayed frame fresh", () => {
     // An old first decoded packet cannot pin the presentation origin. Later SR
     // mapped AV frames must use their real local monotonic targets directly.

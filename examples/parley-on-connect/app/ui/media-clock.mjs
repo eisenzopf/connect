@@ -21,6 +21,24 @@ export function senderReport(timestampUs, rate, stats, cname, unixOriginUs = Mat
     const ntp = BigInt.asUintN(64, ((unix / 1000000n + 2208988800n) << 32n) + ((unix % 1000000n) << 32n) / 1000000n);
     return { ...stats, rtp, ntp: ntp.toString(), cname };
 }
+// Device/source clocks need not start at the page's monotonic origin. Keep RTP
+// in the original source clock and pair its extrapolated current point with
+// current wall time, rather than treating a source timestamp as wall time.
+export class CaptureClock {
+    #origin; #now; #unix;
+    constructor(nowUs = () => Math.round(performance.now() * 1000), unixOriginUs = Math.round(performance.timeOrigin * 1000)) {
+        this.#now = nowUs; this.#unix = unixOriginUs;
+    }
+    observe(timestampUs) {
+        if (!Number.isSafeInteger(timestampUs) || timestampUs < 0) fail();
+        this.#origin ??= { source: timestampUs, local: this.#now() };
+    }
+    sample(rate, stats, cname) {
+        if (!this.#origin) return null;
+        const now = this.#now(), source = this.#origin.source + now - this.#origin.local;
+        return { ...senderReport(now, rate, stats, cname, this.#unix), rtp: rtpTimestamp(source, rate) };
+    }
+}
 export class MediaTimeline {
     #tracks = new Map(); #base; #version = 0; #now;
     constructor(nowUs = () => Math.round(performance.now() * 1000)) { this.#now = nowUs; }

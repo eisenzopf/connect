@@ -1,11 +1,11 @@
 {
   "format": "connect/reference-app-browser-media/1",
   "task": "G6-072",
-  "status": "sr-minimum-receive-offset-and-isolated-admission-component-tested-installed-required",
+  "status": "calibrated-capture-clock-and-actual-track-lifecycle-rehearsal-implemented-unverified",
   "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
   "implementation_inputs": {
     ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
-    "examples/parley-on-connect/app/browser-media.test.mjs": "e012257a11fcb08a642efe5e1efdad79d7c1cc737b9b61b49bf7060475e1647a",
+    "examples/parley-on-connect/app/browser-media.test.mjs": "4f253606d22db7466856af3a95278f8626ff0a7f34e5da09d5e1c6d0647fb7af",
     "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
     "examples/parley-on-connect/app/gateway.mjs": "456f5b2162ea4950e026ba8cc1b47a6f745401f0fed44429d3f1555e5c77de85",
@@ -24,16 +24,16 @@
     "examples/parley-on-connect/app/ui/app.mjs": "2a724a2a7813c04c3393fb263f2361f23aaaff8cdd9e47c15b1464dad94587c2",
     "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
-    "examples/parley-on-connect/app/ui/media-clock.mjs": "9369d45ab0b358adc00da21c113d405069ba93c3125aed6c6532bec3a764e09d",
-    "examples/parley-on-connect/app/ui/media.mjs": "6b562b82d3fe12cb266b990eefce9e94f9caefb918263122a6448d0e912dbff4",
-    "scripts/check-reference-app-installed.mjs": "219610c2a2029766ab5621289c8b15a9ab15718911fe6711f4b9182b6b8c2dd8",
-    "examples/parley-on-connect/README.md": "2fbded77e5019d1858ae1142ff562391936ecc7564b26327f02a7bdfa323c5b5"
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
+    "examples/parley-on-connect/app/ui/media.mjs": "23a66c3472052b42781ea8c0d60951d75646410289b2bae0a2bdf11429ccea3e",
+    "scripts/check-reference-app-installed.mjs": "3d7d2ff8b4de5e0e9a12fbba6d1ab2fa8653fdf38a45ae042a737c5bb040730c",
+    "examples/parley-on-connect/README.md": "02ae104c620ed0dc654b2b42efb6d35b9aa009bbb6186507c2b1841a22553be8"
   },
   "local_verification": {
-    "app_component_functions_passed": 67,
+    "app_component_functions_passed": 68,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "67 local application/HTTP/worklet/source-clock cases, including forward SR offset correction, preserved common AV differences, no stale-media refresh, isolated snapshot admission and failed-admission observer disposal. Actual current AV28check result remains required.",
+    "scope": "68 local application/HTTP/worklet/source-clock cases. New capture calibration pairs different original audio/video clock origins with common current wall time and retains old-frame age. Actual installed32check AV/lifecycle result remains required.",
     "late_admission_observer_disposal": "The existing retirement-during-admission case additionally asserts the late-created read-only control owner closes exactly once, including a repeated close. All13media cases pass on Node26; installed run41284218404 uses prior test assertions and unchanged application runtime."
   },
   "implementation": {
@@ -66,7 +66,7 @@
     "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
   },
   "installed_rehearsal": {
-    "expected_checks": 28,
+    "expected_checks": 32,
     "prior_checks_retained": 21,
     "two_separate_owned_chromium_processes": true,
     "synthetic_capture_only": true,
@@ -89,7 +89,14 @@
       "owner_camera": "red",
       "organizer_camera": "green",
       "verification": "Other source at received decoded painted canvas; >=3frames and actual video SR each direction, no own marker crossover."
-    }
+    },
+    "lifecycle_cases": [
+      "actual track ended-state after explicitstop",
+      "controlled late actual browser device result after cancellation, no publication",
+      "actual Chromium microphone permission revocation, no synthetic ended event",
+      "actual browser network offline retirement",
+      "keyboard actor switch retirement"
+    ]
   },
   "remaining": [
     "Installed current AV rehearsal and original-source audit on Mac/Linux",
@@ -99,7 +106,7 @@
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "source_revision_before_correction": "32dadefa",
+  "source_revision_before_correction": "61fb3766304d34360e9b5c3f4ac170a6d16cc49e",
   "opening_correction": "One coherent current signed snapshot establishes original participant/epoch, accepted present Session and physical Connection/generation, followed by public native negotiation. Signed Connection/current-generation supervision runs one owned read at a time with500ms cadence and unchanged2s bound, separately from per-packet native handle/revision/format checks. SDK and Core authorization remain authoritative on actual IO. Read-only opening/supervision drains on local retirement, because cancelling a live stdio RPC fences the shared SDK control owner; packet work remains cancellable and joined. Local capture/render stops immediately. All2s/8s/30s and200ms media bounds remain; no success or timing/stability claim is inferred. Current correction isolates each lease's signed generation watcher in an independently owned read-only public NodeClient, with unchanged2s bounds. Original client retains native media and mutation ownership. Observer drains/joins on original lease retirement, failed admission, reconnect and shutdown; a watcher deadline remains fail-closed but cannot fence the shared UI control owner. Coherent admission now uses that same separately owned read-only observer; no admission snapshot can fence the UI mutation owner. Failed admission closes the observer exactly once; original native handles remain on the original client.",
   "previous_runtime_failures": [
     {
@@ -149,8 +156,20 @@
       "linux_organizer_last_audio_offset_ms": 266.112,
       "mac_organizer_original_phase": "open-current-snapshot",
       "identified_video_verified": false
+    },
+    {
+      "workflow_run_id": 41284596281,
+      "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-61fb.json",
+      "checks_passed": {
+        "mac": 21,
+        "linux": 21
+      },
+      "one_direction_linux_identified_video_observed": true,
+      "bidirectional_video_verified": false,
+      "signed_supervision_deadlines_under_av_unresolved": true
     }
   ],
   "component_harness_finding": "docs/evidence/gate-6/reference-app-browser-media-harness-negative-4ca.json",
-  "playout_correction": "MediaTimeline already maps original RTP/SR to page monotonic time. Convert directly to current WebAudio time plus unchanged80ms jitter. Remove redundant first-decoded origin; it could pin a wrong offset after fallback/SR transition. No frame retimestamping, queue expansion or horizon relaxation. Closed audio/video late/horizon/capacity/timer drop counters and current offset in milliseconds support actual runtime diagnosis. Received SR samples refine the common NTP-to-local mapping using the minimum observed receive offset; only lower it when an SR would map into its reception future. Later/high-delay reports cannot advance old media to make it fresh. A frame-sized20ms mapping step clears old decoder/assembler/render state, keeps original RTP/NTP differences and waits for fresh decoder output; sub-frame refinements do not retire valid output."
+  "playout_correction": "MediaTimeline already maps original RTP/SR to page monotonic time. Convert directly to current WebAudio time plus unchanged80ms jitter. Remove redundant first-decoded origin; it could pin a wrong offset after fallback/SR transition. No frame retimestamping, queue expansion or horizon relaxation. Closed audio/video late/horizon/capacity/timer drop counters and current offset in milliseconds support actual runtime diagnosis. Received SR samples refine the common NTP-to-local mapping using the minimum observed receive offset; only lower it when an SR would map into its reception future. Later/high-delay reports cannot advance old media to make it fresh. A frame-sized20ms mapping step clears old decoder/assembler/render state, keeps original RTP/NTP differences and waits for fresh decoder output; sub-frame refinements do not retire valid output.",
+  "capture_clock_correction": "A source timestamp is not assumed to be page elapsed time. CaptureClock observes the original source clock at first accepted encode; current SR pairs its extrapolated original RTP point with current page/wall NTP. Original packet timestamps remain unchanged; no SDK internal import, queue/deadline widening or stale-media refresh. Relative capture-to-page offsets are closed scalar diagnostics."
 }

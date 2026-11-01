@@ -351,6 +351,22 @@ try {
         await captureContext.addInitScript(() => {
             // Observe actual scheduled output buffers only after their rendering
             // interval ends in a running AudioContext. No PCM is retained.
+            // Observe real owned browser tracks. A controlled withheld result
+            // models the non-cancellable device promise after local cancellation;
+            // it does not replace media tracks, codecs or packet transport.
+            const devices = { captures: [], hold: false };
+            Object.defineProperty(window, "__parley_device_probe__", { value: devices });
+            const getUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+            navigator.mediaDevices.getUserMedia = async constraints => {
+                const stream = await getUserMedia(constraints), entry = { tracks: stream.getTracks(), pending: false };
+                devices.captures.push(entry);
+                if (devices.hold) {
+                    entry.pending = true;
+                    await new Promise(resolve => { entry.release = resolve; });
+                    delete entry.release; entry.pending = false;
+                }
+                return stream;
+            };
             const stats = { frames: 0, energy: 0, tone440: 0, tone880: 0 };
             Object.defineProperty(window, "__parley_audio_probe__", { value: stats });
             const original = AudioBufferSourceNode.prototype.start;
@@ -388,6 +404,27 @@ try {
         if (video) await activate("Watch " + tone.peer, "Listen", target);
     }
     }
+    const stoppedMedia = async target => {
+        const handle = await target.waitForFunction(() => {
+            const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            const devices = window.__parley_device_probe__;
+            if (metrics?.stopped && metrics.activeTracks === 0 && metrics.activeContexts === 0 &&
+                metrics.queuedAudioSources === 0 && metrics.queuedSendFrames === 0 &&
+                metrics.queuedVideoFrames === 0 && metrics.pendingRequests === 0 &&
+                devices.captures.every(c => c.tracks.every(t => t.readyState === "ended")))
+                return { metrics, actual_tracks: devices.captures.flatMap(c => c.tracks).length,
+                    ended_tracks: devices.captures.flatMap(c => c.tracks).filter(t => t.readyState === "ended").length };
+            return false;
+        });
+        return handle.jsonValue();
+    };
+    const startMicrophone = async target => {
+        await target.getByRole("button", { name: "Start microphone", exact: true }).focus(); await target.keyboard.press("Enter");
+        await target.waitForFunction(() => {
+            const m = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            return m?.phase === "active" && !m.stopped && m.capturedAudioFrames >= 3;
+        });
+    };
     await openMediaPages();
     stage = "synthetic-browser-audio-capture-playback";
     await Promise.all(mediaPages.map(async ({ page: target }) => {
@@ -430,6 +467,7 @@ try {
     }));
     report.synthetic_capture_render_owners_joined = true;
     check("keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work");
+    for (const { page: target } of mediaPages) await stoppedMedia(target);
     report.owned_group_size_after_media = groupMembers(processChild.pid).length;
     await Promise.all(mediaBrowsers.map(owned => owned.close()));
     assert.ok(mediaBrowsers.every(owned => !owned.isConnected())); mediaBrowsers.length = 0;
@@ -503,6 +541,50 @@ try {
     }));
     report.synthetic_av_owners_joined_and_video_unsubscribed = true;
     check("keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video");
+    // Lifecycle cases keep the original physical Connection and SDK owner.
+    // No new logical operation ID, retry or replacement offer hides a failure.
+    report.media_lifecycle = {};
+    for (const { page: target } of mediaPages) await stoppedMedia(target);
+    const lifecycle = mediaPages[0], target = lifecycle.page;
+    stage = "late-owned-device-result-after-keyboard-cancellation";
+    await target.evaluate(() => { window.__parley_device_probe__.hold = true; });
+    await target.getByRole("button", { name: "Start microphone", exact: true }).focus(); await target.keyboard.press("Enter");
+    await target.waitForFunction(() => window.__parley_device_probe__.captures.at(-1)?.pending === true);
+    await target.getByRole("button", { name: "Stop media", exact: true }).focus(); await target.keyboard.press("Enter");
+    await target.waitForFunction(() => JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null")?.stopped);
+    // Deliver the actual stream only after the app cancelled its device wait.
+    await target.evaluate(() => {
+        const probe = window.__parley_device_probe__; probe.hold = false; probe.captures.at(-1).release();
+    });
+    report.media_lifecycle.late_device_result = await stoppedMedia(target);
+    assert.equal(report.media_lifecycle.late_device_result.metrics.capturedAudioFrames, 0);
+    assert.equal(report.media_lifecycle.late_device_result.metrics.sentRtp, 0);
+    check("keyboard-cancellation-stops-a-late-actual-browser-device-result-before-publication");
+
+    stage = "actual-capture-permission-revocation";
+    await startMicrophone(target);
+    // Chromium's actual permission override revokes this owned microphone.
+    // No synthetic ended event or substituted track is used.
+    await lifecycle.context.grantPermissions(["camera"], { origin });
+    await target.waitForFunction(async () => (await navigator.permissions.query({ name: "microphone" })).state === "denied");
+    report.media_lifecycle.permission_revocation = await stoppedMedia(target);
+    check("actual-microphone-permission-revocation-ends-tracks-and-joins-media");
+    await lifecycle.context.grantPermissions(["microphone"], { origin });
+
+    stage = "active-capture-offline-retirement";
+    await startMicrophone(target);
+    await lifecycle.context.setOffline(true);
+    report.media_lifecycle.offline = await stoppedMedia(target);
+    check("actual-browser-offline-transition-stops-capture-render-and-packet-work");
+    await lifecycle.context.setOffline(false);
+    await target.waitForFunction(() => navigator.onLine && document.querySelector("#notice").textContent.startsWith("Connected"));
+
+    stage = "active-capture-participant-switch-retirement";
+    await startMicrophone(target);
+    await target.locator("#actor input:checked").focus(); await target.keyboard.press("ArrowUp");
+    await target.waitForFunction(() => document.querySelector("#actor input:checked").value === "organizer" && !document.querySelector("#actor").disabled);
+    report.media_lifecycle.participant_switch = await stoppedMedia(target);
+    check("keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work");
     await Promise.all(mediaBrowsers.map(owned => owned.close()));
     assert.ok(mediaBrowsers.every(owned => !owned.isConnected())); mediaBrowsers.length = 0;
     assert.deepEqual((await activate("End connection", "End connection")).result, ownerVideo);
