@@ -50,10 +50,15 @@
     ]
   },
   "installed_check": {
-    "status": "not-run",
+    "status": "confirmed-live-both-installed-platforms",
     "expected_checks": 21,
     "description": "Retain 16 prior checks, then keyboard-open two real audio Connections, select/unselect current peer Streams, exercise all four gates, verify 320px layout, and end both originals through the installed public Node SDK. Retain synthetic desktop/narrow control screenshots for visual review. Microphone and camera remain denied; no decoded media claim.",
-    "runtime_verified": false
+    "runtime_verified": false,
+    "workflow_run_id": 41277276479,
+    "job_ids": {
+      "mac": 124761904247,
+      "linux": 124761904417
+    }
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -61,5 +66,6 @@
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "provider_or_model_execution": false
+  "provider_or_model_execution": false,
+  "implementation_source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21"
 }

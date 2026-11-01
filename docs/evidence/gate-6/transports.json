@@ -1243,10 +1243,12 @@
     "task_complete": false,
     "negative_evidence": "docs/evidence/gate-6/native-data-workload-negative.json",
     "runtime_candidate": {
-      "source_revision": "a1aa160c2c1d47cea2b919986218d282fc0aa18c",
-      "workflow_run_id": 41269342841,
-      "job_id": 124738696422,
-      "status": "completed-failure-prepare-status-not-ready"
+      "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
+      "workflow_run_id": 41276040539,
+      "job_id": 124760562911,
+      "status": "terminal-success-independently-source-verified",
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
+      "full_matrix_cells_qualified": 0
     },
     "observed": "Independently verified b563 repeats6offers/6submissions/6Core-queue completions/6exact64KiB receives, common ready boundaries, original replay, exact addressed histories and actuallocaltopology. All6endoperationscomplete. Last of5metadata rounds shows5retired/1ready; a later read hits the common8second deadline read-only. No later state or cleanup cause is inferred. Overall data component remainsnegative; original5helpers/2servers/captureowner join withoutforce.",
     "diagnostic_follow_up": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics. Reached-stage markers distinguish requests that never enter authority/handler/worker from later admission/publication/receipt failures; no identifiers or payloads enter curated diagnostics.",
@@ -1307,7 +1309,7 @@
       "job_id": 124753792159,
       "status": "terminal-negative-independently-source-verified",
       "runtime_verified": false,
-      "description": "Private DEBUG records only fixed durable-cleanup stages/error codes and terminal custodian booleans; bounded curated arrays and complete stage counts. No IDs, payloads, Error.message, changed grants, effects, mutation replay or deadline extension. Rust compilation/runtime pending;42Python guards, syntax and Rust format checks pass.",
+      "description": "Compiled and executed with closed private DEBUG cleanup stage/error-code and terminal flags. The negative runtime records authority-busy retries and eventual cleanup over the full runtime, without per-ID timing. No grants, effects, mutation replay or deadline changes.",
       "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-d19.json",
       "cleanup_recorded": 6,
       "authority_busy_retries": 182
@@ -1356,7 +1358,35 @@
       "native_helpers_joined": 5,
       "packet_capture_owned_joined": true,
       "full_matrix_cells_qualified": 0
-    }
+    },
+    "previous_runtime_candidate": {
+      "source_revision": "a1aa160c2c1d47cea2b919986218d282fc0aa18c",
+      "workflow_run_id": 41269342841,
+      "job_id": 124738696422,
+      "status": "completed-failure-prepare-status-not-ready"
+    },
+    "additional_cohort_candidates": [
+      {
+        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+        "workflow_run_id": 41277280763,
+        "job_id": 124761917118,
+        "target": "ubuntu24-x86_64",
+        "signing": "ES256",
+        "network": "local",
+        "status": "confirmed-live",
+        "runtime_verified": false
+      },
+      {
+        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+        "workflow_run_id": 41277282986,
+        "job_id": 124761924257,
+        "target": "ubuntu24-x86_64",
+        "signing": "EdDSA",
+        "network": "remote-profile-fixture",
+        "status": "confirmed-live",
+        "runtime_verified": false
+      }
+    ]
   },
   "native_signing_cohorts": {
     "status": "source-verified-ES256-configuration-and-actor-stage-pass",

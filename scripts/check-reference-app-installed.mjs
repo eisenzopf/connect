@@ -1,5 +1,6 @@
 // Real installed SDK + production Connect, one-command app setup and browser.
-// Synthetic local control only; never enables media, models or providers.
+// Synthetic local control and native audio negotiation. No capture/playback,
+// model or provider execution; device permissions remain denied.
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
@@ -38,7 +39,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     source_inputs: sourceInputs, runtime_source_revision: installation.source_revision,
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
-    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery and restart. No negotiated media, model, provider or WAN qualification." };
+    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. No captured or decoded media, model, provider or WAN qualification." };
 let processChild, finished, context, browser, page, release, stage = "startup";
 const apiReads = new Set();
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
