@@ -19,6 +19,16 @@ pub fn initialize_with_http(
     bind: SocketAddr,
     http_bind: Option<SocketAddr>,
 ) -> Result<()> {
+    initialize_signed(directory, example, bind, http_bind, SigningAlgorithm::EdDSA)
+}
+/// Generate independent server and client keys for the selected signed cohort.
+pub fn initialize_signed(
+    directory: &Path,
+    example: bool,
+    bind: SocketAddr,
+    http_bind: Option<SocketAddr>,
+    algorithm: SigningAlgorithm,
+) -> Result<()> {
     #[cfg(not(unix))]
     anyhow::bail!("Canonical initialization requires the qualified Unix filesystem profile");
     anyhow::ensure!(bind.ip().is_loopback(), "Initialization requires loopback");
@@ -52,7 +62,7 @@ pub fn initialize_with_http(
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&stage, std::fs::Permissions::from_mode(0o700))?;
     }
-    populate(&stage, example, bind, http_bind)?;
+    populate(&stage, example, bind, http_bind, algorithm)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -106,6 +116,7 @@ fn populate(
     example: bool,
     bind: SocketAddr,
     http_bind: Option<SocketAddr>,
+    algorithm: SigningAlgorithm,
 ) -> Result<()> {
     let store = Store::initialize(&directory.join("state.sqlite3"), Limits::default())?;
     let tls = crate::tls::generate_local_certificate()?;
@@ -114,7 +125,7 @@ fn populate(
         &directory.join("private-key.der"),
         &tls.signing_key.serialize_der(),
     )?;
-    let signing = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519)?;
+    let signing = signing_key(algorithm)?;
     private_write(
         &directory.join("server-signing.der"),
         &signing.serialize_der(),
@@ -138,7 +149,7 @@ fn populate(
         certificate: "certificate.der".into(),
         private_key: "private-key.der".into(),
         signing_key_id: "connect-server".into(),
-        signing_algorithm: "EdDSA".into(),
+        signing_algorithm: algorithm.as_str().into(),
         signing_private_key: "server-signing.der".into(),
         signing_key_not_before: now - chrono::Duration::seconds(1),
         signing_key_expires_at: expires,
@@ -164,6 +175,7 @@ fn populate(
         admin,
         &administrator,
         &server,
+        algorithm,
     )?;
     if example {
         let reviews = store.create_identity("reviews")?;
@@ -185,6 +197,7 @@ fn populate(
             reviews_key,
             &administrator,
             &server,
+            algorithm,
         )?;
         write_client(
             &store,
@@ -193,6 +206,7 @@ fn populate(
             agent_key,
             &administrator,
             &server,
+            algorithm,
         )?;
     }
     private_write(
@@ -202,6 +216,12 @@ fn populate(
     store.integrity_check()?;
     Ok(())
 }
+fn signing_key(algorithm: SigningAlgorithm) -> Result<rcgen::KeyPair> {
+    Ok(rcgen::KeyPair::generate_for(match algorithm {
+        SigningAlgorithm::EdDSA => &rcgen::PKCS_ED25519,
+        SigningAlgorithm::ES256 => &rcgen::PKCS_ECDSA_P256_SHA256,
+    })?)
+}
 fn write_client(
     store: &Store,
     directory: &Path,
@@ -209,6 +229,7 @@ fn write_client(
     credential: IssuedCredential,
     administrator: &str,
     server: &CanonicalServerConfig,
+    algorithm: SigningAlgorithm,
 ) -> Result<()> {
     let actor = store.revalidate(&credential.id)?;
     if let Some(endpoint) = server.http_bind {
@@ -225,7 +246,7 @@ fn write_client(
             toml::to_string_pretty(&application)?.as_bytes(),
         )?;
     }
-    let pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519)?;
+    let pair = signing_key(algorithm)?;
     let private = format!("{name}-signing.der");
     private_write(&directory.join(&private), &pair.serialize_der())?;
     let device_id = format!("device_{}", uuid::Uuid::new_v4().simple());
@@ -255,7 +276,7 @@ fn write_client(
             credential_id: credential.id,
             device_id: device_id.clone(),
             key_id: key_id.clone(),
-            algorithm: SigningAlgorithm::EdDSA,
+            algorithm,
             public_key: URL_SAFE_NO_PAD.encode(pair.public_key_raw()),
             not_before: server.signing_key_not_before.timestamp(),
             expires_at: actor.expires_at,
@@ -273,7 +294,7 @@ fn write_client(
         device_kind: "desktop".into(),
         device_platform: platform.into(),
         signing_key_id: key_id,
-        signing_algorithm: "EdDSA".into(),
+        signing_algorithm: algorithm.as_str().into(),
         signing_private_key: private.into(),
         server_key_id: server.signing_key_id.clone(),
         server_algorithm: server.signing_algorithm.clone(),

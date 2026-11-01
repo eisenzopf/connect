@@ -1240,6 +1240,38 @@
     "observed": "Seven preceding SDK checks pass; zero native offers complete. First offer fails prepare-status/not-ready. Five original helpers and both server groups join without force. Current production source requires a verified Endpoint for the exact authenticated Device; issuance intentionally leaves it unverified.",
     "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed.",
     "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
-    "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access."
+    "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
+    "corrected_endpoint_candidate": {
+      "source_revision": "47377682b54d52ed9b8226dfba271c41e287b186",
+      "workflow_run_id": 41269934969,
+      "job_id": 124740444538,
+      "status": "confirmed-live-production-build-rehearsal",
+      "runtime_verified": false
+    }
+  },
+  "native_signing_cohorts": {
+    "status": "implemented-runtime-unverified",
+    "default": "EdDSA",
+    "supported": [
+      "EdDSA",
+      "ES256"
+    ],
+    "behavior": "New CLI initialization selects independent server/operator/example keys and matching key enrollment/pins. Isolated fixture lanes select the same exact cohort for bootstrap, restored seed, five actors and actual public SDK exchanges. Unsupported algorithms and existing-directory initialization refuse; no existing installation conversion.",
+    "runtime_verified": false,
+    "full_matrix_cells_qualified": 0,
+    "implementation_hashes": {
+      "crates/connect-server/src/cli/canonical_init.rs": "b531d27fdbe0819208c1449dabe41c9b5ceeea2c502405dcfefb9ed7a67f6925",
+      "crates/connect-server/src/main.rs": "acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58",
+      "scripts/check-transport-fixtures.py": "6662ca144387ec424dbf4cfaad27dfcb176f2c730dc26834a272d8d204e27b27",
+      "scripts/check-transport-conversation.mjs": "08b7ef1d6e2b92a143aed4f5ed9a5564e5e6d880932ec05a624380e5a4f9cf07",
+      ".github/workflows/gate6-linux-fixtures.yml": "634140ab89c587923cbd3da6eb36b2053879e86c59fa230496e867d543b8aff8",
+      ".github/workflows/gate6-transport-matrix.yml": "bef95e6444dad5cfbde003ac2df48f04587002df3d4fa1ba23bd6ce05927844e"
+    },
+    "local_verification": {
+      "transport_guards": 21,
+      "python_node_syntax": true,
+      "workflow_yaml_parsed": true,
+      "rust_formatted": true
+    }
   }
 }

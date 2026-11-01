@@ -70,6 +70,16 @@ client/server signing cohort before creating the seed. The tool refuses an
 expired server pin, shared server/operator signing material, a changed provisioned
 endpoint, an existing output directory or configured external components.
 
+Create an ES256 seed with production `connect init --signing-algorithm ES256`.
+The default is EdDSA. Each cohort has independently generated server/operator
+keys; the fixture requires the actual server, operator and enrolled client
+algorithms to match the selected cell. The isolated configuration, actor,
+conversation and data lanes accept workflow input `transport_signing` (EdDSA or
+ES256), passed as `--signing-algorithm` to the rehearsal. ES256 artifacts have an
+`-ES256` suffix. Each run records its cohort and proves its own behavior; selecting
+a cohort does not qualify a matrix cell. Unsupported algorithms and attempts to
+initialize over an existing installation must refuse without changing its files.
+
 The private JSON parameters have exactly these fields (replace angle-bracket
 values with the inspected candidate and seed values):
 

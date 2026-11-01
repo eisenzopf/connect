@@ -35,6 +35,11 @@ connect serve --config private/current/server.toml > private/server.log 2>&1 &
 server_pid=$!
 ```
 
+Initialization defaults to EdDSA. Select `--signing-algorithm ES256` when creating
+an ES256 installation; it generates independent P-256 server and client signing
+keys and saves matching enrollment and server pins. This choice applies to a new
+installation. Initialization refuses an existing destination.
+
 Wait for `ready transport=quic` and `profile=connect/2` in the private log. Then:
 
 ```sh

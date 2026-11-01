@@ -109,6 +109,9 @@ enum Command {
         /// Explicit loopback application API, also saved in application configs.
         #[arg(long)]
         http_bind: Option<std::net::SocketAddr>,
+        /// Generate server and client keys using this signing algorithm.
+        #[arg(long, default_value="EdDSA",value_parser=["EdDSA","ES256"])]
+        signing_algorithm: String,
     },
     /// Serve signed canonical connect/2 using enrolled Device keys.
     Serve {
@@ -387,16 +390,23 @@ async fn main() -> Result<()> {
             example,
             bind,
             http_bind,
+            signing_algorithm,
         } => {
             anyhow::ensure!(
                 example.as_deref() != Some("connected-app"),
                 "The connected-app preset awaits the canonical SDK migration"
             );
-            connect_server::cli::canonical_init::initialize_with_http(
+            let algorithm = match signing_algorithm.as_str() {
+                "EdDSA" => connect_protocol::provisioning::SigningAlgorithm::EdDSA,
+                "ES256" => connect_protocol::provisioning::SigningAlgorithm::ES256,
+                _ => anyhow::bail!("Unsupported signing algorithm"),
+            };
+            connect_server::cli::canonical_init::initialize_signed(
                 &directory,
                 example.is_some(),
                 bind,
                 http_bind,
+                algorithm,
             )?;
         }
         Command::PresenceInit {

@@ -7,6 +7,11 @@ on:
         type: choice
         options: [transport-data, transport-conversation, transport-actors, transport-fixture, transport-control, reference-app-macos, reference-app, full, python314, video-feedback, consultation-return, native-network, telephone-network, media-network, mixer-clock, sip-duplex, rtc-compound, installation, operations-guide, operational, operational-process, operational-schema, operational-typecheck, sdk-candidate, sdk-runtime, sdk-qualified]
         default: full
+      transport_signing:
+        description: 'Transport configuration/actor/conversation/data lanes: exact signing cohort'
+        type: choice
+        options: [EdDSA, ES256]
+        default: EdDSA
       source_revision:
         description: 'Installation lane only: exact source SHA for the current-schema baseline; blank selects this commit'
         type: string
@@ -47,7 +52,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'transport-data' && '-transport-data' || inputs.lane == 'transport-conversation' && '-transport-conversation' || inputs.lane == 'transport-actors' && '-transport-actors' || inputs.lane == 'transport-fixture' && '-transport-fixture' || inputs.lane == 'transport-control' && '-transport-control' || inputs.lane == 'reference-app-macos' && '-reference-app-macos' || inputs.lane == 'reference-app' && '-reference-app' || inputs.lane == 'operations-guide' && '-operations-guide' || inputs.lane == 'operational-process' && '-operational-process' || inputs.lane == 'operational-typecheck' && '-operational-typecheck' || inputs.lane == 'sdk-qualified' && '-sdk-runtime' || inputs.lane == 'sdk-runtime' && '-sdk-runtime' || inputs.lane == 'sdk-candidate' && '-sdk-candidate' || inputs.lane == 'operational-schema' && '-operational-schema' || inputs.lane == 'operational' && '-operational' || inputs.lane == 'installation' && '-installation' || inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || inputs.lane == 'sip-duplex' && '-sip-duplex' || inputs.lane == 'rtc-compound' && '-rtc-compound' || inputs.lane == 'mixer-clock' && '-mixer-clock' || inputs.lane == 'media-network' && '-media-network' || inputs.lane == 'telephone-network' && '-telephone-network' || '' }}
+  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'transport-data' && '-transport-data' || inputs.lane == 'transport-conversation' && '-transport-conversation' || inputs.lane == 'transport-actors' && '-transport-actors' || inputs.lane == 'transport-fixture' && '-transport-fixture' || inputs.lane == 'transport-control' && '-transport-control' || inputs.lane == 'reference-app-macos' && '-reference-app-macos' || inputs.lane == 'reference-app' && '-reference-app' || inputs.lane == 'operations-guide' && '-operations-guide' || inputs.lane == 'operational-process' && '-operational-process' || inputs.lane == 'operational-typecheck' && '-operational-typecheck' || inputs.lane == 'sdk-qualified' && '-sdk-runtime' || inputs.lane == 'sdk-runtime' && '-sdk-runtime' || inputs.lane == 'sdk-candidate' && '-sdk-candidate' || inputs.lane == 'operational-schema' && '-operational-schema' || inputs.lane == 'operational' && '-operational' || inputs.lane == 'installation' && '-installation' || inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || inputs.lane == 'sip-duplex' && '-sip-duplex' || inputs.lane == 'rtc-compound' && '-rtc-compound' || inputs.lane == 'mixer-clock' && '-mixer-clock' || inputs.lane == 'media-network' && '-media-network' || inputs.lane == 'telephone-network' && '-telephone-network' || '' }}${{ inputs.transport_signing == 'ES256' && '-ES256' || '' }}
   cancel-in-progress: false
 jobs:
   transport-data:
@@ -55,21 +60,25 @@ jobs:
     uses: ./.github/workflows/gate6-transport-matrix.yml
     with:
       component: data
+      signing: ${{ inputs.transport_signing || 'EdDSA' }}
   transport-conversation:
     if: ${{ inputs.lane == 'transport-conversation' }}
     uses: ./.github/workflows/gate6-transport-matrix.yml
     with:
       component: conversation
+      signing: ${{ inputs.transport_signing || 'EdDSA' }}
   transport-actors:
     if: ${{ inputs.lane == 'transport-actors' }}
     uses: ./.github/workflows/gate6-transport-matrix.yml
     with:
       component: actors
+      signing: ${{ inputs.transport_signing || 'EdDSA' }}
   transport-fixture:
     if: ${{ inputs.lane == 'transport-fixture' }}
     uses: ./.github/workflows/gate6-transport-matrix.yml
     with:
       component: materializer
+      signing: ${{ inputs.transport_signing || 'EdDSA' }}
   transport-control:
     if: ${{ inputs.lane == 'transport-control' }}
     uses: ./.github/workflows/gate6-transport-matrix.yml

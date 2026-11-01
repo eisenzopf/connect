@@ -37,7 +37,7 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA"):
     global PRIVATE, OUTPUT
     if data_workload:
         actors = conversation = True
@@ -47,6 +47,7 @@ def main(actors=False, conversation=False, data_workload=False):
         PRIVATE, OUTPUT = BASE / "private/conversation", BASE / "evidence/conversation"
     elif actors:
         PRIVATE, OUTPUT = BASE / "private/actors", BASE / "evidence/actors"
+    assert signing_algorithm in {"EdDSA", "ES256"}
     os.umask(0o077)
     assert platform.system() == "Linux" and platform.machine() == "x86_64"
     release = platform.freedesktop_os_release()
@@ -60,7 +61,7 @@ def main(actors=False, conversation=False, data_workload=False):
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
-        servers=[], task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
+        servers=[], signing_algorithm=signing_algorithm, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
         scope="Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads and observes the owned loopback listener/namespace. Audio/video duplex, live upgrade/replacement media ownership, packet capture, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
@@ -162,7 +163,24 @@ def main(actors=False, conversation=False, data_workload=False):
 
         state, seed, output = PRIVATE / "initial", PRIVATE / "seed", PRIVATE / "materialized"
         native, http = port(socket.SOCK_DGRAM), port(socket.SOCK_STREAM)
-        run("initialize", ["init", "--directory", state, "--bind", f"127.0.0.1:{native}", "--http-bind", f"127.0.0.1:{http}"])
+        run("initialize", ["init", "--directory", state, "--bind", f"127.0.0.1:{native}", "--http-bind", f"127.0.0.1:{http}", "--signing-algorithm", signing_algorithm])
+        initialized = files(state)
+        run("unsupported-init-signing", ["init", "--directory", PRIVATE / "unsupported-signing",
+            "--signing-algorithm", "RS256"], success=False)
+        assert not (PRIVATE / "unsupported-signing").exists()
+        other_algorithm = "ES256" if signing_algorithm == "EdDSA" else "EdDSA"
+        run("existing-init-signing-refusal", ["init", "--directory", state,
+            "--signing-algorithm", other_algorithm], success=False)
+        assert files(state) == initialized
+        initial_server = tomllib.loads((state / "server.toml").read_text())
+        initial_operator = tomllib.loads((state / "operator.toml").read_text())
+        assert initial_server["signing_algorithm"] == initial_operator["signing_algorithm"] == initial_operator["server_algorithm"] == signing_algorithm
+        public_key = (state / "server-signing.pub").read_bytes()
+        assert len(public_key) == (32 if signing_algorithm == "EdDSA" else 65)
+        if signing_algorithm == "ES256":
+            assert public_key[0] == 4
+        assert len({digest(state / name) for name in ("server-signing.der", "operator-signing.der", "private-key.der")}) == 3
+        report["checks"].append("selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement")
         start("seed-server", state / "server.toml")
         request("seed-create", state / "operator.toml", "conversation.create",
             dict(tenant_id="tnt_default", policy="persistent", initial_participants=[], metadata=dict(fixture="transport-materialization")),
@@ -174,7 +192,7 @@ def main(actors=False, conversation=False, data_workload=False):
         original_seed = files(seed)
         original_server = tomllib.loads((seed / "server.toml").read_text())
         original_operator = tomllib.loads((seed / "operator.toml").read_text())
-        parameters = dict(cell_id="G6-058/ubuntu24-x86_64/local/native-quic/EdDSA",
+        parameters = dict(cell_id="G6-058/ubuntu24-x86_64/local/native-quic/" + signing_algorithm,
             candidate_source_revision=report["source_revision"], candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=None,
             topology=dict(kind="local-loopback", server_platform="ubuntu24-x86_64", client_platform="ubuntu24-x86_64",
@@ -200,7 +218,7 @@ def main(actors=False, conversation=False, data_workload=False):
             raise AssertionError("Existing fixture was replaced")
         assert files(output) == before_retry
         report["checks"].append("occupied-instance-refuses-without-overwrite")
-        wrong = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/native-quic/ES256")
+        wrong = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/native-quic/" + other_algorithm)
         try:
             materialize(ROOT, seed, PRIVATE / "wrong-signing", wrong, binary, env)
         except FixtureError as error:
@@ -209,7 +227,7 @@ def main(actors=False, conversation=False, data_workload=False):
             raise AssertionError("Wrong signing cohort accepted")
         assert not (PRIVATE / "wrong-signing").exists()
         report["checks"].append("wrong-signing-seed-refuses-before-state-publication")
-        browser = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/EdDSA", browser_origin="https://browser.fixture.invalid")
+        browser = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
         try:
             materialize(ROOT, seed, PRIVATE / "missing-browser", browser, binary, env)
         except FixtureError as error:
@@ -316,7 +334,7 @@ def main(actors=False, conversation=False, data_workload=False):
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
                     executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
-                    server_pid=server.pid, native_endpoint=original_operator["endpoint"]), indent=2) + "\n").encode())
+                    server_pid=server.pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
@@ -332,6 +350,7 @@ def main(actors=False, conversation=False, data_workload=False):
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
+                assert observed["signing_algorithm"] == signing_algorithm
                 assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report["binary_sha256"]
                 if data_workload:
                     assert observed["actual_connection_workload_observed"] and observed["actual_topology_verified"]
@@ -417,5 +436,6 @@ if __name__ == "__main__":
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
+    parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     args = parser.parse_args()
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm))

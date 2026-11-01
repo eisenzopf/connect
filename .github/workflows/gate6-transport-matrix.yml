@@ -5,10 +5,13 @@ on:
       component:
         type: string
         default: control
+      signing:
+        type: string
+        default: EdDSA
 permissions:
   contents: read
 concurrency:
-  group: gate6-transport-matrix-${{ inputs.component }}-${{ github.ref }}
+  group: gate6-transport-matrix-${{ inputs.component }}-${{ inputs.signing }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   control:
@@ -23,6 +26,7 @@ jobs:
       CC: clang
       CXX: clang++
       TRANSPORT_COMPONENT: ${{ inputs.component }}
+      TRANSPORT_SIGNING: ${{ inputs.signing }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -60,6 +64,8 @@ jobs:
           python3 -c 'import os; assert os.environ["TRANSPORT_COMPONENT"] in {"control", "materializer", "actors", "conversation", "data"}'
           python3 -m unittest discover -s scripts/tests -p 'test_transport_*.py'
           python3 scripts/check-gate-6-transports.py --phase inventory
+      - name: Validate selected signing cohort
+        run: python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}'
       - name: Build current Node browser-SDK control inputs
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         working-directory: sdk/typescript
@@ -73,12 +79,12 @@ jobs:
       - name: Rehearse production stopped-backup fixture materialization
         if: inputs.component == 'materializer' || inputs.component == 'actors' || inputs.component == 'conversation' || inputs.component == 'data'
         id: materializer
-        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'data' && '--data-workload' || inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }}
+        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'data' && '--data-workload' || inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }} --signing-algorithm "$TRANSPORT_SIGNING"
       - name: Upload redacted component and unqualified matrix inventory
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-transport-matrix-${{ inputs.component }}
+          name: gate6-transport-matrix-${{ inputs.component }}${{ inputs.signing == 'ES256' && '-ES256' || '' }}
           path: .local/gate6-transports/evidence/
           include-hidden-files: true
           retention-days: 7
