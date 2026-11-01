@@ -27,6 +27,9 @@ class FixtureBoundary(unittest.TestCase):
         path = self.root / "crates/connect-store/src/lib.rs"
         path.parent.mkdir(parents=True)
         path.write_text("pub const SCHEMA_VERSION: u32 = 116;")
+        path = self.root / "crates/connect-protocol/src/lib.rs"
+        path.parent.mkdir(parents=True)
+        path.write_bytes((ROOT / "crates/connect-protocol/src/lib.rs").read_bytes())
         self.seed = self.root / ".local/seed"
         self.seed.mkdir(parents=True, mode=0o700)
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -115,6 +118,26 @@ class FixtureBoundary(unittest.TestCase):
         self.operator["signing_algorithm"] = "ES256"
         self.save()
         with self.assertRaisesRegex(FixtureError, "signing-profile"):
+            inspect_seed(self.root, self.seed, self.parameters)
+
+    def test_current_serde_omitted_session_default_is_resolved_without_rewriting_seed(self):
+        del self.server["limits"]["sessions"]
+        self.save()
+        original = (self.seed / "server.toml").read_bytes()
+        plan = inspect_seed(self.root, self.seed, self.parameters)
+        self.assertNotIn("sessions", plan["server"]["limits"])
+        self.assertEqual((self.seed / "server.toml").read_bytes(), original)
+        self.server["limits"]["sessions"] = 1
+        self.save()
+        with self.assertRaisesRegex(FixtureError, "workload-capacity"):
+            inspect_seed(self.root, self.seed, self.parameters)
+
+    def test_omitted_session_default_must_be_bound_to_the_current_source_contract(self):
+        del self.server["limits"]["sessions"]
+        self.save()
+        path = self.root / "crates/connect-protocol/src/lib.rs"
+        path.write_text(path.read_text().replace('default = "default_sessions"', 'default = "other_sessions"'))
+        with self.assertRaisesRegex(FixtureError, "session-default-contract"):
             inspect_seed(self.root, self.seed, self.parameters)
 
     def test_symlink_or_public_secret_asset_refuses(self):

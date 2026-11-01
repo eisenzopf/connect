@@ -70,6 +70,28 @@ def timestamp(value):
         raise FixtureError("fixture-key-validity") from None
 
 
+def workload_capacity(root, server, workload):
+    limits = server.get("limits")
+    if not isinstance(limits, dict):
+        raise FixtureError("fixture-workload-capacity")
+    effective = dict(limits)
+    if "sessions" not in effective:
+        # Current Limits uses serde(default=default_sessions) and omits that
+        # value on serialization. Resolve its pinned source definition without
+        # rewriting the seed or inventing a second default in fixture tooling.
+        source = (root / "crates/connect-protocol/src/lib.rs").read_text()
+        if not re.search(r'#\[serde\(\s*default = "default_sessions",\s*skip_serializing_if = "is_default_sessions"\s*\)\]\s*pub sessions: u64,', source):
+            raise FixtureError("fixture-session-default-contract")
+        definition = re.search(r"fn default_sessions\(\) -> u64\s*\{\s*([0-9_]+)\s*\}", source)
+        if definition is None:
+            raise FixtureError("fixture-session-default-contract")
+        effective["sessions"] = int(definition[1].replace("_", ""))
+    for key, count in (("participants", workload["participants"]),
+            ("connections", workload["connections"]), ("sessions", workload["concurrent_sessions"])):
+        if type(effective.get(key)) is not int or effective[key] < count:
+            raise FixtureError("fixture-workload-capacity")
+
+
 def inspect_seed(root, seed, parameters):
     """Validate private preparation inputs; no runtime authority is inferred."""
     fields = {"cell_id", "candidate_source_revision", "candidate_binary_sha256", "seed_manifest_sha256", "topology", "browser_origin"}
@@ -174,10 +196,7 @@ def inspect_seed(root, seed, parameters):
     endpoint(server["bind"], profile == "local")
     endpoint(topology["native_endpoint"], profile == "local")
     workload = json.loads((root / "contracts/gate6-transport-matrix.json").read_text())["workload"]
-    limits = server.get("limits", {})
-    if any(type(limits.get(key)) is not int or limits[key] < count for key, count in
-            (("participants", workload["participants"]), ("connections", workload["connections"]), ("sessions", workload["concurrent_sessions"]))):
-        raise FixtureError("fixture-workload-capacity")
+    workload_capacity(root, server, workload)
     if cell["transport"] != "native-quic":
         origin = parameters["browser_origin"]
         if not isinstance(origin, str) or any(c.isspace() for c in origin):

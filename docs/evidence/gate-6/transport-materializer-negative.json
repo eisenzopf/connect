@@ -1,0 +1,27 @@
+{
+  "format": "connect/transport-materializer-negative-verification/1",
+  "source_revision": "e4afeb1f1333a24529570a9eb9433d16a519642f",
+  "workflow_run_id": 41266891701,
+  "job_id": 124731450985,
+  "artifact_id": 13067262691,
+  "zip_sha256": "8affd97d1cc037a0665b9918bea565f30437b7490c0e10ed6d0a581e525e826c",
+  "source_inputs_sha256": "619a64f230c35f8a3c4d3a138b8636187e91be3436e5a05635ea03fc48837829",
+  "sources_verified": {
+    "git": 4681,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "failure": {
+    "phase": "materialize",
+    "name": "FixtureError",
+    "line": 180,
+    "code": "fixture-workload-capacity"
+  },
+  "public_cli_commands_succeeded": 4,
+  "original_seed_server_joined": true,
+  "materialization_passed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -1071,17 +1071,17 @@
     "full_matrix_cells_qualified": 0
   },
   "protected_fixture_configuration": {
-    "status": "implemented-runtime-unrun",
+    "status": "corrected-after-source-verified-default-limit-refusal",
     "implementation_hashes": {
-      "scripts/lib/transport_fixture.py": "caafddf56edfa185cda5d03781157b67194e49af5b4c31f1a20c7a0128a367be",
+      "scripts/lib/transport_fixture.py": "7fefb20a2ae1a3887a4722f6ae65b961404947b99d1ef89f09cfc83a88311fd8",
       "scripts/materialize-gate6-transport-fixture.py": "602aeeb41ef727e53d205ea73b17f8c57f38f6eb843405d790b9596f7e7822c1",
       "scripts/check-transport-fixtures.py": "db86eb0209ca265d2c303b3dbe0233196848abffe446086e4014a03d2a0b21b3",
-      "scripts/tests/test_transport_fixture.py": "0a3d1febb294e01044cce7ab0fe5dbf2de8aedfbca9efa27537867063565f3e8",
+      "scripts/tests/test_transport_fixture.py": "1aa1b051b68bf06ea8d4a6b48de5055024e9b5d33a0538aeb4581ce67a64fa1a",
       ".github/workflows/gate6-transport-matrix.yml": "01d8d3b53c460f44562e648c6b1c870a47cc0f6e2e53cd41630277ba5b58bf3b",
       ".github/workflows/gate6-linux-fixtures.yml": "810172bed0915c615ee25e99fccd02c952ff14135a4e701a835b2a17d391042f",
       "scripts/fixtures/transport-matrix/README.md": "88b02b74f967f0002c0945b71cde6c0170b2d9ff71c58f2e427b473124068a89"
     },
-    "local_guard_tests_passed": 14,
+    "local_guard_tests_passed": 16,
     "behavior": "Validate a matching private stopped canonical backup, invoke production restore, preserve credential/key validity, and materialize absolute server/operator asset references in a new private instance. No listeners or actors are started by materialization.",
     "rehearsal": "Isolated transport-fixture CI lane: production CLI init/create/backup, real restore/materialization, occupied-output and wrong-signing/browser refusal, original conversation/operation native reads and original server joins.",
     "runtime_verified": false,
@@ -1092,9 +1092,11 @@
       "source_revision": "e4afeb1f1333a24529570a9eb9433d16a519642f",
       "workflow_run_id": 41266891701,
       "job_id": 124731450985,
-      "status": "live-cache-restoration",
+      "status": "rehearsal-failed-materialization-default-limit-refusal",
       "url": "https://github.com/eisenzopf/connect/actions/runs/41266891701",
       "runtime_verified": false
-    }
+    },
+    "negative_evidence": "docs/evidence/gate-6/transport-materializer-negative.json",
+    "correction": "Resolve the current serde-omitted default_sessions from its pinned protocol source definition; preserve seed/config bytes and refuse an explicit insufficient limit or changed default contract."
   }
 }
