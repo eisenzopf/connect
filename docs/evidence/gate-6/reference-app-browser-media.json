@@ -26,7 +26,7 @@
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
     "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
     "examples/parley-on-connect/app/ui/media.mjs": "3ff16703b0116e37518ee7df48f4c58c8371990f45fc121788253725e2c26aee",
-    "scripts/check-reference-app-installed.mjs": "f62e5d78d47ba6ed7b0a04cbe16cdb2d4937d389cd92f80500860f4d1be8186c",
+    "scripts/check-reference-app-installed.mjs": "1e63caccd0a9eb15939be54699ebb1d9d13c2f303637b71273589227ff8d6e67",
     "examples/parley-on-connect/README.md": "19de07583d202bc333bcd4f5d78ac0962c7a186dd7aafc7340145bbe05cc7aca",
     "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
     "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968"
@@ -35,7 +35,7 @@
     "app_component_functions_passed": 72,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "72localNodeapplicationcases pass;24focusedcases reproduce2accepted-only failures thenallpass withonly sharedpredicate changed.8actualHTTPcases including newpublichelper serving pass. Exactinstalled34check result remainsrequired.",
+    "scope": "72local application cases pass. Exact728 candidate: Linux Node22 and independent local Mac Node26 all34 checks pass; CI Mac22 fails fresh AV snapshot admission. New35th sustained AV check unrun.",
     "late_admission_observer_disposal": "The existing retirement-during-admission case additionally asserts the late-created read-only control owner closes exactly once, including a repeated close. All13media cases pass on Node26; installed run41284218404 uses prior test assertions and unchanged application runtime.",
     "browser_permission_diagnostic": "docs/evidence/gate-6/reference-app-device-permission-diagnostic.json",
     "session_lifecycle_regression": "docs/evidence/gate-6/reference-app-session-lifecycle-regression.json"
@@ -70,7 +70,7 @@
     "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
   },
   "installed_rehearsal": {
-    "expected_checks": 34,
+    "expected_checks": 35,
     "prior_checks_retained": 21,
     "two_separate_owned_chromium_processes": true,
     "synthetic_capture_only": true,
@@ -82,7 +82,8 @@
       "actual getUserMedia,Worklet,WebCodecs and public Node/native packet IO",
       "12 completed output buffers per side, received source tone dominates local source by8x",
       "source clocks received and original capture/render/requests join",
-      "separate accepted original AV Session/Connections, current peer video selectors, identified VP8 output and original video unsubscribe/end/helper cleanup"
+      "separate accepted original AV Session/Connections, current peer video selectors, identified VP8 output and original video unsubscribe/end/helper cleanup",
+      "Five two-second combined AV windows; each side >=50 newly completed identified audio buffers and >=6 newly painted video frames. Liveness component only; no quality or latency qualification inferred."
     ],
     "runtime_verified": false,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
@@ -103,7 +104,12 @@
     ],
     "bidirectional_video_component_evidence": "docs/evidence/gate-6/reference-app-installed-browser-av.json",
     "bidirectional_video_component_verified_both_platforms": true,
-    "permission_revocation_causality_verified": false
+    "permission_revocation_causality_verified": false,
+    "lifecycle_evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+    "permission_revocation_causality_verified_scopes": [
+      "Linux Node22 CI",
+      "local macOS Node26 Chromium153"
+    ]
   },
   "remaining": [
     "Installed current33check lifecycle/control/recovery result and exact-source audit",
@@ -213,5 +219,13 @@
   "read_contention_correction": "Bounded32-slot active-read sharing for identical capabilities/list/view selectors on the exact current actor SDK owner. No result/authorization cache; no mutation sharing or retry. Original-owner changes fence both late results and failures; shutdown joins owned active reads. Keeps all request deadlines unchanged.",
   "offline_correction": "A per-page offline latch stops capture, disables mutations/recovery, suspends passive reads and requires explicit Reconnect. Ends original AV Connections through the original owner before reconnect replaces that client. Recovered original End operation ID/scope must match; no auto capture restart.",
   "browser_rehearsal_correction": "Explicit installed full Chromium in headless mode (chromium.executablePath or explicit owned override), rather than Playwright default headless shell. No fake permissionUI. Clear old context overrides before camera-only permission to genuinely revoke microphone; retain actual ended event/device-ended reason assertions. Record launcher-file SHA before/after separately from whole-engine identity. All33checks unchanged.",
-  "session_lifecycle_correction": "One shared browser/backend predicate admits accepted,ready,active exactly as the sealed373Store. Original Conversation/Session/Connection IDs, current appearance, physical state/generation and SDK/Core authorization remain mandatory. View refresh no longer stops a normal active Session. Terminal/unconsented/closed/changed scope remains refused. Actual installed check requires both current active Session snapshots and advancing capture; failed snapshots retain closed Session-state/actor diagnostics and explicit view-change stop reason."
-}
+  "session_lifecycle_correction": "One shared browser/backend predicate admits accepted,ready,active exactly as the sealed373Store. Original Conversation/Session/Connection IDs, current appearance, physical state/generation and SDK/Core authorization remain mandatory. View refresh no longer stops a normal active Session. Terminal/unconsented/closed/changed scope remains refused. Actual installed check requires both current active Session snapshots and advancing capture; failed snapshots retain closed Session-state/actor diagnostics and explicit view-change stop reason.",
+  "installed_lifecycle_current": {
+    "evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+    "linux_checks": 34,
+    "ci_mac_checks": 22,
+    "local_mac_checks": 34,
+    "ci_mac_cold_admission_unresolved": true,
+    "sustained_av_unqualified": true
+  }
+}\n

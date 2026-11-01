@@ -547,6 +547,41 @@ try {
     }
     report.synthetic_capture_decoded_video_verified = true;
     check("keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions");
+    // A short video marker can pass while the concurrent audio has stalled.
+    // Observe new, completed output in every two-second window on both pages;
+    // cumulative counters from the earlier audio-only Session cannot satisfy it.
+    stage = "sustained-combined-browser-audio-video";
+    report.sustained_browser_av = [];
+    const avSample = target => target.evaluate(() => ({
+        at: performance.now(),
+        metrics: JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null"),
+        output: { ...window.__parley_audio_probe__ },
+    }));
+    let previousAv = await Promise.all(mediaPages.map(({ page: target }) => avSample(target)));
+    for (let window = 0; window < 5; window++) {
+        await new Promise(done => setTimeout(done, 2000));
+        const next = await Promise.all(mediaPages.map(({ page: target }) => avSample(target)));
+        const observed = next.map((sample, index) => {
+            const before = previousAv[index], tone = mediaPages[index];
+            return { role: tone.role, elapsed_ms: sample.at - before.at,
+                completed_audio_frames: sample.output.frames - before.output.frames,
+                painted_video_frames: sample.metrics.paintedVideoFrames - before.metrics.paintedVideoFrames,
+                audio_energy: sample.output.energy - before.output.energy,
+                desired_tone: sample.output["tone" + tone.other] - before.output["tone" + tone.other],
+                excluded_tone: sample.output["tone" + tone.frequency] - before.output["tone" + tone.frequency],
+                metrics: sample.metrics };
+        });
+        report.sustained_browser_av.push(observed);
+        for (const sample of observed) {
+            assert.equal(sample.metrics.stopped, false);
+            assert.ok(sample.completed_audio_frames >= 50, "combined-av-completed-audio-progress");
+            assert.ok(sample.painted_video_frames >= 6, "combined-av-painted-video-progress");
+            assert.ok(sample.audio_energy / sample.completed_audio_frames > 0.0001);
+            assert.ok(sample.desired_tone > 8 * Math.max(sample.excluded_tone, 1e-12), "combined-av-original-remote-audio-marker");
+        }
+        previousAv = next;
+    }
+    check("both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window");
     await mediaPages[0].page.screenshot({ path: join(output, "video-controls.png"), fullPage: true });
     await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

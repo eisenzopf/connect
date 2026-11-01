@@ -132,6 +132,7 @@
     "local_component_functions_passed": 72,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
     "installed_audio_evidence": "docs/evidence/gate-6/reference-app-installed-browser-audio.json",
-    "installed_av_component_evidence": "docs/evidence/gate-6/reference-app-installed-browser-av.json"
+    "installed_av_component_evidence": "docs/evidence/gate-6/reference-app-installed-browser-av.json",
+    "installed_lifecycle_evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
   }
-}
+}\n
