@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { newSetupPlan, digest } from "../examples/parley-on-connect/app/setup.mjs";
 import { summarizeCpuProfile } from "./lib/app_cpu_summary.mjs";
-import { startNativeServerSample } from "./lib/native_server_sample.mjs";
+import { startNativeServerSample, finishNativeBeforeStop } from "./lib/native_server_sample.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 const flags = process.argv.slice(4);
@@ -105,11 +105,14 @@ async function start(number) {
 async function stop() {
     if (!processChild) return;
     const original = processChild;
-    original.kill("SIGTERM");
-    const result = await deadline(finished, 15000);
-    assert.deepEqual(result, { code: 0, signal: null });
-    assert.deepEqual(groupMembers(original.pid), []);
-    processChild = null;
+    const observation = await finishNativeBeforeStop(nativeSample, async () => {
+        original.kill("SIGTERM");
+        const result = await deadline(finished, 15000);
+        assert.deepEqual(result, { code: 0, signal: null });
+        assert.deepEqual(groupMembers(original.pid), []);
+        processChild = null;
+    });
+    if (observation) report.native_server_sample = observation;
 }
 try {
     stage = "actual-public-provisioning-validation";

@@ -1,0 +1,2344 @@
+{
+  "format": "connect/reference-app-session-readers-local/1",
+  "task": "G6-072",
+  "implementation": "docs/evidence/gate-6/session-metadata-readers.json",
+  "idle_improvement": "docs/evidence/gate-6/session-readers-local-native-idle-observed.json",
+  "actual_installed_app_passed": true,
+  "observation": {
+    "node": "v22.16.0",
+    "browser": "156.0.8078.4",
+    "browser_product": "full-chromium",
+    "browser_launcher_sha256": "c8509aee32abd6977968e9999769980b7a420dea05402d90042d9e5b41db15ef",
+    "source_revision": "1e1835979ee796f90e00f4cdba2d8e7536996408",
+    "runtime_source_revision": "1e1835979ee796f90e00f4cdba2d8e7536996408",
+    "binary_sha256": "40bb7ca138443f1deda1decfa35bafa11655ef23cf5accd153425725d85e2e0d",
+    "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+    "checks": [
+      "actual-public-helper-validates-all-generated-identity-intents",
+      "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+      "one-command-four-actor-scoped-setup-ready",
+      "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+      "actual-installed-native-SDK-control-connected",
+      "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+      "keyboard-participant-selection-and-conversation-creation",
+      "actual-authorized-text-safe-timeline",
+      "keyboard-incoming-invitation-and-actual-acceptance",
+      "actual-browser-microphone-and-camera-refusal",
+      "320px-no-horizontal-overflow",
+      "actual-accepted-original-survives-lost-response-and-offline",
+      "keyboard-original-status-recovery-one-visible-message",
+      "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+      "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+      "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+      "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+      "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+      "current-active-session-snapshots-preserve-original-browser-media-capture",
+      "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+      "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+      "additional-owned-synthetic-media-browser-owners-close",
+      "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+      "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+      "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions",
+      "both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window",
+      "keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video",
+      "keyboard-cancellation-stops-a-late-actual-browser-device-result-before-publication",
+      "actual-microphone-permission-revocation-ends-tracks-and-joins-media",
+      "keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work",
+      "actual-browser-offline-transition-stops-capture-render-and-packet-work",
+      "keyboard-explicit-offline-reconnect-observes-original-av-end-without-resuming-capture",
+      "both-original-av-connections-and-additional-owned-browsers-join",
+      "original-app-server-and-all-native-helper-processes-joined",
+      "same-command-restart-preserves-original-setup-and-conversation",
+      "original-owned-browser-joined",
+      "restarted-app-server-and-all-native-helper-processes-joined"
+    ],
+    "native_video_playout_component": {
+      "painted": 3,
+      "dropped": 0,
+      "queued": 0,
+      "pixel": [
+        0,
+        255,
+        0,
+        255
+      ]
+    },
+    "synthetic_browser_audio": [
+      {
+        "role": "owner",
+        "expected_received_hz": 880,
+        "metrics": {
+          "capturedAudioFrames": 25,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 25,
+          "sentRtp": 25,
+          "receivedRtp": 20,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 1,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 20,
+          "playedAudioFrames": 20,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 0,
+          "synchronizedPackets": 18,
+          "unsynchronizedPackets": 2,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": 66.133,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": -75,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 1,
+          "activeContexts": 1,
+          "queuedAudioSources": 4,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 1,
+          "stopped": false
+        },
+        "output": {
+          "frames": 15,
+          "energy": 2.801351655341073,
+          "tone440": 0.0007063970635047347,
+          "tone880": 1.3611176761782762
+        },
+        "state": "active",
+        "status": "Microphone shared. Incoming audio playing."
+      },
+      {
+        "role": "organizer",
+        "expected_received_hz": 440,
+        "metrics": {
+          "capturedAudioFrames": 24,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 24,
+          "sentRtp": 24,
+          "receivedRtp": 26,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 1,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 26,
+          "playedAudioFrames": 26,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 0,
+          "synchronizedPackets": 24,
+          "unsynchronizedPackets": 2,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": 59.833,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": -74,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 1,
+          "activeContexts": 1,
+          "queuedAudioSources": 4,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 1,
+          "stopped": false
+        },
+        "output": {
+          "frames": 18,
+          "energy": 0.35212359077688865,
+          "tone440": 0.17346372710564928,
+          "tone880": 0.00010147205020585498
+        },
+        "state": "active",
+        "status": "Microphone shared. Incoming audio playing."
+      }
+    ],
+    "synthetic_browser_video": [
+      {
+        "role": "owner",
+        "expected_remote_marker": "green",
+        "metrics": {
+          "capturedAudioFrames": 45,
+          "capturedVideoFrames": 21,
+          "encodedFrames": 63,
+          "sentRtp": 63,
+          "receivedRtp": 72,
+          "clockReportsSent": 2,
+          "clockReportsReceived": 3,
+          "videoClockReportsSent": 1,
+          "videoClockReportsReceived": 1,
+          "decodedAudioFrames": 52,
+          "playedAudioFrames": 48,
+          "decodedVideoFrames": 16,
+          "paintedVideoFrames": 7,
+          "droppedFrames": 16,
+          "synchronizedPackets": 68,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 4,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 3,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 2,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": 64.883,
+          "lastVideoOffsetMs": 76.355,
+          "receiveClockCorrections": 3,
+          "lastAudioCaptureOffsetMs": -96,
+          "lastVideoCaptureOffsetMs": 0,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 4,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 3,
+          "stopped": false
+        },
+        "marker": [
+          0,
+          254.99999999999812,
+          0.9999999999999897
+        ],
+        "colors": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            254.99999999999812,
+            0.9999999999999897
+          ]
+        ],
+        "wrongSource": false,
+        "state": "active"
+      },
+      {
+        "role": "organizer",
+        "expected_remote_marker": "red",
+        "metrics": {
+          "capturedAudioFrames": 50,
+          "capturedVideoFrames": 23,
+          "encodedFrames": 68,
+          "sentRtp": 68,
+          "receivedRtp": 55,
+          "clockReportsSent": 2,
+          "clockReportsReceived": 2,
+          "videoClockReportsSent": 1,
+          "videoClockReportsReceived": 1,
+          "decodedAudioFrames": 40,
+          "playedAudioFrames": 40,
+          "decodedVideoFrames": 15,
+          "paintedVideoFrames": 12,
+          "droppedFrames": 6,
+          "synchronizedPackets": 51,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 1,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": 75.221,
+          "lastVideoOffsetMs": 67.533,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": -80,
+          "lastVideoCaptureOffsetMs": -14,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 4,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 3,
+          "stopped": false
+        },
+        "marker": [
+          253.99999999999864,
+          0,
+          0
+        ],
+        "colors": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            253.99999999999864,
+            0,
+            0
+          ]
+        ],
+        "wrongSource": false,
+        "state": "active"
+      }
+    ],
+    "media_lifecycle": {
+      "late_device_result": {
+        "metrics": {
+          "capturedAudioFrames": 0,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 0,
+          "sentRtp": 0,
+          "receivedRtp": 0,
+          "clockReportsSent": 0,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 0,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": null,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "stopped",
+          "stoppedAt": "device-permission",
+          "stopReason": "stopped",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "actual_tracks": 3,
+        "last_capture_ended_events": 0,
+        "ended_tracks": 3
+      },
+      "permission_revocation": {
+        "metrics": {
+          "capturedAudioFrames": 20,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 20,
+          "sentRtp": 20,
+          "receivedRtp": 0,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 0,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -173,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "app-media-device-ended",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "actual_tracks": 4,
+        "last_capture_ended_events": 1,
+        "ended_tracks": 4
+      },
+      "participant_switch": {
+        "metrics": {
+          "capturedAudioFrames": 20,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 20,
+          "sentRtp": 20,
+          "receivedRtp": 0,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 0,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -168,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "stopped",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "actual_tracks": 5,
+        "last_capture_ended_events": 0,
+        "ended_tracks": 5
+      },
+      "offline": {
+        "metrics": {
+          "capturedAudioFrames": 20,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 20,
+          "sentRtp": 20,
+          "receivedRtp": 0,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 1,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -175,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "stopped",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "actual_tracks": 6,
+        "last_capture_ended_events": 0,
+        "ended_tracks": 6
+      },
+      "offline_original_recovery": {
+        "original_operation_preserved": true,
+        "current_access_observed": true,
+        "metrics": {
+          "capturedAudioFrames": 20,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 20,
+          "sentRtp": 20,
+          "receivedRtp": 0,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 1,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -175,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "stopped",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "actual_tracks": 6,
+        "last_capture_ended_events": 0,
+        "ended_tracks": 6
+      }
+    },
+    "ui_screenshots": {
+      "native-controls.png": "a84a8330f6b955fce8866941e84d4b599ad43a8e4023b009f2a8291a11aea0a5",
+      "native-controls-narrow.png": "94e39849d0acfc9e7cd5deac8699b96f45f9378af81546b4d8132b9de1e6e53a",
+      "capture-controls.png": "3a6f94568ba2b67cddeee2453999ed8d91037ba235d034ea1beaaad31440749e",
+      "capture-controls-narrow.png": "0d03b66d33e087b2193226609f8728a9b2f32fcce5dfdff0cc7d527d8f78a2ea",
+      "video-controls.png": "1aaf0a48910f33e2a755ce102b08a410f4d6f9b2493b9dfe15f4328c1e3ed101",
+      "video-controls-narrow.png": "b39377c75d12f4c330f98c06e74172c1e9c20eb65778a732da106a812079a2b3"
+    },
+    "native_server_sample": {
+      "observed": true,
+      "observer_joined": true,
+      "forced": false,
+      "seconds_requested": 8,
+      "interval_ms": 10,
+      "elapsed_ms": 8207,
+      "available_parallelism": 14,
+      "server_cpu_delta_ms": 3490,
+      "resident_bytes_before": 74973184,
+      "resident_bytes_after": 82542592,
+      "rust_symbols_demangled": 385,
+      "format": "connect/native-server-stack-sample/1",
+      "raw_sample_sha256": "767ce50ac1e32e64debb7caf63759eb7d2176eea5b0271397a20a733783cc07e",
+      "symbols_observed": 343,
+      "top_stacks": [
+        {
+          "symbol": "<std::sys::thread::unix::Thread>::new::thread_start",
+          "stack_samples": 13860
+        },
+        {
+          "symbol": "<std::thread::lifecycle::spawn_unchecked<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}",
+          "stack_samples": 13860
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>",
+          "stack_samples": 13860
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::pool::Inner>::run",
+          "stack_samples": 13860
+        },
+        {
+          "symbol": "<parking_lot::condvar::Condvar>::wait_until_internal",
+          "stack_samples": 13302
+        },
+        {
+          "symbol": "__psynch_cvwait",
+          "stack_samples": 13300
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "tokio::runtime::scheduler::multi_thread::worker::run",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}, ()>",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}::{closure#0}, ()>",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run",
+          "stack_samples": 9240
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::park_internal",
+          "stack_samples": 9108
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::park::Inner>::park_condvar",
+          "stack_samples": 8492
+        },
+        {
+          "symbol": "std::rt::lang_start_internal",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "std::rt::lang_start::<core::result::Result<(), anyhow::Error>>::{closure#0}",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<fn() -> core::result::Result<(), anyhow::Error>, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "<tokio::runtime::runtime::Runtime>::block_on::<connect::main::{closure#0}>",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::multi_thread::MultiThread>::block_on<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>::{closure#0}, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "<tokio::runtime::park::CachedParkThread>::block_on::<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "<tokio::runtime::park::Inner>::park",
+          "stack_samples": 660
+        },
+        {
+          "symbol": "<tokio::runtime::time::Driver>::park_internal",
+          "stack_samples": 616
+        },
+        {
+          "symbol": "<tokio::runtime::io::driver::Driver>::turn",
+          "stack_samples": 615
+        },
+        {
+          "symbol": "kevent",
+          "stack_samples": 615
+        },
+        {
+          "symbol": "__psynch_mutexwait",
+          "stack_samples": 237
+        },
+        {
+          "symbol": "<std::sys::pal::unix::sync::mutex::Mutex>::lock",
+          "stack_samples": 231
+        },
+        {
+          "symbol": "<connect_store::Store>::connection",
+          "stack_samples": 229
+        },
+        {
+          "symbol": "connect_store::events::admission::snapshot_scopes",
+          "stack_samples": 201
+        },
+        {
+          "symbol": "connect_store::transitions::rows::by_record",
+          "stack_samples": 194
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 186
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<connect_service::peer_authority::StorePeerAuthority>::admit::{closure#0}::{closure#1}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 162
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<connect_service::peer_authority::StorePeerAuthority>::admit::{closure#0}::{closure#1}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 162
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<connect_service::peer_authority::StorePeerAuthority>::admit::{closure#0}::{closure#1}> as core::future::future::Future>::poll",
+          "stack_samples": 162
+        },
+        {
+          "symbol": "<connect_store::Store>::admit_peer_authority",
+          "stack_samples": 162
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run_task",
+          "stack_samples": 128
+        },
+        {
+          "symbol": "connect_store::peer_authority::checked",
+          "stack_samples": 127
+        },
+        {
+          "symbol": "connect_store::events::admission::snapshot_items",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "connect_store::events::admission::operation",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "connect_store::transitions::peer::operation_source_scopes",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "<connect_store::Store>::admit_peer_authority::{closure#0}",
+          "stack_samples": 114
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<connect_service::Service>::canonical_snapshot_held::{closure#0}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 101
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<connect_service::Service>::canonical_snapshot_held::{closure#0}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 101
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<connect_service::Service>::canonical_snapshot_held::{closure#0}::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 101
+        },
+        {
+          "symbol": "<connect_store::Store>::conversation_snapshot_with_peer",
+          "stack_samples": 101
+        },
+        {
+          "symbol": "connect_store::transitions::snapshot_record",
+          "stack_samples": 96
+        },
+        {
+          "symbol": "<rusqlite::Connection>::query_row::<u64, &[&dyn rusqlite::types::to_sql::ToSql], connect_store::transitions::rows::by_record::{closure#14}>",
+          "stack_samples": 89
+        },
+        {
+          "symbol": "connect_store::events::snapshots::capture",
+          "stack_samples": 88
+        }
+      ],
+      "component_stacks": [
+        {
+          "symbol": "<connect_store::Store>::connection",
+          "stack_samples": 229
+        },
+        {
+          "symbol": "connect_store::events::admission::snapshot_scopes",
+          "stack_samples": 201
+        },
+        {
+          "symbol": "connect_store::transitions::rows::by_record",
+          "stack_samples": 194
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 186
+        },
+        {
+          "symbol": "<connect_store::Store>::admit_peer_authority",
+          "stack_samples": 162
+        },
+        {
+          "symbol": "connect_store::peer_authority::checked",
+          "stack_samples": 127
+        },
+        {
+          "symbol": "connect_store::events::admission::snapshot_items",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "connect_store::events::admission::operation",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "connect_store::transitions::peer::operation_source_scopes",
+          "stack_samples": 123
+        },
+        {
+          "symbol": "<connect_store::Store>::admit_peer_authority::{closure#0}",
+          "stack_samples": 114
+        },
+        {
+          "symbol": "<connect_store::Store>::conversation_snapshot_with_peer",
+          "stack_samples": 101
+        },
+        {
+          "symbol": "connect_store::transitions::snapshot_record",
+          "stack_samples": 96
+        },
+        {
+          "symbol": "<rusqlite::Connection>::query_row::<u64, &[&dyn rusqlite::types::to_sql::ToSql], connect_store::transitions::rows::by_record::{closure#14}>",
+          "stack_samples": 89
+        },
+        {
+          "symbol": "connect_store::events::snapshots::capture",
+          "stack_samples": 88
+        },
+        {
+          "symbol": "connect_store::events::snapshots::scope_items",
+          "stack_samples": 78
+        },
+        {
+          "symbol": "<rusqlite::Connection>::prepare_with_flags",
+          "stack_samples": 71
+        },
+        {
+          "symbol": "<connect_service::peer_authority::StorePeerAuthority>::with_assurance::{closure#0}::{closure#3}::{closure#1}",
+          "stack_samples": 71
+        },
+        {
+          "symbol": "connect_store::transitions::rows::find",
+          "stack_samples": 59
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_data",
+          "stack_samples": 52
+        },
+        {
+          "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+          "stack_samples": 49
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at",
+          "stack_samples": 49
+        },
+        {
+          "symbol": "<connect_service::credential_binding::StoreCredentialBinding>::from_validated",
+          "stack_samples": 49
+        },
+        {
+          "symbol": "<connect_store::Store>::credential_metadata",
+          "stack_samples": 49
+        },
+        {
+          "symbol": "<connect_store::Store>::session_invitation_cancellation_template",
+          "stack_samples": 49
+        },
+        {
+          "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+          "stack_samples": 48
+        },
+        {
+          "symbol": "<connect_store::Store>::reconcile_session_reconnect",
+          "stack_samples": 38
+        },
+        {
+          "symbol": "sqlite3_step",
+          "stack_samples": 35
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+          "stack_samples": 30
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+          "stack_samples": 29
+        },
+        {
+          "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+          "stack_samples": 29
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+          "stack_samples": 28
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+          "stack_samples": 27
+        }
+      ],
+      "scope": "Inclusive sampled stack counts across server threads; not CPU seconds or a transport/quality pass. Only fixed runtime waits and known Rust/SQLite symbols; PIDs, paths and raw stacks excluded."
+    },
+    "cpu_profiles": [
+      {
+        "format": "connect/app-cpu-sample-summary/1",
+        "raw_profile_sha256": "1c65ad041e0e4deab4a1192e51c243335bbe03d46c7ca2386907499a7fb02877",
+        "samples": 506,
+        "total_sampled_ms": 762,
+        "top_self": [
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 716,
+            "inclusive_sampled_ms": 716
+          },
+          {
+            "module": "node:inspector",
+            "function": "post",
+            "line": 115,
+            "self_sampled_ms": 10,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "node:net",
+            "function": "lookupAndListen",
+            "line": 2190,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 72,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 15
+          },
+          {
+            "module": "node:internal/net",
+            "function": "isIPv6",
+            "line": 40,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 4
+          },
+          {
+            "module": "node:internal/abort_controller",
+            "function": "timeout",
+            "line": 239,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "afterWriteTick",
+            "line": 693,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 6
+          },
+          {
+            "module": "node:_http_server",
+            "function": "resOnFinish",
+            "line": 980,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:events",
+            "function": "removeListener",
+            "line": 680,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node:_http_common",
+            "function": "parserOnMessageComplete",
+            "line": 135,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node:_http_server",
+            "function": "parserOnIncoming",
+            "line": 1040,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 5
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "serve",
+            "line": 175,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 5
+          },
+          {
+            "module": "node:_http_incoming",
+            "function": "matchKnownFields",
+            "line": 276,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node:_http_server",
+            "function": "onParserExecute",
+            "line": 845,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "string",
+            "line": 101,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "v8",
+            "function": "(garbage collector)",
+            "line": 0,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "node-native",
+            "function": "close",
+            "line": 0,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 2
+          },
+          {
+            "module": "sdk/sdk_helper.js",
+            "function": "SdkHelper",
+            "line": 33,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 1
+          },
+          {
+            "module": "app/gateway.mjs",
+            "function": "anonymous",
+            "line": 106,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:_http_outgoing",
+            "function": "set",
+            "line": 250,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 1
+          },
+          {
+            "module": "node:internal/fs/promises",
+            "function": "lstat",
+            "line": 1021,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 1
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "get",
+            "line": 1523,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 1
+          },
+          {
+            "module": "node-native",
+            "function": "read",
+            "line": 0,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 1
+          }
+        ],
+        "top_inclusive": [
+          {
+            "module": "v8",
+            "function": "(root)",
+            "line": 0,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 762
+          },
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 716,
+            "inclusive_sampled_ms": 716
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 72,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 15
+          },
+          {
+            "module": "node:inspector",
+            "function": "post",
+            "line": 115,
+            "self_sampled_ms": 10,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "app/cpu-profile.mjs",
+            "function": "startCpuProfile",
+            "line": 8,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "app/cpu-profile.mjs",
+            "function": "post",
+            "line": 15,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "app/cpu-profile.mjs",
+            "function": "anonymous",
+            "line": 15,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "node:events",
+            "function": "emit",
+            "line": 465,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 10
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "afterWriteTick",
+            "line": 693,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 6
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 6
+          },
+          {
+            "module": "node:_http_server",
+            "function": "parserOnIncoming",
+            "line": 1040,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 5
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "serve",
+            "line": 175,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 5
+          },
+          {
+            "module": "node:_http_common",
+            "function": "parserOnHeadersComplete",
+            "line": 71,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 5
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 4
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "afterWrite",
+            "line": 699,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 4
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "callback",
+            "line": 764,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 4
+          },
+          {
+            "module": "node:_http_outgoing",
+            "function": "onFinish",
+            "line": 1079,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 4
+          },
+          {
+            "module": "node:_http_server",
+            "function": "resOnFinish",
+            "line": 980,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "app/gateway.mjs",
+            "function": "anonymous",
+            "line": 106,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:_http_server",
+            "function": "writeHead",
+            "line": 348,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "value",
+            "line": 120,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "onStreamRead",
+            "line": 166,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "Readable.push",
+            "line": 387,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 3
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "readableAddChunkPushByteMode",
+            "line": 463,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 3
+          }
+        ],
+        "nodes": 118,
+        "tail_four_seconds": {
+          "samples": 506,
+          "total_sampled_ms": 762,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 716,
+              "inclusive_sampled_ms": 716
+            },
+            {
+              "module": "node:inspector",
+              "function": "post",
+              "line": 115,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "node:net",
+              "function": "lookupAndListen",
+              "line": 2190,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 72,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 15
+            },
+            {
+              "module": "node:internal/net",
+              "function": "isIPv6",
+              "line": 40,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "node:internal/abort_controller",
+              "function": "timeout",
+              "line": 239,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "afterWriteTick",
+              "line": 693,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:_http_server",
+              "function": "resOnFinish",
+              "line": 980,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:events",
+              "function": "removeListener",
+              "line": 680,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:_http_common",
+              "function": "parserOnMessageComplete",
+              "line": 135,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:_http_server",
+              "function": "parserOnIncoming",
+              "line": 1040,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "serve",
+              "line": 175,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "matchKnownFields",
+              "line": 276,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:_http_server",
+              "function": "onParserExecute",
+              "line": 845,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "string",
+              "line": 101,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node-native",
+              "function": "close",
+              "line": 0,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "sdk/sdk_helper.js",
+              "function": "SdkHelper",
+              "line": 33,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            },
+            {
+              "module": "app/gateway.mjs",
+              "function": "anonymous",
+              "line": 106,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "set",
+              "line": 250,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            },
+            {
+              "module": "node:internal/fs/promises",
+              "function": "lstat",
+              "line": 1021,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "get",
+              "line": 1523,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            },
+            {
+              "module": "node-native",
+              "function": "read",
+              "line": 0,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 762
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 716,
+              "inclusive_sampled_ms": 716
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 72,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 15
+            },
+            {
+              "module": "node:inspector",
+              "function": "post",
+              "line": 115,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "startCpuProfile",
+              "line": 8,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "post",
+              "line": 15,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "anonymous",
+              "line": 15,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 465,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "afterWriteTick",
+              "line": 693,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:_http_server",
+              "function": "parserOnIncoming",
+              "line": 1040,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "serve",
+              "line": 175,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "node:_http_common",
+              "function": "parserOnHeadersComplete",
+              "line": 71,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "afterWrite",
+              "line": 699,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "callback",
+              "line": 764,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "onFinish",
+              "line": 1079,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "node:_http_server",
+              "function": "resOnFinish",
+              "line": 980,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "app/gateway.mjs",
+              "function": "anonymous",
+              "line": 106,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:_http_server",
+              "function": "writeHead",
+              "line": 348,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "value",
+              "line": 120,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "onStreamRead",
+              "line": 166,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "Readable.push",
+              "line": 387,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "readableAddChunkPushByteMode",
+              "line": 463,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 3
+            }
+          ]
+        },
+        "observation": {
+          "stop_reason": "shutdown",
+          "elapsed_ms": 752,
+          "process_cpu_user_ms": 41,
+          "process_cpu_system_ms": 20
+        },
+        "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation."
+      },
+      {
+        "format": "connect/app-cpu-sample-summary/1",
+        "raw_profile_sha256": "23bc5f41f36233faa700f61540659c8b1ee5d6f4b7882ee5758d5031d68b2c11",
+        "samples": 38768,
+        "total_sampled_ms": 56788,
+        "top_self": [
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 53430,
+            "inclusive_sampled_ms": 53430
+          },
+          {
+            "module": "v8",
+            "function": "(program)",
+            "line": 0,
+            "self_sampled_ms": 479,
+            "inclusive_sampled_ms": 479
+          },
+          {
+            "module": "node:internal/per_context/domexception",
+            "function": "DOMException",
+            "line": 52,
+            "self_sampled_ms": 291,
+            "inclusive_sampled_ms": 291
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "value",
+            "line": 120,
+            "self_sampled_ms": 136,
+            "inclusive_sampled_ms": 222
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 131,
+            "inclusive_sampled_ms": 1160
+          },
+          {
+            "module": "node-native",
+            "function": "exec",
+            "line": 0,
+            "self_sampled_ms": 114,
+            "inclusive_sampled_ms": 114
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "processTimers",
+            "line": 508,
+            "self_sampled_ms": 112,
+            "inclusive_sampled_ms": 644
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "listOnTimeout",
+            "line": 528,
+            "self_sampled_ms": 104,
+            "inclusive_sampled_ms": 503
+          },
+          {
+            "module": "v8",
+            "function": "(garbage collector)",
+            "line": 0,
+            "self_sampled_ms": 101,
+            "inclusive_sampled_ms": 101
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "visit",
+            "line": 25,
+            "self_sampled_ms": 90,
+            "inclusive_sampled_ms": 97
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "visit",
+            "line": 38,
+            "self_sampled_ms": 82,
+            "inclusive_sampled_ms": 126
+          },
+          {
+            "module": "node:internal/abort_controller",
+            "function": "anonymous",
+            "line": 149,
+            "self_sampled_ms": 78,
+            "inclusive_sampled_ms": 387
+          },
+          {
+            "module": "node:internal/util",
+            "function": "deprecate",
+            "line": 159,
+            "self_sampled_ms": 64,
+            "inclusive_sampled_ms": 67
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "string",
+            "line": 101,
+            "self_sampled_ms": 62,
+            "inclusive_sampled_ms": 62
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 54,
+            "inclusive_sampled_ms": 671
+          },
+          {
+            "module": "node:_http_common",
+            "function": "parserOnHeadersComplete",
+            "line": 71,
+            "self_sampled_ms": 50,
+            "inclusive_sampled_ms": 488
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "anonymous",
+            "line": 63,
+            "self_sampled_ms": 39,
+            "inclusive_sampled_ms": 96
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "body",
+            "line": 13,
+            "self_sampled_ms": 36,
+            "inclusive_sampled_ms": 200
+          },
+          {
+            "module": "node-native",
+            "function": "parse",
+            "line": 0,
+            "self_sampled_ms": 36,
+            "inclusive_sampled_ms": 36
+          },
+          {
+            "module": "node-native",
+            "function": "writev",
+            "line": 0,
+            "self_sampled_ms": 35,
+            "inclusive_sampled_ms": 35
+          },
+          {
+            "module": "node-native",
+            "function": "writeBuffer",
+            "line": 0,
+            "self_sampled_ms": 31,
+            "inclusive_sampled_ms": 31
+          },
+          {
+            "module": "node:internal/encoding",
+            "function": "encode",
+            "line": 351,
+            "self_sampled_ms": 29,
+            "inclusive_sampled_ms": 44
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "nextTick",
+            "line": 113,
+            "self_sampled_ms": 25,
+            "inclusive_sampled_ms": 25
+          },
+          {
+            "module": "node:async_hooks",
+            "function": "bind",
+            "line": 238,
+            "self_sampled_ms": 25,
+            "inclusive_sampled_ms": 93
+          }
+        ],
+        "top_inclusive": [
+          {
+            "module": "v8",
+            "function": "(root)",
+            "line": 0,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 56788
+          },
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 53430,
+            "inclusive_sampled_ms": 53430
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 72,
+            "self_sampled_ms": 15,
+            "inclusive_sampled_ms": 1233
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 131,
+            "inclusive_sampled_ms": 1160
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 54,
+            "inclusive_sampled_ms": 671
+          },
+          {
+            "module": "node:events",
+            "function": "emit",
+            "line": 465,
+            "self_sampled_ms": 21,
+            "inclusive_sampled_ms": 667
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "processTimers",
+            "line": 508,
+            "self_sampled_ms": 112,
+            "inclusive_sampled_ms": 644
+          },
+          {
+            "module": "sdk/node_media.js",
+            "function": "request",
+            "line": 226,
+            "self_sampled_ms": 12,
+            "inclusive_sampled_ms": 506
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "listOnTimeout",
+            "line": 528,
+            "self_sampled_ms": 104,
+            "inclusive_sampled_ms": 503
+          },
+          {
+            "module": "node:_http_common",
+            "function": "parserOnHeadersComplete",
+            "line": 71,
+            "self_sampled_ms": 50,
+            "inclusive_sampled_ms": 488
+          },
+          {
+            "module": "v8",
+            "function": "(program)",
+            "line": 0,
+            "self_sampled_ms": 479,
+            "inclusive_sampled_ms": 479
+          },
+          {
+            "module": "node:_http_server",
+            "function": "parserOnIncoming",
+            "line": 1040,
+            "self_sampled_ms": 7,
+            "inclusive_sampled_ms": 400
+          },
+          {
+            "module": "node:internal/abort_controller",
+            "function": "anonymous",
+            "line": 149,
+            "self_sampled_ms": 78,
+            "inclusive_sampled_ms": 387
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "anonymous",
+            "line": 46,
+            "self_sampled_ms": 18,
+            "inclusive_sampled_ms": 328
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "onStreamRead",
+            "line": 166,
+            "self_sampled_ms": 22,
+            "inclusive_sampled_ms": 307
+          },
+          {
+            "module": "node:internal/per_context/domexception",
+            "function": "DOMException",
+            "line": 52,
+            "self_sampled_ms": 291,
+            "inclusive_sampled_ms": 291
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "Readable.push",
+            "line": 387,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 289
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "readableAddChunkPushByteMode",
+            "line": 463,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 286
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "addChunk",
+            "line": 550,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 282
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "parseCanonicalJson",
+            "line": 75,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 249
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "parse",
+            "line": 78,
+            "self_sampled_ms": 9,
+            "inclusive_sampled_ms": 247
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "exchange",
+            "line": 229,
+            "self_sampled_ms": 7,
+            "inclusive_sampled_ms": 237
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "value",
+            "line": 120,
+            "self_sampled_ms": 136,
+            "inclusive_sampled_ms": 222
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "mediaJson",
+            "line": 18,
+            "self_sampled_ms": 5,
+            "inclusive_sampled_ms": 217
+          }
+        ],
+        "nodes": 1392,
+        "tail_four_seconds": {
+          "samples": 2692,
+          "total_sampled_ms": 4000,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 3930,
+              "inclusive_sampled_ms": 3930
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 15,
+              "inclusive_sampled_ms": 15
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "listOnTimeout",
+              "line": 528,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 19
+            },
+            {
+              "module": "node-native",
+              "function": "exec",
+              "line": 0,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "processTimers",
+              "line": 508,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 23
+            },
+            {
+              "module": "node:internal/per_context/domexception",
+              "function": "DOMException",
+              "line": 52,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "sdk/node_raw.js",
+              "function": "freeze",
+              "line": 8,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "node:internal/abort_controller",
+              "function": "anonymous",
+              "line": 149,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "visit",
+              "line": 38,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "anonymous",
+              "line": 63,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "app/intents.mjs",
+              "function": "#decode",
+              "line": 97,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node-native",
+              "function": "prepare",
+              "line": 0,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "_storeHeader",
+              "line": 454,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:internal/process/promises",
+              "function": "promiseRejectHandler",
+              "line": 183,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "matchKnownFields",
+              "line": 276,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 2
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "Readable.push",
+              "line": 387,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "sdk/sdk_helper.js",
+              "function": "receive",
+              "line": 221,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:_http_common",
+              "function": "parserOnHeadersComplete",
+              "line": 71,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 3
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1
+            },
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4000
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "startCpuProfile",
+              "line": 8,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 0
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "post",
+              "line": 15,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 0
+            },
+            {
+              "module": "app/cpu-profile.mjs",
+              "function": "anonymous",
+              "line": 15,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 0
+            },
+            {
+              "module": "node:inspector",
+              "function": "post",
+              "line": 115,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 0
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4000
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 3930,
+              "inclusive_sampled_ms": 3930
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "processTimers",
+              "line": 508,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 23
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "listOnTimeout",
+              "line": 528,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 19
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 72,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 16
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 16
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 15,
+              "inclusive_sampled_ms": 15
+            },
+            {
+              "module": "app/intents.mjs",
+              "function": "#transaction",
+              "line": 86,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 11
+            },
+            {
+              "module": "node:internal/abort_controller",
+              "function": "anonymous",
+              "line": 149,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "node-native",
+              "function": "exec",
+              "line": 0,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "node:internal/per_context/domexception",
+              "function": "DOMException",
+              "line": 52,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "Readable.push",
+              "line": 387,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "app/gateway.mjs",
+              "function": "#observe",
+              "line": 405,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "onStreamRead",
+              "line": 166,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 8
+            },
+            {
+              "module": "sdk/sdk_helper.js",
+              "function": "receive",
+              "line": 221,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 465,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "readableAddChunkPushByteMode",
+              "line": 463,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "addChunk",
+              "line": 550,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "sdk/sdk_helper.js",
+              "function": "anonymous",
+              "line": 68,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 6
+            },
+            {
+              "module": "app/intents.mjs",
+              "function": "rememberResult",
+              "line": 208,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "sdk/node_raw.js",
+              "function": "anonymous",
+              "line": 138,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "sdk/node_raw.js",
+              "function": "batch",
+              "line": 74,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 5
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4
+            },
+            {
+              "module": "sdk/node_raw.js",
+              "function": "freeze",
+              "line": 8,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 3
+            }
+          ]
+        },
+        "observation": {
+          "stop_reason": "shutdown",
+          "elapsed_ms": 56778,
+          "process_cpu_user_ms": 3350,
+          "process_cpu_system_ms": 895
+        },
+        "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation."
+      }
+    ],
+    "sources_unchanged": true,
+    "runtime_unchanged": true,
+    "application_runtime_matches": true,
+    "browser_launcher_unchanged": true
+  },
+  "independent_identity_audit": {
+    "app_checker_installer_summary_git_inputs_verified": 31,
+    "node_producer_sources_verified": 197,
+    "installed_node_payload_files_verified": 195,
+    "png_bytes_verified": 6,
+    "checks_exactly_match_all37": true,
+    "production_runtime_evidence": {
+      "format": "connect/verified-native-sdk-runtime/1",
+      "source_revision": "1e1835979ee796f90e00f4cdba2d8e7536996408",
+      "target": "aarch64-apple-darwin",
+      "sources_verified": {
+        "git": 4813,
+        "prepared": 4094,
+        "pinned_archives": 0
+      },
+      "files_verified": 755,
+      "binary_sha256": "40bb7ca138443f1deda1decfa35bafa11655ef23cf5accd153425725d85e2e0d",
+      "helper_profiles": {
+        "helper.rs:PROFILE": "connect-sdk-helper/4",
+        "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+        "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+        "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+        "helper/media.rs:PROFILE": "connect-sdk-media/2",
+        "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+      },
+      "archive_sha256": "cb015b5b34f2040e1e5705a6c67d9ea6bcaba5bb72010abcacdb2eb193eaaa27",
+      "manifest_sha256": "148777ecdc8eb45fd784d3aaa5c9a6fd4e713b99bacf19faaa98a5c7786b2fbb",
+      "artifact_zip_digests": {
+        "evidence": "16a250353211e34be95333f3a7edd30d4daa2d0e3456c8d505d476dd35e068cd",
+        "package": "3b00211598f9a3b7399c932e0fdf8693d14ea8cdb488c96480624e31beaca74b"
+      },
+      "passed": true,
+      "production_build_verified": true,
+      "sdk_installation_qualified": false,
+      "package_input": "retained-file",
+      "task_complete": false,
+      "whole_gate_qualified": false,
+      "publication_authorized": false
+    },
+    "profile_curation_audit": {
+      "native_stack_curation_recomputed": true,
+      "raw_native_sha256": "767ce50ac1e32e64debb7caf63759eb7d2176eea5b0271397a20a733783cc07e",
+      "app_cpu_curations_recomputed": 2,
+      "app_cpu_raw_digests": [
+        "1c65ad041e0e4deab4a1192e51c243335bbe03d46c7ca2386907499a7fb02877",
+        "23bc5f41f36233faa700f61540659c8b1ee5d6f4b7882ee5758d5031d68b2c11"
+      ],
+      "raw_profiles_uploaded": false
+    }
+  },
+  "runtime_archive_name": "connect-runtime-0.1.0-aarch64-apple-darwin-1e1835979ee7.tar.gz",
+  "runtime_archive_sha256": "cb015b5b34f2040e1e5705a6c67d9ea6bcaba5bb72010abcacdb2eb193eaaa27",
+  "full_private_report_sha256": "2393a3e184c9d81f70922337951be0c77c97233e8fec4665b26b5c0c67629f3c",
+  "preflight_failure": {
+    "app_started": false,
+    "reason": "Locked Playwright1.64.1 expected uncached Chromium1248; original two public-helper validation checks completed, then browser digest lookup refused before app state/start. Installed exact pinned browser under ignored external-drive cache before fresh output run.",
+    "log_sha256": "66228854182633107f3f106e1b70fc47bc60bf8ed30d523abdee2031a74c01a5"
+  },
+  "interpretation": "Current production Store change passes all37original installed app criteria locally on Node22.16.0/Chromium156.0.8078.4. Original keyboard/320px/permissions/audio/video/offline/lost-response/actor-switch/restart/cleanup cases remain unchanged. Exact31Git app/checker/installer/CPU/native-summary inputs,197Node producer records,actual195-file Node payload and6PNG byte digests verify. Actual raw native and2app CPU curations independently recompute from private files.755native archive files independently verify against4813Git+4094prepared sources;0pinned archive inputs appear in this local inventory, and this is not completeSDK qualification. Original native observer sampled8s media start, serverCPU3490ms/8207ms; control admission/snapshot SQL paths are prominent inclusive stacks without proving a CI stall cause.",
+  "scope": "Local macOS arm64 installed production runtime and ordinary offline public Node archive. Original servers/helpers/browser owners join. Two hosted app jobs and Ubuntu ES256 six-connection AV remain separately required and were still live. No provider/model/PSTN/SMS execution, no full media matrix or Gate acceptance.",
+  "controller_ordering_follow_up": "Normal restart now explicitly awaits the same original native observer before SIGTERM as failure cleanup does;6local sampler/lifecycle cases pass, including actual held/rejected observer original-child joins. This37check result predates that diagnostic-only controller correction.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

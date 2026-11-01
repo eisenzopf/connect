@@ -1,6 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectOwnedServer, summarizeNativeSample, demangleNativeSymbols, normalizeNativeSymbol } from "../lib/native_server_sample.mjs";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { selectOwnedServer, summarizeNativeSample, demangleNativeSymbols, normalizeNativeSymbol, finishNativeBeforeStop } from "../lib/native_server_sample.mjs";
+test("normal restart keeps its original child alive until the held observer joins", async () => {
+    const child = spawn(process.execPath, ["-e", "process.send('ready');setInterval(()=>{},1000)"], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+    const joined = once(child, "close");
+    let release;
+    const held = new Promise(done => { release = done; });
+    try {
+        await once(child, "message");
+        const pending = finishNativeBeforeStop({ finish: () => held }, async () => { child.kill("SIGTERM"); await joined; });
+        await new Promise(done => setImmediate(done));
+        assert.equal(child.exitCode, null); assert.equal(child.signalCode, null); assert.doesNotThrow(() => process.kill(child.pid, 0));
+        const observation = { observed: true, observer_joined: true };
+        release(observation);
+        assert.equal(await pending, observation);
+        assert.equal(child.signalCode, "SIGTERM");
+    } finally { release(); child.kill("SIGTERM"); await joined; }
+});
+test("an unavailable native observation still stops and joins the original child", async () => {
+    const child = spawn(process.execPath, ["-e", "process.send('ready');setInterval(()=>{},1000)"], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+    const joined = once(child, "close");
+    try {
+        await once(child, "message");
+        const observation = await finishNativeBeforeStop({ finish: async () => { throw Error("synthetic observer failure"); } }, async () => { child.kill("SIGTERM"); await joined; });
+        assert.deepEqual(observation, { observed: false, reason: "native-sample-result-unavailable" });
+        assert.equal(child.signalCode, "SIGTERM");
+    } finally { child.kill("SIGTERM"); await joined; }
+});
 test("native stack observer selects one exact original group and command without fallback", () => {
     const lines = "10 20 /owned/connect serve --config /owned/server.toml\n11 30 /owned/connect serve --config /owned/server.toml\n12 20 /owned/connect sdk-stdio --config /owned/device.toml";
     assert.equal(selectOwnedServer(lines, 20, "/owned/connect serve --config /owned/server.toml"), 10);

@@ -1,0 +1,29 @@
+{
+  "format": "connect/native-observer-normal-stop-ordering/1",
+  "task": "G6-072",
+  "implementation_inputs": {
+    "scripts/lib/native_server_sample.mjs": "be191fbc27dd5429d44da9b70f6ee8b6863eab8fdb18bd12267a11d500d17e6f",
+    "scripts/tests/native_server_sample.test.mjs": "6ffc2b0e545821171fb2dfe9b560fb1b9552cd6e4b62049031f94672e9458999",
+    "scripts/check-reference-app-installed.mjs": "4b844ee1d84e3a807c5b6b625e5b23d64d797e17b67c45ef1b2efaba209c6342"
+  },
+  "issue": "Success path stops the original server and restarts before finally. Awaiting its native observer only in finally could allow server retirement before an outstanding sample joined.",
+  "correction": "Every stop callback now awaits the same original sampler finish promise before signaling the captured original server. A rejected observation is recorded unavailable and still releases/joins the original server; cleanup failure still propagates. Original finish is idempotent. No new target, deadline or action replay.",
+  "local_checks": {
+    "node": "22.16.0",
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "held_observer_keeps_original_child_alive": true,
+    "rejected_observer_still_stops_and_joins_original_child": true
+  },
+  "preserved": [
+    "37original browser checks",
+    "all media source timing/quality thresholds",
+    "original signed control/SDK deadlines",
+    "8s native observation and12s hard observer bound",
+    "same original process groups and current authorization"
+  ],
+  "full_installed_after_ordering_observed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -15,6 +15,17 @@ export function selectOwnedServer(lines, group, command) {
     if (matches.length !== 1) fail();
     return Number(matches[0][1]);
 }
+export async function finishNativeBeforeStop(sample, stop) {
+    let observation;
+    if (sample) {
+        try { observation = await sample.finish(); }
+        catch { observation = { observed: false, reason: "native-sample-result-unavailable" }; }
+    }
+    // Even an unavailable observation must release the original server. Its
+    // stop callback is never invoked while this observer remains outstanding.
+    await stop();
+    return observation;
+}
 export function summarizeNativeSample(text, pid, demangled = new Map()) {
     if (Buffer.byteLength(text) > 8 * 1024 * 1024 || Number(/^Process:\s+.*\[(\d+)\]\s*$/m.exec(text)?.[1]) !== pid) fail();
     const begin = text.indexOf("Call graph:"), end = text.indexOf("Total number in stack", begin);

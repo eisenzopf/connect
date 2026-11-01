@@ -49,3 +49,10 @@ budget. The one-millisecond attachment ownership test now holds and releases
 the original attachment explicitly, so it tests outstanding ownership rather
 than relying on interpreter startup latency. All 131 Node helper/declaration
 checks pass locally on Node 22.16.0. Actual after-fix CI remains required.
+
+Normal successful restart also awaits the same original sampler before sending
+SIGTERM to its captured server. The finally path alone cannot enforce that
+order because successful runs stop and restart inside the rehearsal body. If
+observation fails, cleanup still stops and joins that original server. Two real
+owned-child lifecycle cases cover a held observer and a rejected observer; all
+six local sampler cases pass. No new observer/target or deadline is introduced.
