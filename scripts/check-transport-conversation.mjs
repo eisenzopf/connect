@@ -33,7 +33,7 @@ const mutation = name => ({ ...options, operationId: plan[name] });
 const clients = new Map();
 const observedHelpers = new Set();
 const report = { format: "connect/transport-conversation-control/1", passed: false, checks: [],
-    source_revision: input.source_revision, binary_sha256: input.binary_sha256,
+    source_revision: input.source_revision, binary_sha256: input.binary_sha256, history_page_counts: [],
     node: process.version, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
     maximum_active_members_observed: 0, concurrent_session_intents_observed: 0,
@@ -94,11 +94,28 @@ try {
         messageId: plan[name + "Message"], to: { first: targets[0], rest: targets.slice(1) }, text: "Synthetic " + name,
     }, mutation(name)));
     const history = async client => {
-        const frames = await client.raw.request(client.raw.validate({ v: 2, id: "history_" + randomUUID(),
-            ts: new Date().toISOString(), type: "message.history", cid, payload: { limit: 50 } }), options);
-        const ack = frames.filter(f => f.value.type === "ack"); assert.equal(ack.length, 1);
-        assert.equal(ack[0].value.payload.next_cursor ?? null, null);
-        return frames.filter(f => f.value.type === "message.send").map(f => f.value.payload.msg_id).sort();
+        const started = performance.now(), cursors = new Set(), messages = new Set();
+        let cursor;
+        for (let page = 0; page < 8; page++) {
+            const remaining = Math.floor(options.timeoutMs - (performance.now() - started));
+            assert.ok(remaining > 0);
+            const frames = await client.raw.request(client.raw.validate({ v: 2, id: "history_" + randomUUID(),
+                ts: new Date().toISOString(), type: "message.history", cid,
+                payload: { limit: 50, ...(cursor ? { cursor } : {}) } }), { timeoutMs: remaining });
+            const ack = frames.filter(f => f.value.type === "ack"); assert.equal(ack.length, 1);
+            for (const frame of frames.filter(f => f.value.type === "message.send")) {
+                const id = frame.value.payload.msg_id;
+                assert.equal(typeof id, "string"); assert.equal(messages.has(id), false); messages.add(id);
+            }
+            cursor = ack[0].value.payload.next_cursor ?? null;
+            if (cursor === null) {
+                report.history_page_counts.push({ pages: page + 1, messages: messages.size });
+                return [...messages].sort();
+            }
+            assert.equal(typeof cursor, "string"); assert.ok(cursor.length > 0);
+            assert.equal(cursors.has(cursor), false); cursors.add(cursor);
+        }
+        throw Error("Bounded history did not reach its terminal page");
     };
     await send(owner, cid, "before", recipients(view));
     await refused(() => late.conversations.byId(cid).refresh(options), 403, "forbidden");

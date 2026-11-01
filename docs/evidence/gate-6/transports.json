@@ -1138,10 +1138,10 @@
   },
   "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection.",
   "conversation_control": {
-    "status": "source-verified-incomplete-history-assertion-negative",
+    "status": "corrected-history-pagination-runtime-unrun",
     "implementation_hashes": {
-      "scripts/check-transport-conversation.mjs": "5a868d9d9f5e6483f7ef56a2ef258c388412d8c69c0072360a76b814c2d55426",
-      "scripts/check-transport-fixtures.py": "a9f5e30f2e509dfb17a95abf4ca7d12cd482395780f6f4f7422457ef9dd71313",
+      "scripts/check-transport-conversation.mjs": "9cce7618d5717a942a842f6e911b38d14a45ea441a332419fcd82aeec4f7df94",
+      "scripts/check-transport-fixtures.py": "4bfc9e2ea15a5bd228be135cf3a9f6cbae3645690419354a4f728c867a2725aa",
       ".github/workflows/gate6-linux-fixtures.yml": "4665c3a64d3ee84fb0f22c309137fa1208a5081cb76360ae65a77fa96b57cde3",
       ".github/workflows/gate6-transport-matrix.yml": "153a6afb83347d0f05b95ab11033ca3971060f678059139d62fe8b6352bb296d"
     },
@@ -1173,6 +1173,17 @@
       "status": "rehearsal-failed-history-assertion-follow-up-required"
     },
     "observed": "9configuration/enrollment checks and2Nodecontrol checks pass;4activeConversationmembers and5originalSDKhelperjoins observed. History comparison failed with no assertion source/shape; no audience cause inferred.",
-    "diagnostic_correction": "Fixed Node script coordinates plus type/count-only assertion shapes; keep all assertions and outcomes. Fixture server failure cleanup now attempts original graceful stop and records force/exit/group outcome."
+    "diagnostic_correction": "Fixed Node script coordinates plus type/count-only assertion shapes; keep all assertions and outcomes. Fixture server failure cleanup now attempts original graceful stop and records force/exit/group outcome.",
+    "source_contract_correction": {
+      "source": "crates/connect-store/src/conversation_queries.rs::history_query",
+      "behavior": "A continuation is minted after every nonempty page. Follow unchanged opaque cursors until a terminal page, reject repeated cursors/duplicate messages, and retain one8s deadline/eightpage fixture bound. All expected audiences remain unchanged.",
+      "historical_failure_line_observed": false
+    },
+    "superseded_diagnostic_run": {
+      "workflow_run_id": 41268180780,
+      "job_id": 124735273319,
+      "source_revision": "b2cca97d",
+      "disposition": "Cancellation requested during cache restore for the identified deterministic short-page terminal assertion defect; no runtime result claimed."
+    }
   }
 }
