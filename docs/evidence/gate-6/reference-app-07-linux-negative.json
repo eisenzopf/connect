@@ -1,0 +1,833 @@
+{
+  "format": "connect/reference-app-07-linux-negative/1",
+  "source_revision": "07ec393a27be6ac205d0752b2f5f0156ed376451",
+  "diagnostic_archive_sha256": "0f53192214b91bace0eae0a14058e684bfd36b649a80e8cd77533099eb329973",
+  "diagnostic_node_producer_cross_hashes_verified": true,
+  "curated_installation_is_not_original_proof": true,
+  "app_checker_sources_against_exact_git_revision": 35,
+  "node_producer_inputs_verified": 197,
+  "reported_installed_sdk_files": 195,
+  "runtime_binary_sha256_reported": "d03f5f1b633ca3e2256bb898c3d0d234ec6f3c85a88ccc1cf2803aa000cfea00",
+  "completed_checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected",
+    "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+    "keyboard-participant-selection-and-conversation-creation",
+    "actual-authorized-text-safe-timeline",
+    "keyboard-incoming-invitation-and-actual-acceptance",
+    "actual-browser-microphone-and-camera-refusal",
+    "320px-no-horizontal-overflow",
+    "actual-accepted-original-survives-lost-response-and-offline",
+    "keyboard-original-status-recovery-one-visible-message",
+    "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+    "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+    "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+    "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+    "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+    "current-active-session-snapshots-preserve-original-browser-media-capture",
+    "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+    "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+    "additional-owned-synthetic-media-browser-owners-close",
+    "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+    "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+    "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions"
+  ],
+  "expected_full_checks": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 721,
+        "column": 20
+      }
+    ]
+  },
+  "native_video_component": {
+    "painted": 3,
+    "dropped": 0,
+    "queued": 0,
+    "pixel": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "frame_construction_ms": 0,
+    "enqueue_ms": 0,
+    "observation_ms": 301
+  },
+  "raw_cpu_profile_present": false,
+  "cpu_summary_only": true,
+  "native_server_sample_requested": false,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "runtime_proof_original_cross_hash_verified": true,
+  "source_manifest_inputs_verified": {
+    "archives": 4,
+    "prepared": 4094,
+    "git": 4898
+  },
+  "runtime_regular_files_hash_and_mode_verified": 753,
+  "runtime_archive_manifest_and_exact_binary_verified": true,
+  "node_archive_installed_hashes_verified": 195,
+  "actual_runtime_archive_independently_verified": true,
+  "actual_remote_installed_files_independently_verified": false,
+  "actual_remote_installed_file_hashes_match_exact_archive": true,
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "scope": "Source-verified negative original Linux installed app execution. All753 runtime file hashes/modes,4898Git/4094prepared/4archives,35app/checker/197Node/195reported installedSDK files independently verify; four PNG CRC/pixel-decompress/FFmpeg/geometry and exact original80msclock replay verify. Actual remote installed files were not reread; curated installation lacks paths so original installation proof cannot be reconstructed. Raw CPU profile absent and native stack observer was not requested. Retained response-event audio samples are already late before browser decode; these sampled estimates neither observe paired presentation nor locate the native/helper delaying queue. Original app/media assertions remain unchanged. No task, fullSDK, current-runtime, transport or whole-gate qualification.",
+  "original_clock_replay": {
+    "exact_replay": true,
+    "pages": [
+      {
+        "label": "owner-audio",
+        "routes": [
+          {
+            "route_slot": 0,
+            "lease_slot": 0,
+            "medium": "audio",
+            "synchronized_retained_packets": 46,
+            "unsynchronized_retained_packets": 2,
+            "received_source_age": {
+              "samples": 46,
+              "minimum_ms": 7.950345999999627,
+              "p50_ms": 42.369,
+              "p95_ms": 79.718,
+              "maximum_ms": 100.33038099999976
+            },
+            "estimated_playout_offset": {
+              "samples": 46,
+              "minimum_ms": -20.330000000000002,
+              "p50_ms": 37.591,
+              "p95_ms": 71.899,
+              "maximum_ms": 72.05
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 2.902,
+              "p50_ms": 7.502,
+              "p95_ms": 12.084,
+              "maximum_ms": 37.323
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 8.722,
+              "p50_ms": 18.375,
+              "p95_ms": 21.165,
+              "maximum_ms": 151.896
+            }
+          },
+          {
+            "route_slot": 1,
+            "lease_slot": 1,
+            "medium": "audio",
+            "synchronized_retained_packets": 0,
+            "unsynchronized_retained_packets": 17,
+            "received_source_age": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "estimated_playout_offset": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 1.621,
+              "p50_ms": 2.113,
+              "p95_ms": 5.852,
+              "maximum_ms": 32.973
+            },
+            "receive_http_duration": {
+              "samples": 17,
+              "minimum_ms": 14.209,
+              "p50_ms": 18.778,
+              "p95_ms": 648.324,
+              "maximum_ms": 648.324
+            }
+          }
+        ]
+      },
+      {
+        "label": "organizer-audio",
+        "routes": [
+          {
+            "route_slot": 0,
+            "lease_slot": 0,
+            "medium": "audio",
+            "synchronized_retained_packets": 46,
+            "unsynchronized_retained_packets": 2,
+            "received_source_age": {
+              "samples": 46,
+              "minimum_ms": 1.0994119999995746,
+              "p50_ms": 39.095,
+              "p95_ms": 46.453,
+              "maximum_ms": 54.674871000002895
+            },
+            "estimated_playout_offset": {
+              "samples": 46,
+              "minimum_ms": 25.325,
+              "p50_ms": 40.847,
+              "p95_ms": 77.88,
+              "maximum_ms": 78.901
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 1.547,
+              "p50_ms": 1.86,
+              "p95_ms": 15.666,
+              "maximum_ms": 42.425
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 9.341,
+              "p50_ms": 18.168,
+              "p95_ms": 24.494,
+              "maximum_ms": 26.798
+            }
+          },
+          {
+            "route_slot": 1,
+            "lease_slot": 1,
+            "medium": "audio",
+            "synchronized_retained_packets": 0,
+            "unsynchronized_retained_packets": 15,
+            "received_source_age": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "estimated_playout_offset": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "send_http_duration": {
+              "samples": 21,
+              "minimum_ms": 1.66,
+              "p50_ms": 7.068,
+              "p95_ms": 16.178,
+              "maximum_ms": 33.441
+            },
+            "receive_http_duration": {
+              "samples": 15,
+              "minimum_ms": 12.928,
+              "p50_ms": 18.852,
+              "p95_ms": 23.28,
+              "maximum_ms": 23.28
+            }
+          }
+        ]
+      },
+      {
+        "label": "owner-av",
+        "routes": [
+          {
+            "route_slot": 0,
+            "lease_slot": 0,
+            "medium": "audio",
+            "synchronized_retained_packets": 46,
+            "unsynchronized_retained_packets": 2,
+            "received_source_age": {
+              "samples": 46,
+              "minimum_ms": 41.70346000000063,
+              "p50_ms": 106.098,
+              "p95_ms": 158.253,
+              "maximum_ms": 180.8161090000067
+            },
+            "estimated_playout_offset": {
+              "samples": 46,
+              "minimum_ms": -100.816,
+              "p50_ms": -28.381,
+              "p95_ms": 19.838,
+              "maximum_ms": 38.297000000000004
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 2.684,
+              "p50_ms": 12.394,
+              "p95_ms": 37.512,
+              "maximum_ms": 39.027
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 6.529,
+              "p50_ms": 21.919,
+              "p95_ms": 47.587,
+              "maximum_ms": 210.914
+            }
+          },
+          {
+            "route_slot": 1,
+            "lease_slot": 0,
+            "medium": "video",
+            "synchronized_retained_packets": 0,
+            "unsynchronized_retained_packets": 0,
+            "received_source_age": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "estimated_playout_offset": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 2.373,
+              "p50_ms": 12.044,
+              "p95_ms": 38.905,
+              "maximum_ms": 42.55
+            },
+            "receive_http_duration": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            }
+          },
+          {
+            "route_slot": 2,
+            "lease_slot": 0,
+            "medium": "video",
+            "synchronized_retained_packets": 47,
+            "unsynchronized_retained_packets": 1,
+            "received_source_age": {
+              "samples": 47,
+              "minimum_ms": -7.682465999998385,
+              "p50_ms": 23.591,
+              "p95_ms": 45.795,
+              "maximum_ms": 119.25172700000257
+            },
+            "estimated_playout_offset": {
+              "samples": 47,
+              "minimum_ms": -39.251999999999995,
+              "p50_ms": 56.409,
+              "p95_ms": 80.957,
+              "maximum_ms": 87.682
+            },
+            "send_http_duration": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 7.653,
+              "p50_ms": 32.65,
+              "p95_ms": 67.367,
+              "maximum_ms": 104.253
+            }
+          }
+        ]
+      },
+      {
+        "label": "organizer-av",
+        "routes": [
+          {
+            "route_slot": 0,
+            "lease_slot": 0,
+            "medium": "video",
+            "synchronized_retained_packets": 0,
+            "unsynchronized_retained_packets": 0,
+            "received_source_age": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "estimated_playout_offset": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 3.363,
+              "p50_ms": 10.808,
+              "p95_ms": 37.143,
+              "maximum_ms": 40.614
+            },
+            "receive_http_duration": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            }
+          },
+          {
+            "route_slot": 1,
+            "lease_slot": 0,
+            "medium": "audio",
+            "synchronized_retained_packets": 47,
+            "unsynchronized_retained_packets": 1,
+            "received_source_age": {
+              "samples": 47,
+              "minimum_ms": -32.277108000002045,
+              "p50_ms": 99.924,
+              "p95_ms": 190.989,
+              "maximum_ms": 210.98908500000107
+            },
+            "estimated_playout_offset": {
+              "samples": 47,
+              "minimum_ms": -130.98900000000003,
+              "p50_ms": -19.924,
+              "p95_ms": 101.936,
+              "maximum_ms": 112.277
+            },
+            "send_http_duration": {
+              "samples": 48,
+              "minimum_ms": 3.277,
+              "p50_ms": 10.809,
+              "p95_ms": 32.511,
+              "maximum_ms": 45.155
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 6.221,
+              "p50_ms": 25.028,
+              "p95_ms": 43.84,
+              "maximum_ms": 55.272
+            }
+          },
+          {
+            "route_slot": 2,
+            "lease_slot": 0,
+            "medium": "video",
+            "synchronized_retained_packets": 46,
+            "unsynchronized_retained_packets": 2,
+            "received_source_age": {
+              "samples": 46,
+              "minimum_ms": -43.42805000000226,
+              "p50_ms": 0.693,
+              "p95_ms": 36.078,
+              "maximum_ms": 60.21256200000789
+            },
+            "estimated_playout_offset": {
+              "samples": 46,
+              "minimum_ms": 19.787,
+              "p50_ms": 79.152,
+              "p95_ms": 112.355,
+              "maximum_ms": 123.42800000000001
+            },
+            "send_http_duration": {
+              "samples": 0,
+              "minimum_ms": null,
+              "p50_ms": null,
+              "p95_ms": null,
+              "maximum_ms": null
+            },
+            "receive_http_duration": {
+              "samples": 48,
+              "minimum_ms": 6.053,
+              "p50_ms": 34.739,
+              "p95_ms": 61.075,
+              "maximum_ms": 86.792
+            }
+          }
+        ]
+      }
+    ],
+    "scope": "Unchanged MediaTimeline replay at retained original response-event times, with the unchanged80ms playout allowance. Retained samples only; response-event clocks differ from actual browser decode/presentation. No runtime clock or packet is changed."
+  },
+  "screenshots": [
+    {
+      "name": "capture-controls-narrow.png",
+      "width": 320,
+      "height": 3921,
+      "sha256": "320ac190fb8cca91df4aa509eac53ace2de1255f5d83380bf57abe2c2bbbf5cc",
+      "chunks_crc_verified": true,
+      "all_pixels_decompressed": true,
+      "independent_ffmpeg_decode": true,
+      "clip_geometry_verified": true
+    },
+    {
+      "name": "capture-controls.png",
+      "width": 1440,
+      "height": 2389,
+      "sha256": "cef463bc613650c4ed63d62bbb29d15c669f499a5f6eb13ededa85d8ab771fba",
+      "chunks_crc_verified": true,
+      "all_pixels_decompressed": true,
+      "independent_ffmpeg_decode": true,
+      "clip_geometry_verified": true
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 4012,
+      "sha256": "dbd420c84dd73dddf6764f1106dbc9e117c1865d9e1826d1e41864ba7a243a0d",
+      "chunks_crc_verified": true,
+      "all_pixels_decompressed": true,
+      "independent_ffmpeg_decode": true,
+      "clip_geometry_verified": true
+    },
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "sha256": "82e6a456ffd38c935dc2df2784d7d153b8a597e348d0b5d5ac751d4e9ed40681",
+      "chunks_crc_verified": true,
+      "all_pixels_decompressed": true,
+      "independent_ffmpeg_decode": true,
+      "clip_geometry_verified": true
+    }
+  ],
+  "visual_review": {
+    "files": [
+      "capture-controls-narrow.png",
+      "native-controls.png"
+    ],
+    "observations": "320px capture controls wrap vertically without horizontal clipping; desktop native controls and literal text-injection fixture are readable. These captures precede combined AV failure and do not show AV presentation or latency."
+  },
+  "browser": "156.0.8078.4",
+  "node": "v22.23.4",
+  "sustained_browser_av": [
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2011.1000000000931,
+        "completed_audio_frames": 10,
+        "painted_video_frames": 52,
+        "audio_energy": 0.01802511236969906,
+        "desired_tone": 0.009025996726776953,
+        "excluded_tone": 3.880886719404009e-06,
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 237,
+          "sentRtp": 236,
+          "receivedRtp": 216,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 134,
+          "playedAudioFrames": 25,
+          "decodedVideoFrames": 77,
+          "paintedVideoFrames": 74,
+          "droppedFrames": 117,
+          "synchronizedPackets": 212,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 109,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 1,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -5.443,
+          "lastVideoOffsetMs": 81.449,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": 8,
+          "lastVideoCaptureOffsetMs": -5,
+          "receiveStartedMs": 205,
+          "deviceSetupMs": 45,
+          "captureGraphMs": 8,
+          "cameraSetupMs": 22,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 5,
+          "stopped": false
+        }
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2006.3000000000466,
+        "completed_audio_frames": 2,
+        "painted_video_frames": 29,
+        "audio_energy": 0.0034859244316578497,
+        "desired_tone": 0.001750992522627337,
+        "excluded_tone": 6.974167082882338e-07,
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 238,
+          "sentRtp": 237,
+          "receivedRtp": 238,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 150,
+          "playedAudioFrames": 51,
+          "decodedVideoFrames": 46,
+          "paintedVideoFrames": 43,
+          "droppedFrames": 142,
+          "synchronizedPackets": 234,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 99,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -28.838,
+          "lastVideoOffsetMs": 69.266,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": -1,
+          "lastVideoCaptureOffsetMs": -11,
+          "receiveStartedMs": 348,
+          "deviceSetupMs": 48,
+          "captureGraphMs": 19,
+          "cameraSetupMs": 16,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 1,
+          "pendingRequests": 4,
+          "stopped": false
+        }
+      }
+    ]
+  ],
+  "failure_media_pages": [
+    {
+      "role": "owner",
+      "observation": {
+        "session_state": "accepted",
+        "current_actor": "owner",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 237,
+          "sentRtp": 236,
+          "receivedRtp": 216,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 134,
+          "playedAudioFrames": 25,
+          "decodedVideoFrames": 77,
+          "paintedVideoFrames": 74,
+          "droppedFrames": 117,
+          "synchronizedPackets": 212,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 109,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 1,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -5.443,
+          "lastVideoOffsetMs": 81.449,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": 8,
+          "lastVideoCaptureOffsetMs": -5,
+          "receiveStartedMs": 205,
+          "deviceSetupMs": 45,
+          "captureGraphMs": 8,
+          "cameraSetupMs": 22,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 5,
+          "stopped": false
+        },
+        "output": {
+          "frames": 22,
+          "energy": 122.55729628578943,
+          "tone440": 0.0810575265914256,
+          "tone880": 39.3719279373602
+        }
+      }
+    },
+    {
+      "role": "organizer",
+      "observation": {
+        "session_state": null,
+        "current_actor": "organizer",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 238,
+          "sentRtp": 237,
+          "receivedRtp": 238,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 150,
+          "playedAudioFrames": 51,
+          "decodedVideoFrames": 46,
+          "paintedVideoFrames": 43,
+          "droppedFrames": 142,
+          "synchronizedPackets": 234,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 99,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -28.838,
+          "lastVideoOffsetMs": 69.266,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": -1,
+          "lastVideoCaptureOffsetMs": -11,
+          "receiveStartedMs": 348,
+          "deviceSetupMs": 48,
+          "captureGraphMs": 19,
+          "cameraSetupMs": 16,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 1,
+          "pendingRequests": 4,
+          "stopped": false
+        },
+        "output": {
+          "frames": 45,
+          "energy": 0.5567587564957223,
+          "tone440": 0.2699030158439277,
+          "tone880": 0.00019641242007926535
+        }
+      }
+    }
+  ],
+  "trace_sampling": [
+    {
+      "label": "owner-audio",
+      "observed_responses": 482,
+      "observed_open_responses": 2,
+      "skipped_open_pending": 0,
+      "open_observation_failures": 0,
+      "observation_failure_stages": {
+        "request": 0,
+        "body": 196,
+        "shape": 0
+      },
+      "skipped_pending": 1,
+      "observation_failures": 196,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-audio",
+      "observed_responses": 453,
+      "observed_open_responses": 2,
+      "skipped_open_pending": 0,
+      "open_observation_failures": 0,
+      "observation_failure_stages": {
+        "request": 0,
+        "body": 175,
+        "shape": 0
+      },
+      "skipped_pending": 2,
+      "observation_failures": 175,
+      "response_errors": 0
+    },
+    {
+      "label": "owner-av",
+      "observed_responses": 286,
+      "observed_open_responses": 1,
+      "skipped_open_pending": 0,
+      "open_observation_failures": 0,
+      "observation_failure_stages": {
+        "request": 0,
+        "body": 148,
+        "shape": 0
+      },
+      "skipped_pending": 36,
+      "observation_failures": 148,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-av",
+      "observed_responses": 291,
+      "observed_open_responses": 1,
+      "skipped_open_pending": 0,
+      "open_observation_failures": 0,
+      "observation_failure_stages": {
+        "request": 0,
+        "body": 146,
+        "shape": 0
+      },
+      "skipped_pending": 40,
+      "observation_failures": 146,
+      "response_errors": 0
+    }
+  ],
+  "cpu_profiles": {
+    "summaries_retained": 1,
+    "raw_profiles_present": false,
+    "independently_recomputed": false
+  },
+  "runtime_source_revision": "07ec393a27be6ac205d0752b2f5f0156ed376451",
+  "reported_sources_unchanged": true,
+  "reported_runtime_unchanged": true,
+  "reported_browser_launcher_unchanged": true,
+  "reported_application_runtime_matches": true,
+  "run_id": 41345703314,
+  "job_id": 124964930847,
+  "artifacts": [
+    {
+      "file": "runtime-evidence.zip",
+      "artifact_id": 13100446090,
+      "sha256": "09297adb890192499d7cae501581c81a3724c27efee3512cc6082bc6523d2ba7"
+    },
+    {
+      "file": "runtime-package.zip",
+      "artifact_id": 13099853939,
+      "sha256": "95f0c1c2388eacc9c1aa9d22bf75a8a699865e59e787c4b3434100d91800a6e9"
+    },
+    {
+      "file": "node-package.zip",
+      "artifact_id": 13099983430,
+      "sha256": "618060677b8914c5bbdff77ed43a21d81582fc83341220dab36a6be213ecedb7"
+    }
+  ],
+  "diagnostic_artifact_id": 13100053326
+}
