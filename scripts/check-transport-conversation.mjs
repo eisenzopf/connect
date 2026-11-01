@@ -152,10 +152,13 @@ try {
     await complete(conversation.participants.byId(firstMembership.id).remove({ expectedConversationRevision: view.revision }, mutation("remove")));
     await refused(() => late.conversations.byId(cid).refresh(options), 403, "forbidden");
     await refused(() => late.operations.restore(oldSendReference, late.operationKinds.message_send).wait(options), 403, "forbidden");
+    phase = "removed-member-current-snapshot";
     view = await conversation.refresh(options);
-    assert.equal(member(view, "participant-4").active, false);
+    assert.equal(view.participants.filter(p => p.active).length, 3);
+    assert.equal(view.participants.some(p => p.identityId === input.actors["participant-4"].identity_id), false);
     await complete(conversation.participants.add({ identityId: input.actors["participant-4"].identity_id,
         kind: "human", role: "participant", expectedRevision: view.revision }, mutation("readd")));
+    phase = "readmitted-member-epoch";
     view = await conversation.refresh(options);
     const nextMembership = member(view, "participant-4");
     assert.equal(nextMembership.id, firstMembership.id);
@@ -205,6 +208,7 @@ try {
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
     const position = /scripts\/check-transport-conversation\.mjs:(\d+):(\d+)/.exec(String(error.stack));
     if (position) report.failure.source = { file: "scripts/check-transport-conversation.mjs", line: Number(position[1]), column: Number(position[2]) };
+    report.failure.source_stack = [...String(error.stack).matchAll(/scripts\/check-transport-conversation\.mjs:(\d+):(\d+)/g)].slice(0, 4).map(p => ({ line: Number(p[1]), column: Number(p[2]) }));
     // Describe assertion shapes without uploading identifiers, bodies or keys.
     const shape = value => Array.isArray(value) ? { type: "array", length: value.length, elements: [...new Set(value.map(v => typeof v))] } : { type: typeof value };
     if (error.name === "AssertionError") report.failure.assertion = { actual: shape(error.actual), expected: shape(error.expected) };

@@ -1,0 +1,63 @@
+{
+  "format": "connect/transport-conversation-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "9d71229fe4e1d72307f9cdfaefba9fa65e88e076",
+  "workflow_run_id": 41268267081,
+  "job_id": 124735527518,
+  "artifact_id": 13068590052,
+  "zip_sha256": "de3f235eef4ed843ffab731ed79aa6c026ebb513fc49e28638e83b11241d31ae",
+  "source_inputs_sha256": "68120ce92542c8f19b3358e28bffdec484b2202c5c16b6b555161583f600a5b6",
+  "report_sha256": "c55671b0b673c3c3ef1a8114928db33f2e7124a6bdad5bcaa909d91430a14a9a",
+  "conversation_report_sha256": "39bbf7a4a4d3192e37cc46cd852f46971dbd4db9f2edf66108bf6d8248442132",
+  "sources_verified": {
+    "git": 4690,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "conversation_checks_passed": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards"
+  ],
+  "history_page_counts": [
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    }
+  ],
+  "failure": {
+    "phase": "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "name": "AssertionError",
+    "kind": null,
+    "certainty": null,
+    "source": {
+      "file": "scripts/check-transport-conversation.mjs",
+      "line": 90,
+      "column": 16
+    },
+    "assertion": {
+      "actual": {
+        "type": "number"
+      },
+      "expected": {
+        "type": "number"
+      }
+    }
+  },
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 0,
+  "follow_up": "Current events snapshot selects only active participants. Require three active members and absence of the removed identity, while retaining current access denial, old-operation denial and readmission epoch checks. No production visibility change.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
