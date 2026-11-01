@@ -1,6 +1,10 @@
 name: Gate 6 installed reference application
 on:
   workflow_call:
+    inputs:
+      target:
+        type: string
+        default: all
 permissions:
   contents: read
   actions: read
@@ -11,12 +15,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-          - os: macos-15
-            target: aarch64-apple-darwin
+      matrix: ${{ fromJSON(inputs.target == 'macos' && '{"include":[{"os":"macos-15","target":"aarch64-apple-darwin"}]}' || '{"include":[{"os":"ubuntu-24.04","target":"x86_64-unknown-linux-gnu"},{"os":"macos-15","target":"aarch64-apple-darwin"}]}') }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
