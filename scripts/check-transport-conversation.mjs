@@ -8,6 +8,7 @@ import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
 import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
 import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
 import { nativeAv } from "./lib/transport_av.mjs";
+import { operationFailure } from "./lib/transport_failure.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -441,7 +442,7 @@ try {
     check("independent-device-recovers-original-create-and-history-after-original-helper-close");
     report.passed = true;
 } catch (error) {
-    report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+    report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null, ...operationFailure(error) };
     if (dataFailures.has(error)) report.failure.data_context = dataFailures.get(error);
     if (["message.send", "operation.get", "connection.offer", "stream.subscribe"].includes(error.operation?.command))
         report.failure.command = error.operation.command;

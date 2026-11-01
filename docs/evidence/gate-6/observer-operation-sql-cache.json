@@ -1,0 +1,89 @@
+{
+  "format": "connect/observer-operation-sql-cache/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "base_revision": "81675791f1f89c7f4eda2a7053f210f02b7f40f0",
+  "source_inputs": {
+    "crates/connect-store/src/lib.rs": "78d3a5d12908849fbe8a0e301650bb4d2e70ee76d1d5db9aac27da8d91eca1c4",
+    "crates/connect-store/src/packet_observation.rs": "b29ccd708a251a6f8a7ee9259f43815625dae10d3575d5bfc875b6c1e583560c",
+    "crates/connect-store/src/transitions/tests/peer_operations.rs": "4c5c0e5889646d3c7264979f88b7d358d5d7c442970d0c075b13cd7de1f08574",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/data_reads.rs": "779aaef1cbff1b31bc2f2f6cd978c3c358651ffca98c32afba93fa0a343e63de",
+    "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+    "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2"
+  },
+  "before": {
+    "base_revision": "81675791f1f89c7f4eda2a7053f210f02b7f40f0",
+    "observer_source_sha256": "bcf42703148faef8ed85de70dca0c849cc45156616f07cca326644afecaa7bca",
+    "store_source_sha256": "5f5bc015f1a14de7c372dcb97e204566b2eaa5c688108e4a6477f638e5c39d2a",
+    "test_source_sha256": "541bc8ccb2d7bcf870a3d96476c2bed3e633a8767cf3dc2a21d8ec9dc9fc5978",
+    "log_sha256": "11322b3884148faa93fc90b3569bed11a8506660cce5dbe253020694867c812e",
+    "two_hundred_operation_row_reads_ms": 13,
+    "passed": 1,
+    "failed": 0,
+    "capacity": "Unchanged rusqlite default16 on read-only packet observers; main Store already32.",
+    "scope": "Actual original read-only SQL observer alternates two operation rows with current bindings/schema/WAL checks. Local component measurement; no assertion about the cause of200msdata-invocationfailure."
+  },
+  "after": {
+    "two_hundred_operation_row_reads_ms": 9,
+    "log_sha256": "252f96462cbb19f6615f3dc599884384ddd6845e778a5d6bc10f0842c4beed20",
+    "capacity": 32
+  },
+  "current_store_cases": {
+    "peer-operations": {
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "f08597de64358f3b58dafe809dbda183f13365178ae7d58cfa9af82c714c2293"
+    },
+    "snapshot": {
+      "passed": 23,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "eae663ced0fdf7f750da0b378a169633a19bf9e4f1a7e60ea812e2346907e2e4"
+    },
+    "session-reader": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "f4521a4a30c306ab2b7b191cbced9b12c3f08b07eac5418e11b905ba556a3991"
+    },
+    "flow-facts": {
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "b51be7e9f26a3f2fae958250dd66e54ce84788985fda2d75ced880fcf6467a95"
+    },
+    "data-reads": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "c5ea10b1df779d96806be2fe09a6e3864f4d72f78477957bf67ab672e61751d5"
+    },
+    "session-polling": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "010148beb8d939ab9043aa60b1d4ed191ce60e5dc92861a3ad68a6eebfcb5408"
+    }
+  },
+  "unique_current_store_cases": 75,
+  "invariants": [
+    "One shared32statement compiledSQL capacity on foreground Store and4read-only packet observers.",
+    "Each query still binds current parameters and executes against current data.",
+    "Read-only enforcement, committed snapshots/schema changes and completed-read WAL release are tested.",
+    "All current packet/source/clock/authority seals and native data source/recipient/refusal checks remain.",
+    "No row, transaction, permission or IOgrant is retained by the statement cache.",
+    "Original200msdata-invocation budget and every media/quality threshold remain unchanged."
+  ],
+  "test_precondition_correction": {
+    "original_failure_log_sha256": "f223706721d6cbfd6e3b25e0952da22e72ac7e8ba83c7e49573401aaa3756953",
+    "observation": "One7case run passed6 and returnedauthority-busy instead offorbidden in subscription-refusal test. Clock/version stamps were not recorded, so the historical cause is unproven.",
+    "change": "Exactforbidden is asserted after observing an unchanged policy second; an observed outer clock crossing may returnforbidden orauthority-busy. Every attempt mustrefuse, with atmost8read-only attempts and the same original operation."
+  },
+  "interpretation": "One optimized local200read observer probe measures13ms before and9ms after. This small component difference doesnot establish the cause or resolution of the actual200msmetadata failure. The capacity now consistently covers the fixed operation query family on the observer path too.",
+  "actual_changed_runtime_rehearsed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -193,6 +193,8 @@ pub use tasks::{
 pub(crate) mod native_stream_projection;
 pub const SCHEMA_VERSION: u32 = 116;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
+// Compiled operation/source SQL only; never a row, transaction or grant cache.
+const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
 
 mod session_gateways;
 pub use session_gateways::InitialTelephoneGateways;
@@ -707,7 +709,7 @@ impl Store {
         // The fixed operation-row query family plus current identity/source
         // statements exceeds rusqlite's default sixteen cached statements. Keep
         // a bounded compiled-SQL cache; results and grants are never cached.
-        c.set_prepared_statement_cache_capacity(32);
+        c.set_prepared_statement_cache_capacity(OPERATION_SQL_CACHE_CAPACITY);
         c.busy_timeout(Duration::from_secs(2))
             .map_err(|_| Error::storage())?;
         c.execute_batch("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;")

@@ -57,6 +57,109 @@ fn get(id: &str) -> OperationAction {
 }
 
 #[test]
+fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release() {
+    let f = Fixture::new();
+    let one = f
+        .store
+        .admit_transition(&f.keys[0], f.request("observer-statement-one"))
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    let second: String = c
+        .query_row(
+            "SELECT record_id FROM operations WHERE record_id!=?1 ORDER BY record_id LIMIT 1",
+            [&one.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let two = rows::by_record(&c, &second).unwrap().record;
+    drop(c);
+    let observer = f.store.try_packet_connection().unwrap();
+    let started = Instant::now();
+    for _ in 0..100 {
+        assert_eq!(
+            rows::by_record(&observer, &one.record_id)
+                .unwrap()
+                .record
+                .operation_id,
+            "observer-statement-one"
+        );
+        assert_eq!(
+            rows::by_record(&observer, &two.record_id)
+                .unwrap()
+                .record
+                .operation_id,
+            two.operation_id
+        );
+    }
+    eprintln!(
+        "PACKET_OBSERVER_OPERATION_ROWS_200_READS_MS={}",
+        started.elapsed().as_millis()
+    );
+    assert!(observer
+        .execute(
+            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+            [&one.record_id]
+        )
+        .is_err());
+    let external = Connection::open(f.store.path()).unwrap();
+    let before = rows::by_record(&observer, &one.record_id)
+        .unwrap()
+        .record
+        .revision;
+    let snapshot = observer.unchecked_transaction().unwrap();
+    assert_eq!(
+        rows::by_record(&snapshot, &one.record_id)
+            .unwrap()
+            .record
+            .revision,
+        before
+    );
+    external
+        .execute(
+            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+            [&one.record_id],
+        )
+        .unwrap();
+    assert_eq!(
+        rows::by_record(&snapshot, &one.record_id)
+            .unwrap()
+            .record
+            .revision,
+        before
+    );
+    drop(snapshot);
+    assert_eq!(
+        rows::by_record(&observer, &one.record_id)
+            .unwrap()
+            .record
+            .revision,
+        before + 1,
+        "compiled SQL must not retain the completed snapshot"
+    );
+    external
+        .execute_batch("CREATE TABLE observer_statement_schema_probe(value INTEGER)")
+        .unwrap();
+    assert_eq!(
+        rows::by_record(&observer, &two.record_id)
+            .unwrap()
+            .record
+            .operation_id,
+        two.operation_id
+    );
+    drop(observer);
+    let checkpoint: (i64, i64, i64) = external
+        .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        })
+        .unwrap();
+    assert_eq!(
+        checkpoint,
+        (0, 0, 0),
+        "completed cached rows cannot pin the observer WAL"
+    );
+}
+
+#[test]
 fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
     let f = Fixture::new();
     let one = f

@@ -1,0 +1,128 @@
+{
+  "format": "connect/reference-app-source-paired-sql-linux-negative/1",
+  "task": "G6-072",
+  "run_id": 41308113112,
+  "job_id": 124852621257,
+  "job_terminal": true,
+  "job_conclusion": "failure",
+  "observed_parent_status": "in_progress",
+  "observed_at": "2026-11-01T13:30:26.609570+00:00",
+  "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+  "app_artifact": {
+    "id": 13084254535,
+    "size": 828254,
+    "sha256": "6c3e53b0d5a57ea3053496c553c556e67328732d3464d99d6a0738e6d8469520"
+  },
+  "checks_passed": 25,
+  "checks_required": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 708,
+        "column": 20
+      }
+    ]
+  },
+  "current_media": [
+    {
+      "role": "owner",
+      "state": "active",
+      "decoded_audio": 98,
+      "played_audio": 10,
+      "late_audio": 88,
+      "last_audio_offset_ms": -315.386,
+      "painted_video": 78,
+      "last_video_offset_ms": -4.404,
+      "pending_requests": 5,
+      "queued_send_frames": 10
+    },
+    {
+      "role": "organizer",
+      "state": "active",
+      "decoded_audio": 82,
+      "played_audio": 10,
+      "late_audio": 72,
+      "last_audio_offset_ms": -257.855,
+      "painted_video": 54,
+      "last_video_offset_ms": -13.754,
+      "pending_requests": 4,
+      "queued_send_frames": 7
+    }
+  ],
+  "supervision_timeouts_observed": 0,
+  "app_failure_kinds": [
+    {
+      "phase": "packet-native-negotiation",
+      "kind": "cancelled"
+    },
+    {
+      "phase": null,
+      "kind": "cancelled"
+    },
+    {
+      "phase": null,
+      "kind": "cancelled"
+    },
+    {
+      "phase": null,
+      "kind": "cancelled"
+    },
+    {
+      "phase": null,
+      "kind": "cancelled"
+    },
+    {
+      "phase": null,
+      "kind": "cancelled"
+    }
+  ],
+  "source_payload_audit": {
+    "git_app_checker_installer_cpu_sampler": 31,
+    "node_producer_inputs": 197,
+    "actual_node_payload_files": 195,
+    "png_bytes_verified": 4,
+    "exact_check_prefix": true,
+    "all_source_guards": true
+  },
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4820,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "846818445009da1e7eb115986e8a10baa3795f26ddd445b64ef3091b37470b99",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "88e2c7d743c3394597306c19c017607d22a8c70cceec49e5cfd62ad5fd3381e8",
+    "manifest_sha256": "5ddc34f1f673b27cf9726460c669abe8877287ceb98f8a24417e6dcff2546c8a",
+    "artifact_zip_digests": {
+      "evidence": "ad6b39ea16071fa8816c4247d2b637572dd60ed358d53165699aac39a020d690",
+      "package": "5a0b28e98c5010f5c28d110420c48c17f92e77ac65dde7c69556c916fe025097"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "interpretation": "Actual8a runtime still fails combinedAV audio progress after25checks. Audio plays10frames per direction while88/72decoded frames drop late; video paints78/54frames with much smaller last offsets. No signed supervision timeout is recorded in this run. This is not proof that a particular optimization resolved that timeout globally. All6recorded app errors are cancelled IO during shutdown. A separately reproduced local startup path delays incoming reads until camera preview finishes; its relationship to this Linux outcome is still unproven.",
+  "scope": "753nativefiles/4820Git/4094prepared/4pinnedarchives and app/actualNodebytes verify independently. Hosted V8 raw profiles were not uploaded or independently recomputed. LocalMac37pass doesnotqualify this failedLinuxscene. NoG054/provider/model/SIP/TURN execution.",
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

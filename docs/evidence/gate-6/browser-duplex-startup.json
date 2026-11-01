@@ -1,0 +1,54 @@
+{
+  "format": "connect/browser-duplex-startup/1",
+  "task": "G6-072",
+  "baseline": {
+    "base_revision": "81675791f1f89c7f4eda2a7053f210f02b7f40f0",
+    "source_sha256": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
+    "test_sha256": "30d979beb45f862653cc1fe75ff69238b82639498bfbc0239da8affa49586c2f",
+    "log_sha256": "280da668be54d4074a797100d9312fe767668daf7618f631cf03e186816203a5",
+    "passed": 1,
+    "failed": 2,
+    "cancelled": 0,
+    "actual_incoming_reads_while_camera_held": 0,
+    "expected_incoming_reads": 1,
+    "scope": "Actual BrowserAppMedia class with controlled codec/device/HTTP boundaries. Camera preview.play remains unresolved; baseline never opens receive before that unrelated local readiness. Device refusal still startsnoincomingIO. This is a controlled startup-path counterexample, not proof of Linux media root cause.",
+    "initial_fixture_errors_retained": [
+      "browser-startup-initial-fixture-error.log",
+      "browser-startup-graph-fixture-error.log"
+    ]
+  },
+  "change": "After successful device permission and originaltrack validation, start all original negotiated receive loops before waiting for audioWorklet setup or localcamera preview. Original reader aborts and lease/codec/device ownership remain unchanged. Device denial still starts no incoming IO.",
+  "current_source_sha256": "434690a57887b2c94d826567b349e4d14509c0c6281c10d5176f1df47a20a0c2",
+  "current_test_sha256": "30d979beb45f862653cc1fe75ff69238b82639498bfbc0239da8affa49586c2f",
+  "after": {
+    "passed": 3,
+    "failed": 0,
+    "cancelled": 0,
+    "log_sha256": "21438fb750dced82aed54716633bbc6f4c78de18c01b154717547f3d1637cd11"
+  },
+  "all_current_app_tests": {
+    "node": "22.16.0",
+    "passed": 85,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "log_sha256": "f938d9544de3398b5ab366d9b8bab39d0259458f358e6e519097d232e204118d"
+  },
+  "diagnostics_added": [
+    "deviceSetupMs",
+    "receiveStartedMs",
+    "captureGraphMs",
+    "cameraSetupMs"
+  ],
+  "unchanged": [
+    "Original source RTP/NTP timestamps and received media timeline.",
+    "Playout80mslead/50mslate/200mshorizon and sendage/capacity limits.",
+    "Current SDK/native authorization, originallogicalIDs, capturepermission and codec/lease cleanup.",
+    "All37installed rehearsal assertions."
+  ],
+  "scope": "Controlled class execution with deterministic camera/device/HTTP gates, not realpacket/decodedquality qualification. Linux firstfailurecause remains unresolved until new actualruntime evidence. No provider/model/SIP/TURN execution.",
+  "actual_installed_rehearsal_passed": false,
+  "linux_failure_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

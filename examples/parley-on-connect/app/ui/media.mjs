@@ -11,7 +11,7 @@ function unbase64(value) {
 export class BrowserAppMedia {
     #stopped = false; #started = false; #abort = new AbortController(); #closing;
     #calls = new Set(); #loops = new Set(); #routes = new Map(); #sources = new Set();
-    #context; #input; #worklet; #silent; #stream; #lease; #binding; #video; #videoCallback;
+    #startupAt = 0; #context; #input; #worklet; #silent; #stream; #lease; #binding; #video; #videoCallback;
     #preview; #remote; #timer; #audioOrigin; #timeline = new MediaTimeline();
     #phase = "idle"; #stoppedAt = null; #stopReason = null;
     #cname = "parley-" + crypto.randomUUID(); #onState;
@@ -23,7 +23,8 @@ export class BrowserAppMedia {
         audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
         videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0, videoCapacityDrops: 0,
         lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0,
-        lastAudioCaptureOffsetMs: null, lastVideoCaptureOffsetMs: null };
+        lastAudioCaptureOffsetMs: null, lastVideoCaptureOffsetMs: null,
+        receiveStartedMs: null, deviceSetupMs: null, captureGraphMs: null, cameraSetupMs: null };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
@@ -84,7 +85,7 @@ export class BrowserAppMedia {
     }
     async start(binding, { video = false, preview, remote } = {}) {
         if (this.#started) fail("app-media-stopped");
-        this.#started = true; this.#binding = { ...binding }; this.#preview = preview; this.#remote = remote;
+        this.#started = true; this.#startupAt = performance.now(); this.#binding = { ...binding }; this.#preview = preview; this.#remote = remote;
         this.#publish("starting");
         try {
             this.#check();
@@ -118,6 +119,7 @@ export class BrowserAppMedia {
             }
             this.#phase = "device-permission";
             this.#check(); this.#publish("permission");
+            const deviceStarted = performance.now();
             const requested = navigator.mediaDevices.getUserMedia({
                 audio: { sampleRate: { ideal: 48000 }, channelCount: { ideal: 1, max: 2 } },
                 video: video ? { width: { ideal: 640, max: 640 }, height: { ideal: 360, max: 360 },
@@ -129,11 +131,19 @@ export class BrowserAppMedia {
                 if (this.#stopped) for (const track of stream.getTracks()) track.stop();
             }, () => {});
             this.#stream = await this.#bound(requested);
+            this.#counts.deviceSetupMs = Math.round(performance.now() - deviceStarted);
             this.#check();
             if (this.#stream.getAudioTracks().length !== 1 || this.#stream.getVideoTracks().length !== (video ? 1 : 0) ||
                 this.#stream.getTracks().some(t => t.readyState !== "live")) fail("unsupported-app-action");
             for (const track of this.#stream.getTracks())
                 track.addEventListener("ended", () => { void this.stop("app-media-device-ended"); }, { once: true });
+            // Incoming media is independent of local capture initialization.
+            // After permission/track validation, drain its original current
+            // packets while the worklet and camera preview become ready.
+            for (const route of this.#routes.values())
+                if (["recvonly", "sendrecv"].includes(route.binding.direction)) this.#loop(this.#receive(route));
+            this.#counts.receiveStartedMs = Math.round(performance.now() - this.#startupAt);
+            const graphStarted = performance.now();
             this.#phase = "capture-graph";
             await this.#bound(this.#context.audioWorklet.addModule("/audio-worklet.mjs"));
             this.#check();
@@ -155,10 +165,13 @@ export class BrowserAppMedia {
                     this.#worklet.port.postMessage("credit");
                 } catch (error) { void this.stop(error.code ?? "app-media-capture"); }
             };
-            if (video) { this.#phase = "camera-capture"; await this.#camera(videoRoute); }
+            this.#counts.captureGraphMs = Math.round(performance.now() - graphStarted);
+            if (video) {
+                this.#phase = "camera-capture"; const cameraStarted = performance.now();
+                await this.#camera(videoRoute);
+                this.#counts.cameraSetupMs = Math.round(performance.now() - cameraStarted);
+            }
             this.#check();
-            for (const route of this.#routes.values())
-                if (["recvonly", "sendrecv"].includes(route.binding.direction)) this.#loop(this.#receive(route));
             this.#phase = "active";
             this.#timer = setInterval(() => this.#publish(), 500);
             this.#publish();

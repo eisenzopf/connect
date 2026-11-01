@@ -125,7 +125,23 @@ fn native_data_read_connection_creation_does_not_grant_subscription_permission()
     let d = fixture(1, false);
     let (_, proof) = d.begin();
     drop(proof);
-    assert_eq!(d.fresh().unwrap_err().code, "forbidden");
+    // A refused read that crosses the policy second deliberately reports
+    // authority-busy rather than a definitive denial. Require the exact code
+    // only after observing one unchanged-clock interval; every attempt must
+    // still refuse and no new operation or permission is introduced.
+    for _ in 0..8 {
+        let before = crate::now();
+        let error = d.fresh().unwrap_err();
+        if crate::now() == before {
+            assert_eq!(error.code, "forbidden");
+            return;
+        }
+        assert!(matches!(
+            error.code.as_str(),
+            "authority-busy" | "forbidden"
+        ));
+    }
+    panic!("No unchanged clock interval for the subscription refusal");
 }
 #[test]
 fn native_data_read_exact_intent_and_original_audience_cannot_be_substituted() {

@@ -52,7 +52,7 @@ confirms lower idle polling overhead; sustained media and app CI remain required
 
 Active-media sampling also found repeated operation-row SQL preparation. Those
 fixed row queries now reuse bounded compiled statements (capacity 32 on the
-foreground Store connection), with every call rebinding arguments and executing
+foreground Store connection and four read-only packet observers), with every call rebinding arguments and executing
 against current data. Tests alternate operation IDs and verify external commits,
 local rollback, schema changes and completed-read WAL release. A single optimized
 local 200-read probe measured 80 ms before and 7 ms after; this is component evidence,
@@ -69,3 +69,14 @@ Every lookup still compares SQL/data/schema/clock/source identity and acquires a
 fresh complete authority interval. No row result, permission or IO grant is
 cached. Current-writer refusal and commit/source invalidation remain explicit.
 See `docs/evidence/gate-6/packet-source-operation-sql.json` for 67 current cases.
+
+
+The original change set capacity32 only on command SQL. Native data invocation
+also resolves operation/source facts on the independent read-only observers;
+those now use the same shared32statement bound. The actual observer200rowprobe
+measures13ms before and9ms after in one local pair, with no timing assertion.
+Its parameter/data/schema/read-only/WAL checks and75current Store functions pass.
+This small component result does not establish why the8a reliable-data scene
+exceeded its original200msmetadata budget. See
+`docs/evidence/gate-6/observer-operation-sql-cache.json` and the retained negative
+`docs/evidence/gate-6/native-av-source-paired-sql-negative-8a.json`.
