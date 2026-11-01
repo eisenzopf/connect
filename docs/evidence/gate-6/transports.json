@@ -1065,7 +1065,7 @@
     "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
     "workflow_run_id": 41267483044,
     "job_id": 124733201072,
-    "status": "confirmed-live-cache-restore",
+    "status": "confirmed-live-exact-control-step",
     "url": "https://github.com/eisenzopf/connect/actions/runs/41267483044",
     "expected_functions": 15,
     "full_matrix_cells_qualified": 0
@@ -1191,7 +1191,7 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "source-verified-endpoint-precondition-negative-trusted-verification-correction",
+    "status": "source-verified-six-offer-data-flow-negative-diagnostic-follow-up",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "81a011503bc9dab73e5fb7f21b907fd2f349b301dc94c304dd4a9a5d689f49c3",
       "scripts/check-transport-fixtures.py": "95738f69a2a2b390306cc26bae285baff9d39b0d783923dbc8b2ad9d3fd47e33",
@@ -1247,7 +1247,9 @@
       "job_id": 124740444538,
       "status": "completed-failure-reliable-data-flow-after-six-native-offers",
       "runtime_verified": false,
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json"
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json",
+      "endpoint_verification_stage_passed": true,
+      "data_workload_passed": false
     },
     "endpoint_precondition_runtime_verified": true,
     "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json"
@@ -1330,6 +1332,25 @@
       ".github/workflows/gate6-linux-fixtures.yml": "d7e7d00d1494f194e7b89914078f18da6ec85302170162538804ba9142c47ac8"
     },
     "macos_full_native_stage_runtime_verified": false,
-    "full_matrix_cells_qualified": 0
+    "full_matrix_cells_qualified": 0,
+    "runtime_candidates": [
+      {
+        "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+        "workflow_run_id": 41271013831,
+        "job_id": 124743623361,
+        "target": "macos-arm64",
+        "signing_algorithm": "EdDSA",
+        "component": "conversation",
+        "status": "confirmed-live-verified-source-preparation"
+      },
+      {
+        "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+        "workflow_run_id": 41271017676,
+        "target": "ubuntu24-x86_64",
+        "signing_algorithm": "EdDSA",
+        "component": "data",
+        "status": "pending-behind-original-capture-run"
+      }
+    ]
   }
 }
