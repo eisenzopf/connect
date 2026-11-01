@@ -1,0 +1,1253 @@
+{
+  "format": "connect/reference-app-cpu-observed-negative/1",
+  "task": "G6-072",
+  "run_id": 41297814575,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41297814575",
+  "independent_app_node_identity_audit_passed": true,
+  "profiles": [
+    {
+      "host": "mac",
+      "artifact_id": 13079777567,
+      "artifact_size": 425158,
+      "artifact_zip_sha256": "c7ec873be9ae47717869e5bd31ab89fa8a53fe7752798293f5511f145a08d0eb",
+      "source_revision": "53254e4e5a19715a23a86c8b3677ab3a068271f6",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_app_checker_installer_cpu_inputs_verified": 30,
+      "node_package_source_inputs_verified": 197,
+      "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+      "installed_sdk_files_verified": 195,
+      "png_bytes_verified": 2,
+      "checks_passed": 18,
+      "checks_required": 37,
+      "cpu_profiles": [
+        {
+          "format": "connect/app-cpu-sample-summary/1",
+          "raw_profile_sha256": "59980cc096bed24b99760e3b2d1fb51c71fe18a3df500bb713def0f594b2bca3",
+          "samples": 12379,
+          "nodes": 993,
+          "total_sampled_ms": 73274,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 67497,
+              "inclusive_sampled_ms": 67497
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 1899,
+              "inclusive_sampled_ms": 3180
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 567,
+              "inclusive_sampled_ms": 567
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 355,
+              "inclusive_sampled_ms": 355
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "value",
+              "line": 120,
+              "self_sampled_ms": 201,
+              "inclusive_sampled_ms": 290
+            },
+            {
+              "module": "node:internal/per_context/domexception",
+              "function": "DOMException",
+              "line": 72,
+              "self_sampled_ms": 93,
+              "inclusive_sampled_ms": 93
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "visit",
+              "line": 38,
+              "self_sampled_ms": 87,
+              "inclusive_sampled_ms": 148
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "nextTick",
+              "line": 111,
+              "self_sampled_ms": 76,
+              "inclusive_sampled_ms": 83
+            },
+            {
+              "module": "node:internal/encoding",
+              "function": "encode",
+              "line": 351,
+              "self_sampled_ms": 76,
+              "inclusive_sampled_ms": 90
+            },
+            {
+              "module": "node:internal/errors",
+              "function": "wrappedFn",
+              "line": 535,
+              "self_sampled_ms": 70,
+              "inclusive_sampled_ms": 112
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "processTimers",
+              "line": 506,
+              "self_sampled_ms": 63,
+              "inclusive_sampled_ms": 288
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "visit",
+              "line": 25,
+              "self_sampled_ms": 61,
+              "inclusive_sampled_ms": 61
+            },
+            {
+              "module": "node:net",
+              "function": "onconnection",
+              "line": 2236,
+              "self_sampled_ms": 59,
+              "inclusive_sampled_ms": 187
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "string",
+              "line": 101,
+              "self_sampled_ms": 55,
+              "inclusive_sampled_ms": 55
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 61,
+              "self_sampled_ms": 51,
+              "inclusive_sampled_ms": 1781
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 40,
+              "inclusive_sampled_ms": 984
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "anonymous",
+              "line": 63,
+              "self_sampled_ms": 39,
+              "inclusive_sampled_ms": 122
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 933
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "end",
+              "line": 1087,
+              "self_sampled_ms": 33,
+              "inclusive_sampled_ms": 1113
+            },
+            {
+              "module": "node:_http_server",
+              "function": "detachSocket",
+              "line": 300,
+              "self_sampled_ms": 32,
+              "inclusive_sampled_ms": 32
+            },
+            {
+              "module": "node:internal/streams/destroy",
+              "function": "_destroy",
+              "line": 90,
+              "self_sampled_ms": 29,
+              "inclusive_sampled_ms": 126
+            },
+            {
+              "module": "node:_http_common",
+              "function": "parserOnHeadersComplete",
+              "line": 77,
+              "self_sampled_ms": 29,
+              "inclusive_sampled_ms": 371
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "_addHeaderLine",
+              "line": 382,
+              "self_sampled_ms": 29,
+              "inclusive_sampled_ms": 29
+            },
+            {
+              "module": "node:inspector",
+              "function": "post",
+              "line": 118,
+              "self_sampled_ms": 25,
+              "inclusive_sampled_ms": 25
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 73274
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 67497,
+              "inclusive_sampled_ms": 67497
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 71,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 3225
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 1899,
+              "inclusive_sampled_ms": 3180
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 61,
+              "self_sampled_ms": 51,
+              "inclusive_sampled_ms": 1781
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._writeGeneric",
+              "line": 936,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 1395
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "end",
+              "line": 1087,
+              "self_sampled_ms": 33,
+              "inclusive_sampled_ms": 1113
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "Writable.uncork",
+              "line": 520,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 1057
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "json",
+              "line": 40,
+              "self_sampled_ms": 11,
+              "inclusive_sampled_ms": 1056
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "clearBuffer",
+              "line": 744,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 1047
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "doWrite",
+              "line": 587,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 1047
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._writev",
+              "line": 973,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 1047
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "writevGeneric",
+              "line": 121,
+              "self_sampled_ms": 13,
+              "inclusive_sampled_ms": 1035
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 40,
+              "inclusive_sampled_ms": 984
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 933
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 567,
+              "inclusive_sampled_ms": 567
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "exchange",
+              "line": 229,
+              "self_sampled_ms": 21,
+              "inclusive_sampled_ms": 530
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "onStreamRead",
+              "line": 166,
+              "self_sampled_ms": 11,
+              "inclusive_sampled_ms": 454
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "Readable.push",
+              "line": 387,
+              "self_sampled_ms": 5,
+              "inclusive_sampled_ms": 434
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "readableAddChunkPushByteMode",
+              "line": 463,
+              "self_sampled_ms": 17,
+              "inclusive_sampled_ms": 427
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "addChunk",
+              "line": 550,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 406
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 283,
+              "self_sampled_ms": 5,
+              "inclusive_sampled_ms": 388
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "pump",
+              "line": 280,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 388
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "Writable.write",
+              "line": 504,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 375
+            }
+          ],
+          "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation.",
+          "whole_recording_v8_idle_fraction": 0.9211589376859459
+        }
+      ],
+      "cpu_profile_requested": true,
+      "failure": {
+        "stage": "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+        "name": "TimeoutError",
+        "code": null,
+        "source_stack": [
+          {
+            "line": 509,
+            "column": 44
+          },
+          {
+            "line": 508,
+            "column": 75
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "phase": "media-control-supervision",
+          "elapsed_ms": 2002,
+          "event_loop_active_ms": 1925,
+          "event_loop_idle_ms": 78,
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": null,
+          "sdk_location": {
+            "file": "sdk_helper.js",
+            "line": 126,
+            "column": 16
+          }
+        },
+        {
+          "phase": "packet-native-negotiation",
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-resync-required",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "failure_media_pages": [
+        {
+          "role": "owner",
+          "observation": {
+            "session_state": "active",
+            "current_actor": "owner",
+            "state": "active",
+            "status": "Microphone shared. Incoming audio playing.",
+            "metrics": {
+              "capturedAudioFrames": 819,
+              "capturedVideoFrames": 0,
+              "encodedFrames": 809,
+              "sentRtp": 788,
+              "receivedRtp": 73,
+              "clockReportsSent": 17,
+              "clockReportsReceived": 3,
+              "videoClockReportsSent": 0,
+              "videoClockReportsReceived": 0,
+              "decodedAudioFrames": 73,
+              "playedAudioFrames": 39,
+              "decodedVideoFrames": 0,
+              "paintedVideoFrames": 0,
+              "droppedFrames": 65,
+              "synchronizedPackets": 71,
+              "unsynchronizedPackets": 2,
+              "audioLateDrops": 10,
+              "audioHorizonDrops": 24,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": 214.326,
+              "lastVideoOffsetMs": null,
+              "receiveClockCorrections": 1,
+              "lastAudioCaptureOffsetMs": -503,
+              "lastVideoCaptureOffsetMs": null,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 1,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 1,
+              "stopped": false
+            },
+            "output": {
+              "frames": 38,
+              "energy": 10.958666521617932,
+              "tone440": 0.0029723944215218337,
+              "tone880": 3.1759121937781742
+            }
+          }
+        },
+        {
+          "role": "organizer",
+          "observation": {
+            "session_state": null,
+            "current_actor": "organizer",
+            "state": "app-media-network",
+            "status": "Media connection unavailable. Reconnect before starting media again.",
+            "metrics": {
+              "capturedAudioFrames": 105,
+              "capturedVideoFrames": 0,
+              "encodedFrames": 96,
+              "sentRtp": 76,
+              "receivedRtp": 79,
+              "clockReportsSent": 2,
+              "clockReportsReceived": 2,
+              "videoClockReportsSent": 0,
+              "videoClockReportsReceived": 0,
+              "decodedAudioFrames": 79,
+              "playedAudioFrames": 14,
+              "decodedVideoFrames": 0,
+              "paintedVideoFrames": 0,
+              "droppedFrames": 95,
+              "synchronizedPackets": 67,
+              "unsynchronizedPackets": 12,
+              "audioLateDrops": 65,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -2.419,
+              "lastVideoOffsetMs": null,
+              "receiveClockCorrections": 1,
+              "lastAudioCaptureOffsetMs": -541,
+              "lastVideoCaptureOffsetMs": null,
+              "phase": "stopped",
+              "stoppedAt": "active",
+              "stopReason": "app-media-network",
+              "activeTracks": 0,
+              "activeContexts": 0,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 0,
+              "stopped": true
+            },
+            "output": {
+              "frames": 14,
+              "energy": 0.283413159101068,
+              "tone440": 0.10314456069088945,
+              "tone880": 7.902924965834638e-05
+            }
+          }
+        }
+      ],
+      "runtime_binary_matches_previously_independently_audited_production_binary": true,
+      "new_runtime_archive_bytes_independently_audited": false,
+      "source_guards_passed": true,
+      "component_passed": false
+    },
+    {
+      "host": "linux",
+      "artifact_id": 13079429877,
+      "artifact_size": 827472,
+      "artifact_zip_sha256": "39ce858fd582a3f629a56f06bc370698921291a20087af16b1bf9cd8ea9b6d01",
+      "source_revision": "53254e4e5a19715a23a86c8b3677ab3a068271f6",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_app_checker_installer_cpu_inputs_verified": 30,
+      "node_package_source_inputs_verified": 197,
+      "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+      "installed_sdk_files_verified": 195,
+      "png_bytes_verified": 4,
+      "checks_passed": 25,
+      "checks_required": 37,
+      "cpu_profiles": [
+        {
+          "format": "connect/app-cpu-sample-summary/1",
+          "raw_profile_sha256": "04bbb98cbf00ba9117b8cadeb0cb999ccee5aab1c633a2438dd66755008eae71",
+          "samples": 88193,
+          "nodes": 2103,
+          "total_sampled_ms": 99119,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 92504,
+              "inclusive_sampled_ms": 92504
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 2288,
+              "inclusive_sampled_ms": 4398
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "value",
+              "line": 120,
+              "self_sampled_ms": 316,
+              "inclusive_sampled_ms": 507
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 298,
+              "inclusive_sampled_ms": 298
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "visit",
+              "line": 38,
+              "self_sampled_ms": 270,
+              "inclusive_sampled_ms": 404
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "visit",
+              "line": 25,
+              "self_sampled_ms": 256,
+              "inclusive_sampled_ms": 277
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 217,
+              "inclusive_sampled_ms": 217
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "string",
+              "line": 101,
+              "self_sampled_ms": 121,
+              "inclusive_sampled_ms": 121
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "anonymous",
+              "line": 63,
+              "self_sampled_ms": 116,
+              "inclusive_sampled_ms": 291
+            },
+            {
+              "module": "node:internal/encoding",
+              "function": "encode",
+              "line": 351,
+              "self_sampled_ms": 82,
+              "inclusive_sampled_ms": 116
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 61,
+              "self_sampled_ms": 74,
+              "inclusive_sampled_ms": 1562
+            },
+            {
+              "module": "node:internal/per_context/domexception",
+              "function": "DOMException",
+              "line": 72,
+              "self_sampled_ms": 59,
+              "inclusive_sampled_ms": 59
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "space",
+              "line": 97,
+              "self_sampled_ms": 50,
+              "inclusive_sampled_ms": 65
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaFrozen",
+              "line": 9,
+              "self_sampled_ms": 47,
+              "inclusive_sampled_ms": 47
+            },
+            {
+              "module": "app/intents.mjs",
+              "function": "#decode",
+              "line": 97,
+              "self_sampled_ms": 44,
+              "inclusive_sampled_ms": 128
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "body",
+              "line": 13,
+              "self_sampled_ms": 43,
+              "inclusive_sampled_ms": 128
+            },
+            {
+              "module": "node:internal/timers",
+              "function": "processTimers",
+              "line": 506,
+              "self_sampled_ms": 37,
+              "inclusive_sampled_ms": 181
+            },
+            {
+              "module": "node:_http_server",
+              "function": "connectionListenerInternal",
+              "line": 695,
+              "self_sampled_ms": 36,
+              "inclusive_sampled_ms": 57
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 71,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 4225
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaJson",
+              "line": 18,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 680
+            },
+            {
+              "module": "node:internal/buffer",
+              "function": "FastBuffer",
+              "line": 956,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 34
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 31,
+              "inclusive_sampled_ms": 2086
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 31,
+              "inclusive_sampled_ms": 1250
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "_addHeaderLine",
+              "line": 382,
+              "self_sampled_ms": 31,
+              "inclusive_sampled_ms": 41
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 99119
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 92504,
+              "inclusive_sampled_ms": 92504
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 2288,
+              "inclusive_sampled_ms": 4398
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 71,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 4225
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 31,
+              "inclusive_sampled_ms": 2086
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 61,
+              "self_sampled_ms": 74,
+              "inclusive_sampled_ms": 1562
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._writeGeneric",
+              "line": 936,
+              "self_sampled_ms": 13,
+              "inclusive_sampled_ms": 1423
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "exchange",
+              "line": 229,
+              "self_sampled_ms": 30,
+              "inclusive_sampled_ms": 1395
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 31,
+              "inclusive_sampled_ms": 1250
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 283,
+              "self_sampled_ms": 20,
+              "inclusive_sampled_ms": 925
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "pump",
+              "line": 280,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 919
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "Writable.write",
+              "line": 504,
+              "self_sampled_ms": 6,
+              "inclusive_sampled_ms": 837
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "_write",
+              "line": 453,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 831
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "writeOrBuffer",
+              "line": 548,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 818
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._write",
+              "line": 978,
+              "self_sampled_ms": 6,
+              "inclusive_sampled_ms": 814
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "writeGeneric",
+              "line": 146,
+              "self_sampled_ms": 5,
+              "inclusive_sampled_ms": 798
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 169,
+              "self_sampled_ms": 5,
+              "inclusive_sampled_ms": 785
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "write",
+              "line": 168,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 783
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "handleWriteReq",
+              "line": 46,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 768
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaJson",
+              "line": 18,
+              "self_sampled_ms": 34,
+              "inclusive_sampled_ms": 680
+            },
+            {
+              "module": "node:_http_outgoing",
+              "function": "end",
+              "line": 1087,
+              "self_sampled_ms": 21,
+              "inclusive_sampled_ms": 676
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "json",
+              "line": 40,
+              "self_sampled_ms": 20,
+              "inclusive_sampled_ms": 658
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "onStreamRead",
+              "line": 166,
+              "self_sampled_ms": 26,
+              "inclusive_sampled_ms": 642
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "Readable.push",
+              "line": 387,
+              "self_sampled_ms": 6,
+              "inclusive_sampled_ms": 625
+            }
+          ],
+          "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation.",
+          "whole_recording_v8_idle_fraction": 0.933262038559711
+        }
+      ],
+      "cpu_profile_requested": true,
+      "failure": {
+        "stage": "sustained-combined-browser-audio-video",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 656,
+            "column": 20
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "phase": "media-control-supervision",
+          "elapsed_ms": 2002,
+          "event_loop_active_ms": 1767,
+          "event_loop_idle_ms": 235,
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "deadline",
+          "location": null,
+          "sdk_location": {
+            "file": "sdk_helper.js",
+            "line": 126,
+            "column": 16
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-resync-required",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        },
+        {
+          "code": null,
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "failure_media_pages": [
+        {
+          "role": "owner",
+          "observation": {
+            "session_state": null,
+            "current_actor": "owner",
+            "state": "app-media-network",
+            "status": "Media connection unavailable. Reconnect before starting media again.",
+            "metrics": {
+              "capturedAudioFrames": 120,
+              "capturedVideoFrames": 71,
+              "encodedFrames": 183,
+              "sentRtp": 163,
+              "receivedRtp": 82,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 3,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 2,
+              "decodedAudioFrames": 42,
+              "playedAudioFrames": 6,
+              "decodedVideoFrames": 24,
+              "paintedVideoFrames": 23,
+              "droppedFrames": 73,
+              "synchronizedPackets": 78,
+              "unsynchronizedPackets": 4,
+              "audioLateDrops": 36,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -195.329,
+              "lastVideoOffsetMs": 42.766,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": -1,
+              "lastVideoCaptureOffsetMs": -13,
+              "phase": "stopped",
+              "stoppedAt": "active",
+              "stopReason": "app-media-network",
+              "activeTracks": 0,
+              "activeContexts": 0,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 0,
+              "stopped": true
+            },
+            "output": {
+              "frames": 6,
+              "energy": 9.30444993622552,
+              "tone440": 0.002072310909795686,
+              "tone880": 3.5450311063879045
+            }
+          }
+        },
+        {
+          "role": "organizer",
+          "observation": {
+            "session_state": null,
+            "current_actor": "organizer",
+            "state": "active",
+            "status": "Microphone shared with camera. Incoming audio playing.",
+            "metrics": {
+              "capturedAudioFrames": 151,
+              "capturedVideoFrames": 88,
+              "encodedFrames": 230,
+              "sentRtp": 217,
+              "receivedRtp": 96,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 4,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 2,
+              "decodedAudioFrames": 49,
+              "playedAudioFrames": 8,
+              "decodedVideoFrames": 36,
+              "paintedVideoFrames": 35,
+              "droppedFrames": 80,
+              "synchronizedPackets": 78,
+              "unsynchronizedPackets": 18,
+              "audioLateDrops": 41,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -125.29,
+              "lastVideoOffsetMs": 71.899,
+              "receiveClockCorrections": 4,
+              "lastAudioCaptureOffsetMs": 4,
+              "lastVideoCaptureOffsetMs": -16,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 3,
+              "stopped": false
+            },
+            "output": {
+              "frames": 7,
+              "energy": 0.03080783415967374,
+              "tone440": 0.01527677899204792,
+              "tone880": 1.2924623487560163e-05
+            }
+          }
+        }
+      ],
+      "runtime_binary_matches_previously_independently_audited_production_binary": true,
+      "new_runtime_archive_bytes_independently_audited": false,
+      "source_guards_passed": true,
+      "component_passed": false
+    }
+  ],
+  "interpretation": "Both original source-bound profiled app runs fail: Mac after18checks at active Session capture survival, Linux after25checks in the first sustained combined AV window. V8 reports idle for92.1% of the73.274s Mac recording and93.3% of the99.119s Linux recording. This does not prove that Node was idle during the failing2s request: the failed watcher records1925/1767ms active respectively. Most sampled active time is scattered across native/unknown frames, socket writes, SDK framing and HTTP response work; no single identified JavaScript function explains the failure. A whole-recording average cannot locate a short stall.",
+  "audit_scope": "Exact30Git app/checker/installer/CPU-summary inputs, all197Node producer inputs, current reported195-file SDK payloads matched to actual previously downloaded byte-identical Node archives/dependencies, PNGs, check prefix and source/runtime guards audited. Reported runtime hash matches independently audited production d992 bytes; these new native archives were not re-read. CPU summaries are curated original producer observations; raw private profile bytes were intentionally not uploaded and the summary cannot be independently recomputed here.",
+  "next": "Preserve the first failed supervision window and attribute native/builtin socket or synchronous calls, including actual process CPU counters, before choosing an application/server correction. If Node attribution remains inconclusive, sample the exact owned native server during media.",
+  "raw_cpu_profile_bytes_independently_read": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

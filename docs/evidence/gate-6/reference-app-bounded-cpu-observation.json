@@ -40,9 +40,11 @@
     "actual_cpu_bound_and_original_process_shutdown_cases_passed": 2,
     "workflow_yaml_parses": true
   },
-  "scope": "Prepared bounded diagnostic, not an actual CI CPU observation or a resolved timeout. Sampling has overhead; existing37behavior checks, request deadlines, source/media clocks, quality thresholds, authorization and original operation recovery remain unchanged.",
-  "actual_ci_profile_verified": false,
+  "scope": "Bounded source-bound actual Linux/Mac Node CPU capture is observed in original curated CI reports. Raw private profiles remain excluded, so their summaries were not independently recomputed. Both actual app runs still fail. Whole-recording idle fractions do not explain the short failed request window; native/builtin attribution and actual CPU counters remain to be measured. Sampling has overhead; all37behavior checks, request deadlines, media/source clocks, quality thresholds, current authorization and original operation recovery remain unchanged.",
+  "actual_ci_profile_verified": true,
   "root_cause_resolved": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_ci_evidence": "docs/evidence/gate-6/reference-app-cpu-observed-532-negative.json",
+  "raw_profile_bytes_independently_recomputed": false
 }
