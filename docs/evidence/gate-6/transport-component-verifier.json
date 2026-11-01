@@ -1,0 +1,89 @@
+{
+  "format": "connect/transport-component-verifier-verification/1",
+  "task": "G6-058",
+  "verifier_source_revision": "b0c138cfb2a709b6ecd1985de3a7dd6e44c7cd93",
+  "verifier_inputs_sha256": {
+    "scripts/lib/transport_verification.py": "46e2cbffaa7aa6be5f91b94e518e7b35cc7662da0ae54f2132433a41efab61b9",
+    "scripts/verify-transport-component.py": "4c49a8736eda6855093a99798621e4440d57624c9f6072e4d7e6b74a863eff7f",
+    "scripts/tests/test_transport_verification.py": "36c523ce444b69a284afeab7454849a37b4dd9d6b1c9255493e63248a60f3382",
+    "scripts/fixtures/transport-matrix/README.md": "8549d064170d66f4fd87b5546d18aac2d45ddaad48daed74188289e8901b2b9a"
+  },
+  "local_checks": {
+    "transport_python_guards_passed": 41,
+    "new_verifier_functions_passed": 6,
+    "syntax_passed": true,
+    "git_diff_check_passed": true
+  },
+  "audits": [
+    {
+      "format": "connect/transport-component-independent-verification/1",
+      "evidence_verified": true,
+      "component": "data",
+      "component_passed": false,
+      "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+      "artifact_sha256": "477c69e3111aacd2423f22b52b1ea9a070cb853e75b1b6ab47ded7a7d11c6357",
+      "report_sha256": "f6837523877430131dc4c7a79175bfa75c780e2e8526e2007b45608d74f8de67",
+      "source_inputs_sha256": "2d2dda69208f9e0c85a1fa56f29f63aec906644ab9c9fa5978dc8a5bb395040d",
+      "sources_verified": {
+        "git": 4700,
+        "prepared": 4094,
+        "pinned_archives": 4
+      },
+      "sdk_dist_files_verified": 192,
+      "target": "ubuntu24-x86_64",
+      "signing": "EdDSA",
+      "network": "local",
+      "reported_runtime_binary_sha256": "1d903cdb2a9c441a5fd142480da60376d2cfb784d7205708093948b6484d000e",
+      "binary_bytes_in_artifact": false,
+      "outcomes": {
+        "commands_observed": 48,
+        "original_servers_joined": 2,
+        "conversation_report_sha256": "990672856bdbb61995de74dbbbb0b238f7f0386cefa3a5b1a39fcc4d64a7ea56",
+        "conversation_passed": false,
+        "helpers_observed": 5,
+        "helpers_joined": true,
+        "native_offers_completed": 6,
+        "native_data_submissions": 0,
+        "native_data_completions": 0,
+        "native_data_receives": 0
+      },
+      "full_matrix_cells_qualified": 0,
+      "task_complete": false,
+      "whole_gate_qualified": false
+    },
+    {
+      "format": "connect/transport-component-independent-verification/1",
+      "evidence_verified": true,
+      "component": "control",
+      "component_passed": false,
+      "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
+      "artifact_sha256": "7f18ba279a9c7a43dd241e9a45e1ee5ebc3b6f7500d5a958cc0589a6cebc70ab",
+      "report_sha256": "cf985970a1cf8c109384bec0c6bf2f5fe12064b7ffe99d7479f2d45a280137f7",
+      "source_inputs_sha256": "ba9e94d6175ad979a28ff9f462f3405f1c005e4ebe9efad1fcdf1ea845c2619f",
+      "sources_verified": {
+        "git": 4687,
+        "prepared": 4094,
+        "pinned_archives": 4
+      },
+      "sdk_dist_files_verified": 192,
+      "target": "ubuntu24-x86_64",
+      "signing": "both",
+      "network": "local",
+      "reported_runtime_binary_sha256": "0b4f20be686fa046db8c3d62b1dca2121104c1547fc537c802e5d4823ac7df81",
+      "binary_bytes_in_artifact": false,
+      "outcomes": {
+        "selected_cases": 15,
+        "executed_cases": 15,
+        "passed_cases": 14,
+        "complete_control_selection": true
+      },
+      "full_matrix_cells_qualified": 0,
+      "task_complete": false,
+      "whole_gate_qualified": false
+    }
+  ],
+  "scope": "Two retained negative Ubuntu component artifacts independently re-audited. Original full Git bytes/modes, complete prepared sources, pinned archives, SDK runtime bytes and report/outcome bindings checked. No artifact code executed; no binary bytes present in artifacts; no new media, browser, native payload, Remote runtime or complete transport-cell pass.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
