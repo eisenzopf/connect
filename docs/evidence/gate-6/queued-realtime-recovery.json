@@ -33,8 +33,69 @@
     "Independently rerun unchanged native six-route quality workload before claiming throughput improvement."
   ],
   "after": {
-    "implemented": false,
-    "verified": false
+    "implemented": true,
+    "verified": true,
+    "scope": "77 distinct affected Core cases only; not all Core tests, actual decoded quality, movement or transport-cell qualification.",
+    "patch_count": 269,
+    "production_patch_sha256": "e77d957adcdfe66146cd5e97a3628465bf7b28681ceec19a0b6ab52b894c0999",
+    "source_lock_sha256": "886e38cebf62553475b70913f4b74be25fcb81f0a23f80c04852b8ce993f277e",
+    "test_binary_sha256": "67efb7cdb82ab20e097ca0108d1cbf1cd98d49982bca108beb8c43c05e6471c2",
+    "binary_preserved": true,
+    "elapsed_seconds": 446.29773849993944,
+    "source_inputs_unchanged": true,
+    "cohorts": [
+      {
+        "name": "packet_admission",
+        "passed": 14
+      },
+      {
+        "name": "ingress_policy_snapshot",
+        "passed": 6
+      },
+      {
+        "name": "fresh_metadata_recovery",
+        "passed": 7
+      },
+      {
+        "name": "packet_expiry",
+        "passed": 2
+      },
+      {
+        "name": "direct_subscriptions",
+        "passed": 9
+      },
+      {
+        "name": "video_repair",
+        "passed": 10
+      },
+      {
+        "name": "reliable_data",
+        "passed": 19
+      },
+      {
+        "name": "guarded_mixer::packet_context",
+        "passed": 10
+      }
+    ],
+    "passed": 77,
+    "failed": 0,
+    "ignored": 0,
+    "official_dependency_preparation_passed": true,
+    "format_check_passed": true,
+    "original_frame_age_ms": 200,
+    "original_send_closure_called_at_most_once": true,
+    "earliest_source_target_policy_expiry_preserved_across_pre_io_attempts": true,
+    "current_authorization_ticket_generation_and_shutdown_checks_retained": true,
+    "video_packet_context_borrowing_added": false,
+    "data_semantics_changed": false,
+    "source_clock_or_quality_thresholds_changed": false,
+    "fresh_immutable_snapshot_used": true,
+    "prior_snapshots_preserved": true
   },
-  "transport_cells_qualified": 0
+  "transport_cells_qualified": 0,
+  "native_runtime_verification": {
+    "stage": "optimized production CLI build active after passing Core prerequisites; peer build and fresh same native baseline queued",
+    "actual_new_quality_result": false,
+    "full_cell_qualified": false
+  }
 }

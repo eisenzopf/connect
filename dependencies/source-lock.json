@@ -1458,6 +1458,11 @@
       "path": "patches/rvoip/gate6-queued-realtime-recovery-regression.patch",
       "sha256": "3eebbae1f0f39a18c324c54f73eb9ed565a80a545e7d71fd5a1e78c1b37d2a10",
       "source": "G6-058 controlled queued realtime metadata recovery and earliest policy expiry regressions. Require audio/video original admission to wait without a policy reader, poll original IO at most once, retain original packet age and earliest policy expiry, and recheck revocation/shutdown. Test-only; no new recovery, readiness or quality claim."
+    },
+    {
+      "path": "patches/rvoip/gate6-queued-realtime-recovery.patch",
+      "sha256": "e77d957adcdfe66146cd5e97a3628465bf7b28681ceec19a0b6ab52b894c0999",
+      "source": "G6-058: recover queued realtime Audio/Video transient pre-IO metadata refusal with no idle authority readers. Preserve original packet age and earliest observed source/target policy expiry across attempts; original tickets/generations/current authorization/shutdown checks and once-only IO retained. Data and source-clock/quality thresholds unchanged. Six controlled before failures reproduced; after Core and actual media verification required."
     }
   ]
 }

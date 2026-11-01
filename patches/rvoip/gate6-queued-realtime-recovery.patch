@@ -1,0 +1,273 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1338,16 +1338,20 @@
+             drop(writing);
+             return result;
+         }
++        // A refused pre-IO attempt must not renew either the original packet
++        // age or an earlier policy lease. The bound survives reader release.
++        let mut until = if self.frame.kind == StreamKind::Data {
++            tokio::time::Instant::now() + Duration::from_millis(200)
++        } else {
++            tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
++        };
+         let admitted = loop {
+-            match self.admit_queued_media() {
++            match self.admit_queued_media_with_deadline(&mut until) {
+                 Ok(admitted) => break admitted,
+-                Err(StreamControlError::NotReady) if self.frame.kind == StreamKind::Audio => {
++                Err(StreamControlError::NotReady) if self.frame.kind != StreamKind::Data => {
+                     // Only metadata remains here: a failed attempt dropped every
+                     // source/target authority and generation reader. Never extend
+                     // the original frame's age or recapture a newer audience.
+-                    let until = tokio::time::Instant::from_std(
+-                        self.admitted_at + Duration::from_millis(200),
+-                    );
+                     if tokio::time::Instant::now() >= until {
+                         return Err(StreamControlError::Deadline);
+                     }
+@@ -1376,6 +1380,17 @@
+     // Synchronous acquisition ensures a refused attempt releases all readers
+     // before the caller waits. These are exact original frame/ticket checks.
+     fn admit_queued_media(&self) -> ControlResult<QueuedMediaAdmission> {
++        let mut deadline = if self.frame.kind == StreamKind::Data {
++            tokio::time::Instant::now() + Duration::from_millis(200)
++        } else {
++            tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
++        };
++        self.admit_queued_media_with_deadline(&mut deadline)
++    }
++    fn admit_queued_media_with_deadline(
++        &self,
++        deadline: &mut tokio::time::Instant,
++    ) -> ControlResult<QueuedMediaAdmission> {
+         if self.frame.kind != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
+@@ -1390,11 +1405,11 @@
+         let mut subscription_guards = Vec::new();
+         let mut admissions = Vec::new();
+         let mut tokens = vec![target.shutdown.clone()];
+-        let mut deadline = if self.frame.kind != StreamKind::Data {
++        *deadline = (*deadline).min(if self.frame.kind != StreamKind::Data {
+             tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
+         } else {
+             tokio::time::Instant::now() + Duration::from_millis(200)
+-        };
++        });
+         if let Some(scene) = &self.target_scene {
+             tokens.push(scene.cancel.clone());
+         }
+@@ -1412,7 +1427,7 @@
+             if tokens.iter().any(CancellationToken::is_cancelled) {
+                 return Err(StreamControlError::Cancelled);
+             }
+-            if tokio::time::Instant::now() >= deadline {
++            if tokio::time::Instant::now() >= *deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+             let source = provenance
+@@ -1434,12 +1449,13 @@
+                 return Err(StreamControlError::Cancelled);
+             }
+             let (lease, admission, bound) = source
+-                .admit_retained_source(
++                .admit_retained_source_with_deadline(
+                     &provenance.source,
+                     &provenance.ticket,
+                     provenance.consumer.as_ref(),
+                     provenance.scene.as_ref(),
+                     &provenance.custody,
++                    (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
+                 )
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+@@ -1455,13 +1471,13 @@
+             }
+             leases.push(lease);
+             admissions.push(admission);
+-            deadline = deadline.min(bound);
++            *deadline = (*deadline).min(bound);
+             tokens.push(source.shutdown.clone());
+-            if tokio::time::Instant::now() >= deadline {
++            if tokio::time::Instant::now() >= *deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+             let (lease, admission, bound) = target
+-                .admit_packet(
++                .admit_with_deadline(
+                     &self.target,
+                     &self.target_ticket,
+                     true,
+@@ -1473,7 +1489,10 @@
+                         provenance.scene.as_ref(),
+                         self.admitted_at,
+                     ),
++                    None,
++                    None,
+                     leases.last().and_then(|lease| lease.packet_context()),
++                    (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
+                 )
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+@@ -1489,18 +1508,18 @@
+             }
+             leases.push(lease);
+             admissions.push(admission);
+-            deadline = deadline.min(bound);
++            *deadline = (*deadline).min(bound);
+         }
+         if tokens.iter().any(CancellationToken::is_cancelled) {
+             return Err(StreamControlError::Cancelled);
+         }
+-        if tokio::time::Instant::now() >= deadline {
++        if tokio::time::Instant::now() >= *deadline {
+             return Err(StreamControlError::Deadline);
+         }
+         Ok(QueuedMediaAdmission {
+             target,
+             tokens,
+-            deadline,
++            deadline: *deadline,
+             _leases: leases,
+             _subscriptions: subscription_guards,
+             _admissions: admissions,
+@@ -1979,20 +1998,28 @@
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
+-        if port.kind() != StreamKind::Audio {
+-            return self.admit(
+-                port,
+-                ticket,
+-                false,
+-                None,
+-                audio_consumer::ConsumerCheck::Retained(consumer),
+-                None,
+-                scene_consumer::SceneCheck::retained_publish(scene),
+-            );
+-        }
+-        let active = custody.active();
++        self.admit_retained_source_with_deadline(port, ticket, consumer, scene, custody, None)
++    }
++    fn admit_retained_source_with_deadline(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        consumer: Option<&audio_consumer::ConsumerStamp>,
++        scene: Option<&scene_consumer::SceneStamp>,
++        custody: &PacketCustody,
++        deadline: Option<&mut tokio::time::Instant>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
++        // Packet context sharing remains audio-only. Video uses a fresh policy
++        // read, bounded by the same original queued admission deadline.
++        let active = (port.kind() == StreamKind::Audio)
++            .then(|| custody.active())
++            .flatten();
+         let weak = active.as_ref().map(Arc::downgrade);
+-        let admitted = self.admit_packet(
++        let admitted = self.admit_with_deadline(
+             port,
+             ticket,
+             false,
+@@ -2000,9 +2027,14 @@
+             audio_consumer::ConsumerCheck::Retained(consumer),
+             None,
+             scene_consumer::SceneCheck::retained_publish(scene),
++            None,
++            None,
+             weak.as_ref().map(|weak| weak as &(dyn Any + Send + Sync)),
++            deadline,
+         )?;
+-        custody.observe(admitted.0.as_ref());
++        if port.kind() == StreamKind::Audio {
++            custody.observe(admitted.0.as_ref());
++        }
+         Ok(admitted)
+     }
+     fn admit_packet(
+@@ -2050,6 +2082,44 @@
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
++        self.admit_with_deadline(
++            port,
++            ticket,
++            sending,
++            source,
++            consumer,
++            direct,
++            scene,
++            data,
++            held,
++            packet_context,
++            None,
++        )
++    }
++    fn admit_with_deadline(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        sending: bool,
++        source: Option<&MediaSource>,
++        consumer: audio_consumer::ConsumerCheck<'_>,
++        direct: Option<&direct_subscriptions::DirectStamp>,
++        scene: scene_consumer::SceneCheck<'_>,
++        data: Option<&reliable_data::StagedData>,
++        held: Option<&(dyn Any + Send + Sync)>,
++        packet_context: Option<&(dyn Any + Send + Sync)>,
++        mut queued_deadline: Option<&mut tokio::time::Instant>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
++        if queued_deadline
++            .as_deref()
++            .is_some_and(|until| tokio::time::Instant::now() >= *until)
++        {
++            return Err(StreamControlError::Deadline);
++        }
+         // Retained packet metadata already fixes the original consumer/scene
+         // generations. Never recapture current gates after a policy callback.
+         let fresh_publication = data.is_none()
+@@ -2186,6 +2256,15 @@
+                 (None, None) => self.policy.current(&scope)?,
+                 _ => return Err(StreamControlError::Authority),
+             };
++            if let Some(until) = queued_deadline.as_deref_mut() {
++                // Record every observed grant before reacquiring model State:
++                // NotReady drops the lease but cannot forget its earlier expiry.
++                Self::check(&scope, lease.authority())?;
++                *until = Self::media_deadline(&credential.principal, lease.as_ref(), *until)?;
++                if tokio::time::Instant::now() >= *until {
++                    return Err(StreamControlError::Deadline);
++                }
++            }
+             if recover_fresh {
+                 // Preserve the public authority refusal for an already expired
+                 // principal/task; IO expiry only bounds an otherwise valid grant.
+@@ -2291,12 +2370,12 @@
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+         admission._direct = direct_guard;
+-        let deadline = Self::media_deadline(
+-            &credential.principal,
+-            lease.as_ref(),
+-            original_policy_deadline
+-                .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_millis(200)),
+-        )?;
++        let deadline = original_policy_deadline
++            .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_millis(200));
++        let deadline = queued_deadline
++            .as_deref()
++            .map_or(deadline, |until| deadline.min(*until));
++        let deadline = Self::media_deadline(&credential.principal, lease.as_ref(), deadline)?;
+         Ok((lease, admission, deadline))
+     }
+     pub async fn change(
