@@ -87,5 +87,36 @@
   },
   "full_transport_cells_qualified": 0,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "physical_capture_reader": {
+    "status": "controlled-offline-cases-passed; collector-and-complete-decoder-integration-pending",
+    "source_files_sha256": {
+      "scripts/lib/transport_replacement_observation.mjs": "5ba92ef60940c4ef432a3d21aeac220347ff2dc86f0beaa73c609c2cf63de502",
+      "scripts/tests/transport_replacement_observation.test.mjs": "3ea361fb327f5966896e20e97d194e6d7a9e04447a890b661f404f4641f25561",
+      "sdk/typescript/dist/browser.js": "8eb2b4b189d48be7676148a4a9212300c95981c2d9ed08791c8cba329ec175c0",
+      "sdk/typescript/dist/browser_rtp.js": "1efcb0d7d9266d770b90a79c378ecbf8142129210093046c8d49221136e6f0c8",
+      "sdk/typescript/dist/browser_rtcp.js": "80ee2ae8aa07e291f5525ec715fac08d795cac0f6ac1bdee19dc3cecc267495b"
+    },
+    "verification": {
+      "command": "node --test scripts/tests/transport_replacement_observation.test.mjs",
+      "node": "v22.16.0",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "todo": 0,
+      "duration_ms": 77.264459
+    },
+    "boundaries": [
+      "Pre-completion audio/clock/VP8 fragments cannot initialize a later codec history; raw row indices remain accounted for.",
+      "SSRC histories stay separate even when RTP timestamps repeat. Original program receive times, RTP coordinates and payload bytes are preserved.",
+      "VP8 assembly expiry uses original recorded receive times, including when offline processing runs faster than capture.",
+      "Original negotiated IDs/directions/codecs/handles and payload types must match; own outbound camera handle is not accepted as a subscribed receive source.",
+      "Failed or unjoined targets, changed program, regressed completion state and out-of-program arrivals refuse interpretation.",
+      "A malformed RTCP claim cannot fall back to RTP."
+    ],
+    "scope": "Controlled offline parsing/ownership boundaries only, using synthetic encoded fragments. Actual twenty-root collector wiring and full independent decoded timeline remain open. No new native execution, decoded quality, packet capture, impairment, capacity or transport-cell pass.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  }
 }

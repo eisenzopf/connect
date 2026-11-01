@@ -271,3 +271,17 @@ physical targets. This is the integration interface for continuous replacements,
 not completed twenty-move workload evidence. The caller still needs to collect
 replacement media segments, replace subscription bindings, independently decode
 the complete timeline, and qualify every required cell.
+
+`scripts/lib/transport_replacement_observation.mjs` now reads an already joined
+physical AV capture against its three original negotiated stream IDs and shared
+program origin. It excludes pre-completion row indices from audio, clock and
+video assembly state, preserves original receive times and separates codec
+histories by SSRC. VP8 assembly uses recorded receive intervals for the existing
+200 ms expiry. A failed or unjoined target, regressed completion observation,
+changed binding or malformed RTCP claim refuses interpretation.
+
+Six controlled offline cases verify those boundaries, including a video frame
+whose fragments straddle completion and another whose fragments exceed the
+original assembly age. These cases use synthetic encoded fragments and do not
+decode media. Connecting this reader to the movement collector and independently
+decoding the complete physical timeline remain required.

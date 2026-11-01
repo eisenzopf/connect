@@ -1,0 +1,102 @@
+// Offline interpretation of one already-joined physical replacement capture.
+// No authority, mutation, clock correction or decoded-quality claim is created.
+import assert from "node:assert/strict";
+import { decodeRtpDatagram, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
+import { decodeRtcpSenderReport } from "../../sdk/typescript/dist/browser_rtcp.js";
+
+const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
+const uint = (value, maximum) => Number.isSafeInteger(value) && value >= 0 && value <= maximum;
+
+export function physicalAvSegment(observed, expected) {
+    assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
+    for (const key of ["passed", "original_client_joined", "video_enabled",
+        "original_root_completed_observed", "video_controls_completed"])
+        assert.equal(observed[key], true, key);
+    assert.equal(observed.operation_completed_inferred, false);
+    assert.equal(observed.decoded_media_verified, false);
+    assert.ok(uint(expected.programStartUnixUs, Number.MAX_SAFE_INTEGER) && expected.programStartUnixUs > 0);
+    assert.equal(observed.program_start_unix_us, expected.programStartUnixUs);
+    const ids = [expected.audioStreamId, expected.sendVideoStreamId, expected.receiveVideoStreamId];
+    assert.ok(ids.every(id) && new Set(ids).size === 3);
+    assert.equal(observed.negotiated_streams.length, 3);
+    const streams = new Map(), handles = new Set();
+    for (const [index, streamId] of ids.entries()) {
+        const matches = observed.negotiated_streams.filter(s => s.strm_id === streamId);
+        assert.equal(matches.length, 1, "capture must match the original negotiated stream ID");
+        const stream = matches[0], medium = index === 0 ? "audio" : "video";
+        assert.equal(stream.kind, medium);
+        assert.equal(stream.direction, index === 2 ? "sendonly" : "sendrecv");
+        assert.equal(stream.codec.name, index === 0 ? "opus" : "vp8");
+        assert.equal(stream.codec.params.sample_rate, index === 0 ? 48000 : 90000);
+        assert.equal(stream.codec.params.channels, index === 0 ? 1 : 0);
+        assert.ok(uint(stream.codec.params.payload_type, 127));
+        assert.ok(uint(stream.stream_local_id, 65535) && stream.stream_local_id > 0);
+        assert.ok(!handles.has(stream.stream_local_id), "physical stream handles must be distinct");
+        handles.add(stream.stream_local_id);
+        if (index !== 1) streams.set(stream.stream_local_id, { streamId, medium, pt: stream.codec.params.payload_type });
+    }
+    assert.ok(Array.isArray(observed.received) && observed.received.length <= 16000);
+    const audio = new Map(), video = new Map(), clocks = { audio: [], video: [] }, assembler = new Vp8Assembler();
+    const quarantine = [];
+    let previous = -1, completedSeen = false, bytes = 0;
+    for (const [index, row] of observed.received.entries()) {
+        assert.ok(uint(row.elapsed_us, 62_000_000) && row.elapsed_us >= previous, "original program arrival order");
+        previous = row.elapsed_us;
+        assert.equal(typeof row.original_root_completed_observed, "boolean");
+        assert.ok(!completedSeen || row.original_root_completed_observed, "completion observation cannot regress");
+        assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20 && row.datagram.length <= 1188);
+        assert.ok(row.datagram.every(value => uint(value, 255)));
+        bytes += row.datagram.length;
+        assert.ok(bytes <= 16 * 1024 * 1024);
+        // Never feed a pre-completion fragment or clock into a later decoder.
+        // Keep its original row index so the raw input still accounts for it.
+        if (!row.original_root_completed_observed) { quarantine.push(index); continue; }
+        completedSeen = true;
+        const wire = Uint8Array.from(row.datagram), view = new DataView(wire.buffer);
+        assert.equal(wire[0], 1); assert.equal(wire[1], 0);
+        const stream = streams.get(view.getUint16(2));
+        assert.ok(stream, "received physical handle must be the negotiated audio or retained camera");
+        const elapsed_ms = row.elapsed_us / 1000;
+        if (wire[9] >= 192 && wire[9] <= 223) {
+            // A malformed RTCP claim is never reinterpreted as RTP.
+            const report = decodeRtcpSenderReport(wire.subarray(8));
+            assert.ok(clocks[stream.medium].length < 512);
+            clocks[stream.medium].push({ elapsed_ms, physical_observation_row: index,
+                stream_id: stream.streamId, ssrc: report.ssrc, ntp: report.ntp.toString(),
+                rtp: report.rtpTimestamp, packets: report.packets, octets: report.octets });
+            continue;
+        }
+        const packet = decodeRtpDatagram(wire);
+        assert.equal(packet.payloadType, stream.pt);
+        assert.ok(packet.payload.length > 0);
+        const common = { elapsed_ms, physical_observation_row: index, stream_id: stream.streamId,
+            ssrc: packet.ssrc, timestamp: packet.timestamp };
+        const segments = stream.medium === "audio" ? audio : video;
+        if (!segments.has(packet.ssrc)) {
+            assert.ok(segments.size < 8, "bounded physical codec histories");
+            segments.set(packet.ssrc, []);
+        }
+        if (stream.medium === "audio") {
+            assert.ok(segments.get(packet.ssrc).length < 3200);
+            segments.get(packet.ssrc).push({ ...common, sequence: packet.sequence,
+                payload: Buffer.from(packet.payload).toString("base64") });
+        } else {
+            // Use the actual recorded receive time for the unchanged200ms
+            // assembly expiry, never the speed of this offline reader.
+            const frame = assembler.push(packet, elapsed_ms);
+            if (frame) {
+                assert.ok(segments.get(packet.ssrc).length < 2000);
+                segments.get(packet.ssrc).push({ ...common, key: frame.key,
+                    payload: Buffer.from(frame.bytes).toString("base64") });
+            }
+        }
+    }
+    assert.ok(completedSeen, "capture needs an actual post-completion observation");
+    const histories = groups => [...groups].map(([ssrc, rows]) => ({ ssrc, rows }));
+    return { format: "connect/physical-av-segment/1", program_start_unix_us: observed.program_start_unix_us,
+        audio: histories(audio), video: histories(video), clock_reports: clocks,
+        quarantined_precompletion_rows: quarantine, original_datagram_count: observed.received.length,
+        original_datagram_bytes: bytes, pending_video_fragments: assembler.queuedFragments,
+        decoded_media_verified: false, full_timeline_decoded: false, cell_qualified: false,
+        scope: "Original receive times and codec bytes only, split by physical SSRC. Pre-completion rows excluded from codec state. No PLC, gap filling, retiming or media quality inference." };
+}
