@@ -1,0 +1,81 @@
+{
+  "format": "connect/native-reserve-client-lifecycle/1",
+  "task": "G6-058",
+  "negative_evidence": "docs/evidence/gate-6/native-av-workload-es256-negative-2b65.json",
+  "diagnostic": {
+    "scope": "Read-only synthetic two-client native idle diagnostic. No media, mutation, replay, provider or model execution.",
+    "node": "v22.16.0",
+    "platform": "darwin",
+    "runtime_source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "initial_idle": "quic",
+    "initial_active": "quic",
+    "active_reads": 7,
+    "idle_milliseconds": 35111.614583,
+    "idle_read_failure": {
+      "kind": "cancelled",
+      "certainty": "read-only",
+      "name": "NodeSdkError"
+    },
+    "final_active": "quic",
+    "close_results": [
+      {
+        "joined": true
+      },
+      {
+        "joined": true
+      }
+    ],
+    "helpers_observed": 2,
+    "helpers_remaining": 0,
+    "runtime_unchanged": true
+  },
+  "diagnostic_sha256": "ba623c598cf162aca32933713408b65e073a46a17d121f52ebb6586167309f77",
+  "diagnostic_source_sha256": "16a2f8caf8b990f726b76840818c0377e56b54ae1b6386c2a6d3e9ae83591d72",
+  "diagnostic_controller_exit_code": 0,
+  "original_server_joined": true,
+  "source_contract": {
+    "native_idle_timeout_seconds": 30,
+    "native_config": "crates/connect-client/src/canonical.rs",
+    "capabilities_are_local_without_network_io": "crates/connect-client/src/sdk/capabilities.rs",
+    "fixed_sdk_owner_without_transparent_reconnect": "sdk/typescript/src/node_sdk.ts"
+  },
+  "earlier_nonqualifying_diagnostics": [
+    {
+      "scope": "Local capability queries are not an active network control; both clients eventually cancel.",
+      "proof_sha256": "f92382208d7b3ff2597a1d1707b51204fe7cb17b384ae8cd2043f6050cf7730c"
+    },
+    {
+      "scope": "Raw health request is outside the canonical raw schema; validation refused before network IO.",
+      "proof_sha256": "688a7e50ad03d895b4683bf2a4bfc94bf1a2f8a6b4dfe92f9b068a50074d8b30"
+    }
+  ],
+  "correction": {
+    "explicitly_join_initial_reserve_sdk_before_long_workload": true,
+    "open_unchanged_reserve_config_after_original_owner_close": true,
+    "same_original_create_reference_and_current_authorization": true,
+    "no_automatic_reconnect_or_mutation_replay": true,
+    "all_helper_epochs_observed_and_joined": true,
+    "collect_completed_media_decode_even_on_late_control_failure": true,
+    "late_failure_still_fails_whole_component": true,
+    "transport_idle_timeout_changed": false
+  },
+  "implementation_inputs": {
+    "scripts/check-transport-conversation.mjs": "ca1f454023d54494eb6dad690fe09e46c8fd59103d9ab6d1cab18123e89c9f8c",
+    "scripts/check-transport-fixtures.py": "4d867b70ed520f425171d2499985f85bd9d24362c7ab7bf6df0b3018b54c3116",
+    "scripts/lib/transport_av.py": "7f08402962bbbb5f5e489bd0e93d598b3000ced1c1e21a110ab943a5e6d36156",
+    "scripts/lib/transport_verification.py": "fe89a0c8b71658f9492d5fa110480afafb6102afdf5f8094fbe5a1b361f77e7a",
+    "scripts/tests/test_transport_av.py": "b2d94073547754709c0204aa8c98f16d8052e42c02e0ee01e46b013dadf33fd1"
+  },
+  "local_checks": {
+    "python_transport_cases_passed": 49,
+    "node_transport_cases_passed": 8,
+    "skipped": 0,
+    "late_failure_collection_regressions_passed": 2
+  },
+  "actual_after_fix_component_verified": false,
+  "scope": "Real read-only Mac Node22 two-client idle diagnostic plus explicit fixture lifecycle and late-failure decoder collection corrections. Ubuntu after-fix native workload still requires execution; no complete matrix cell or Gate acceptance.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

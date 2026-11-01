@@ -1,0 +1,299 @@
+{
+  "format": "connect/native-av-workload-negative/1",
+  "task": "G6-058",
+  "source_revision": "2b65c2bf8c467c9156a1b3c37bb9237f6277532d",
+  "workflow_run_id": 41294046433,
+  "job_id": 124811053874,
+  "artifact_id": 13078617647,
+  "artifact_sha256": "712690e683c98f6ef3852395945cb9725416d54fc26d7ce16d2891cf94afe779",
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "2b65c2bf8c467c9156a1b3c37bb9237f6277532d",
+    "artifact_sha256": "712690e683c98f6ef3852395945cb9725416d54fc26d7ce16d2891cf94afe779",
+    "report_sha256": "9c81a06a457b7681d5c603ab097c65f67ccee3d6d91640c20161d88708c6e226",
+    "source_inputs_sha256": "66cf09b4f87af51b190dea7144e0f983182f5938df29fa8ebc7bc8e8bc7885f1",
+    "sources_verified": {
+      "git": 4782,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "ES256",
+    "network": "local",
+    "reported_runtime_binary_sha256": "1e1927fc853ca508d7e4e211f8a88547bee3ca59b502fe60f188d89bd41b33a5",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "3d059880519d2142610ba71cf6143a6fa9962128a0d8faa36791a122b869527c",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_binary_matches_independently_audited_sdk": true,
+  "sdk_verification": "docs/evidence/gate-6/sdk-candidates-verified-d9928b1d.json",
+  "passed": false,
+  "failure": {
+    "phase": "independent-device-original-create-receipt-recovery",
+    "name": "NodeSdkError",
+    "kind": "cancelled",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "native_io": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "source_manifest_sha256": "cec78fa60083b1c6a4b8f5a4b84e5578c9f41f98c96b6c01760c4b37de8b1988",
+    "original_receive_tasks_joined": true,
+    "seconds": 62,
+    "warmup_seconds": 2,
+    "observation_seconds": 60,
+    "routes": [
+      {
+        "index": 0,
+        "peer_index": 3,
+        "received_audio": 3035,
+        "received_video": 1856,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 61
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4404
+        }
+      },
+      {
+        "index": 1,
+        "peer_index": 0,
+        "received_audio": 3041,
+        "received_video": 1859,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 62
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4410
+        }
+      },
+      {
+        "index": 2,
+        "peer_index": 1,
+        "received_audio": 3015,
+        "received_video": 1857,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 61
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4394
+        }
+      },
+      {
+        "index": 3,
+        "peer_index": 2,
+        "received_audio": 3028,
+        "received_video": 1857,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 61
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4398
+        }
+      },
+      {
+        "index": 4,
+        "peer_index": 5,
+        "received_audio": 3072,
+        "received_video": 1855,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 61
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4413
+        }
+      },
+      {
+        "index": 5,
+        "peer_index": 4,
+        "received_audio": 3082,
+        "received_video": 1858,
+        "gap_packets": 0,
+        "late_send_frames": 0,
+        "received_clocks": {
+          "audio": 62,
+          "video": 62
+        },
+        "submitted_packets": {
+          "audio": 3100,
+          "video": 4409
+        }
+      }
+    ],
+    "scope": "Real public SDK native RTP and source-clock transport only. Independent decoder and profile checks are separate; no full-cell qualification."
+  },
+  "data_workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 4698,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true,
+    "media_end_timings": [
+      {
+        "index": 0,
+        "end_receipt_ms": 47.45150899999135,
+        "original_retirement_observed_ms": 1538.4354999999923,
+        "limit_ms": 5000
+      },
+      {
+        "index": 1,
+        "end_receipt_ms": 64.39145399999688,
+        "original_retirement_observed_ms": 542.4458299999969,
+        "limit_ms": 5000
+      },
+      {
+        "index": 2,
+        "end_receipt_ms": 42.7066979999945,
+        "original_retirement_observed_ms": 1002.549325,
+        "limit_ms": 5000
+      },
+      {
+        "index": 3,
+        "end_receipt_ms": 39.98804900000687,
+        "original_retirement_observed_ms": 487.0087409999978,
+        "limit_ms": 5000
+      },
+      {
+        "index": 4,
+        "end_receipt_ms": 40.948600999996415,
+        "original_retirement_observed_ms": 1529.2293849999987,
+        "limit_ms": 5000
+      },
+      {
+        "index": 5,
+        "end_receipt_ms": 39.26362599999993,
+        "original_retirement_observed_ms": 503.63987899999483,
+        "limit_ms": 5000
+      }
+    ],
+    "original_end_operations_completed": 6,
+    "retirement_observation_budget_ms": 8000,
+    "retirement_observations": 1,
+    "retirement_observer": "single-current-authorized-conversation-snapshot",
+    "retirement_snapshot_pages": 1,
+    "retirement_snapshot_revision": 4,
+    "after_end_states": [
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired"
+    ],
+    "retirement_observation_elapsed_ms": 470,
+    "original_connections_retired": 6
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "ad46b4da5c5d80de6f68dfd1e3d16f3a78b12dd4c83e3006524cac71f9817bfb",
+    "pcap_bytes": 66251403,
+    "captured_seconds": 85.749776209,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 97656,
+      "to_server_packets": 52221,
+      "from_server_packets": 45435,
+      "captured_bytes": 64688883,
+      "udp_payload_bytes": 60587331,
+      "to_server_udp_bytes": 28742785,
+      "from_server_udp_bytes": 31844546
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "helpers_observed": 5,
+  "all_helpers_joined": true,
+  "server_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "decoded_media_verified": false,
+  "decoder_missing_reason": "Parent required complete control success before decoding; the late original-receipt read failure discarded that opportunity. Next source collects completed media independently of a late failure.",
+  "scope": "Actual Ubuntu/local/ES256 six-Connection Opus/VP8/data RTP and clock reception for62s,6original retirements observed within0.49-1.54s, encrypted private capture97656packets withzero kernel drops and owned cleanup. Late originalCreate receipt recovery through the idle reserve SDK is cancelled. No independent decoded audio/video/profile or fullcell pass.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -253,3 +253,10 @@ def verify(directory, manifest):
         task_complete=False, cell_qualified=False, matrix_qualified=False, whole_gate_qualified=False)
     (directory / 'decoded.json').write_text(json.dumps(report, indent=2) + '\n')
     return report
+
+
+def decode_completed(observed, directory, manifest):
+    """A late control failure does not erase a completed media observation."""
+    if observed.get('native_av', {}).get('original_receive_tasks_joined') is not True:
+        return None
+    return verify(directory, manifest)

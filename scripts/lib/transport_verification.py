@@ -166,7 +166,8 @@ def verify_rehearsal(report, component, members):
     require(type(child["passed"]) is bool, "conversation-result-required")
     if report["passed"]:
         require(child["passed"] and report["conversation_exit_code"] == 0 and not child.get("failure") and
-            child["observed_helpers"] == 5 and child["all_observed_helpers_joined"] is True, "positive-conversation-work-or-join-missing")
+            child["observed_helpers"] == (6 if component == "media" and child.get("replacement_activation") else 5) and
+            child["all_observed_helpers_joined"] is True, "positive-conversation-work-or-join-missing")
         require(child["maximum_active_members_observed"] == 4 and child["concurrent_session_intents_observed"] == 2,
             "positive-conversation-workload-missing")
     result.update(conversation_report_sha256=hashlib.sha256(raw).hexdigest(), conversation_passed=child["passed"],
@@ -213,6 +214,12 @@ def verify_rehearsal(report, component, members):
                 min(video["frames_by_observation_second"]) >= 24 and video["wrong_source_pixel_frames"] == 0 and
                 route["received_clocks"]["audio"] > 0 and route["received_clocks"]["video"] > 0,
                 "positive-decoded-media-observation-missing")
+        activation = child.get("replacement_activation")
+        if activation is not None:
+            require(activation["initial_helper_joined_before_workload"] is True and activation["new_helper_created"] is True and
+                activation["original_create_reference_preserved"] is True and activation["mutation_replayed"] is False and
+                activation["original_device_config_sha256"] == child["sdk_config_hashes"]["replacement-1"],
+                "explicit-replacement-activation-or-original-reference-missing")
         native = child["native_av"]
         require(native["original_receive_tasks_joined"] is True and native["observation_seconds"] == 60 and
             report["packet_capture"]["media_workload"] is True and report["packet_capture"]["packet_limit"] == 200000,

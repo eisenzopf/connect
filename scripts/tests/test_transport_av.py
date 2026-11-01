@@ -7,11 +7,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from lib.package_environment import fixture_environment
-from lib.transport_av import opus_packets, decode_audio, ivf_frames
+from lib.transport_av import opus_packets, decode_audio, ivf_frames, decode_completed
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'), 'Independent FFmpeg calibration requires the named prerequisite')
@@ -50,6 +51,25 @@ class NativeCodecCalibration(unittest.TestCase):
         for width, height in [(320, 180), (640, 480), (1280, 720)]:
             body = struct.pack('<4sHH4sHHIIII', b'DKIF', 0, 32, b'VP80', width, height, 30, 1, 0, 0)
             with self.assertRaises(ValueError): ivf_frames(body)
+
+
+class CompletedObservationRetention(unittest.TestCase):
+    def test_late_control_failure_keeps_completed_decode_and_failed_control_result(self):
+        control = {'passed': False, 'failure': {'phase': 'original-receipt-recovery'},
+            'native_av': {'original_receive_tasks_joined': True}}
+        decoded = {'passed': False, 'scope': 'A distinct decoded media failure'}
+        with patch('lib.transport_av.verify', return_value=decoded) as decoder:
+            self.assertIs(decode_completed(control, Path('private-observation'), {'sources': 6}), decoded)
+            decoder.assert_called_once_with(Path('private-observation'), {'sources': 6})
+        self.assertFalse(control['passed'])
+        self.assertEqual(control['failure']['phase'], 'original-receipt-recovery')
+
+    def test_unfinished_media_does_not_become_a_decode_or_runtime_pass(self):
+        for control in [{'passed': False}, {'passed': False, 'native_av': {'original_receive_tasks_joined': False}}]:
+            with patch('lib.transport_av.verify') as decoder:
+                self.assertIsNone(decode_completed(control, Path('private-observation'), {}))
+                decoder.assert_not_called()
+            self.assertFalse(control['passed'])
 
 
 if __name__ == '__main__':

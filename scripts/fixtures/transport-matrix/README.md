@@ -372,6 +372,15 @@ frames per second, correct source pixels and source-clock reports. FFmpeg PTS
 must match the retained original RTP timestamps. Failed work cancels and joins
 all twelve readers before original Connection ends and SDK owner closure.
 
+The reserve Device's initial SDK helper is explicitly closed before the long
+media phase. Its unchanged documented configuration is opened after the source
+owner closes, and the same original Create reference is restored under current
+authorization. This is an explicit Device activation; there is no transparent
+SDK reconnect or mutation replay. Native QUIC has a 30-second idle timeout, and
+local capability snapshots perform no network IO. Every helper epoch is counted
+and must join. Completed decoder observations are retained even if a later
+control or recovery action fails; the overall result stays failed.
+
 The decoder calibration uses encoded sources directly, without Connect. Its
 success proves only the observer: wrong tones and corrupt/truncated containers
 must fail. Actual transport execution has its own result and source identities.

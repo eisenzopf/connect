@@ -18,7 +18,7 @@ from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors, exact
 from lib.transport_capture import NativeCapture
-from lib.transport_av import prepare as prepare_av, verify as verify_av
+from lib.transport_av import prepare as prepare_av, decode_completed as decode_completed_av
 from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
@@ -452,8 +452,20 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 report["conversation_exit_code"] = code
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
-                assert code == 0
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
+                # A later control/recovery failure must not discard the already
+                # completed native media observation. Preserve both results.
+                decoded = None
+                if media_workload:
+                    try:
+                        decoded = decode_completed_av(observed, PRIVATE / "av-received", media_sources)
+                        if decoded is not None:
+                            report["native_av_decoded"] = decoded
+                    except Exception as decode_error:
+                        (PRIVATE / "native-av-decoder-failure.log").write_text(traceback.format_exc())
+                        report["native_av_decoder_failure"] = dict(name=type(decode_error).__name__,
+                            line=traceback.extract_tb(decode_error.__traceback__)[-1].lineno)
+                assert code == 0
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
                 assert observed["signing_algorithm"] == signing_algorithm and observed["host"]["platform"] == server_platform
@@ -466,9 +478,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     assert workload["total_received_bytes"] == 6 * 65536
                 if media_workload:
                     phase = "independent-native-opus-vp8-decode"
-                    decoded = verify_av(PRIVATE / "av-received", media_sources)
-                    report["native_av_decoded"] = decoded
-                    assert decoded["passed"]
+                    assert decoded is not None and decoded["passed"]
                     report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
                 report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
                 before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}

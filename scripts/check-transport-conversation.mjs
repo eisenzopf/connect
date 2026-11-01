@@ -75,10 +75,12 @@ async function refused(call, code, reason) {
     assert.equal(observed, true);
 }
 async function helpers() {
+    const live = new Set();
     for (const pid of childPids(process.pid)) {
-        try { if (await executableHash(pid) === input.binary_sha256) observedHelpers.add(pid); }
+        try { if (await executableHash(pid) === input.binary_sha256) { observedHelpers.add(pid); live.add(pid); } }
         catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
     }
+    return live;
 }
 try {
     for (const [role, actor] of Object.entries(input.actors)) {
@@ -330,6 +332,20 @@ try {
         report.data_workload.frozen_message_history_audiences_verified = true;
         check("native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences");
         if (mediaWorkload) {
+            // The reserve Device has no workload. Do not hold its fixed SDK
+            // owner unused across the native transport's30second idle bound.
+            phase = "reserved-device-initial-helper-close-before-native-av";
+            const beforeClose = await helpers();
+            await clients.get("replacement-1").close({ timeoutMs: 5000 });
+            clients.delete("replacement-1");
+            const afterClose = await helpers();
+            const retired = [...beforeClose].filter(pid => !afterClose.has(pid));
+            assert.equal(beforeClose.size, 5); assert.equal(afterClose.size, 4);
+            assert.equal(retired.length, 1); assert.equal(await processExists(retired[0]), false);
+            report.replacement_activation = { initial_helper_joined_before_workload: true,
+                original_device_config_sha256: report.sdk_config_hashes["replacement-1"], new_helper_created: false,
+                original_create_reference_preserved: false, mutation_replayed: false };
+            check("reserved-device-initial-helper-joins-before-sixty-second-workload");
             phase = "six-native-opus-vp8-sixty-second-workload";
             report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan);
             check("six-original-native-connections-exchange-opus-vp8-and-original-source-clocks-for-sixty-two-seconds");
@@ -400,9 +416,23 @@ try {
     phase = "original-owner-sdk-close-before-independent-device-recovery";
     await owner.close({ timeoutMs: 5000 });
     clients.delete("participant-1");
-    const replacement = clients.get("replacement-1");
+    let replacement = clients.get("replacement-1");
+    if (mediaWorkload) {
+        phase = "independent-device-explicit-current-sdk-activation";
+        const actor = input.actors["replacement-1"];
+        assert.equal(hash(await readFile(actor.config)), report.replacement_activation.original_device_config_sha256);
+        replacement = new NodeClient({ config: actor.config, executable: input.executable });
+        clients.set("replacement-1", replacement);
+        assert.equal((await replacement.capabilities.refresh(options)).selectedTransport, "quic");
+        await helpers(); assert.equal(observedHelpers.size, 6);
+        report.replacement_activation.new_helper_created = true;
+        check("independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins");
+    }
     phase = "independent-device-original-create-receipt-recovery";
-    const restored = await complete(replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create));
+    const originalRecovery = replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create);
+    assert.deepEqual(originalRecovery.referenceJson(), originalReference);
+    if (mediaWorkload) report.replacement_activation.original_create_reference_preserved = true;
+    const restored = await complete(originalRecovery);
     assert.equal(restored.id, cid);
     phase = "independent-device-current-membership-read";
     assert.equal((await restored.refresh(options)).participants.filter(p => p.active).length, 4);
