@@ -3,7 +3,7 @@
 export class VideoPlayout {
     #frames = []; #timer; #head; #closed = false;
     #now; #paint; #drop; #setTimer; #clearTimer;
-    constructor({ now, paint, drop, setTimer = setTimeout, clearTimer = clearTimeout }) {
+    constructor({ now, paint, drop, setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = timer => clearTimeout(timer) }) {
         this.#now = now; this.#paint = paint; this.#drop = drop;
         this.#setTimer = setTimer; this.#clearTimer = clearTimer;
     }

@@ -125,5 +125,49 @@
   "correction": "Keep at most6 owned decoded VideoFrames per route, ordered by original presentation target within existing200ms horizon. Retain the head timer as later frames arrive; render only when due, discard timer-late frames at existing50ms limit. Clear/join every frame on epoch correction and stop.",
   "runtime_correction_verified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "native_timer_regression": {
+    "format": "connect/browser-video-playout-native-timers/1",
+    "browser": "153.0.8010.12",
+    "cases": [
+      {
+        "label": "before",
+        "source_sha256": "cdb2b4a64e69bf1ba17525c45c74b8f10809d4399e21a6c900f28c5645e3e7f3",
+        "painted": 0,
+        "queued_after": 1,
+        "remaining_after_close": 0,
+        "pixel": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "error": {
+          "name": "TypeError",
+          "message": "Illegal invocation"
+        }
+      },
+      {
+        "label": "after",
+        "source_sha256": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c",
+        "painted": 3,
+        "queued_after": 0,
+        "remaining_after_close": 0,
+        "pixel": [
+          0,
+          255,
+          0,
+          255
+        ],
+        "error": null
+      }
+    ],
+    "scope": "Actual Chromium native timers, VideoFrame clones and canvas pixels; isolated component, no Connect/media/provider/model qualification.",
+    "result": "Unbound native Chromium timer called as a private member throws Illegal invocation. Arrow wrappers preserve the native global receiver;3 actual owned VideoFrame clones render green after originals close. Full installed AV after correction remains pending."
+  },
+  "first_correction_installed_negative": {
+    "source": "e90e03c3",
+    "checks": 22,
+    "failure": "app-media-playback at first decoded VP8 frame, before any captured AV frames; actual native timer regression reproduces this independently."
+  }
 }

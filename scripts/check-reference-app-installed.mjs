@@ -172,6 +172,26 @@ try {
     await page.goto(origin); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     assert.equal(await page.evaluate(() => document.cookie), "");
     assert.match(await page.locator("#media-capability").textContent(), /QUIC/); check("actual-installed-native-SDK-control-connected");
+    report.native_video_playout_component = await page.evaluate(async () => {
+        const { VideoPlayout } = await import("/media-playout.mjs");
+        const input = new OffscreenCanvas(8, 8), source = input.getContext("2d");
+        source.fillStyle = "rgb(0,255,0)"; source.fillRect(0, 0, 8, 8);
+        const output = new OffscreenCanvas(8, 8), target = output.getContext("2d");
+        let painted = 0, dropped = 0;
+        const queue = new VideoPlayout({ now: () => performance.now() / 1000,
+            paint: frame => { target.drawImage(frame, 0, 0); painted++; }, drop: () => { dropped++; } });
+        try {
+            const start = performance.now() / 1000;
+            for (let i = 0; i < 3; i++) {
+                const frame = new VideoFrame(input, { timestamp: i * 33333 });
+                try { queue.enqueue(frame, start + .08 + i / 30); } finally { frame.close(); }
+            }
+            await new Promise(done => setTimeout(done, 300));
+            return { painted, dropped, queued: queue.size, pixel: [...target.getImageData(4, 4, 1, 1).data] };
+        } finally { queue.close(); }
+    });
+    assert.deepEqual(report.native_video_playout_component, { painted: 3, dropped: 0, queued: 0, pixel: [0, 255, 0, 255] });
+    check("actual-browser-native-timers-present-owned-video-clones-after-original-frames-close");
     // Native checkboxes and buttons, including the real participant selection.
     await page.getByRole("checkbox", { name: "Assistant (simulated)", exact: true }).focus(); await page.keyboard.press("Space");
     await page.getByRole("checkbox", { name: "Organizer", exact: true }).focus(); await page.keyboard.press("Space");
