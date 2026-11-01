@@ -1,0 +1,79 @@
+{
+  "format": "connect/sdk-inbox-linux-candidate/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "source_revision": "9005ebe34fae7de8d1bbd1e9801be9ae4df77d3d",
+  "workflow_run_id": 41288711516,
+  "job_id": 124795261723,
+  "job_conclusion": "success",
+  "artifacts": {
+    "evidence": 13077715464,
+    "runtime": 13077341886,
+    "complete_sdk": 13077705584
+  },
+  "native_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "9005ebe34fae7de8d1bbd1e9801be9ae4df77d3d",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4766,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "1e1927fc853ca508d7e4e211f8a88547bee3ca59b502fe60f188d89bd41b33a5",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "e21dcfce2d88a5999ca6062ed206560a7cd823158e7b63f1b085ff060287d698",
+    "manifest_sha256": "3c6719c06407e7d381faa25c2799c2bc245ad7ed9477a6851ccb37e728c748d8",
+    "artifact_zip_digests": {
+      "evidence": "a2a1d708630b5b5d3ba12266b087c0b9e0d874cf28ef4b5c3a89e4aeab2f25e7",
+      "package": "ac6dda1844283536ee85e56fe04e63829aa12fcd580736d214b82b5a79a79093"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "sealed_verification": {
+    "format": "connect/verified-sealed-sdk-candidate/1",
+    "source_revision": "9005ebe34fae7de8d1bbd1e9801be9ae4df77d3d",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4766,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 28300,
+    "original_git_payload_files_verified": 162,
+    "archive_sha256": "ccdd8923fe85d3e119f4500a9d6044b184bde2e08e1b0df7420caa6effe0a31f",
+    "manifest_sha256": "f09361ee56b139df16d203b5ea64f9ecef1d734ec24ecc6dcab1a0a028f1380e",
+    "passed": true,
+    "artifact_zip_digests": {
+      "evidence": "a2a1d708630b5b5d3ba12266b087c0b9e0d874cf28ef4b5c3a89e4aeab2f25e7",
+      "package": "7696943ee92f98541c0de9a47bb26145ba30afd47bfdb2676c27ba9b23b2272b"
+    },
+    "scope": "Matching platform SDK candidate, original component identities and cold installed/offline evidence; not full SDK parity, final release, publication or Gate 6 acceptance.",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "scope": "Actual Ubuntu x86_64 source9005 production runtime and complete unpublished SDK candidate, including Rust live-inbox expiry. Independent archive/Git/prepared-source inspection verifies runtime ABI/753 runtime files and28300 sealed files with matching original installed/offline evidence. This source predates Node/Python retained-result expiry; no current adapter, installed browser or complete transport cell qualification. Mac counterpart remains running and updated d992 qualification is queued.",
+  "current_adapter_qualification_run": 41289033374,
+  "full_transport_cells_qualified": 0,
+  "installed_browser_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
