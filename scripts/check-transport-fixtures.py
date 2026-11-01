@@ -137,7 +137,8 @@ def main(actors=False, conversation=False, data_workload=False):
             path = PRIVATE / (name + ".log")
             stream = path.open("wb")
             streams.append(stream)
-            server = subprocess.Popen([str(binary), "serve", "--config", str(config)], cwd=ROOT, env=env,
+            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug") if data_workload else env
+            server = subprocess.Popen([str(binary), "serve", "--config", str(config)], cwd=ROOT, env=server_env,
                 stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
             until = time.monotonic() + 15
             while b"ready transport=quic" not in path.read_bytes():
@@ -342,6 +343,20 @@ def main(actors=False, conversation=False, data_workload=False):
                 report["servers"][-1]["original_joined"] = True
         for stream in streams:
             stream.close()
+        if data_workload:
+            stages = []
+            for path in (PRIVATE / "seed-server.log", PRIVATE / "materialized-server.log"):
+                if not path.exists():
+                    continue
+                for line in path.read_text().splitlines():
+                    if "Native offer did not complete" not in line:
+                        continue
+                    line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+                    stage = re.search(r'\bstage="?([a-z-]{1,64})"?(?:\s|$)', line)
+                    code = re.search(r'\bcode="?([a-z-]{1,64})"?(?:\s|$)', line)
+                    if stage and code:
+                        stages.append(dict(stage=stage[1], code=code[1]))
+            report["native_offer_failure_stages"] = stages[:16]
         report["source_inputs_unchanged"] = before is not None and source() == before
         report["executables_unchanged"] = binary is not None and digest(binary) == report["binary_sha256"]
         if sdk_before is not None:

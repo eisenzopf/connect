@@ -1191,10 +1191,10 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "implemented-runtime-unrun",
+    "status": "source-verified-offer-validation-negative-diagnostic-follow-up",
     "implementation_hashes": {
-      "scripts/check-transport-conversation.mjs": "ed1326afa2da02edda180ccbd0c012565747db4a916ad0939c457d3f797e9cb8",
-      "scripts/check-transport-fixtures.py": "e5916653a8397517ab43d0ff676966ab09aec132a7e73c3e40a3a4ef61a49945",
+      "scripts/check-transport-conversation.mjs": "81a011503bc9dab73e5fb7f21b907fd2f349b301dc94c304dd4a9a5d689f49c3",
+      "scripts/check-transport-fixtures.py": "dedeb050efbf459c78f777aff847e06f0765d519874c9e94c27acba64fbe302c",
       "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
       "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
       ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
@@ -1226,6 +1226,15 @@
     "packet_capture_observed": false,
     "replacement_media_ownership_verified": false,
     "cell_qualified": false,
-    "task_complete": false
+    "task_complete": false,
+    "negative_evidence": "docs/evidence/gate-6/native-data-workload-negative.json",
+    "runtime_candidate": {
+      "source_revision": "a94d50b6ebf80c7259b88a479b57b825f98fb571",
+      "workflow_run_id": 41268992478,
+      "job_id": 124737668278,
+      "status": "completed-failure-native-offer-validation-refusal"
+    },
+    "observed": "7precedingNodeSDKchecks pass with28literalpermissions;4activeConversationmembers/2acceptedSessionintents. Offerloop returnsvalidation/refused, source not established. All5helpers/2servergroupsjoin, noforce.",
+    "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed."
   }
 }

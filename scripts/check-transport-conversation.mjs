@@ -201,12 +201,15 @@ try {
     check("additive-session-capability-intent-and-unoffered-video-refusal-without-state-change");
     if (dataWorkload) {
         phase = "six-native-data-connection-offers";
+        report.native_offers_completed = 0;
         const connections = [], flows = [];
         for (const [sid, roles] of sessionRoles.entries()) for (const role of roles) {
+            phase = "native-data-offer-session-" + sid + "-" + role;
             const prefix = sid + "-" + role, source = clients.get(role).conversations.byId(cid).sessions.byId(plan["session" + sid]);
             const connection = await complete(source.connections.offer({ connectionId: plan[prefix + "-connection"],
                 streams: { first: { id: plan[prefix + "-stream"], kind: "data", direction: "sendrecv", codecs: { first: "binary", rest: [] } }, rest: [] } }, mutation(prefix + "-offer")));
             connections.push({ sid, role, prefix, connection });
+            report.native_offers_completed = connections.length;
         }
         assert.equal(connections.length, 6);
         phase = "six-native-data-subscriptions";
@@ -301,6 +304,21 @@ try {
     report.passed = true;
 } catch (error) {
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+    if (Number.isInteger(error.problem?.code) && error.problem.code >= 100 && error.problem.code <= 599
+        && /^[a-z-]{1,32}$/.test(error.problem.category) && /^[a-z_]{1,64}$/.test(error.problem.reason))
+        report.failure.problem = { code: error.problem.code, category: error.problem.category, reason: error.problem.reason };
+    if (dataWorkload && error.operation?.command === "connection.offer") {
+        const role = [...clients.keys()].find(v => phase.endsWith("-" + v));
+        if (role) try {
+            const client = clients.get(role), key = error.operation;
+            const frames = await client.raw.request(client.raw.validate({ v: 2, id: "status_" + randomUUID(), ts: new Date().toISOString(),
+                type: "operation.get", cid: key.scope.conversationId, sid: key.scope.sessionId, connid: key.scope.connectionId,
+                payload: { operation_id: key.operationId } }), options);
+            const states = frames.filter(v => v.value.type === "operation.updated").map(v => v.value.payload.state);
+            assert.ok(states.every(v => ["accepted", "preparing", "ready", "committing", "completed", "failed", "cancelled", "unknown", "interrupted"].includes(v)));
+            report.failure.original_offer_status = states;
+        } catch (statusError) { report.failure.original_status_read_kind = statusError.kind ?? statusError.name; }
+    }
     const position = /scripts\/check-transport-conversation\.mjs:(\d+):(\d+)/.exec(String(error.stack));
     if (position) report.failure.source = { file: "scripts/check-transport-conversation.mjs", line: Number(position[1]), column: Number(position[2]) };
     report.failure.source_stack = [...String(error.stack).matchAll(/scripts\/check-transport-conversation\.mjs:(\d+):(\d+)/g)].slice(0, 4).map(p => ({ line: Number(p[1]), column: Number(p[2]) }));

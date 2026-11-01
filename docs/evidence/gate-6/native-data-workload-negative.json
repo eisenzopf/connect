@@ -1,0 +1,48 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "a94d50b6ebf80c7259b88a479b57b825f98fb571",
+  "workflow_run_id": 41268992478,
+  "job_id": 124737668278,
+  "artifact_id": 13068149845,
+  "zip_sha256": "aa3478c366e123b7a7bcf81e77788404a6326bcbfbd6d0453dc0b3cefa237f92",
+  "source_inputs_sha256": "e7e820a006cd6f8641ec0fedb36fa612df96d5605a8756421617d9013d2f5531",
+  "report_sha256": "58f1c236e0cf30bcb0a74f89acd3fa434d4de3aea01b55a37fe9ae1354359987",
+  "conversation_report_sha256": "6ecec6b5c9a5c3b3ae999fb1c63d5061f1b778689100d4f85e2a760e6f9dd8e4",
+  "sources_verified": {
+    "git": 4692,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "preceding_public_sdk_checks_passed": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change"
+  ],
+  "failure": {
+    "phase": "six-native-data-connection-offers",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "source_stack": []
+  },
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "current_actor_permissions": 28,
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 2,
+  "native_connection_workload_verified": false,
+  "local_topology_verified": false,
+  "missing_diagnostics": "No original offer counter, closed public problem or native worker stage in this report; validation refusal source not established.",
+  "follow_up": "Record per-actor/session offer phase and completed count, closed public problem, original-operation status read, and existing server Native offer did not complete stage/code only. Raw logs private; no product or assertion change.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
