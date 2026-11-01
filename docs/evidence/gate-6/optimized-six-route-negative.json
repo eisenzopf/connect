@@ -583,7 +583,7 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "controlled_retained_video_regression": {
-    "status": "controlled-before-fails-after-passes-native-verification-pending",
+    "status": "controlled-before-fails-after-passes-native-quality-still-fails",
     "patch": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
     "patch_sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
     "source_lock_sha256": "13f13f83449adb4a837ee54f9b43dc6c1ac7a7e5452536dfd11b819c4f430f1f",
@@ -668,7 +668,306 @@
         "state_sha256": "5e6cb871eb238b84fe9ff0308ffa53f63e01b19753e89faeab53c877169fd824",
         "scope": "Controlled original callback, metadata contention, expiry, subscription, repair and reliable-data cases only. No decoded media, native throughput, full-suite or transport-cell qualification."
       },
-      "fresh_native_after_result": "waiting-for-guarded-optimized-runtime-build"
+      "fresh_native_after_result": {
+        "execution_passed": true,
+        "quality_passed": false,
+        "control_workload_started": false,
+        "source_program_seconds": 62,
+        "observation_seconds": 60,
+        "source_manifest_sha256": "4179a0a2498ee498d740cad310c6f47efcd58510e5943711e004ffad01babf47",
+        "observation": {
+          "format": "connect/native-av-work-observation/1",
+          "original_tasks_joined": true,
+          "original_tasks_started": 24,
+          "control_task_started": false,
+          "elapsed_ms": 62387.187625,
+          "failure": null,
+          "routes": [
+            {
+              "index": 0,
+              "received_audio": 420,
+              "received_video": 760,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4382
+              },
+              "received_clocks": {
+                "audio": 52,
+                "video": 53
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 1,
+              "received_audio": 354,
+              "received_video": 957,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4369
+              },
+              "received_clocks": {
+                "audio": 45,
+                "video": 55
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 2,
+              "received_audio": 425,
+              "received_video": 863,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4373
+              },
+              "received_clocks": {
+                "audio": 52,
+                "video": 53
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 3,
+              "received_audio": 403,
+              "received_video": 747,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4373
+              },
+              "received_clocks": {
+                "audio": 48,
+                "video": 55
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 4,
+              "received_audio": 1485,
+              "received_video": 435,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4373
+              },
+              "received_clocks": {
+                "audio": 60,
+                "video": 58
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 5,
+              "received_audio": 1585,
+              "received_video": 589,
+              "submitted_packets": {
+                "audio": 3100,
+                "video": 4379
+              },
+              "received_clocks": {
+                "audio": 60,
+                "video": 58
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            }
+          ],
+          "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+        },
+        "routes": [
+          {
+            "index": 0,
+            "received_audio": 420,
+            "received_complete_video_frames": 760,
+            "received_keyframes": 13,
+            "window_audio_packets": 417,
+            "window_complete_video_frames": 757,
+            "captured_input_sha256": "9c970b60017234a9e7bde4d5dbe15d95457b96bd4fbe5de35fca8c367018e0cf",
+            "received_clocks": {
+              "audio": 52,
+              "video": 53
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4382
+            },
+            "independent_audio_pcm_samples": 400320,
+            "independent_audio_pcm_seconds": 8.34,
+            "independent_audio_pcm_sha256": "cc9061a2e478998169f9486aaeacaf05a04bc5b87550d6cdcea380c6e2c7a716",
+            "independent_video_framemd5_sha256": "07c28ccdc740b5837e1af6e2df9345e7d87f42eea695067f28851e7cc34fb0df",
+            "independent_video_decoded_frames": 756
+          },
+          {
+            "index": 1,
+            "received_audio": 354,
+            "received_complete_video_frames": 957,
+            "received_keyframes": 15,
+            "window_audio_packets": 350,
+            "window_complete_video_frames": 939,
+            "captured_input_sha256": "6b6725d18bb31631b835d3c39dbc79c166222daebe751530da661870e7d63a30",
+            "received_clocks": {
+              "audio": 45,
+              "video": 55
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4369
+            },
+            "independent_audio_pcm_samples": 336000,
+            "independent_audio_pcm_seconds": 7.0,
+            "independent_audio_pcm_sha256": "5cba5f3e27f300f7c766fe920c70b8f857317b41410e173b523bcf63935cebc4",
+            "independent_video_framemd5_sha256": "fc88cd12429947d5dc1933c4601effeeff88b10b1620cb263d31220c530ed5ff",
+            "independent_video_decoded_frames": 938
+          },
+          {
+            "index": 2,
+            "received_audio": 425,
+            "received_complete_video_frames": 863,
+            "received_keyframes": 13,
+            "window_audio_packets": 421,
+            "window_complete_video_frames": 851,
+            "captured_input_sha256": "ce4eec3536057a3a1552633ffcbeb277918d9bb8b857832682eba578666d6641",
+            "received_clocks": {
+              "audio": 52,
+              "video": 53
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4373
+            },
+            "independent_audio_pcm_samples": 404160,
+            "independent_audio_pcm_seconds": 8.42,
+            "independent_audio_pcm_sha256": "e68dcdb34dccf876346bd03fef160bf23f9dbf55894b7cfe792a4b95c78b00c1",
+            "independent_video_framemd5_sha256": "c1979fe4ad0388644cafabe789e005cb5367dced526ed5f258a3d6c0f89d6b62",
+            "independent_video_decoded_frames": 824
+          },
+          {
+            "index": 3,
+            "received_audio": 403,
+            "received_complete_video_frames": 747,
+            "received_keyframes": 14,
+            "window_audio_packets": 399,
+            "window_complete_video_frames": 738,
+            "captured_input_sha256": "f940626f78267b7683218da450e2c89ae62cdb48a3767c1e9c7d555c93e3af0d",
+            "received_clocks": {
+              "audio": 48,
+              "video": 55
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4373
+            },
+            "independent_audio_pcm_samples": 383040,
+            "independent_audio_pcm_seconds": 7.98,
+            "independent_audio_pcm_sha256": "3d8d3141ca7a1813a5b0a26e7999a3567177954062a825103d8d163461f9f467",
+            "independent_video_framemd5_sha256": "11a3f872f1cccf80e32cf54416292b3909fd1e170638ab5c735a87b05fcbd5b3",
+            "independent_video_decoded_frames": 735
+          },
+          {
+            "index": 4,
+            "received_audio": 1485,
+            "received_complete_video_frames": 435,
+            "received_keyframes": 0,
+            "window_audio_packets": 1461,
+            "window_complete_video_frames": 430,
+            "captured_input_sha256": "0cd9649606fc6f88724a0c335535391bce856432bdc14f0508a745b3f4927c2c",
+            "received_clocks": {
+              "audio": 60,
+              "video": 58
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4373
+            },
+            "independent_audio_pcm_samples": 1402560,
+            "independent_audio_pcm_seconds": 29.22,
+            "independent_audio_pcm_sha256": "e4e44c5ecfd45a3afe1471dc727405efb3eedff22d68e802899e1ef54b59d57e"
+          },
+          {
+            "index": 5,
+            "received_audio": 1585,
+            "received_complete_video_frames": 589,
+            "received_keyframes": 4,
+            "window_audio_packets": 1561,
+            "window_complete_video_frames": 581,
+            "captured_input_sha256": "b443247ddcdc4533eebb4995045d0c1e96793ca67c11f7b0df8bf7dde0dcbd7a",
+            "received_clocks": {
+              "audio": 60,
+              "video": 58
+            },
+            "late_send_frames": 0,
+            "submitted_packets": {
+              "audio": 3100,
+              "video": 4379
+            }
+          }
+        ],
+        "decoder_failure": {
+          "failure": "Native media missing keyframe",
+          "route_index": 4,
+          "route5_decoding": "not reached after route4 refusal",
+          "source_inputs_unchanged": true
+        },
+        "session_end": [
+          {
+            "elapsed_ms": 47.69254199999705
+          },
+          {
+            "elapsed_ms": 50.67895799999678
+          }
+        ],
+        "helpers_joined": true,
+        "closure": {
+          "server_joined": true,
+          "server_forced": false,
+          "server_exit_code": 0,
+          "source_assets_unchanged": true,
+          "inputs_unchanged": true
+        },
+        "private_evidence_sha256": {
+          ".local/gate-6/native-six-route-retained-media-fixed/pipeline.json": "677b68831bcfb7a852a7c6b8a2d4d61e5af2d4fd79c7c8b018743dc7479e33c0",
+          ".local/gate-6/native-six-route-retained-media-fixed/controller.json": "fb5ad0e0454b819aca7f7c3fde947ad37e7f6745a056d74735b18671fd7327ca",
+          ".local/gate-6/native-six-route-retained-media-fixed/probe.json": "e89180a4d1ba53cc9122cdff9864d6e692cacdfde9ffc155e9136dcb8f65215a",
+          ".local/gate-6/native-six-route-retained-media-fixed/decode-controller.json": "b6e07e0e87e122e6fba9ef218f4236c75c454fd9009d072a281430795ec4302a"
+        },
+        "scope": "Fresh same-profile no-movement six-route workload still fails. First four routes were decoded before the decoder refused route4 with zero complete received keyframes; route5 decoding was not reached. Sparse original audio remains. No native loss correction, statistical throughput comparison, twenty-move or transport-cell qualification inferred."
+      },
+      "optimized_build": {
+        "stage": "complete",
+        "passed": true,
+        "results": [
+          {
+            "name": "dependencies",
+            "exit_code": 0
+          },
+          {
+            "name": "format",
+            "exit_code": 0
+          },
+          {
+            "name": "release-cli",
+            "exit_code": 0
+          },
+          {
+            "name": "release-peer",
+            "exit_code": 0
+          }
+        ],
+        "elapsed_seconds": 1963.3815214578062,
+        "source_inputs_unchanged": true,
+        "binary_sha256": {
+          "connect": "8ba58446f1fac3ec8af2cd4ac28c323ef9703420081ed3437f643456af565a5a",
+          "connect-external-rust-journey": "689ab7236cdbec39af3f6f99b7db908492da3dadb2438860f7d5ac1d30d9a92d"
+        },
+        "input_manifest_sha256": "d0b88312e86ea9a0ddc6f2b546278e1d14880f678767284df65e6fbf269428ef"
+      }
     }
   }
 }
