@@ -11,10 +11,25 @@ import warnings
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.transport_verification import decode, read_members, verify_control, verify_rehearsal, verify_sdk, verify_command_outcomes
+from lib.transport_verification import decode, read_members, verify_control, verify_rehearsal, verify_sdk, verify_command_outcomes, verify_live_upgrade
 
 
 class EvidenceVerification(unittest.TestCase):
+    def test_live_upgrade_requires_originals_both_packet_rounds_and_retirement(self):
+        value = dict(original_connections=4, original_sessions=2, verified_payloads_before=4,
+            verified_payloads_after=4, bytes_per_payload=4096,
+            original_ids_and_generations_preserved_across_upgrade=True,
+            current_unoffered_screen_refusals=2, original_connections_retired=4,
+            payload_sha256=[hashlib.sha256(bytes([i])).hexdigest() for i in range(8)],
+            upgraded_sessions=[dict(session_index=i, before=["audio", "data"] if i == 0 else ["data"],
+                after=["audio", "data", "video"]) for i in range(2)])
+        verify_live_upgrade(value)
+        for key, changed in [("verified_payloads_after", 0), ("original_connections_retired", 0),
+                ("original_ids_and_generations_preserved_across_upgrade", False),
+                ("payload_sha256", ["0" * 64] * 8), ("upgraded_sessions", [])]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                verify_live_upgrade({**value, key: changed})
+
     def test_data_requires_original_endpoint_self_verification_refusal_without_accepting_other_failures(self):
         names = ["unsupported-init-signing", "existing-init-signing-refusal", "actor-cannot-provision",
             "revoked-primary-native-refusal", "participant-cannot-verify-endpoint"]

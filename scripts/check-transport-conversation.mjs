@@ -9,6 +9,7 @@ import { nativeHost, executableHash, childPids, processExists, observeLocalTopol
 import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
 import { nativeAv } from "./lib/transport_av.mjs";
 import { operationFailure } from "./lib/transport_failure.mjs";
+import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -39,6 +40,11 @@ if (dataWorkload) for (const [sid, roles] of sessionRoles.entries()) for (const 
     const prefix = sid + "-" + role;
     for (const field of ["connection", "stream", "audio", "video", "offer", "select", "data", "message", "end", "accept"]) plan[prefix + "-" + field] = "workload_" + randomUUID();
 }
+if (mediaWorkload) for (const sid of [0, 1]) for (const role of ["participant-1", "participant-2"]) {
+    const prefix = "live-" + sid + "-" + role;
+    for (const field of ["connection", "stream", "offer", "select", "before", "after", "before-message", "after-message", "end"])
+        plan[prefix + "-" + field] = "workload_" + randomUUID();
+}
 const planFile = await open(join(privateDirectory, "plan.json"), "wx", 0o600);
 try { await planFile.writeFile(encode(plan)); await planFile.sync(); } finally { await planFile.close(); }
 const directory = await open(privateDirectory, "r"); try { await directory.sync(); } finally { await directory.close(); }
@@ -48,7 +54,7 @@ const clients = new Map();
 const observedHelpers = new Set();
 const dataFailures = new WeakMap();
 const ownerNativeMessageIds = [];
-const report = { format: "connect/transport-conversation-control/1", passed: false, checks: [],
+const report = { format: mediaWorkload ? "connect/transport-conversation-control/2" : "connect/transport-conversation-control/1", passed: false, checks: [],
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
     node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
@@ -215,13 +221,12 @@ try {
     assert.deepEqual(await sessions[0].refresh(options), upgraded);
     check(mediaWorkload ? "additive-session-capability-intent-and-unoffered-screen-refusal-without-state-change" : "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change");
     if (mediaWorkload) {
-        for (const session of sessions) {
-            const current = await session.refresh(options);
-            await complete(session.update({ action: "medium-upgrade", media: { first: "audio", rest: ["video"] } }, current.topologyRevision, { ...options, operationId: plan.upgrade + "-av-" + session.id }));
-            const updated = await session.refresh(options);
-            assert.deepEqual([...updated.media].sort(), ["audio", "data", "video"]);
-        }
-        check("both-original-session-intents-admit-offered-opus-vp8-before-native-workload");
+        phase = "live-original-data-connections-across-session-av-upgrade";
+        const live = await liveSessionUpgrade({ clients, sessions, plan, options, complete, refused,
+            participants: Object.fromEntries(["participant-1", "participant-2"].map(role => [role, member(view, role).id])) });
+        ownerNativeMessageIds.push(...live.messages.filter(v => v.source === "participant-1" || v.target === "participant-1").map(v => v.messageId));
+        report.live_data_session_upgrade = live.observation;
+        check("original-data-connections-carry-identified-content-before-and-after-both-session-av-upgrades-and-retire-before-main-workload");
     }
     if (dataWorkload) {
         phase = "six-native-data-connection-offers";

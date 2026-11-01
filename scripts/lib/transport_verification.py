@@ -33,6 +33,25 @@ def require(condition, reason):
         raise ValueError(reason)
 
 
+def verify_live_upgrade(value):
+    require(isinstance(value, dict) and value.get("original_connections") == 4 and
+        value.get("original_sessions") == 2 and value.get("verified_payloads_before") == 4 and
+        value.get("verified_payloads_after") == 4 and value.get("bytes_per_payload") == 4096 and
+        value.get("original_ids_and_generations_preserved_across_upgrade") is True and
+        value.get("current_unoffered_screen_refusals") == 2 and value.get("original_connections_retired") == 4,
+        "live-upgrade-original-data-or-retirement-missing")
+    hashes = value.get("payload_sha256")
+    require(isinstance(hashes, list) and len(hashes) == len(set(hashes)) == 8 and
+        all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{64}", v) for v in hashes),
+        "live-upgrade-identified-payloads-missing")
+    sessions = value.get("upgraded_sessions")
+    require(isinstance(sessions, list) and len(sessions) == 2 and
+        [v.get("session_index") for v in sessions] == [0, 1] and
+        [v.get("before") for v in sessions] == [["audio", "data"], ["data"]] and
+        all(v.get("after") == ["audio", "data", "video"] for v in sessions),
+        "live-upgrade-original-session-capabilities-missing")
+
+
 def decode(raw):
     def unique(pairs):
         value = {}
@@ -158,7 +177,7 @@ def verify_rehearsal(report, component, members):
     raw = members.get(component + "/conversation.json")
     require(raw is not None and hashlib.sha256(raw).hexdigest() == report["conversation_report_sha256"], "conversation-report-binding-mismatch")
     child = decode(raw)
-    require(child["format"] == "connect/transport-conversation-control/1", "wrong-conversation-format")
+    require(child["format"] in {"connect/transport-conversation-control/1", "connect/transport-conversation-control/2"}, "wrong-conversation-format")
     for field in ("source_revision", "binary_sha256", "signing_algorithm"):
         require(child[field] == report[field], "conversation-runtime-binding-mismatch")
     for field in ("cell_qualified", "task_complete", "whole_gate_qualified"):
@@ -189,6 +208,8 @@ def verify_rehearsal(report, component, members):
             native_data_submissions=child.get("native_data_submissions", 0),
             native_data_completions=child.get("native_data_completions", 0), native_data_receives=child.get("native_data_receives", 0))
     if component == "media" and report["passed"]:
+        if child["format"] == "connect/transport-conversation-control/2":
+            verify_live_upgrade(child.get("live_data_session_upgrade"))
         decoded = report["native_av_decoded"]
         require(decoded["format"] == "connect/native-av-decoded-component/1" and decoded["passed"] is True and
             decoded["connections"] == 6 and decoded["participants"] == 4 and decoded["sessions"] == 2 and
