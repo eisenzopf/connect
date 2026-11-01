@@ -5,7 +5,7 @@ import { readFile, writeFile, mkdir, stat, realpath, open } from "node:fs/promis
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
-import { nativeHost, executableHash, childPids, processExists, observeLocalTopology } from "./lib/transport_host.mjs";
+import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -20,6 +20,7 @@ const input = JSON.parse(await readFile(inputPath, "utf8"));
 assert.equal(input.format, "connect/transport-conversation-input/1");
 assert.ok(["EdDSA", "ES256"].includes(input.signing_algorithm));
 assert.equal(input.server_platform, nativeHost().platform);
+assert.ok(["local", "remote"].includes(input.network_profile));
 assert.deepEqual(Object.keys(input.actors).sort(), ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"]);
 assert.equal(hash(await readFile(input.executable)), input.binary_sha256);
 const privateDirectory = join(dirname(inputPath), "conversation-control");
@@ -44,14 +45,14 @@ const observedHelpers = new Set();
 const dataFailures = new WeakMap();
 const report = { format: "connect/transport-conversation-control/1", passed: false, checks: [],
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
-    node: process.version, host: nativeHost(), plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
+    node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
     maximum_active_members_observed: 0, concurrent_session_intents_observed: 0,
     actual_connection_workload_observed: false, live_media_upgrade_observed: false,
     replacement_media_ownership_observed: false, actual_topology_verified: false,
     cell_qualified: false, task_complete: false, whole_gate_qualified: false,
     workload_mode: dataWorkload ? "six-native-data-connections" : "control-only",
-    scope: "One source-bound native macOS-arm64 or Ubuntu-x86_64 local signing cohort public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, remote topology, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
+    scope: "One source-bound native OS/signing/network fixture public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, complete remote transport cells, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
 let phase = "client-setup";
 function check(name) { report.checks.push(name); phase = name; }
 async function complete(operation) {
@@ -86,6 +87,11 @@ try {
     }
     await helpers(); assert.equal(observedHelpers.size, 5);
     check("five-independent-public-sdk-helpers-bound-to-production-executable");
+    if (input.network_profile === "remote") {
+        report.topology = await observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip);
+        report.actual_topology_verified = true;
+        check("actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed");
+    }
     const owner = clients.get("participant-1"), late = clients.get("participant-4");
     const others = ["participant-2", "participant-3"].map(role => input.actors[role].identity_id);
     const create = await owner.conversations.create({ participants: others, policy: "persistent" }, mutation("create"));
@@ -282,9 +288,11 @@ try {
             payload_sha256: flows.map(v => hash(v.payload)), audio_video_workload_verified: false };
         check("six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions");
         phase = "owned-local-topology-observation";
-        report.local_topology = await observeLocalTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256);
+        report.topology = input.network_profile === "local" ?
+            await observeLocalTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256) :
+            await observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip);
         report.actual_topology_verified = true;
-        check("actual-server-loopback-listener-and-original-helper-network-namespace-observed");
+        check(input.network_profile === "local" ? "actual-server-loopback-listener-and-original-helper-network-namespace-observed" : "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed");
         phase = "native-data-original-replay";
         const flow = flows[0], sender = flow.source.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media;
         assert.deepEqual(await complete(sender.sendData(flow.intent, mutation(flow.source.prefix + "-data"))), accepted[0]);

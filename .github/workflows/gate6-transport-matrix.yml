@@ -5,6 +5,9 @@ on:
       component:
         type: string
         default: control
+      network:
+        type: string
+        default: local
       target:
         type: string
         default: ubuntu24-x86_64
@@ -14,7 +17,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-transport-matrix-${{ inputs.target }}-${{ inputs.component }}-${{ inputs.signing }}-${{ github.ref }}
+  group: gate6-transport-matrix-${{ inputs.network }}-${{ inputs.target }}-${{ inputs.component }}-${{ inputs.signing }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   control:
@@ -31,6 +34,7 @@ jobs:
       TRANSPORT_COMPONENT: ${{ inputs.component }}
       TRANSPORT_SIGNING: ${{ inputs.signing }}
       TRANSPORT_TARGET: ${{ inputs.target }}
+      TRANSPORT_NETWORK: ${{ inputs.network }}
       HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -48,6 +52,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev ffmpeg
+      - name: Prepare owned Ubuntu namespace prerequisites
+        if: inputs.network == 'remote-profile-fixture' && runner.os == 'Linux'
+        run: sudo apt-get install -y iproute2 util-linux
       - name: Prepare private fixture capture
         if: inputs.component == 'data' && runner.os == 'Linux'
         run: |
@@ -91,7 +98,7 @@ jobs:
           python3 scripts/check-gate-6-transports.py --phase inventory
       - name: Validate selected signing cohort
         run: |
-          python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-x86_64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"'
+          python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-x86_64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"; assert os.environ["TRANSPORT_NETWORK"] in {"local", "remote-profile-fixture"}; assert os.environ["TRANSPORT_NETWORK"] == "local" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"'
       - name: Check actual host process observation and original child joins
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         run: node --test scripts/tests/transport_host.test.mjs
@@ -108,12 +115,12 @@ jobs:
       - name: Rehearse production stopped-backup fixture materialization
         if: inputs.component == 'materializer' || inputs.component == 'actors' || inputs.component == 'conversation' || inputs.component == 'data'
         id: materializer
-        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'data' && '--data-workload' || inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }} --signing-algorithm "$TRANSPORT_SIGNING"
+        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'data' && '--data-workload' || inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }} --signing-algorithm "$TRANSPORT_SIGNING" --network-profile ${{ inputs.network == 'remote-profile-fixture' && 'remote' || 'local' }}
       - name: Upload redacted component and unqualified matrix inventory
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-transport-matrix-${{ inputs.component }}${{ inputs.signing == 'ES256' && '-ES256' || '' }}${{ inputs.target == 'macos-arm64' && '-macos-arm64' || '' }}
+          name: gate6-transport-matrix-${{ inputs.component }}${{ inputs.signing == 'ES256' && '-ES256' || '' }}${{ inputs.target == 'macos-arm64' && '-macos-arm64' || '' }}${{ inputs.network == 'remote-profile-fixture' && '-remote-profile' || '' }}
           path: .local/gate6-transports/evidence/
           include-hidden-files: true
           retention-days: 7

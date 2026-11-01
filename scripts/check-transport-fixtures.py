@@ -18,6 +18,7 @@ from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors, exact
 from lib.transport_capture import NativeCapture
+from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 
@@ -38,7 +39,7 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA"):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local"):
     global PRIVATE, OUTPUT
     if data_workload:
         actors = conversation = True
@@ -66,6 +67,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     assert "rustc 1.97.1 " in rust and "host: " + target in rust
     host["rust"] = rust
     host["platform"] = server_platform
+    assert network_profile in {"local", "remote"}
+    assert network_profile == "local" or server_platform == "ubuntu24-x86_64"
+    network_cell = "local" if network_profile == "local" else "remote-profile-fixture"
+    assert os.environ.get("TRANSPORT_NETWORK", network_cell) == network_cell
     assert os.environ.get("TRANSPORT_TARGET", server_platform) == server_platform
     PRIVATE.mkdir(parents=True)
     OUTPUT.mkdir(parents=True)
@@ -75,8 +80,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
-        servers=[], signing_algorithm=signing_algorithm, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned loopback listener/namespace and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
+        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
@@ -84,6 +89,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     binary = None
     sdk_before = None
     capture = None
+    namespace = None
+    server_pid = None
     try:
         code = bounded(["bash", "scripts/prepare-dependencies.sh"], PRIVATE / "dependencies.log", env, 600)
         assert code == 0
@@ -112,6 +119,11 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         binary = PRIVATE / "connect"
         seal_executable(targets[0], binary, report["binary_sha256"], pool=PRIVATE / "sealed")
 
+        if network_profile == "remote":
+            phase = "owned-remote-network-setup"
+            namespace = NativeNamespace(PRIVATE / "network", ROOT, env)
+            namespace.start()
+
         def run(name, arguments, data=None, *, success=True):
             nonlocal phase
             phase = name
@@ -119,7 +131,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             source_path = PRIVATE / (name + ".input")
             source_path.write_bytes(b"" if data is None else json.dumps(data).encode())
             with source_path.open("rb") as incoming, path.open("wb") as out, (PRIVATE / (name + ".stderr")).open("wb") as errors:
-                child = subprocess.Popen([str(binary), *map(str, arguments)], cwd=ROOT, env=env,
+                command = [str(binary), *map(str, arguments)]
+                if namespace is not None and arguments[0] == "request":
+                    command = namespace.client_command(command)
+                child = subprocess.Popen(command, cwd=ROOT, env=env,
                     stdin=incoming, stdout=out, stderr=errors, start_new_session=True)
                 joined = False
                 try:
@@ -127,11 +142,17 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     joined = True
                 finally:
                     if not joined:
+                        if namespace is not None:
+                            namespace.client_forced = True
                         try:
                             os.killpg(child.pid, signal.SIGKILL)
+                        except PermissionError:
+                            subprocess.run(["sudo", "-n", "/bin/kill", "-KILL", "--", "-" + str(child.pid)],
+                                env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, timeout=5, check=False)
                         except ProcessLookupError:
                             pass
-                        child.wait()
+                        child.wait(timeout=5)
             report["commands"].append(dict(name=name, verb=arguments[0], exit_code=result))
             assert (result == 0) == success, "Public fixture command result differs"
             return path.read_bytes()
@@ -148,33 +169,41 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             return next(v for v in frames if v["type"] == "ack")["payload"]["details"]["page"]["conversations"]
 
         def start(name, config):
-            nonlocal server, phase
+            nonlocal server, server_pid, phase
             phase = name
             path = PRIVATE / (name + ".log")
             stream = path.open("wb")
             streams.append(stream)
             server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug") if data_workload else env
-            server = subprocess.Popen([str(binary), "serve", "--config", str(config)], cwd=ROOT, env=server_env,
+            command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
+                namespace.server_command(binary, config, server_env))
+            server = subprocess.Popen(command, cwd=ROOT, env=server_env,
                 stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            if namespace is not None:
+                namespace.owner = server
             until = time.monotonic() + 15
             while b"ready transport=quic" not in path.read_bytes():
                 assert server.poll() is None and time.monotonic() < until
                 time.sleep(.05)
-            actual_executable = (Path(f"/proc/{server.pid}/exe") if server_platform == "ubuntu24-x86_64" else
-                Path(subprocess.check_output(["/bin/ps", "-ww", "-p", str(server.pid), "-o", "comm="], text=True).strip()))
+            server_pid = server.pid if namespace is None else namespace.identify_server(server)
+            actual_executable = (Path(f"/proc/{server_pid}/exe") if server_platform == "ubuntu24-x86_64" else
+                Path(subprocess.check_output(["/bin/ps", "-ww", "-p", str(server_pid), "-o", "comm="], text=True).strip()))
             assert actual_executable.is_absolute() and digest(actual_executable) == report["binary_sha256"]
-            report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"], original_joined=False))
+            report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"], original_joined=False, managed_by_systemd=namespace is not None))
 
         def stop():
             nonlocal server
-            server.send_signal(signal.SIGTERM)
-            assert server.wait(timeout=10) == 0
-            try:
-                os.killpg(server.pid, 0)
-            except ProcessLookupError:
-                pass
+            if namespace is not None:
+                namespace.stop_server(server)
             else:
-                raise AssertionError("Original server group survived")
+                server.send_signal(signal.SIGTERM)
+                assert server.wait(timeout=10) == 0
+                try:
+                    os.killpg(server.pid, 0)
+                except ProcessLookupError:
+                    pass
+                else:
+                    raise AssertionError("Original server group survived")
             report["servers"][-1]["original_joined"] = True
             server = None
 
@@ -198,6 +227,13 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             assert public_key[0] == 4
         assert len({digest(state / name) for name in ("server-signing.der", "operator-signing.der", "private-key.der")}) == 3
         report["checks"].append("selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement")
+        if namespace is not None:
+            server_config = tomllib.loads((state / "server.toml").read_text())
+            server_config.update(network_profile="remote", bind=f"{namespace.server_ip}:{native}")
+            (state / "server.toml").write_bytes(toml_bytes(server_config))
+            operator_config = tomllib.loads((state / "operator.toml").read_text())
+            operator_config.update(network_profile="remote", endpoint=f"{namespace.server_ip}:{native}")
+            (state / "operator.toml").write_bytes(toml_bytes(operator_config))
         start("seed-server", state / "server.toml")
         request("seed-create", state / "operator.toml", "conversation.create",
             dict(tenant_id="tnt_default", policy="persistent", initial_participants=[], metadata=dict(fixture="transport-materialization")),
@@ -209,10 +245,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         original_seed = files(seed)
         original_server = tomllib.loads((seed / "server.toml").read_text())
         original_operator = tomllib.loads((seed / "operator.toml").read_text())
-        parameters = dict(cell_id="G6-058/" + server_platform + "/local/native-quic/" + signing_algorithm,
+        parameters = dict(cell_id="G6-058/" + server_platform + "/" + network_cell + "/native-quic/" + signing_algorithm,
             candidate_source_revision=report["source_revision"], candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=None,
-            topology=dict(kind="local-loopback", server_platform=server_platform, client_platform=server_platform,
+            topology=dict(kind="local-loopback" if namespace is None else "ubuntu-netns", server_platform=server_platform, client_platform=server_platform,
                 client_emulated=False, native_endpoint=original_operator["endpoint"], server_name=original_operator["server_name"]))
         phase = "materialize"
         summary = materialize(ROOT, seed, output, parameters, binary, env)
@@ -235,7 +271,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             raise AssertionError("Existing fixture was replaced")
         assert files(output) == before_retry
         report["checks"].append("occupied-instance-refuses-without-overwrite")
-        wrong = dict(parameters, cell_id="G6-058/" + server_platform + "/local/native-quic/" + other_algorithm)
+        wrong = dict(parameters, cell_id="G6-058/" + server_platform + "/" + network_cell + "/native-quic/" + other_algorithm)
         try:
             materialize(ROOT, seed, PRIVATE / "wrong-signing", wrong, binary, env)
         except FixtureError as error:
@@ -244,7 +280,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             raise AssertionError("Wrong signing cohort accepted")
         assert not (PRIVATE / "wrong-signing").exists()
         report["checks"].append("wrong-signing-seed-refuses-before-state-publication")
-        browser = dict(parameters, cell_id="G6-058/" + server_platform + "/local/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
+        browser = dict(parameters, cell_id="G6-058/" + server_platform + "/" + network_cell + "/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
         try:
             materialize(ROOT, seed, PRIVATE / "missing-browser", browser, binary, env)
         except FixtureError as error:
@@ -335,7 +371,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
                 phase = "owned-native-packet-capture-start"
-                capture = NativeCapture(PRIVATE / "packet-capture", native, env)
+                capture = NativeCapture(PRIVATE / "packet-capture", native, env,
+                    interface=None if namespace is None else namespace.interface,
+                    server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
+                    peer_ip="127.0.0.1" if namespace is None else namespace.client_ip)
                 capture.start()
             if conversation:
                 phase = "public-sdk-conversation-control"
@@ -354,15 +393,17 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
                     executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
-                    server_pid=server.pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm, server_platform=server_platform), indent=2) + "\n").encode())
+                    server_pid=server_pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm,
+                    server_platform=server_platform, network_profile=network_profile,
+                    client_ip=None if namespace is None else namespace.client_ip), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
                 command = ["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
                 if data_workload:
                     command.append("--data-workload")
-                code = bounded(command,
-                    PRIVATE / "conversation-control.log", env, 180)
+                code = (bounded(command, PRIVATE / "conversation-control.log", env, 180) if namespace is None else
+                    namespace.run_client(command, PRIVATE / "conversation-control.log", 180))
                 report["conversation_exit_code"] = code
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
@@ -397,8 +438,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             assert report["packet_capture"]["observed"]
             assert report["packet_capture"]["counts"]["to_server_udp_bytes"] >= 6 * 65536
             assert report["packet_capture"]["counts"]["from_server_udp_bytes"] >= 6 * 65536
-            report["checks"].append("private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join")
+            report["checks"].append("private-owned-" + ("loopback" if namespace is None else "veth") + "-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join")
         stop()
+        if namespace is not None:
+            report["network_namespace"] = namespace.close()
+            assert report["network_namespace"]["passed"] and namespace.servers_verified == 2
+            report["checks"].append("owned-remote-profile-systemd-server-and-separate-client-namespace-originals-retired")
         report["checks"].append("normal-server-and-native-client-read-original-state-through-materialized-config")
         assert files(seed) == original_seed
         assert len(report["servers"]) == 2 and all(v["original_joined"] for v in report["servers"])
@@ -413,7 +458,15 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         if capture is not None:
             report["packet_capture"] = capture.finish()
             report["passed"] = bool(report["passed"] and report["packet_capture"]["observed"])
-        if server is not None and server.poll() is None:
+        if namespace is not None and server is not None:
+            try:
+                namespace.stop_server(server)
+                if report["servers"]:
+                    report["servers"][-1]["original_joined"] = True
+                server = None
+            except (AssertionError, OSError, ValueError, subprocess.SubprocessError) as error:
+                report["failure_cleanup"] = dict(systemd_stop_confirmed=False, name=type(error).__name__)
+        if namespace is None and server is not None and server.poll() is None:
             server.send_signal(signal.SIGTERM)
             forced = False
             try:
@@ -430,6 +483,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             report["failure_cleanup"] = dict(server_exit_code=code, forced=forced, original_group_retired=retired)
             if code == 0 and not forced and retired and report["servers"]:
                 report["servers"][-1]["original_joined"] = True
+        if namespace is not None:
+            report["network_namespace"] = namespace.close()
+            report["passed"] = bool(report["passed"] and report["network_namespace"]["passed"])
         for stream in streams:
             stream.close()
         if data_workload:
@@ -479,5 +535,6 @@ if __name__ == "__main__":
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
+    parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile))

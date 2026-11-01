@@ -9,10 +9,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.transport_capture import inspect_pcap
 
 
-def packet(source, target, payload=b"synthetic-ciphertext", *, address=b"\x7f\x00\x00\x01", protocol=17):
+def packet(source, target, payload=b"synthetic-ciphertext", *, address=b"\x7f\x00\x00\x01", destination=b"\x7f\x00\x00\x01", protocol=17):
     udp = struct.pack("!HHHH", source, target, 8 + len(payload), 0) + payload
     ip = struct.pack("!BBHHHBBH4s4s", 0x45, 0, 20 + len(udp), 1, 0x4000, 64, protocol, 0,
-        address, b"\x7f\x00\x00\x01") + udp
+        address, destination) + udp
     return b"\0" * 12 + b"\x08\x00" + ip
 
 
@@ -83,6 +83,18 @@ class CaptureBoundary(unittest.TestCase):
     def test_capture_size_and_packet_count_are_bounded(self):
         with self.assertRaisesRegex(AssertionError, "packet-bound"):
             self.inspect(pcap([self.duplex[0]] * 8192 + [self.duplex[1]]))
+
+    def test_remote_capture_requires_the_exact_owned_server_peer_and_direction(self):
+        server, client = b"\x0a\xcb\x00\x01", b"\x0a\xcb\x00\x02"
+        packets = [packet(50123, 4433, address=client, destination=server),
+            packet(4433, 50123, address=server, destination=client)]
+        self.path.write_bytes(pcap(packets))
+        result = inspect_pcap(self.path, 4433, "10.203.0.1", "10.203.0.2")
+        self.assertEqual(result["to_server_packets"], 1)
+        self.assertEqual(result["from_server_packets"], 1)
+        self.path.write_bytes(pcap([*packets, packet(4433, 50123, address=client, destination=server)]))
+        with self.assertRaisesRegex(AssertionError, "foreign-address"):
+            inspect_pcap(self.path, 4433, "10.203.0.1", "10.203.0.2")
 
 
 if __name__ == "__main__":

@@ -1384,5 +1384,33 @@
     "crates/connect-server/tests/support/canonical_webtransport_discovery.rs": "7107b2798689e8d459a8717a59f1ddf5997bb9b0baac2f0da8f4c494760c52cf",
     "scripts/check-gate-6-transports.py": "22c650e063f5d635208c7462c0b49551759fd439836861aa0e58c9db7d984105",
     "scripts/fixtures/transport-matrix/README.md": "757deb2c4397dc9fd7408efd961987088c6fb72804bb8e35c78e092d2d73ff3d"
+  },
+  "ubuntu_remote_native_producer": {
+    "status": "implemented-runtime-unverified",
+    "target": "ubuntu24-x86_64",
+    "network": "remote-profile-fixture",
+    "behavior": "Disposable Ubuntu24.04 systemd server as ordinary user; scoped native CLI/SDK clients in one owned network namespace/veth without external default route. Preserve original private resource intent, regular-user process identities, actual source/binary/route/socket/namespace observations and original service/client/network retirement. Same full public scenario and optional native data/capture producers; no private Store access.",
+    "implementation_hashes": {
+      "scripts/lib/transport_namespace.py": "ff47a04bb728dff559c16f05c25a505aef890520163f91a5b1175d35e2085c30",
+      "scripts/tests/test_transport_namespace.py": "465980e0212a6743bfbc9473fc4322e27243ae8bf840515450307ad7b9ec56fe",
+      "scripts/lib/transport_host.mjs": "c09bf5eb66782f80e503ca3696fdd5d85bb4089d122967bbf5dd065fa98e32ab",
+      "scripts/lib/transport_capture.py": "5981b31d37cb327c7d65c0ab46de58841fb519c9b130f4a8b4349390caf48c46",
+      "scripts/tests/test_transport_capture.py": "a0a5d644bc4f3dba276c50b0360e9c484dea4244508b0d8ae92e565f6822de04",
+      "scripts/check-transport-fixtures.py": "9b8900924e71b99eeedd6845029e9b5e6c7ff75a06e9150eb680f903876b2dff",
+      "scripts/check-transport-conversation.mjs": "f145254af65952cababd8aa0d12f60ea13125df9225b9ac6b287c22423e7dc9b",
+      ".github/workflows/gate6-transport-matrix.yml": "14a6194e7f6e5602f0a89585018b9a4afc3b6d1a095d89ca0161eecb3d396995",
+      ".github/workflows/gate6-linux-fixtures.yml": "8f4f3f255b7b22e1b5267f3b0734839860ee866f2fa1ca8d826e45ca3607f629"
+    },
+    "local_verification": {
+      "python_transport_guards": 35,
+      "actual_macos_process_checks": 2,
+      "python_node_syntax": true,
+      "workflow_yaml_parsed": true
+    },
+    "runtime_verified": false,
+    "macos_remote_guest_implemented": false,
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "scope": "Owned isolated Remote-profile native configuration/control producer only. No named external hosts, provider/model execution, browser, decoded audio/video, replacement ownership or full matrix qualification."
   }
 }

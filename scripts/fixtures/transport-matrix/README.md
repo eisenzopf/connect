@@ -111,6 +111,27 @@ and existing WebRTC configuration in the seed. A native-only seed refuses a
 browser row. Actor/device enrollment, an actual owned topology, the full workload,
 packet capture and media observations remain required stages.
 
+Select workflow input `transport_network=remote-profile-fixture` with
+`transport_target=ubuntu24-x86_64` for the isolated Ubuntu producer. It requires
+a disposable native Ubuntu24.04 Actions host with systemd and a regular owner
+user. The owner saves fresh physical-resource names before privileged IO,
+creates one veth pair and client namespace with only its connected route, and
+starts the production server as that regular user in an owned systemd unit.
+Native CLI requests and all SDK helpers run in the client namespace after root,
+supplementary groups and capabilities are dropped. Account/provider/model
+environment settings are removed. The trusted enrollment backend stays on host
+loopback; participant configurations retain only their scoped credentials.
+
+The same public scenario observes actual executable images, ordinary process
+users, distinct network namespaces, the client interface/route without a default,
+and the server-owned UDP socket. The optional data capture uses the owned host
+veth and exact server/peer/port filter. Forced process cleanup cannot pass. Both
+original systemd servers, all client helpers, the original namespace and both
+veth endpoints must retire. Raw state, routes, process information and logs stay
+private. This producer does not contact a named external host or qualify WAN,
+browser, decoded media or complete transport cells. macOS Remote-profile guest
+execution still requires its own producer; it is explicitly refused here.
+
 ```sh
 python3 scripts/materialize-gate6-transport-fixture.py \
   --seed .local/transport-seed \
