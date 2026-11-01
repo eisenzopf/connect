@@ -1434,7 +1434,18 @@
         "runtime_verified": false,
         "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-negative.json"
       }
-    ]
+    ],
+    "independent_device_cancellation_diagnostic_candidate": {
+      "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
+      "workflow_run_id": 41279346285,
+      "job_id": 124767884653,
+      "status": "confirmed-live-cache-restore",
+      "target": "ubuntu24-x86_64",
+      "signing": "ES256",
+      "network": "remote-profile-fixture",
+      "runtime_verified": false,
+      "scope": "Only add fixed call-phase labels after Session ends to distinguish original SDK close, original create recovery, current membership and history. IO, IDs and all budgets/assertions unchanged."
+    }
   },
   "native_signing_cohorts": {
     "status": "source-verified-ES256-configuration-and-actor-stage-pass",

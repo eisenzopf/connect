@@ -52,10 +52,15 @@
     ]
   },
   "installed_check": {
-    "status": "original-observation-correction-runtime-not-run",
+    "status": "confirmed-live-both-installed-platforms",
     "expected_checks": 21,
     "runtime_verified": false,
-    "description": "Capture only the original submit request ID; require exact-original UI completion and cleared pending state, using at most three existing keyboard original-recovery reads if needed. Observe the same completed original resource scope through the public recovery API. One shared30s action budget; no new submit IDs, dropped assertions or wider SDK/frontend deadlines."
+    "description": "Capture only the original submit request ID; require exact-original UI completion and cleared pending state, using at most three existing keyboard original-recovery reads if needed. Observe the same completed original resource scope through the public recovery API. One shared30s action budget; no new submit IDs, dropped assertions or wider SDK/frontend deadlines.",
+    "workflow_run_id": 41279343901,
+    "job_ids": {
+      "linux": 124767877165,
+      "mac": 124767877301
+    }
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -113,5 +118,6 @@
       "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-515.json"
     }
   ],
-  "implementation_source_revision_before_fix": "515a4e7c7ca7c7e41a915a41664a77fb9eca7fb3"
+  "implementation_source_revision_before_fix": "515a4e7c7ca7c7e41a915a41664a77fb9eca7fb3",
+  "implementation_source_revision": "8957b070e580af643e1ba7775adceb5da0045746"
 }
