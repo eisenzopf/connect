@@ -1,0 +1,94 @@
+{
+  "format": "connect/native-live-data-session-upgrade-local/1",
+  "task": "G6-058",
+  "source_revision": "aebc80496de2d06876d6c3e7f6ba7fbac8bac753",
+  "runtime_source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "node": "v22.16.0",
+  "server_platform": "macos-arm64",
+  "signing": "EdDSA",
+  "independent_audit": {
+    "source_revision": "aebc80496de2d06876d6c3e7f6ba7fbac8bac753",
+    "real_stage_passed": true,
+    "source_helper_matches_git": true,
+    "sdk_producer_sources_verified": 197,
+    "sdk_dist_files_match_archive": 192,
+    "native_binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+    "native_binary_post_run_verified": true,
+    "original_qualified_fixture_unchanged": true,
+    "probe_report_sha256": "814fd36fb780cac2a75949c849337e13bf48b87037e80ed88fbc627e797d7d8d",
+    "controller_report_sha256": "09e1b464490a554f2bb8e9f6948736d880a810aafe89d5e2aea0890f485fa14f",
+    "private_runner_sha256": "06cfb80d50c72c4282d9ba01f1099dcac6e748919bcfa2de39733bb2aeabca45",
+    "live_data_session_upgrade": {
+      "original_connections": 4,
+      "original_sessions": 2,
+      "verified_payloads_before": 4,
+      "verified_payloads_after": 4,
+      "bytes_per_payload": 4096,
+      "payload_sha256": [
+        "d41e374936455022d733f764a64d703e69d14522de67c7114ef8a5c43a798cb4",
+        "daf79852461993f687e8e126356e4acb2d8c328b8ab40fa1b016e31e08bd2669",
+        "a6724eb46a98ea5671be230d5b83713363a25c2e5465ffb5efa80b1e8a917f64",
+        "e69a82f516b3742dc5890d6526bbac0dab97522f5b9278dca23f6b216077b520",
+        "9470bcd3115b0eadc432bde3c5ad9c4dec0b5ba5360371049a37a5be829da8b7",
+        "fc958b80b55b59fb547b3c5aae4d64aafec136ecac92e8f17e9a3b463d2b02e4",
+        "a0cb65dbfa285c488629992bc2d6f4d61557b15473d66e5f795ee9ee8ccd18bd",
+        "2ffb1cba2f67fcd01a55a2aac5150a88bff6f2818e61ec966c93c6311e12a6d6"
+      ],
+      "original_ids_and_generations_preserved_across_upgrade": true,
+      "current_unoffered_screen_refusals": 2,
+      "upgraded_sessions": [
+        {
+          "session_index": 0,
+          "before": [
+            "audio",
+            "data"
+          ],
+          "after": [
+            "audio",
+            "data",
+            "video"
+          ]
+        },
+        {
+          "session_index": 1,
+          "before": [
+            "data"
+          ],
+          "after": [
+            "audio",
+            "data",
+            "video"
+          ]
+        }
+      ],
+      "original_connections_retired": 4,
+      "scope": "Actual data packets before/after capability addition on the same original live Connections. Subsequent AV decoding is separate; no claim of uninterrupted preexisting audio, physical Device replacement or complete cell qualification."
+    },
+    "helpers_observed": 2,
+    "helpers_joined": true,
+    "original_sessions_ended": 2,
+    "server_joined": true,
+    "server_forced": false,
+    "capture_observed": false,
+    "full_cell_qualified": false,
+    "scope": "Independent post-run source/archive audit of actual native stage. No SDK before/after file guard was captured by this diagnostic; no packet capture or AV quality measurement was performed."
+  },
+  "prior_diagnostic_fixture_failure": {
+    "phase": "clients",
+    "reason": "Process inventory included the short-lived ps scanner;3 observed children were incorrectly treated as2 helper owners.",
+    "business_scene_reached": false,
+    "helpers_and_server_joined": true,
+    "preserved_privately": true
+  },
+  "interpretation": "The actual public-SDK native stage passes on local macOS arm64 using a separate synthetic installation clone and the independently verified production runtime. Four original data Connections exchange distinct content before and after adding AV capability to their two original Sessions, and retire before the subsequent workload would open. Both Sessions then end through original operations. No physical Device move, uninterrupted preexisting audio, packet capture, paired AV synchronization, six-route media quality, Linux/remote or complete matrix qualification is established.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "signing_observed": {
+    "server": "EdDSA",
+    "peers": [
+      "EdDSA",
+      "EdDSA"
+    ]
+  }
+}

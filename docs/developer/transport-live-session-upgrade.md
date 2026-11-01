@@ -20,7 +20,19 @@ changed received payloads and current-authority refusal without resubmission.
 The independent evidence verifier rejects missing post-upgrade packets, repeated
 payload digests, missing original retirement and incomplete Session transitions.
 These controlled boundary tests do not prove actual native execution. The new
-version-2 media producer still requires its own source-bound host result.
+version-2 media producer still requires its own complete source-bound host result.
+
+The actual new stage separately passes on local macOS arm64 with Node22.16.0,
+EdDSA and the independently verified 10abb934 production runtime. The isolated
+probe checks all eight received payloads, unchanged original Connection IDs and
+generations, both capability transitions/refusals, all four original Connection
+retirements, both Session ends and both helper/server joins. Its post-run audit
+matches197 SDK producer inputs to Git and192 actual SDK files to the verified
+archive. This probe has no packet capture or AV decoding and did not capture a
+full SDK before/after file guard. The original qualified fixture remains byte
+unchanged. The initial probe failed before the upgrade scene because process counting
+included its own ps scanner; that result remains private. See the
+[local stage result](../evidence/gate-6/native-live-data-session-upgrade-local.json).
 
 This stage does not establish continuity of preexisting audio, physical Device
 replacement, paired AV synchronization, any complete G6-058 cell or Gate 6
