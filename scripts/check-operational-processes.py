@@ -60,6 +60,19 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
+def browser_frame(reader, budget, report):
+    value = reader.read(budget)
+    if value.get("phase") == "failed":
+        assert set(value) == {"phase", "stage", "name", "code"}
+        assert value["stage"] in ("input", "browser-sdk", "browser-runtime", "browser-launch",
+            "page-ready", "health-reads", "browser-drain")
+        assert value["name"] in ("Error", "TypeError", "SyntaxError", "TimeoutError")
+        assert value["code"] in (None, "ENOENT", "EACCES", "EADDRINUSE")
+        report["browser_failure"] = value
+        raise RuntimeError("Owned browser failed; inspect closed stage diagnostic")
+    return value
+
+
 def main():
     os.umask(0o077)
     assert platform.system() == "Linux" and platform.machine() == "x86_64"
@@ -83,6 +96,11 @@ def main():
     files = []
     sampler = None
     try:
+        dist = ROOT / "sdk/typescript/dist"
+        assert (dist / "browser_http.js").is_file(), "Build the browser SDK before process profiling"
+        browser_sdk = {str(p.relative_to(dist)): sha(p) for p in sorted(dist.rglob("*")) if p.is_file()}
+        assert browser_sdk and not any(p.is_symlink() for p in dist.rglob("*"))
+        report["browser_sdk_inputs"] = browser_sdk
         compile_log = PRIVATE / "compile.log"
         status = bounded(["cargo", "build", "--release", "--locked", "--message-format=json",
             "-p", "connect-server", "--bin", "connect"], compile_log, env, 3600)
@@ -173,7 +191,7 @@ def main():
             cwd=ROOT, env=browser_env, stdout=subprocess.PIPE, stderr=log("browser.log"), start_new_session=True)
         children.append(browser)
         browser_lines = Lines(browser.stdout)
-        assert browser_lines.read(15) == {"phase": "ready"}
+        assert browser_frame(browser_lines, 15, report) == {"phase": "ready"}
         assert sha(Path(f"/proc/{server.pid}/exe")) == binary_sha
         assert sha(Path(f"/proc/{helper.pid}/exe")) == binary_sha
         report["running_server_helper_binary_verified"] = True
@@ -187,7 +205,7 @@ def main():
                 helper_read()
                 next_helper = time.monotonic() + 1
             time.sleep(.25)
-        observed = browser_lines.read(3)
+        observed = browser_frame(browser_lines, 3, report)
         assert browser.wait(timeout=3) == 0
         assert observed == dict(phase="complete", health_reads=45, administrator_health=True,
             helper_peer_observed=True, credential_absent=True, original_browser_joined=True)
@@ -214,6 +232,8 @@ def main():
         report["resources_sha256"] = sha(resources_path)
         report["resources"] = resources["groups"]
         assert sha(binary) == binary_sha and sources() == before
+        assert {str(p.relative_to(dist)): sha(p) for p in sorted(dist.rglob("*")) if p.is_file()} == browser_sdk
+        report["browser_sdk_inputs_unchanged"] = True
         report["checks"] = dict(production_release=True, actual_separate_sdk_helper=True,
             actual_owned_browser=True, three_roles_measured=True, original_processes_joined=True,
             observed_descendants_retired=True, numeric_only_resource_report=True, read_only_loopback=True)

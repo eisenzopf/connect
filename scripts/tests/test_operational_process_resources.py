@@ -4,12 +4,26 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
 
 ROOT=Path(__file__).resolve().parents[2]
 spec=importlib.util.spec_from_file_location("operational_resources",ROOT/"scripts/lib/operational_process_resources.py")
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 class ProcessBoundary(unittest.TestCase):
+    def test_browser_startup_failure_exposes_only_closed_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            private = Path(directory)
+            request = private / "input.json"
+            request.write_text(json.dumps(dict(dist=str(private / "secret-path-missing"),
+                credential="secret-bearer-must-not-escape", endpoint="https://private.invalid")))
+            result = subprocess.run(["node", str(ROOT / "scripts/operational-browser.mjs"), str(request)],
+                capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.stderr, "")
+            self.assertEqual(json.loads(result.stdout), dict(phase="failed", stage="browser-sdk", name="Error", code="ENOENT"))
+            self.assertNotIn("secret", result.stdout)
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

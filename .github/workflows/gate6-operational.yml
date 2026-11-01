@@ -101,6 +101,12 @@ jobs:
       - name: Verify process observation ownership and privacy boundaries
         if: ${{ matrix.phase == 'runtime' && steps.prepare.outcome == 'success' }}
         run: python3 -m unittest discover -s scripts/tests -p test_operational_process_resources.py
+      - name: Build the browser SDK used by the process profile
+        if: ${{ matrix.phase == 'runtime' && steps.component.outcome == 'success' }}
+        working-directory: sdk/typescript
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
       - name: Install locked owned browser runtime
         if: ${{ matrix.phase == 'runtime' && steps.component.outcome == 'success' }}
         working-directory: scripts/video/observer-tools

@@ -54,12 +54,11 @@
     }
   ],
   "next_required_work": [
-    "Expose redacted health/readiness, active operations and per-transport resource counts under current authorization, with server HTTP/OpenAPI documentation.",
-    "Qualify declared participant/connection/upload/subscription/operation-queue limits and explicit overload refusal before unsafe effects.",
-    "Qualify slow/abandoned peer cleanup, idle expiry and joined graceful drain.",
-    "Measure server/helper/browser processes separately and assert no credentials, private message/media bodies or provider identifiers enter diagnostics."
+    "Verify expanded22function source-bound runtime evidence",
+    "Run actual production server/helper/browser profile with built browser SDK and verify source/SDK inputs, original owners and numeric-only resource observations",
+    "Complete task only when required behavior and current evidence all pass; G6-054 remains deferred"
   ],
-  "runtime_checks_run": false,
+  "runtime_checks_run": true,
   "task_complete": false,
   "acceptance_qualified": false,
   "whole_gate_qualified": false,
@@ -247,7 +246,7 @@
       "schema_generation": "Passed and independently source-verified at c6f9c5ea"
     }
   },
-  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-b757.json",
+  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-c6.json",
   "fixture_type_correction": {
     "status": "implemented-not-yet-compiled",
     "health_snapshot": "Explicit as_ref for awaited Box<OperationalHealth> temporary",
@@ -290,5 +289,11 @@
     "functions": 4,
     "scope": "Actual listener abort-before-poll, primary/auxiliary retirement, drop and cancelled shutdown ownership",
     "total_next_focused_functions": 22
+  },
+  "process_profile_startup_correction": {
+    "status": "implemented-local-guards-pass-not-yet-executed",
+    "finding": "Terminal failure after production CLI compilation, server readiness and actual SDK helper read. Retained job traceback identifies browser_lines.read(15): owned browser ended before ready. Raw browser stderr was private and not retained. Source review finds no TypeScript installation/build in the clean runtime workflow although the driver requires ignored sdk/typescript/dist. Add explicit locked build, hash generated SDK inputs, and retain closed startup-failure stage/code without private messages. No three-role resource measurement pass.",
+    "process_privacy_guards_passed": 5,
+    "scope": "Actual separate production server/helper/browser measurement still required;18focused functions independently verified. Expanded22function run41255161108 also reaches process failure; original evidence awaits independent audit."
   }
 }
