@@ -119,3 +119,47 @@ private output modes, occupied-output/signing/browser refusal and original serve
 shutdown. Its result is configuration-stage evidence only; all 32 complete cells
 remain unqualified. Raw logs and state stay private; only curated hashes and
 outcomes are uploaded.
+
+## Actor and Device enrollment
+
+With the materialized production server running, enroll the matrix's four
+synthetic human identities and five independent native devices. The fifth device
+belongs to the first identity and is reserved for later replacement tests. Supply
+the private application administrator configuration for this exact server; it
+must select its loopback HTTP listener and the same operator credential. The
+administrator configuration remains outside every participant installation.
+
+```sh
+python3 scripts/enroll-gate6-transport-actors.py \
+  --instance .local/transport-instance \
+  --admin-config .local/original-installation/operator.application.toml \
+  --binary .local/transport-candidate/connect \
+  --output .local/transport-instance/actors
+```
+
+The tool saves `plan.json` before public provisioning, including original identity
+and credential operation IDs and an absolute expiry. All state changes use the
+production `provision`, `issue` or `issue-resume` command. Each child receives 26
+literal control permissions, the other three identities as its recipient ceiling,
+and a new device signer matching the cell's signing cohort. It checks the returned
+scope, expiry and identities, distinct credentials/keys, and absence of the parent
+bearer in participant files. Credential expiry is at most one hour and never
+exceeds the administrator or server pin expiry. Neither an administrator scope nor
+external communications permissions are included.
+
+An interrupted enrollment retains its files. Reinvoke the same command with
+`--resume` to replay original identity operations and recover existing issuance
+through `issue-resume`. The plan refuses changed candidate, issuer, scope or
+expired validity. An installation interrupted before its immutable CLI intent was
+saved requires inspection; the tool does not delete it or choose new IDs.
+`actors.json` privately records configuration paths and identities for the cell
+executor; `enrollment.json` contains curated hashes, counts and scope only.
+
+The `transport-actors` CI lane additionally executes all five signed clients,
+checks original-ID resume without asset changes, refuses a changed issuer before
+network access, and verifies current revocation with an independently usable
+replacement. Rehearsal revocation happens only after the enrollment checks; the
+standalone tool does not revoke an enrolled device. Enrollment does not create
+Conversation participants or establish actual concurrent connections, sessions,
+device replacement, browser transport, media or topology outcomes. Those remain
+required complete-cell execution stages.

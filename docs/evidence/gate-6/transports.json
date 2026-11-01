@@ -1100,5 +1100,31 @@
     "correction": "Resolve the current serde-omitted default_sessions from its pinned protocol source definition; preserve seed/config bytes and refuse an explicit insufficient limit or changed default contract.",
     "verification_evidence": "docs/evidence/gate-6/transport-materializer-verified.json",
     "runtime_scope": "Ubuntu24.04 native x86_64, local EdDSA production CLI server/operator configuration; six behavior checks, six public CLI commands plus production restore, two original server groups joined. All32fullmatrixcells remain unqualified."
+  },
+  "actor_enrollment": {
+    "status": "implemented-runtime-unrun",
+    "implementation_hashes": {
+      "scripts/lib/transport_actors.py": "882f5a8faf7d09aae9f27fe3ce7c8e97f658df7dff62e66247ca1fe445584ecf",
+      "scripts/enroll-gate6-transport-actors.py": "22f87b3104be122e5f859a9c6e15bd1f2063d4df89348060d30c1420045993c2",
+      "scripts/tests/test_transport_actors.py": "b2a441f8c3fac0d6008458cc5fad5262678e8b47033a0c87a7ab55a3f95815b7",
+      "scripts/check-transport-fixtures.py": "7bcd403e626b361b1fa5263fd917aaf09653656917adb7e277cfba081452379d",
+      ".github/workflows/gate6-linux-fixtures.yml": "c2c19428fb12b1544916265b726161f68521699cfe71fd67a439cd4ef23dfa44",
+      ".github/workflows/gate6-transport-matrix.yml": "7cad585ed071b8b63c5fbe4ac0f7af50f711a99d22235dc046611e8cde900e91"
+    },
+    "local_transport_guard_tests_passed": 21,
+    "identities": 4,
+    "devices": 5,
+    "replacement_device_identity": "first identity, independent device/key/credential",
+    "scope_operations_count": 26,
+    "recipient_ceiling": 3,
+    "expiry_bound": "one hour and no later than current administrator/server pin expiry",
+    "recovery": "Private original identity/credential operations saved before public IO; explicit resume uses exact identity replay and production issue-resume. Partial installations retained; changed source/issuer/scope or expired plan refuse.",
+    "runtime_rehearsal": "Isolated transport-actors lane: actual production enrollments, all five signed native clients, unchanged original-ID resume, participant provisioning forbidden, changed issuer pre-network refusal, revoked primary refusal with independent replacement/other clients still usable.",
+    "runtime_verified": false,
+    "conversation_participant_workload_observed": false,
+    "actual_topology_verified": false,
+    "cell_qualified": false,
+    "task_complete": false,
+    "scope": "Server-side enrollment stage only. Conversation membership, concurrent connections/sessions, actual replacement transition, actual browser transport, remote topology, capture and decoded media remain required."
   }
 }

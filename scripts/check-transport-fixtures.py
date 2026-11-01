@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Real stopped-backup materialization and native configuration probe; no media."""
-import hashlib
+import argparse
 import json
 import os
 from pathlib import Path
@@ -16,6 +16,7 @@ import traceback
 
 from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
+from lib.transport_actors import enroll_actors
 from lib.transport_fixture import FixtureError, materialize
 from lib.transport_matrix import digest
 
@@ -36,7 +37,10 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main():
+def main(actors=False):
+    global PRIVATE, OUTPUT
+    if actors:
+        PRIVATE, OUTPUT = BASE / "private/actors", BASE / "evidence/actors"
     os.umask(0o077)
     assert platform.system() == "Linux" and platform.machine() == "x86_64"
     release = platform.freedesktop_os_release()
@@ -51,7 +55,7 @@ def main():
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore, private server/operator configuration and native control probe. One operator, no four-participant workload, actual browser, packet capture, media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified.")
+        scope="Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore, private server/operator configuration and native control probe. Optional actor stage enrolls four identities/five devices and checks current authority and original-ID recovery. No Conversation participant workload, actual browser, packet capture, media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
@@ -85,7 +89,7 @@ def main():
         binary = PRIVATE / "connect"
         seal_executable(targets[0], binary, report["binary_sha256"], pool=PRIVATE / "sealed")
 
-        def run(name, arguments, data=None):
+        def run(name, arguments, data=None, *, success=True):
             nonlocal phase
             phase = name
             path = PRIVATE / (name + ".output")
@@ -106,7 +110,7 @@ def main():
                             pass
                         child.wait()
             report["commands"].append(dict(name=name, verb=arguments[0], exit_code=result))
-            assert result == 0, "Public fixture command refused"
+            assert (result == 0) == success, "Public fixture command result differs"
             return path.read_bytes()
 
         def request(name, config, kind, payload, operation=None):
@@ -211,12 +215,55 @@ def main():
         frames = request("materialized-original", output / "operator.toml", "operation.get", dict(operation_id="transport-fixture-original"))
         record = next(v for v in frames if v["type"] == "operation.updated")["payload"]
         assert record["state"] == "completed" and record["operation_id"] == "transport-fixture-original"
+        report["materialization"] = summary
+        if actors:
+            phase = "actor-enrollment"
+            directory = output / "actors"
+            enrolled = enroll_actors(ROOT, output, state / "operator.application.toml", binary, directory, run)
+            report["actor_enrollment"] = enrolled
+            report["checks"].append("four-identities-five-independent-scoped-devices-enrolled-through-production-cli")
+            installed = files(directory)
+            phase = "actor-original-resume"
+            resumed = enroll_actors(ROOT, output, state / "operator.application.toml", binary, directory,
+                lambda name, args, data=None: run("resume-" + name, args, data), resume=True)
+            assert resumed == enrolled and files(directory) == installed
+            report["checks"].append("explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry")
+            records = json.loads((directory / "actors.json").read_text())
+            assert len(records) == 5
+            for name, actor in records.items():
+                assert rooms(name + "-scoped-native-read", Path(actor["config"])) == []
+            report["checks"].append("all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority")
+            forbidden = json.loads(run("actor-cannot-provision", ["provision", "--config", directory / "participant-1/application.toml"],
+                dict(type="identity", operation_id="transport-actor-forbidden-identity", alias="transport-forbidden", kind="human"), success=False))
+            assert forbidden["result"]["Err"]["code"] == "forbidden"
+            report["checks"].append("participant-credential-cannot-provision-an-identity")
+            changed = PRIVATE / "changed-admin.toml"
+            changed.write_bytes((state / "operator.application.toml").read_bytes() + b"\n")
+            phase = "changed-actor-issuer-refusal"
+            def must_not_execute(*args):
+                raise AssertionError("Changed bound issuer made a public call")
+            try:
+                enroll_actors(ROOT, output, changed, binary, directory, must_not_execute, resume=True)
+            except FixtureError as error:
+                assert str(error) == "fixture-actor-plan"
+            else:
+                raise AssertionError("Changed issuer configuration adopted an old plan")
+            assert files(directory) == installed
+            report["checks"].append("changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan")
+            revoke = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
+            assert json.loads(run("revoke-primary-device", revoke))["result"]["Ok"]["revoked"] is True
+            refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
+                dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
+            assert refusal["result"]["Err"]["code"] == "unauthorized"
+            for name in sorted(records.keys() - {"participant-1"}):
+                assert rooms(name + "-after-revocation", Path(records[name]["config"])) == []
+            assert files(directory) == installed
+            report["checks"].append("revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable")
         stop()
         report["checks"].append("normal-server-and-native-client-read-original-state-through-materialized-config")
         assert files(seed) == original_seed
         assert len(report["servers"]) == 2 and all(v["original_joined"] for v in report["servers"])
         report["checks"].append("seed-unchanged-and-original-server-groups-joined")
-        report["materialization"] = summary
         report["passed"] = True
     except BaseException as error:
         (PRIVATE / "failure.log").write_text(traceback.format_exc())
@@ -242,4 +289,6 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
+    raise SystemExit(main(parser.parse_args().actors))
