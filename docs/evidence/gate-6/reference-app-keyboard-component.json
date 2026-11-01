@@ -133,11 +133,11 @@
       "linux": 124754890526,
       "macos": 124754890725
     },
-    "status": "confirmed-live-both-platforms",
-    "runtime_verified": false
+    "status": "independently-verified-positive-both-platforms",
+    "runtime_verified": true,
+    "verification_evidence": "docs/evidence/gate-6/reference-app-installed-keyboard.json"
   },
   "remaining": [
-    "Current installed Node22/Linux and macOS keyboard flow verification",
     "Negotiated media and capture integration and verification"
   ],
   "task_complete": false,

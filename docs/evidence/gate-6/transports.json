@@ -1031,7 +1031,7 @@
   "scope": "All required current local/Remote-profile transport cells. No inherited component, named WAN host or media result. G6-054 remains deferred; its verification is not waived.",
   "execution_phase": "inventory",
   "inventory_valid": true,
-  "implementation_status": "in-progress-inventory-control-and-protected-configuration-stage",
+  "implementation_status": "in-progress-platform-conversation-control-and-native-data-cleanup",
   "source_revision_note": "Base Git revision for this local inventory; new files were uncommitted. Exact contract and implementation hashes identify the inspected bytes. No runtime result.",
   "implementation_hashes": {
     "contracts/gate6-transport-matrix.json": "e04853fbd6840c5bfb8912ac775ae177513d3f060bce117e331694941735a4b4",
@@ -1405,7 +1405,11 @@
         "target": "macos-arm64",
         "signing_algorithm": "EdDSA",
         "component": "conversation",
-        "status": "confirmed-live-verified-source-preparation"
+        "status": "independently-source-verified-conversation-control-positive",
+        "verification_evidence": "docs/evidence/gate-6/transport-conversation-macos-verified.json",
+        "runtime_verified": true,
+        "verification_scope": "conversation-control-component-only",
+        "full_matrix_cells_qualified": 0
       },
       {
         "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
@@ -1435,7 +1439,7 @@
     "scripts/fixtures/transport-matrix/README.md": "757deb2c4397dc9fd7408efd961987088c6fb72804bb8e35c78e092d2d73ff3d"
   },
   "ubuntu_remote_native_producer": {
-    "status": "implemented-runtime-unverified",
+    "status": "source-bound-remote-conversation-component-runtime-verified",
     "target": "ubuntu24-x86_64",
     "network": "remote-profile-fixture",
     "behavior": "Disposable Ubuntu24.04 systemd server as ordinary user; scoped native CLI/SDK clients in one owned network namespace/veth without external default route. Preserve original private resource intent, regular-user process identities, actual source/binary/route/socket/namespace observations and original service/client/network retirement. Same full public scenario and optional native data/capture producers; no private Store access.",
@@ -1456,7 +1460,7 @@
       "python_node_syntax": true,
       "workflow_yaml_parsed": true
     },
-    "runtime_verified": false,
+    "runtime_verified": true,
     "macos_remote_guest_implemented": false,
     "full_matrix_cells_qualified": 0,
     "task_complete": false,
@@ -1465,10 +1469,39 @@
       "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
       "workflow_run_id": 41272768297,
       "job_id": 124748754159,
-      "status": "confirmed-live-verified-source-preparation",
+      "status": "independently-source-verified-conversation-control-positive",
       "component": "conversation",
-      "signing_algorithm": "EdDSA"
-    }
+      "signing_algorithm": "EdDSA",
+      "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
+      "runtime_verified": true,
+      "verification_scope": "conversation-control-component-only",
+      "full_matrix_cells_qualified": 0
+    },
+    "verified_source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
+    "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
+    "verification_scope": "Ubuntu native namespace conversation/control only; full cell and current later source changes are not qualified"
   },
-  "previous_control_negative_evidence": "docs/evidence/gate-6/transport-control-negative-505.json"
+  "previous_control_negative_evidence": "docs/evidence/gate-6/transport-control-negative-505.json",
+  "verified_conversation_components": {
+    "macos": {
+      "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+      "workflow_run_id": 41271013831,
+      "job_id": 124743623361,
+      "status": "independently-source-verified-conversation-control-positive",
+      "verification_evidence": "docs/evidence/gate-6/transport-conversation-macos-verified.json",
+      "runtime_verified": true,
+      "verification_scope": "conversation-control-component-only",
+      "full_matrix_cells_qualified": 0
+    },
+    "ubuntu_remote": {
+      "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
+      "workflow_run_id": 41272768297,
+      "job_id": 124748754159,
+      "status": "independently-source-verified-conversation-control-positive",
+      "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
+      "runtime_verified": true,
+      "verification_scope": "conversation-control-component-only",
+      "full_matrix_cells_qualified": 0
+    }
+  }
 }

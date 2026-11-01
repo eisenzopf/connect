@@ -1,0 +1,137 @@
+{
+  "format": "connect/transport-conversation-component-verification/1",
+  "task": "G6-058",
+  "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
+  "workflow_run_id": 41272768297,
+  "job_id": 124748754159,
+  "artifact_id": 13070372389,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "conversation",
+    "component_passed": true,
+    "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
+    "artifact_sha256": "b7bdc56d1ff1cf7d2bd144eec8a1ce4ee34710866ea1b707c16fa03bbcec5a3a",
+    "report_sha256": "2264cd00e7dec5d261899058ef12f9d2f9299302bbffe5fa7c3a31a9e0930139",
+    "source_inputs_sha256": "ff1fc7dac8c3f2f89ef3278119dbd3812e9744c66948b9143674e07fb1755451",
+    "sources_verified": {
+      "git": 4705,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "remote-profile-fixture",
+    "reported_runtime_binary_sha256": "674cafd5b2a7f661179334f1f6b2db54203cccdd2b1887b2d214b8af86c6f033",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 42,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "44480a6a331b16969a6bb0206dbd6fea6341d61ec0acbe096d5da0c4822d44aa",
+      "conversation_passed": true,
+      "helpers_observed": 5,
+      "helpers_joined": true
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "host": {
+    "os": "linux",
+    "architecture": "x86_64",
+    "kernel_release": "7.0.0-1017-azure",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-x86_64"
+  },
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+    "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+    "owned-remote-profile-systemd-server-and-separate-client-namespace-originals-retired",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "scenario_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "both-original-session-intents-end-through-public-sdk",
+    "independent-device-recovers-original-create-and-history-after-original-helper-close"
+  ],
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 2,
+  "history_page_counts": [
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 2,
+      "messages": 4
+    }
+  ],
+  "actual_topology_verified": true,
+  "actual_topology": {
+    "host": {
+      "platform": "ubuntu24-x86_64",
+      "os": "linux",
+      "architecture": "x64",
+      "kernel_release": "7.0.0-1017-azure",
+      "ordinary_user": true
+    },
+    "kind": "ubuntu-netns",
+    "distinct_client_server_network_namespaces_observed": true,
+    "helpers_in_client_namespace": 5,
+    "server_owned_veth_udp_bind_observed": true,
+    "ordinary_user_server_and_helpers_verified": true,
+    "client_connected_route_without_default_observed": true,
+    "server_namespace_sha256": "faa2d2822eaf7944616d9d45da25314cd09b54d6cffed4ffa4d2ad80a6315d29",
+    "client_namespace_sha256": "860d53a675550b826c5d3a0a71a3c2903a580f0d67d9b9093a3407b471f632a8",
+    "server_executable_sha256": "674cafd5b2a7f661179334f1f6b2db54203cccdd2b1887b2d214b8af86c6f033"
+  },
+  "network_cleanup": {
+    "kind": "ubuntu-netns",
+    "passed": true,
+    "original_namespace_removed": true,
+    "original_veth_removed": true,
+    "remaining_client_processes": 0,
+    "forced_cleanup": false,
+    "systemd_servers_verified": 2,
+    "unprivileged_client_launch_required": true,
+    "failures": [],
+    "route_observation_sha256": "e4d600366403494298ce0e1985de3b631efafa8a84859eb5d503751f1500c4fd"
+  },
+  "scope": "Actual public Node SDK membership/audience/two accepted Session intents/original-operation independent-device recovery and current revocation on the named native host/network/signing cohort. No actual six-Connection payload workload, audio/video, packet capture, live media upgrade, replacement media ownership, browser or complete transport-cell qualification. Reported executable hashes are bound; artifact contains no binary bytes.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "network_observation_scope": "Owned Ubuntu systemd server and separate ordinary-user client network namespace on one native Linux kernel. Actual connected IPv4 route without default, owned veth UDP socket and five helper namespace bindings observed. No named external host, WAN or IPv6 route claim."
+}

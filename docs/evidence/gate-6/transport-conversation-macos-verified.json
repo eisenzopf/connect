@@ -1,0 +1,106 @@
+{
+  "format": "connect/transport-conversation-component-verification/1",
+  "task": "G6-058",
+  "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+  "workflow_run_id": 41271013831,
+  "job_id": 124743623361,
+  "artifact_id": 13071265885,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "conversation",
+    "component_passed": true,
+    "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+    "artifact_sha256": "f0d97531c2774a2fb92d3da05ede56b2b9db78c6a9ab27292772ee196fae62c3",
+    "report_sha256": "2aeb5e473a974618e19db59be57b94bae85ffab90cfad91a81e6d5323b1e8bdc",
+    "source_inputs_sha256": "2d2dda69208f9e0c85a1fa56f29f63aec906644ab9c9fa5978dc8a5bb395040d",
+    "sources_verified": {
+      "git": 4700,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "macos-arm64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "9db416edda58073baf73570a2554bdb3f3bf86d0d6365d8f6f7a1a0de35d5644",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 42,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "703f6f948821acd078c36f6e56289cee00f33a736c582d98a826b2b92c5bc106",
+      "conversation_passed": true,
+      "helpers_observed": 5,
+      "helpers_joined": true
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "host": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "kernel_release": "24.6.0",
+    "version": "15.8.2",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "macos-arm64"
+  },
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+    "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "scenario_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "both-original-session-intents-end-through-public-sdk",
+    "independent-device-recovers-original-create-and-history-after-original-helper-close"
+  ],
+  "maximum_active_members_observed": 4,
+  "concurrent_session_intents_observed": 2,
+  "history_page_counts": [
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 1,
+      "messages": 0
+    },
+    {
+      "pages": 2,
+      "messages": 1
+    },
+    {
+      "pages": 2,
+      "messages": 4
+    }
+  ],
+  "actual_topology_verified": false,
+  "actual_topology": null,
+  "network_cleanup": null,
+  "scope": "Actual public Node SDK membership/audience/two accepted Session intents/original-operation independent-device recovery and current revocation on the named native host/network/signing cohort. No actual six-Connection payload workload, audio/video, packet capture, live media upgrade, replacement media ownership, browser or complete transport-cell qualification. Reported executable hashes are bound; artifact contains no binary bytes.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
