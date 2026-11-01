@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, writeFile, symlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { connect } from "node:net";
-import { request } from "node:http";
+import { request, Agent } from "node:http";
 import { startAppServer } from "./server.mjs";
 const root = fileURLToPath(new URL("../../../.local/gate-6/reference-app/", import.meta.url));
 await mkdir(root, { recursive: true, mode: 0o700 });
@@ -27,6 +27,80 @@ async function fixture(t) {
         body: JSON.stringify(value) });
     return { server, api, cookie, sdk, calls, gateway, page, html };
 }
+
+function persistentRequest(f, agent, path, input = {}, overrides = {}, timeoutMs = 2000) {
+    const body = JSON.stringify(input);
+    return new Promise((done, reject) => {
+        const call = request(f.server.origin + "/api/" + path, { agent, method: "POST", headers: {
+            "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body),
+            "X-Parley-Request": "1", Origin: f.server.origin, Cookie: f.cookie, ...overrides,
+        } }, response => {
+            const port = response.socket.localPort, chunks = []; let size = 0;
+            response.on("data", chunk => { size += chunk.length; if (size > 65536) call.destroy(Error("Response bound")); else chunks.push(chunk); });
+            response.on("error", reject);
+            response.on("end", () => {
+                let value; try { value = JSON.parse(Buffer.concat(chunks).toString()); } catch (error) { reject(error); return; }
+                // Observe reuse after the Agent has received ownership back.
+                setImmediate(() => done({ status: response.statusCode, headers: response.headers,
+                    port, reused: call.reusedSocket, value }));
+            });
+        });
+        call.setTimeout(timeoutMs, () => call.destroy(Error("HTTP test deadline")));
+        call.on("error", reject); call.end(body);
+    });
+}
+
+test("reused HTTP transports recheck origin, cookie and current actor for each request", async t => {
+    const f = await fixture(t), agent = new Agent({ keepAlive: true, maxSockets: 1 }); t.after(() => agent.destroy());
+    const first = await persistentRequest(f, agent, "state"); assert.equal(first.value.actor, "owner");
+    const selected = await persistentRequest(f, agent, "actor", { role: "organizer" });
+    assert.equal(selected.status, 200); assert.equal(selected.reused, true); assert.equal(selected.port, first.port);
+    const current = await persistentRequest(f, agent, "state"); assert.equal(current.value.actor, "organizer");
+    assert.equal(current.port, first.port);
+    const missing = await persistentRequest(f, agent, "submit", { operationId: "original" }, { Cookie: "" });
+    assert.equal(missing.status, 401); assert.equal(missing.port, first.port);
+    assert.deepEqual(f.calls, []);
+    const after = await persistentRequest(f, agent, "state"); assert.equal(after.value.actor, "organizer");
+    const refused = await persistentRequest(f, agent, "prepare", { key: "original-key", action: {} }, { Origin: "https://foreign.example" });
+    assert.equal(refused.status, 403); assert.equal(refused.reused, true); assert.equal(refused.port, after.port);
+    assert.deepEqual(f.calls, []);
+    const accepted = await persistentRequest(f, agent, "submit", { operationId: "original" });
+    assert.equal(accepted.status, 200);
+    assert.deepEqual(f.calls, [{ type: "recover", role: "organizer", operationId: "original" }]);
+});
+
+test("persistent HTTP closes at its request ceiling and shutdown joins its idle original socket", async t => {
+    const f = await fixture(t), agent = new Agent({ keepAlive: true, maxSockets: 1 }); t.after(() => agent.destroy());
+    const first = await persistentRequest(f, agent, "state"); let last;
+    for (let i = 1; i < 128; i++) {
+        last = await persistentRequest(f, agent, "state");
+        assert.equal(last.status, 200); assert.equal(last.reused, true); assert.equal(last.port, first.port);
+    }
+    assert.equal(last.headers.connection, "close");
+    const replacement = await persistentRequest(f, agent, "state");
+    assert.equal(replacement.status, 200); assert.equal(replacement.reused, false);
+    const sockets = Object.values(agent.freeSockets).flat(); assert.equal(sockets.length, 1);
+    sockets[0].ref();
+    const closed = new Promise(done => sockets[0].once("close", done));
+    await f.server.close(); await closed; assert.equal(sockets[0].destroyed, true);
+    assert.deepEqual(f.calls, [{ type: "close" }]);
+});
+
+test("transport age retires after the original active response finishes", async t => {
+    const f = await fixture(t), agent = new Agent({ keepAlive: true, maxSockets: 1 }); t.after(() => agent.destroy());
+    let release, entered, settled = false;
+    const barrier = new Promise(done => { release = done; }), ready = new Promise(done => { entered = done; });
+    f.gateway.conversations = async () => { entered(); await barrier; return { conversations: [], cursor: null }; };
+    const pending = persistentRequest(f, agent, "state", {}, {}, 20000);
+    void pending.then(() => { settled = true; }, () => { settled = true; });
+    try {
+        await ready; await new Promise(done => setTimeout(done, 15100));
+        assert.equal(settled, false, "age retirement must not destroy an original active response");
+        release(); const result = await pending;
+        assert.equal(result.status, 200); assert.equal(result.headers.connection, "close");
+        const next = await persistentRequest(f, agent, "state"); assert.equal(next.reused, false);
+    } finally { release(); await pending.catch(() => {}); }
+});
 
 test("local page sets private same-site session and reload preserves the selected fixture actor", async t => {
     const f = await fixture(t);

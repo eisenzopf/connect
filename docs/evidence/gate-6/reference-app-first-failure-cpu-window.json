@@ -35,8 +35,9 @@
     "original_sample_interval_clipping_test": true,
     "cpu_metadata_privacy_test": true
   },
-  "actual_refined_ci_observed": false,
+  "actual_refined_ci_observed": true,
   "root_cause_resolved": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_evidence": "docs/evidence/gate-6/reference-app-first-failure-observed-5d90.json"
 }

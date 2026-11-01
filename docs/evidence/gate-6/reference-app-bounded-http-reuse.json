@@ -1,0 +1,58 @@
+{
+  "format": "connect/reference-app-bounded-http-reuse/1",
+  "task": "G6-072",
+  "motivating_evidence": "docs/evidence/gate-6/reference-app-first-failure-observed-5d90.json",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/server.mjs": "d6045a2b2291d217939e45938fde5346b64b17cd4ae06da4eddf632b4d124616",
+    "examples/parley-on-connect/app/server.test.mjs": "370cbb795b6ef0141f231891e41491de393283d935abc7ced33ca15b5a8c8a66"
+  },
+  "before": {
+    "source_revision": "5d908b69abeada5c251a80c35395be7f4e1f4cdd",
+    "connection_close_every_response": true,
+    "max_requests_per_socket": 1,
+    "http_idle_timeout_ms": 1000,
+    "local_reuse_regression_failed": true
+  },
+  "after": {
+    "max_connections": 64,
+    "max_active_requests": 16,
+    "max_requests_per_socket": 128,
+    "http_idle_timeout_ms": 5000,
+    "headers_timeout_ms": 5000,
+    "body_request_timeout_ms": 10000,
+    "age_retirement_begins_ms": 15000,
+    "active_response_socket_drain_ms": 10000
+  },
+  "behavior": [
+    "Ordinary HTTP1.1 reuse replaces per-response forced closes; each request independently checks Host/origin, cookie/session and current actor before SDK work",
+    "An incomplete original request is never advertised as reusable when cleanup must discard it",
+    "The128th response explicitly closes its transport, and the next request opens a new socket",
+    "At15s an idle/incomplete transport closes, while active original responses receive Connection:close and a fixed10s socket drain; no new work is admitted on a retiring transport",
+    "Shutdown destroys and joins the original idle socket immediately"
+  ],
+  "local_runtime_observation": "Actual Node22.16 HTTP Agent declines the server1s idle hint after subtracting its client safety margin. Raising only HTTP idle to5s makes actual transport reuse possible; this does not change any SDK or media request deadline.",
+  "local_checks": {
+    "node": "22.16.0",
+    "total_passed": 85,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "0cd8aef8bf3936d6b9f45a9bf004f1739cfecdf2d2952a85352fdb8638abc9f1",
+    "same_socket_requests_verified": 128,
+    "origin_cookie_actor_rechecked_on_reuse": true,
+    "request_ceiling_and_fresh_socket_verified": true,
+    "original_idle_socket_shutdown_verified": true,
+    "real_age_boundary_case_ms": 15113.191667
+  },
+  "preserved": [
+    "37installed browser criteria",
+    "2s signed supervisor deadline and all other SDK request deadlines",
+    "Media/source clocks,200ms packet policies and quality thresholds",
+    "Current authorization and original operation/recovery identities",
+    "Header/body byte limits and global connection/request capacity"
+  ],
+  "scope": "Actual loopback HTTP regression/security/lifecycle plus all app component checks. Response-age boundary uses an explicitly controlled synthetic gateway, not a slow production SDK request. No actual after-fix installed app or media quality/profile pass yet.",
+  "after_fix_installed_ci_verified": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -27,7 +27,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
     if (!gateway || !Array.isArray(roles) || roles.length > 5 || !roles.some(v => v.role === "owner") ||
         roles.some(v => typeof v.label !== "string" || !["owner", "assistant", "booker", "organizer", "observer"].includes(v.role)) ||
         !Number.isSafeInteger(port) || port < 0 || port > 65535) fail("invalid-app-request");
-    const sdk = resolve(sdkDirectory), sessions = new Map(), active = new Set(), sockets = new Set();
+    const sdk = resolve(sdkDirectory), sessions = new Map(), active = new Set(), sockets = new Set(), transports = new WeakMap();
     if (!(await lstat(sdk)).isDirectory() || (await lstat(sdk)).isSymbolicLink()) fail("invalid-app-request");
     let origin, cookieName, closing = false, closed;
     const headers = response => {
@@ -35,24 +35,47 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
         response.setHeader("Referrer-Policy", "no-referrer"); response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
         response.setHeader("Permissions-Policy", "camera=(self), microphone=(self), display-capture=(self)");
-        response.setHeader("Connection", "close");
     };
     const json = (response, status, value) => {
         if (response.destroyed || response.writableEnded) return;
+        // A refusal can precede body consumption. Do not advertise a reusable
+        // transport when cleanup must discard its incomplete original request.
+        if (!response.req.complete) response.setHeader("Connection", "close");
         response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); response.end(JSON.stringify(value));
     };
     const server = createServer({ maxHeaderSize: 8192 }, (request, response) => {
+        const transport = transports.get(request.socket);
+        transport?.responses.add(response);
+        const finished = () => {
+            transport?.responses.delete(response);
+            if (transport?.retiring && transport.responses.size === 0 && !request.socket.destroyed) request.socket.end();
+        };
+        response.once("finish", finished); response.once("close", finished);
         headers(response);
-        if (closing || active.size >= 16) { json(response, 503, { error: { code: "app-request-capacity" } }); request.resume(); return; }
+        if (transport?.retiring) response.setHeader("Connection", "close");
+        if (!transport || transport.retiring || closing || active.size >= 16) { json(response, 503, { error: { code: "app-request-capacity" } }); request.resume(); return; }
         const work = handle(request, response).catch(error => { onError(error); json(response, error?.code === "app-reconnecting" ? 503 : 400, { error: publicError(error) }); })
             .finally(() => { active.delete(work); if (!request.complete) request.destroy(); });
         active.add(work);
     });
-    server.maxConnections = 64; server.maxRequestsPerSocket = 1;
-    server.headersTimeout = 5000; server.requestTimeout = 10000; server.keepAliveTimeout = 1000;
+    // Media uses many small same-origin RPCs. Reuse their TCP transport while
+    // every request still checks its own origin/session/current SDK authority.
+    server.maxConnections = 64; server.maxRequestsPerSocket = 128;
+    server.headersTimeout = 5000; server.requestTimeout = 10000; server.keepAliveTimeout = 5000;
     server.on("connection", socket => {
-        sockets.add(socket); const timer = setTimeout(() => socket.destroy(), 15000); timer.unref();
-        socket.on("close", () => { clearTimeout(timer); sockets.delete(socket); });
+        const transport = { responses: new Set(), retiring: false, drain: null }; transports.set(socket, transport);
+        sockets.add(socket);
+        const timer = setTimeout(() => {
+            transport.retiring = true;
+            if (transport.responses.size === 0) { socket.destroy(); return; }
+            // Retire a reused transport without cutting an original response
+            // in half. No further work is admitted; a fixed socket drain still
+            // bounds an abandoned response or peer. Shutdown destroys sockets.
+            for (const response of transport.responses)
+                if (!response.headersSent && !response.writableEnded) response.setHeader("Connection", "close");
+            transport.drain = setTimeout(() => socket.destroy(), 10000); transport.drain.unref();
+        }, 15000); timer.unref();
+        socket.on("close", () => { clearTimeout(timer); clearTimeout(transport.drain); sockets.delete(socket); });
     });
     server.on("upgrade", (_request, socket) => socket.destroy());
     await new Promise((done, reject) => { server.once("error", reject); server.listen(port, "127.0.0.1", () => { server.off("error", reject); done(); }); });
