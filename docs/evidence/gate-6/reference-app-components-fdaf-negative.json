@@ -1,0 +1,602 @@
+{
+  "format": "connect/reference-app-components-fdaf-negative/1",
+  "task": "G6-072",
+  "run_id": 41296951078,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41296951078",
+  "independent_app_node_identity_audit_passed": true,
+  "profiles": [
+    {
+      "host": "mac",
+      "artifact_id": 13079792129,
+      "artifact_size": 423133,
+      "artifact_zip_sha256": "257ddf4ecd6104894703e2665e15363df3d41e5e391d0cb59861fcba8acc1458",
+      "source_revision": "fdafbf8130fcf64d1dc87f7100ec83867e93afdf",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_app_checker_installer_inputs_verified": 27,
+      "node_package_source_inputs_verified": 197,
+      "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+      "installed_sdk_files_verified": 195,
+      "png_bytes_verified": 2,
+      "checks_passed": 17,
+      "checks_required": 37,
+      "failure": {
+        "stage": "synthetic-browser-audio-capture-playback",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 494,
+            "column": 16
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "phase": "media-control-supervision",
+          "elapsed_ms": 2005,
+          "event_loop_active_ms": 1642,
+          "event_loop_idle_ms": 363,
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "deadline",
+          "location": null,
+          "sdk_location": {
+            "file": "sdk_helper.js",
+            "line": 126,
+            "column": 16
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-resync-required",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "failure_media_pages": [
+        {
+          "role": "owner",
+          "observation": {
+            "session_state": null,
+            "current_actor": "owner",
+            "state": "app-media-network",
+            "status": "Media connection unavailable. Reconnect before starting media again.",
+            "metrics": {
+              "capturedAudioFrames": 108,
+              "capturedVideoFrames": 0,
+              "encodedFrames": 97,
+              "sentRtp": 66,
+              "receivedRtp": 22,
+              "clockReportsSent": 3,
+              "clockReportsReceived": 2,
+              "videoClockReportsSent": 0,
+              "videoClockReportsReceived": 0,
+              "decodedAudioFrames": 22,
+              "playedAudioFrames": 15,
+              "decodedVideoFrames": 0,
+              "paintedVideoFrames": 0,
+              "droppedFrames": 39,
+              "synchronizedPackets": 20,
+              "unsynchronizedPackets": 2,
+              "audioLateDrops": 4,
+              "audioHorizonDrops": 3,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -97.487,
+              "lastVideoOffsetMs": null,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": -546,
+              "lastVideoCaptureOffsetMs": null,
+              "phase": "stopped",
+              "stoppedAt": "active",
+              "stopReason": "app-media-network",
+              "activeTracks": 0,
+              "activeContexts": 0,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 0,
+              "stopped": true
+            },
+            "output": {
+              "frames": 14,
+              "energy": 1.7063133870780292,
+              "tone440": 0.0011403973484503923,
+              "tone880": 0.5854095784888674
+            }
+          }
+        },
+        {
+          "role": "organizer",
+          "observation": {
+            "session_state": null,
+            "current_actor": "organizer",
+            "state": "active",
+            "status": "Microphone shared. Incoming audio playing.",
+            "metrics": {
+              "capturedAudioFrames": 70,
+              "capturedVideoFrames": 0,
+              "encodedFrames": 60,
+              "sentRtp": 33,
+              "receivedRtp": 24,
+              "clockReportsSent": 2,
+              "clockReportsReceived": 1,
+              "videoClockReportsSent": 0,
+              "videoClockReportsReceived": 0,
+              "decodedAudioFrames": 24,
+              "playedAudioFrames": 8,
+              "decodedVideoFrames": 0,
+              "paintedVideoFrames": 0,
+              "droppedFrames": 48,
+              "synchronizedPackets": 22,
+              "unsynchronizedPackets": 2,
+              "audioLateDrops": 16,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": 51.829,
+              "lastVideoOffsetMs": null,
+              "receiveClockCorrections": 1,
+              "lastAudioCaptureOffsetMs": -596,
+              "lastVideoCaptureOffsetMs": null,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 1,
+              "activeContexts": 1,
+              "queuedAudioSources": 2,
+              "queuedSendFrames": 8,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 2,
+              "stopped": false
+            },
+            "output": {
+              "frames": 10,
+              "energy": 0.04038217985413062,
+              "tone440": 0.014240888282174813,
+              "tone880": 2.468185117366758e-05
+            }
+          }
+        }
+      ],
+      "runtime_binary_matches_previously_independently_audited_production_binary": true,
+      "new_runtime_archive_bytes_independently_audited": false,
+      "source_guards_passed": true,
+      "component_passed": false
+    },
+    {
+      "host": "linux",
+      "artifact_id": 13079736710,
+      "artifact_size": 825632,
+      "artifact_zip_sha256": "1a0fa9b0c39deb73c47b6cfe18ff62c2e578c4de40e54e0cee83c7146fb281cf",
+      "source_revision": "fdafbf8130fcf64d1dc87f7100ec83867e93afdf",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_app_checker_installer_inputs_verified": 27,
+      "node_package_source_inputs_verified": 197,
+      "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+      "installed_sdk_files_verified": 195,
+      "png_bytes_verified": 4,
+      "checks_passed": 24,
+      "checks_required": 37,
+      "failure": {
+        "stage": "synthetic-browser-video-capture-playback",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 616,
+            "column": 16
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "phase": "media-control-supervision",
+          "elapsed_ms": 2001,
+          "event_loop_active_ms": 1033,
+          "event_loop_idle_ms": 969,
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "deadline",
+          "location": null,
+          "sdk_location": {
+            "file": "sdk_helper.js",
+            "line": 126,
+            "column": 16
+          }
+        },
+        {
+          "phase": "packet-native-negotiation",
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        },
+        {
+          "code": null,
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "failure_media_pages": [
+        {
+          "role": "owner",
+          "observation": {
+            "session_state": null,
+            "current_actor": "owner",
+            "state": "active",
+            "status": "Microphone shared with camera. Incoming audio playing.",
+            "metrics": {
+              "capturedAudioFrames": 76,
+              "capturedVideoFrames": 45,
+              "encodedFrames": 117,
+              "sentRtp": 98,
+              "receivedRtp": 66,
+              "clockReportsSent": 4,
+              "clockReportsReceived": 4,
+              "videoClockReportsSent": 2,
+              "videoClockReportsReceived": 2,
+              "decodedAudioFrames": 33,
+              "playedAudioFrames": 1,
+              "decodedVideoFrames": 23,
+              "paintedVideoFrames": 21,
+              "droppedFrames": 60,
+              "synchronizedPackets": 64,
+              "unsynchronizedPackets": 2,
+              "audioLateDrops": 32,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 2,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -249.159,
+              "lastVideoOffsetMs": -16.458,
+              "receiveClockCorrections": 1,
+              "lastAudioCaptureOffsetMs": -1,
+              "lastVideoCaptureOffsetMs": -5,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 10,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 5,
+              "stopped": false
+            },
+            "output": {
+              "frames": 0,
+              "energy": 0,
+              "tone440": 0,
+              "tone880": 0
+            }
+          }
+        },
+        {
+          "role": "organizer",
+          "observation": {
+            "session_state": null,
+            "current_actor": "organizer",
+            "state": "app-media-network",
+            "status": "Media connection unavailable. Reconnect before starting media again.",
+            "metrics": {
+              "capturedAudioFrames": 122,
+              "capturedVideoFrames": 72,
+              "encodedFrames": 187,
+              "sentRtp": 169,
+              "receivedRtp": 68,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 2,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 1,
+              "decodedAudioFrames": 34,
+              "playedAudioFrames": 28,
+              "decodedVideoFrames": 18,
+              "paintedVideoFrames": 15,
+              "droppedFrames": 35,
+              "synchronizedPackets": 10,
+              "unsynchronizedPackets": 58,
+              "audioLateDrops": 5,
+              "audioHorizonDrops": 1,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 2,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -150.115,
+              "lastVideoOffsetMs": 152.6,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": 4,
+              "lastVideoCaptureOffsetMs": -11,
+              "phase": "stopped",
+              "stoppedAt": "active",
+              "stopReason": "app-media-network",
+              "activeTracks": 0,
+              "activeContexts": 0,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 0,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 0,
+              "stopped": true
+            },
+            "output": {
+              "frames": 27,
+              "energy": 1.3585027181184608,
+              "tone440": 0.5052226237686201,
+              "tone880": 0.0003755993969054702
+            }
+          }
+        }
+      ],
+      "runtime_binary_matches_previously_independently_audited_production_binary": true,
+      "new_runtime_archive_bytes_independently_audited": false,
+      "source_guards_passed": true,
+      "component_passed": false
+    }
+  ],
+  "interpretation": "Removing synchronous raw validators did not resolve the signed supervisor failure. Mac fails synthetic audio after17checks with1642ms active/363ms idle during a2005ms control deadline. Linux fails synthetic video after24checks with1033ms active/969ms idle during a2001ms deadline. Root cause remains unproven; bounded Node CPU sampling is prepared separately.",
+  "scope": "Exact original app/checker/installer Git inputs, all197 Node producer source records, actual public Node archive195payloadfiles and dependency archives, PNG bytes and check prefixes audited. Reported runtime bytes match the previously independently audited Linux/Mac production binary; these new runtime archives were not independently re-read. No passing app, complete SDK candidate, transport cell or Gate acceptance.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

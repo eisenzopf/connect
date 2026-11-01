@@ -48,12 +48,15 @@ async function unusedPort(udp = false) {
 }
 async function main() {
     process.umask(0o077);
-    let state = resolve(".local/parley"), selected = "connect";
+    let state = resolve(".local/parley"), selected = "connect", cpuProfile = false;
     const args = process.argv.slice(2), seen = new Set();
     for (let index = 0; index < args.length; index += 2) {
         const flag = args[index], value = args[index + 1];
-        if (!["--state", "--connect"].includes(flag) || !value || seen.has(flag)) fail("invalid-app-arguments");
-        seen.add(flag); if (flag === "--state") state = resolve(value); else selected = value;
+        if (!["--state", "--connect", "--cpu-profile"].includes(flag) || !value || seen.has(flag)) fail("invalid-app-arguments");
+        seen.add(flag);
+        if (flag === "--state") state = resolve(value);
+        else if (flag === "--connect") selected = value;
+        else { if (value !== "bounded") fail("invalid-app-arguments"); cpuProfile = true; }
     }
     // Resolve a regular installed package before creating any Connect state.
     stage = "installed-sdk";
@@ -78,6 +81,7 @@ async function main() {
         const path = join(state, "logs", runId + "-" + sequence++ + "-" + name + ".log");
         const log = await open(path, "wx", 0o600);
         const env = Object.fromEntries(["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
+        if (cpuProfile && name === "app") env.PARLEY_APP_CPU_PROFILE = "1";
         const processChild = spawn(file, argv, { env, stdio: ["ignore", "pipe", "pipe"] });
         const record = { process: processChild, failed: null, bytes: 0, writing: Promise.resolve() };
         let diagnosticBuffer = "";

@@ -3,13 +3,16 @@
 // browser audio capture/playback paths. No model, provider or personal devices.
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, readdir, lstat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { newSetupPlan, digest } from "../examples/parley-on-connect/app/setup.mjs";
+import { summarizeCpuProfile } from "./lib/app_cpu_summary.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
+const cpuProfile = process.argv[4] === "--profile-app-cpu";
+assert.equal(process.argv.length, cpuProfile ? 5 : 4);
 assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(root, ".local") + "/") && base !== output);
 await mkdir(output, { recursive: false, mode: 0o700 });
 const installation = JSON.parse(await readFile(join(base, "installation.json"), "utf8"));
@@ -42,6 +45,7 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     installed_sdk: await tree(join(consumer, "node_modules/@rudeless/connect")),
     runtime: await digest(installation.executable),
     checker: sha(await readFile(fileURLToPath(import.meta.url))),
+    cpu_summary: sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))),
     installer: sha(await readFile(join(root, producer.installer))) };
 if (producer.kind === "verified-local-components") assert.equal(installation.installer_sha256, sourceInputs.installer);
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
@@ -52,7 +56,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     installation_kind: producer.kind, complete_sdk_candidate_qualified: producer.kind === "sealed-sdk-candidate",
     installation_proof_sha256: sha(await readFile(join(base, "installation.json"))),
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
-    node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
+    node: process.version, platform: process.platform, cpu_profile_requested: cpuProfile, task_complete: false, whole_gate_qualified: false,
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
         "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
         " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
@@ -69,7 +73,8 @@ function groupMembers(pid) {
 }
 async function start(number) {
     stage = "one-command-startup-" + number;
-    processChild = spawn(process.execPath, [join(consumer, "app/run.mjs"), "--state", state, "--connect", installation.executable],
+    processChild = spawn(process.execPath, [join(consumer, "app/run.mjs"), "--state", state, "--connect", installation.executable,
+        ...(cpuProfile ? ["--cpu-profile", "bounded"] : [])],
         { cwd: consumer, detached: true, env: Object.fromEntries(["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])), stdio: ["ignore", "pipe", "pipe"] });
     const original = processChild;
     finished = new Promise(done => { original.once("error", error => done({ error: error.code })); original.once("close", (code, signal) => done({ code, signal })); });
@@ -795,10 +800,24 @@ try {
         if (report.process_cleanup_failed) processChild.kill("SIGKILL");
         await deadline(finished, 5000).catch(() => {});
     });
+    if (cpuProfile) {
+        try {
+            const directory = join(state, "logs");
+            const names = (await readdir(directory)).filter(name => /^cpu-[0-9a-f-]{36}\.json$/.test(name));
+            assert.ok(names.length > 0 && names.length <= 4);
+            report.cpu_profiles = [];
+            for (const name of names) {
+                const path = join(directory, name), info = await lstat(path);
+                assert.ok(info.isFile() && !info.isSymbolicLink() && info.size <= 8 * 1024 * 1024 && !(info.mode & 0o077));
+                report.cpu_profiles.push(summarizeCpuProfile(await readFile(path)));
+            }
+        } catch { report.cpu_profile_collection_failed = true; report.passed = false; }
+    }
     report.sources_unchanged = JSON.stringify(await tree(join(root, "examples/parley-on-connect/app"))) === JSON.stringify(sourceInputs.app) &&
         JSON.stringify(await tree(join(consumer, "app"))) === JSON.stringify(sourceInputs.app) &&
         JSON.stringify(await tree(join(consumer, "node_modules/@rudeless/connect"))) === JSON.stringify(sourceInputs.installed_sdk) &&
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
+        sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))) === sourceInputs.cpu_summary &&
         sha(await readFile(join(root, producer.installer))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
     report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;

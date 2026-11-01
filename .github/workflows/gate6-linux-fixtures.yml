@@ -22,6 +22,10 @@ on:
         type: choice
         options: [EdDSA, ES256]
         default: EdDSA
+      app_cpu_profile:
+        description: 'Component app rehearsal only: bounded private Node CPU profile with curated sample totals'
+        type: boolean
+        default: false
       source_revision:
         description: 'Installation lane only: exact source SHA for the current-schema baseline; blank selects this commit'
         type: string
@@ -113,6 +117,7 @@ jobs:
     uses: ./.github/workflows/gate6-runtime-candidate.yml
     with:
       reference_app: true
+      app_cpu_profile: ${{ inputs.app_cpu_profile || false }}
   reference-app:
     if: ${{ inputs.lane == 'reference-app' || inputs.lane == 'reference-app-macos' }}
     permissions:

@@ -8,6 +8,7 @@ import { AppIntents } from "./intents.mjs";
 import { AppGateway } from "./gateway.mjs";
 import { startAppServer } from "./server.mjs";
 import { appDiagnostic } from "./diagnostics.mjs";
+import { startCpuProfile } from "./cpu-profile.mjs";
 
 const fail = code => { const error = Error(code); error.code = code; throw error; };
 async function digest(path) {
@@ -53,13 +54,16 @@ async function main() {
         actors[role] = { identityId: actor.identityId, label: actor.label, config: inside(directory, actor.config) };
     }
     const journal = await AppIntents.open(resolve(directory, "application-state"));
+    let profiler;
+    try { profiler = process.env.PARLEY_APP_CPU_PROFILE === "1" ? await startCpuProfile(resolve(directory, "logs")) : null; }
+    catch (error) { journal.close(); throw error; }
     const onError = (error, context) => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error, context)) + "\n");
     const gateway = new AppGateway({ journal, actors, createRtpPacket: (sequence, bytes) => new SdkRtpPacket(sequence, bytes), createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
     let app, closing;
     async function close(failed = false) {
         if (!closing) closing = (async () => {
             try { if (app) await app.close(); else await gateway.close(); }
-            finally { journal.close(); }
+            finally { try { await profiler?.stop(); } finally { journal.close(); } }
         })();
         try { await closing; process.exitCode = failed ? 1 : 0; }
         catch { process.stderr.write("Local app cleanup did not finish; preserve its original state.\n"); process.exitCode = 1; }

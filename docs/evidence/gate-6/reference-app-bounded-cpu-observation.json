@@ -1,0 +1,48 @@
+{
+  "format": "connect/reference-app-bounded-cpu-observation/1",
+  "task": "G6-072",
+  "motivating_negative": "docs/evidence/gate-6/reference-app-components-fdaf-negative.json",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/cpu-profile.mjs": "5858b5f90f3984dfbd18e5441924d505aa8c04dc283d5d90560f9d2f69a32f38",
+    "examples/parley-on-connect/app/cpu-profile.test.mjs": "04055cea05afbe78039fb1410fa9deb0d1b1e82fa9533b94fadfb7c4ef0f4d26",
+    "examples/parley-on-connect/app/main.mjs": "deb2d057cc8df11bc8b91ea59d95801ad8c8d23ecdeb0484fc24db34102dd142",
+    "examples/parley-on-connect/app/run.mjs": "54a388ad6ccff3d2c3b9d0cb0a47773aa96185a8081830dd22bb216c842f06dd",
+    "scripts/check-reference-app-installed.mjs": "9340b4c4c1771f11680e4f859615b24701535afb24445954f795ec11192d3ca3",
+    "scripts/lib/app_cpu_summary.mjs": "237ad38e589b80147d41980614ad991fae71f8e1a7acd7edea70f165eac82881",
+    "scripts/tests/app_cpu_summary.test.mjs": "c9149fb465a5a48e1195e8160c84f75e819066859bcdcc9829c9ea7d58c69e04",
+    ".github/workflows/gate6-linux-fixtures.yml": "90661c0e2676a7d3c3cc2acd33410059d9787c853c60a8a9f01c06e678a2c53a",
+    ".github/workflows/gate6-runtime-candidate.yml": "7263bcb0c8edb8ba59c2e8d17dae10debca74950c0d18040b8120a63e8435aa0"
+  },
+  "observation": {
+    "opt_in_only": true,
+    "maximum_seconds": 120,
+    "sampling_interval_microseconds": 1000,
+    "maximum_raw_profile_bytes": 8388608,
+    "maximum_samples": 150000,
+    "maximum_nodes": 50000,
+    "inspector_network_listener": false,
+    "raw_profiles_private": true,
+    "original_shutdown_stops_and_joins_session": true,
+    "curated_fields": "Known app/SDK basenames and source lines, builtin frame names, self/inclusive sample time, profile digest and counts. Absolute URLs, raw profiles, values and unknown function names are excluded."
+  },
+  "commands": {
+    "local": "npm run app -- --cpu-profile bounded",
+    "installed_rehearsal": "node scripts/check-reference-app-installed.mjs <private-candidate> <fresh-private-output> --profile-app-cpu",
+    "workflow": "reference-app-components with app_cpu_profile=true"
+  },
+  "local_checks": {
+    "node": "22.16.0",
+    "app_cases_passed": 78,
+    "cpu_summary_cases_passed": 2,
+    "total": 80,
+    "failed": 0,
+    "skipped": 0,
+    "actual_cpu_bound_and_original_process_shutdown_cases_passed": 2,
+    "workflow_yaml_parses": true
+  },
+  "scope": "Prepared bounded diagnostic, not an actual CI CPU observation or a resolved timeout. Sampling has overhead; existing37behavior checks, request deadlines, source/media clocks, quality thresholds, authorization and original operation recovery remain unchanged.",
+  "actual_ci_profile_verified": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

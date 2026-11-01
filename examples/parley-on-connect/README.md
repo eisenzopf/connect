@@ -56,6 +56,14 @@ provider. An explicit installed executable or application state location can be
 selected with `npm run app -- --connect /installed/bin/connect --state .local/demo`.
 No participant IDs, tokens or database changes are entered manually.
 
+For an explicit developer CPU diagnostic, append `--cpu-profile bounded`. Only
+the app's Node process is sampled, for at most 120 seconds or until its original
+shutdown. Raw profiles have a private 8 MiB cap and stay in `.local/.../logs/`.
+The installed rehearsal's optional `--profile-app-cpu` flag retains only curated
+app/SDK module basenames, source lines and sample counts in its browser report;
+raw profiles and absolute paths are excluded from CI artifacts. Sampling has
+overhead and does not change request deadlines, media thresholds or authorization.
+
 Setup profile 3 retains the original media Endpoint decisions and adds only the
 literal connection.end, stream.subscribe and stream.unsubscribe participant
 permissions needed for the new controls. Earlier profile-1 and profile-2
