@@ -1,0 +1,24 @@
+{
+  "format": "connect/reference-app-media-read-timing/1",
+  "task": "G6-072",
+  "source_revision_before_change": "1537267325cbeb8625f37464f3a000d6605eae4f",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/gateway.mjs": "47110ef610d47b6be69d98ff98c8f9f4bfe8efc6e9458d7eac7f54cf6963fbfc",
+    "examples/parley-on-connect/app/diagnostics.mjs": "8bfdbbfb120487779a6973f4ec4e7c064ce857feb02cb146acff46f50902a710",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "8e5b24fcb066cbd421f0c32247e69c54de69440616d519d90cf598398a3bcd51"
+  },
+  "local_verification": {
+    "command": "npm run test:app --prefix examples/parley-on-connect",
+    "tests_passed": 76,
+    "failed": 0,
+    "node": "26.7.0",
+    "log_sha256": "550669280c7d84e97687f7f4955907aa4e464e81efff2ce962947b249d0ef520"
+  },
+  "behavior": "On failed media admission/signed supervision reads, record current phase elapsed and Node event-loop active/idle milliseconds. Admission additionally records total elapsed across coherent snapshot/native describe. Only known phases and integer0..60000 values survive the closed diagnostic projection; exception messages, arbitrary context, credentials and resource IDs remain excluded. No new timer, polling, retry, cache or deadline change.",
+  "measurement_scope": "Node main process only. Event-loop active time is not proof of Rust helper or server CPU use; idle time does not identify the remote cause. Runtime measurements and diagnosis remain pending.",
+  "reason": "Linux31ec signed supervisor hits2s while combined audio is late; Mac prior admission can spend its shared2s before native negotiation. Instrument phase/time without widening bounds.",
+  "runtime_cause_resolved": false,
+  "installed_profile_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

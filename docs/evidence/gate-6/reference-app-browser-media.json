@@ -6,9 +6,9 @@
   "implementation_inputs": {
     ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
     "examples/parley-on-connect/app/browser-media.test.mjs": "4f253606d22db7466856af3a95278f8626ff0a7f34e5da09d5e1c6d0647fb7af",
-    "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
-    "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
-    "examples/parley-on-connect/app/gateway.mjs": "358d51fc035651cd95270b0219672302c38372031ed6ed051aceb271677f4e86",
+    "examples/parley-on-connect/app/diagnostics.mjs": "8bfdbbfb120487779a6973f4ec4e7c064ce857feb02cb146acff46f50902a710",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "8e5b24fcb066cbd421f0c32247e69c54de69440616d519d90cf598398a3bcd51",
+    "examples/parley-on-connect/app/gateway.mjs": "47110ef610d47b6be69d98ff98c8f9f4bfe8efc6e9458d7eac7f54cf6963fbfc",
     "examples/parley-on-connect/app/gateway.test.mjs": "a0f725b76bae30352a8a11cb3636d8289ff23155059793071dc8cee228377e21",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
@@ -34,10 +34,10 @@
     "examples/parley-on-connect/app/ui/media-playout.mjs": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c"
   },
   "local_verification": {
-    "app_component_functions_passed": 75,
+    "app_component_functions_passed": 76,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "75local application cases pass including steady90frames/30Hz timer-starvation reproduction, queue/clock bounds and exact resource cleanup. Sustained real browser before-fix fails; after-fix installed result pending.",
+    "scope": "76local Node26 application cases pass. Admission/signed-supervision failure timing projection is tested; actual new production packages and current37check installed profiles remain pending.",
     "late_admission_observer_disposal": "The existing retirement-during-admission case additionally asserts the late-created read-only control owner closes exactly once, including a repeated close. All13media cases pass on Node26; installed run41284218404 uses prior test assertions and unchanged application runtime.",
     "browser_permission_diagnostic": "docs/evidence/gate-6/reference-app-device-permission-diagnostic.json",
     "session_lifecycle_regression": "docs/evidence/gate-6/reference-app-session-lifecycle-regression.json"
@@ -249,5 +249,7 @@
     "adapter_evidence": "docs/evidence/gate-6/sdk-retained-live-media-expiration.json",
     "adapter_component_cases_passed": 45
   },
-  "current_ci_negative": "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json"
+  "current_ci_negative": "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json",
+  "read_timing_diagnostics": "On failed media admission/signed supervision reads, record current phase elapsed and Node event-loop active/idle milliseconds. Admission additionally records total elapsed across coherent snapshot/native describe. Only known phases and integer0..60000 values survive the closed diagnostic projection; exception messages, arbitrary context, credentials and resource IDs remain excluded. No new timer, polling, retry, cache or deadline change.",
+  "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json"
 }

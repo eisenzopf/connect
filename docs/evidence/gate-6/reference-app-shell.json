@@ -14,7 +14,7 @@
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "358d51fc035651cd95270b0219672302c38372031ed6ed051aceb271677f4e86",
+    "examples/parley-on-connect/app/gateway.mjs": "47110ef610d47b6be69d98ff98c8f9f4bfe8efc6e9458d7eac7f54cf6963fbfc",
     "examples/parley-on-connect/app/gateway.test.mjs": "a0f725b76bae30352a8a11cb3636d8289ff23155059793071dc8cee228377e21",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
@@ -31,8 +31,8 @@
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
     "scripts/check-reference-app-installed.mjs": "ffe402d26860feb68d3a16ec6287fb9f20a85dd205f0e8287fcba91a0c1db782",
     ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
-    "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
-    "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
+    "examples/parley-on-connect/app/diagnostics.mjs": "8bfdbbfb120487779a6973f4ec4e7c064ce857feb02cb146acff46f50902a710",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "8e5b24fcb066cbd421f0c32247e69c54de69440616d519d90cf598398a3bcd51",
     "examples/parley-on-connect/app/media.test.mjs": "88b1b9fd4797e2ef23e8a742432fbfeb53b4eb30ce50856ff4dbf2099f5baf72",
     "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
     "examples/parley-on-connect/app/media.mjs": "b862602210e2b1cbbbf6b60b4b735c306c4b4587b5cf34af8926e5148689d5f7",
@@ -46,10 +46,10 @@
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 75,
+    "functions_passed": 76,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "75Node26 application component cases pass. Separately31RustSDK and45Node/Python adapter cases verify live queue/result expiration. These local checks do not qualify new installed production packages."
+    "scope": "76Node26 application component cases pass. Separately31RustSDK and45Node/Python adapter cases verify live queue/result expiration. These local checks do not qualify new installed production packages."
   },
   "remaining_requirements": [
     "Qualify and independently audit the newly built production runtime and Node/Python packages containing both Rust inbox and retained adapter result expiration.",
@@ -133,18 +133,19 @@
   },
   "browser_media_candidate": {
     "evidence": "docs/evidence/gate-6/reference-app-browser-media.json",
-    "app_component_functions_passed": 75,
+    "app_component_functions_passed": 76,
     "installed_runtime_verified": false,
     "capture_playback_verified": false,
     "previous_negative_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-bf780.json",
-    "local_component_functions_passed": 75,
+    "local_component_functions_passed": 76,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
     "installed_audio_evidence": "docs/evidence/gate-6/reference-app-installed-browser-audio.json",
     "installed_av_component_evidence": "docs/evidence/gate-6/reference-app-installed-browser-av.json",
     "installed_lifecycle_evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
     "retained_adapter_freshness_evidence": "docs/evidence/gate-6/sdk-retained-live-media-expiration.json",
     "sdk_inbox_freshness_evidence": "docs/evidence/gate-6/sdk-native-inbox-expiration.json",
-    "current_full_candidate_qualified": false
+    "current_full_candidate_qualified": false,
+    "read_timing_evidence": "docs/evidence/gate-6/reference-app-media-read-timing.json"
   },
   "requirements_audit": [
     {

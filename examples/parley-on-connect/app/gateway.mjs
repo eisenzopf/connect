@@ -4,6 +4,7 @@ import { AppMediaBridge } from "./media.mjs";
 import { sessionAllowsMedia } from "./ui/media-session.mjs";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual, inspect } from "node:util";
+import { performance } from "node:perf_hooks";
 
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
 const kinds = Object.freeze({ "conversation.create": "conversation_create", "message.send": "message_send",
@@ -13,6 +14,12 @@ const kinds = Object.freeze({ "conversation.create": "conversation_create", "mes
     "stream.subscribe": "stream_subscribe", "stream.unsubscribe": "stream_unsubscribe" });
 const fail = code => { const error = Error(code); error.code = code; throw error; };
 const copy = value => structuredClone(value);
+const readStamp = () => ({ at: performance.now(), loop: performance.eventLoopUtilization() });
+function readTiming(stamp) {
+    const loop = performance.eventLoopUtilization(stamp.loop);
+    return { elapsedMs: Math.ceil(performance.now() - stamp.at),
+        eventLoopActiveMs: Math.ceil(loop.active), eventLoopIdleMs: Math.ceil(loop.idle) };
+}
 function closed(value, keys) {
     if (!value || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype ||
         Object.keys(value).sort().join() !== [...keys].sort().join()) fail("invalid-app-request");
@@ -207,7 +214,8 @@ export class AppGateway {
         const observer = this.#factory(this.#actor(role));
         let closing;
         const close = () => closing ??= observer.close({ timeoutMs: 2000 });
-        let phase = "open-current-snapshot";
+        const admittedAt = performance.now();
+        let phase = "open-current-snapshot", stamp = readStamp();
         try {
             // One coherent current snapshot already contains the Conversation,
             // active membership/epoch, accepted Session, appearance and physical
@@ -233,7 +241,7 @@ export class AppGateway {
                     v.data.state === "present")) fail("app-resync-required");
             const connection = client.conversations.byId(binding.conversationId).sessions.byId(binding.sessionId)
                 .connections.byId(binding.connectionId), media = connection.media;
-            phase = "open-native-negotiation";
+            phase = "open-native-negotiation"; stamp = readStamp();
             const negotiation = await media.refresh(options);
             if (this.#client(role) !== client) fail("app-media-stopped");
             const check = async opts => {
@@ -251,16 +259,20 @@ export class AppGateway {
             const observed = observer.conversations.byId(binding.conversationId).sessions.byId(binding.sessionId)
                 .connections.byId(binding.connectionId);
             const controlCheck = async opts => {
+                const stamp = readStamp();
                 try {
                     if (this.#client(role) !== client) fail("app-media-stopped");
                     return await observed.refresh(opts);
                 } catch (error) {
-                    if (opts.signal?.reason?.name !== "AbortError") this.#onError(error, { phase: "media-control-supervision" });
+                    if (opts.signal?.reason?.name !== "AbortError") this.#onError(error, { phase: "media-control-supervision", ...readTiming(stamp) });
                     throw error;
                 }
             };
             return { generation: physical.generation, negotiation, media, check, controlCheck, close };
-        } catch (error) { this.#onError(error, { phase }); await close(); throw error; }
+        } catch (error) {
+            this.#onError(error, { phase, ...readTiming(stamp), totalElapsedMs: Math.ceil(performance.now() - admittedAt) });
+            await close(); throw error;
+        }
     }
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }
     mediaSend(role, owner, input) { this.#actor(role); return this.#media.send(role, owner, input); }
