@@ -1,5 +1,16 @@
 # Parley reference scenario
 
+The G6-072 application shell is in progress under `app/`. Its private intent
+journal, public Node SDK gateway, local HTTP boundary and responsive UI are
+implemented. Run `npm run test:app` here for the application component checks.
+These checks use a simulated SDK-shaped backend; they do not qualify installed
+SDK execution or the complete browser application. One-command setup, scoped
+credential installation, actual package/server execution and the remaining
+browser/media controls still require verification. `app/main.mjs` requires an
+app-owned private setup manifest and an ordinary installed `@rudeless/connect`;
+operator configuration is never served to the browser. The application state is
+separate from Connect's authoritative journal and database.
+
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
 seventeen stages, explicit audiences, business gates, observable outcomes and
 public SDK target-contract mappings. The owner, assistant, booker and organizer

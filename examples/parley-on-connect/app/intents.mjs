@@ -5,7 +5,7 @@ import { mkdir, lstat, open } from "node:fs/promises";
 import { isAbsolute, resolve, sep, join } from "node:path";
 import { inspect } from "node:util";
 
-const PROFILE = "parley-app-intents/1", APPLICATION = 0x50414931, MAX_INTENTS = 128;
+const PROFILE = "parley-app-intents/2", APPLICATION = 0x50414932, MAX_INTENTS = 128;
 const phases = new Set(["prepared", "attempted", "uncertain", "observed", "refused"]);
 const states = new Set(["accepted", "preparing", "ready", "committing", "completed", "cancelled", "failed", "interrupted", "unknown"]);
 const terminal = new Set(["completed", "cancelled", "failed"]);
@@ -68,7 +68,7 @@ export class AppIntents {
                 const tables = journal.#db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(row => row.name);
                 const application = journal.#db.prepare("PRAGMA application_id").get().application_id;
                 if (tables.length === 0 && application === 0) {
-                    journal.#db.exec("CREATE TABLE app (id INTEGER PRIMARY KEY CHECK(id=1),profile TEXT NOT NULL,owner_pid INTEGER,owner_token TEXT) STRICT; CREATE TABLE intents (client_key TEXT PRIMARY KEY,operation_id TEXT UNIQUE NOT NULL,intent_json TEXT NOT NULL,intent_sha256 TEXT NOT NULL,phase TEXT NOT NULL,reference_json TEXT,snapshot_json TEXT) STRICT");
+                    journal.#db.exec("CREATE TABLE app (id INTEGER PRIMARY KEY CHECK(id=1),profile TEXT NOT NULL,owner_pid INTEGER,owner_token TEXT) STRICT; CREATE TABLE intents (client_key TEXT PRIMARY KEY,operation_id TEXT UNIQUE NOT NULL,intent_json TEXT NOT NULL,intent_sha256 TEXT NOT NULL,phase TEXT NOT NULL,reference_json TEXT,snapshot_json TEXT,result_json TEXT) STRICT");
                     journal.#db.exec("PRAGMA application_id=" + APPLICATION);
                     journal.#db.prepare("INSERT INTO app VALUES(1,?,NULL,NULL)").run(PROFILE);
                 } else if (application !== APPLICATION || tables.join() !== "app,intents") fail("foreign-app-database");
@@ -101,13 +101,19 @@ export class AppIntents {
                 intent(original) !== row.intent_json || checksum(row.intent_json) !== row.intent_sha256) fail("invalid-app-intent");
             const saved = { clientKey: row.client_key, operationId: row.operation_id, intent: original, phase: row.phase,
                 reference: row.reference_json === null ? null : JSON.parse(row.reference_json),
-                snapshot: row.snapshot_json === null ? null : JSON.parse(row.snapshot_json) };
+                snapshot: row.snapshot_json === null ? null : JSON.parse(row.snapshot_json),
+                result: row.result_json === null ? null : JSON.parse(row.result_json) };
             if (saved.reference === null || saved.snapshot === null) {
                 if (saved.reference !== null || saved.snapshot !== null || saved.phase === "observed") fail("invalid-app-intent");
             } else {
                 if (!["observed", "uncertain"].includes(saved.phase)) fail("invalid-app-intent");
                 this.#observation(saved, saved.reference, saved.snapshot);
             }
+            if (saved.result !== null && (saved.snapshot?.state !== "completed" ||
+                !saved.result || Array.isArray(saved.result) || typeof saved.result !== "object" ||
+                Object.entries(saved.result).some(([key, value]) =>
+                    !["conversationId", "sessionId", "connectionId", "messageId", "identityId"].includes(key) || !identifier(value))))
+                fail("invalid-app-intent");
             return saved;
         } catch { fail("corrupt-app-state"); }
     }
@@ -128,7 +134,7 @@ export class AppIntents {
             }
             if (this.#db.prepare("SELECT COUNT(*) AS count FROM intents").get().count >= MAX_INTENTS) fail("app-intent-capacity");
             const id = "op_app_" + randomUUID();
-            this.#db.prepare("INSERT INTO intents VALUES(?,?,?,?,?,NULL,NULL)")
+            this.#db.prepare("INSERT INTO intents VALUES(?,?,?,?,?,NULL,NULL,NULL)")
                 .run(clientKey, id, encoded, checksum(encoded), "prepared");
             return this.#read(id);
         });
@@ -160,6 +166,11 @@ export class AppIntents {
             return this.#read(operationId);
         });
     }
+    refused(operationId) {
+        // A known SDK refusal preserves the same intent. It makes no claim
+        // about whether Connect retained a durable refusal record.
+        return this.notSubmitted(operationId);
+    }
     #observation(saved, reference, snapshot) {
         const expectedScope = Object.fromEntries(Object.entries(saved.intent.scope).map(([key, value]) =>
             [key.replace(/[A-Z]/g, c => "_" + c.toLowerCase()), value]));
@@ -186,6 +197,34 @@ export class AppIntents {
         });
     }
     read(operationId) { this.#owned(); return this.#read(operationId); }
+    lookup(clientKey) {
+        if (!identifier(clientKey)) fail("invalid-app-intent");
+        this.#owned();
+        const row = this.#db.prepare("SELECT * FROM intents WHERE client_key=?").get(clientKey);
+        return row ? this.#decode(row) : null;
+    }
+    /** Persist SDK-returned resource IDs for discovery after restart. These
+     * hints grant no access: the requested actor must refresh via its SDK. */
+    rememberResult(operationId, result) {
+        const encoded = json(result);
+        return this.#transaction(() => {
+            this.#owned(); const saved = this.#read(operationId);
+            if (saved.phase !== "observed" || saved.snapshot?.state !== "completed" ||
+                !result || Array.isArray(result) || typeof result !== "object" || !Object.keys(result).length ||
+                Object.entries(result).some(([key, value]) =>
+                    !["conversationId", "sessionId", "connectionId", "messageId", "identityId"].includes(key) || !identifier(value)) ||
+                Object.entries(saved.intent.scope).some(([key, value]) => key in result && result[key] !== value) ||
+                (saved.result !== null && json(saved.result) !== encoded)) fail("different-operation-result");
+            this.#db.prepare("UPDATE intents SET result_json=? WHERE operation_id=?").run(encoded, operationId);
+            return this.#read(operationId);
+        });
+    }
+    discovery() {
+        this.#owned();
+        return this.#db.prepare("SELECT * FROM intents ORDER BY rowid").all().map(row => this.#decode(row))
+            .filter(value => value.result !== null).map(value => ({ actor: value.intent.actor,
+                operationId: value.operationId, command: value.intent.command, result: value.result }));
+    }
     /** UI progress excludes private command bodies and saved SDK references. */
     progress(actor) {
         if (!roles.has(actor)) fail("invalid-app-actor");
@@ -194,7 +233,8 @@ export class AppIntents {
             .filter(value => value.intent.actor === actor).map(value => {
             return { operationId: value.operationId, actor: value.intent.actor, command: value.intent.command,
                 submission: value.phase, state: value.snapshot?.state ?? null, revision: value.snapshot?.revision ?? null,
-                needsRecovery: ["attempted", "uncertain"].includes(value.phase) };
+                needsRecovery: ["attempted", "uncertain"].includes(value.phase) ||
+                    (value.snapshot?.state === "completed" && value.result === null) };
         });
     }
     close() {
