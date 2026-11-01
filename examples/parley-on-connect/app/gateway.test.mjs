@@ -15,7 +15,7 @@ const actors = { owner: { identityId: "id-owner", config: "private-owner.toml", 
 const commands = ["conversation.create", "message.send", "session.invite", "session.accept", "session.reject", "session.cancel", "session.end", "connection.update"];
 function fixture() {
     const service = { records: new Map(), calls: [], reads: [], clients: [], lost: false, allowed: true,
-        membershipEpoch: 1, topology: 3, streamRevision: 8 };
+        membershipEpoch: 1, topology: 3, streamRevision: 8, pageSize: 100, topologyPages: 0 };
     const permitted = () => { if (!service.allowed) throw Object.assign(Error("private refusal reason"), { kind: "authentication", certainty: "read-only" }); };
     service.createClient = actor => {
         const current = { actor, closed: false, closes: 0 }; service.clients.push(current);
@@ -62,7 +62,7 @@ function fixture() {
             capabilities: { refresh: async () => { permitted(); return { selectedTransport: "quic", features: new Set(["original-id-operations"]) }; } },
             conversations: { byId: conversation, create: (sdk, options) => mutate("conversation.create", {}, sdk, options, { id: "conversation-created" }) },
             raw: { validate: value => {
-                if (value.type === "conversation.get") {
+                if (value.type === "conversation.get" && value.payload.limit !== undefined) {
                     const limit = frozen.$defs.ConversationGet.properties.limit;
                     assert.ok(Number.isInteger(value.payload.limit) && value.payload.limit >= limit.minimum && value.payload.limit <= limit.maximum,
                         "Application topology requests must satisfy the frozen public wire limit");
@@ -73,11 +73,18 @@ function fixture() {
                 if (envelope.type === "conversation.list") return [frame("ack", { details: { page: { conversations: [{ id: "conversation-created", closed: false }], next_cursor: null } } })];
                 if (envelope.type === "message.history") return [frame("message.send", { msg_id: "message-1", from: "participant-owner", body: "visible text", content_type: "text/plain", body_encoding: "utf8" }), frame("ack", {})];
                 assert.equal(envelope.type, "conversation.get");
-                return [frame("conversation.snapshot", { revision: 1, cursor: "watermark", has_more: false, items: [
+                assert.ok((envelope.payload.limit ?? service.pageSize) <= service.pageSize, "Configured server page limits also apply");
+                const items = [
                     { kind: "session", data: { id: "session-1", state: "invited", media: ["data"] } },
                     { kind: "session_participant", data: { session_id: "session-1", participant_id: "participant-organizer", membership_epoch: service.membershipEpoch, state: "invited" } },
                     { kind: "stream", data: { connection_id: "connection-1", stream_id: "stream-1" } },
-                ] })];
+                ];
+                const offset = envelope.payload.page ? Number(envelope.payload.page.replace("page_", "")) : 0;
+                assert.ok(Number.isInteger(offset) && offset >= 0 && offset < items.length);
+                service.topologyPages++;
+                const end = Math.min(offset + service.pageSize, items.length);
+                return [frame("conversation.snapshot", { revision: 1, cursor: "watermark", has_more: end < items.length,
+                    ...(end < items.length ? { next_page: "page_" + end } : {}), items: items.slice(offset, end) })];
             } },
             close: async () => { current.closes++; current.closed = true; },
         };
@@ -142,6 +149,14 @@ test("timeline and invitation recovery use current authorized SDK snapshots rath
     f.service.allowed = false;
     await assert.rejects(f.gateway.view("organizer", "conversation-created"), { kind: "authentication" });
     assert.deepEqual(publicError(Error("private body must not be echoed")), { code: "offline-or-uncertain" });
+    await f.close();
+});
+
+test("topology follows the server's small configured pages and preserves one coherent invitation view", async () => {
+    const service = fixture(); service.pageSize = 1;
+    const f = await setup(service), view = await f.gateway.view("organizer", "conversation-created");
+    assert.equal(service.topologyPages, 3); assert.equal(view.sessions.length, 1);
+    assert.equal(view.sessions[0].appearance, "invited"); assert.equal(view.messages[0].text, "visible text");
     await f.close();
 });
 

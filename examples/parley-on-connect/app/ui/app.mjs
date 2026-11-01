@@ -16,8 +16,11 @@ const explanations = {
     "app-corrupt-local-state": "Saved recovery state is unreadable. Do not repeat the action.",
     "different-original-intent": "This saved action has different contents. Recover its original outcome.",
     "invalid-app-request": "Check the selected people and action, then try again.",
+    "validation": "Check the selected people and action, then refresh the current conversation.",
+    "conflict": "The conversation changed. Refresh to read its current state before choosing another action.",
     "configuration": "The configured client is unavailable. Check local setup and reconnect.",
     "unsupported": "This action is unavailable with the current capabilities.",
+    "unsupported-app-action": "This action is unavailable with the current capabilities.",
     "action-refused": "The action was refused. Check the current conversation and permissions.",
 };
 function notice(text, error = false) { $("notice").textContent = text; $("notice").dataset.error = String(error); }

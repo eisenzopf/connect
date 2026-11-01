@@ -6,7 +6,7 @@ import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { newSetupPlan } from "../examples/parley-on-connect/app/setup.mjs";
+import { newSetupPlan, digest } from "../examples/parley-on-connect/app/setup.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(root, ".local") + "/") && base !== output);
@@ -28,9 +28,11 @@ async function tree(directory) {
 }
 const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/app")),
     installed_sdk: await tree(join(consumer, "node_modules/@rudeless/connect")),
+    runtime: await digest(installation.executable),
     checker: sha(await readFile(fileURLToPath(import.meta.url))),
     installer: sha(await readFile(join(root, "scripts/install-reference-app-candidate.py"))) };
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
+assert.equal(sourceInputs.runtime, installation.binary_sha256);
 const report = { format: "connect/reference-app-installed-control/1", passed: false, checks: [],
     source_revision: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
     source_inputs: sourceInputs, runtime_source_revision: installation.source_revision,
@@ -97,13 +99,13 @@ try {
     }
     check("actual-public-helper-validates-all-generated-identity-intents");
     const envelope = { v: 2, id: "snapshot-contract-probe", ts: new Date().toISOString(), type: "conversation.get", cid: "conversation-contract-probe" };
-    for (const [limit, valid] of [[128, false], [127, true]]) {
+    for (const [limit, valid] of [[128, false], [127, true], [undefined, true]]) {
         const result = JSON.parse(execFileSync(installation.executable, ["sdk-validate-envelope"], {
-            input: JSON.stringify({ ...envelope, payload: { limit } }), timeout: 2000,
+            input: JSON.stringify({ ...envelope, payload: limit === undefined ? {} : { limit } }), timeout: 2000,
             maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
         assert.equal(result.profile, "connect-sdk-validation/1"); assert.equal(result.valid, valid);
     }
-    check("actual-public-helper-refuses-128-and-accepts-127-snapshot-items");
+    check("actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages");
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
     const origin = await start(1); check("one-command-four-actor-scoped-setup-ready");
     context = await chromium.launchPersistentContext(join(output, "profile"), { headless: true,
@@ -217,6 +219,9 @@ try {
         JSON.stringify(await tree(join(consumer, "node_modules/@rudeless/connect"))) === JSON.stringify(sourceInputs.installed_sdk) &&
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
         sha(await readFile(join(root, "scripts/install-reference-app-candidate.py"))) === sourceInputs.installer;
+    report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
+    report.application_runtime_matches = await digest(join(state, "runtime/connect")).then(value => value === sourceInputs.runtime).catch(() => null);
+    if (!report.runtime_unchanged || report.application_runtime_matches !== true) report.passed = false;
     if (!report.sources_unchanged) report.passed = false;
     if (!report.passed) process.exitCode = 1;
     await writeFile(join(output, "summary.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

@@ -104,10 +104,11 @@ export class AppGateway {
     }
     async #topology(role, cid, options) {
         let page, cursor, revision, watermark; const items = [];
-        // The frozen wire limit is 127 items; the remaining reply slot is the
-        // acknowledgement. Keep the application's 2048-item ceiling across pages.
-        for (let count = 0; count < Math.ceil(2048 / 127); count++) {
-            const frames = await this.#raw(role, "conversation.get", { limit: 127, ...(page ? { page } : {}) }, cid, options);
+        // Let the server select a page within its configured limit. The wire
+        // maximum (127) can exceed an installation's page size (100 by default).
+        // Even a one-item page keeps the same total ceiling and shared deadline.
+        for (let count = 0; count < 2048; count++) {
+            const frames = await this.#raw(role, "conversation.get", page ? { page } : {}, cid, options);
             const snapshot = frames.find(frame => frame.type === "conversation.snapshot")?.payload;
             if (!snapshot || !Array.isArray(snapshot.items) || typeof snapshot.has_more !== "boolean") fail("app-resync-required");
             if (revision === undefined) { revision = snapshot.revision; watermark = snapshot.cursor; }
@@ -115,6 +116,7 @@ export class AppGateway {
             items.push(...snapshot.items);
             if (items.length > 2048) fail("app-snapshot-capacity");
             if (!snapshot.has_more) return items;
+            if (snapshot.items.length === 0) fail("app-resync-required");
             cursor = snapshot.next_page;
             if (typeof cursor !== "string" || cursor === page) fail("app-resync-required");
             page = cursor;

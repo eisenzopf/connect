@@ -14,32 +14,32 @@
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "2afda1c687667d39c6b16d6097104c1e3c530f6bd3009382be5c468f3431ef2e",
-    "examples/parley-on-connect/app/gateway.test.mjs": "84c607bb7a7e1163b9048d4769248de7f81bb21346c388705e2be7852f64d4fe",
+    "examples/parley-on-connect/app/gateway.mjs": "5d01031571032cffe2136b97cd3b1ea11c5d87714d9b4393d906b95cfea1cf81",
+    "examples/parley-on-connect/app/gateway.test.mjs": "534130256a4b39a7556e99946bd6012f3a34a296249bd1d86d155e4cf230cf8e",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
     "examples/parley-on-connect/app/server.mjs": "f80df1a83278628acf45901b5d174848a06f8ead2b171c00a74ad5ba67b60cf4",
     "examples/parley-on-connect/app/server.test.mjs": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
     "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
-    "examples/parley-on-connect/app/ui/app.mjs": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
+    "examples/parley-on-connect/app/ui/app.mjs": "8fb3097d8b3afa56bce8a61b36faa178b51a73d78b3f1325900e0d0014f4c015",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
     "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
     "examples/parley-on-connect/app/run.mjs": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
     "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
     "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "a3a876e5826815370ea8237607028578b6b0c50c29d3773a8e4f974738b208dd",
-    ".github/workflows/gate6-reference-app.yml": "dd7a4962113142bebed2d65a2fc3fa5e75a32b27dca334e2b8d4060d67db805b",
+    "scripts/check-reference-app-installed.mjs": "4eac1e71721f1f7eb0fd5a3342ec6a9d859525f432b77bcb5897b3e2c8d4036d",
+    ".github/workflows/gate6-reference-app.yml": "e7930fa4636a4b8306760bf732d07eeb472ea4597489b77d16a81ea25c2b6cee",
     "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 24,
+    "functions_passed": 25,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "7 journal,8 SDK-shaped gateway,5 real HTTP/socket,3 setup and1 closed-diagnostic privacy case pass locally. Earlier actual Node22 CI passes23 pre-diagnostic component cases on both platforms. See exact separate actual production/backend observations; no full app pass."
+    "scope": "7 journal,9 SDK-shaped gateway,5 real HTTP/socket,3 setup and1 closed-diagnostic privacy case pass locally. New gateway test uses server page_size1 and three coherent snapshot pages; frozen wire and server page ceilings are independently enforced. Actual production observations remain separate and incomplete."
   },
   "remaining_requirements": [
     "Verify actual one-command startup/scoped enrollment, restart and original recovery; current three setup tests use SDK/CLI-shaped fixtures.",
@@ -70,13 +70,14 @@
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "Both98f71e78 platform reports source-verified: production alias guard, actual one-command setup and native SDK/browser connection pass. Diagnostic dfb6df98 Mac confirms conversation.create completes but view fails frozen validation: topology limit128 exceeds127. Correct wire limit and preserve2048 total items through17pages; add actual production parser before/after check. All24 local cases pass. No full installed app or task pass yet.",
+    "status": "Mac-only8f8606cf/run41260004956 source-verified failed: production wire128/127 guard, actual setup and installed SDK/browser connection pass. Original create completes, but explicit127 view pages exceed configured server100 and refuse. Omit explicit topology size and follow server pages under unchanged total-item/deadline bounds; production before/after/default guard and full app flow must rerun. Separate full two-platform261ec098/run41259849923 remains pending behind live dfb Linux prerequisite installation; its code predates server-default-page correction. Mac-only lane is diagnostic, not two-platform qualification.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"
     ],
     "runtime_candidate_source": "3732254f379a83a33da42024872ea0ec1481c9fc",
     "scope": "Exact previously independently verified complete candidate ZIP/tar/manifest and selected native/npm assets; cold offline ordinary SDK install; current app source copied outside checkout; actual one-command startup, browser keyboard text/invitations, lost-response offline/original recovery, same-command restart and original group/browser joins. No compilation/media/model/provider lane.",
-    "negative_evidence": "docs/evidence/gate-6/reference-app-installed-negative.json"
+    "negative_evidence": "docs/evidence/gate-6/reference-app-installed-negative.json",
+    "macos_diagnostic_dispatch": "gate6-linux-fixtures.yml lane reference-app-macos; independent concurrency; whole-app qualification still requires both platforms"
   }
 }
