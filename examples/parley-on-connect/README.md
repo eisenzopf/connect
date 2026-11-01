@@ -90,6 +90,23 @@ Connection or negotiated binding changes. There is no automatic capture restart.
 The browser holds no backend credentials. Per-packet native checks and a separate
 owned read-only signed control supervisor retain current authorization; retiring
 that supervisor cannot cancel the client owning original actions/native media.
+
+The app's private same-origin HTTP media boundary batches at most eight original
+packets per request to amortize round trips. `POST /api/media/send` accepts
+`{leaseId, streamId, packets: [{sequence, remainingMs, packet}]}`; each packet is
+the original `{kind: "rtp", base64}` or `{kind: "clock", report}` value.
+`remainingMs` is an integer from 1 through 200 and continues counting down during
+the batch. The response's ordered `submissions` retain each original
+`datagramSequence` and either its SDK `local-media-queue` boundary or `expired`.
+`POST /api/media/receive` accepts `{leaseId, streamId}` and returns
+`{packets: [...]}` with zero through eight ordered original RTP/clock/gap values.
+It long-polls the first packet, then drains for at most four milliseconds without
+waiting to fill a batch. The bridge rechecks the current binding between packets;
+the SDK and service still authorize each original packet. RTP stays within 1180
+bytes, requests/responses within 64 KiB, and original source timestamps, frame
+queue capacities and playback limits are unchanged. A fragmented video frame's
+remaining packet sequences precede its next sender report.
+
 The AV rehearsal uses separate owned synthetic red/green cameras and requires
 the other marker at decoded, painted output, with video source-clock reports;
 those checks do not use a local preview as evidence of reception.

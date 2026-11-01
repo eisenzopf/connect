@@ -337,9 +337,9 @@ test("media bridge opens only the current own present Session and fences SDK IO 
     await assert.rejects(f.gateway.mediaOpen("owner", owner, binding), { code: "app-resync-required" });
     f.service.sessionState = "accepted";
     const lease = await f.gateway.mediaOpen("owner", owner, binding);
-    const send = { leaseId: lease.leaseId, streamId: "stream-1", sequence: 1,
-        packet: { kind: "rtp", base64: Buffer.from([128,111,0,1,0,0,3,192,0,0,0,7,1]).toString("base64") } };
-    assert.equal((await f.gateway.mediaSend("owner", owner, send)).boundary, "local-media-queue");
+    const send = { leaseId: lease.leaseId, streamId: "stream-1", packets: [{ sequence: 1, remainingMs: 200,
+        packet: { kind: "rtp", base64: Buffer.from([128,111,0,1,0,0,3,192,0,0,0,7,1]).toString("base64") } }] };
+    assert.equal((await f.gateway.mediaSend("owner", owner, send)).submissions[0].boundary, "local-media-queue");
     f.service.allowed = false;
     await assert.rejects(f.gateway.mediaSend("owner", owner, send), { kind: "authentication" });
     assert.equal(f.service.packetCalls.length, 1);
@@ -472,7 +472,7 @@ test("media admission and new Connection preparation accept current ready/active
         const f = await setup(); t.after(() => f.close()); f.service.sessionState = state;
         const owner = {}, binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
         const lease = await f.gateway.mediaOpen("owner", owner, binding);
-        assert.equal((await f.gateway.mediaReceive("owner", owner, { leaseId: lease.leaseId, streamId: "stream-1" })).kind, "gap");
+        assert.equal((await f.gateway.mediaReceive("owner", owner, { leaseId: lease.leaseId, streamId: "stream-1" })).packets[0].kind, "gap");
         await f.gateway.mediaRetire("owner", owner, { leaseId: lease.leaseId });
         f.service.connectionPresent = false;
         const prepared = await f.gateway.prepareIntent("owner", "join-" + state,

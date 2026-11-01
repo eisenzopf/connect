@@ -140,6 +140,8 @@ test("static SDK serving refuses traversal private configuration and symlink tar
     const playout = await fetch(f.server.origin + "/media-playout.mjs");
     assert.equal(playout.status, 200);
     assert.match(await playout.text(), /export class VideoPlayout/);
+    const send = await fetch(f.server.origin + "/media-send.mjs");
+    assert.equal(send.status, 200); assert.match(await send.text(), /export function takeMediaSendBatch/);
 });
 
 test("HTTP actions keep preparation and submission separate and bind the captured actor", async t => {
@@ -198,6 +200,22 @@ test("HTTP media retirement names the original lease and rejects extra untrusted
     assert.deepEqual(await (await f.api("media/close", { leaseId: "one" })).json(), { stopped: true });
     assert.equal(retired[0].role, "owner"); assert.deepEqual(retired[0].input, { leaseId: "one" });
     assert.equal(typeof retired[0].owner, "object");
+});
+
+test("HTTP packet batches retain private browser ownership and reject the old unbatched shape", async t => {
+    const f = await fixture(t), requests = [];
+    f.gateway.mediaSend = async (role, owner, input) => {
+        requests.push({ role, owner, input }); return { submissions: [{ boundary: "local-media-queue", datagramSequence: 7 }] };
+    };
+    const input = { leaseId: "original-lease", streamId: "original-stream", packets: [
+        { sequence: 7, remainingMs: 180, packet: { kind: "rtp", base64: "synthetic" } }] };
+    const result = await f.api("media/send", input);
+    assert.equal(result.status, 200); assert.equal((await result.json()).submissions[0].datagramSequence, 7);
+    assert.equal(requests[0].role, "owner"); assert.equal(typeof requests[0].owner, "object");
+    assert.deepEqual(requests[0].input, input);
+    assert.equal((await f.api("media/send", { leaseId: "original-lease", streamId: "original-stream", sequence: 7,
+        packet: input.packets[0].packet })).status, 400);
+    assert.equal(requests.length, 1);
 });
 
 test("abandoned HTTP open retires only the lease returned by that original request", async t => {

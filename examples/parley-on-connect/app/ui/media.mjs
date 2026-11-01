@@ -1,11 +1,12 @@
 import { BrowserOpusCodec, BrowserVp8Codec, RtpSender, Vp8Assembler,
     decodeRtpDatagram, browserCodecSupport } from "/sdk/browser.js";
-import { MediaTimeline, rtpTimestamp, CaptureClock, playoutTime } from "./media-clock.mjs";
+import { MediaTimeline, CaptureClock, playoutTime } from "./media-clock.mjs";
 import { VideoPlayout } from "./media-playout.mjs";
+import { takeMediaSendBatch } from "./media-send.mjs";
 const fail = code => { throw Object.assign(Error(code), { code }); };
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 function unbase64(value) {
-    if (typeof value !== "string" || value.length > 21864) fail("app-media-packet");
+    if (typeof value !== "string" || value.length > 1576) fail("app-media-packet");
     return Uint8Array.from(atob(value), c => c.charCodeAt(0));
 }
 export class BrowserAppMedia {
@@ -32,7 +33,7 @@ export class BrowserAppMedia {
         return { ...this.#counts, phase: this.#phase, stoppedAt: this.#stoppedAt, stopReason: this.#stopReason, activeTracks: this.#stream?.getTracks().filter(t => t.readyState === "live").length ?? 0,
             activeContexts: this.#context && this.#context.state !== "closed" ? 1 : 0,
             queuedAudioSources: this.#sources.size,
-            queuedSendFrames: [...this.#routes.values()].reduce((n, r) => n + r.queue.length, 0),
+            queuedSendFrames: [...this.#routes.values()].reduce((n, r) => n + r.queue.length + r.pendingFrames, 0),
             queuedVideoFrames: [...this.#routes.values()].reduce((n, r) => n + (r.videoPlayout?.size ?? 0), 0),
             pendingRequests: this.#calls.size, stopped: this.#stopped };
     }
@@ -195,7 +196,7 @@ export class BrowserAppMedia {
             const binding = { handle: stream.streamLocalId, streamId: stream.id, connectionId: this.#binding.connectionId,
                 sessionId: this.#binding.sessionId, generation: lease.generation, kind: stream.medium, codec,
                 payloadType: stream.codec.params?.payload_type, direction: stream.direction };
-            const route = { binding, rate, queue: [], queuedBytes: 0, sending: false, lastReport: -Infinity, captureClock: new CaptureClock(),
+            const route = { binding, rate, queue: [], queuedBytes: 0, pendingFrames: 0, sending: false, lastReport: -Infinity, captureClock: new CaptureClock(),
                 lastAudio: -Infinity, sources: new Set(), assembler: new Vp8Assembler() };
             this.#routes.set(binding.streamId, route);
             if (["sendonly", "sendrecv"].includes(binding.direction)) {
@@ -241,7 +242,7 @@ export class BrowserAppMedia {
     #enqueue(route, frame) {
         if (this.#stopped) return;
         const capacity = route.binding.kind === "audio" ? 10 : 2;
-        if (route.queue.length >= capacity || route.queuedBytes + frame.bytes.length > 76032) {
+        if (route.queue.length + route.pendingFrames >= capacity || route.queuedBytes + frame.bytes.length > 76032) {
             this.#counts.droppedFrames++; route.encoder.requestKeyFrame?.(); return;
         }
         const captured = { bytes: frame.bytes.slice(), timestampUs: frame.timestampUs, queuedAt: performance.now() };
@@ -252,30 +253,40 @@ export class BrowserAppMedia {
         route.sending = true;
         try {
             while (!this.#stopped && route.queue.length) {
-                const frame = route.queue.shift(); route.queuedBytes -= frame.bytes.length;
-                if (performance.now() - frame.queuedAt >= 200) { this.#counts.droppedFrames++; route.encoder.requestKeyFrame?.(); continue; }
-                const packets = route.sender.packetize(frame.bytes, rtpTimestamp(frame.timestampUs, route.rate));
+                // Amortize HTTP round trips over frames that are already queued.
+                // No fill timer, new source origin or additional frame queue.
+                const batch = takeMediaSendBatch(route, () => performance.now(), () => {
+                    this.#counts.droppedFrames++; route.encoder.requestKeyFrame?.();
+                });
+                const datagrams = batch.packets.map(v => v.datagram), packets = batch.packets.map(({ datagram, remainingMs }) => ({
+                    sequence: decodeRtpDatagram(datagram).datagramSequence, remainingMs,
+                    packet: { kind: "rtp", base64: base64(datagram.subarray(8)) },
+                }));
+                if (!packets.length) continue;
+                let result;
+                try { result = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId, packets }); }
+                finally { route.pendingFrames = 0; }
+                if (!Array.isArray(result.submissions) || result.submissions.length !== packets.length) fail("app-media-packet");
                 let stats;
-                for (const datagram of packets) {
-                    this.#check();
-                    if (performance.now() - frame.queuedAt >= 200) {
-                        this.#counts.droppedFrames++; route.encoder.requestKeyFrame?.(); break;
+                for (let i = 0; i < packets.length; i++) {
+                    const receipt = result.submissions[i];
+                    if (receipt.datagramSequence !== packets[i].sequence) fail("app-media-packet");
+                    if (receipt.boundary === "expired") {
+                        this.#counts.droppedFrames++; route.encoder.requestKeyFrame?.(); continue;
                     }
-                    const parsed = decodeRtpDatagram(datagram);
-                    const result = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId,
-                        sequence: parsed.datagramSequence, packet: { kind: "rtp", base64: base64(datagram.subarray(8)) } });
-                    if (result.boundary !== "local-media-queue" || result.datagramSequence !== parsed.datagramSequence) fail("app-media-packet");
-                    this.#counts.sentRtp++; stats = route.sender.submitted(datagram);
+                    if (receipt.boundary !== "local-media-queue") fail("app-media-packet");
+                    this.#counts.sentRtp++; stats = route.sender.submitted(datagrams[i]);
                 }
-                // Allocate the SR sequence after this frame's RTP fragments so
+                // Allocate the SR sequence after the current frame's fragments so
                 // both RTP and clock writes preserve their original order.
-                if (stats && performance.now() - route.lastReport >= 1000) {
+                if (stats && batch.frameComplete && performance.now() - route.lastReport >= 1000) {
                     const sequence = route.sender.nextDatagramSequence();
                     const report = route.captureClock.sample(route.rate, stats, this.#cname);
                     if (!report) fail("app-media-clock");
-                    const clock = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId, sequence,
-                        packet: { kind: "clock", report } });
-                    if (clock.boundary !== "local-media-queue" || clock.datagramSequence !== sequence) fail("app-media-packet");
+                    const clock = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId,
+                        packets: [{ sequence, remainingMs: 200, packet: { kind: "clock", report } }] });
+                    if (clock.submissions?.length !== 1 || clock.submissions[0].boundary !== "local-media-queue" ||
+                        clock.submissions[0].datagramSequence !== sequence) fail("app-media-packet");
                     this.#counts.clockReportsSent++;
                     if (route.binding.kind === "video") this.#counts.videoClockReportsSent++;
                     route.lastReport = performance.now();
@@ -285,42 +296,46 @@ export class BrowserAppMedia {
     }
     async #receive(route) {
         while (!this.#stopped) {
-            const packet = await this.#call("receive", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId });
+            const batch = await this.#call("receive", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId });
             this.#check();
-            if (packet.kind === "idle") continue;
-            if (packet.kind === "gap") { route.assembler.clear(); this.#counts.droppedFrames++; continue; }
-            if (packet.kind === "clock") {
-                if (this.#timeline.report(route.binding.streamId, packet.report)) {
-                    this.#counts.clockReportsReceived++;
-                    if (route.binding.kind === "video") this.#counts.videoClockReportsReceived++;
-                }
-                continue;
+            if (!Array.isArray(batch.packets) || batch.packets.length > 8) fail("app-media-packet");
+            for (const packet of batch.packets) this.#receivePacket(route, packet);
+        }
+    }
+    #receivePacket(route, packet) {
+        this.#check();
+        if (packet.kind === "gap") { route.assembler.clear(); this.#counts.droppedFrames++; return; }
+        if (packet.kind === "clock") {
+            if (this.#timeline.report(route.binding.streamId, packet.report)) {
+                this.#counts.clockReportsReceived++;
+                if (route.binding.kind === "video") this.#counts.videoClockReportsReceived++;
             }
-            if (packet.kind !== "rtp") fail("app-media-packet");
-            if (!Number.isInteger(packet.sequence) || packet.sequence < 0 || packet.sequence > 0xffffffff) fail("app-media-packet");
-            const raw = unbase64(packet.base64), wire = new Uint8Array(raw.length + 8), header = new DataView(wire.buffer);
-            wire[0] = 1; header.setUint16(2, route.binding.handle); header.setUint32(4, packet.sequence); wire.set(raw, 8);
-            const parsed = decodeRtpDatagram(wire);
-            if (parsed.payloadType !== route.binding.payloadType) fail("app-media-packet");
-            this.#counts.receivedRtp++;
-            const timing = this.#timeline.timestamp(route.binding.streamId, parsed.ssrc, parsed.timestamp);
-            if (timing.synchronized) this.#counts.synchronizedPackets++; else this.#counts.unsynchronizedPackets++;
-            if (timing.changed || timing.clockChanged) {
-                // Pending decoder output belongs to the old clock epoch too.
-                this.#decoder(route); route.assembler.clear();
-                if (timing.clockChanged) this.#counts.receiveClockCorrections++;
-                route.lastAudio = -Infinity;
-                for (const source of route.sources) { try { source.stop(); } catch {} source.disconnect(); this.#sources.delete(source); }
-                route.sources.clear(); route.videoPlayout?.clear();
-            }
-            if (route.binding.kind === "audio") {
-                if (timing.timestampUs <= route.lastAudio) { this.#counts.droppedFrames++; continue; }
-                route.lastAudio = timing.timestampUs;
-                if (!route.decoder.decode(parsed.payload, timing.timestampUs)) this.#counts.droppedFrames++;
-            } else {
-                const frame = route.assembler.push(parsed);
-                if (frame && !route.decoder.decode(frame, timing.timestampUs)) this.#counts.droppedFrames++;
-            }
+            return;
+        }
+        if (packet.kind !== "rtp") fail("app-media-packet");
+        if (!Number.isInteger(packet.sequence) || packet.sequence < 0 || packet.sequence > 0xffffffff) fail("app-media-packet");
+        const raw = unbase64(packet.base64), wire = new Uint8Array(raw.length + 8), header = new DataView(wire.buffer);
+        wire[0] = 1; header.setUint16(2, route.binding.handle); header.setUint32(4, packet.sequence); wire.set(raw, 8);
+        const parsed = decodeRtpDatagram(wire);
+        if (parsed.payloadType !== route.binding.payloadType) fail("app-media-packet");
+        this.#counts.receivedRtp++;
+        const timing = this.#timeline.timestamp(route.binding.streamId, parsed.ssrc, parsed.timestamp);
+        if (timing.synchronized) this.#counts.synchronizedPackets++; else this.#counts.unsynchronizedPackets++;
+        if (timing.changed || timing.clockChanged) {
+            // Pending decoder output belongs to the old clock epoch too.
+            this.#decoder(route); route.assembler.clear();
+            if (timing.clockChanged) this.#counts.receiveClockCorrections++;
+            route.lastAudio = -Infinity;
+            for (const source of route.sources) { try { source.stop(); } catch {} source.disconnect(); this.#sources.delete(source); }
+            route.sources.clear(); route.videoPlayout?.clear();
+        }
+        if (route.binding.kind === "audio") {
+            if (timing.timestampUs <= route.lastAudio) { this.#counts.droppedFrames++; return; }
+            route.lastAudio = timing.timestampUs;
+            if (!route.decoder.decode(parsed.payload, timing.timestampUs)) this.#counts.droppedFrames++;
+        } else {
+            const frame = route.assembler.push(parsed);
+            if (frame && !route.decoder.decode(frame, timing.timestampUs)) this.#counts.droppedFrames++;
         }
     }
     #desired(timestampUs) {
@@ -399,7 +414,7 @@ export class BrowserAppMedia {
         this.#sources.clear();
         for (const route of this.#routes.values()) {
             route.encoder?.close(); route.decoder?.close(); route.assembler.clear(); route.sources.clear();
-            route.queue.length = 0; route.queuedBytes = 0; route.videoPlayout?.close();
+            route.queue.length = 0; route.queuedBytes = 0; route.pendingFrames = 0; route.videoPlayout?.close();
             if (route.canvas) { route.canvas.canvas.width = 0; route.canvas.canvas.height = 0; }
         }
         this.#routes.clear(); this.#timeline.clear(); this.#remote?.replaceChildren();

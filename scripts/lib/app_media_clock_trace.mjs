@@ -16,7 +16,7 @@ export class AppMediaClockTrace {
     attach(page, label, origin) {
         if (this.#closed || !labels.has(label) || this.#pages.length >= 4 || new URL(origin).origin !== origin)
             throw Error("invalid-owned-clock-trace-page");
-        const state = { label, leases: new Map(), routes: new Map(), ntpOrigin: undefined,
+        const state = { label, leases: new Map(), routes: new Map(), ntpOrigin: undefined, order: 0,
             observed_responses: 0, skipped_pending: 0, observation_failures: 0, response_errors: 0 };
         this.#pages.push(state);
         const listener = response => {
@@ -45,28 +45,31 @@ export class AppMediaClockTrace {
                 }
                 const lease = this.#lease(state, input.leaseId), route = this.#route(state, lease, input.streamId);
                 const direction = url.pathname === "/api/media/send" ? "send" : "receive";
-                const packet = direction === "send" ? input.packet : output;
-                if (["idle", "gap"].includes(packet?.kind)) return;
+                const packets = direction === "send" ? input.packets?.map(entry => entry.packet) : output.packets;
+                if (!Array.isArray(packets) || packets.length > 8) throw Error("trace-batch-bound");
                 const flow = route[direction], timing = request.timing();
                 const duration = Number.isFinite(timing.responseEnd) && timing.responseEnd >= 0 ? timing.responseEnd : null;
-                const row = { observed_elapsed_ms: elapsed, request_duration_ms: duration };
-                if (packet?.kind === "clock") {
-                    const p = packet.report;
-                    if (!p || ![p.ssrc, p.rtp, p.packets, p.octets].every(uint) || typeof p.ntp !== "string" ||
-                        !/^(0|[1-9][0-9]{0,19})$/.test(p.ntp) || BigInt(p.ntp) >= 2n ** 64n) throw Error("trace-clock-shape");
-                    state.ntpOrigin ??= BigInt(p.ntp);
-                    Object.assign(row, { source_slot: this.#source(flow, p.ssrc), rtp: p.rtp,
-                        ntp_delta_ms: Number(BigInt.asIntN(64, BigInt(p.ntp) - state.ntpOrigin) * 1000000n / (1n << 32n)) / 1000,
-                        packets: p.packets, octets: p.octets, usable: BigInt(p.ntp) !== 0n && p.packets > 0 });
-                    flow.clocks_seen++; retain(flow.first_clocks, flow.last_clocks, row, 8, 16);
-                } else if (packet?.kind === "rtp") {
-                    if (typeof packet.base64 !== "string" || packet.base64.length > 1576) throw Error("trace-rtp-bound");
-                    const b = Buffer.from(packet.base64, "base64");
-                    if (b.length < 12 || b.length > 1180 || b[0] >>> 6 !== 2) throw Error("trace-rtp-shape");
-                    Object.assign(row, { source_slot: this.#source(flow, b.readUInt32BE(8)),
-                        rtp: b.readUInt32BE(4), sequence: b.readUInt16BE(2), payload_type: b[1] & 127 });
-                    flow.rtp_seen++; retain(flow.first_rtp, flow.last_rtp, row, 16, 32);
-                } else throw Error("trace-packet-kind");
+                for (const packet of packets) {
+                    if (packet?.kind === "gap") continue;
+                    const row = { observed_elapsed_ms: elapsed, request_duration_ms: duration, observation_order: state.order++ };
+                    if (packet?.kind === "clock") {
+                        const p = packet.report;
+                        if (!p || ![p.ssrc, p.rtp, p.packets, p.octets].every(uint) || typeof p.ntp !== "string" ||
+                            !/^(0|[1-9][0-9]{0,19})$/.test(p.ntp) || BigInt(p.ntp) >= 2n ** 64n) throw Error("trace-clock-shape");
+                        state.ntpOrigin ??= BigInt(p.ntp);
+                        Object.assign(row, { source_slot: this.#source(flow, p.ssrc), rtp: p.rtp,
+                            ntp_delta_ms: Number(BigInt.asIntN(64, BigInt(p.ntp) - state.ntpOrigin) * 1000000n / (1n << 32n)) / 1000,
+                            packets: p.packets, octets: p.octets, usable: BigInt(p.ntp) !== 0n && p.packets > 0 });
+                        flow.clocks_seen++; retain(flow.first_clocks, flow.last_clocks, row, 8, 16);
+                    } else if (packet?.kind === "rtp") {
+                        if (typeof packet.base64 !== "string" || packet.base64.length > 1576) throw Error("trace-rtp-bound");
+                        const b = Buffer.from(packet.base64, "base64");
+                        if (b.length < 12 || b.length > 1180 || b[0] >>> 6 !== 2) throw Error("trace-rtp-shape");
+                        Object.assign(row, { source_slot: this.#source(flow, b.readUInt32BE(8)),
+                            rtp: b.readUInt32BE(4), sequence: b.readUInt16BE(2), payload_type: b[1] & 127 });
+                        flow.rtp_seen++; retain(flow.first_rtp, flow.last_rtp, row, 16, 32);
+                    } else throw Error("trace-packet-kind");
+                }
                 state.observed_responses++;
             })().catch(() => { if (!this.#closed) state.observation_failures++; })
                 .finally(() => this.#pending.delete(reading));
@@ -114,7 +117,7 @@ export class AppMediaClockTrace {
                 return { route_slot: route.route_slot, lease_slot: route.lease_slot, medium: route.medium, rate: route.rate,
                     send: flow(route.send), receive: flow(route.receive) };
             }) }));
-        const result = { format: "connect/app-media-clock-trace/1", original_requests_and_responses_only: true,
+        const result = { format: "connect/app-media-clock-trace/2", original_requests_and_responses_only: true,
             pending_reads_at_finish: this.#pending.size, pages,
             scope: "Bounded original HTTP request/response observations from the fixture process. NTP deltas share the first observed page clock; stream/lease/SSRC values are replaced by local slots. No payloads, CNAMEs, identifiers, clock correction, decoder completion or browser presentation measurement. No media qualification." };
         result.observer_clock_replay = replayMediaClockTrace(result);
@@ -147,7 +150,8 @@ export function replayMediaClockTrace(trace) {
                 events.push({ route, row, clock: true });
             for (const row of route.receive.rtp) events.push({ route, row, clock: false });
         }
-        events.sort((a, b) => a.row.observed_elapsed_ms - b.row.observed_elapsed_ms || Number(b.clock) - Number(a.clock));
+        events.sort((a, b) => a.row.observed_elapsed_ms - b.row.observed_elapsed_ms ||
+            (a.row.observation_order ?? 0) - (b.row.observation_order ?? 0) || Number(b.clock) - Number(a.clock));
         for (const { route, row, clock } of events) {
             now = row.observed_elapsed_ms;
             const timeline = leases.get(route.lease_slot), id = String(route.route_slot), summary = summaries.get(route.route_slot);

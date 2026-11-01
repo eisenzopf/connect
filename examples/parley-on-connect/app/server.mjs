@@ -102,7 +102,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
             response.setHeader("Set-Cookie", cookieName + "=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600");
             await serve(response, join(assets, "index.html"), "text/html"); return;
         }
-        if (request.method === "GET" && ["/app.mjs", "/app.css", "/media.mjs", "/audio-worklet.mjs", "/media-clock.mjs", "/media-session.mjs", "/media-playout.mjs"].includes(url.pathname)) {
+        if (request.method === "GET" && ["/app.mjs", "/app.css", "/media.mjs", "/audio-worklet.mjs", "/media-clock.mjs", "/media-session.mjs", "/media-playout.mjs", "/media-send.mjs"].includes(url.pathname)) {
             await serve(response, join(assets, url.pathname.slice(1)), url.pathname.endsWith(".css") ? "text/css" : "text/javascript"); return;
         }
         if (request.method === "GET" && url.pathname.startsWith("/sdk/")) {
@@ -154,7 +154,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
                 object(input, ["conversationId", "sessionId", "connectionId"]);
                 value = await mediaAction(() => gateway.mediaOpen(actor, mediaOwner, input)); break;
             case "/api/media/send":
-                object(input, ["leaseId", "streamId", "sequence", "packet"]);
+                object(input, ["leaseId", "streamId", "packets"]);
                 value = await mediaAction(() => gateway.mediaSend(actor, mediaOwner, input)); break;
             case "/api/media/receive":
                 object(input, ["leaseId", "streamId"]);

@@ -20,7 +20,7 @@ function response(path, input, output, body, host = origin) {
 }
 function observe(page, path, value, direction = "receive") {
     page.emit("response", response(path, { leaseId: lease, streamId: stream,
-        ...(direction === "send" ? { packet: value } : {}) }, direction === "send" ? { boundary: "local-media-queue" } : value));
+        ...(direction === "send" ? { packets: [{ packet: value }] } : {}) }, direction === "send" ? { submissions: [{ boundary: "local-media-queue" }] } : { packets: [value] }));
 }
 
 test("original send/receive clocks, packets and HTTP timing retain no payload or private identifiers", async () => {
@@ -55,7 +55,7 @@ test("pending original reads are bounded and joined before a stable trace is ret
     const t = new AppMediaClockTrace(), page = new EventEmitter(), releases = [];
     t.attach(page, "organizer-audio", origin);
     for (let i = 0; i < 5; i++) {
-        const heldBody = () => new Promise(done => { releases.push(() => done(Buffer.from(JSON.stringify(rtp(i))))); });
+        const heldBody = () => new Promise(done => { releases.push(() => done(Buffer.from(JSON.stringify({ packets: [rtp(i)] })))); });
         page.emit("response", response("/api/media/receive", { leaseId: lease, streamId: stream }, null, heldBody));
     }
     const finish = t.finish(); assert.equal(page.listenerCount("response"), 0);
@@ -81,4 +81,18 @@ test("observer replay identifies packets already late before browser decoding wi
     assert.equal(result.received_source_age.p50_ms, 150);
     assert.equal(result.estimated_playout_offset.p50_ms, -70);
     assert.equal(JSON.stringify(trace), original);
+});
+
+test("one original batch retains packet order and refuses more than eight entries", async () => {
+    const t = new AppMediaClockTrace(), page = new EventEmitter(); t.attach(page, "owner-audio", origin);
+    page.emit("response", response("/api/media/open", {}, open())); await drain();
+    page.emit("response", response("/api/media/receive", { leaseId: lease, streamId: stream },
+        { packets: [rtp(1), clock("10000000000"), rtp(2)] })); await drain();
+    page.emit("response", response("/api/media/receive", { leaseId: lease, streamId: stream },
+        { packets: Array.from({ length: 9 }, (_, i) => rtp(i + 3)) })); await drain();
+    const result = await t.finish(), p = result.pages[0], flow = p.routes[0].receive;
+    assert.equal(p.observation_failures, 1); assert.equal(flow.rtp_seen, 2); assert.equal(flow.clocks_seen, 1);
+    assert.ok(flow.rtp[0].observation_order < flow.clocks[0].observation_order);
+    assert.ok(flow.clocks[0].observation_order < flow.rtp[1].observation_order);
+    assert.equal(result.observer_clock_replay.pages[0].routes[0].unsynchronized_retained_packets, 1);
 });

@@ -101,34 +101,40 @@ export class AppMediaBridge {
             // Signed Connection supervision has its own bounded control lane;
             // it must not serialize a network RPC ahead of every media packet.
             // Core and SDK current authorization remain mandatory for real IO.
-            const current = await lease.handle.check(options);
-            if (fingerprint(current) !== lease.fingerprint) {
-                lease.abort.abort(); fail("app-media-stopped");
-            }
-            this.#require(role, owner, leaseId);
-            const value = await work(lease.handle.media.streamById(streamId), options);
+            const check = async () => {
+                const current = await lease.handle.check(options);
+                if (fingerprint(current) !== lease.fingerprint) {
+                    lease.abort.abort(); fail("app-media-stopped");
+                }
+                this.#require(role, owner, leaseId);
+            };
+            await check();
+            const value = await work(lease.handle.media.streamById(streamId), options, check);
             this.#require(role, owner, leaseId); // Discard late original replies.
             return value;
         })().finally(() => lease.active.delete(key));
         lease.active.set(key, operation);
         return operation;
     }
-    send(role, owner, input) {
-        exact(input, ["leaseId", "streamId", "sequence", "packet"]);
+    #capture(input) {
+        exact(input, ["sequence", "packet", "remainingMs"]);
         if (!Number.isInteger(input.sequence) || input.sequence < 0 || input.sequence > 0xffffffff)
             fail("invalid-app-request");
+        if (!Number.isInteger(input.remainingMs) || input.remainingMs < 1 || input.remainingMs > 200)
+            fail("invalid-app-request");
+        const expires = performance.now() + input.remainingMs, sequence = input.sequence;
         const packet = input.packet;
         if (packet?.kind === "rtp") {
             exact(packet, ["kind", "base64"]);
-            if (typeof packet.base64 !== "string" || packet.base64.length > 21864 ||
+            if (typeof packet.base64 !== "string" || packet.base64.length > 1576 ||
                 !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(packet.base64))
                 fail("invalid-app-request");
             const bytes = Buffer.from(packet.base64, "base64");
-            if (bytes.length < 12 || bytes.length > 16396 || bytes.toString("base64") !== packet.base64)
+            if (bytes.length < 12 || bytes.length > 1180 || bytes.toString("base64") !== packet.base64)
                 fail("invalid-app-request");
             // Copy/validate through the actual installed SDK before async IO.
             const captured = this.#packet(input.sequence, bytes);
-            return this.#run(role, owner, input, "send", (stream, options) => stream.sendRtp(captured, options));
+            return { expires, sequence, send: (stream, options) => stream.sendRtp(captured, options) };
         }
         if (packet?.kind === "clock") {
             exact(packet, ["kind", "report"]);
@@ -139,27 +145,59 @@ export class AppMediaBridge {
                 !/^(0|[1-9][0-9]{0,19})$/.test(report.ntp) || BigInt(report.ntp) >= 2n ** 64n ||
                 typeof report.cname !== "string" || !report.cname || Buffer.byteLength(report.cname) > 255)
                 fail("invalid-app-request");
-            const captured = { ...report, ntp: BigInt(report.ntp) }, sequence = input.sequence;
-            return this.#run(role, owner, input, "send", (stream, options) => stream.sendClock(sequence, captured, options));
+            const captured = { ...report, ntp: BigInt(report.ntp) };
+            return { expires, sequence, send: (stream, options) => stream.sendClock(sequence, captured, options) };
         }
         fail("invalid-app-request");
     }
+    send(role, owner, input) {
+        exact(input, ["leaseId", "streamId", "packets"]);
+        if (!Array.isArray(input.packets) || input.packets.length < 1 || input.packets.length > 8)
+            fail("invalid-app-request");
+        // Validate and copy the entire bounded batch before the first SDK write.
+        const captured = input.packets.map(packet => this.#capture(packet));
+        const binding = { leaseId: input.leaseId, streamId: input.streamId };
+        return this.#run(role, owner, binding, "send", async (stream, options, check) => {
+            const submissions = [];
+            for (const packet of captured) {
+                await check();
+                const remaining = Math.floor(packet.expires - performance.now());
+                if (remaining <= 0) {
+                    submissions.push({ boundary: "expired", datagramSequence: packet.sequence }); continue;
+                }
+                submissions.push(await packet.send(stream, { ...options, timeoutMs: remaining }));
+            }
+            return { submissions };
+        });
+    }
     receive(role, owner, input) {
         exact(input, ["leaseId", "streamId"]);
-        return this.#run(role, owner, input, "receive", async (stream, options) => {
-            let packet;
-            try { packet = await stream.receivePacket({ ...options, timeoutMs: 1000 }); }
-            catch (error) {
-                if (error?.kind === "deadline" && error?.certainty === "read-only")
-                    return { kind: "idle" };
-                throw error;
+        return this.#run(role, owner, input, "receive", async (stream, options, check) => {
+            const packets = []; let drainUntil;
+            while (packets.length < 8) {
+                // Long-poll the first packet, then spend at most four milliseconds
+                // draining original queued packets. Never wait to fill a batch.
+                await check();
+                const timeoutMs = packets.length ? Math.floor(drainUntil - performance.now()) : 1000;
+                if (timeoutMs <= 0) break;
+                let packet;
+                try { packet = await stream.receivePacket({ ...options, timeoutMs }); }
+                catch (error) {
+                    if (error?.kind === "deadline" && error?.certainty === "read-only") break;
+                    throw error;
+                }
+                await check();
+                drainUntil ??= performance.now() + 4;
+                if (packet.kind === "rtp") {
+                    if (packet.bytes.length < 12 || packet.bytes.length > 1180) fail("app-resync-required");
+                    packets.push({ kind: "rtp", sequence: packet.datagramSequence,
+                        base64: Buffer.from(packet.bytes).toString("base64") });
+                } else if (packet.kind === "clock") packets.push({ kind: "clock", sequence: packet.datagramSequence,
+                    report: { ...packet.report, ntp: packet.report.ntp.toString() } });
+                else if (packet.kind === "gap") packets.push({ kind: "gap", droppedPackets: packet.droppedPackets.toString() });
+                else fail("app-resync-required");
             }
-            if (packet.kind === "rtp") return { kind: "rtp", sequence: packet.datagramSequence,
-                base64: Buffer.from(packet.bytes).toString("base64") };
-            if (packet.kind === "clock") return { kind: "clock", sequence: packet.datagramSequence,
-                report: { ...packet.report, ntp: packet.report.ntp.toString() } };
-            if (packet.kind === "gap") return { kind: "gap", droppedPackets: packet.droppedPackets.toString() };
-            fail("app-resync-required");
+            return { packets };
         });
     }
     async retire(role, owner, input) {

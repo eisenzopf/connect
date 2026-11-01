@@ -33,7 +33,64 @@ function fixture(t, overrides = {}) {
     t.after(() => bridge.close());
     return { bridge, calls, state, stream };
 }
-const input = leaseId => ({ leaseId, streamId: "audio-1", sequence: 1, packet: { kind: "rtp", base64: rtp.toString("base64") } });
+const entry = (patch = {}) => ({ sequence: 1, remainingMs: 200, packet: { kind: "rtp", base64: rtp.toString("base64") }, ...patch });
+const input = leaseId => ({ leaseId, streamId: "audio-1", packets: [entry()] });
+
+test("a batch validates every entry before IO and preserves copied original bytes and order", async t => {
+    const entered = deferred(), release = deferred(), submitted = [];
+    const f = fixture(t, { stream: { sendRtp: async packet => {
+        submitted.push(packet); if (submitted.length === 1) { entered.resolve(); await release.promise; }
+        return { boundary: "local-media-queue", datagramSequence: packet.sequence };
+    } } }), a = owner(), lease = await f.bridge.open("owner", a, binding);
+    const request = input(lease.leaseId);
+    for (const packets of [[], Array.from({ length: 9 }, () => entry()), [entry(), entry({ remainingMs: 201 })],
+        [entry(), entry({ packet: { kind: "rtp", base64: "bad" } })]])
+        await assert.rejects(async () => f.bridge.send("owner", a, { ...request, packets }), { code: "invalid-app-request" });
+    assert.equal(submitted.length, 0);
+    request.packets.push(entry({ sequence: 2 }));
+    const sending = f.bridge.send("owner", a, request); await entered.promise;
+    request.packets[1].packet.base64 = "bad"; request.packets[1].sequence = 77;
+    await assert.rejects(f.bridge.send("owner", a, input(lease.leaseId)), { code: "app-media-busy" });
+    release.resolve();
+    assert.deepEqual((await sending).submissions.map(v => v.datagramSequence), [1, 2]);
+    assert.deepEqual(submitted.map(v => v.bytes), [rtp, rtp]);
+});
+
+test("a changed physical revision between batch entries refuses all subsequent original writes", async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding), sent = [];
+    f.stream.sendRtp = async packet => {
+        sent.push(packet.sequence); f.state.handle++;
+        return { boundary: "local-media-queue", datagramSequence: packet.sequence };
+    };
+    await assert.rejects(f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [entry(), entry({ sequence: 2 })] }),
+        { code: "app-media-stopped" });
+    assert.deepEqual(sent, [1]);
+});
+
+test("a batch cannot renew a later packet's remaining lifetime while an earlier original write waits", async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding), sent = [];
+    f.stream.sendRtp = async (packet, options) => {
+        sent.push(packet.sequence); assert.ok(options.timeoutMs <= 200);
+        await new Promise(done => setTimeout(done, 15));
+        return { boundary: "local-media-queue", datagramSequence: packet.sequence };
+    };
+    const result = await f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [entry(), entry({ sequence: 2, remainingMs: 5 })] });
+    assert.deepEqual(sent, [1]);
+    assert.deepEqual(result.submissions[1], { boundary: "expired", datagramSequence: 2 });
+});
+
+test("receive batches preserve original order and exact clocks, with no delivery across a revision change", async t => {
+    t.mock.method(performance, "now", () => 10);
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding); let sequence = 0;
+    f.stream.receivePacket = async () => ({ kind: "rtp", bytes: rtp, datagramSequence: ++sequence });
+    const batch = await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" });
+    assert.equal(batch.packets.length, 8);
+    assert.deepEqual(batch.packets.map(v => v.sequence), Array.from({ length: batch.packets.length }, (_, i) => i + 1));
+    f.stream.receivePacket = async () => {
+        f.state.revision++; return { kind: "rtp", bytes: rtp, datagramSequence: ++sequence };
+    };
+    await assert.rejects(f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { code: "app-media-stopped" });
+});
 
 test("packet IO is scoped to the original actor and browser owner, with one physical publisher", async t => {
     const f = fixture(t), a = owner(), b = owner(), lease = await f.bridge.open("owner", a, binding);
@@ -41,10 +98,11 @@ test("packet IO is scoped to the original actor and browser owner, with one phys
     await assert.rejects(f.bridge.send("owner", b, input(lease.leaseId)), { code: "app-media-stopped" });
     await assert.rejects(f.bridge.open("owner", b, binding), { code: "app-media-busy" });
     const result = await f.bridge.send("owner", a, input(lease.leaseId));
-    assert.deepEqual(result, { boundary: "local-media-queue", datagramSequence: 1 });
+    assert.deepEqual(result, { submissions: [{ boundary: "local-media-queue", datagramSequence: 1 }] });
     assert.deepEqual(f.calls.find(c => c.kind === "send").packet.bytes, rtp);
     const received = await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" });
-    assert.deepEqual(received, { kind: "rtp", sequence: 7, base64: rtp.toString("base64") });
+    assert.ok(received.packets.length >= 1 && received.packets.length <= 8);
+    assert.deepEqual(received.packets[0], { kind: "rtp", sequence: 7, base64: rtp.toString("base64") });
     assert.equal(f.calls.filter(c => c.kind === "send").length, 1);
 });
 
@@ -80,7 +138,7 @@ test("only one read or write per Stream direction is admitted; no waiting packet
     const send = f.bridge.send("owner", a, input(lease.leaseId)); await entered.promise;
     await assert.rejects(f.bridge.send("owner", a, input(lease.leaseId)), { code: "app-media-busy" });
     // The independent incoming direction remains usable.
-    assert.equal((await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" })).kind, "rtp");
+    assert.equal((await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" })).packets[0].kind, "rtp");
     release.resolve(); await send;
 });
 
@@ -102,7 +160,7 @@ test("malformed packets, receive-only publication, unknown Streams and invalid c
     for (const patch of [{ streamId: "unknown" }, { streamId: "incoming-1" },
         { packet: { kind: "rtp", base64: rtp.toString("base64") + "\n" } }, { sequence: -1 },
         { packet: { kind: "clock", report: { ssrc: 7, ntp: "18446744073709551616", rtp: 960, packets: 1, octets: 1, cname: "synthetic" } } }]) {
-        await assert.rejects(async () => f.bridge.send("owner", a, { ...input(lease.leaseId), ...patch }), { code: "invalid-app-request" });
+        await assert.rejects(async () => f.bridge.send("owner", a, { ...input(lease.leaseId), ...(patch.streamId ? patch : { packets: [entry(patch)] }) }), { code: "invalid-app-request" });
     }
     assert.equal(f.calls.some(c => ["send", "clock", "receive"].includes(c.kind)), false);
 });
@@ -110,13 +168,13 @@ test("malformed packets, receive-only publication, unknown Streams and invalid c
 test("source clocks and receiver clock/gap observations preserve exact integer values", async t => {
     const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding);
     const report = { ssrc: 7, ntp: "18446744073709551615", rtp: 960, packets: 1, octets: 1, cname: "synthetic" };
-    await f.bridge.send("owner", a, { ...input(lease.leaseId), packet: { kind: "clock", report } });
+    await f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [entry({ packet: { kind: "clock", report } })] });
     assert.equal(f.calls.find(c => c.kind === "clock").report.ntp, 18446744073709551615n);
     f.stream.receivePacket = async () => ({ kind: "clock", datagramSequence: 8, report: { ...report, ntp: BigInt(report.ntp) } });
-    assert.deepEqual((await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" })).report, report);
+    assert.deepEqual((await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" })).packets[0].report, report);
     f.stream.receivePacket = async () => ({ kind: "gap", droppedPackets: 9007199254740993n });
     assert.deepEqual(await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }),
-        { kind: "gap", droppedPackets: "9007199254740993" });
+        { packets: Array.from({ length: 8 }, () => ({ kind: "gap", droppedPackets: "9007199254740993" })) });
 });
 
 test("concurrent opens cannot replace an unjoined owner or create two physical publishers", async t => {
@@ -139,14 +197,14 @@ test("a delayed close for an old lease cannot retire the current replacement", a
     const f = fixture(t), a = owner(), one = await f.bridge.open("owner", a, binding);
     const two = await f.bridge.open("owner", a, binding);
     await assert.rejects(f.bridge.retire("owner", a, { leaseId: one.leaseId }), { code: "app-media-stopped" });
-    assert.equal((await f.bridge.send("owner", a, input(two.leaseId))).boundary, "local-media-queue");
+    assert.equal((await f.bridge.send("owner", a, input(two.leaseId))).submissions[0].boundary, "local-media-queue");
     assert.deepEqual(await f.bridge.retire("owner", a, { leaseId: two.leaseId }), { stopped: true });
 });
 
 test("an empty authorized receive queue is idle; authority and cancellation remain failures", async t => {
     const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding);
     f.stream.receivePacket = async () => { throw { kind: "deadline", certainty: "read-only" }; };
-    assert.deepEqual(await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "idle" });
+    assert.deepEqual(await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { packets: [] });
     f.stream.receivePacket = async () => { throw { kind: "authentication", certainty: "read-only" }; };
     await assert.rejects(f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "authentication" });
 });

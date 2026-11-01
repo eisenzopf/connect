@@ -7,6 +7,8 @@ source clocks, media ages, packet bounds and playback limits remain unchanged.
 The fixture observes successful original `/api/media/open`, `send` and `receive`
 requests/responses. It records RTP header numbers, relative sender-report times
 and HTTP durations without sending another request or evaluating browser code.
+Trace format 2 observes each entry in the app's bounded packet batches and
+retains original packet order within a response.
 Lease, stream and SSRC identities become bounded local slots; payloads, raw
 base64, CNAMEs, absolute NTP values and original identifiers are excluded.
 
@@ -25,6 +27,10 @@ callbacks. Comparing them with existing browser diagnostics helps distinguish
 delay already present at reception from later browser work. This is diagnostic
 evidence; it does not correct a clock or qualify media quality/presentation.
 
-Five controlled tests cover payload/identity exclusion, bounded rings, pending
+Controlled tests cover payload/identity exclusion, bounded rings, pending
 read ownership, wrong origins/malformed input, and a known packet already late
-before decoding. Actual hosted traces still need their own source-bound result.
+before decoding. The first Linux trace at `491a5b41` failed the original combined
+AV check at 25/37; retained synchronized audio was already late at the HTTP
+response boundary. The source-bound diagnostic result is in
+`docs/evidence/gate-6/reference-app-clock-trace-linux-negative.json`. This motivates
+bounded batching; it does not establish that batching resolves the hosted failure.
