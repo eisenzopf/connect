@@ -1,0 +1,309 @@
+{
+  "format": "connect/gate6-native-replacement-av-component/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "source_revision": "4bc88420",
+  "scope": "One fresh local native Opus/VP8 device replacement through the public live physical target controller and installed Node helper. Actual media component pass; complete transport workload remains open.",
+  "passed": true,
+  "build": {
+    "stage": "complete",
+    "controller_pid": 68672,
+    "passed": true,
+    "cases": [],
+    "peer_build_exit": 0,
+    "peer_tests_exit": 0,
+    "peer_binary_sha256": "b7bc8aff0542e1c32aa1a864d48cf94b765bfc98bc2994b2b9159c913490fcb6",
+    "exit_code": 0,
+    "elapsed_seconds": 58.54605958331376,
+    "binary": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/debug/connect",
+    "binary_sha256": "9c4e68dc464ee5716c9e229f450a2b59af1bbfd5969d4e02179a7c61944dac5d",
+    "source_inputs_unchanged": true,
+    "source_input_count": 5668,
+    "independent_peer_tests_passed": 12
+  },
+  "runtime": {
+    "node": "v22.16.0",
+    "public_controller_sha256": "5d89cbfdd75c8e8673cf3223666d690c7155e8236959eca5164d6342f1b94a4d",
+    "source_assets_unchanged": true,
+    "issued_configs_unchanged": true
+  },
+  "original_operation": {
+    "completion_deadline_seconds": 8,
+    "same_original_reference_restored": true,
+    "extended_completion_wait_used": false,
+    "journal": {
+      "passed": true,
+      "original_root_rows": 1,
+      "original_root_state": "completed",
+      "original_root_revision": 16,
+      "phases": [
+        {
+          "phase": "allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "phase": "readiness",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "commit_effects": 1,
+      "camera_subscription": {
+        "state": "completed",
+        "expected_revision": 4,
+        "result_revision": 5
+      },
+      "connections": [
+        {
+          "state": "retired",
+          "generation": 2
+        },
+        {
+          "state": "retired",
+          "generation": 3
+        },
+        {
+          "state": "retired",
+          "generation": 3
+        }
+      ],
+      "original_native_lifetimes": [
+        {
+          "generation": 1,
+          "retired": true
+        },
+        {
+          "generation": 1,
+          "retired": true
+        },
+        {
+          "generation": 2,
+          "retired": true
+        }
+      ],
+      "unknown_operations": 0
+    }
+  },
+  "retained_selection": {
+    "installed_native_revision_before": 2,
+    "current_server_revision_before": 4,
+    "paired_native_revision_after": 5,
+    "retained_audio_selector_preserved_while_adding_destination_camera": true
+  },
+  "actual_media": {
+    "destination_audio_rtp_submitted": 316,
+    "destination_video_rtp_submitted": 221,
+    "destination_received_datagrams": 359,
+    "retained_assembled_video_frames": 31,
+    "additional_retained_audio_packets_after_live_admission": 34,
+    "shared_program_start_audio_index": 131,
+    "shared_program_start_video_index": 79
+  },
+  "independent_decode": {
+    "method": "Independent FFmpeg Opus/f32le and VP8/framemd5/rgb24; each audio SSRC decoded in its own codec instance",
+    "audio_ssrc_segments": [
+      {
+        "receiver": "owner",
+        "packets": 225,
+        "samples": 216000,
+        "identified_counts": {
+          "440": 0,
+          "600": 0,
+          "760": 223
+        },
+        "unclassified": 2,
+        "pcm_sha256": "36db273855c69ec5465296e9f8cb8173e717d3f602911b68b93a9d118ab3573a",
+        "ogg_sha256": "7b02f70c710628f7b6099c5613136b18a7eb0e14341bbe678d5b8c931d3fbebb"
+      },
+      {
+        "receiver": "retained",
+        "packets": 223,
+        "samples": 214080,
+        "identified_counts": {
+          "440": 222,
+          "600": 0,
+          "760": 0
+        },
+        "unclassified": 1,
+        "pcm_sha256": "45e353ce39bc16b00025878effd10a16182c8e8c8c9811b2dabee97b2c707426",
+        "ogg_sha256": "21e4d4addc19537b1a8a5ba410e4b5bf193897371914c1c4232af1e6f90ec14d"
+      },
+      {
+        "receiver": "retained",
+        "packets": 143,
+        "samples": 137280,
+        "identified_counts": {
+          "440": 0,
+          "600": 143,
+          "760": 0
+        },
+        "unclassified": 0,
+        "pcm_sha256": "b985c3823a79b1daca0962eb07300dad5326651c40a910e46425425393fb56a6",
+        "ogg_sha256": "c23c8351c5d5f3eae6a396f191520b05fbccc9b7c082449c38baff15e53f2987"
+      },
+      {
+        "receiver": "destination",
+        "packets": 1,
+        "samples": 960,
+        "identified_counts": {
+          "440": 0,
+          "600": 0,
+          "760": 0
+        },
+        "unclassified": 1,
+        "pcm_sha256": "a8eac8b0d3b1fde368813438dd5ba415a796fd6dd0a2a42fb6a5a2dfb2429576",
+        "ogg_sha256": "3b4c813e271596ba60c835b38cab40f8af418a876a022c9cf7de1483be0f6b99"
+      },
+      {
+        "receiver": "destination",
+        "packets": 151,
+        "samples": 144960,
+        "identified_counts": {
+          "440": 0,
+          "600": 0,
+          "760": 151
+        },
+        "unclassified": 0,
+        "pcm_sha256": "ae40de824b4f9958f00a34470865abdcf5ddf2393e6c580f106b11530f6d24be",
+        "ogg_sha256": "8357dfd2a80b5078593f135f9fa6a0f85d782e01eddf168c579c945e32bcb917"
+      }
+    ],
+    "video_keyframe_suffixes": {
+      "retained_receives_destination": {
+        "decoded_frames": 30,
+        "changing_frames": 29,
+        "dimensions": [
+          640,
+          360
+        ],
+        "source_identity": {
+          "expected_source_index": 1,
+          "source_marker_counts": [
+            0,
+            30,
+            0,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 30,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 0,
+          "wrong_source_pixel_frames": 0
+        },
+        "all_encoded_received_frames_match_exact_original_source": true,
+        "all_decoded_pts_match_original_received_timestamps": true,
+        "first_original_video_index": 240,
+        "last_original_video_index": 269,
+        "ivf_sha256": "f2ff94c616f41c1bc3bf3b6c34d4ae1beb85c0d60c939f4ddf9cb4f86ef71d2d",
+        "framemd5_sha256": "9a5aeca06d4866838118846b68a35b7d2218bb9632cea54659d9960f05e735d7"
+      },
+      "destination_receives_retained": {
+        "decoded_frames": 60,
+        "changing_frames": 59,
+        "dimensions": [
+          640,
+          360
+        ],
+        "source_identity": {
+          "expected_source_index": 2,
+          "source_marker_counts": [
+            0,
+            0,
+            60,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 60,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 0,
+          "wrong_source_pixel_frames": 0
+        },
+        "all_encoded_received_frames_match_exact_original_source": true,
+        "all_decoded_pts_match_original_received_timestamps": true,
+        "first_original_video_index": 210,
+        "last_original_video_index": 269,
+        "ivf_sha256": "7107417b757053685a759804cc70b0a33fa04cbdd64329266b09a12c2da3f47f",
+        "framemd5_sha256": "875fab051f13f1f68d6dc94975f0246c1c5f57a80945f5f675ddedf5bc0317f4"
+      }
+    },
+    "retained_original_speaker_packets_identified": 222,
+    "retained_destination_speaker_packets_identified": 143,
+    "identified_original_speaker_packets_after_destination": 0,
+    "observed_packet_arrival_switch_gap_ms": 47.024500000000444,
+    "scope": "Each actual audio SSRC has its own codec instance; all743received Opus packets are decoded, with four unclassified20ms outputs retained explicitly. VP8 decodes begin at the first complete received keyframe:30destination frames and60retained frames. Exact original source bytes and decoded PTS match each decoded suffix. Post-run decoding is not live device presentation or paired synchronization."
+  },
+  "cleanup": {
+    "original_owner_joined": true,
+    "destination_owner_joined": true,
+    "destination_forced": false,
+    "helpers_joined": true,
+    "all_helper_closes_succeeded": true,
+    "server_joined": true,
+    "server_exit_code": 0,
+    "server_forced": false,
+    "connections_retired": 3,
+    "native_lifetimes_retired": 3
+  },
+  "retained_negative_audit_attempts": [
+    "Initial packet extractor misclassified sender-clock datagrams as RTP; corrected disjoint RTCP detection before parsing. Original received bytes are unchanged.",
+    "Initial audio audit incorrectly assumed a single destination receive SSRC; actual journal has two. Final audit decodes all original SSRCs separately, retaining the single unclassified early packet. Initial decoder outputs remain private.",
+    "Initial journal audit expected only two lifetime rows; read-only inspection establishes three retired lifetimes, including the destination generation2. Final audit requires all three retired."
+  ],
+  "private_evidence_sha256": {
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/prepare.json": "51bfecf33a376d4fb112eb670d78500e7ebb36010c5799a28a143b6a0d756d06",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/controller.json": "a797d37de985748234f18b2afec400e706d8cd7f11225eb5f51b51bfbbe808d8",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/probe.json": "000898296f849b425d2e7dbd99a374de9ff1caabca1e66eef3cde1692c6a2469",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/probe.mjs": "444cebaa788e61fe535329cf4741a07f10cdbeb70f32967afbbadac0ae56ff7c",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/move/stage.json": "7ff5082abe1fec1f48d584033b39079d4380df840def6d34915fbe40c771dc9c",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/move/target-observation.json": "a4e822d879267f83ce039e2e758360805f64f02f3dee0af084a6dcc8c9ee494e",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/move/original-command.json": "41cc46c309d95cf7eaeeee80c0d55c412596dedc9632715520a6d459abbb7776",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/journal-audit.json": "f8b53a9cc1bc7e7de3faf9b109db8466cceb80859663c77df5215523faa73489",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/audit-journal.py": "5af7a99860f707fce795645d486fb5a7a31b4dcd61da7fb0bec5c5dea7266645",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/independent-av-audit.json": "260e0257d27a76d6b45fedd5fdaeb414819507dba44007273015a87dd68c877b",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/audit-media-v2.py": "48d5fd0261ab368d4611ac144f6e06c2b3792f275297082767dcb081f8e127ca",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/extract-target.mjs": "bfa068babb3d1e18fbfca3e2ccbd8decc639e7b81782fc6746e46741f95602ee",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/target-received-media.json": "4b2b642d032f053b0ba3ee77ca4f98406fee4eb9cf849649e82afee12ef3636f",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/sources.json": "cbc58a2f9892403ae5bea1e595884b3bca3ab345378d4a41691e9d333bf00ee9",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/video-sources.json": "00cb23851775b84ab61e0ba9da5467c09c3d88bd4b637f8d375746e5b19c3d04",
+    ".local/gate-6/replacement-shared-program-av-sdk-revision/source-bindings.json": "3511c5059710e2a58a3eec82c3b6057da38fc502200c4a96ca32d1d4e4756ac8",
+    ".local/gate-6/replacement-selection-media-build/inputs.json": "2651fc36444f80d519213df92b7a01efe851714ef1929ebf399f4589fc2b3016",
+    ".local/gate-6/replacement-selection-media-build/state.json": "c217c42cbea920c6a88df17684f35a8acc107a9fd48e0d7949027475b91858ba",
+    ".local/gate-6/replacement-selection-media-build/peer-tests.log": "b203a0e832e72824e45bb7fbf6dbd1b0ea34ad2351db5f59a100247ff157b643"
+  },
+  "limitations": [
+    "One original move only; four-participant/six-Connection/two-Session continuous20-transition controller and complete60second observation remain required.",
+    "No impairment, privacy, packet-capture, resource, paired-presentation, hosted or full32-cell qualification from this local scene.",
+    "Earlier deadline/application/unknown-operation failures remain recorded separately; this pass does not erase them."
+  ],
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
