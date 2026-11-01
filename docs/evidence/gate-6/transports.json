@@ -1062,14 +1062,13 @@
   "full_cell_materializers_implemented": false,
   "publication_authorized": false,
   "current_control_candidate": {
-    "source_revision": "390b677f",
-    "workflow_run_id": 41265399764,
-    "job_id": 124727066259,
-    "status": "completed-failure-at-typecheck-runtime-unrun",
-    "ci_preconditions": "Native prerequisites, verified source preparation,6matrix guards/inventory and currentSDKbuild passed; no runtimecase result confirmed",
+    "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
+    "workflow_run_id": 41267483044,
+    "job_id": 124733201072,
+    "status": "confirmed-live-cache-restore",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41267483044",
     "expected_functions": 15,
-    "full_matrix_cells_qualified": 0,
-    "negative_evidence": "docs/evidence/gate-6/transport-control-negative.json"
+    "full_matrix_cells_qualified": 0
   },
   "protected_fixture_configuration": {
     "status": "source-verified-configuration-stage-pass",
@@ -1103,7 +1102,7 @@
     "runtime_scope": "Ubuntu24.04 native x86_64, local EdDSA production CLI server/operator configuration; six behavior checks, six public CLI commands plus production restore, two original server groups joined. All32fullmatrixcells remain unqualified."
   },
   "actor_enrollment": {
-    "status": "implemented-runtime-unrun",
+    "status": "source-verified-public-cli-enrollment-stage-pass",
     "implementation_hashes": {
       "scripts/lib/transport_actors.py": "882f5a8faf7d09aae9f27fe3ce7c8e97f658df7dff62e66247ca1fe445584ecf",
       "scripts/enroll-gate6-transport-actors.py": "22f87b3104be122e5f859a9c6e15bd1f2063d4df89348060d30c1420045993c2",
@@ -1121,7 +1120,7 @@
     "expiry_bound": "one hour and no later than current administrator/server pin expiry",
     "recovery": "Private original identity/credential operations saved before public IO; explicit resume uses exact identity replay and production issue-resume. Partial installations retained; changed source/issuer/scope or expired plan refuse.",
     "runtime_rehearsal": "Isolated transport-actors lane: actual production enrollments, all five signed native clients, unchanged original-ID resume, participant provisioning forbidden, changed issuer pre-network refusal, revoked primary refusal with independent replacement/other clients still usable.",
-    "runtime_verified": false,
+    "runtime_verified": true,
     "conversation_participant_workload_observed": false,
     "actual_topology_verified": false,
     "cell_qualified": false,
@@ -1131,9 +1130,11 @@
       "source_revision": "c969f3a11122cdb177d284aa969a9faaaca70769",
       "workflow_run_id": 41267389925,
       "job_id": 124732939529,
-      "status": "confirmed-live-native-prerequisites",
+      "status": "completed-success-independently-verified",
       "url": "https://github.com/eisenzopf/connect/actions/runs/41267389925"
-    }
+    },
+    "verification_evidence": "docs/evidence/gate-6/transport-actors-verified.json",
+    "runtime_scope": "One Ubuntu24.04 local native EdDSA stage;12configuration/enrollment behavior checks,36publicCLI commands including2expectedrefusals,2originalservergroupsjoined. No actual Conversation workload, replacement transition, topology, browser or media qualification."
   },
   "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection."
 }
