@@ -42,7 +42,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
             receiveAudio: item.connection.streams.byId(ownAudio.id).media,
             receiveVideo: item.connection.streams.byId(plan[peer.prefix + "-video"]).media,
-            audio: [], video: [], capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
+            audio: [], video: [], submittedAudio: [], clockReports: { audio: [], video: [] },
+            capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
     }
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
     const end = start + 62000, tasks = []; let error, timer;
@@ -64,8 +65,16 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 const remaining = Math.floor(200 - (performance.now() - start - elapsed));
                 if (remaining <= 0) { route.lateSendFrames++; frameCompleted = false; break; }
                 const sequence = new DataView(packet.buffer, packet.byteOffset).getUint32(4);
+                const submittedAt = performance.now() - start;
                 const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: remaining, signal: controller.signal });
                 assert.equal(result.boundary, "local-media-queue"); submitted = sender.submitted(packet);
+                if (!video) {
+                    assert.ok(route.submittedAudio.length < 3100);
+                    const header = new DataView(packet.buffer, packet.byteOffset + 8);
+                    route.submittedAudio.push({ source_offset_ms: elapsed, submit_started_ms: submittedAt,
+                        submit_completed_ms: performance.now() - start, timestamp: header.getUint32(4),
+                        sequence: header.getUint16(2), ssrc: header.getUint32(8) });
+                }
                 route.sent[medium]++;
             }
             if (frameCompleted && elapsed - lastClock >= 500) {
@@ -87,7 +96,13 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             }
             const elapsed = performance.now() - start;
             if (value.kind === "gap") { route.gaps += Number(value.droppedPackets); continue; }
-            if (value.kind === "clock") { route.clocks[medium]++; continue; }
+            if (value.kind === "clock") {
+                assert.ok(route.clockReports[medium].length < 512, "bounded-native-clock-observations");
+                const report = value.report;
+                route.clockReports[medium].push({ elapsed_ms: elapsed, ssrc: report.ssrc,
+                    ntp: report.ntp.toString(), rtp: report.rtp, packets: report.packets, octets: report.octets });
+                route.clocks[medium]++; continue;
+            }
             assert.equal(value.kind, "rtp"); assert.ok(value.bytes.length <= 1180);
             if (medium === "audio") {
                 assert.ok(route.audio.length < 3200);
@@ -102,6 +117,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                     route.capturedBytes += frame.bytes.byteLength;
                     assert.ok(route.capturedBytes <= 16 * 1024 * 1024, "bounded-native-media-recording-bytes");
                     route.video.push({ elapsed_ms: elapsed, timestamp: frame.timestamp, key: frame.key,
+                        ssrc: value.header.ssrc,
                         payload: Buffer.from(frame.bytes).toString("base64") });
                 }
             }
@@ -120,6 +136,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
             captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
+            clock_reports: route.clockReports, submitted_audio: route.submittedAudio,
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
     }

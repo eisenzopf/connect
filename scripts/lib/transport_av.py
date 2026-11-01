@@ -229,6 +229,72 @@ def source_pixels(values, expected_index):
         unclassified_pixel_frames=unknown, wrong_source_pixel_frames=len(values) // 3 - counts[expected_index])
 
 
+def milliseconds_summary(values):
+    if any(not math.isfinite(value) for value in values):
+        raise ValueError('Non-finite native timing observation')
+    ordered = sorted(values)
+    return dict(count=len(ordered), minimum_ms=min(ordered, default=None),
+        median_ms=ordered[(len(ordered) - 1) // 2] if ordered else None,
+        p95_ms=ordered[math.ceil(.95 * len(ordered)) - 1] if ordered else None,
+        maximum_ms=max(ordered, default=None))
+
+
+def clock_observation(rows, reports, rate, unix_start_ms):
+    """Map only a preceding, recent, same-SSRC report; preserve exact u64 NTP.
+
+    The source and receive recorder share this fixture's clock. These are packet
+    arrival ages, never decoder/device presentation times or paired AV markers.
+    No anchor is inferred from another SSRC or an RTP timestamp alone.
+    """
+    if rate not in (48000, 90000) or len(rows) > 3200 or len(reports) > 512:
+        raise ValueError('Native clock observation bound')
+    origin = ((unix_start_ms // 1000 + 2208988800) << 32) + (unix_start_ms % 1000) * 2 ** 32 // 1000
+    for report in reports:
+        if (not isinstance(report['ntp'], str) or not report['ntp'].isascii()
+                or not report['ntp'].isdecimal() or str(int(report['ntp'])) != report['ntp']
+                or not 0 <= int(report['ntp']) < 2 ** 64
+                or any(type(report[key]) is not int or not 0 <= report[key] < 2 ** 32
+                    for key in ('ssrc', 'rtp', 'packets', 'octets'))
+                or not math.isfinite(report['elapsed_ms'])):
+            raise ValueError('Native clock report identity')
+    if any(b['elapsed_ms'] < a['elapsed_ms'] for a, b in zip(reports, reports[1:])):
+        raise ValueError('Native clock report arrival order')
+    anchors = {}; cursor = unanchored = stale = 0; ages = []
+    for row in rows:
+        while cursor < len(reports) and reports[cursor]['elapsed_ms'] <= row['elapsed_ms']:
+            anchor = reports[cursor]; anchors[anchor['ssrc']] = anchor; cursor += 1
+        anchor = anchors.get(row['ssrc'])
+        if anchor is None:
+            unanchored += 1; continue
+        if row['elapsed_ms'] - anchor['elapsed_ms'] > 2000:
+            stale += 1; continue
+        delta = ((row['timestamp'] - anchor['rtp'] + 2 ** 31) % 2 ** 32) - 2 ** 31
+        if abs(delta) > 2 * rate:
+            stale += 1; continue
+        source_offset = (int(anchor['ntp']) - origin) * 1000 / 2 ** 32 + delta * 1000 / rate
+        ages.append(row['elapsed_ms'] - source_offset)
+    return dict(reports=len(reports), same_ssrc_recent_anchor_packets_or_frames=len(ages),
+        no_preceding_same_ssrc_anchor=unanchored, stale_anchor_or_rtp_distance=stale,
+        packet_arrival_minus_reported_source_time=milliseconds_summary(ages),
+        scope='Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim.')
+
+
+def submission_observation(rows):
+    if len(rows) > 3100:
+        raise ValueError('Native source submission observation bound')
+    durations = []; ages = []
+    for row in rows:
+        duration = row['submit_completed_ms'] - row['submit_started_ms']
+        if duration < 0:
+            raise ValueError('Native source submission order')
+        durations.append(duration)
+        ages.append(row['submit_completed_ms'] - row['source_offset_ms'])
+    return dict(completed_original_queue_submissions=len(rows),
+        original_queue_submission_duration=milliseconds_summary(durations),
+        original_source_age_at_queue_receipt=milliseconds_summary(ages),
+        scope='Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred.')
+
+
 def verify(directory, manifest):
     """Decode bytes independently; retain explicit measurement limits."""
     results = []
@@ -285,6 +351,11 @@ def verify(directory, manifest):
         values = pixels.read_bytes(); markers = source_pixels(values, captured['peer_index'])
         wrong = markers['wrong_source_pixel_frames']
         audio_result['rtp_timing'] = rtp_timing(audio, 48000, 960)
+        diagnostics = None
+        if 'clock_reports' in captured and 'submitted_audio' in captured:
+            diagnostics = dict(audio_clock=clock_observation(audio, captured['clock_reports']['audio'], 48000, captured['unix_start_ms']),
+                video_clock=clock_observation(video, captured['clock_reports']['video'], 90000, captured['unix_start_ms']),
+                own_source_audio_submission=submission_observation(captured['submitted_audio']))
         bins = [sum(second * 1000 <= row['elapsed_ms'] < (second + 1) * 1000 for row in video) for second in range(2, 62)]
         gaps = [b['elapsed_ms'] - a['elapsed_ms'] for a, b in zip(audio, audio[1:])]
         passed = (audio_result['all_blocks_identified'] and audio_result['decoded_seconds'] >= 59.9 and audio_result['samples'] == len(audio) * 960
@@ -298,6 +369,7 @@ def verify(directory, manifest):
                 frames_by_observation_second=bins, wrong_source_pixel_frames=wrong, source_marker_classification=markers,
                 rtp_timing=rtp_timing(video, 90000, 3000), ivf_sha256=checksum(ivf), framemd5_sha256=checksum(hashes)),
             received_clocks=captured['received_clocks'], gap_packets=captured['gap_packets'], late_send_frames=captured['late_send_frames'],
+            clock_and_submission_observations=diagnostics,
             observation_sha256=checksum(path)))
     report = dict(format='connect/native-av-decoded-component/1', passed=all(row['passed'] for row in results),
         source_manifest=manifest, connections=6, participants=4, sessions=2, observation_seconds=60, warmup_seconds=2,

@@ -1,0 +1,31 @@
+{
+  "format": "connect/native-av-clock-receipt-observations/1",
+  "task": "G6-058",
+  "motivating_negative": "docs/evidence/gate-6/native-av-live-upgrade-hosted-results.json",
+  "implementation_inputs": {
+    "scripts/lib/transport_av.mjs": "0e64d08401698848ed0e3b6c23919de951ff607456b8293b1047c43ac856a110",
+    "scripts/lib/transport_av.py": "b7a2bea69a3adfcd4f82c272e808c17978f707667af0d68d79c448297df5c468",
+    "scripts/tests/transport_av.test.mjs": "49ab6a9d1cbb11a5ae73cd585e4209d379acddd4c4ef550e39f91fe97d3a6e19",
+    "scripts/tests/test_transport_av.py": "fcee05bc574b719e116d4818d70b0a54a033ba6fce21f5f6163151de3d893592"
+  },
+  "behavior": [
+    "Retain at most 512 original numeric sender reports per medium/route; encode exact u64 NTP as decimal text and exclude CNAME.",
+    "Retain at most 3100 completed original public audio queue receipts per route, with original RTP coordinates and source/submit/receipt monotonic times.",
+    "Report arrival minus source time only when a preceding same-SSRC sender report is within two seconds in both observation and RTP distance; never infer an anchor from a foreign SSRC.",
+    "Keep source submission age and queue wait separate; neither proves server admission or remote delivery. No paired AV or device presentation claim."
+  ],
+  "tests": {
+    "python_transport_cases_passed": 60,
+    "node_owned_media_cases_passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "format_check_passed": true,
+    "coverage": "Exact u64 fractional NTP, RTP wrap, future/foreign/stale anchor refusal, malformed report/order refusal, queue receipt versus source age, original failure cancellation with all twelve receive tasks joined and original completed receipt retained."
+  },
+  "actual_new_six_connection_runtime_observation": false,
+  "quality_thresholds_changed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}
