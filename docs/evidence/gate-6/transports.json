@@ -1196,10 +1196,10 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "six-full-size-payloads-and-local-topology-verified-durable-retirement-observation-open",
+    "status": "six-full-size-payloads-repeated-five-durable-retirements-last-owner-under-diagnosis",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "b8d63c0ffea38967a663d90fa52b92407a8bce762504d830549647b3cb88ce95",
-      "scripts/check-transport-fixtures.py": "dd8cb005ed3585afd2af35cb575f802c3afc3ae933755b0df7431e1a9edb0e6f",
+      "scripts/check-transport-fixtures.py": "ecdd677d372db97528945e686c696546280debec94a93b8775bb13461f8bc245",
       "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
       "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
       ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
@@ -1211,7 +1211,8 @@
       "crates/connect-service/src/canonical.rs": "ab56c7bdbc74283011e534f10c48b8efebac07075f270a1fe14132a7daad2327",
       "crates/connect-service/src/peer_authority.rs": "5d8ab1aa9426b516f4ba140310b1e812ccba9578e2785aef4196ffe33c894769",
       "scripts/lib/transport_fixture.py": "376bcc7670b54c49986afa26d22b0a18acc17144bb12bdb8992476265d30227d",
-      "scripts/tests/test_transport_fixture.py": "5112f037bae27c4031ec96f6118561142d0001132e9ff8300101cb89082ea9e6"
+      "scripts/tests/test_transport_fixture.py": "5112f037bae27c4031ec96f6118561142d0001132e9ff8300101cb89082ea9e6",
+      "crates/connect-service/src/canonical_native.rs": "a8a2f8a26713ecad7f48262048e76691e107b0cdfc50d5f8057fb4192e9c03e7"
     },
     "local_transport_guards_passed": 42,
     "node_python_syntax": true,
@@ -1247,7 +1248,7 @@
       "job_id": 124738696422,
       "status": "completed-failure-prepare-status-not-ready"
     },
-    "observed": "Source-verified897 transfers six independent64KiB bodies:6submissions/6Core-queue completions/6exact intended receives, six ready at both boundaries, original replay/no duplicate, exact sender/recipient histories and actual original local helper/server topology. Same674cafd5 normal production binary as6b; configured message limit64KiB resolves durable-admission refusal. All six end operations complete; immediate durable retired-state assertion fails. Actual failed states were not logged; separate end/retirement contract permits later snapshot. Full data component remains failed; cleanup joins5helpers/2servers/capture owner without force.",
+    "observed": "Independently verified b563 repeats6offers/6submissions/6Core-queue completions/6exact64KiB receives, common ready boundaries, original replay, exact addressed histories and actuallocaltopology. All6endoperationscomplete. Last of5metadata rounds shows5retired/1ready; a later read hits the common8second deadline read-only. No later state or cleanup cause is inferred. Overall data component remainsnegative; original5helpers/2servers/captureowner join withoutforce.",
     "diagnostic_follow_up": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics. Reached-stage markers distinguish requests that never enter authority/handler/worker from later admission/publication/receipt failures; no identifiers or payloads enter curated diagnostics.",
     "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
     "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
@@ -1262,7 +1263,7 @@
       "data_workload_passed": false
     },
     "endpoint_precondition_runtime_verified": true,
-    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-897.json",
+    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-b563.json",
     "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json",
     "message_limit_correction_candidate": {
       "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
@@ -1296,7 +1297,17 @@
       "workflow_run_id": 41274176272,
       "job_id": 124752870284,
       "description": "Observe original six IDs under one8second shared metadata deadline after all original end receipts; require retired state and later generation. No mutation replay, payload change, wider180second scenario budget or product behavior change. Curate actual states/count/elapsed time.",
-      "runtime_verified": false
+      "runtime_verified": false,
+      "status": "completed-negative-independently-verified",
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-b563.json"
+    },
+    "cleanup_diagnostics_candidate": {
+      "source_revision": "d19f059c57d534821b67b8a88169ed09806649db",
+      "workflow_run_id": 41274490677,
+      "job_id": 124753792159,
+      "status": "confirmed-live-native-prerequisites",
+      "runtime_verified": false,
+      "description": "Private DEBUG records only fixed durable-cleanup stages/error codes and terminal custodian booleans; bounded curated arrays and complete stage counts. No IDs, payloads, Error.message, changed grants, effects, mutation replay or deadline extension. Rust compilation/runtime pending;42Python guards, syntax and Rust format checks pass."
     }
   },
   "native_signing_cohorts": {
