@@ -1,0 +1,329 @@
+{
+  "format": "connect/gate6-reference-app-trace3-macos-negative/1",
+  "updated": "2026-11-01",
+  "task": "G6-072",
+  "run": 41333797596,
+  "job": 124936964137,
+  "source_revision": "33ce2fc8d994925bb85116d561ae573cf3cbebd3",
+  "scope": "Independently audited exact source33 macOS installed reference app stops after17of37checks in its first synthetic audio scene. It never reaches combined AV. The separate Linux source33 result fails later after25checks; neither is a pass.",
+  "identity": {
+    "artifact_id": 13098400094,
+    "artifact_size": 425246,
+    "artifact_zip_sha256": "4b3723b8c05074020c6d53d4e946dc091817e18bddc60d5a2408093c3648b587",
+    "source_revision": "33ce2fc8d994925bb85116d561ae573cf3cbebd3",
+    "node": "v22.23.4",
+    "browser": "156.0.8078.4",
+    "git_app_checker_installer_cpu_native_inputs_verified": 35,
+    "node_package_source_inputs_verified": 197,
+    "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+    "installed_sdk_files_verified": 195,
+    "checks_passed": 17,
+    "checks_required": 37,
+    "source_guards_passed": true
+  },
+  "runtime_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "33ce2fc8d994925bb85116d561ae573cf3cbebd3",
+    "target": "aarch64-apple-darwin",
+    "sources_verified": {
+      "git": 4868,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 755,
+    "binary_sha256": "9359ae58eacb5652b3a6b57dde39d56a75193171704fd31eedf1577a01f9853a",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "1efc059bb15548e135944f09be888332cdcba2e070f633393127546bcc770a8a",
+    "manifest_sha256": "149479406744429db3db8459f8428273be2b5923147b8d62bb73ff20f9e51ae9",
+    "artifact_zip_digests": {
+      "evidence": "016f01abaeb40967ec0c6ac0e9376037add183277714bee487048a8cefe64ca6",
+      "package": "bba8866cab5b039ef95bcf5c10153b8e0dc1284732c817ba91896e6efc723ec0"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 563,
+        "column": 16
+      }
+    ]
+  },
+  "app_failures": [
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": null,
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "phase": "packet-native-negotiation",
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": {
+        "file": "media.mjs",
+        "line": 168,
+        "column": 34
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "phase": "packet-native-negotiation",
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    }
+  ],
+  "audio_failure_metrics": [
+    {
+      "role": "owner",
+      "observation": {
+        "session_state": null,
+        "current_actor": "owner",
+        "state": "app-media-network",
+        "status": "Media connection unavailable. Reconnect before starting media again.",
+        "metrics": {
+          "capturedAudioFrames": 36,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 24,
+          "sentRtp": 8,
+          "receivedRtp": 3,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 1,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 3,
+          "playedAudioFrames": 1,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 21,
+          "synchronizedPackets": 1,
+          "unsynchronizedPackets": 2,
+          "audioLateDrops": 1,
+          "audioHorizonDrops": 1,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -94.837,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": -714,
+          "lastVideoCaptureOffsetMs": null,
+          "receiveStartedMs": 1961,
+          "deviceSetupMs": 110,
+          "captureGraphMs": 109,
+          "cameraSetupMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "app-media-network",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "output": {
+          "frames": 1,
+          "energy": 8.216928216737978e-07,
+          "tone440": 2.1977068496984258e-10,
+          "tone880": 9.959437030603105e-10
+        }
+      }
+    },
+    {
+      "role": "organizer",
+      "observation": {
+        "session_state": null,
+        "current_actor": "organizer",
+        "state": "app-media-network",
+        "status": "Media connection unavailable. Reconnect before starting media again.",
+        "metrics": {
+          "capturedAudioFrames": 27,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 20,
+          "sentRtp": 8,
+          "receivedRtp": 2,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 1,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 2,
+          "playedAudioFrames": 1,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 10,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 2,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 1,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": 306.4,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -702,
+          "lastVideoCaptureOffsetMs": null,
+          "receiveStartedMs": 1976,
+          "deviceSetupMs": 122,
+          "captureGraphMs": 107,
+          "cameraSetupMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "app-media-network",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "output": {
+          "frames": 1,
+          "energy": 1.7253805916076117e-07,
+          "tone440": 8.271690025046185e-09,
+          "tone880": 4.528536656544334e-10
+        }
+      }
+    }
+  ],
+  "trace": {
+    "format": "connect/app-media-clock-trace/3",
+    "original_read_replay_matches": true,
+    "all_pending_reads_at_finish": 0,
+    "page_route_binding_counts": [
+      {
+        "label": "owner-audio",
+        "known_routes": 0,
+        "unknown_routes": 1
+      },
+      {
+        "label": "organizer-audio",
+        "known_routes": 1,
+        "unknown_routes": 0
+      }
+    ],
+    "av_source_age_or_presentation_qualified": false
+  },
+  "screenshots": [
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "png_sha256": "0244c5f81935603ab202937470b4e63cc283472865317004b4e7532ee393ca42",
+      "rgb_sha256": "412605f0a56b215cd8493e4673c5fd04e6a6a516ca9ff3fffcc0c578d6c09746",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 3900,
+      "png_sha256": "e1bf5b4ba323fd92b38826dab1922aebfe51cbc8c621fd76a702f04f9cfae7de",
+      "rgb_sha256": "5c5f8fd07b0f2e2f59984524cd0fd654521ec9b22284636a6459359755564290",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    }
+  ],
+  "visual_review": "Both retained original screenshots show the pre-capture native controls, including wrapped controls at320px. No active audio or video rendering is established. The artifact omits initial desktop and failure screenshots, despite capture metadata listing them.",
+  "private_verifications": {
+    "/Volumes/D2-2019/Developer/Connect/.local/gate-6/evidence-895-audit/runtime-mac-trace3-verified.json": "7904ad8da64bf92c28ad71383332596a5e1c762d4d640911f22bc3eb69aac3c7",
+    "/Volumes/D2-2019/Developer/Connect/.local/gate-6/evidence-895-audit/trace3-app-mac-identity-audit.json": "14f7eb2eefd39784b8e93b13bf3c87a8d54d7c09fba0af5550a85c1b133370cf",
+    "/Volumes/D2-2019/Developer/Connect/.local/gate-6/evidence-895-audit/trace3-app-mac-supplement-audit.json": "81e2731ef148abe7913e0403abf232fc22bef9f81455d7d5296f086021f45cd4"
+  },
+  "limitations": [
+    "Initial audio source/receiver state stops as app-media-network after deadline/cancelled native channel errors. Precise originating queue or cause remains unproven.",
+    "One original route lacks observed medium/rate and the observed packet set is small. No AV skew or source-age conclusion.",
+    "80ms playback target,200ms freshness limit,37required checks and prior failed results remain unchanged."
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
