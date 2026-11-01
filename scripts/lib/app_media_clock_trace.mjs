@@ -11,28 +11,38 @@ function retain(first, tail, value, initial, recent) {
 }
 
 export class AppMediaClockTrace {
-    #now; #start; #pending = new Set(); #pages = []; #detach = []; #closed = false;
+    #now; #start; #pending = new Set(); #openPending = new Set(); #packetPending = new Set();
+    #pages = []; #detach = []; #closed = false;
     constructor(now = () => performance.now()) { this.#now = now; this.#start = now(); }
     attach(page, label, origin) {
         if (this.#closed || !labels.has(label) || this.#pages.length >= 4 || new URL(origin).origin !== origin)
             throw Error("invalid-owned-clock-trace-page");
         const state = { label, leases: new Map(), routes: new Map(), ntpOrigin: undefined, order: 0,
-            observed_responses: 0, skipped_pending: 0, observation_failures: 0, response_errors: 0 };
+            observed_responses: 0, observed_open_responses: 0, skipped_pending: 0, skipped_open_pending: 0,
+            observation_failures: 0, open_observation_failures: 0,
+            observation_failure_stages: { request: 0, body: 0, shape: 0 }, response_errors: 0 };
         this.#pages.push(state);
         const listener = response => {
             let url;
             try { url = new URL(response.url()); } catch { return; }
             if (this.#closed || url.origin !== origin || !paths.has(url.pathname)) return;
             if (response.status() !== 200) { state.response_errors++; return; }
-            if (this.#pending.size >= 4) { state.skipped_pending++; return; }
+            const opening = url.pathname === "/api/media/open";
+            // Negotiation supplies the only authoritative medium/rate mapping.
+            // Packet-response pressure must not consume its observation slots.
+            const reads = opening ? this.#openPending : this.#packetPending;
+            if (reads.size >= 4) { state.skipped_pending++; if (opening) state.skipped_open_pending++; return; }
             const elapsed = this.#now() - this.#start;
+            let stage = "request";
             const reading = (async () => {
                 const request = response.request(), input = request.postDataJSON();
+                stage = "body";
                 const bytes = await response.body();
                 if (this.#closed) return;
+                stage = "shape";
                 if (bytes.length > 65536) throw Error("trace-body-bound");
                 const output = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-                if (url.pathname === "/api/media/open") {
+                if (opening) {
                     if (!id(output.leaseId) || !Array.isArray(output.negotiation?.streams) || output.negotiation.streams.length > 8)
                         throw Error("trace-open-shape");
                     const lease = this.#lease(state, output.leaseId);
@@ -41,6 +51,7 @@ export class AppMediaClockTrace {
                         const route = this.#route(state, lease, stream.id);
                         route.medium = stream.medium; route.rate = stream.medium === "audio" ? 48000 : 90000;
                     }
+                    state.observed_open_responses++;
                     return;
                 }
                 const lease = this.#lease(state, input.leaseId), route = this.#route(state, lease, input.streamId);
@@ -71,9 +82,13 @@ export class AppMediaClockTrace {
                     } else throw Error("trace-packet-kind");
                 }
                 state.observed_responses++;
-            })().catch(() => { if (!this.#closed) state.observation_failures++; })
-                .finally(() => this.#pending.delete(reading));
-            this.#pending.add(reading);
+            })().catch(() => {
+                if (!this.#closed) {
+                    state.observation_failures++; state.observation_failure_stages[stage]++;
+                    if (opening) state.open_observation_failures++;
+                }
+            }).finally(() => { this.#pending.delete(reading); reads.delete(reading); });
+            this.#pending.add(reading); reads.add(reading);
         };
         page.on("response", listener); this.#detach.push(() => page.off("response", listener));
     }
@@ -110,6 +125,9 @@ export class AppMediaClockTrace {
         try { await Promise.race([Promise.allSettled([...this.#pending]), new Promise(done => { timer = setTimeout(done, 2000); })]); }
         finally { clearTimeout(timer); this.#closed = true; }
         const pages = this.#pages.map(s => ({ label: s.label, observed_responses: s.observed_responses,
+            observed_open_responses: s.observed_open_responses, skipped_open_pending: s.skipped_open_pending,
+            open_observation_failures: s.open_observation_failures,
+            observation_failure_stages: { ...s.observation_failure_stages },
             skipped_pending: s.skipped_pending, observation_failures: s.observation_failures, response_errors: s.response_errors,
             routes: [...s.routes.values()].map(route => {
                 const flow = value => ({ sources_seen: value.sources.size, rtp_seen: value.rtp_seen, clocks_seen: value.clocks_seen,
@@ -117,8 +135,10 @@ export class AppMediaClockTrace {
                 return { route_slot: route.route_slot, lease_slot: route.lease_slot, medium: route.medium, rate: route.rate,
                     send: flow(route.send), receive: flow(route.receive) };
             }) }));
-        const result = { format: "connect/app-media-clock-trace/2", original_requests_and_responses_only: true,
-            pending_reads_at_finish: this.#pending.size, pages,
+        const result = { format: "connect/app-media-clock-trace/3", original_requests_and_responses_only: true,
+            pending_reads_at_finish: this.#pending.size, pending_open_reads_at_finish: this.#openPending.size,
+            pending_packet_reads_at_finish: this.#packetPending.size,
+            read_bounds: { open: 4, packets: 4, total: 8 }, pages,
             scope: "Bounded original HTTP request/response observations from the fixture process. NTP deltas share the first observed page clock; stream/lease/SSRC values are replaced by local slots. No payloads, CNAMEs, identifiers, clock correction, decoder completion or browser presentation measurement. No media qualification." };
         result.observer_clock_replay = replayMediaClockTrace(result);
         return result;

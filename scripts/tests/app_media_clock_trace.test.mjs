@@ -96,3 +96,48 @@ test("one original batch retains packet order and refuses more than eight entrie
     assert.ok(flow.clocks[0].observation_order < flow.rtp[1].observation_order);
     assert.equal(result.observer_clock_replay.pages[0].routes[0].unsynchronized_retained_packets, 1);
 });
+
+test("four pending packet observations cannot discard original negotiation metadata", async () => {
+    const t = new AppMediaClockTrace(), page = new EventEmitter(), releases = [];
+    t.attach(page, "owner-av", origin);
+    for (let i = 0; i < 4; i++) {
+        page.emit("response", response("/api/media/receive", { leaseId: lease, streamId: stream }, null,
+            () => new Promise(done => releases.push(() => done(Buffer.from(JSON.stringify({ packets: [rtp(i)] })))))));
+    }
+    page.emit("response", response("/api/media/open", {}, open()));
+    await drain(); releases.forEach(done => done());
+    const result = await t.finish(), route = result.pages[0].routes[0];
+    assert.equal(route.medium, "audio"); assert.equal(route.rate, 48000);
+    assert.equal(route.receive.rtp_seen, 4);
+    assert.equal(result.pages[0].observed_open_responses, 1);
+    assert.equal(result.pages[0].skipped_open_pending, 0);
+    assert.equal(result.pending_reads_at_finish, 0);
+});
+
+test("negotiation and packet observations have independent four-read budgets and original joins", async () => {
+    const t = new AppMediaClockTrace(), page = new EventEmitter(), releases = [];
+    t.attach(page, "organizer-av", origin);
+    for (const kind of ["open", "receive"]) for (let i = 0; i < 5; i++) {
+        const output = kind === "open" ? open() : { packets: [rtp(i)] };
+        page.emit("response", response("/api/media/" + kind, { leaseId: lease, streamId: stream }, null,
+            () => new Promise(done => releases.push(() => done(Buffer.from(JSON.stringify(output)))))));
+    }
+    assert.equal(releases.length, 8);
+    const finish = t.finish(); releases.forEach(done => done()); const result = await finish, pageResult = result.pages[0];
+    assert.deepEqual(result.read_bounds, { open: 4, packets: 4, total: 8 });
+    assert.equal(pageResult.skipped_pending, 2); assert.equal(pageResult.skipped_open_pending, 1);
+    assert.equal(pageResult.observed_open_responses, 4); assert.equal(pageResult.routes[0].receive.rtp_seen, 4);
+    assert.equal(result.pending_reads_at_finish, 0); assert.equal(result.pending_open_reads_at_finish, 0);
+    assert.equal(result.pending_packet_reads_at_finish, 0); assert.equal(page.listenerCount("response"), 0);
+});
+
+test("failed negotiation reads remain unknown and cannot infer a clock rate from RTP payload types", async () => {
+    const t = new AppMediaClockTrace(), page = new EventEmitter(); t.attach(page, "owner-av", origin);
+    page.emit("response", response("/api/media/open", {}, null, async () => { throw Error("private body details"); }));
+    await drain(); observe(page, "/api/media/receive", rtp(1)); await drain();
+    const result = await t.finish(), p = result.pages[0];
+    assert.equal(p.open_observation_failures, 1); assert.equal(p.observation_failure_stages.body, 1);
+    assert.equal(p.observed_open_responses, 0); assert.equal(p.routes[0].medium, "unknown");
+    assert.equal(p.routes[0].rate, null); assert.deepEqual(result.observer_clock_replay.pages[0].routes, []);
+    assert.equal(JSON.stringify(result).includes("private body details"), false);
+});

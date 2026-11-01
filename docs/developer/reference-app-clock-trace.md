@@ -7,12 +7,16 @@ source clocks, media ages, packet bounds and playback limits remain unchanged.
 The fixture observes successful original `/api/media/open`, `send` and `receive`
 requests/responses. It records RTP header numbers, relative sender-report times
 and HTTP durations without sending another request or evaluating browser code.
-Trace format 2 observes each entry in the app's bounded packet batches and
+Trace format 3 observes each entry in the app's bounded packet batches and
 retains original packet order within a response.
 Lease, stream and SSRC identities become bounded local slots; payloads, raw
 base64, CNAMEs, absolute NTP values and original identifiers are excluded.
 
-At most four response reads are pending. Each page has at most sixteen routes;
+At most four open-response reads and four packet-response reads are pending
+(eight total). The separate reservation prevents packet-body pressure from
+discarding original negotiation metadata. Open observations, skipped open reads
+and request/body/shape failures have explicit counters. Missing negotiation
+leaves medium/rate unknown; RTP payload types never supply a guessed clock rate. Each page has at most sixteen routes;
 each direction retains its first sixteen/latest thirty-two RTP observations and
 first eight/latest sixteen clock observations. Response bodies are bounded to
 64 KiB. Closing the fixture detaches listeners and joins existing reads under a

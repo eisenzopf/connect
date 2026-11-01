@@ -1,0 +1,28 @@
+{
+  "format": "connect/gate6-app-clock-open-reservation/1",
+  "base_revision": "b8498a21c8789adf3e00c46ca242f7a1f0437cb5",
+  "trace_format": "connect/app-media-clock-trace/3",
+  "original_regression": {
+    "passed": 6,
+    "failed": 1,
+    "failure": "Four pending packet body reads discard original open negotiation, leaving actual audio medium unknown."
+  },
+  "corrected_tests": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "read_bounds": {
+    "open": 4,
+    "packets": 4,
+    "total": 8
+  },
+  "unchanged": [
+    "Original HTTP requests and responses only",
+    "Original media clock mapping and replay",
+    "Original source clocks and media limits",
+    "Unknown negotiation remains unknown; no RTP payload-type rate inference"
+  ],
+  "scope": "Observer component correction. No application media-quality fix or hosted qualification is claimed.",
+  "task_complete": false
+}

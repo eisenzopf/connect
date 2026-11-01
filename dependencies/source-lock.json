@@ -1428,6 +1428,11 @@
       "path": "patches/rvoip/gate6-replacement-commit-refusal-observer.patch",
       "source": "G6-058 bounded debug-only observations at original replacement commit refusal points, distinguishing managed mixer try-lock admission, changed managed state and target validation before publication. No retry, authority, deadline, clock, media threshold or effect-state change. Original third move remains unknown and is never resubmitted. Production exact-source diagnosis still required.",
       "sha256": "8eecaab00612d6c51a7077cb525cc04fc478b7699ce4ff4bb840883f649c1768"
+    },
+    {
+      "path": "patches/rvoip/gate6-quarantined-video-preparation-regression.patch",
+      "sha256": "974eb86de151d87995afc7189681f13d0070b1bc3becb724aa32824d0a904d83",
+      "source": "Connect G6-058: actual staged endpoint regression for one duplex audio stream with separately muted video; no public media grant."
     }
   ]
 }

@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-quarantined-video-preparation-regression/1",
+  "base_revision": "b8498a21c8789adf3e00c46ca242f7a1f0437cb5",
+  "patch": "patches/rvoip/gate6-quarantined-video-preparation-regression.patch",
+  "source_lock_sha256": "ff17398616b2bd777fcdbd9d80f943d5e3cba9544143f1de0d6a5eb084803b81",
+  "prepared_file_count": 4098,
+  "source_inputs_unchanged": true,
+  "compile_exit": 0,
+  "binary_sha256": "9cc2184bb6b9a8324c1017e3af917495190218ce82fbc2ef0565b1560b01778c",
+  "regression_exit": 101,
+  "case": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_preparation_allows_quarantined_video_without_granting_public_media",
+  "passed": 0,
+  "failed": 1,
+  "filtered": 568,
+  "failure": "Unsupported in private scene preparation at private_consult.rs:565:18",
+  "initial_compile": "Failed with actual ENOSPC from an external target incremental symlink resolving to the system drive; no test executed. Owned cache was byte-verified and relocated onto D2 before the successful compile and original regression retry.",
+  "production_fix_applied": false,
+  "full_av_movement_verified": false,
+  "task_complete": false
+}

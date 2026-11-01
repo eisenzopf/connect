@@ -1,0 +1,269 @@
+{
+  "host": "linux",
+  "artifact_id": 13093283620,
+  "artifact_size": 846408,
+  "artifact_zip_sha256": "7ccb1123eb84f9a5c50ea37d1ab457d116043973a50033f8816b959308209da5",
+  "source_revision": "42eaafe8750514e8c1a30827612decc0981b19b4",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "git_app_checker_installer_cpu_native_inputs_verified": 35,
+  "node_package_source_inputs_verified": 197,
+  "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+  "installed_sdk_files_verified": 195,
+  "png_bytes_verified": 4,
+  "checks_passed": 25,
+  "checks_required": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 721,
+        "column": 20
+      }
+    ]
+  },
+  "failure_media_pages": [
+    {
+      "role": "owner",
+      "observation": {
+        "session_state": null,
+        "current_actor": "owner",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 226,
+          "capturedVideoFrames": 134,
+          "encodedFrames": 347,
+          "sentRtp": 343,
+          "receivedRtp": 136,
+          "clockReportsSent": 10,
+          "clockReportsReceived": 5,
+          "videoClockReportsSent": 5,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 34,
+          "playedAudioFrames": 2,
+          "decodedVideoFrames": 81,
+          "paintedVideoFrames": 71,
+          "droppedFrames": 173,
+          "synchronizedPackets": 132,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 32,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 9,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -126.741,
+          "lastVideoOffsetMs": 110.856,
+          "receiveClockCorrections": 2,
+          "lastAudioCaptureOffsetMs": 4,
+          "lastVideoCaptureOffsetMs": -12,
+          "receiveStartedMs": 281,
+          "deviceSetupMs": 65,
+          "captureGraphMs": 17,
+          "cameraSetupMs": 13,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 6,
+          "queuedVideoFrames": 1,
+          "pendingRequests": 5,
+          "stopped": false
+        },
+        "output": {
+          "frames": 2,
+          "energy": 0.03404417741832841,
+          "tone440": 1.1446172394059667e-05,
+          "tone880": 0.0036367960466389846
+        }
+      }
+    },
+    {
+      "role": "organizer",
+      "observation": {
+        "session_state": null,
+        "current_actor": "organizer",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 226,
+          "capturedVideoFrames": 134,
+          "encodedFrames": 350,
+          "sentRtp": 346,
+          "receivedRtp": 127,
+          "clockReportsSent": 10,
+          "clockReportsReceived": 3,
+          "videoClockReportsSent": 5,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 29,
+          "playedAudioFrames": 14,
+          "decodedVideoFrames": 73,
+          "paintedVideoFrames": 67,
+          "droppedFrames": 171,
+          "synchronizedPackets": 65,
+          "unsynchronizedPackets": 62,
+          "audioLateDrops": 15,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -69.2,
+          "lastVideoOffsetMs": 102.938,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": -12,
+          "lastVideoCaptureOffsetMs": -10,
+          "receiveStartedMs": 536,
+          "deviceSetupMs": 94,
+          "captureGraphMs": 28,
+          "cameraSetupMs": 44,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 6,
+          "queuedVideoFrames": 3,
+          "pendingRequests": 5,
+          "stopped": false
+        },
+        "output": {
+          "frames": 14,
+          "energy": 0.17207572267560414,
+          "tone440": 0.06868916411677747,
+          "tone880": 9.50830056942705e-05
+        }
+      }
+    }
+  ],
+  "source_guards_passed": true,
+  "component_passed": false,
+  "format": "connect/gate6-reference-app-receive-retention-linux-negative/1",
+  "run_id": 41326884138,
+  "job_id": 124908586571,
+  "native_runtime": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "42eaafe8750514e8c1a30827612decc0981b19b4",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4856,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "5580e3a4f7758d34c97ab346d1f8eac3fdda52bb275298a94b29cc0b85d6b1c6",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "7d868e17633e94819681e854c9eed7e94518bdafd22cc19d76859aeadce65d32",
+    "manifest_sha256": "54e8985ca568006ad87f522e6ba80f3065abc1abc0430ae02acead0c9ebebc2f",
+    "artifact_zip_digests": {
+      "evidence": "32cfec83d69cfc7897d47fa17774801054cc26a623e93597a79a854e56534db3",
+      "package": "54b8eadf50bd167dbc1d61eb884c96a37d862eb13316e4d7fd2b969d57f44db6"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "independent_supplement": {
+    "passed": true,
+    "original_replay_function_byte_equal": true,
+    "replay_function_sha256": "1cb4c9fb0c12c7e4afcaa3ffcab3f7008ec1b397c66455b79c18ef9059dbdf58",
+    "mapper_sha256": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
+    "trace_replay_exact": true,
+    "png": [
+      {
+        "name": "native-controls.png",
+        "width": 1440,
+        "height": 2559,
+        "png_sha256": "82e6a456ffd38c935dc2df2784d7d153b8a597e348d0b5d5ac751d4e9ed40681",
+        "rgb_sha256": "60db457e878eab676f304510a76b4d1db9dbfcf4c421f8ebd8b070ef177a47db",
+        "crc_decompression_geometry_verified": true,
+        "repeated_header_strips": 0
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "width": 320,
+        "height": 4012,
+        "png_sha256": "dbd420c84dd73dddf6764f1106dbc9e117c1865d9e1826d1e41864ba7a243a0d",
+        "rgb_sha256": "12178367fd1e7c3df757e66b6cd0b70d48ef49a15b02cf65b5b85f0259ec17db",
+        "crc_decompression_geometry_verified": true,
+        "repeated_header_strips": 0
+      },
+      {
+        "name": "capture-controls.png",
+        "width": 1440,
+        "height": 2389,
+        "png_sha256": "cef463bc613650c4ed63d62bbb29d15c669f499a5f6eb13ededa85d8ab771fba",
+        "rgb_sha256": "f3d9ed3c60516e21c90a3e1bfe0ee825ff1bddf1fa69b2faf42bf54281400ac2",
+        "crc_decompression_geometry_verified": true,
+        "repeated_header_strips": 0
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "width": 320,
+        "height": 3921,
+        "png_sha256": "320ac190fb8cca91df4aa509eac53ace2de1255f5d83380bf57abe2c2bbbf5cc",
+        "rgb_sha256": "b13c0147394c7258ab69d740c99088e9e1e6aa552fee249153a92a82248c83d4",
+        "crc_decompression_geometry_verified": true,
+        "repeated_header_strips": 0
+      }
+    ],
+    "initial_capture_files_not_exported": [
+      "desktop.png",
+      "narrow.png"
+    ]
+  },
+  "trace_observation_counts": [
+    {
+      "label": "owner-audio",
+      "observed_responses": 481,
+      "skipped_pending": 1,
+      "observation_failures": 192,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-audio",
+      "observed_responses": 418,
+      "skipped_pending": 1,
+      "observation_failures": 206,
+      "response_errors": 0
+    },
+    {
+      "label": "owner-av",
+      "observed_responses": 304,
+      "skipped_pending": 143,
+      "observation_failures": 136,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-av",
+      "observed_responses": 293,
+      "skipped_pending": 130,
+      "observation_failures": 133,
+      "response_errors": 0
+    }
+  ],
+  "combined_av_clock_age_qualified": false,
+  "scope": "The original installed Linux app fails sustained combined AV after25 of37 checks. All AV routes have unknown medium/rate and are excluded from source-age inference. Independent identity, runtime, replay and four capture audits do not qualify media quality. Local37pass is a distinct scope.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}

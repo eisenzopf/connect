@@ -1,0 +1,75 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -473,6 +473,17 @@
+         private: bool,
+         resources: Option<PreparedParticipantReplacement>,
+     ) {
++        self.add_owned_with_media(name, subject, o, private, resources, vec![desired(Medium::Audio)]).await;
++    }
++    async fn add_owned_with_media(
++        &mut self,
++        name: &str,
++        subject: &str,
++        o: MediaOwner,
++        private: bool,
++        resources: Option<PreparedParticipantReplacement>,
++        media: Vec<DesiredStream>,
++    ) {
+         self.domain
+             .base
+             .0
+@@ -508,7 +519,7 @@
+                 .await;
+             c.change_with_held(
+                 0,
+-                &[desired(Medium::Audio)],
++                &media,
+                 &BTreeSet::new(),
+                 deadline(),
+                 CancellationToken::new(),
+@@ -519,7 +530,7 @@
+         } else {
+             c.change(
+                 0,
+-                &[desired(Medium::Audio)],
++                &media,
+                 &BTreeSet::new(),
+                 deadline(),
+                 CancellationToken::new(),
+@@ -530,7 +541,7 @@
+         let grant = if private {
+             c.set_media_gate(
+                 c.revision(),
+-                &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                &media.iter().map(|s| s.logical_id.clone()).collect(),
+                 StreamGateAction::Mute,
+                 deadline(),
+             )
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+@@ -398,3 +398,25 @@
+         "historical facts must not confirm a later physical revision"
+     );
+ }
++
++#[tokio::test]
++async fn endpoint_preparation_allows_quarantined_video_without_granting_public_media() {
++    let mut room = Room::new().await;
++    room.add_owned_with_media(
++        "fresh", "fresh", owner("fresh"), true, None,
++        vec![desired(Medium::Audio), desired(Medium::Video)],
++    ).await;
++    let id = ConnectionId::from_string("fresh");
++    room.domain.local_preparations.lock().unwrap().insert(id.clone(), "prepare-fresh".into());
++    let video = room.nodes["fresh"].adapter.port(Medium::Video);
++    assert!(video.try_publish(&frame(&video, 1)).is_err(), "muted preparation published video");
++    let preparation = room.scene.prepare_audio_endpoint(&id, "prepare-fresh")
++        .expect("one duplex audio port plus separately muted video must permit decoder-only readiness");
++    assert!(!preparation.has_duplex_io());
++    room.publish("fresh", 12000).unwrap();
++    room.tick();
++    room.silent(&["alice", "bob", "public", "hold", "fresh"]);
++    assert!(video.try_publish(&frame(&video, 2)).is_err(), "audio proof opened a video route");
++    drop(preparation);
++    assert!(video.try_publish(&frame(&video, 3)).is_err(), "dropping preparation opened video");
++}
