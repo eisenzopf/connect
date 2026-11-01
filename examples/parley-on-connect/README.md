@@ -4,7 +4,15 @@ The G6-072 application shell is in progress under `app/`. Its private intent
 journal, public Node SDK gateway, local HTTP boundary and responsive UI are
 implemented. Run `npm run test:app` here for the application component checks.
 These checks use a simulated SDK-shaped backend; they do not qualify installed
-SDK execution or the complete browser application. One-command setup, scoped
+SDK execution or the complete browser application. A separate owned Chrome
+component has passed desktop keyboard creation, text and invitation decisions,
+actual microphone/camera denial, 320px layout and offline/reload recovery of an
+original accepted action without a second effect. It serves the installed browser
+SDK with a simulated application backend. Native participant dropdown keyboard
+interaction remains unqualified on macOS headless Chrome; perspective selection
+uses the normal select automation for fixture preparation. See
+[the browser component evidence](../../docs/evidence/gate-6/reference-app-browser-component.json).
+One-command setup, scoped
 credential installation, actual package/server execution and the remaining
 browser/media controls still require verification. `app/main.mjs` requires an
 app-owned private setup manifest and an ordinary installed `@rudeless/connect`;

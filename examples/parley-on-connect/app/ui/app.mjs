@@ -78,7 +78,10 @@ async function api(path, input = {}) {
         if (!response.ok && path !== "state") throw Object.assign(Error(), { code: value.error?.code });
         return value;
     } catch (error) {
-        error.code = captured !== epoch ? "view-changed" : error.code ?? "offline-or-uncertain"; throw error;
+        // Fetch aborts can be DOMExceptions with a read-only numeric `code`.
+        // Preserve our view fence without mutating browser-owned exceptions.
+        throw Object.assign(Error(), { code: captured !== epoch ? "view-changed" :
+            typeof error?.code === "string" ? error.code : "offline-or-uncertain" });
     } finally { clearTimeout(timeout); requests.delete(controller); }
 }
 function choices(id, people) {
@@ -110,12 +113,14 @@ function progress(values) {
             list.append(item);
         }
     }
+    renderPending(); controls();
+}
+function renderPending() {
     const recovery = $("pending"); recovery.replaceChildren();
     if (pending) {
         recovery.append(node("p", "An original action needs observation. Recover it before starting another."), button("Recover original action", recoverPending));
-        if (pending.operationId === null) recovery.append(button("Discard unsent preparation", () => { savePending(null); progress(values); }));
+        if (pending.operationId === null) recovery.append(button("Discard unsent preparation", () => { savePending(null); renderPending(); controls(); }));
     }
-    controls();
 }
 async function state(append = false) {
     const value = await api("state", append && nextConversations ? { cursor: nextConversations } : {});
@@ -239,7 +244,7 @@ $("more-conversations").addEventListener("click", () => state(true).catch(proble
 $("more-messages").addEventListener("click", () => { historyCursor = nextHistory; view().catch(problem); });
 $("microphone").addEventListener("click", () => preview("microphone")); $("camera").addEventListener("click", () => preview("camera"));
 $("stop-preview").addEventListener("click", () => { stopPreview(); $("permission").textContent = "Local preview stopped."; });
-window.addEventListener("offline", () => { retire(); stopPreview(); clearView(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
+window.addEventListener("offline", () => { retire(); stopPreview(); clearView(); renderPending(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
 window.addEventListener("online", () => notice("Network available. Reconnect to refresh current access and outcomes."));
 window.addEventListener("pagehide", () => { clearTimeout(timer); retire(); stopPreview(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") stopPreview(); });
