@@ -4,6 +4,9 @@ use crate::sdk::StreamSelector;
 #[derive(Clone, Copy, Debug)]
 pub(in crate::canonical) enum Case {
     Normal,
+    AudienceRevision,
+    AudienceRevisionRemovedPublisher,
+    AudienceRevisionNoCapture,
     Recycle,
     Unknown,
     Dropped,
@@ -76,7 +79,7 @@ fn result(request: &Envelope, case: Case) -> Value {
     if routing {
         ports.as_array_mut().unwrap().truncate(3);
     }
-    let mut out = json!({"connection_id":"connection_one","command_type":request.kind(),"connection_generation":1,"expected_revision":expected,"stream_revision":expected+u64::from(!unchanged),"resources_changed":!routing,"stream_bindings":if matches!(case,Case::NoCapture){Value::Null}else{bindings(&ports)}});
+    let mut out = json!({"connection_id":"connection_one","command_type":request.kind(),"connection_generation":1,"expected_revision":expected,"stream_revision":expected+u64::from(!unchanged),"resources_changed":!routing,"stream_bindings":if matches!(case,Case::NoCapture|Case::AudienceRevisionNoCapture){Value::Null}else{bindings(&ports)}});
     if matches!(case, Case::Recycle) && expected == 3 {
         out["stream_bindings"][3]["stream_generation"] = json!(2);
         out["stream_bindings"][4]["stream_generation"] = json!(2);
@@ -202,7 +205,7 @@ pub(super) async fn emit(
                 }),
             )
             .await;
-            if matches!(case, Case::Normal) {
+            if matches!(case, Case::Normal | Case::AudienceRevision) {
                 connection
                     .send_datagram(datagram(17, 44, &raw_rtp(96)).into())
                     .unwrap();
@@ -214,6 +217,14 @@ pub(super) async fn emit(
             "stream.subscribe" | "stream.unsubscribe"
         ));
         requests += 1;
+        if matches!(
+            case,
+            Case::AudienceRevision
+                | Case::AudienceRevisionRemovedPublisher
+                | Case::AudienceRevisionNoCapture
+        ) {
+            assert_eq!(request.expected_revision(), Some(3));
+        }
         if !matches!(case, Case::RoutingOnly | Case::Recycle) {
             assert_eq!(requests, 1, "recovery never repeats mutation");
         }
@@ -239,7 +250,7 @@ pub(super) async fn emit(
                 Case::Collision => ports[3]["stream_local_id"] = json!(7),
                 Case::DataZero => ports[4]["stream_local_id"] = json!(0),
                 Case::ChangedData => ports[2]["stream_local_id"] = json!(10),
-                Case::RemovedPublisher => {
+                Case::RemovedPublisher | Case::AudienceRevisionRemovedPublisher => {
                     ports.as_array_mut().unwrap().remove(0);
                 }
                 _ => (),
@@ -248,6 +259,7 @@ pub(super) async fn emit(
             let offered=ports.as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec_preferences":[s["codec"]["name"]]})).collect::<Vec<_>>();
             let callback=write(writer,signer,&request,"connection.offer",json!({"by_participant":if matches!(case,Case::BadParticipant){"foreign"}else{"part_one"},"substrate":"quic","capabilities":if matches!(case,Case::BadCaps){json!({})}else{caps.clone()},"streams_offered":offered,"substrate_setup":setup}),false).await;
             if malformed(case)
+                || matches!(case, Case::AudienceRevisionRemovedPublisher)
                 || matches!(case, Case::Recycle) && request.original()["expected_revision"] == 4
             {
                 while let Some(reply) = maybe_read(reader).await {
@@ -325,6 +337,89 @@ async fn ready(
 }
 fn count(c: &sdk::Connection) -> usize {
     c.native_negotiation().unwrap().unwrap().streams.len()
+}
+#[tokio::test]
+async fn signed_selection_after_current_audience_revision_keeps_publication_and_requires_original_capture(
+) {
+    let (client, c, host, _) = ready(Case::AudienceRevision).await;
+    // Managed audience changes can advance the server's control revision
+    // without changing this peer's signed RTP parameters. The caller supplies
+    // that current server observation; cached parameters remain at revision1.
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        1
+    );
+    let before = c.native_negotiation().unwrap().unwrap().streams[0].clone();
+    let op = c
+        .subscribe(selectors(), revision(3), opts("selection"))
+        .await
+        .unwrap();
+    let reference = op.reference_json();
+    let receipt = op.wait(options()).await.unwrap().value;
+    assert_eq!(receipt.stream_revision.get(), 4);
+    assert!(receipt.resources_changed);
+    assert_eq!(count(&c), 5);
+    let native = c.native_negotiation().unwrap().unwrap();
+    assert_eq!(native.stream_revision.get(), 4);
+    assert_eq!(native.streams[0].id, before.id);
+    assert_eq!(native.streams[0].stream_local_id, before.stream_local_id);
+    assert_eq!(native.streams[0].codec, before.codec);
+    assert!(matches!(
+        c.stream_by_id("camera".parse().unwrap())
+            .receive_packet(options())
+            .await
+            .unwrap(),
+        sdk::MediaPacket::Rtp(_)
+    ));
+    client
+        .restore(reference, client.operation_kinds().stream_subscribe)
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+    assert_eq!(count(&c), 5);
+    close(client, host).await;
+}
+
+#[tokio::test]
+async fn current_audience_revision_does_not_allow_a_selection_to_remove_local_publication() {
+    let (client, c, host, _) = ready(Case::AudienceRevisionRemovedPublisher).await;
+    let error = c
+        .subscribe(selectors(), revision(3), opts("selection"))
+        .await
+        .err()
+        .expect("publication change must refuse");
+    assert_eq!(error.kind, sdk::ErrorKind::Protocol);
+    assert!(
+        c.native_negotiation().is_err(),
+        "malformed parameters fence the original peer"
+    );
+    close(client, host).await;
+}
+#[tokio::test]
+async fn current_audience_revision_without_paired_capture_never_adopts_new_media_parameters() {
+    let (client, c, host, _) = ready(Case::AudienceRevisionNoCapture).await;
+    let op = c
+        .subscribe(selectors(), revision(3), opts("selection"))
+        .await
+        .unwrap();
+    let receipt = op.wait(options()).await.unwrap().value;
+    assert_eq!(receipt.stream_revision.get(), 4);
+    assert!(receipt.bindings.is_none());
+    assert_eq!(count(&c), 3);
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        1
+    );
+    close(client, host).await;
 }
 #[tokio::test]
 async fn signed_selection_adds_receive_only_video_and_data_keeps_publication_and_receipt_binding_identity(

@@ -2,7 +2,7 @@
 use super::*;
 use sdk::{NativeReconciliationPhase as Phase, StreamSelector};
 mod journal;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(in crate::canonical) enum Case {
     Normal,
     Delay,
@@ -98,6 +98,14 @@ async fn hint(writer: &mut quinn::SendStream, signer: &Sig9421Signer, case: Case
     }
     let frame = signer.sign(&frame).unwrap();
     let bytes = serde_json::to_vec(&frame).unwrap();
+    if matches!(case, Case::RouteMalformed) {
+        assert!(
+            Envelope::parse(&bytes).is_err(),
+            "resource-changing hints violate the wire contract"
+        );
+    } else {
+        Envelope::parse(&bytes).unwrap();
+    }
     writer
         .write_all(&(bytes.len() as u32).to_be_bytes())
         .await
@@ -288,6 +296,9 @@ pub(super) async fn emit(
             }
             reply(writer, signer, &request, true, "completed", case, false).await;
             if !started && routing(case) {
+                if matches!(case, Case::RouteMalformed) {
+                    signal.notified().await;
+                }
                 hint(writer, signer, case).await;
                 started = true;
             }
@@ -784,15 +795,17 @@ async fn routing_hint_mismatched_record_or_counter_refuses_and_unmatched_binding
     }
 }
 #[tokio::test]
-async fn stale_foreign_unissued_or_nonrouting_hints_do_not_acquire_custody_or_disturb_control() {
+async fn stale_foreign_or_unissued_hints_do_not_acquire_custody_or_disturb_control() {
     for case in [
         Case::RouteStale,
         Case::RouteForeignScope,
         Case::RouteUnknownParent,
-        Case::RouteMalformed,
     ] {
         let (client, c, selector, host, _) = ready(case).await;
-        selector.wait(options()).await.unwrap();
+        selector
+            .wait(options())
+            .await
+            .unwrap_or_else(|error| panic!("hint {case:?} disturbed original control: {error:?}"));
         assert!(c.native_reconciliation().unwrap().is_none());
         assert_eq!(
             c.native_negotiation()
@@ -804,6 +817,36 @@ async fn stale_foreign_unissued_or_nonrouting_hints_do_not_acquire_custody_or_di
         );
         close(client, host).await;
     }
+}
+#[tokio::test]
+async fn schema_invalid_resource_changing_hint_fences_the_peer_without_adopting_native_parameters()
+{
+    let (client, c, selector, host, signal) = ready(Case::RouteMalformed).await;
+    assert!(c.native_reconciliation().unwrap().is_none());
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        2
+    );
+    signal.notify_one();
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while c.native_negotiation().is_ok() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        c.native_negotiation().unwrap_err().kind,
+        sdk::ErrorKind::Cancelled
+    );
+    let error = selector.wait(options()).await.err().unwrap();
+    assert_eq!(error.kind, sdk::ErrorKind::Cancelled);
+    assert_eq!(error.operation.unwrap().operation_id.as_str(), "selector");
+    close(client, host).await;
 }
 #[tokio::test]
 async fn pending_routing_hint_cannot_replace_identity_or_settle_an_unavailable_resource_capture() {

@@ -1,6 +1,6 @@
 //! No dedicated hint or native callback: only a resumed durable operation fact.
 use super::*;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(in crate::canonical) enum Case {
     Normal,
     NoCapture,
@@ -9,6 +9,7 @@ pub(in crate::canonical) enum Case {
     DelayedAck,
     CancelledWait,
     Refused,
+    ReauthorizeRefused,
     WrongRecord,
     WrongBinding,
     ForeignParent,
@@ -97,6 +98,7 @@ async fn current(
         Case::Unrelated => {
             p["command_type"] = json!("session.update");
             p["result"] = json!({});
+            p.as_object_mut().unwrap().remove("subscription_record_id");
         }
         _ => (),
     }
@@ -111,6 +113,7 @@ pub(super) async fn emit(
     signal: &Notify,
 ) {
     let mut queries = 0;
+    let mut permission_reads = 0;
     let mut late: Option<Envelope> = None;
     while let Some(request) = selections::maybe_read(reader).await {
         match request.kind() {
@@ -126,6 +129,21 @@ pub(super) async fn emit(
                 )
                 .await
             }
+            "conversation.subscribe" if request.original()["payload"]["live"] == false => {
+                permission_reads += 1;
+                assert_eq!(request.original()["payload"]["after"], "journal-after");
+                assert_eq!(request.original()["payload"]["limit"], 1);
+                assert_eq!(request.scope(Scope::Conversation), Some("conv_one"));
+                assert!(request.scope(Scope::Session).is_none());
+                assert!(request.scope(Scope::Connection).is_none());
+                assert!(request.scope(Scope::Operation).is_none());
+                if matches!(case, Case::ReauthorizeRefused) && permission_reads == 1 {
+                    assert_eq!(queries, 0, "no native discovery before current permission");
+                    write(writer, signer, &request, "error", json!({"code":403,"category":"authorization","reason":"journal permission refused"}), true).await;
+                } else {
+                    write(writer, signer, &request, "ack", json!({"details":{"cursor":"journal-after","has_more":false,"resync_required":false,"live":false}}), true).await;
+                }
+            }
             "conversation.subscribe" => page(case, writer, reader, signer, &request).await,
             "operation.get" if request.original()["payload"]["operation_id"] == "selector" => {
                 reply(
@@ -140,6 +158,10 @@ pub(super) async fn emit(
                 .await
             }
             "operation.get" => {
+                assert!(
+                    permission_reads > 0,
+                    "native discovery requires current journal permission"
+                );
                 assert_eq!(
                     request.original()["payload"]["operation_id"],
                     "auto-selection"
@@ -269,6 +291,7 @@ async fn cancelled_event_next_keeps_the_fact_and_cursor_until_its_current_journa
 #[tokio::test]
 async fn failed_or_contradictory_current_reads_never_advance_the_event_cursor_and_can_be_retried() {
     for (case, kind) in [
+        (Case::ReauthorizeRefused, sdk::ErrorKind::Authentication),
         (Case::Refused, sdk::ErrorKind::Authentication),
         (Case::WrongRecord, sdk::ErrorKind::Protocol),
         (Case::WrongBinding, sdk::ErrorKind::ResyncRequired),

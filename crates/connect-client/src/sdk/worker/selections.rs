@@ -49,7 +49,11 @@ pub(super) fn prepare(
         || entry.prepared.is_some()
         || Some(&entry.session) != key.scope.session_id.as_ref()
         || Some(&entry.conversation) != key.scope.conversation_id.as_ref()
-        || entry.selected.stream_revision.get() != expected
+        // Managed audience commits can advance the current server control
+        // counter without changing this peer's signed RTP parameters. The
+        // caller's explicit revision and correlated signed offer still bind
+        // this preparation; only its exact paired capture may later install it.
+        || expected < entry.selected.stream_revision.get().max(entry.known_revision.get())
     {
         return Err(bad());
     }

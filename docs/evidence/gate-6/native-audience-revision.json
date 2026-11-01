@@ -1,0 +1,61 @@
+{
+  "format": "connect/gate6-native-audience-revision/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Signed selection after server-managed audience commits advance the current control counter while retaining previously signed RTP parameters. Component correction; actual corrected-runtime AV rerun pending.",
+  "source_files_sha256": {
+    "crates/connect-client/src/sdk/worker/selections.rs": "c209617095ab94dd964982164e07442c519e925ca073acc220f6adf15340ec30",
+    "crates/connect-client/src/canonical/tests/sdk_native/selections.rs": "e8109ae19c8f864433582dfbf13bba93bd702f30f92d3425d4a7ab040572816e",
+    "crates/connect-client/src/canonical/tests/sdk_native/reconciliations.rs": "39cc5a4092aa7e5740510cf0909dd6c033b4b7cbd8ebe7264c963d0d13485b9f",
+    "crates/connect-client/src/canonical/tests/sdk_native/reconciliations/journal.rs": "191862f4536208db097204321f376a6a923436186f9b4b8a773d69f6b1b16d96",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "e876347549912aaa7b2e31f60da9ef07e5a8a800476ff75b7661cfab63633dea"
+  },
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "reproduction": {
+    "physical_replacement_stage_passed": true,
+    "whole_probe_passed": false,
+    "retained_camera_selection": "Protocol/uncertain; original unknown mutation is retained and never replayed",
+    "original_operation_deadline_seconds": 8,
+    "diagnostic_extended_read_branch_executed": false,
+    "cause": "Explicit current host counter4 exceeded installed signed RTP revision2. SDK refused the original correlated signed selection callback before confirmation."
+  },
+  "correction": "Allow the explicit expected counter to be at least the installed and known counters. Preserve exact signed original-command/scope/setup-revision matching, publisher identity, capabilities, hop-handle reservation, receive-only changes and paired complete resource capture. No counter rewind, binding inference or mutation retry.",
+  "verification": {
+    "stage": "complete",
+    "controller_pid": 68303,
+    "passed": true,
+    "exit_code": 0,
+    "elapsed_seconds": 39.33850545901805,
+    "source_inputs_unchanged": true,
+    "test_binary_sha256": "bee8c7efe79e7693bac8167a9349bab8c9f3a58af86ff9f383ac896ef5146912",
+    "cases_passed": 62,
+    "cases_failed": 0,
+    "source_input_count": 4244
+  },
+  "controlled_cases": [
+    "Cached native revision1, explicit current server revision3 and correlated signed capture4: retain publication, adopt new receive bindings, receive actual RTP and recover the same original reference without reapplication.",
+    "Same counter gap cannot remove local publication; refuse before signing and fence the peer.",
+    "Unavailable paired capture preserves original installed revision and bindings.",
+    "Current journal permission refusal retains the fact/cursor and prevents native discovery until a successful fresh permission read.",
+    "Stale/foreign/unissued valid hints leave control usable. Schema-invalid resource-changing hints fence the reader without gaining native custody."
+  ],
+  "retained_failures": [
+    "Original causal positive fails with Protocol/uncertain under the old equality predicate. Initial baseline command selected zero exact tests; only the separately executed qualified case is causal evidence.",
+    "First expanded cohort55pass6fail: five fixtures omitted current-permission probes; one expected a schema-invalid hint to leave the peer usable. Corrected fixtures also expose and remove a reconciliation-only parent field on an unrelated operation. No production permission or wire refusal is relaxed.",
+    "One new test initially failed compilation because unwrap_err required Debug on the completion type; changed only error extraction. Final current cohort62pass0fail0ignored."
+  ],
+  "private_evidence_sha256": {
+    ".local/gate-6/replacement-selection-revision-current2/inputs.json": "2d8bdb49d6b576b559df31f12eaa56ecc7cf77bebc1f4b20e2275338ecda8554",
+    ".local/gate-6/replacement-selection-revision-current2/state.json": "b4087b14cbfce8ef6b154b99f84b6271900880c72875957c26f03ccf42fd491f",
+    ".local/gate-6/replacement-selection-revision-current2/test.log": "07150a6fbe2ba2a66eb62efccffccb3e8952375841b872e6a9c70992180252ce",
+    ".local/gate-6/replacement-shared-program-av-read-recovery/move/stage.json": "4d79fc3d86fee15dbfc7e48fd9121ac796f82179ea388e6d1002219a28c9cbe2",
+    ".local/gate-6/replacement-shared-program-av-read-recovery/probe.json": "801f4eae61ca1a6460e2e8e169e74d9f57f748c35987ca15fefd228d569642cb",
+    ".local/gate-6/replacement-selection-revision-baseline/positive-baseline.log": "5ef039bea6898a13f5db9ac57b151ad942081da6a1514df9b00ab5321d870431",
+    ".local/gate-6/replacement-selection-revision-fixed/test.log": "b0e6db7d8bf02f9b68c616b991bb1094c115434851e1747600c8fedc0bece175",
+    ".local/gate-6/replacement-selection-revision-journal/test.log": "cec999e424b04f54a5bc2948423debcf713e618c200922928c98ba0ea7b36c48",
+    ".local/gate-6/replacement-selection-revision-current/test.log": "3c12ba11fd5b788bf0d698504bdb4ec4abe15d3cc259553e47b11c5ac76b3f8d"
+  },
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

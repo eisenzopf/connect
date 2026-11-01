@@ -18,14 +18,23 @@ impl Runtime {
         let plan = self
             .core
             .plan_staged_device_replacement(&root.handle)
-            .map_err(|_| Error::forbidden())?;
+            .map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
+                Error::forbidden()
+            })?;
         let i = self
             .continuation_read(root, started, Phase::Commit(plan.clone()))
-            .await?;
+            .await.map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="scene-read",code=%error.code,"Replacement pre-commit refused");
+                error
+            })?;
         let owner = started
             .policy
             .current_owner(i.read.media())
-            .map_err(|_| Error::forbidden())?;
+            .map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="current-owner",?error,"Replacement pre-commit refused");
+                Error::forbidden()
+            })?;
         let attempt = {
             let store = self.media.store.clone();
             let origin = started
@@ -35,7 +44,10 @@ impl Runtime {
                 .cloned()
                 .ok_or_else(Error::forbidden)?;
             let read = i.read.clone();
-            store_call(move || store.begin_native_replacement_commit(origin, &read)).await?
+            store_call(move || store.begin_native_replacement_commit(origin, &read)).await.map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="commit-reservation",code=%error.code,"Replacement pre-commit refused");
+                error
+            })?
         };
         let result = self
             .core
