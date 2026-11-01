@@ -111,6 +111,11 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
+      - name: Check current packet metadata and original operation authority
+        if: inputs.component == 'media'
+        run: |
+          cargo test --release --locked -p connect-store --lib peer_authority::connection_media::snapshot::tests -- --nocapture
+          cargo test --release --locked -p connect-store --lib transitions::tests::peer_operations -- --nocapture
       - name: Check native media failure joins
         if: inputs.component == 'media'
         run: node --test scripts/tests/transport_av.test.mjs

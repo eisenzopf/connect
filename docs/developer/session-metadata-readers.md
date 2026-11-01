@@ -48,3 +48,24 @@ servers join without force or remaining group members. Process counters and
 joins are original controller observations, not reconstructed process logs.
 See `docs/evidence/gate-6/session-readers-local-native-idle-observed.json`. This
 confirms lower idle polling overhead; sustained media and app CI remain required.
+
+
+Active-media sampling also found repeated operation-row SQL preparation. Those
+fixed row queries now reuse bounded compiled statements (capacity 32 on the
+foreground Store connection), with every call rebinding arguments and executing
+against current data. Tests alternate operation IDs and verify external commits,
+local rollback, schema changes and completed-read WAL release. A single optimized
+local 200-read probe measured 80 ms before and 7 ms after; this is component evidence,
+not a hosted media result.
+
+Packet metadata now keeps up to four original counterparties per SQL observer,
+with 16 paired entries per live origin across four observers. Previously an entry
+for another source replaced the prior source even inside one unchanged version.
+The actual four-source/four-observer counterexample derived 48 times; current code
+derives 16 times for those 16 unique pairs. Unary metadata remains one entry per
+observer. Dead source identities and superseded observer versions are removed;
+FIFO capacity eviction only causes fresh derivation, never excludes a peer.
+Every lookup still compares SQL/data/schema/clock/source identity and acquires a
+fresh complete authority interval. No row result, permission or IO grant is
+cached. Current-writer refusal and commit/source invalidation remain explicit.
+See `docs/evidence/gate-6/packet-source-operation-sql.json` for 67 current cases.

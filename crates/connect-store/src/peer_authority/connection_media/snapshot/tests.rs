@@ -66,6 +66,113 @@ fn erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_g
 }
 
 #[test]
+fn alternating_original_sources_reuse_only_their_own_current_metadata() {
+    for _ in 0..8 {
+        let f = Fixture::new();
+        let memo = Store::new_packet_projection_metadata::<i64>();
+        let sources: Vec<MetadataToken> = (0..4).map(|id| Arc::new(id) as MetadataToken).collect();
+        let calls = std::cell::Cell::new(0);
+        let finishes = std::cell::Cell::new(0);
+        let read = |source: &MetadataToken, index: i64, expected: i64| {
+            f.store.try_cached_packet_projection(
+                memo.as_ref(),
+                Some(source),
+                |c| {
+                    calls.set(calls.get() + 1);
+                    let (value, scopes) = f.derive(c)?;
+                    Ok((value * 100 + index, scopes))
+                },
+                |_, value| {
+                    assert_eq!(
+                        *value, expected,
+                        "another original source cannot supply cached facts"
+                    );
+                    finishes.set(finishes.get() + 1);
+                    Ok(())
+                },
+            )
+        };
+        let second = crate::now();
+        for _ in 0..3 {
+            for selected in 0..f.store.packet_connections.len() {
+                let occupied: Vec<_> = f
+                    .store
+                    .packet_connections
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != selected)
+                    .map(|(_, c)| c.lock().unwrap())
+                    .collect();
+                for (index, source) in sources.iter().enumerate() {
+                    let (value, held) = read(source, index as i64, 100 + index as i64).unwrap();
+                    assert_eq!(value, 100 + index as i64);
+                    drop(held);
+                }
+                drop(occupied);
+            }
+        }
+        if crate::now() != second {
+            continue;
+        }
+        assert_eq!(
+            calls.get(),
+            4 * f.store.packet_connections.len(),
+            "alternating current counterparties must not evict one another on every packet"
+        );
+        assert_eq!(
+            finishes.get(),
+            3 * 4 * f.store.packet_connections.len(),
+            "every cached observation still finishes a fresh complete file grant"
+        );
+        let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+        for (index, source) in sources.iter().enumerate() {
+            assert_eq!(
+                read(source, index as i64, 100 + index as i64)
+                    .unwrap_err()
+                    .code,
+                "authority-busy"
+            );
+        }
+        drop(writer);
+        let external = Connection::open(f.store.path()).unwrap();
+        external
+            .execute("UPDATE packet_snapshot_test SET value=2", [])
+            .unwrap();
+        for selected in 0..f.store.packet_connections.len() {
+            let occupied: Vec<_> = f
+                .store
+                .packet_connections
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| *index != selected)
+                .map(|(_, c)| c.lock().unwrap())
+                .collect();
+            for (index, source) in sources.iter().enumerate() {
+                let (value, held) = read(source, index as i64, 200 + index as i64).unwrap();
+                assert_eq!(
+                    value,
+                    200 + index as i64,
+                    "a commit invalidates every source/observer pair"
+                );
+                drop(held);
+            }
+            drop(occupied);
+        }
+        for _ in 0..32 {
+            let source: MetadataToken = Arc::new(99u8);
+            drop(read(&source, 17, 217).unwrap());
+            let entries = memo.downcast_ref::<Memo<i64>>().unwrap().0.lock().unwrap();
+            assert!(
+                entries.len() <= 4 * crate::packet_observation::OBSERVERS,
+                "counterparty churn cannot grow retained metadata without bound"
+            );
+        }
+        return;
+    }
+    panic!("No unchanged clock interval for the controlled alternating-source boundary");
+}
+
+#[test]
 fn current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority() {
     let f = Fixture::new();
     let memo = Memo::default();

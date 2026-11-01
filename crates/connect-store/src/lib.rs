@@ -704,6 +704,10 @@ impl Store {
         Ok(store)
     }
     fn configure(c: &Connection) -> Result<()> {
+        // The fixed operation-row query family plus current identity/source
+        // statements exceeds rusqlite's default sixteen cached statements. Keep
+        // a bounded compiled-SQL cache; results and grants are never cached.
+        c.set_prepared_statement_cache_capacity(32);
         c.busy_timeout(Duration::from_secs(2))
             .map_err(|_| Error::storage())?;
         c.execute_batch("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;")

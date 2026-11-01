@@ -1,0 +1,1095 @@
+{
+  "format": "connect/reference-app-session-readers-linux-negative/1",
+  "task": "G6-072",
+  "run_id": 41301872239,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41301872239",
+  "linux_job_id": 124834327412,
+  "linux_job_terminal": true,
+  "parent_run_terminal": true,
+  "independent_app_node_native_audit_passed": true,
+  "linux": {
+    "host": "linux",
+    "artifact_id": 13082926315,
+    "artifact_size": 828467,
+    "artifact_zip_sha256": "1349fa5ef86efcb593003188c2d93ad61e847d14b16215a4d3e8912317fd603a",
+    "source_revision": "057757ee690c7465bdb350b340e3a0d0c14574f2",
+    "node": "v22.23.4",
+    "browser": "156.0.8078.4",
+    "git_app_checker_installer_cpu_native_inputs_verified": 31,
+    "node_package_source_inputs_verified": 197,
+    "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+    "installed_sdk_files_verified": 195,
+    "png_bytes_verified": 4,
+    "checks_passed": 25,
+    "checks_required": 37,
+    "cpu_profiles": [
+      {
+        "format": "connect/app-cpu-sample-summary/1",
+        "raw_profile_sha256": "34ec0c013a192a00cbaddb0b54d9d1adff2e0b7e8a8c0a1c21800ea02d6487b0",
+        "samples": 65721,
+        "total_sampled_ms": 74090,
+        "top_self": [
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 67337,
+            "inclusive_sampled_ms": 67337
+          },
+          {
+            "module": "node-native",
+            "function": "writeBuffer",
+            "line": 0,
+            "self_sampled_ms": 829,
+            "inclusive_sampled_ms": 829
+          },
+          {
+            "module": "node-native",
+            "function": "writev",
+            "line": 0,
+            "self_sampled_ms": 501,
+            "inclusive_sampled_ms": 504
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 440,
+            "inclusive_sampled_ms": 4404
+          },
+          {
+            "module": "v8",
+            "function": "(program)",
+            "line": 0,
+            "self_sampled_ms": 378,
+            "inclusive_sampled_ms": 378
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "visit",
+            "line": 25,
+            "self_sampled_ms": 297,
+            "inclusive_sampled_ms": 323
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "value",
+            "line": 120,
+            "self_sampled_ms": 281,
+            "inclusive_sampled_ms": 479
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "visit",
+            "line": 38,
+            "self_sampled_ms": 279,
+            "inclusive_sampled_ms": 427
+          },
+          {
+            "module": "v8",
+            "function": "(garbage collector)",
+            "line": 0,
+            "self_sampled_ms": 217,
+            "inclusive_sampled_ms": 217
+          },
+          {
+            "module": "node-native",
+            "function": "exec",
+            "line": 0,
+            "self_sampled_ms": 167,
+            "inclusive_sampled_ms": 167
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "anonymous",
+            "line": 63,
+            "self_sampled_ms": 143,
+            "inclusive_sampled_ms": 319
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "string",
+            "line": 101,
+            "self_sampled_ms": 138,
+            "inclusive_sampled_ms": 138
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 81,
+            "inclusive_sampled_ms": 1759
+          },
+          {
+            "module": "node:internal/encoding",
+            "function": "encode",
+            "line": 351,
+            "self_sampled_ms": 75,
+            "inclusive_sampled_ms": 102
+          },
+          {
+            "module": "node:internal/per_context/domexception",
+            "function": "DOMException",
+            "line": 72,
+            "self_sampled_ms": 60,
+            "inclusive_sampled_ms": 60
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "createAsyncIterator",
+            "line": 1359,
+            "self_sampled_ms": 53,
+            "inclusive_sampled_ms": 120
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "processTimers",
+            "line": 506,
+            "self_sampled_ms": 53,
+            "inclusive_sampled_ms": 201
+          },
+          {
+            "module": "app/intents.mjs",
+            "function": "#decode",
+            "line": 97,
+            "self_sampled_ms": 51,
+            "inclusive_sampled_ms": 124
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "mediaFrozen",
+            "line": 9,
+            "self_sampled_ms": 48,
+            "inclusive_sampled_ms": 48
+          },
+          {
+            "module": "node:internal/buffer",
+            "function": "FastBuffer",
+            "line": 956,
+            "self_sampled_ms": 45,
+            "inclusive_sampled_ms": 45
+          },
+          {
+            "module": "node-native",
+            "function": "spawn",
+            "line": 0,
+            "self_sampled_ms": 42,
+            "inclusive_sampled_ms": 42
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "body",
+            "line": 13,
+            "self_sampled_ms": 41,
+            "inclusive_sampled_ms": 167
+          },
+          {
+            "module": "app/media.mjs",
+            "function": "fingerprint",
+            "line": 11,
+            "self_sampled_ms": 41,
+            "inclusive_sampled_ms": 41
+          },
+          {
+            "module": "node-native",
+            "function": "parse",
+            "line": 0,
+            "self_sampled_ms": 41,
+            "inclusive_sampled_ms": 41
+          }
+        ],
+        "top_inclusive": [
+          {
+            "module": "v8",
+            "function": "(root)",
+            "line": 0,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 74090
+          },
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 67337,
+            "inclusive_sampled_ms": 67337
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 71,
+            "self_sampled_ms": 32,
+            "inclusive_sampled_ms": 4436
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 440,
+            "inclusive_sampled_ms": 4404
+          },
+          {
+            "module": "sdk/node_media.js",
+            "function": "request",
+            "line": 226,
+            "self_sampled_ms": 40,
+            "inclusive_sampled_ms": 2299
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 81,
+            "inclusive_sampled_ms": 1759
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "exchange",
+            "line": 229,
+            "self_sampled_ms": 24,
+            "inclusive_sampled_ms": 1474
+          },
+          {
+            "module": "node:net",
+            "function": "Socket._writeGeneric",
+            "line": 936,
+            "self_sampled_ms": 9,
+            "inclusive_sampled_ms": 1440
+          },
+          {
+            "module": "node:events",
+            "function": "emit",
+            "line": 466,
+            "self_sampled_ms": 31,
+            "inclusive_sampled_ms": 1066
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "anonymous",
+            "line": 283,
+            "self_sampled_ms": 17,
+            "inclusive_sampled_ms": 1046
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "pump",
+            "line": 280,
+            "self_sampled_ms": 8,
+            "inclusive_sampled_ms": 1009
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "Writable.write",
+            "line": 504,
+            "self_sampled_ms": 9,
+            "inclusive_sampled_ms": 905
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "_write",
+            "line": 453,
+            "self_sampled_ms": 7,
+            "inclusive_sampled_ms": 896
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "writeOrBuffer",
+            "line": 548,
+            "self_sampled_ms": 6,
+            "inclusive_sampled_ms": 889
+          },
+          {
+            "module": "node:net",
+            "function": "Socket._write",
+            "line": 978,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 882
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "writeGeneric",
+            "line": 146,
+            "self_sampled_ms": 3,
+            "inclusive_sampled_ms": 874
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "write",
+            "line": 168,
+            "self_sampled_ms": 4,
+            "inclusive_sampled_ms": 872
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "anonymous",
+            "line": 169,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 867
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "handleWriteReq",
+            "line": 46,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 846
+          },
+          {
+            "module": "node-native",
+            "function": "writeBuffer",
+            "line": 0,
+            "self_sampled_ms": 829,
+            "inclusive_sampled_ms": 829
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "mediaJson",
+            "line": 18,
+            "self_sampled_ms": 27,
+            "inclusive_sampled_ms": 789
+          },
+          {
+            "module": "app/media.mjs",
+            "function": "anonymous",
+            "line": 99,
+            "self_sampled_ms": 21,
+            "inclusive_sampled_ms": 693
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "json",
+            "line": 39,
+            "self_sampled_ms": 23,
+            "inclusive_sampled_ms": 630
+          },
+          {
+            "module": "node:_http_outgoing",
+            "function": "end",
+            "line": 1087,
+            "self_sampled_ms": 13,
+            "inclusive_sampled_ms": 616
+          }
+        ],
+        "nodes": 2132,
+        "tail_four_seconds": {
+          "samples": 3094,
+          "total_sampled_ms": 4000,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 2822,
+              "inclusive_sampled_ms": 2822
+            },
+            {
+              "module": "node-native",
+              "function": "writeBuffer",
+              "line": 0,
+              "self_sampled_ms": 305,
+              "inclusive_sampled_ms": 305
+            },
+            {
+              "module": "node-native",
+              "function": "writev",
+              "line": 0,
+              "self_sampled_ms": 123,
+              "inclusive_sampled_ms": 123
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "visit",
+              "line": 25,
+              "self_sampled_ms": 67,
+              "inclusive_sampled_ms": 76
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "visit",
+              "line": 38,
+              "self_sampled_ms": 63,
+              "inclusive_sampled_ms": 94
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 53,
+              "inclusive_sampled_ms": 941
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "value",
+              "line": 120,
+              "self_sampled_ms": 46,
+              "inclusive_sampled_ms": 78
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 44,
+              "inclusive_sampled_ms": 44
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "anonymous",
+              "line": 63,
+              "self_sampled_ms": 30,
+              "inclusive_sampled_ms": 74
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 24,
+              "inclusive_sampled_ms": 24
+            },
+            {
+              "module": "node:internal/encoding",
+              "function": "encode",
+              "line": 351,
+              "self_sampled_ms": 20,
+              "inclusive_sampled_ms": 26
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "string",
+              "line": 101,
+              "self_sampled_ms": 20,
+              "inclusive_sampled_ms": 20
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaFrozen",
+              "line": 9,
+              "self_sampled_ms": 18,
+              "inclusive_sampled_ms": 18
+            },
+            {
+              "module": "app/media.mjs",
+              "function": "fingerprint",
+              "line": 11,
+              "self_sampled_ms": 18,
+              "inclusive_sampled_ms": 18
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 14,
+              "inclusive_sampled_ms": 308
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "createAsyncIterator",
+              "line": 1359,
+              "self_sampled_ms": 12,
+              "inclusive_sampled_ms": 20
+            },
+            {
+              "module": "node-native",
+              "function": "spawn",
+              "line": 0,
+              "self_sampled_ms": 11,
+              "inclusive_sampled_ms": 11
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 600
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 138
+            },
+            {
+              "module": "node:internal/buffer",
+              "function": "utf8Write",
+              "line": 1054,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 11
+            },
+            {
+              "module": "node:internal/streams/readable",
+              "function": "maybeReadMore_",
+              "line": 864,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 9
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "anonymous",
+              "line": 46,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 36
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "_addHeaderLine",
+              "line": 382,
+              "self_sampled_ms": 8,
+              "inclusive_sampled_ms": 9
+            },
+            {
+              "module": "node:internal/webidl",
+              "function": "anonymous",
+              "line": 338,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 7
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4000
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 2822,
+              "inclusive_sampled_ms": 2822
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 71,
+              "self_sampled_ms": 4,
+              "inclusive_sampled_ms": 977
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 53,
+              "inclusive_sampled_ms": 941
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 600
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._writeGeneric",
+              "line": 936,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 440
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "exchange",
+              "line": 229,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 416
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 283,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 363
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "pump",
+              "line": 280,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 331
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "_write",
+              "line": 453,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 313
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "Writable.write",
+              "line": 504,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 313
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "writeOrBuffer",
+              "line": 548,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 311
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._write",
+              "line": 978,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 311
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "write",
+              "line": 168,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 311
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 169,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 311
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "writeGeneric",
+              "line": 146,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 310
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 14,
+              "inclusive_sampled_ms": 308
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "handleWriteReq",
+              "line": 46,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 307
+            },
+            {
+              "module": "node-native",
+              "function": "writeBuffer",
+              "line": 0,
+              "self_sampled_ms": 305,
+              "inclusive_sampled_ms": 305
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaJson",
+              "line": 18,
+              "self_sampled_ms": 4,
+              "inclusive_sampled_ms": 198
+            },
+            {
+              "module": "app/media.mjs",
+              "function": "anonymous",
+              "line": 99,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 163
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "json",
+              "line": 39,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 147
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "encodeFrame",
+              "line": 31,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 145
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 138
+            }
+          ]
+        },
+        "observation": {
+          "stop_reason": "media-control-supervision",
+          "elapsed_ms": 74067,
+          "process_cpu_user_ms": 7800,
+          "process_cpu_system_ms": 1407
+        },
+        "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation."
+      }
+    ],
+    "cpu_profile_requested": true,
+    "failure": {
+      "stage": "sustained-combined-browser-audio-video",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION",
+      "source_stack": [
+        {
+          "line": 669,
+          "column": 20
+        }
+      ]
+    },
+    "app_failures": [
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "phase": "media-control-supervision",
+        "elapsed_ms": 2001,
+        "event_loop_active_ms": 1630,
+        "event_loop_idle_ms": 371,
+        "process_cpu_user_ms": 754,
+        "process_cpu_system_ms": 75,
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "location": null,
+        "sdk_location": {
+          "file": "sdk_helper.js",
+          "line": 126,
+          "column": 16
+        }
+      },
+      {
+        "phase": "packet-native-negotiation",
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      }
+    ],
+    "failure_media_pages": [
+      {
+        "role": "owner",
+        "observation": {
+          "session_state": null,
+          "current_actor": "owner",
+          "state": "active",
+          "status": "Microphone shared with camera. Incoming audio playing.",
+          "metrics": {
+            "capturedAudioFrames": 151,
+            "capturedVideoFrames": 90,
+            "encodedFrames": 230,
+            "sentRtp": 222,
+            "receivedRtp": 107,
+            "clockReportsSent": 6,
+            "clockReportsReceived": 4,
+            "videoClockReportsSent": 3,
+            "videoClockReportsReceived": 2,
+            "decodedAudioFrames": 54,
+            "playedAudioFrames": 7,
+            "decodedVideoFrames": 35,
+            "paintedVideoFrames": 27,
+            "droppedFrames": 102,
+            "synchronizedPackets": 83,
+            "unsynchronizedPackets": 24,
+            "audioLateDrops": 47,
+            "audioHorizonDrops": 0,
+            "audioCapacityDrops": 0,
+            "videoLateDrops": 1,
+            "videoHorizonDrops": 1,
+            "videoTimerDrops": 0,
+            "videoCapacityDrops": 1,
+            "lastAudioOffsetMs": -268.61,
+            "lastVideoOffsetMs": -31.021,
+            "receiveClockCorrections": 2,
+            "lastAudioCaptureOffsetMs": -8,
+            "lastVideoCaptureOffsetMs": -2,
+            "phase": "active",
+            "stoppedAt": null,
+            "stopReason": null,
+            "activeTracks": 2,
+            "activeContexts": 1,
+            "queuedAudioSources": 0,
+            "queuedSendFrames": 0,
+            "queuedVideoFrames": 0,
+            "pendingRequests": 3,
+            "stopped": false
+          },
+          "output": {
+            "frames": 7,
+            "energy": 0.09902081643274298,
+            "tone440": 3.0398781869204054e-05,
+            "tone880": 0.040807492692629406
+          }
+        }
+      },
+      {
+        "role": "organizer",
+        "observation": {
+          "session_state": null,
+          "current_actor": "organizer",
+          "state": "app-media-network",
+          "status": "Media connection unavailable. Reconnect before starting media again.",
+          "metrics": {
+            "capturedAudioFrames": 124,
+            "capturedVideoFrames": 72,
+            "encodedFrames": 191,
+            "sentRtp": 168,
+            "receivedRtp": 94,
+            "clockReportsSent": 6,
+            "clockReportsReceived": 4,
+            "videoClockReportsSent": 3,
+            "videoClockReportsReceived": 2,
+            "decodedAudioFrames": 46,
+            "playedAudioFrames": 2,
+            "decodedVideoFrames": 30,
+            "paintedVideoFrames": 26,
+            "droppedFrames": 91,
+            "synchronizedPackets": 90,
+            "unsynchronizedPackets": 4,
+            "audioLateDrops": 44,
+            "audioHorizonDrops": 0,
+            "audioCapacityDrops": 0,
+            "videoLateDrops": 2,
+            "videoHorizonDrops": 0,
+            "videoTimerDrops": 0,
+            "videoCapacityDrops": 0,
+            "lastAudioOffsetMs": -241.926,
+            "lastVideoOffsetMs": 30.666,
+            "receiveClockCorrections": 2,
+            "lastAudioCaptureOffsetMs": 4,
+            "lastVideoCaptureOffsetMs": -8,
+            "phase": "stopped",
+            "stoppedAt": "active",
+            "stopReason": "app-media-network",
+            "activeTracks": 0,
+            "activeContexts": 0,
+            "queuedAudioSources": 0,
+            "queuedSendFrames": 0,
+            "queuedVideoFrames": 0,
+            "pendingRequests": 0,
+            "stopped": true
+          },
+          "output": {
+            "frames": 2,
+            "energy": 7.9693000512275e-06,
+            "tone440": 6.419972281333841e-07,
+            "tone880": 2.249791143863297e-08
+          }
+        }
+      }
+    ],
+    "runtime_binary_matches_new_independently_audited_production_binary": true,
+    "new_runtime_archive_bytes_independently_audited": true,
+    "source_guards_passed": true,
+    "component_passed": false
+  },
+  "native_runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "057757ee690c7465bdb350b340e3a0d0c14574f2",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4812,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "222eb255fb6b5ff7d8f8f28330273716887e5fe4dc4cfcb4bcc7a8048eef8354",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "6cb770ce13cfc83931688b300c045359a6f813a3e92ecc855234b9d513d39c36",
+    "manifest_sha256": "272078a2d088da8e134906274b144f458919ba6a7780cfa8d5da164589bf250e",
+    "artifact_zip_digests": {
+      "evidence": "c0490bd38ce83eb91d28f0713734c65989556ad4d20db199c82ac62dcd6a2d83",
+      "package": "961d29a3acf18f6c75758d657062bb6850d16e4d15cea0da45cdb2a447386eff"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "interpretation": "Actual source057 Store reader reuse reduces measured local idle CPU but Linux still fails the first combinedAV window after25checks. Decoded audio arrives but most is late: final owner7played/47late-dropped, organizer2played/44late-dropped, last audio offsets-268.610/-241.926ms. Video paints27/26frames. Signed supervision reaches2001ms with1630ms active/371ms idle and829ms processCPU. Source/byte audit passes, not the media behavior. The parent app run and separate six-connection ES256 native AV run are now terminal failures. Mac stops after5checks in the initial synthetic nativeVideoPlayout component.",
+  "scope": "31Git app/checker/installer/CPU/native-sampler inputs,197Node producer records,actual195-file Node archive/dependencies,4PNGs,all source guards and37-check prefix verified. New Linux runtime753files independently verify4812Git+4094prepared+4pinnedarchives; binary222eb255 matches actual installed bytes. Raw hosted V8 profile bytes were intentionally not uploaded and were not independently recomputed. No task, app, transport or acceptance qualification.",
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "parent_run_conclusion": "failure"
+}

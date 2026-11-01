@@ -57,6 +57,106 @@ fn get(id: &str) -> OperationAction {
 }
 
 #[test]
+fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
+    let f = Fixture::new();
+    let one = f
+        .store
+        .admit_transition(&f.keys[0], f.request("statement-one"))
+        .unwrap();
+    let mut c = f.store.connection().unwrap();
+    let second: String = c
+        .query_row(
+            "SELECT record_id FROM operations WHERE record_id!=?1 ORDER BY record_id LIMIT 1",
+            [&one.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let two = rows::by_record(&c, &second).unwrap().record;
+    let started = Instant::now();
+    for _ in 0..100 {
+        assert_eq!(
+            rows::by_record(&c, &one.record_id)
+                .unwrap()
+                .record
+                .operation_id,
+            "statement-one"
+        );
+        assert_eq!(
+            rows::by_record(&c, &two.record_id)
+                .unwrap()
+                .record
+                .operation_id,
+            two.operation_id
+        );
+    }
+    eprintln!(
+        "OPERATION_ROWS_200_READS_MS={}",
+        started.elapsed().as_millis()
+    );
+    let before = rows::by_record(&c, &one.record_id).unwrap().record.revision;
+    let external = Connection::open(f.store.path()).unwrap();
+    external
+        .execute(
+            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+            [&one.record_id],
+        )
+        .unwrap();
+    assert_eq!(
+        rows::by_record(&c, &one.record_id).unwrap().record.revision,
+        before + 1,
+        "a reused statement must read the current committed row"
+    );
+    {
+        let tx = c.transaction().unwrap();
+        tx.execute(
+            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+            [&one.record_id],
+        )
+        .unwrap();
+        assert_eq!(
+            rows::by_record(&tx, &one.record_id)
+                .unwrap()
+                .record
+                .revision,
+            before + 2
+        );
+        tx.rollback().unwrap();
+    }
+    assert_eq!(
+        rows::by_record(&c, &one.record_id).unwrap().record.revision,
+        before + 1,
+        "compiled statements retain no rolled-back result"
+    );
+    external
+        .execute_batch("CREATE TABLE statement_schema_probe(value INTEGER)")
+        .unwrap();
+    assert_eq!(
+        rows::by_record(&c, &two.record_id)
+            .unwrap()
+            .record
+            .operation_id,
+        two.operation_id
+    );
+    let checkpoint: (i64, i64, i64) = external
+        .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        })
+        .unwrap();
+    assert_eq!(
+        checkpoint,
+        (0, 0, 0),
+        "completed row reads cannot pin a WAL snapshot"
+    );
+    external
+        .execute_batch("DROP TABLE statement_schema_probe")
+        .unwrap();
+    assert_eq!(
+        rows::by_record(&c, &one.record_id).unwrap().record.revision,
+        before + 1
+    );
+}
+
+#[test]
 fn http_transition_command_replay_preserves_expiry_and_checks_operation_resource_claims() {
     let f = Fixture::new();
     let r = f.request("http-command");

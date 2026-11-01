@@ -65,6 +65,34 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
         "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
         " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
+// Chromium 156 can repeat the top viewport when fullPage capture extends a
+// short surface. Capture a real document-height viewport, then restore the
+// original viewport and scroll. Keyboard/media checks keep their own viewport.
+report.screenshot_capture_profile = "document-height-viewport/1";
+report.screenshot_captures = [];
+async function capturePage(target, name) {
+    const viewport = target.viewportSize();
+    assert.ok(viewport);
+    const scroll = await target.evaluate(() => ({ x: scrollX, y: scrollY }));
+    let height = viewport.height;
+    try {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const needed = await target.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight));
+            assert.ok(Number.isInteger(needed) && needed > 0 && needed <= 20000, "bounded-owned-document-height");
+            if (needed <= height) break;
+            height = needed;
+            await target.setViewportSize({ width: viewport.width, height });
+        }
+        assert.ok(await target.evaluate(() => document.documentElement.scrollHeight <= innerHeight), "complete-document-in-capture-viewport");
+        await target.evaluate(() => scrollTo(0, 0));
+        await target.screenshot({ path: join(output, name), fullPage: false });
+    } finally {
+        await target.setViewportSize(viewport);
+        await target.evaluate(({ x, y }) => scrollTo(x, y), scroll);
+    }
+    assert.deepEqual(target.viewportSize(), viewport);
+    report.screenshot_captures.push({ name, original_viewport: viewport, captured_viewport: { width: viewport.width, height }, restored: true });
+}
 let processChild, finished, context, browser, page, release, chrome, nativeSample, stage = "startup";
 const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
@@ -210,15 +238,23 @@ try {
         let painted = 0, dropped = 0;
         const queue = new VideoPlayout({ now: () => performance.now() / 1000,
             paint: frame => { target.drawImage(frame, 0, 0); painted++; }, drop: () => { dropped++; } });
+        const originals = [], constructionStart = performance.now();
         try {
+            // This component tests cloned-frame ownership and native timers.
+            // Prepare the three synthetic payloads before starting their short
+            // playout window; native canvas/VideoFrame initialization is setup.
+            for (let i = 0; i < 3; i++) originals.push(new VideoFrame(input, { timestamp: i * 33333 }));
+            const frameConstructionMs = performance.now() - constructionStart;
             const start = performance.now() / 1000;
-            for (let i = 0; i < 3; i++) {
-                const frame = new VideoFrame(input, { timestamp: i * 33333 });
+            for (const [i, frame] of originals.entries()) {
                 try { queue.enqueue(frame, start + .08 + i / 30); } finally { frame.close(); }
             }
+            const enqueueMs = performance.now() - start * 1000;
             await new Promise(done => setTimeout(done, 300));
-            return { painted, dropped, queued: queue.size, pixel: [...target.getImageData(4, 4, 1, 1).data] };
-        } finally { queue.close(); }
+            return { painted, dropped, queued: queue.size, pixel: [...target.getImageData(4, 4, 1, 1).data],
+                frame_construction_ms: Math.round(frameConstructionMs), enqueue_ms: Math.round(enqueueMs),
+                observation_ms: Math.round(performance.now() - start * 1000) };
+        } finally { for (const frame of originals) frame.close(); queue.close(); }
     });
     assert.ok(report.native_video_playout_component.painted >= 1);
     assert.equal(report.native_video_playout_component.painted + report.native_video_playout_component.dropped, 3);
@@ -255,7 +291,7 @@ try {
         await page.waitForFunction(kind => document.querySelector("#permission").textContent.includes(kind + " permission denied"), kind);
     }
     check("actual-browser-microphone-and-camera-refusal");
-    await page.screenshot({ path: join(output, "desktop.png"), fullPage: true });
+    await capturePage(page, "desktop.png");
     await page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true); check("320px-no-horizontal-overflow");
     const marker = "one original installed message after lost HTTP response";
@@ -361,10 +397,10 @@ try {
     report.native_connection_gate_controls_verified = true;
     check("keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk");
     await page.setViewportSize({ width: 1440, height: 1100 });
-    await page.screenshot({ path: join(output, "native-controls.png"), fullPage: true });
+    await capturePage(page, "native-controls.png");
     await page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await page.screenshot({ path: join(output, "native-controls-narrow.png"), fullPage: true });
+    await capturePage(page, "native-controls-narrow.png");
     report.ui_screenshots = Object.fromEntries(await Promise.all(["native-controls.png", "native-controls-narrow.png"].map(async name =>
         [name, sha(await readFile(join(output, name)))])));
     check("negotiated-connection-controls-fit-320px-without-horizontal-overflow");
@@ -533,10 +569,10 @@ try {
         return { role, observed_session_state: "active", captured_before: before, captured_after: after };
     }));
     check("current-active-session-snapshots-preserve-original-browser-media-capture");
-    await mediaPages[0].page.screenshot({ path: join(output, "capture-controls.png"), fullPage: true });
+    await capturePage(mediaPages[0].page, "capture-controls.png");
     await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await mediaPages[0].page.screenshot({ path: join(output, "capture-controls-narrow.png"), fullPage: true });
+    await capturePage(mediaPages[0].page, "capture-controls-narrow.png");
     for (const name of ["capture-controls.png", "capture-controls-narrow.png"])
         report.ui_screenshots[name] = sha(await readFile(join(output, name)));
     stage = "original-audio-connection-restart-queue-freshness";
@@ -677,10 +713,10 @@ try {
         previousAv = next;
     }
     check("both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window");
-    await mediaPages[0].page.screenshot({ path: join(output, "video-controls.png"), fullPage: true });
+    await capturePage(mediaPages[0].page, "video-controls.png");
     await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await mediaPages[0].page.screenshot({ path: join(output, "video-controls-narrow.png"), fullPage: true });
+    await capturePage(mediaPages[0].page, "video-controls-narrow.png");
     for (const name of ["video-controls.png", "video-controls-narrow.png"])
         report.ui_screenshots[name] = sha(await readFile(join(output, name)));
     await Promise.all(mediaPages.map(async ({ page: target }) => {
@@ -776,7 +812,7 @@ try {
     report.original_native_av_connection_end_receipts_verified = 2;
     check("both-original-av-connections-and-additional-owned-browsers-join");
     report.negotiated_capture_playback_verified = false; // Full lifecycle/failure/restart freshness remains unqualified.
-    await page.screenshot({ path: join(output, "narrow.png"), fullPage: true });
+    await capturePage(page, "narrow.png");
     const setupSha = sha(await readFile(join(state, "setup.json"))), appSha = sha(await readFile(join(state, "app.json")));
     await stop(); check("original-app-server-and-all-native-helper-processes-joined");
     const restarted = await start(2); assert.equal(restarted, origin);
@@ -800,7 +836,7 @@ try {
     if (page && !page.isClosed()) {
         report.failure_notice = await page.locator("#notice").textContent().catch(() => null);
         report.failure_permission = await page.locator("#permission").textContent().catch(() => null);
-        await page.screenshot({ path: join(output, "failure.png"), fullPage: true }).catch(() => {});
+        await capturePage(page, "failure.png").catch(() => {});
     }
     process.exitCode = 1;
 } finally {

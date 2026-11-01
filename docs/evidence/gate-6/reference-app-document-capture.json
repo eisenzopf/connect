@@ -1,0 +1,58 @@
+{
+  "format": "connect/reference-app-document-capture/1",
+  "task": "G6-072",
+  "diagnostic_runtime_revision": "1e1835979ee796f90e00f4cdba2d8e7536996408",
+  "diagnostic_scope": "Owned local synthetic app and full pinned Chromium156. Read-only existing Conversation1. No provider, model, SIP or media execution.",
+  "images": [
+    {
+      "image": "document-height-narrow.png",
+      "png_sha256": "d2d3d56b0931be2203f0c6bb9c4e02f0a6759a4da3affa1684d7832f7d9fe6fe",
+      "width": 320,
+      "height": 3971,
+      "rgb_sha256": "be6d33a29440c2769243325396c5a90ff1f6020a1353cbcfa750b5931108490d",
+      "repeated_header_start_rows": [
+        783,
+        1546,
+        2309,
+        3072,
+        3835
+      ]
+    },
+    {
+      "image": "narrow-document-viewport.png",
+      "png_sha256": "3a356f2637167965585cc2cf5c8cdcdbe410a5e81dfe3c813cc8e5b1e005b815",
+      "width": 320,
+      "height": 3971,
+      "rgb_sha256": "479760807f8c0d2be5703db40dc491e1d05916d4c457bfde87b59f7c9774229e",
+      "repeated_header_start_rows": []
+    }
+  ],
+  "dom_and_cleanup": {
+    "observations": [
+      {
+        "mode": "document-height",
+        "metrics": {
+          "inner_width": 320,
+          "inner_height": 850,
+          "outer_height": 850,
+          "doc_height": 3971,
+          "dom_headers": 1,
+          "scroll_y": 0,
+          "device_pixel_ratio": 1,
+          "document_viewport_height": 3971,
+          "document_viewport_scroll_height": 3971
+        }
+      }
+    ],
+    "original_app_joined": {
+      "code": 0,
+      "signal": null
+    },
+    "remaining_group_members": 0
+  },
+  "observation": "One DOM header in both captures. Standard fullPage capture repeats the top viewport; actual320px document-height viewport captures every section without repeated header blocks. Both screenshot surfaces had reproduced the artifact. Browser and original app joined without force or group survivors.",
+  "checker_change": "Capture actual document-height viewport, then restore original viewport and scroll. Retain width, bounded height and restoration checks. Media, keyboard, timeout and quality assertions unchanged.",
+  "current_checker_full_run_passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

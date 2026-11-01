@@ -58,9 +58,11 @@ type MediaFacts = (
     i64,
     bool,
 );
-/// Three memos per live origin, each bounded to the four SQL observers.
-/// Independent observers never evict each other's current metadata. Their
-/// connection-specific SQL/clock stamps are still compared without substitution.
+/// Three memos per live origin. Each SQL observer retains one unary capture or
+/// at most four original counterparties, covering the four-participant profile
+/// without replacing paired facts on every mixed packet. Eviction only causes
+/// fresh derivation; it does not limit eligible peers. SQL/clock/source stamps
+/// are still compared without substitution on every read.
 /// No reader, execution handle or IO grant can be retained by this metadata.
 #[derive(Default)]
 pub(super) struct Metadata {
@@ -69,6 +71,7 @@ pub(super) struct Metadata {
     pub(super) paired: Memo<MediaFacts>,
 }
 pub(super) struct Memo<T>(Mutex<Vec<Entry<T>>>);
+const SOURCES_PER_OBSERVER: usize = 4;
 impl<T> Default for Memo<T> {
     fn default() -> Self {
         Self(Mutex::new(Vec::new()))
@@ -216,13 +219,42 @@ fn cached_with<T: Clone>(
     // SQL is retained by the caller's owned fresh authority guard.
     if let Some(entry) = captured {
         if let Ok(mut slot) = memo.0.try_lock() {
-            if let Some(previous) = slot
-                .iter_mut()
-                .find(|previous| previous.version.connection == entry.version.connection)
-            {
+            // Drop dead original sources and superseded versions for this
+            // observer. Retained facts own no reader or grant.
+            slot.retain(|previous| {
+                previous
+                    .source
+                    .as_ref()
+                    .is_none_or(|source| source.strong_count() > 0)
+                    && (previous.version.connection != entry.version.connection
+                        || previous.version == entry.version)
+            });
+            if let Some(previous) = slot.iter_mut().find(|previous| {
+                previous.version.connection == entry.version.connection
+                    && previous.same_source(source)
+            }) {
                 *previous = entry;
             } else {
-                if slot.len() == crate::packet_observation::OBSERVERS {
+                let per_observer = if source.is_some() {
+                    SOURCES_PER_OBSERVER
+                } else {
+                    1
+                };
+                while slot
+                    .iter()
+                    .filter(|previous| previous.version.connection == entry.version.connection)
+                    .count()
+                    >= per_observer
+                {
+                    if let Some(index) = slot.iter().position(|previous| {
+                        previous.version.connection == entry.version.connection
+                    }) {
+                        slot.remove(index);
+                    } else {
+                        break;
+                    }
+                }
+                if slot.len() >= crate::packet_observation::OBSERVERS * SOURCES_PER_OBSERVER {
                     slot.remove(0);
                 }
                 slot.push(entry);

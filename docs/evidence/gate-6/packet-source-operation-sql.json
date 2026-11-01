@@ -1,0 +1,101 @@
+{
+  "format": "connect/current-source-packet-metadata-operation-sql/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "base_revision": "188a1675c999c31c5c324c62ed74e8127f8fa2f4",
+  "source_inputs": {
+    "crates/connect-store/src/lib.rs": "5f5bc015f1a14de7c372dcb97e204566b2eaa5c688108e4a6477f638e5c39d2a",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "51dd5f130583bcf3042547d93b244e6bdb950695ff473c23cf1f0904783e6f82",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "3ab7aa27833a8bc3444bc27a96ca4e3345dfa59eaa393be3fa845ca1c93c46a6",
+    "crates/connect-store/src/transitions/rows.rs": "15298da9fafd44026bdb4833fca0a7221c012ac255ab0e7cca6e66ab43224e88",
+    "crates/connect-store/src/transitions/tests/peer_operations.rs": "3b325bad572d4324e8e03bff89889254bf4f4948dacf47fbca2f0451aba893f2",
+    "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+    "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2"
+  },
+  "paired_source_counterexample": {
+    "base_revision": "188a1675c999c31c5c324c62ed74e8127f8fa2f4",
+    "counterexample": "Four original sources alternate across four real SQL observers, three passes inside one unchanged SQL/clock interval.48derivations instead of16 proves source replacement on every read.",
+    "expected_derivations": 16,
+    "observed_derivations": 48,
+    "passed": 0,
+    "failed": 1,
+    "source_inputs": {
+      "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "b8fff6e80b1637fdc859c2d08d0f59ada7b823efc0b4428edcaead45c82ddc5f",
+      "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "3ab7aa27833a8bc3444bc27a96ca4e3345dfa59eaa393be3fa845ca1c93c46a6",
+      "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+      "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2"
+    },
+    "log_sha256": "7027f50b41e08350b4defbeb75cbea57e1f227efc1dcb31f4e5198a20d2f747c",
+    "binary_sha256": "6b2c297b6eb8a2a78178416465e375f76e84db2de111148996b02762b885f49a"
+  },
+  "operation_row_baseline": {
+    "base_revision": "188a1675c999c31c5c324c62ed74e8127f8fa2f4",
+    "source_inputs": {
+      "crates/connect-store/src/transitions/rows.rs": "0e0c648e456b3d1f5bba374260d3a2b000b2d07d74a3527f291ac11293d320f2",
+      "crates/connect-store/src/lib.rs": "1d75e535d2010b8099b78d25c7c24facd79c71a9870c173858261c5b6ae25c39",
+      "crates/connect-store/src/transitions/tests/peer_operations.rs": "3b325bad572d4324e8e03bff89889254bf4f4948dacf47fbca2f0451aba893f2",
+      "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+      "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2"
+    },
+    "log_sha256": "d27fec2e98ca31df1f23e4acb27940bc2387418f73a19fa9c55e5115454742a2",
+    "two_hundred_row_reads_ms": 80,
+    "passed": 1,
+    "failed": 0,
+    "setup_refusal_log_sha256": "a7808d658cf718557e4e57633498b6d3ef1b79199954b6f7daa91b3e6740a56a",
+    "setup_correction": "Second pending consultation correctly conflicted on the same retained connection. Compare an accepted operation with a distinct existing committed row instead; initial fixture refusal retained."
+  },
+  "current_checks": {
+    "snapshot": {
+      "passed": 23,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "d856974c33a01e42f6497856a632f2fd78af039c8cadb4bd378cf4005d2eb75c"
+    },
+    "session-reader": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "a7c6ca7eafa0658bd0e8b7105437e9a31e476b872ff4419baf38a705461b3f55"
+    },
+    "flow-facts": {
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "ea942b32f550c8f65e33d4275aea55f7937255cb0c33bb11890aed7c1d7a56fd"
+    },
+    "session-polling": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "efbfddb431118c7cbf36ea36b33c216884d75e39c394b8dbcaad3ed4286117e3"
+    },
+    "peer-operations": {
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "ae5e18ce10dd7c7922865ed05bcb2aad8b5e4653fc648deda62d7e65bfc7ddb9"
+    }
+  },
+  "unique_current_cases": 67,
+  "operation_row_after_200_reads_ms": 7,
+  "interpretation": "Actual repeated operation-row reads reduce80ms to7ms in one optimized local probe. All row queries still execute with fresh bindings/current transaction. Source-aware packet memo avoids48derivations for16distinct current source/observer pairs. These component measurements do not establish sustained media quality or resolve hosted control deadlines.",
+  "bounds": {
+    "paired_sources_per_observer": 4,
+    "packet_observers": 4,
+    "maximum_paired_entries_per_origin": 16,
+    "unary_entries_per_observer": 1,
+    "compiled_statement_capacity": 32
+  },
+  "invariants": [
+    "Every invocation still seals a current SQL/schema/clock/source stamp and acquires complete fresh authority.",
+    "Metadata owns neither a SQL reader nor an IO grant; source identity uses original weak allocation identity.",
+    "Current writer refusal, external commits, schema/clock changes, source isolation and memo capacity are tested.",
+    "Prepared statements cache compiled SQL only. Alternating IDs, committed data, local rollback, schema replacement and completed-read WAL release are tested.",
+    "Media deadlines, packet timestamps, late tolerance and decoded-quality thresholds are unchanged."
+  ],
+  "current_production_runtime_rehearsed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
