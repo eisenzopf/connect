@@ -130,6 +130,24 @@ version2 observation before rerunning; no media/profile threshold changes.
 
 ## Default bounds
 
+November1 native six-Connection marker source update, before its first affected
+run: source manifest `connect/native-av-sources/2` adds the existing
+`connect-av-cadence/1` programme to each of the six identified Opus/VP8 sources.
+The three-frame/100ms pulse keeps each source's distinct tone, using the same
+0.05 low/0.7 high peak amplitudes as the browser fixture. A separate80×80 patch
+at96,0 changes from black to white; the original source-color corner and moving
+360p30 background remain. Encoding rates, packet bounds, source duration62seconds
+and measured60second window remain unchanged. The independent decoder must
+calibrate matching source ordinals from observed decoded gain/pixel edges and
+retain the42pair/80ms median/120ms p95 limits. It cannot assign ordinals from RTP
+origins, wall clocks or nearest periodic edges. Numeric source-clock diagnostics
+remain separate. Initially high levels and onsets after an unobserved interval
+cannot establish an edge; continuous low must rearm the observer for200ms.
+Packet/frame receive times bind this component's decoded-content observations;
+live decoder completion and physical display/speaker timing remain separately
+unmeasured. Earlier constant-tone source1 failures retain their original result;
+this required marker implementation grants no retrospective qualification.
+
 October31 G6-058 inventory freeze: enumerate Local and isolated Remote-profile
 fixtures on macOSarm64 and native Ubuntu24.04x86_64 for nativeQUIC, ChromeWT,
 ChromeWSS/WebRTC and FirefoxWSS/WebRTC, with EdDSA/ES256 signing cohorts. Keep

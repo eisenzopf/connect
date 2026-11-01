@@ -11,10 +11,40 @@ import warnings
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.transport_verification import decode, read_members, verify_control, verify_rehearsal, verify_sdk, verify_command_outcomes, verify_live_upgrade
+from lib.transport_verification import (decode, read_members, verify_control, verify_rehearsal,
+    verify_sdk, verify_command_outcomes, verify_live_upgrade, verify_receive_marker_alignment)
+from video.marker_calibration import marker_frames, ordinal_sync
 
 
 class EvidenceVerification(unittest.TestCase):
+    def test_receive_marker_replay_refuses_forged_counts_skew_ordinals_and_scope(self):
+        edges = [frame / 30 for frame in marker_frames() if 2 <= frame / 30 < 62]
+        video = [at + .025 for at in edges]
+        good = ordinal_sync(video, edges, 60)
+        good.update(audio_observation=dict(edges_seconds=edges, continuous_low_rearm_seconds=.2,
+                maximum_observation_gap_seconds=.05),
+            video_observation=dict(edges_seconds=video, continuous_low_rearm_seconds=.2,
+                maximum_observation_gap_seconds=.1),
+            physical_device_presentation_measured=False, live_decoder_completion_measured=False)
+        self.assertGreaterEqual(verify_receive_marker_alignment(good), 42)
+        for key, changed in [('paired', 100), ('p95_abs_skew_ms', 0),
+                ('marker_pairs', []), ('physical_device_presentation_measured', True),
+                ('live_decoder_completion_measured', True), ('audio_edge_seconds', [float('nan')])]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                verify_receive_marker_alignment(dict(good, **{key: changed}))
+        forged = copy.deepcopy(good)
+        forged['video_observation']['edges_seconds'] = edges
+        with self.assertRaisesRegex(ValueError, 'observer-binding'):
+            verify_receive_marker_alignment(forged)
+        # A failed full skew cannot be promoted by changing only its badge.
+        late_video = [at + .2 for at in edges]
+        failed = ordinal_sync(late_video, edges, 60)
+        failed.update(status='passed', audio_observation=good['audio_observation'],
+            video_observation=dict(good['video_observation'], edges_seconds=late_video),
+            physical_device_presentation_measured=False, live_decoder_completion_measured=False)
+        with self.assertRaisesRegex(ValueError, 'replay-differs-or-failed'):
+            verify_receive_marker_alignment(failed)
+
     def test_live_upgrade_requires_originals_both_packet_rounds_and_retirement(self):
         value = dict(original_connections=4, original_sessions=2, verified_payloads_before=4,
             verified_payloads_after=4, bytes_per_payload=4096,

@@ -13,7 +13,7 @@ const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800
 export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan) {
     assert.equal(connections.length, 6);
     const manifest = JSON.parse(await readFile(join(sourceDirectory, "manifest.json"), "utf8"));
-    assert.equal(manifest.format, "connect/native-av-sources/1");
+    assert.equal(manifest.format, "connect/native-av-sources/2");
     assert.equal(manifest.seconds, 62); assert.equal(manifest.observation_seconds, 60);
     await mkdir(outputDirectory, { mode: 0o700 });
     const routes = [];

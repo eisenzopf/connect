@@ -13,11 +13,17 @@ import struct
 import subprocess
 
 from .package_environment import fixture_environment
+from video.marker_calibration import PROGRAM, marker_frames, ordinal_sync
 
 SECONDS = 62  # two seconds to establish clocks, then the frozen 60-second window
 COLORS = ('red', 'lime', 'blue', 'yellow', 'cyan', 'magenta')
 FREQUENCIES = (440, 600, 760, 920, 1080, 1240)
 MAX_FILE = 32 * 1024 * 1024
+
+
+def marker_profile():
+    return dict(program=PROGRAM, frames=[frame for frame in marker_frames() if frame < SECONDS * 30],
+        pulse_frames=3, audio_peak_low=.05, audio_peak_high=.7, video_box=[96, 0, 80, 80])
 
 
 def checksum(path):
@@ -117,23 +123,28 @@ def prepare(directory):
     directory.mkdir(mode=0o700)
     ffmpeg = subprocess.check_output(['ffmpeg', '-version'], text=True, timeout=5, env=fixture_environment()).splitlines()[0]
     records = []
+    pulses = marker_profile()['frames']
+    audio_gate = '+'.join(f'gte(t,{frame}/30)*lt(t,{frame + 3}/30)' for frame in pulses)
+    video_gate = '+'.join(f'gte(n,{frame})*lt(n,{frame + 3})' for frame in pulses)
     for index, (hz, color) in enumerate(zip(FREQUENCIES, COLORS)):
         audio = directory / f'source-{index}.ogg'; video = directory / f'source-{index}.ivf'
         common = ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-y']
-        command(common + ['-f', 'lavfi', '-i', f'sine=frequency={hz}:sample_rate=48000:duration={SECONDS}',
+        command(common + ['-f', 'lavfi', '-i',
+            f"aevalsrc='sin(2*PI*{hz}*t)*if(gt({audio_gate},0),0.7,0.05)':s=48000:d={SECONDS}",
             '-ac', '1', '-c:a', 'libopus', '-b:a', '32k', '-vbr', 'off', '-frame_duration', '20', '-application', 'audio', str(audio)], directory / f'encode-audio-{index}.log')
         command(common + ['-f', 'lavfi', '-i', f'testsrc2=size=640x360:rate=30:duration={SECONDS}',
-            '-vf', f'drawbox=x=0:y=0:w=80:h=80:color={color}:t=fill', '-an', '-c:v', 'libvpx', '-threads', '1',
+            '-vf', f"drawbox=x=0:y=0:w=80:h=80:color={color}:t=fill,drawbox=x=96:y=0:w=80:h=80:color=black:t=fill,drawbox=x=96:y=0:w=80:h=80:color=white:t=fill:enable='gt({video_gate},0)'", '-an', '-c:v', 'libvpx', '-threads', '1',
             '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '500k', '-maxrate', '1M', '-bufsize', '1M', '-g', '30', str(video)], directory / f'encode-video-{index}.log')
         audio_packets = opus_packets(audio.read_bytes())[:SECONDS * 50]
         if len(audio_packets) != SECONDS * 50:
             raise ValueError('Opus frame count')
-        value = dict(format='connect/native-av-source/1', seconds=SECONDS, audio_hz=hz,
+        value = dict(format='connect/native-av-source/2', seconds=SECONDS, audio_hz=hz,
             audio=[base64.b64encode(packet).decode() for packet in audio_packets], video=ivf_frames(video.read_bytes()))
         path = directory / f'source-{index}.json'; path.write_text(json.dumps(value) + '\n')
         records.append(dict(index=index, audio_hz=hz, video_color=color, input_sha256=checksum(path),
             ogg_sha256=checksum(audio), ivf_sha256=checksum(video)))
-    manifest = dict(format='connect/native-av-sources/1', ffmpeg=ffmpeg, seconds=SECONDS,
+    manifest = dict(format='connect/native-av-sources/2', ffmpeg=ffmpeg, seconds=SECONDS,
+        markers=marker_profile(),
         warmup_seconds=2, observation_seconds=60, audio=dict(codec='opus', sample_rate=48000, channels=1, frame_ms=20, target_bps=32000),
         video=dict(codec='vp8', width=640, height=360, rate=30, target_bps=500000, max_bps=1000000, keyframe_frames=30), sources=records)
     (directory / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
@@ -295,8 +306,67 @@ def submission_observation(rows):
         scope='Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred.')
 
 
+def marker_edges(levels, times, *, low, high, max_gap):
+    """A missing interval or initially high level cannot prove an onset."""
+    if len(levels) != len(times) or len(levels) > 3200:
+        raise ValueError('Decoded native marker observation bound')
+    edges = []; last = low_since = region = None; armed = False
+    gaps = refused = 0
+    for level, at in zip(levels, times):
+        if not math.isfinite(level) or level < 0 or not math.isfinite(at) or (last is not None and at <= last):
+            raise ValueError('Decoded native marker value/order')
+        if last is not None and at - last > max_gap + 1e-9:
+            low_since = None; armed = False; gaps += 1
+        current = 'low' if level <= low else 'high' if level > high else 'band'
+        if current == 'low':
+            if low_since is None: low_since = at
+            if at - low_since + 1e-9 >= .2: armed = True
+        else:
+            low_since = None
+            if current == 'high':
+                if region != 'high':
+                    if armed: edges.append(at)
+                    else: refused += 1
+                armed = False
+        region = current; last = at
+    return dict(edges_seconds=edges, missing_intervals=gaps, unproven_onsets=refused,
+        continuous_low_rearm_seconds=.2, maximum_observation_gap_seconds=max_gap)
+
+
+def paired_marker_observation(samples, audio_rows, video_levels, video_rows):
+    if len(samples) != len(audio_rows) * 960:
+        raise ValueError('Decoded marker audio must map exactly to original 20ms packets')
+    levels = [math.sqrt(sum(value * value for value in samples[at:at + 960]) / 960)
+        for at in range(0, len(samples), 960)]
+    audio = marker_edges(levels, [r['elapsed_ms'] / 1000 for r in audio_rows], low=.045, high=.055, max_gap=.05)
+    video = marker_edges(video_levels, [r['elapsed_ms'] / 1000 for r in video_rows], low=16, high=240, max_gap=.1)
+    result = ordinal_sync(video['edges_seconds'], audio['edges_seconds'], 60)
+    result.update(audio_observation=audio, video_observation=video,
+        time_basis='Independent decoded marker content bound to original packet/frame receive times on one caller monotonic clock. Ordinals come only from the fixed nonperiodic decoded cadence, never RTP origins, NTP or nearest-edge pairing.',
+        physical_device_presentation_measured=False, live_decoder_completion_measured=False)
+    return result
+
+
+def decode_paired_markers(directory, index, audio_rows, all_video_rows, ivf):
+    raw = directory / f'received-{index}.f32'
+    samples = array.array('f'); samples.frombytes(raw.read_bytes())
+    pixels = directory / f'received-{index}.pulse.gray'
+    command(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', str(ivf), '-an',
+        '-vf', 'crop=16:16:104:8,scale=1:1', '-pix_fmt', 'gray', '-fps_mode', 'passthrough', '-f', 'rawvideo', str(pixels)],
+        directory / f'decode-pulse-{index}.log')
+    values = pixels.read_bytes()
+    if len(values) != len(all_video_rows):
+        raise ValueError('Decoded pulse pixels must map to every original complete video frame')
+    selected = [(value, row) for value, row in zip(values, all_video_rows) if 2000 <= row['elapsed_ms'] < 62000]
+    result = paired_marker_observation(samples, audio_rows, [v for v, _ in selected], [r for _, r in selected])
+    result['decoded_pulse_pixels_sha256'] = checksum(pixels)
+    return result
+
+
 def verify(directory, manifest):
     """Decode bytes independently; retain explicit measurement limits."""
+    if manifest.get('format') == 'connect/native-av-sources/2' and manifest.get('markers') != marker_profile():
+        raise ValueError('Native source marker programme differs from the frozen source profile')
     results = []
     for index in range(6):
         path = directory / f'received-{index}.json'
@@ -350,6 +420,7 @@ def verify(directory, manifest):
             '-vf', 'crop=16:16:8:8,scale=1:1', '-pix_fmt', 'rgb24', '-fps_mode', 'passthrough', '-f', 'rawvideo', str(pixels)], directory / f'decode-marker-{index}.log')
         values = pixels.read_bytes(); markers = source_pixels(values, captured['peer_index'])
         wrong = markers['wrong_source_pixel_frames']
+        sync = decode_paired_markers(directory, index, audio, all_video[first_key:], ivf) if 'markers' in manifest else None
         audio_result['rtp_timing'] = rtp_timing(audio, 48000, 960)
         diagnostics = None
         if 'clock_reports' in captured and 'submitted_audio' in captured:
@@ -361,7 +432,8 @@ def verify(directory, manifest):
         passed = (audio_result['all_blocks_identified'] and audio_result['decoded_seconds'] >= 59.9 and audio_result['samples'] == len(audio) * 960
             and max(gaps, default=math.inf) <= 200 and len(window_hashes) >= 1440 and changing >= 1440
             and min(bins) >= 24 and len(values) == 3 * len(decoded) and wrong == 0
-            and captured['received_clocks']['audio'] > 0 and captured['received_clocks']['video'] > 0)
+            and captured['received_clocks']['audio'] > 0 and captured['received_clocks']['video'] > 0
+            and (sync is None or sync['status'] == 'passed'))
         results.append(dict(index=index, peer_index=captured['peer_index'], passed=passed, audio=audio_result,
             received_window_audio_packets=len(audio), maximum_audio_arrival_gap_ms=max(gaps, default=None),
             video=dict(independent_decoder='FFmpeg VP8/framemd5/rgb24', width=640, height=360,
@@ -370,10 +442,11 @@ def verify(directory, manifest):
                 rtp_timing=rtp_timing(video, 90000, 3000), ivf_sha256=checksum(ivf), framemd5_sha256=checksum(hashes)),
             received_clocks=captured['received_clocks'], gap_packets=captured['gap_packets'], late_send_frames=captured['late_send_frames'],
             clock_and_submission_observations=diagnostics,
+            independently_decoded_receive_marker_alignment=sync,
             observation_sha256=checksum(path)))
     report = dict(format='connect/native-av-decoded-component/1', passed=all(row['passed'] for row in results),
         source_manifest=manifest, connections=6, participants=4, sessions=2, observation_seconds=60, warmup_seconds=2,
-        routes=results, scope='Independent decoded native Opus/VP8 source identity and moving-frame component in the named six-Connection workload. RTP arrival times bind observation-window membership. Decoder completion times, source-age/paired AV-sync, live upgrade/replacement, impairment and complete transport cell qualification remain open.',
+        routes=results, scope='Independent decoded native Opus/VP8 source identity and moving-frame component in the named six-Connection workload. RTP arrival times bind observation-window membership. When the source manifest declares markers, decoded content must also pass nonperiodic ordinal-paired receive alignment. Live decoder completion/device presentation, live upgrade/replacement, impairment and complete transport cell qualification remain open.',
         task_complete=False, cell_qualified=False, matrix_qualified=False, whole_gate_qualified=False)
     (directory / 'decoded.json').write_text(json.dumps(report, indent=2) + '\n')
     return report

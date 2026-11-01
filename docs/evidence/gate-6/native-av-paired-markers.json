@@ -1,0 +1,135 @@
+{
+  "format": "connect/native-av-paired-markers/1",
+  "task": "G6-058",
+  "source_profile": "connect/native-av-sources/2",
+  "marker_program": "connect-av-cadence/1",
+  "implementation_inputs": {
+    "scripts/lib/transport_av.py": "971179b1c90b2ec600d34a3f95aceaac19d4b310e18e6a2380bc224fe032f9b2",
+    "scripts/lib/transport_av.mjs": "23ea22a64265b5c79751567acdbd24ca1c9df248bfe7a063c27ea243336dfba4",
+    "scripts/lib/transport_verification.py": "aa4e78f7dbf8a6962c14675bb532b9e01a172970429fd526b7c880e601758497",
+    "scripts/tests/test_transport_av.py": "2beda886811023f2f49764842cf1eede75ec54022c74fbc3a1d68bbc235f5346",
+    "scripts/tests/transport_av.test.mjs": "ae9ca0cd0c40eb037ab77ca1985939886d43ef800b28218fa088dcaf40a211ed",
+    "scripts/tests/test_transport_verification.py": "d093c303def5be6c8b445a3e872f1b434aefcb5ea7f727c4b0919ea9d9b485d4",
+    "scripts/video/marker_calibration.py": "41930641610536d1ff1ed26d08849a95ff0094a638b37d3930ee52c80c4249cb",
+    "docs/decisions/015-gate-6-operating-profile.md": "ad6100fabffd389f416ff4bbee4ea4614a90dc84027f604dcd5fe2e2b8eaa331"
+  },
+  "behavior": [
+    "Nonperiodic100ms paired gain/patch pulses preserve each original speaker tone, source-color corner, moving360p30 background, encoding/packet bounds and62second source.",
+    "Decode every original selected20ms Opus packet and complete VP8 pulse frame; require observed low200ms rearm, reject initially high/short-rebound/gapped onsets.",
+    "Assign decoded audio/video ordinals independently with the existing bounded cadence calibrator; require matching ordinals, at least42pairs,80ms median and120ms p95 in the fixed60second window.",
+    "Source2 must declare the exact frozen programme; successful source2 routes require decoded receive alignment in addition to every existing quality check.",
+    "Independent artifact verifier replays curated original decoded edges and rejects forged counts, skew, pair assignments, observer bindings and presentation overclaims."
+  ],
+  "verification": {
+    "python_transport_cases_passed": 66,
+    "node_owned_media_cases_passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "format_check_passed": true,
+    "negative_cases": [
+      "Constant decoded content cannot replace marker edges.",
+      "A225ms skew remains a failure rather than matching a nearby pulse.",
+      "Malformed source2 programme, incomplete PCM mapping, initial high/short-low/gapped observations are refused.",
+      "Forged passed badge/counts/quantiles/pairs/presentation scope fail independent edge replay."
+    ]
+  },
+  "codec_calibration": {
+    "base_revision": "3cd0b85d204d04be9b1ddcc127b627646c2f3a63",
+    "working_tree_clean_during_calibration": false,
+    "source_inputs_unchanged": true,
+    "tested_inputs": {
+      "scripts/lib/transport_av.py": "971179b1c90b2ec600d34a3f95aceaac19d4b310e18e6a2380bc224fe032f9b2",
+      "scripts/video/marker_calibration.py": "41930641610536d1ff1ed26d08849a95ff0094a638b37d3930ee52c80c4249cb",
+      "docs/decisions/015-gate-6-operating-profile.md": "ad6100fabffd389f416ff4bbee4ea4614a90dc84027f604dcd5fe2e2b8eaa331"
+    },
+    "summary_sha256": "1125a03dc85ca28996abb5426394f61c5ae6f9493f1abc7e4dc178920648e769",
+    "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "source_manifest_sha256": "4179a0a2498ee498d740cad310c6f47efcd58510e5943711e004ffad01babf47",
+    "seconds_per_source": 62,
+    "observation_seconds": 60,
+    "results": [
+      {
+        "index": 0,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "85aa1f92b79c7ce8b918d872e85e5788f2c8933d4851495dbc71f22243cd42c6"
+      },
+      {
+        "index": 1,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "992f021368685a4f6b1f55a7cc768ccf612356ee43e020c4a604ca1d99e940a9"
+      },
+      {
+        "index": 2,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "8c224af9ba3237d70c0d8a64fb80b6763b05442a21333a327486b2e8267e13bf"
+      },
+      {
+        "index": 3,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "fc5f4287aba1b666f96a937d5124887351d18d78ae934588c51eab34415df454"
+      },
+      {
+        "index": 4,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "4ae8e550dcded31ed3a5a00695745225c75fb84972534d0b9b732c631fffea45"
+      },
+      {
+        "index": 5,
+        "passed": true,
+        "audio_decoded_samples": 2880000,
+        "audio_bad_identity_blocks": 0,
+        "source_pixel_frames": 1860,
+        "wrong_source_pixel_frames": 0,
+        "paired_markers": 85,
+        "median_abs_skew_ms": 0.0,
+        "p95_abs_skew_ms": 0.0,
+        "pulse_pixels_sha256": "6fbf063be88dac26ab261443858d3cc097b5bdb128ce31c63f920be5f7e89726"
+      }
+    ],
+    "scope": "Direct independent codec roundtrip of six synthetic 62-second sources. Timing coordinates are original generated sample/frame indices, not actual transport receive, live decoder completion or physical presentation. Calibration only."
+  },
+  "earlier_unsealed_probe_retained": true,
+  "actual_current_marker_transport_run": false,
+  "quality_thresholds_changed": false,
+  "live_decoder_completion_measured": false,
+  "physical_device_presentation_measured": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

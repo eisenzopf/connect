@@ -6,12 +6,14 @@ and never promotes a component report to a complete transport cell.
 import ast
 import hashlib
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
 import runpy
 import stat
 import subprocess
 import zipfile
+from video.marker_calibration import PROGRAM, marker_frames, ordinal_sync
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPONENTS = {"materializer", "actors", "conversation", "data", "media", "control"}
@@ -31,6 +33,28 @@ def verify_command_outcomes(commands, component):
 def require(condition, reason):
     if not condition:
         raise ValueError(reason)
+
+
+def verify_receive_marker_alignment(value):
+    """Replay bounded curated edges, never code supplied by an artifact."""
+    require(isinstance(value, dict), "decoded-receive-markers-missing")
+    for medium in ("audio", "video"):
+        edges = value.get(medium + "_edge_seconds")
+        require(isinstance(edges, list) and len(edges) <= 512 and
+            all(type(at) in (int, float) and math.isfinite(at) for at in edges),
+            "decoded-receive-marker-edge-shape")
+        observation = value.get(medium + "_observation")
+        require(isinstance(observation, dict) and observation.get("edges_seconds") == edges and
+            observation.get("continuous_low_rearm_seconds") == .2 and
+            observation.get("maximum_observation_gap_seconds") == (.05 if medium == "audio" else .1),
+            "decoded-receive-marker-observer-binding")
+    replay = ordinal_sync(value["video_edge_seconds"], value["audio_edge_seconds"], 60)
+    require(replay["status"] == "passed" and replay["paired"] >= 42 and
+        all(value.get(key) == fact for key, fact in replay.items()),
+        "decoded-receive-marker-replay-differs-or-failed")
+    require(value.get("physical_device_presentation_measured") is False and
+        value.get("live_decoder_completion_measured") is False, "receive-marker-scope-overclaimed")
+    return replay["paired"]
 
 
 def verify_live_upgrade(value):
@@ -226,6 +250,12 @@ def verify_rehearsal(report, component, members):
             report["endpoint_verification"]["full_media_endpoints_verified"] == 5 and
             report["endpoint_verification"]["unchanged_unverified_issuance_resumes"] == 5,
             "media-source-or-endpoint-binding-missing")
+        paired_required = decoded["source_manifest"].get("format") == "connect/native-av-sources/2"
+        if paired_required:
+            require(decoded["source_manifest"].get("markers") == dict(program=PROGRAM,
+                frames=[frame for frame in marker_frames() if frame < 62 * 30], pulse_frames=3,
+                audio_peak_low=.05, audio_peak_high=.7, video_box=[96, 0, 80, 80]),
+                "decoded-source-marker-profile-differs")
         for route in decoded["routes"]:
             video, audio = route["video"], route["audio"]
             require(route["passed"] is True and audio["all_blocks_identified"] is True and audio["bad_identity_blocks"] == 0 and
@@ -235,6 +265,8 @@ def verify_rehearsal(report, component, members):
                 min(video["frames_by_observation_second"]) >= 24 and video["wrong_source_pixel_frames"] == 0 and
                 route["received_clocks"]["audio"] > 0 and route["received_clocks"]["video"] > 0,
                 "positive-decoded-media-observation-missing")
+            if paired_required:
+                verify_receive_marker_alignment(route.get("independently_decoded_receive_marker_alignment"))
         activation = child.get("replacement_activation")
         if activation is not None:
             require(activation["initial_helper_joined_before_workload"] is True and activation["new_helper_created"] is True and
@@ -250,7 +282,8 @@ def verify_rehearsal(report, component, members):
             require([v["index"] for v in timings] == list(range(6)) and all(v["limit_ms"] == 5000 and
                 0 <= v["end_receipt_ms"] <= v["original_retirement_observed_ms"] <= 5000 for v in timings),
                 "original-media-end-timing-incomplete")
-        result.update(native_av_decoded_routes=6, native_end_timings_verified=0 if timings is None else 6,
+        result.update(native_av_decoded_routes=6, native_receive_marker_routes_verified=6 if paired_required else 0,
+            native_end_timings_verified=0 if timings is None else 6,
             full_media_profile_qualified=False)
     return result
 

@@ -22,7 +22,7 @@ async function checkFailure(firstSubmissionAccepted) {
         connections.push({ sid, role, prefix, index });
     }
     const raw = JSON.stringify({ audio: Array(3100).fill("AQ=="), video: Array.from({ length: 1860 }, (_, index) => ({ timestamp: index * 3000, payload: "AQI=" })) });
-    const manifest = { format: "connect/native-av-sources/1", seconds: 62, observation_seconds: 60,
+    const manifest = { format: "connect/native-av-sources/2", seconds: 62, observation_seconds: 60,
         sources: connections.map(() => ({ input_sha256: createHash("sha256").update(raw).digest("hex") })) };
     await writeFile(join(sources, "manifest.json"), JSON.stringify(manifest));
     const stream = {

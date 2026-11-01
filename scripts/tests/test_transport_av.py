@@ -1,5 +1,6 @@
 """Independent codec calibration and corrupt-container refusals, not transport proof."""
 import base64
+import array
 import json
 from pathlib import Path
 import shutil
@@ -13,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from lib.package_environment import fixture_environment
 from lib.transport_av import (opus_packets, decode_audio, ivf_frames, decode_completed,
-    rtp_timing, source_pixels, clock_observation, submission_observation)
+    rtp_timing, source_pixels, clock_observation, submission_observation,
+    marker_edges, marker_profile, paired_marker_observation, verify)
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'), 'Independent FFmpeg calibration requires the named prerequisite')
@@ -147,6 +149,66 @@ class NativeObservationDiagnostics(unittest.TestCase):
         self.assertEqual(result['unclassified_pixel_frames'], 1)
         self.assertEqual(result['wrong_source_pixel_frames'], 2)
         with self.assertRaises(ValueError): source_pixels(bytes([255]), 0)
+
+
+class NativePairedMarkers(unittest.TestCase):
+    def test_initial_high_short_low_and_unobserved_gap_cannot_invent_onsets(self):
+        result = marker_edges([.7, .03, .7, .03, .03, .03, .7],
+            [0, .02, .04, .06, .16, .26, .27], low=.045, high=.055, max_gap=.05)
+        self.assertEqual(result['edges_seconds'], [])
+        self.assertGreater(result['unproven_onsets'], 0)
+        self.assertEqual(result['missing_intervals'], 2)
+        proven = marker_edges([.03] * 12 + [.7, .03, .7],
+            [i * .02 for i in range(15)], low=.045, high=.055, max_gap=.05)
+        self.assertEqual(proven['edges_seconds'], [.24])
+
+    def test_bad_value_order_and_incomplete_audio_mapping_are_refused(self):
+        for levels, times in [([.03], []), ([.03, .7], [0, 0]), ([float('nan')], [0]), ([.03], [float('inf')])]:
+            with self.subTest(levels=levels, times=times), self.assertRaises(ValueError):
+                marker_edges(levels, times, low=.045, high=.055, max_gap=.05)
+        with self.assertRaises(ValueError):
+            paired_marker_observation([.7] * 959, [dict(elapsed_ms=0)], [], [])
+
+    def test_nonperiodic_decoded_content_pairs_ordinals_and_preserves_failed_skew(self):
+        pulses = marker_profile()['frames']; on_audio = set()
+        for frame in pulses:
+            start = frame * 50 // 30
+            on_audio.update(range(start, start + 5))
+        samples = array.array('f'); audio_rows = []
+        for index in range(100, 3100):
+            samples.extend(array.array('f', [.7 if index in on_audio else .03]) * 960)
+            audio_rows.append(dict(elapsed_ms=index * 20 + 10))
+        on_video = {at for frame in pulses for at in range(frame, frame + 3)}
+        levels = [255 if frame in on_video else 0 for frame in range(60, 1860)]
+        video_rows = [dict(elapsed_ms=frame * 1000 / 30 + 35) for frame in range(60, 1860)]
+        positive = paired_marker_observation(samples, audio_rows, levels, video_rows)
+        self.assertEqual(positive['status'], 'passed')
+        self.assertGreaterEqual(positive['paired'], 42)
+        self.assertAlmostEqual(positive['p95_abs_skew_ms'], 25)
+        # A full constant skew stays a failure; ordinals cannot be repaired by
+        # pairing the next nearby pulse or shifting the measured time origin.
+        negative = paired_marker_observation(samples, audio_rows, levels,
+            [dict(elapsed_ms=row['elapsed_ms'] + 200) for row in video_rows])
+        self.assertEqual(negative['status'], 'failed')
+        self.assertEqual(positive['paired'], negative['paired'])
+        self.assertAlmostEqual(negative['p95_abs_skew_ms'], 225)
+        self.assertFalse(positive['physical_device_presentation_measured'])
+        self.assertFalse(positive['live_decoder_completion_measured'])
+
+    def test_source_v2_cannot_omit_or_replace_the_frozen_marker_programme(self):
+        for markers in [None, {}, dict(marker_profile(), pulse_frames=2), dict(marker_profile(), program='periodic')]:
+            with self.subTest(markers=markers), self.assertRaisesRegex(ValueError, 'marker programme'):
+                verify(Path('not-read'), dict(format='connect/native-av-sources/2', markers=markers))
+
+    def test_constant_decoded_content_cannot_substitute_for_paired_markers(self):
+        samples = array.array('f', [.03]) * (3000 * 960)
+        result = paired_marker_observation(samples,
+            [dict(elapsed_ms=2000 + at * 20) for at in range(3000)], [255] * 1800,
+            [dict(elapsed_ms=2000 + at * 1000 / 30) for at in range(1800)])
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['paired'], 0)
+        self.assertEqual(result['audio_markers'], 0)
+        self.assertEqual(result['video_markers'], 0)
 
 
 if __name__ == '__main__':
