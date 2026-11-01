@@ -1031,7 +1031,7 @@
   "scope": "All required current local/Remote-profile transport cells. No inherited component, named WAN host or media result. G6-054 remains deferred; its verification is not waived.",
   "execution_phase": "inventory",
   "inventory_valid": true,
-  "implementation_status": "in-progress-inventory-and-control-runner-implemented",
+  "implementation_status": "in-progress-inventory-control-and-protected-configuration-stage",
   "source_revision_note": "Base Git revision for this local inventory; new files were uncommitted. Exact contract and implementation hashes identify the inspected bytes. No runtime result.",
   "implementation_hashes": {
     "contracts/gate6-transport-matrix.json": "e04853fbd6840c5bfb8912ac775ae177513d3f060bce117e331694941735a4b4",
@@ -1069,5 +1069,24 @@
     "ci_preconditions": "Native prerequisites, verified source preparation,6matrix guards/inventory and currentSDKbuild passed; no runtimecase result confirmed",
     "expected_functions": 15,
     "full_matrix_cells_qualified": 0
+  },
+  "protected_fixture_configuration": {
+    "status": "implemented-runtime-unrun",
+    "implementation_hashes": {
+      "scripts/lib/transport_fixture.py": "caafddf56edfa185cda5d03781157b67194e49af5b4c31f1a20c7a0128a367be",
+      "scripts/materialize-gate6-transport-fixture.py": "602aeeb41ef727e53d205ea73b17f8c57f38f6eb843405d790b9596f7e7822c1",
+      "scripts/check-transport-fixtures.py": "db86eb0209ca265d2c303b3dbe0233196848abffe446086e4014a03d2a0b21b3",
+      "scripts/tests/test_transport_fixture.py": "0a3d1febb294e01044cce7ab0fe5dbf2de8aedfbca9efa27537867063565f3e8",
+      ".github/workflows/gate6-transport-matrix.yml": "01d8d3b53c460f44562e648c6b1c870a47cc0f6e2e53cd41630277ba5b58bf3b",
+      ".github/workflows/gate6-linux-fixtures.yml": "810172bed0915c615ee25e99fccd02c952ff14135a4e701a835b2a17d391042f",
+      "scripts/fixtures/transport-matrix/README.md": "88b02b74f967f0002c0945b71cde6c0170b2d9ff71c58f2e427b473124068a89"
+    },
+    "local_guard_tests_passed": 14,
+    "behavior": "Validate a matching private stopped canonical backup, invoke production restore, preserve credential/key validity, and materialize absolute server/operator asset references in a new private instance. No listeners or actors are started by materialization.",
+    "rehearsal": "Isolated transport-fixture CI lane: production CLI init/create/backup, real restore/materialization, occupied-output and wrong-signing/browser refusal, original conversation/operation native reads and original server joins.",
+    "runtime_verified": false,
+    "full_cell_materializer": false,
+    "cell_qualified": false,
+    "remaining": "Participant/device enrollment, actual topology observation, full workload, browser/fallback, capture/media and per-cell runtime collection remain required."
   }
 }

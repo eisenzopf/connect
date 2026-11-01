@@ -1,14 +1,18 @@
-name: Gate 6 transport matrix control component
+name: Gate 6 transport matrix components
 on:
   workflow_call:
+    inputs:
+      component:
+        type: string
+        default: control
 permissions:
   contents: read
 concurrency:
-  group: gate6-transport-matrix-control-${{ github.ref }}
+  group: gate6-transport-matrix-${{ inputs.component }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   control:
-    name: Ubuntu transport control component
+    name: Ubuntu transport ${{ inputs.component }} component
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
@@ -18,6 +22,7 @@ jobs:
       CARGO_INCREMENTAL: '0'
       CC: clang
       CXX: clang++
+      TRANSPORT_COMPONENT: ${{ inputs.component }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -26,6 +31,7 @@ jobs:
         with:
           python-version: '3.12'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: inputs.component == 'control'
         with:
           node-version: '22'
       - name: Install native prerequisites
@@ -51,33 +57,42 @@ jobs:
           cargo fetch --locked
       - name: Check matrix scope and promotion guards
         run: |
-          python3 -m unittest discover -s scripts/tests -p test_transport_matrix.py
+          python3 -c 'import os; assert os.environ["TRANSPORT_COMPONENT"] in {"control", "materializer"}'
+          python3 -m unittest discover -s scripts/tests -p 'test_transport_*.py'
           python3 scripts/check-gate-6-transports.py --phase inventory
       - name: Build current Node browser-SDK control inputs
+        if: inputs.component == 'control'
         working-directory: sdk/typescript
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
       - name: Run exact non-media QUIC HTTP3 and WSS control functions
+        if: inputs.component == 'control'
         id: control
         run: python3 scripts/check-gate-6-transports.py --phase control
+      - name: Rehearse production stopped-backup fixture materialization
+        if: inputs.component == 'materializer'
+        id: materializer
+        run: python3 scripts/check-transport-fixtures.py
       - name: Upload redacted component and unqualified matrix inventory
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-transport-matrix-control
+          name: gate6-transport-matrix-${{ inputs.component }}
           path: .local/gate6-transports/evidence/
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
       - name: Preserve completed unchanged-source compilation
         id: preserve
-        if: ${{ !cancelled() && steps.control.outputs.cacheable_build == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && (steps.control.outputs.cacheable_build == 'true' || steps.materializer.outputs.cacheable_build == 'true') && steps.cache.outputs.cache-hit != 'true' }}
         run: |
           python3 - <<'PY'
-          import hashlib,json,pathlib,runpy,subprocess
-          base=pathlib.Path('.local/gate6-transports/evidence/control')
-          report=json.loads((base/'control.json').read_text())
+          import hashlib,json,os,pathlib,runpy,subprocess
+          component=os.environ['TRANSPORT_COMPONENT']
+          assert component in {'control','materializer'}
+          base=pathlib.Path('.local/gate6-transports/evidence')/component
+          report=json.loads((base/('control.json' if component=='control' else 'rehearsal.json')).read_text())
           assert report['cacheable_build'] and report['source_inputs_unchanged'] and report['executables_unchanged']
           assert report['source_revision']==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           raw=(base/'source-inputs.json').read_bytes()
