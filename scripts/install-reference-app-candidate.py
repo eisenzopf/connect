@@ -98,6 +98,11 @@ def install(target, output):
     runtime_archive = selected / 'runtime' / runtime['archive_name']
     native = output / 'runtime'
     install_runtime(runtime_archive, runtime, native)
+    if target == 'x86_64-unknown-linux-gnu':
+        linkage = subprocess.check_output(['ldd', str(native / 'bin/connect')], text=True, timeout=5)
+        (output / 'runtime-linkage.txt').write_text(linkage)
+        if 'not found' in linkage:
+            raise ValueError('A documented Ubuntu runtime library is missing')
     consumer = output / 'consumer'
     consumer.mkdir()
     shutil.copytree(ROOT / 'examples/parley-on-connect/app', consumer / 'app')

@@ -70,10 +70,10 @@ export async function verifyBootstrap(directory, newlyInitialized) {
     await writeExact(path, encode({ profile: "parley-local-bootstrap/1", files }));
 }
 export function newSetupPlan(binarySha256, ports) {
-    const prefix = "parley_" + randomUUID().replaceAll("-", "");
+    const prefix = "parley-" + randomUUID().replaceAll("-", "");
     return { profile: "parley-local-setup/1", sdkVersion: "0.1.0", binarySha256, ports,
         expiresAt: Math.floor(Date.now() / 1000) + 86400,
-        actors: actorDefinitions.map(actor => ({ ...actor, alias: prefix + "_" + actor.role,
+        actors: actorDefinitions.map(actor => ({ ...actor, alias: prefix + "-" + actor.role,
             identityOperationId: "identity_" + randomUUID(), credentialOperationId: "credential_" + randomUUID() })) };
 }
 function validatePlan(plan) {
@@ -86,7 +86,7 @@ function validatePlan(plan) {
     for (const [index, actor] of plan.actors.entries()) {
         const expected = actorDefinitions[index];
         if (actor.role !== expected.role || actor.label !== expected.label || actor.kind !== expected.kind ||
-            !id(actor.alias) || !id(actor.identityOperationId) || !id(actor.credentialOperationId)) fail("app-setup-plan-refused");
+            !/^[a-z0-9-]{1,64}$/.test(actor.alias) || !id(actor.identityOperationId) || !id(actor.credentialOperationId)) fail("app-setup-plan-refused");
         for (const value of [actor.alias, actor.identityOperationId, actor.credentialOperationId]) {
             if (originals.has(value)) fail("app-setup-plan-refused"); originals.add(value);
         }

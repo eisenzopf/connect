@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { newSetupPlan } from "../examples/parley-on-connect/app/setup.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(root, ".local") + "/") && base !== output);
@@ -78,6 +79,19 @@ async function stop() {
     processChild = null;
 }
 try {
+    stage = "actual-public-provisioning-validation";
+    const sample = newSetupPlan(installation.binary_sha256, { native: 24431, http: 24432, ui: 24433 });
+    for (const actor of sample.actors) {
+        const command = { type: "identity", operation_id: actor.identityOperationId, alias: actor.alias, kind: actor.kind, display_name: actor.label };
+        const validate = input => JSON.parse(execFileSync(installation.executable, ["sdk-validate-provisioning"], {
+            input: JSON.stringify(input), timeout: 2000, maxBuffer: 128 * 1024, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }));
+        const before = validate({ ...command, alias: command.alias.replaceAll("-", "_") });
+        assert.equal(before.profile, "connect-sdk-provisioning-validation/1"); assert.equal(before.valid, false);
+        const result = validate(command);
+        assert.equal(result.profile, "connect-sdk-provisioning-validation/1"); assert.equal(result.valid, true);
+        assert.equal(result.value.alias, actor.alias);
+    }
+    check("actual-public-helper-validates-all-generated-identity-intents");
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
     const origin = await start(1); check("one-command-four-actor-scoped-setup-ready");
     context = await chromium.launchPersistentContext(join(output, "profile"), { headless: true,
@@ -167,7 +181,10 @@ try {
     release?.();
     if (context) await context.close().catch(() => { report.browser_cleanup_failed = true; report.passed = false; });
     if (processChild) await stop().catch(async () => {
-        report.process_cleanup_failed = true; report.passed = false; processChild?.kill("SIGKILL");
+        report.controller_exit_code = processChild.exitCode;
+        report.process_cleanup_failed = groupMembers(processChild.pid).length !== 0;
+        report.passed = false;
+        if (report.process_cleanup_failed) processChild.kill("SIGKILL");
         await deadline(finished, 5000).catch(() => {});
     });
     report.sources_unchanged = JSON.stringify(await tree(join(root, "examples/parley-on-connect/app"))) === JSON.stringify(sourceInputs.app) &&

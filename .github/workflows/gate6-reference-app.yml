@@ -29,6 +29,11 @@ jobs:
           python-version: '3.12'
       - name: Check application intent recovery and setup boundaries
         run: npm run test:app --prefix examples/parley-on-connect
+      - name: Install documented Ubuntu runtime prerequisites
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopus0 libssl3t64 ffmpeg
       - name: Install exact verified production candidate in a cold ordinary consumer
         env:
           GH_TOKEN: ${{ github.token }}

@@ -167,10 +167,13 @@ async function main() {
     } finally {
         controller.abort();
         for (const record of [...children].reverse()) {
-            if (record.process.exitCode === null && record.process.signalCode === null) record.process.kill("SIGTERM");
+            const running = record.process.exitCode === null && record.process.signalCode === null;
+            if (running) record.process.kill("SIGTERM");
             let result = await deadline(record.finished, 10000);
             if (!result) { forced = true; record.process.kill("SIGKILL"); result = await record.finished; }
-            if (result.code !== 0 || result.signal || result.error || record.failed) forced = true;
+            // A command that already exited unsuccessfully is the primary
+            // failure, not evidence that its joined process leaked at cleanup.
+            if (running && (result.code !== 0 || result.signal || result.error || record.failed)) forced = true;
         }
         process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop); ownership.close();
         if (forced) fail("app-cleanup-incomplete");

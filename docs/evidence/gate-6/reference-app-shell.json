@@ -25,12 +25,12 @@
     "examples/parley-on-connect/app/ui/app.mjs": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
     "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
-    "examples/parley-on-connect/app/run.mjs": "b0ddb546157ad18f4edf6fe592c37b28f08200f82e7aff7b7f20d6480b5e7025",
-    "examples/parley-on-connect/app/setup.mjs": "ec3f07a139a34f6c1496b982fa4c5f6daff12eaa3d2ec76c6c77c3dc6fe49305",
-    "examples/parley-on-connect/app/setup.test.mjs": "fb88625ce027f0e29ffa909896a6a6c00142aac416c2342260480e02f5a4e58b",
-    "scripts/install-reference-app-candidate.py": "2588fab32696f86362e739ffc4921e865296c9a697600ca4a4b62a3f10731de7",
-    "scripts/check-reference-app-installed.mjs": "291ea276785f8c8c14adee16c7e9cc7680c7ea2de29fdfdc5db9302f3055d802",
-    ".github/workflows/gate6-reference-app.yml": "e4a3343646c60eaf2b11a1cce64aabc8cd2b415f85be9ca13d306efe644fcff2"
+    "examples/parley-on-connect/app/run.mjs": "1c4748c615987db93c55ffe86e56724bf0949a4b9b6cca5384cf940b162ec77e",
+    "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
+    "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
+    "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
+    "scripts/check-reference-app-installed.mjs": "a27ed92cccf1d0a47e63ae11cdc1be9ff59b261a8a649d8565b4ad756538c22b",
+    ".github/workflows/gate6-reference-app.yml": "dd7a4962113142bebed2d65a2fc3fa5e75a32b27dca334e2b8d4060d67db805b"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
@@ -68,7 +68,7 @@
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "First actual run 41258658962 at 02c29255 failed on both platforms during one-command startup, with zero browser checks executed. Exact packages/cold installs and all23 Node22 component tests passed. Negative reports retained and app/checker/installer source hashes independently compared with original Git objects. Closed startup stage/code/source-location diagnostics added; next run required.",
+    "status": "Both diagnostic jobs 41258922384 failed. macOS actual local validation rejects underscore aliases at setup.mjs122; Linux exits during init with its primary failure masked by cleanup. Correct new alias generation/validation, preserve old plans, keep primary failures and install/check documented Ubuntu shared-library prerequisites. Actual production before/after alias parser and full installed rerun pending.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"

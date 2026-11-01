@@ -20,7 +20,10 @@ async function fixture() {
     const createAdministrativeClient = path => {
         assert.equal(path, join(directory, "installation/operator.sdk.toml"));
         return {
-            validateProvisioning: value => ({ value }),
+            validateProvisioning: value => {
+                assert.match(value.alias, /^[a-z0-9-]{1,64}$/);
+                return { value };
+            },
             provision: async (command, options) => {
                 calls.push({ command: structuredClone(command.value), original: options.operationId });
                 assert.equal(options.operationId, command.value.operation_id);
