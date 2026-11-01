@@ -1,0 +1,130 @@
+{
+  "format": "connect/reference-app-media-batch-local/1",
+  "task": "G6-072",
+  "source_revision": "317c02a80d81bce644dc398bca9d7b9fcf79a6d2",
+  "runtime_source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "passed": true,
+  "checks_passed": 37,
+  "checks_required": 37,
+  "browser": "156.0.8078.4",
+  "platform": "darwin",
+  "node": "v22.16.0",
+  "binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+  "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+  "git_app_checker_installer_cpu_native_clock_inputs_verified": 35,
+  "installed_sdk_files_independently_verified": 195,
+  "png_files_byte_and_crc_verified": 6,
+  "source_guards_passed": true,
+  "original_all37_checks_unchanged": true,
+  "unit_tests": {
+    "app_and_trace_before_additional_batch_order_test": 97,
+    "additional_trace_batch_order_test": 1,
+    "all_passed": true
+  },
+  "combined_av_windows": [
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 92,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 61.989,
+        "lastVideoOffsetMs": 62.377
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 82,
+        "painted_video_frames": 59,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 62.868,
+        "lastVideoOffsetMs": 66.155
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 92,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 59.938,
+        "lastVideoOffsetMs": 67.516
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 80,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 1,
+        "lastAudioOffsetMs": 61.378,
+        "lastVideoOffsetMs": 74.674
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 99,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 41.42,
+        "lastVideoOffsetMs": 68.309
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 85,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 61.283,
+        "lastVideoOffsetMs": 74.271
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 100,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 42.029,
+        "lastVideoOffsetMs": 66.61
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 83,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 61.151,
+        "lastVideoOffsetMs": 70.033
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 100,
+        "painted_video_frames": 58,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 0,
+        "lastAudioOffsetMs": 40.721,
+        "lastVideoOffsetMs": 68.116
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 80,
+        "painted_video_frames": 59,
+        "audioLateDrops": 0,
+        "queuedSendFrames": 1,
+        "lastAudioOffsetMs": 61.753,
+        "lastVideoOffsetMs": 67.138
+      }
+    ]
+  ],
+  "reused_runtime_independent_proof_sha256": "7d52afc8bd49bf80566a9ac1150ad60ff6481dee8dbadf6376590b70285c8d32",
+  "whole_gate_qualified": false,
+  "task_complete": false,
+  "scope": "One local macOS arm64 synthetic installed app component using the independently verified original production runtime and unchanged offline Node SDK. App, checker and trace Git sources, all original checks, installed SDK file bytes and PNG bytes/CRC/decompression independently checked. No new CPU profile/native sample in this run. Hosted Linux/macOS batching and complete transport qualification remain open."
+}
