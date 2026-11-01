@@ -967,6 +967,560 @@
           "connect-external-rust-journey": "689ab7236cdbec39af3f6f99b7db908492da3dadb2438860f7d5ac1d30d9a92d"
         },
         "input_manifest_sha256": "d0b88312e86ea9a0ddc6f2b546278e1d14880f678767284df65e6fbf269428ef"
+      },
+      "post_fix_diagnostic": {
+        "expected_stop": "bounded-packet-read-trace-stop",
+        "actual_stop": "bounded-packet-read-trace-stop",
+        "observation": {
+          "format": "connect/native-av-work-observation/1",
+          "original_tasks_joined": true,
+          "original_tasks_started": 24,
+          "control_task_started": true,
+          "elapsed_ms": 8463.520875,
+          "failure": {
+            "route_index": null,
+            "medium": null,
+            "direction": "control",
+            "stage": "during-workload"
+          },
+          "routes": [
+            {
+              "index": 0,
+              "received_audio": 73,
+              "received_video": 18,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 591
+              },
+              "received_clocks": {
+                "audio": 7,
+                "video": 6
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 1,
+              "received_audio": 72,
+              "received_video": 28,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 588
+              },
+              "received_clocks": {
+                "audio": 7,
+                "video": 5
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 2,
+              "received_audio": 69,
+              "received_video": 18,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 589
+              },
+              "received_clocks": {
+                "audio": 7,
+                "video": 7
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 3,
+              "received_audio": 62,
+              "received_video": 16,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 589
+              },
+              "received_clocks": {
+                "audio": 5,
+                "video": 7
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 4,
+              "received_audio": 159,
+              "received_video": 61,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 594
+              },
+              "received_clocks": {
+                "audio": 8,
+                "video": 7
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            },
+            {
+              "index": 5,
+              "received_audio": 150,
+              "received_video": 53,
+              "submitted_packets": {
+                "audio": 422,
+                "video": 593
+              },
+              "received_clocks": {
+                "audio": 8,
+                "video": 8
+              },
+              "gap_packets": 0,
+              "late_send_frames": 0
+            }
+          ],
+          "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+        },
+        "packet_trace": {
+          "log_sha256": "5abaea0c9339a55f80f642e942256204a299ffb2486249fab86927095abb05da",
+          "log_bytes": 5480475,
+          "policy": [
+            {
+              "publishing": "true",
+              "receiving": "false",
+              "owned_file_custody": "false",
+              "problem": "none",
+              "count": 12062,
+              "median_us": 739.5,
+              "p95_us": 6951,
+              "maximum_us": 25763
+            },
+            {
+              "publishing": "false",
+              "receiving": "true",
+              "owned_file_custody": "true",
+              "problem": "none",
+              "count": 1853,
+              "median_us": 52,
+              "p95_us": 1239,
+              "maximum_us": 11096
+            },
+            {
+              "publishing": "true",
+              "receiving": "false",
+              "owned_file_custody": "false",
+              "problem": "authority-busy",
+              "count": 1588,
+              "median_us": 10351.5,
+              "p95_us": 13175,
+              "maximum_us": 333462
+            },
+            {
+              "publishing": "false",
+              "receiving": "true",
+              "owned_file_custody": "false",
+              "problem": "none",
+              "count": 2489,
+              "median_us": 416,
+              "p95_us": 2695,
+              "maximum_us": 18096
+            },
+            {
+              "publishing": "false",
+              "receiving": "true",
+              "owned_file_custody": "false",
+              "problem": "authority-busy",
+              "count": 13,
+              "median_us": 11049,
+              "p95_us": 16986,
+              "maximum_us": 16986
+            }
+          ],
+          "guarded_media_refusal_stages": {
+            "source-egress": 1902,
+            "target-egress": 103
+          },
+          "refusal_problems": [
+            {
+              "stage": "source-egress",
+              "problem": "NotReady",
+              "count": 1902
+            },
+            {
+              "stage": "target-egress",
+              "problem": "NotReady",
+              "count": 103
+            }
+          ]
+        },
+        "native_server_sample": {
+          "observed": true,
+          "observer_joined": true,
+          "forced": false,
+          "seconds_requested": 8,
+          "interval_ms": 10,
+          "elapsed_ms": 8271,
+          "available_parallelism": 14,
+          "server_cpu_delta_ms": 37240,
+          "resident_bytes_before": 82165760,
+          "resident_bytes_after": 89489408,
+          "rust_symbols_demangled": 388,
+          "format": "connect/native-server-stack-sample/1",
+          "raw_sample_sha256": "b5f691d7c416b7892e026e344814d071de96ceb8ada8daecb153ba8f1decbb07",
+          "symbols_observed": 347,
+          "top_stacks": [
+            {
+              "symbol": "<std::sys::thread::unix::Thread>::new::thread_start",
+              "stack_samples": 12638
+            },
+            {
+              "symbol": "<std::thread::lifecycle::spawn_unchecked<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}",
+              "stack_samples": 12638
+            },
+            {
+              "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>",
+              "stack_samples": 12638
+            },
+            {
+              "symbol": "<tokio::runtime::blocking::pool::Inner>::run",
+              "stack_samples": 12638
+            },
+            {
+              "symbol": "<parking_lot::condvar::Condvar>::wait_until_internal",
+              "stack_samples": 9375
+            },
+            {
+              "symbol": "__psynch_cvwait",
+              "stack_samples": 9375
+            },
+            {
+              "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}> as core::future::future::Future>::poll",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "tokio::runtime::scheduler::multi_thread::worker::run",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "tokio::runtime::context::runtime::enter_runtime::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}, ()>",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}::{closure#0}, ()>",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run",
+              "stack_samples": 8848
+            },
+            {
+              "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::park_internal",
+              "stack_samples": 5479
+            },
+            {
+              "symbol": "<tokio::runtime::scheduler::multi_thread::park::Inner>::park_condvar",
+              "stack_samples": 4977
+            },
+            {
+              "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run_task",
+              "stack_samples": 3367
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_data",
+              "stack_samples": 3280
+            },
+            {
+              "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+              "stack_samples": 3197
+            },
+            {
+              "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+              "stack_samples": 3189
+            },
+            {
+              "symbol": "<connect_store::Store>::native_media_read_at",
+              "stack_samples": 3182
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+              "stack_samples": 3039
+            },
+            {
+              "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+              "stack_samples": 1916
+            },
+            {
+              "symbol": "<tokio::runtime::task::harness::Harness<core::pin::Pin<alloc::boxed::Box<<rvoip_uctp::v2::server::ProfileServer>::spawn<quinn::connection::Connection, rvoip_quic::canonical::start::{closure#0}, rvoip_quic::canonical::start::{closure#0}::{closure#0}, rvoip_quic::canonical::start::{closure#1}>::{closure#0}::{closure#3}>>, alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+              "stack_samples": 1827
+            },
+            {
+              "symbol": "<core::pin::Pin<alloc::boxed::Box<<rvoip_uctp::v2::server::ProfileServer>::spawn<quinn::connection::Connection, rvoip_quic::canonical::start::{closure#0}, rvoip_quic::canonical::start::{closure#0}::{closure#0}, rvoip_quic::canonical::start::{closure#1}>::{closure#0}::{closure#3}>> as core::future::future::Future>::poll",
+              "stack_samples": 1826
+            },
+            {
+              "symbol": "<core::future::poll_fn::PollFn<rvoip_quic::canonical::start::{closure#0}::{closure#0}::{closure#6}> as core::future::future::Future>::poll",
+              "stack_samples": 1826
+            },
+            {
+              "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+              "stack_samples": 1813
+            },
+            {
+              "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+              "stack_samples": 1768
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+              "stack_samples": 1768
+            },
+            {
+              "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+              "stack_samples": 1706
+            },
+            {
+              "symbol": "rustix::fs::at::accessat::<&std::path::PathBuf, std::os::fd::owned::BorrowedFd>",
+              "stack_samples": 1236
+            },
+            {
+              "symbol": "rustix::path::arg::with_c_str_slow_path::<(), rustix::fs::at::accessat<&std::path::PathBuf, std::os::fd::owned::BorrowedFd>::{closure#0}>",
+              "stack_samples": 1233
+            },
+            {
+              "symbol": "<tokio::runtime::task::harness::Harness<<rvoip_core::conference::Conference>::start_inner::{closure#0}, alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+              "stack_samples": 1105
+            },
+            {
+              "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+              "stack_samples": 1105
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+              "stack_samples": 1105
+            },
+            {
+              "symbol": "<connect_store::Store>::native_media_read_at::{closure#0}",
+              "stack_samples": 915
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::views_for",
+              "stack_samples": 910
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::facts_for",
+              "stack_samples": 909
+            },
+            {
+              "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+              "stack_samples": 804
+            },
+            {
+              "symbol": "<alloc::vec::Vec<rvoip_core::staged_streams::media_scene::Destination>>::retain::<<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick::{closure#10}>",
+              "stack_samples": 743
+            },
+            {
+              "symbol": "<alloc::vec::Vec<rvoip_core::staged_streams::media_scene::Destination>>::retain::<<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick::{closure#10}>::{closure#0}",
+              "stack_samples": 743
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::MediaPacket>::try_forward_to",
+              "stack_samples": 743
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source",
+              "stack_samples": 689
+            },
+            {
+              "symbol": "std::rt::lang_start_internal",
+              "stack_samples": 632
+            },
+            {
+              "symbol": "std::rt::lang_start::<core::result::Result<(), anyhow::Error>>::{closure#0}",
+              "stack_samples": 632
+            },
+            {
+              "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<fn() -> core::result::Result<(), anyhow::Error>, core::result::Result<(), anyhow::Error>>",
+              "stack_samples": 632
+            },
+            {
+              "symbol": "<tokio::runtime::runtime::Runtime>::block_on::<connect::main::{closure#0}>",
+              "stack_samples": 632
+            },
+            {
+              "symbol": "tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::multi_thread::MultiThread>::block_on<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>::{closure#0}, core::result::Result<(), anyhow::Error>>",
+              "stack_samples": 632
+            },
+            {
+              "symbol": "<tokio::runtime::park::CachedParkThread>::block_on::<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>",
+              "stack_samples": 632
+            }
+          ],
+          "component_stacks": [
+            {
+              "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_data",
+              "stack_samples": 3280
+            },
+            {
+              "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+              "stack_samples": 3197
+            },
+            {
+              "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+              "stack_samples": 3189
+            },
+            {
+              "symbol": "<connect_store::Store>::native_media_read_at",
+              "stack_samples": 3182
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+              "stack_samples": 3039
+            },
+            {
+              "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+              "stack_samples": 1916
+            },
+            {
+              "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+              "stack_samples": 1813
+            },
+            {
+              "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+              "stack_samples": 1768
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+              "stack_samples": 1768
+            },
+            {
+              "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+              "stack_samples": 1706
+            },
+            {
+              "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+              "stack_samples": 1105
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+              "stack_samples": 1105
+            },
+            {
+              "symbol": "<connect_store::Store>::native_media_read_at::{closure#0}",
+              "stack_samples": 915
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::views_for",
+              "stack_samples": 910
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_media::facts_for",
+              "stack_samples": 909
+            },
+            {
+              "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+              "stack_samples": 804
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::MediaPacket>::try_forward_to",
+              "stack_samples": 743
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source",
+              "stack_samples": 689
+            },
+            {
+              "symbol": "connect_store::connection_control::private_consultation::for_connection",
+              "stack_samples": 425
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media",
+              "stack_samples": 372
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::guarded_audio::GuardedAudioMixer>::tick",
+              "stack_samples": 362
+            },
+            {
+              "symbol": "<connect_store::authority_fences::Manager>::file",
+              "stack_samples": 334
+            },
+            {
+              "symbol": "<connect_store::installation_ownership::InstallationOwnership>::check",
+              "stack_samples": 317
+            },
+            {
+              "symbol": "connect_store::installation_ownership::fingerprint",
+              "stack_samples": 254
+            },
+            {
+              "symbol": "<connect_store::installation_ownership::Binding>::permit",
+              "stack_samples": 245
+            },
+            {
+              "symbol": "connect_store::peer_authority::connection_projection::current_projection",
+              "stack_samples": 219
+            },
+            {
+              "symbol": "<rvoip_uctp::staged_media::ready_audio::epoch::EpochQueue<rvoip_uctp::staged_media::ready_audio::Job>>::enqueue::{closure#2}",
+              "stack_samples": 219
+            },
+            {
+              "symbol": "<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready",
+              "stack_samples": 218
+            },
+            {
+              "symbol": "<rvoip_core::staged_streams::QueuedMedia>::deliver_ready_audio_batch::<<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready::{closure#2}>",
+              "stack_samples": 217
+            },
+            {
+              "symbol": "<connect_store::Store>::try_packet_connection",
+              "stack_samples": 192
+            },
+            {
+              "symbol": "connect_store::connection_control::private_consultation::private_partner",
+              "stack_samples": 160
+            },
+            {
+              "symbol": "<rvoip_uctp::staged_media::StagedRtpMedia as rvoip_core::staged_streams::StagedMediaAdapter>::prepare::{closure#0}::{closure#7}",
+              "stack_samples": 157
+            }
+          ],
+          "scope": "Inclusive sampled stack counts across server threads; not CPU seconds or a transport/quality pass. Only fixed runtime waits and known Rust/SQLite symbols; PIDs, paths and raw stacks excluded."
+        },
+        "sample_audit": {
+          "summary_recomputed_exactly": true,
+          "raw_sha256": "b5f691d7c416b7892e026e344814d071de96ceb8ada8daecb153ba8f1decbb07",
+          "observer_joined": true,
+          "observer_forced": false,
+          "server_joined": true,
+          "server_forced": false,
+          "source_inputs_unchanged": true
+        },
+        "closure": {
+          "server_joined": true,
+          "server_forced": false,
+          "server_exit_code": 0,
+          "source_assets_unchanged": true,
+          "inputs_unchanged": true
+        },
+        "helpers_joined": true,
+        "source_assets_sha256": {
+          "sources.json": "cbc58a2f9892403ae5bea1e595884b3bca3ab345378d4a41691e9d333bf00ee9",
+          "video-sources.json": "00cb23851775b84ab61e0ba9da5467c09c3d88bd4b637f8d375746e5b19c3d04",
+          "source-bindings.json": "3511c5059710e2a58a3eec82c3b6057da38fc502200c4a96ca32d1d4e4756ac8",
+          "probe.mjs": "ca9ae181d8afa022d27f7ab2e2e49e5069b2b1d27594cd0a3a4d41065d8c0524"
+        },
+        "private_evidence_sha256": {
+          ".local/gate-6/native-six-route-retained-media-trace/pipeline.json": "92bbd1263000d0de76c18812f73f5478ffbc897875b68401586895807eb1232a",
+          ".local/gate-6/native-six-route-retained-media-trace/controller.json": "48df0092f840d7f6029e23d910fea4334ce58687b59adc609837870e70c50cb1",
+          ".local/gate-6/native-six-route-retained-media-trace/probe.json": "98c26adcda13c7b2c71621ad469432f5cac5497341814d74a707cf4d78b8a7ce",
+          ".local/gate-6/native-six-route-retained-media-trace/trace-summary.json": "ef1f828d8000faedbda564e27ce0ac3bc31e72f240a1952b6c482eafeccaeac6",
+          ".local/gate-6/native-six-route-retained-media-trace/sample-audit.json": "39bf0617f4d0f1532e74ef7e7c709af6d8408e2c468c647b263ce4f0c507b782"
+        },
+        "scope": "Fresh bounded diagnostic only on the verified8ba58446 optimized runtime. Per-packet trace and stack sampling perturb timing; inclusive stack counts are not CPU-time shares. Shared audio_path refusal labels also cover queued video, so refusal medium is not inferred. Repeated fresh authority-file and SQL-fact paths motivate controlled investigation, not a proven causal fix, benchmark, decoded-quality, twenty-move or transport-cell pass."
       }
     }
   }
