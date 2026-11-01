@@ -205,3 +205,39 @@ failed original remains retained and is never replayed. These healthy scenes
 do not reproduce its original contention; the deterministic guard/worker tests
 separately cover that recovery decision. All150 Store replacement cases pass. See
 [the original failure and scoped checks](../evidence/gate-6/native-replacement-preflight-deferral.json).
+
+`startPhysicalReplacementTarget` now separates admission from physical ownership.
+It returns the completed destination Connection, original movement facts and
+original operation reference while the target is alive. `join()` observes its
+bounded source expiry; `stopAndJoin()` requests cooperative local retirement and
+joins the same process. Concurrent joins and repeated stop requests share one
+final result. The existing `physicalReplacementTarget` retains its complete-stage
+behavior. Neither method submits another service mutation.
+
+Admission separately saves `admission.json` with `passed: false` and no joined
+worker. Only final exit, private observation validation, original client shutdown
+and unchanged executable/config checks can produce the final `stage.json` pass.
+The Rust owner's immutable private readiness marker identifies the original
+operation, candidate and negotiated streams after actual source packet writes;
+it grants no journal completion or decoded-media claim. A private, original-ID
+stop marker is published atomically and read at most every 20 ms between media
+work. The original bounded source duration remains the fail-safe lifetime, and
+source timestamps and the 200 ms stale-frame bound are unchanged.
+
+Nine Rust peer cases and seven controller cases pass, including real separately
+owned synthetic child-process lifecycle tests. Those process doubles establish
+controller ownership behavior, not native negotiation or media quality. Native
+ownership integration observations, including final journal cleanup checks, are
+recorded separately. The full concurrent AV workload and its twenty transitions
+remain required before any transport-cell completion.
+
+The new local native ownership component completes one original move and
+independently decodes 34 additional destination-speaker packets after admission
+returns. All three Connections and native lifetimes retire, and the target,
+helpers and server join without force. The first scene lacked the retained
+Connection's final retirement observation and failed independent cleanup audit;
+it remains retained. The corrected observer runs a fresh scene and waits up to
+five seconds before stopping the server. It never replays that earlier original.
+This short audio ownership component does not invoke or weaken the existing
+ten-second/300-packet transition oracle and does not qualify a full AV cell.
+See [the ownership evidence](../evidence/gate-6/native-replacement-live-owner.json).

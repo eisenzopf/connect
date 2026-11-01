@@ -7,6 +7,7 @@ use connect_client::canonical::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
+mod owner;
 mod selected;
 mod video;
 
@@ -18,6 +19,8 @@ pub(super) struct Source {
     // The parent preserves identifiable, externally encoded 20ms Opus originals.
     audio_packets: Vec<Vec<u8>>,
     video: Option<video::Video>,
+    #[serde(default)]
+    owner_control: bool,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
@@ -194,6 +197,8 @@ pub(super) async fn run(
     let mut video_open = false;
     let mut root_observed = false;
     let mut negotiated = Vec::<Value>::new();
+    let mut owner_ready = false;
+    let mut stop_requested = false;
     let work = async {
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
@@ -234,12 +239,29 @@ pub(super) async fn run(
         let mut last_video_clock = None;
         let mut root_revision = root.revision;
         let mut next_poll = start + Duration::from_millis(50);
+        let mut next_owner = start;
         while tokio::time::Instant::now() < until {
+            if source.owner_control && tokio::time::Instant::now() >= next_owner {
+                phase = "physical-owner-control";
+                if owner::stop(&output, &command.operation_id).await? {
+                    stop_requested = true;
+                    break;
+                }
+                if !owner_ready && sent > 0 && (source.video.is_none() || (video_open && sent_video > 0)) {
+                    owner::ready(&output, &command.operation_id,
+                        scope.connection_id.as_deref().ok_or("replacement candidate missing")?,
+                        &negotiated, source.video.is_some()).await?;
+                    owner_ready = true;
+                }
+                next_owner = tokio::time::Instant::now() + Duration::from_millis(20);
+                phase = "physical-media";
+            }
             let next_audio = if index<source.audio_packets.len() {start+Duration::from_millis(index as u64*20)} else {until};
             let next_video = source.video.as_ref().filter(|v|video_index<v.frames.len())
                 .map(|_|start+Duration::from_micros(video_index as u64*1_000_000/30)).unwrap_or(until);
             let poll = if source.video.is_some() && !video_open {next_poll} else {until};
-            let next=next_audio.min(next_video).min(poll).min(until);
+            let owner = if source.owner_control { next_owner } else { until };
+            let next=next_audio.min(next_video).min(poll).min(owner).min(until);
             match tokio::time::timeout_at(next, client.receive_native_media_datagram()).await {
                 Ok(packet) => {
                     let packet=packet?;captured_bytes+=packet.len();
@@ -324,6 +346,7 @@ pub(super) async fn run(
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
         "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
+        "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
         "negotiated_streams":negotiated});
     file.write_all(&serde_json::to_vec(&result)?).await?;
     file.sync_all().await?;
@@ -346,30 +369,35 @@ mod tests {
                 ssrc: 1,
                 audio_packets: vec![],
                 video: None,
+                owner_control: false,
             },
             Source {
                 seconds: 31,
                 ssrc: 1,
                 audio_packets: vec![vec![1]; 1550],
                 video: None,
+                owner_control: false,
             },
             Source {
                 seconds: 1,
                 ssrc: 0,
                 audio_packets: vec![vec![1]; 50],
                 video: None,
+                owner_control: false,
             },
             Source {
                 seconds: 1,
                 ssrc: 1,
                 audio_packets: vec![vec![1]; 49],
                 video: None,
+                owner_control: false,
             },
             Source {
                 seconds: 1,
                 ssrc: 1,
                 audio_packets: vec![vec![1; 1169]; 50],
                 video: None,
+                owner_control: false,
             },
         ] {
             assert!(source.validate().is_err());

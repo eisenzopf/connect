@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdir, open, readFile, realpath, stat } from "node:fs/promises";
+import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -15,6 +15,15 @@ async function save(path, value) {
     const file = await open(path, "wx", 0o600);
     try { await file.writeFile(JSON.stringify(value, null, 2) + "\n"); await file.sync(); }
     finally { await file.close(); }
+    const directory = await open(dirname(path), "r");
+    try { await directory.sync(); } finally { await directory.close(); }
+}
+// Publish a complete, exclusive stop marker while the child is reading.
+async function saveAtomic(path, value) {
+    const temporary = path + "." + randomUUID() + ".tmp";
+    await save(temporary, value);
+    try { await link(temporary, path); }
+    finally { await unlink(temporary); }
     const directory = await open(dirname(path), "r");
     try { await directory.sync(); } finally { await directory.close(); }
 }
@@ -78,8 +87,12 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}) }, output };
 }
 
-export async function physicalReplacementTarget({ controller, retireOriginal, privateRoot,
-    directory, executable, executableSha256, ...intent }) {
+export const physicalReplacementTarget = options => physicalTarget(options, false);
+// Admission returns a live physical owner. Its report is final only after join.
+export const startPhysicalReplacementTarget = options => physicalTarget(options, true);
+
+async function physicalTarget({ controller, retireOriginal, privateRoot,
+    directory, executable, executableSha256, ...intent }, live) {
     assert.equal(typeof retireOriginal, "function");
     const root = await realpath(privateRoot), parent = await realpath(dirname(resolve(directory)));
     assert.ok(parent === root || parent.startsWith(root + "/"));
@@ -90,6 +103,7 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
     assert.equal((await stat(config)).mode & 0o077, 0);
     const output = join(resolve(directory), "target-observation.json");
     const input = replacementInput({ ...intent, target: { ...intent.target, nativeConfig: config }, output });
+    if (live) input.media.owner_control = true;
     const configHash = hash(await readFile(config));
     await mkdir(directory, { mode: 0o700 });
     // The complete original command is durable before the mutation is attempted.
@@ -102,7 +116,87 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         target_config_unchanged: false, target_executable_unchanged: false,
         source_input_sha256: hash(Buffer.from(JSON.stringify(input.media))), video_enabled: Boolean(intent.source.video),
         decoded_media_verified: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
-    let phase = "original-submission", worker, completed, log;
+    let phase = "original-submission", worker, completed, log, exited;
+    let transferred = false, finishPromise, stopPromise;
+    const stopPath = output.replace(/\.json$/, ".owner-stop.json");
+    const readyPath = output.replace(/\.json$/, ".owner-ready.json");
+    const recordFailure = error => {
+        report.passed = false;
+        report.failure ??= { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+        const at = error.stack?.match(/transport_replacement_target\.mjs:(\d+):(\d+)/);
+        if (at) report.failure.source ??= { line: Number(at[1]), column: Number(at[2]) };
+    };
+    const requestStop = () => stopPromise ??= (async () => {
+        if (worker && !exited && live) {
+            await saveAtomic(stopPath, { command: "stop", operation_id: intent.operationId });
+            report.target_stop_requested = true;
+        }
+    })();
+    const cleanup = async () => {
+        if (worker && !report.target_worker_joined) {
+            try {
+                if (live) await requestStop();
+                await bounded(completed, (live ? 10 : intent.source.seconds + 10) * 1000);
+                report.target_worker_joined = true;
+            } catch {
+                report.target_worker_forced = true; worker.kill("SIGTERM");
+                try { await bounded(completed, 5000); report.target_worker_joined = true; }
+                catch { worker.kill("SIGKILL"); await completed; report.target_worker_joined = true; }
+            }
+        }
+        await log?.close();
+        report.target_executable_unchanged = await readFile(executable).then(bytes => hash(bytes) === executableSha256, () => false);
+        report.target_config_unchanged = await readFile(config).then(bytes => hash(bytes) === configHash, () => false);
+        report.passed &&= report.target_worker_joined && !report.target_worker_forced &&
+            report.target_executable_unchanged && report.target_config_unchanged;
+        await save(join(directory, "stage.json"), report);
+    };
+    const finish = () => finishPromise ??= (async () => {
+        try {
+            phase = "target-worker-join";
+            const exit = await bounded(completed, (intent.source.seconds + 10) * 1000);
+            report.target_worker_joined = true;
+            assert.equal(exit.code, 0); assert.equal(exit.signal, null); assert.equal(exit.error, undefined);
+            const info = await stat(output); assert.ok(info.size > 0 && info.size <= (intent.source.video ? 80 : 24) * 1024 * 1024);
+            assert.equal(info.mode & 0o077, 0);
+            const observed = JSON.parse(await readFile(output, "utf8"));
+            assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
+            assert.equal(observed.passed, true); assert.equal(observed.original_client_joined, true);
+            assert.equal(observed.operation_completed_inferred, false); assert.equal(observed.decoded_media_verified, false);
+            assert.ok(Number.isInteger(observed.sent_audio_packets) && observed.sent_audio_packets > 0 &&
+                observed.sent_audio_packets <= intent.source.seconds * 50);
+            assert.equal(observed.video_enabled, Boolean(intent.source.video));
+            assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
+            if (intent.source.video) {
+                assert.equal(observed.original_root_completed_observed, true);
+                assert.equal(observed.video_controls_completed, true);
+                const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
+                assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
+                assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
+                    [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId].sort());
+                report.video_control_files = {};
+                for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
+                    const path = output.replace(/\.json$/, "." + suffix + ".json");
+                    const info = await stat(path); assert.equal(info.mode & 0o077, 0); assert.ok(info.size > 0 && info.size <= 65536);
+                    report.video_control_files[suffix] = hash(await readFile(path));
+                }
+                report.target_sent_video_packets = observed.sent_video_packets;
+            }
+            report.target_observation_sha256 = hash(await readFile(output));
+            report.target_sent_packets = observed.sent_audio_packets;
+            report.target_skipped_frames = observed.skipped_original_frames;
+            report.target_received_datagrams = observed.received.length;
+            if (live) {
+                assert.equal(observed.owner_control, true);
+                assert.equal(observed.owner_ready, true);
+                if (report.target_stop_requested) assert.equal(observed.stop_requested, true);
+            }
+            report.passed = !report.failure;
+        } catch (error) { recordFailure(error); throw error; }
+        finally { await cleanup(); }
+        assert.equal(report.passed, true);
+        return structuredClone(report);
+    })();
     try {
         const operationUntil = performance.now() + 8000;
         const remaining = () => { const value = Math.floor(operationUntil - performance.now()); assert.ok(value > 0); return value; };
@@ -148,7 +242,7 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         completed = new Promise(done => {
             worker.once("error", error => done({ error: error.code ?? error.name }));
             worker.once("close", (code, signal) => done({ code, signal }));
-        });
+        }).then(exit => { exited = exit; return exit; });
         phase = "original-completion";
         const done = await operation.wait({ timeoutMs: remaining() });
         assert.equal(done.snapshot.state, "completed");
@@ -180,61 +274,43 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         report.original_reference_preserved = true;
         phase = "original-source-owner-join";
         await retireOriginal(); report.original_source_owner_joined = true;
-        phase = "target-worker-join";
-        const exit = await bounded(completed, (intent.source.seconds + 10) * 1000);
-        report.target_worker_joined = true;
-        assert.equal(exit.code, 0); assert.equal(exit.signal, null); assert.equal(exit.error, undefined);
-        const info = await stat(output); assert.ok(info.size > 0 && info.size <= (intent.source.video ? 80 : 24) * 1024 * 1024);
-        assert.equal(info.mode & 0o077, 0);
-        const observed = JSON.parse(await readFile(output, "utf8"));
-        assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
-        assert.equal(observed.passed, true); assert.equal(observed.original_client_joined, true);
-        assert.equal(observed.operation_completed_inferred, false); assert.equal(observed.decoded_media_verified, false);
-        assert.ok(Number.isInteger(observed.sent_audio_packets) && observed.sent_audio_packets > 0 &&
-            observed.sent_audio_packets <= intent.source.seconds * 50);
-        assert.equal(observed.video_enabled, Boolean(intent.source.video));
-        assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
-        if (intent.source.video) {
-            assert.equal(observed.original_root_completed_observed, true);
-            assert.equal(observed.video_controls_completed, true);
-            const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
-            assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
-            assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
-                [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId].sort());
-            report.video_control_files = {};
-            for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
-                const path = output.replace(/\.json$/, "." + suffix + ".json");
-                const info = await stat(path); assert.equal(info.mode & 0o077, 0); assert.ok(info.size > 0 && info.size <= 65536);
-                report.video_control_files[suffix] = hash(await readFile(path));
+        if (live) {
+            phase = "target-live-owner-observation";
+            const readyUntil = performance.now() + 8000;
+            let ready;
+            for (;;) {
+                assert.equal(exited, undefined, "physical target exited before ownership transfer");
+                try {
+                    const info = await stat(readyPath);
+                    assert.equal(info.mode & 0o077, 0); assert.ok(info.size > 0 && info.size <= 65536);
+                    ready = JSON.parse(await readFile(readyPath, "utf8"));
+                    break;
+                } catch (error) { if (error.code !== "ENOENT") throw error; }
+                assert.ok(performance.now() < readyUntil, "physical owner readiness deadline");
+                await new Promise(done => setTimeout(done, 20));
             }
-            report.target_sent_video_packets = observed.sent_video_packets;
+            assert.equal(ready.format, "connect/native-replacement-owner-ready/1");
+            assert.equal(ready.operation_id, intent.operationId);
+            assert.equal(ready.connection_id, moved.connection.id);
+            assert.equal(ready.video_enabled, Boolean(intent.source.video));
+            assert.equal(ready.operation_completed_inferred, false);
+            assert.equal(ready.decoded_media_verified, false);
+            const expected = [intent.streamId, ...(intent.source.video ?
+                [intent.source.video.streamId, intent.source.video.receiveVideoStreamId] : [])];
+            assert.deepEqual(ready.negotiated_streams.map(s => s.strm_id).sort(), expected.sort());
+            report.target_owner_ready_sha256 = hash(await readFile(readyPath));
+            await save(join(directory, "admission.json"), { ...report, movement: movementFacts(moved) });
+            assert.equal(exited, undefined, "physical target exited during ownership transfer");
+            transferred = true;
+            return Object.freeze({ connection: moved.connection,
+                movement: structuredClone(movementFacts(moved)), reference: structuredClone(reference),
+                // These methods never submit a service mutation. A subsequent
+                // move owns the original operation and this owner's retirement.
+                join: finish,
+                stopAndJoin: async () => { await requestStop(); return finish(); },
+            });
         }
-        report.target_observation_sha256 = hash(await readFile(output));
-        report.target_sent_packets = observed.sent_audio_packets;
-        report.target_skipped_frames = observed.skipped_original_frames;
-        report.target_received_datagrams = observed.received.length;
-        report.passed = true;
-    } catch (error) {
-        report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
-        const at = error.stack?.match(/transport_replacement_target\.mjs:(\d+):(\d+)/);
-        if (at) report.failure.source = { line: Number(at[1]), column: Number(at[2]) };
-        throw error;
-    } finally {
-        if (worker && !report.target_worker_joined) {
-            try { await bounded(completed, (intent.source.seconds + 10) * 1000); report.target_worker_joined = true; }
-            catch {
-                report.target_worker_forced = true; worker.kill("SIGTERM");
-                try { await bounded(completed, 5000); report.target_worker_joined = true; }
-                catch { worker.kill("SIGKILL"); await completed; report.target_worker_joined = true; }
-            }
-        }
-        await log?.close();
-        report.target_executable_unchanged = await readFile(executable).then(bytes => hash(bytes) === executableSha256, () => false);
-        report.target_config_unchanged = await readFile(config).then(bytes => hash(bytes) === configHash, () => false);
-        report.passed &&= report.target_worker_joined && !report.target_worker_forced &&
-            report.target_executable_unchanged && report.target_config_unchanged;
-        await save(join(directory, "stage.json"), report);
-    }
-    assert.equal(report.passed, true);
-    return report;
+        return await finish();
+    } catch (error) { recordFailure(error); throw error; }
+    finally { if (!transferred && !finishPromise) await cleanup(); }
 }

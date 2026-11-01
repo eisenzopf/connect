@@ -1,0 +1,107 @@
+{
+  "format": "connect/gate6-native-live-owner-component/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Local macOS arm64/EdDSA synthetic native audio ownership integration. Admission returns a live replacement target with separate cooperative stop/join; original operation and current authority remain authoritative. This is a component toward the complete concurrent AV workload.",
+  "source_files_sha256": {
+    "scripts/lib/transport_replacement_target.mjs": "08d83a3c52811b3d4df518cd3dcbc69453b9f93399c1cb4e0847a4b23bf76c6d",
+    "scripts/tests/transport_replacement_target.test.mjs": "21e0fe8f90552b9b19abac12f33cc983279b9bc33451c7913b713930c201b907",
+    "scripts/tests/transport_replacement_owner.test.mjs": "2135257160558cfd690b0b7452f3728769d68f2d7384861b27b2e19301349d55",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "cd7fe8e7c8aca7b83cd6cf30c1d019019f7c2d38f74cd6695d7f77df137c2c69",
+    "examples/rust-sdk-journey/src/replacement_peer/owner.rs": "61144f7e86c51216b3c488c54f0255dcb207ceb8857e74a34e02baa86a652117"
+  },
+  "prepared_source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "component": {
+    "rust_peer_cases": 9,
+    "controller_cases": 7,
+    "rust_test_binary_sha256": "8156046ff86da764316b6de25a71feb2a7950d08e73ffa962380e20ff59c5865",
+    "peer_executable_sha256": "6d4c981d148512846ec10aebf1b3bff2e17bd987c290cccc3869ac027fef3597",
+    "source_inputs_unchanged": true,
+    "source_input_count": 4246,
+    "locked_cargo_build_passed": true
+  },
+  "native": {
+    "production_runtime_sha256": "69a366403a199b69ce8466212b18cda1defa2a35c9c218ed4a114dec2494287b",
+    "production_inputs_unchanged": true,
+    "production_input_count": 5657,
+    "one_original_completed": true,
+    "one_commit_confirmed_attempt_one": true,
+    "confirmed_phase_effects_attempt_one": 7,
+    "post_admission_identified_destination_packets": 34,
+    "decoded_original_packets": {
+      "original": {
+        "packets": 146,
+        "samples": 140160,
+        "identified_counts": {
+          "440": 0,
+          "660": 0,
+          "880": 145
+        },
+        "unclassified": 1,
+        "pcm_sha256": "4640da9cd0ac217c0a3a63266ed3501a7c763e57d93fa037c49710a6d7c1f8d7",
+        "ogg_sha256": "708ab68f8fc3e0175fe7426483e0fb9c8fa41654167aee5a84acc9cc0c393440"
+      },
+      "retained": {
+        "packets": 272,
+        "samples": 261120,
+        "identified_counts": {
+          "440": 144,
+          "660": 127,
+          "880": 0
+        },
+        "unclassified": 1,
+        "pcm_sha256": "156c18ce1abf94147722ad7c70df4d1bebbd2a4e1be3ec703ccca7d13fc943ca",
+        "ogg_sha256": "71aed645936e3f5cb867b28a044e3b6a24470235e1fbf48117a1eced55a8eba1"
+      },
+      "target": {
+        "packets": 130,
+        "samples": 124800,
+        "identified_counts": {
+          "440": 0,
+          "660": 0,
+          "880": 129
+        },
+        "unclassified": 1,
+        "pcm_sha256": "9b0fcc67d007b4d9f7d59e9156e3f419b94fd4fefa9f4616bdbeac3b4a834cde",
+        "ogg_sha256": "7cce68ffbecff2c4d6cc4fb2c9fa90253338c50a23c88654937dc9cf06d45fa2"
+      }
+    },
+    "all_three_connections_retired": true,
+    "all_three_native_lifetimes_retired": true,
+    "all_helpers_joined": true,
+    "server_and_target_joined_without_force": true
+  },
+  "retained_negatives": [
+    {
+      "scope": "initial controller tests",
+      "result": "5 pass, 2 fail; process fixture omitted admitted result list. Corrected the fixture; no native IO ran."
+    },
+    {
+      "scope": "first native component",
+      "result": "Process probe passed; independent journal audit failed because controller shut down before the retained Connection/native lifetime retired. Original retained; no replay. A new scene adds a final five-second retirement observation before server shutdown."
+    }
+  ],
+  "private_evidence": {
+    ".local/gate-6/replacement-live-owner-verified/state.json": "4bf0b8099f74597a8251159f5c382ad785184879f1bfd41569097a1e69897a92",
+    ".local/gate-6/replacement-live-owner-verified/inputs.json": "276449b341e0bc58dab5ecf0a99b3fa32dee123bda78ef3edb92110d5a5c34b0",
+    ".local/gate-6/replacement-live-owner-verified/node.log": "5347192681eb76db5721367f05a881e68c0beacc53cccd4036fb81acc9ebab96",
+    ".local/gate-6/replacement-live-owner-verified/test.log": "bc26c71a3cacf9560338fa954dbe28123039d35d2ed9acdc88098d3f94e31452",
+    ".local/gate-6/replacement-live-owner-verified/build.log": "cc3454946574c0447c9ff9de786afce779116dd987281126895c08e0cfbb742e",
+    ".local/gate-6/replacement-live-owner-native-v2/prepare.json": "3428f41ce645dc3ea19cd994bcf646a2850c2919f8a2752764fd58d5006047ae",
+    ".local/gate-6/replacement-live-owner-native-v2/controller.json": "7daf0f317c548eb129437df4a1d934335eb9efd5ed7a729112827570eae1f2ca",
+    ".local/gate-6/replacement-live-owner-native-v2/probe.json": "188f86f5e1494d47c9d860c2fd1576a620d1ff0743aa78cd38e0b4e354d9c036",
+    ".local/gate-6/replacement-live-owner-native-v2/move/admission.json": "8e0d96f2fc6c55f7a0bf7d0087a5edae0327f60b055ab195713a423b460b7eb2",
+    ".local/gate-6/replacement-live-owner-native-v2/move/stage.json": "396e76a1fcf2fc71fb92e6034ba748dd0ad363f30aa97c8aaa5e386b5683dc0d",
+    ".local/gate-6/replacement-live-owner-native-v2/independent-audit.json": "674943961f9d60b69fb03b01a75feeeeec65f90280ca9a3aa5f4b723e8a351d1",
+    ".local/gate-6/replacement-live-owner-native/independent-audit-negative.json": "063e6a6cb95f2bad8ecf6aba3c7f89b25284334aef1995b393a28fd31fcf752a"
+  },
+  "limitations": [
+    "This native scene is audio-only, two participating peers plus replacement, one Session and one move.",
+    "No 60-second concurrent four-participant/six-Connection/two-Session AV workload, twenty transitions, paired presentation timing, impairment, privacy matrix, packet capture or full cell is qualified.",
+    "The general ten-second/300-packet transition oracle was not invoked for this deliberately shorter lifecycle component. Independent packet decoding uses its existing exact-960-sample decoder without changing that oracle.",
+    "Shared participant media-program origin and ownership of individual Connections within a shared NodeClient still require full workload integration."
+  ],
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
