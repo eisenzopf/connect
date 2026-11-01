@@ -69,5 +69,7 @@
   "actual_changed_runtime_ci_observed": false,
   "root_cause_resolved": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_local_production_idle_observed": true,
+  "actual_local_production_idle_evidence": "docs/evidence/gate-6/session-readers-local-native-idle-observed.json"
 }

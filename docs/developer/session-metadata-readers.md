@@ -35,3 +35,16 @@ an old page ends, and warm original pollers observing loss and terminal facts.
 The component app CI lane runs these before packaging the changed runtime.
 Actual installed app, native media and full transport qualification remain
 separate required evidence.
+
+A source-bound production server comparison subsequently starts both original
+servers from byte-identical copies of one stopped synthetic database. The same
+eight-second observer records 3270 ms process CPU over 8228 ms before and 230 ms
+over 8137 ms after, a 92.9% reduction in normalized idle CPU rate in this one
+pair. SQL preparation inclusive stack counts fall from 285 to 15. All 4812 Git
+source byte/executable-mode identities and 4094 unchanged prepared byte/mode
+inputs are checked; Rust/manifest/lock differences contain only the six Store
+implementation/test files. Raw stack curation is independently recomputed. Both
+servers join without force or remaining group members. Process counters and
+joins are original controller observations, not reconstructed process logs.
+See `docs/evidence/gate-6/session-readers-local-native-idle-observed.json`. This
+confirms lower idle polling overhead; sustained media and app CI remain required.
