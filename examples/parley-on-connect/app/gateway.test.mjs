@@ -62,6 +62,8 @@ function fixture() {
                         media: { refresh: async () => { permitted(); service.mediaDescribeReads = (service.mediaDescribeReads ?? 0) + 1; return { binding: { conversationId: cid, sessionId: sid, connectionId }, sourceClock: true, streamRevision: service.streamRevision, streams: [
                             { id: "stream-1", medium: "audio", direction: "sendrecv" },
                             ...(service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
+                            ...(service.videoReceive ? [{ id: "peer-video", medium: "video", direction: "recvonly" },
+                                { id: "own-camera", medium: "video", direction: "sendrecv" }] : []),
                         ] }; }, streamById: streamId => ({
                             sendRtp: async (packet, options) => { permitted(); service.packetCalls ??= []; service.packetCalls.push(packet);
                                 return { boundary: "local-media-queue", datagramSequence: packet.sequence }; },
@@ -71,7 +73,7 @@ function fixture() {
                             // The installed public methods intentionally have
                             // different shapes: selectors versus Stream IDs.
                             assert.deepEqual(Object.keys(sdk).sort(), ["expectedStreamRevision", action === "subscribe" ? "selectors" : "streams"].sort());
-                            if (action === "unsubscribe") assert.equal(sdk.streams.first, "peer-audio");
+                            if (action === "unsubscribe") assert.ok(["peer-audio", "peer-video"].includes(sdk.streams.first));
                             service.receiving = action === "subscribe";
                             return mutate("stream." + action, { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { connection: { id: connectionId } });
                         }])),
@@ -256,7 +258,7 @@ test("Connection end retains its original Session scope and refuses another part
 });
 
 test("Stream selection uses current present membership and the negotiated revision with original result scope", async () => {
-    const f = await setup(), action = { type: "stream.subscribe", conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1", peer: "organizer" };
+    const f = await setup(), action = { type: "stream.subscribe", conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1", peer: "organizer", medium: "audio" };
     await assert.rejects(f.gateway.prepareIntent("owner", "not-present", action), { code: "invalid-app-request" });
     assert.equal(f.service.calls.length, 0);
     f.service.peerState = "present";
@@ -393,4 +395,28 @@ test("media supervision owns an isolated read-only client and joins it without r
     await f.gateway.reconnect("owner");
     assert.equal(original.closed, true);
     assert.equal(supervisor.closes, 1);
+});
+
+test("video selection uses the current peer selector and unsubscribes only negotiated incoming video with original recovery", async t => {
+    const f = await setup(); t.after(() => f.close());
+    const action = { type: "stream.subscribe", conversationId: "conversation-created", sessionId: "session-1",
+        connectionId: "connection-1", peer: "organizer", medium: "video" };
+    f.service.media = ["audio", "video"]; f.service.peerState = "present";
+    await assert.rejects(f.gateway.prepareIntent("owner", "no-live-peer", action), { code: "invalid-app-request" });
+    f.service.peerConnectionPresent = true;
+    const result = await f.gateway.command("owner", "watch", action);
+    assert.deepEqual(f.service.calls[0].sdk, { selectors: { first: { participant: "participant-organizer",
+        kinds: { first: "video", rest: [] } }, rest: [] }, expectedStreamRevision: 8 });
+    await f.gateway.recover("owner", result.operation.operationId);
+    assert.equal(f.service.calls.length, 1);
+    const { peer, ...scope } = action;
+    await assert.rejects(f.gateway.prepareIntent("owner", "no-receiver", { ...scope, type: "stream.unsubscribe" }),
+        { code: "app-resync-required" });
+    f.service.videoReceive = true; f.service.streamRevision = 19;
+    const ended = await f.gateway.command("owner", "stop-video", { ...scope, type: "stream.unsubscribe" });
+    assert.deepEqual(f.service.calls[1].sdk, { streams: { first: "peer-video", rest: [] }, expectedStreamRevision: 19 });
+    assert.deepEqual(ended.result, result.result);
+    assert.equal(f.service.calls.length, 2);
+    assert.throws(() => f.gateway.prepareIntent("owner", "changed-medium", { ...action, medium: "screen" }),
+        { code: "unsupported-app-action" });
 });

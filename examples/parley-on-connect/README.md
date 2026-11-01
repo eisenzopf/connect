@@ -23,20 +23,20 @@ per installed Device through the public administrative SDK. It reads only public
 CLI client configuration, checks signed native access and media capability, and
 saves original provisioning and verification commands before submission.
 Verification binds the Device, Identity, local contact, configuration and runtime.
-It represents an attributed local setup decision; actual Connection negotiation
-and decoded media must still be demonstrated. Nine setup fixture functions are
-included in the 33 passing app component tests. At source 61166d45, installed
-Node 22.23.4/macOS arm64 and Ubuntu x86_64 each pass all 16 checks, including
-original recovery of all four verified media Endpoint decisions. Independent
-ZIP, source and package audits are recorded in
-[the installed media setup evidence](../../docs/evidence/gate-6/reference-app-installed-media-endpoint-setup.json).
-Connection offer/end, Stream selection and negotiated capture/playback remain
-required.
+It represents an attributed local setup decision. The independently audited
+installed application at abeea973 passes all 24 checks on Node 22.23.4/macOS arm64
+and Ubuntu x86_64, using Chrome 156.0.8078.4. Both browsers capture distinct
+synthetic microphones, send Opus and source clocks through genuine installed
+native handles, and play the other source's identified tone. Explicit stop joins
+capture, rendering and packet work; original Connection end, application restart
+and every owned browser/server/helper join also pass.
+See [the installed audio evidence](../../docs/evidence/gate-6/reference-app-installed-browser-audio.json).
+Video and full failure/restart freshness qualification remain open.
 
-Negotiated media/capture integration remains unfinished. The app keeps its
-private setup manifest, administrator configuration and credentials on the
-backend. Application recovery state remains separate from Connect's journal
-and database. Only installed public SDK packages perform Connect operations.
+The app keeps its private setup manifest, administrator configuration and
+credentials on the backend. Application recovery state remains separate from
+Connect's journal and database. Only installed public SDK packages perform
+Connect operations.
 
 With Node 22.16 or later, the ordinary `@rudeless/connect` 0.1.0 package installed
 here, and the matching candidate's `connect` executable on PATH, run:
@@ -59,20 +59,32 @@ directories are refused unchanged. Use a fresh explicit state directory such as
 `--state .local/parley-media`; existing grants and saved operations are not
 expanded or rewritten to adopt the new workflow.
 
-The current UI opens audio or audio/video Connections in accepted Sessions,
-subscribes to a present peer, and exposes mute/unmute, hold/resume and original
-Connection end. Original Connection/Stream IDs are saved before SDK submission.
-These additions pass 37 app component functions; installed execution of the new
-controls is still pending. Joining a Connection currently negotiates native
-resources only. Browser capture, packet IO and decoded playback integration
-remain required.
+The UI opens audio or audio/video Connections in accepted Sessions and exposes
+mute/unmute, hold/resume and original Connection end. Original Connection/Stream
+IDs are saved before SDK submission. “Listen to” selects a present peer's audio;
+“Watch” selects their video through the public participant/kind selector.
+“Stop watching” removes only the negotiated incoming video binding, preserving
+the local camera publication. These video additions are component-tested;
+installed VP8 capture/render verification is still pending.
+
+Joining negotiates native resources. Explicit “Start microphone” or “Start
+microphone and camera” begins browser permission, capture, encoding and playback.
+Stop media releases local tracks, WebAudio, codecs, queued frames and requests.
+Capture also stops when the page is hidden/offline or its actor, Conversation,
+Connection or negotiated binding changes. There is no automatic capture restart.
+The browser holds no backend credentials. Per-packet native checks and a separate
+owned read-only signed control supervisor retain current authorization; retiring
+that supervisor cannot cancel the client owning original actions/native media.
+The AV rehearsal uses separate owned synthetic red/green cameras and requires
+the other marker at decoded, painted output, with video source-clock reports;
+those checks do not use a local preview as evidence of reception.
 
 Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
 command preserves the original ports, identities, issuance IDs, absolute expiry
 and application state. Interrupted child installations use `connect issue-resume`;
 changed assets, a different runtime, expiry or an unsealed initial bootstrap
 refuse and retain the original state for inspection. This is the local synthetic
-profile; functional negotiated browser capture remains unfinished.
+profile; video and full lifecycle/failure qualification remain unfinished.
 
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
 seventeen stages, explicit audiences, business gates, observable outcomes and

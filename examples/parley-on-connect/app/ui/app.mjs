@@ -220,9 +220,12 @@ async function view() {
                 if (connection.media?.includes("video")) item.append(button("Start microphone and camera", () => startMedia(binding, true), true));
                 for (const [text, action] of [["Mute", "mute"], ["Unmute", "unmute"], ["Hold", "hold"], ["Resume", "resume"]])
                     item.append(button(text, () => mutate({ type: "connection.update", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, action }), true));
-                for (const peer of connection.peers ?? [])
-                    item.append(button("Listen to " + peer.label, () => mutate({ type: "stream.subscribe", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, peer: peer.role }), true));
-                item.append(button("Stop listening", () => mutate({ type: "stream.unsubscribe", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id }), true));
+                for (const peer of connection.peers ?? []) {
+                    item.append(button("Listen to " + peer.label, () => mutate({ type: "stream.subscribe", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, peer: peer.role, medium: "audio" }), true));
+                    if (connection.media?.includes("video")) item.append(button("Watch " + peer.label, () => mutate({ type: "stream.subscribe", ...binding, peer: peer.role, medium: "video" }), true));
+                }
+                item.append(button("Stop listening", () => mutate({ type: "stream.unsubscribe", ...binding, medium: "audio" }), true));
+                if (connection.media?.includes("video")) item.append(button("Stop watching", () => mutate({ type: "stream.unsubscribe", ...binding, medium: "video" }), true));
                 item.append(button("End connection", () => mutate({ type: "connection.end", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id }), true));
             }
             return item;
@@ -270,6 +273,7 @@ async function stopMedia() {
     await old.stop();
     if (!media) {
         $("media-status").textContent = "Media stopped. No device is active.";
+        $("media-status").dataset.state = "stopped";
         $("media-status").dataset.metrics = JSON.stringify(old.diagnostics);
     }
 }

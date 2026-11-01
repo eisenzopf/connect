@@ -1,15 +1,15 @@
 {
   "format": "connect/reference-app-browser-media/1",
   "task": "G6-072",
-  "status": "identified-audio-both-platforms-read-only-supervisor-isolation-component-tested",
+  "status": "installed-audio-verified-video-selection-and-marker-rehearsal-implemented-unverified",
   "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
   "implementation_inputs": {
-    ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7",
+    ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
     "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
     "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
-    "examples/parley-on-connect/app/gateway.mjs": "8ceeebb1e87579ae130ae2a5b57a5b3cf46b64babe022715d70d6418387af673",
-    "examples/parley-on-connect/app/gateway.test.mjs": "47f60f6689554ca999a1a3a2d54d40a58c9ca33f0ccdce44f0129e642d85fd0b",
+    "examples/parley-on-connect/app/gateway.mjs": "cd1bb90745a8b37b17658d8dff54569c4119349f176589d062e4d697c04fd890",
+    "examples/parley-on-connect/app/gateway.test.mjs": "478ac7ea881e5861ddc61ce29c232407199a6e1088c273782747c25d4dac29e3",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
@@ -21,18 +21,19 @@
     "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
     "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "examples/parley-on-connect/app/ui/app.css": "167ce3761c48ca12d4b24e90d8c0d060e1b34fe1ec0deb178c6ba4a34cdff0f3",
-    "examples/parley-on-connect/app/ui/app.mjs": "d5ff90926cdbdd392917109049280bd3aae3740bd9e230cf24c4f8783c869ff5",
+    "examples/parley-on-connect/app/ui/app.mjs": "2a724a2a7813c04c3393fb263f2361f23aaaff8cdd9e47c15b1464dad94587c2",
     "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
     "examples/parley-on-connect/app/ui/media-clock.mjs": "a7ca18825a6cb7971b00a02ef8b9e0fa2c37234c4578820861bb593b68d6b430",
-    "examples/parley-on-connect/app/ui/media.mjs": "455c1ee865c975b399436b4198685a412f0e5254158453e15e182afa2d47f372",
-    "scripts/check-reference-app-installed.mjs": "cbef1f4251730a11d6261b2777efc361523521150bed34dd82514e169fea4b9c"
+    "examples/parley-on-connect/app/ui/media.mjs": "67968a109103bad05cc5a4bed98ff381bfdff764affeedf630b0214e2609aa7c",
+    "scripts/check-reference-app-installed.mjs": "219610c2a2029766ab5621289c8b15a9ab15718911fe6711f4b9182b6b8c2dd8",
+    "examples/parley-on-connect/README.md": "2fbded77e5019d1858ae1142ff562391936ecc7564b26327f02a7bdfa323c5b5"
   },
   "local_verification": {
-    "app_component_functions_passed": 64,
+    "app_component_functions_passed": 65,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "64 local application/HTTP/worklet/clock cases. Installed e355 identified duplex audio independently audited separately on both platforms; Linux24checks passes, Mac19checks then control-owner deadline. Current supervisor-isolation change requires installed verification."
+    "scope": "65 local application/HTTP/worklet/clock cases. Independent abee installed Mac/Linux audio/control24/24checks retained separately. Current video selector, unsubscribe, capture counters and28check AV rehearsal require installed execution."
   },
   "implementation": {
     "public_sdk": [
@@ -64,7 +65,7 @@
     "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
   },
   "installed_rehearsal": {
-    "expected_checks": 24,
+    "expected_checks": 28,
     "prior_checks_retained": 21,
     "two_separate_owned_chromium_processes": true,
     "synthetic_capture_only": true,
@@ -75,21 +76,29 @@
     "requirements": [
       "actual getUserMedia,Worklet,WebCodecs and public Node/native packet IO",
       "12 completed output buffers per side, received source tone dominates local source by8x",
-      "source clocks received and original capture/render/requests join"
+      "source clocks received and original capture/render/requests join",
+      "separate accepted original AV Session/Connections, current peer video selectors, identified VP8 output and original video unsubscribe/end/helper cleanup"
     ],
     "runtime_verified": false,
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
-    "identified_audio_verified_both_platforms": true
+    "identified_audio_verified_both_platforms": true,
+    "audio_runtime_verified_both_platforms": true,
+    "audio_verified_evidence": "docs/evidence/gate-6/reference-app-installed-browser-audio.json",
+    "video_markers": {
+      "owner_camera": "red",
+      "organizer_camera": "green",
+      "verification": "Other source at received decoded painted canvas; >=3frames and actual video SR each direction, no own marker crossover."
+    }
   },
   "remaining": [
-    "Verify isolated read-only supervisor and full original action/end/restart cleanup on both installed platforms",
-    "Actual video capture, source selection and identified decoded playback",
+    "Installed current AV rehearsal and original-source audit on Mac/Linux",
+    "Verify actual video source selection, VP8 capture/render/clock and isolated video unsubscribe",
     "Late permission, device loss, offline/actor/resource-change and stop/restart queue freshness behavior",
     "Full desktop/narrow visual review of active capture and all required platform/browser profiles"
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "source_revision_before_correction": "e355121fac8f7dd92ac85feb8ec4d4c736c8fdc0",
+  "source_revision_before_correction": "abeea973142e46374e3135371bb5e79ebcff85da",
   "opening_correction": "One coherent current signed snapshot establishes original participant/epoch, accepted present Session and physical Connection/generation, followed by public native negotiation. Signed Connection/current-generation supervision runs one owned read at a time with500ms cadence and unchanged2s bound, separately from per-packet native handle/revision/format checks. SDK and Core authorization remain authoritative on actual IO. Read-only opening/supervision drains on local retirement, because cancelling a live stdio RPC fences the shared SDK control owner; packet work remains cancellable and joined. Local capture/render stops immediately. All2s/8s/30s and200ms media bounds remain; no success or timing/stability claim is inferred. Current correction isolates each lease's signed generation watcher in an independently owned read-only public NodeClient, with unchanged2s bounds. Original client retains native media and mutation ownership. Observer drains/joins on original lease retirement, failed admission, reconnect and shutdown; a watcher deadline remains fail-closed but cannot fence the shared UI control owner.",
   "previous_runtime_failures": [
     {

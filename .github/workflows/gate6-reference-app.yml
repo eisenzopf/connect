@@ -58,7 +58,7 @@ jobs:
               (out/name).write_text(json.dumps(value,indent=2)+'\n')
           # Owned synthetic UI only: no browser chrome, credentials or private
           # configuration is rendered. Keep these out of repository evidence.
-          for name in ['native-controls.png','native-controls-narrow.png','capture-controls.png','capture-controls-narrow.png']:
+          for name in ['native-controls.png','native-controls-narrow.png','capture-controls.png','capture-controls-narrow.png','video-controls.png','video-controls-narrow.png']:
               source=base/'browser'/name
               if source.is_file():shutil.copyfile(source,out/name)
           PY

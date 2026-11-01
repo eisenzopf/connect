@@ -39,7 +39,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     source_inputs: sourceInputs, runtime_source_revision: installation.source_revision,
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
-    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Video capture/playback, full lifecycle/failure, model, provider and WAN qualification remain open." };
+    scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
 let processChild, finished, context, browser, page, release, stage = "startup";
 const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
@@ -313,9 +313,10 @@ try {
     // This exercises real getUserMedia/AudioWorklet/WebCodecs and installed
     // Node/native packet handles; no personal devices or providers are used.
     stage = "synthetic-browser-audio-capture-playback";
-    mediaPages.length = 0;
     const tones = [{ role: "owner", frequency: 440, peer: "Organizer", other: 880 },
         { role: "organizer", frequency: 880, peer: "Owner", other: 440 }];
+    async function openMediaPages(video = false) {
+    mediaPages.length = 0;
     for (const tone of tones) {
         const samples = 96000, wav = Buffer.alloc(44 + samples * 2);
         wav.write("RIFF"); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
@@ -324,14 +325,29 @@ try {
         wav.writeUInt16LE(16, 34); wav.write("data", 36); wav.writeUInt32LE(samples * 2, 40);
         for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(10000 * Math.sin(2 * Math.PI * tone.frequency * i / 48000)), 44 + i * 2);
         const audioPath = join(output, tone.role + "-synthetic.wav"); await writeFile(audioPath, wav, { mode: 0o600 });
+        let cameraPath;
+        if (video) {
+            cameraPath = join(output, tone.role + "-synthetic.y4m");
+            const pixels = 640 * 360, yuv = tone.role === "owner" ? [81, 90, 240] : [145, 54, 34];
+            const frames = [Buffer.from("YUV4MPEG2 W640 H360 F30:1 Ip A1:1 C420jpeg\n")];
+            for (let frame = 0; frame < 60; frame++) {
+                const y = Buffer.alloc(pixels, yuv[0]);
+                // A moving dark strip makes these actual synthetic camera
+                // frames distinct in time while leaving the center marker.
+                for (let row = 0; row < 40; row++) y.fill(16, row * 640 + frame * 8, row * 640 + frame * 8 + 40);
+                frames.push(Buffer.from("FRAME\n"), y, Buffer.alloc(pixels / 4, yuv[1]), Buffer.alloc(pixels / 4, yuv[2]));
+            }
+            await writeFile(cameraPath, Buffer.concat(frames), { mode: 0o600 });
+        }
         const owned = await chromium.launch({ headless: true,
             ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
             args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions",
-                "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath] });
+                "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath,
+                ...(cameraPath ? ["--use-file-for-fake-video-capture=" + cameraPath] : [])] });
         mediaBrowsers.push(owned);
         assert.equal(owned.version(), report.browser);
         const captureContext = await owned.newContext({ viewport: { width: 1440, height: 1100 } });
-        await captureContext.grantPermissions(["microphone"], { origin });
+        await captureContext.grantPermissions(["microphone", ...(video ? ["camera"] : [])], { origin });
         await captureContext.addInitScript(() => {
             // Observe actual scheduled output buffers only after their rendering
             // interval ends in a running AudioContext. No PCM is retained.
@@ -369,7 +385,10 @@ try {
         }
         await target.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await target.keyboard.press("Enter");
         await activate("Listen to " + tone.peer, "Listen", target);
+        if (video) await activate("Watch " + tone.peer, "Listen", target);
     }
+    }
+    await openMediaPages();
     stage = "synthetic-browser-audio-capture-playback";
     await Promise.all(mediaPages.map(async ({ page: target }) => {
         await target.getByRole("button", { name: "Start microphone", exact: true }).focus(); await target.keyboard.press("Enter");
@@ -421,7 +440,77 @@ try {
     assert.deepEqual((await activate("End connection", "End connection")).result, ownerAudio);
     report.original_native_connection_end_receipts_verified = 2;
     check("keyboard-both-original-native-audio-connections-end-with-the-original-session-scope");
-    report.negotiated_capture_playback_verified = false; // AV and failure/restart lifecycle still require qualification.
+    // A separate accepted AV Session preserves every original audio check.
+    await page.locator("#medium").selectOption("voice+video");
+    await activate("Invite", "Invite");
+    await perspective("organizer", "ArrowUp");
+    await activate("Accept", "Accept invitation");
+    const organizerVideo = (await activate("Join audio and video", "Join media")).result;
+    await perspective("owner", "ArrowDown");
+    const ownerVideo = (await activate("Join audio and video", "Join media")).result;
+    assert.equal(ownerVideo.sessionId, organizerVideo.sessionId);
+    assert.notEqual(ownerVideo.sessionId, ownerAudio.sessionId);
+    assert.notEqual(ownerVideo.connectionId, organizerVideo.connectionId);
+    report.actual_native_av_connections_opened = 2;
+    check("keyboard-separate-accepted-av-session-and-two-original-native-connections");
+    await openMediaPages(true);
+    stage = "synthetic-browser-video-capture-playback";
+    await Promise.all(mediaPages.map(async ({ page: target }) => {
+        await target.getByRole("button", { name: "Start microphone and camera", exact: true }).focus(); await target.keyboard.press("Enter");
+    }));
+    report.synthetic_browser_video = [];
+    for (const tone of mediaPages) {
+        const result = await (await tone.page.waitForFunction(role => {
+            const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            const colors = [...document.querySelectorAll("#remote-video canvas")].map(canvas => {
+                const rgba = canvas.getContext("2d").getImageData(310, 170, 20, 20).data;
+                const sums = [0, 0, 0];
+                for (let i = 0; i < rgba.length; i += 4) for (let c = 0; c < 3; c++) sums[c] += rgba[i + c] / 400;
+                return sums;
+            });
+            const desired = role === "owner" ? 1 : 0, excluded = 1 - desired;
+            const marker = colors.find(color => color[desired] > 140 && color[desired] > 2 * Math.max(color[excluded], color[2], 1));
+            const wrongSource = colors.some(color => color[excluded] > 140 && color[excluded] > 2 * Math.max(color[desired], color[2], 1));
+            if (metrics?.stopped || (metrics?.decodedVideoFrames >= 3 && metrics?.paintedVideoFrames >= 3 &&
+                metrics?.videoClockReportsSent >= 1 && metrics?.videoClockReportsReceived >= 1 && marker && !wrongSource))
+                return { metrics, marker, colors, wrongSource, state: document.querySelector("#media-status").dataset.state };
+            return false;
+        }, tone.role, { timeout: 30000 })).jsonValue();
+        assert.equal(result.metrics.stopped, false);
+        assert.ok(result.metrics.capturedVideoFrames >= 3 && result.metrics.decodedVideoFrames >= 3 && result.metrics.paintedVideoFrames >= 3);
+        assert.ok(result.metrics.videoClockReportsSent >= 1 && result.metrics.videoClockReportsReceived >= 1);
+        assert.ok(result.marker);
+        assert.equal(result.wrongSource, false);
+        report.synthetic_browser_video.push({ role: tone.role, expected_remote_marker: tone.role === "owner" ? "green" : "red", ...result });
+    }
+    report.synthetic_capture_decoded_video_verified = true;
+    check("keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions");
+    await mediaPages[0].page.screenshot({ path: join(output, "video-controls.png"), fullPage: true });
+    await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
+    assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await mediaPages[0].page.screenshot({ path: join(output, "video-controls-narrow.png"), fullPage: true });
+    for (const name of ["video-controls.png", "video-controls-narrow.png"])
+        report.ui_screenshots[name] = sha(await readFile(join(output, name)));
+    await Promise.all(mediaPages.map(async ({ page: target }) => {
+        await target.getByRole("button", { name: "Stop media", exact: true }).focus(); await target.keyboard.press("Enter");
+        await target.waitForFunction(() => {
+            const m = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            return m?.stopped && m.activeTracks === 0 && m.activeContexts === 0 && m.queuedAudioSources === 0 &&
+                m.queuedSendFrames === 0 && m.queuedVideoFrames === 0 && m.pendingRequests === 0 &&
+                document.querySelectorAll("#remote-video canvas").length === 0;
+        });
+        await activate("Stop watching", "Stop listening", target);
+    }));
+    report.synthetic_av_owners_joined_and_video_unsubscribed = true;
+    check("keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video");
+    await Promise.all(mediaBrowsers.map(owned => owned.close()));
+    assert.ok(mediaBrowsers.every(owned => !owned.isConnected())); mediaBrowsers.length = 0;
+    assert.deepEqual((await activate("End connection", "End connection")).result, ownerVideo);
+    await perspective("organizer", "ArrowUp");
+    assert.deepEqual((await activate("End connection", "End connection")).result, organizerVideo);
+    report.original_native_av_connection_end_receipts_verified = 2;
+    check("both-original-av-connections-and-additional-owned-browsers-join");
+    report.negotiated_capture_playback_verified = false; // Full lifecycle/failure/restart freshness remains unqualified.
     await page.screenshot({ path: join(output, "narrow.png"), fullPage: true });
     const setupSha = sha(await readFile(join(state, "setup.json"))), appSha = sha(await readFile(join(state, "app.json")));
     await stop(); check("original-app-server-and-all-native-helper-processes-joined");

@@ -30,7 +30,8 @@ function request(value) {
             if (!["voice", "voice+video"].includes(value.medium)) fail("unsupported-app-action"); break;
         case "connection.end": closed(value, ["type", "conversationId", "sessionId", "connectionId"]); break;
         case "stream.subscribe": case "stream.unsubscribe":
-            closed(value, ["type", "conversationId", "sessionId", "connectionId", ...(value.type === "stream.subscribe" ? ["peer"] : [])]);
+            closed(value, ["type", "conversationId", "sessionId", "connectionId", "medium", ...(value.type === "stream.subscribe" ? ["peer"] : [])]);
+            if (!["audio", "video"].includes(value.medium)) fail("unsupported-app-action");
             if (value.type === "stream.subscribe" && !id(value.peer)) fail("invalid-app-request"); break;
         default: closed(value, ["type", "conversationId", "sessionId"]);
     }
@@ -296,7 +297,11 @@ export class AppGateway {
                     ["ready", "active"].includes(source.data.state))).map(v => v.data.stream_id))];
             if (action.type === "stream.unsubscribe") {
                 const negotiation = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).media.refresh(options);
-                const streams = audioSources();
+                // Native video subscriptions create an exact recvonly binding
+                // with the source logical ID. Retire those negotiated incoming
+                // bindings, never the local duplex camera publication.
+                const streams = action.medium === "video" ? negotiation.streams.filter(v =>
+                    v.medium === "video" && v.direction === "recvonly").map(v => v.id) : audioSources();
                 if (!streams.length) fail("app-resync-required");
                 if (streams.length > 32) fail("app-snapshot-capacity");
                 return { scope, sdk: { streams: { first: streams[0], rest: streams.slice(1) }, expectedStreamRevision: negotiation.streamRevision } };
@@ -306,6 +311,16 @@ export class AppGateway {
                 const peer = current.participants.find(p => p.identityId === identity && p.active);
                 if (!peer || !items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
                     v.data.participant_id === peer.id && v.data.membership_epoch === peer.membershipEpoch && v.data.state === "present")) fail("invalid-app-request");
+                if (action.medium === "video") {
+                    if (!session.media.includes("video") || !items.some(v => v.kind === "connection" &&
+                        v.data.session_id === action.sessionId && v.data.participant_id === peer.id &&
+                        ["ready", "active"].includes(v.data.state))) fail("invalid-app-request");
+                    // Let authoritative source selection resolve publisher and
+                    // membership epoch; projected Stream participant_id alone
+                    // describes its containing Connection, not source custody.
+                    return { scope, sdk: { selectors: { first: { participant: peer.id,
+                        kinds: { first: "video", rest: [] } }, rest: [] }, expectedStreamRevision: connection.streamRevision } };
+                }
                 const streams = audioSources(peer.id);
                 if (!streams.length) fail("app-resync-required");
                 if (streams.length > 32) fail("app-snapshot-capacity");

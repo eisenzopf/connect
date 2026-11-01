@@ -16,6 +16,7 @@ export class BrowserAppMedia {
     #cname = "parley-" + crypto.randomUUID(); #onState;
     #counts = { capturedAudioFrames: 0, capturedVideoFrames: 0, encodedFrames: 0,
         sentRtp: 0, receivedRtp: 0, clockReportsSent: 0, clockReportsReceived: 0,
+        videoClockReportsSent: 0, videoClockReportsReceived: 0,
         decodedAudioFrames: 0, playedAudioFrames: 0, decodedVideoFrames: 0, paintedVideoFrames: 0,
         droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0 };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
@@ -243,7 +244,9 @@ export class BrowserAppMedia {
                     const clock = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId, sequence,
                         packet: { kind: "clock", report: senderReport(frame.timestampUs, route.rate, stats, this.#cname) } });
                     if (clock.boundary !== "local-media-queue" || clock.datagramSequence !== sequence) fail("app-media-packet");
-                    this.#counts.clockReportsSent++; route.lastReport = performance.now();
+                    this.#counts.clockReportsSent++;
+                    if (route.binding.kind === "video") this.#counts.videoClockReportsSent++;
+                    route.lastReport = performance.now();
                 }
             }
         } finally { route.sending = false; }
@@ -255,7 +258,10 @@ export class BrowserAppMedia {
             if (packet.kind === "idle") continue;
             if (packet.kind === "gap") { route.assembler.clear(); this.#counts.droppedFrames++; continue; }
             if (packet.kind === "clock") {
-                if (this.#timeline.report(route.binding.streamId, packet.report)) this.#counts.clockReportsReceived++;
+                if (this.#timeline.report(route.binding.streamId, packet.report)) {
+                    this.#counts.clockReportsReceived++;
+                    if (route.binding.kind === "video") this.#counts.videoClockReportsReceived++;
+                }
                 continue;
             }
             if (packet.kind !== "rtp") fail("app-media-packet");
