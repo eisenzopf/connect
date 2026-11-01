@@ -104,8 +104,8 @@ const gateway = {
 let app, context, browser, page;
 const check = name => { report.checks.push(name); process.stdout.write(JSON.stringify({ check: name }) + "\n"); };
 async function state() {
-    return page.evaluate(() => ({ actor: document.querySelector("#actor")?.value,
-        actorOptions: [...document.querySelectorAll("#actor option")].map(value => ({ value: value.value, selected: value.selected })),
+    return page.evaluate(() => ({ actor: document.querySelector("#actor input:checked")?.value,
+        actorOptions: [...document.querySelectorAll("#actor input")].map(value => ({ value: value.value, selected: value.checked })),
         notice: document.querySelector("#notice")?.textContent, permission: document.querySelector("#permission")?.textContent,
         conversationButtons: document.querySelectorAll("#conversations button").length,
         activeElement: document.activeElement?.id, pending: Boolean(document.querySelector("#pending button")) }));
@@ -133,13 +133,15 @@ try {
     assert.equal(await page.locator("#timeline img").count(), 0); check("keyboard-message-and-text-safe-timeline");
     await page.getByRole("button", { name: "Invite", exact: true }).focus(); await page.keyboard.press("Enter");
     await wait(() => model.sessions.length === 1); await page.waitForFunction(() => !document.querySelector("#create-form button").disabled);
-    // Set the fixture's receiving perspective through the actual native select.
-    // This is fixture preparation, not a keyboard-select qualification: macOS
-    // headless Chrome also ignores these keys on an isolated stock <select>.
-    await page.locator("#actor").selectOption("organizer");
-    report.perspective_selection = "Native selectOption fixture preparation; keyboard perspective switching is unqualified.";
+    // Keyboard participant selection must survive the delayed access refresh
+    // with its selected control focused and its current peer audience intact.
+    await page.locator("#actor input:checked").focus();
+    await page.keyboard.press("ArrowUp");
+    report.perspective_selection = "Native radio group keyboard ArrowUp from owner to organizer; no selectOption or pointer selection.";
     report.after_actor_keyboard = await state();
-    await page.waitForFunction(() => document.querySelector("#actor").value === "organizer" && document.querySelector("#conversations button"));
+    await page.waitForFunction(() => document.querySelector("#actor input:checked")?.value === "organizer" && !document.querySelector("#actor").disabled && document.querySelector("#conversations button"));
+    assert.equal(await page.locator("#actor input:checked").evaluate(input => input === document.activeElement), true);
+    check("keyboard-participant-selection-restores-focus-after-current-access-refresh");
     await page.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "Accept", exact: true }).waitFor();
     await page.getByRole("button", { name: "Accept", exact: true }).focus(); await page.keyboard.press("Enter");

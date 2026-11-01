@@ -133,17 +133,22 @@ function renderPending() {
         if (pending.operationId === null) recovery.append(recoveryButton("Discard unsent preparation", () => { savePending(null); renderPending(); controls(); }));
     }
 }
+function actorSelection() {
+    for (const input of $("actor").querySelectorAll("input[name=actor]")) input.checked = input.value === actor;
+}
 async function state(append = false) {
     const value = await api("state", append && nextConversations ? { cursor: nextConversations } : {});
     if (typeof value.actor !== "string" || !Array.isArray(value.roles)) { clearView(); problem(value.error ?? {}); return; }
     if (actor !== value.actor) { actor = value.actor; readPending(); }
-    const roles = JSON.stringify(value.roles), selector = $("actor");
+    const roles = JSON.stringify(value.roles), selector = $("actor-choices");
     if (selector.dataset.roles !== roles) {
         selector.dataset.roles = roles; selector.replaceChildren(...(value.roles ?? []).map(role => {
-            const option = node("option", role.label); option.value = role.role; return option;
+            const label = node("label"), input = node("input");
+            input.type = "radio"; input.name = "actor"; input.value = role.role;
+            label.append(input, document.createTextNode(role.label)); return label;
         }));
     }
-    selector.value = actor; contacts = value.contacts ?? []; progress(value.operations ?? []); contactChoices();
+    actorSelection(); contacts = value.contacts ?? []; progress(value.operations ?? []); contactChoices();
     if (value.error) { clearView(); problem(value.error); return; }
     const conversationList = $("conversations"), signature = JSON.stringify(value.conversations ?? []);
     if (!append && conversationList.dataset.page !== signature) conversationList.replaceChildren();
@@ -250,12 +255,20 @@ async function preview(kind) {
     } finally { clearTimeout(timeout); }
 }
 $("actor").addEventListener("change", async event => {
-    const requested = event.target.value; switching = true;
+    if (!(event.target instanceof HTMLInputElement) || event.target.name !== "actor") return;
+    if (working || switching) { actorSelection(); return; }
+    const requested = event.target.value, restoreFocus = document.activeElement === event.target;
+    switching = true;
     retire(); stopPreview(); selectedId = null; historyCursor = null; contacts = []; $("message").value = "";
     $("conversations").replaceChildren(); delete $("conversations").dataset.page;
     clearView(); contactChoices();
     try { const value = await api("actor", { role: requested }); actor = value.actor; readPending(); await state(); }
-    catch (error) { problem(error); } finally { switching = false; controls(); }
+    catch (error) { problem(error); } finally {
+        switching = false; actorSelection(); controls();
+        // A disabled fieldset can move focus to the page while access refreshes.
+        // Return it to the selected participant unless the user moved elsewhere.
+        if (restoreFocus && document.activeElement === document.body) $("actor").querySelector("input:checked")?.focus();
+    }
 });
 $("create-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "conversation.create", recipients: selected("create-contacts") }); });
 $("message-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "message.send", conversationId: selectedId, recipients: selected("message-contacts"), text: $("message").value }); });

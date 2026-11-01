@@ -142,8 +142,11 @@ try {
     await page.getByRole("button", { name: "Invite", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.waitForFunction(() => !document.querySelector("#create-form button").disabled && document.querySelector("#sessions li"));
     // Changing the synthetic receiving perspective is fixture preparation.
-    await page.locator("#actor").selectOption("organizer");
-    await page.waitForFunction(() => document.querySelector("#actor").value === "organizer" && !document.querySelector("#actor").disabled && document.querySelector("#conversations button"));
+    await page.locator("#actor input:checked").focus();
+    await page.keyboard.press("ArrowUp");
+    await page.waitForFunction(() => document.querySelector("#actor input:checked")?.value === "organizer" && !document.querySelector("#actor").disabled && document.querySelector("#conversations button"));
+    assert.equal(await page.locator("#actor input:checked").evaluate(input => input === document.activeElement), true);
+    report.keyboard_participant_switch_verified = true;
     await page.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "Accept", exact: true }).waitFor();
     await page.getByRole("button", { name: "Accept", exact: true }).focus(); await page.keyboard.press("Enter");
