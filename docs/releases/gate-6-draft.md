@@ -3,6 +3,8 @@
 This is an unpublished pre-alpha handoff draft, not a release announcement.
 The current candidate uses `connect/2`, schema **116**, and the frozen package
 names/version recorded in the [SDK candidate evidence](../evidence/gate-6/sdk-candidates-verified.json).
+The generic CLI result wrapper is `connect-control/1`; native signing and trusted
+provisioning retain their separately declared `connect/2` profiles.
 Gate 6 acceptance and owner release approval remain open.
 
 - Signed canonical commands use enrolled Identity/Device/key bindings and pinned

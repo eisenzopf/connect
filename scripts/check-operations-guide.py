@@ -60,6 +60,7 @@ def main():
     report = dict(format="connect/operations-guide-rehearsal/1", task="G6-088", passed=False,
         source_revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         source_inputs_sha256=sha(source_path), source_count=len(before), checks=[], commands=[], servers=[],
+        cli_envelope_profile="connect-control/1", canonical_transport_profile="connect/2",
         template_hashes={p.name: sha(p) for p in sorted(TEMPLATES.glob("*.json"))},
         scope="Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
         task_complete=False, whole_gate_qualified=False)
@@ -125,7 +126,7 @@ def main():
         def request(name, config, template, *, success=True):
             value = json.loads(run(name, ["request", "--config", config, "--envelope"],
                 (TEMPLATES / template).read_bytes(), success=success))
-            assert value["profile"] == "connect/2"
+            assert value["profile"] == "connect-control/1"
             if not success:
                 assert set(value["result"]) == {"Err"}
                 return value["result"]["Err"]

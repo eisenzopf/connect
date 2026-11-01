@@ -1,0 +1,77 @@
+{
+  "format": "connect/verified-operations-guide-negative/1",
+  "workflow_run_id": 41263739230,
+  "job_id": 124722087317,
+  "artifact_id": 13066890455,
+  "artifact_zip_sha256": "5ca4cc44e6553e2d39eea7b830cf51565b8bedd055f98dce7fe8f5fcf8120e82",
+  "sources_verified": {
+    "git": 4665,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "rehearsal": {
+    "format": "connect/operations-guide-rehearsal/1",
+    "task": "G6-088",
+    "passed": false,
+    "source_revision": "bfb6dd672df2a169979518e6002d3a29273a9bc2",
+    "source_inputs_sha256": "c1ccc8e33153eb50192f44757937bfdb8a1f55a180a5a042757c93bc84d3aa29",
+    "source_count": 8763,
+    "checks": [
+      "fresh-current-init-and-occupied-destination-refusal-without-overwrite",
+      "production-server-ready-with-documented-retention-policy-and-public-health"
+    ],
+    "commands": [
+      {
+        "stage": "fresh-init",
+        "verb": "init",
+        "exit_code": 0,
+        "elapsed_seconds": 0.265
+      },
+      {
+        "stage": "occupied-init-refusal",
+        "verb": "init",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "current-health",
+        "verb": "health",
+        "exit_code": 0,
+        "elapsed_seconds": 0.016
+      },
+      {
+        "stage": "empty-current-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      }
+    ],
+    "servers": [
+      {
+        "stage": "current-serve",
+        "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+        "original_joined": false
+      }
+    ],
+    "template_hashes": {
+      "conversation-create.json": "e7fb7061c556836d30ea7b5ff2ffdb8e35bf0137ac1e958330069c2fc7d5a4d2",
+      "conversation-list.json": "5ea2d0ada219399714984ca5f64fe2502279e3323470287f981a9f85fe8a4583",
+      "identity.json": "4d7ac0e4bd4fb80f48b21b7a103d2c5a34eed1a53d217029c6771f066fb84e83",
+      "operation-get.json": "acd9350495a7a46c53c93299ff106be931f6fef487cef90835b60084f86f408f"
+    },
+    "scope": "Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "compile_exit_code": 0,
+    "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+    "failure": {
+      "stage": "empty-current-list",
+      "name": "AssertionError",
+      "line": 128
+    },
+    "source_inputs_unchanged": true
+  },
+  "finding": "Current production CLI declares outer PROFILE connect-control/1; signed transport readiness is connect/2. Harness incorrectly required the transport profile in the outer JSON envelope. Correct expected wrapper and document each current layer explicitly; no alias or fallback added. Later commands did not execute; original server required forced failure cleanup, not a graceful join pass.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
