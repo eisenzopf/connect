@@ -102,3 +102,20 @@ after the destination, and a decoded packet-arrival gap over one second. This
 observation does not measure device presentation, paired AV synchronization or
 the full media quality profile. Four controlled cases cover sample/arrival
 correspondence, speaker/refusal conditions and that original gap bound.
+
+The source196 readiness correction builds as an independently verified production
+runtime. Its new twenty-move sequence stops at original move three: two original
+roots and independently decoded audio pass, with a maximum 62.297 ms packet
+arrival gap. Caller-monotonic intent-to-first-identified-destination-arrival
+observations are 949.656 and 685.529 ms. These are arrival observations, not
+device presentation or full-profile transition qualification.
+
+The third original captures attach, activation and actual duplex readiness,
+then returns `Media(Model(Conflict))` from Core movement. Its durable commit
+effect and operation remain **unknown**. The caller does not resubmit or retry
+that original. The new readiness-contention branch was not reached in this run.
+A recorded upstream debug-only observer now identifies managed mixer admission,
+changed managed state and target-validation refusals before publication. It
+changes no commit/retry semantics. Exact production diagnosis remains pending;
+a generic conflict must not be treated as permission to repeat an uncertain
+movement.

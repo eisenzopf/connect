@@ -1,0 +1,76 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -950,7 +950,10 @@
+                     handoff.validate_target(controller, &state)?;
+                 }
+                 if let Some(replacement) = &plan.replacement {
+-                    replacement.validate_target(controller, &state)?;
++                    replacement.validate_target(controller, &state).map_err(|error| {
++                        tracing::debug!(target: "rvoip_core::replacement_commit", stage="prepare-target", ?error, "Replacement target refused before publication");
++                        error
++                    })?;
+                 }
+                 let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+                 let owner = control.authority()?;
+@@ -1131,7 +1134,12 @@
+         });
+         }
+         let (outcome, commit, committed_at) = {
+-            let mut logical = managed.as_ref().map(|m| m.lock(&plan)).transpose()?;
++            let mut logical = managed.as_ref().map(|m| m.lock(&plan)).transpose().map_err(|error| {
++                if plan.replacement.is_some() {
++                    tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-fence", ?error, "Replacement commit refused before publication");
++                }
++                error
++            })?;
+             let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+             let mut registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+             if !exact_members(&members, &plan)
+@@ -1160,7 +1168,10 @@
+                     handoff.validate_target(&target.controller, &state)?;
+                 }
+                 if let Some(replacement) = &plan.replacement {
+-                    replacement.validate_target(&target.controller, &state)?;
++                    replacement.validate_target(&target.controller, &state).map_err(|error| {
++                        tracing::debug!(target: "rvoip_core::replacement_commit", stage="commit-target", ?error, "Replacement target refused before publication");
++                        error
++                    })?;
+                 }
+                 let owner = target.control.authority()?;
+                 StreamController::check(&scope, &owner)?;
+@@ -1232,7 +1243,10 @@
+                     handoff.validate_target(&target.controller, state)?;
+                 }
+                 if let Some(replacement) = &plan.replacement {
+-                    replacement.validate_target(&target.controller, state)?;
++                    replacement.validate_target(&target.controller, state).map_err(|error| {
++                        tracing::debug!(target: "rvoip_core::replacement_commit", stage="final-target", ?error, "Replacement target refused before publication");
++                        error
++                    })?;
+                 }
+             }
+             if let Some(logical) = &logical {
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -905,7 +905,10 @@
+             .mixer
+             .members
+             .try_lock()
+-            .map_err(|_| crate::stream_lifecycle::MediaTransitionError::Conflict)?;
++            .map_err(|_| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-mixer-lock", "Replacement commit metadata lock busy before publication");
++                crate::stream_lifecycle::MediaTransitionError::Conflict
++            })?;
+         let state = self.runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+         let registry = self
+             .owner
+@@ -947,6 +950,7 @@
+                 .binding()
+                 .same_incarnation(self.plan.media.pending().binding())
+         {
++            tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-state-changed", "Replacement commit state changed before publication");
+             return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());
+         }
+         for id in [&p.intent.source, &p.intent.retained, &p.intent.replacement] {

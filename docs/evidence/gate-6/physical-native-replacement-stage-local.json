@@ -296,5 +296,49 @@
     "task_complete": false,
     "whole_gate_qualified": false,
     "scope": "Original seven completed local native audio moves independently decode unchanged original packet payloads. Eighth original fails after attach/activation; sequence stops without retry. This is component evidence, not twenty transitions, device presentation, full media quality, six concurrent connections or a complete matrix cell."
+  },
+  "readiness_correction_production_verification": {
+    "source_revision": "196e915f6a2712dd8ac69d67854dbd522a0bdf5c",
+    "runtime_binary_sha256": "739c2d128e8d65e34166c844ec5e2dbecb8421406c0932654fb8ba130d1ff3dd",
+    "independent_runtime_proof_sha256": "e70625513a9226314fa824519c8f633bc60a100f045b839d4484ffb1d2513168",
+    "local_runtime_files_verified": 755,
+    "local_git_inputs_verified": 4853,
+    "local_prepared_inputs_verified": 4094,
+    "local_raw_archives_verified": 0,
+    "requested_transitions": 20,
+    "attempted_transitions": 3,
+    "completed_original_roots_with_independently_decoded_audio": 2,
+    "all_twenty_passed": false,
+    "maximum_decoded_packet_arrival_gap_ms": 62.29741699999977,
+    "total_intent_to_identified_destination_arrival_ms": [
+      949.6559590000002,
+      685.528667
+    ],
+    "total_transition_timing_scope": "One caller monotonic clock from original move intent before current metadata reads to first independently identified destination packet arrival; not device presentation.",
+    "original_third_root": {
+      "state_after_shutdown": "unknown",
+      "revision": 15,
+      "native_commit_effect_state": "unknown",
+      "attach_activation_readiness_observations_captured": true,
+      "movement_error": "Media(Model(Conflict))",
+      "no_replay_or_resubmission": true
+    },
+    "readiness_contention_branch_observed": false,
+    "source_guards": {
+      "sdk_dist_files_unchanged": true,
+      "sdk_dist_files": 192,
+      "credentials_unchanged": true,
+      "credential_files_guarded": 491,
+      "controller_module_unchanged": true,
+      "runtime_unchanged": true,
+      "harness_sources_unchanged": true
+    },
+    "server_joined": true,
+    "server_forced": false,
+    "private_controller_sha256": "06660f63dcca2f7b531ed7379789101ac1efd12219d975b773b3510d08da35e9",
+    "independent_audio_audit_sha256": "6c8e0cb7f7cd5ba30e5e97d9e46f85a2f605dbb1699a657eb1f1bc2f7b2b1c48",
+    "scope": "Two original completed local native audio moves pass independent decoding; the third reaches readiness and records an uncertain commit outcome. This is a failed twenty-move run. The readiness-contention branch was not reached in this sequence. Commit refusals require exact-stage diagnosis before any retry semantics change. No device presentation, paired AV, complete media quality, six-connection workload, full cell or task qualification.",
+    "task_complete": false,
+    "whole_gate_qualified": false
   }
 }

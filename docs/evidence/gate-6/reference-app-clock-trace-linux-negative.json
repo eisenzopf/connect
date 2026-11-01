@@ -33,7 +33,7 @@
   "runtime_scope": {
     "reported_binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
     "matches_previously_independently_audited_linux_binary": true,
-    "current_runtime_archive_bytes_independently_audited": false
+    "current_runtime_archive_bytes_independently_audited": true
   },
   "trace_summary": {
     "pages": [
@@ -433,5 +433,38 @@
     "whole_gate_qualified": false,
     "identity_audit": "Original runtime/source/browser guards reported unchanged; this trace run has no new independent local full archive audit."
   },
-  "scope": "Original negative hosted run and retained clock replay. Response observations have explicit losses; retained head/tail samples do not reconstruct every timeline correction or actual browser playback. Audio is already late in retained original response observations; per-packet HTTP overhead is a candidate contributor, not a proved sole cause. The new batching implementation requires its own verification. No task or whole-gate completion."
+  "scope": "Original negative hosted run and retained clock replay. Response observations have explicit losses; retained head/tail samples do not reconstruct every timeline correction or actual browser playback. Audio is already late in retained original response observations; per-packet HTTP overhead is a candidate contributor, not a proved sole cause. The new batching implementation requires its own verification. No task or whole-gate completion.",
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "491a5b41784b56bd72fa1f57f6d2ee09d4aae8fb",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4844,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "d9164da8d4109a04aa3c89e84bbb005ce4879871fed1be693e0b421a3a582e60",
+    "manifest_sha256": "9c6466c9f16fdd093ca86fef487a476048ef458ee9cd4121920431c35c5f352b",
+    "artifact_zip_digests": {
+      "evidence": "fdb6d6e1f3fcd7b94ab8eb0d38175740bc054ec8f408ada34d87fe9b8d868cc2",
+      "package": "29a5b72752aeee9fd8c12dd4e01c265cb2a3ae3366862061ac114387e6c161ef"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  }
 }
