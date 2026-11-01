@@ -36,5 +36,26 @@
   },
   "scope": "Controlled SDK regression and generated TypeScript outputs only. This identifies a concrete late-reply loss path but does not prove it is the sole cause of hosted AV failure. Matching installed packages and actual local/hosted app rehearsals remain pending. No task/full-media/matrix/gate promotion.",
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "clean_node_package_verification": {
+    "source_revision": "42eaafe8750514e8c1a30827612decc0981b19b4",
+    "archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+    "git_input_files_verified": 197,
+    "archive_files_verified": 195,
+    "node_installation_producer_sha256": "af6cc6aa8251989060c0bb44f71da3f462d95a6212f4a0d175d44c8176c3fc54",
+    "independent_audit_sha256": "eed5849b5fea9f88c0939ded3e90161f4ba059920d60173f63bbaf4d38529406",
+    "consumer_outside_repository": true,
+    "empty_cache": true,
+    "install_scripts_disabled": true,
+    "external_declarations_checked": true,
+    "synthetic_node_and_browser_entrypoints_passed": true,
+    "matching_native_runtime_and_app_pending": true
+  },
+  "hosted_rehearsal": {
+    "run_id": 41326884138,
+    "source_revision": "42eaafe8750514e8c1a30827612decc0981b19b4",
+    "lane": "reference-app-components",
+    "app_clock_trace": true,
+    "result": "queued at dispatch; not a pass"
+  }
 }
