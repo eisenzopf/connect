@@ -359,6 +359,7 @@ interface Slot {
     busy: boolean;
     data: boolean;
     flight?: Promise<unknown>;
+    completedAt?: number;
 }
 class Owner {
     private opening?: Promise<MediaChannel>;
@@ -479,6 +480,7 @@ class Owner {
         };
         try {
             if (!slot.flight) {
+                original.completedAt = undefined;
                 const flight = owned(
                     this.request(
                         {
@@ -488,7 +490,11 @@ class Owner {
                         },
                         Buffer.alloc(0),
                         { timeoutMs: options.timeoutMs },
-                        decode,
+                        (frame) => {
+                            const result = decode(frame);
+                            original.completedAt = performance.now();
+                            return result;
+                        },
                     ),
                 );
                 slot.flight = flight;
@@ -502,6 +508,16 @@ class Owner {
             const flight = slot.flight as Promise<T>,
                 result = await localWait(flight, options);
             if (slot.flight === flight) slot.flight = undefined;
+            // A cancelled wait may retain a completed packet outside Rust's
+            // live inbox. Do not give that old result a fresh playout origin.
+            // Reliable data and already reported gaps retain their identity.
+            if (
+                !data &&
+                (result as SdkMediaPacket).kind !== "gap" &&
+                original.completedAt !== undefined &&
+                performance.now() - original.completedAt >= 200
+            )
+                return Object.freeze({ kind: "gap", droppedPackets: 1n }) as T;
             return result;
         } finally {
             slot.busy = false;

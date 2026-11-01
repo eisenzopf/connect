@@ -84,6 +84,12 @@ jobs:
           npm run build --prefix sdk/typescript
           git diff --exit-code -- sdk/typescript/dist
           python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
+      - name: Check live receive result expiration and reliable-data recovery
+        if: ${{ inputs.qualification }}
+        run: |
+          node --test sdk/tests/node_media.test.mjs
+          python3 -m unittest discover -s sdk/tests -p test_python_media.py -v
+          python3 -m unittest discover -s sdk/tests -p test_python_data.py -v
       - name: Check native archive extraction boundaries
         if: ${{ inputs.qualification }}
         run: |

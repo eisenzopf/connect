@@ -129,6 +129,10 @@ class PythonData(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(SdkError) as caught:await task
         self.assertEqual((caught.exception.kind,caught.exception.certainty),('cancelled','read-only'))
         await client.capabilities.refresh(OPTIONS);self.release.touch()
+        async with asyncio.timeout(1):
+            while not any(r['channel']=='media-completion' and r['action']=='receive_data' for r in self.captures()):
+                await asyncio.sleep(.005)
+        await client.media.stats(OPTIONS);await asyncio.sleep(.25)
         result=await self.stream(client).receive_data(OPTIONS)
         self.assertEqual(result.message_id,'original-message')
         self.assertEqual(sum(r['channel']=='media' and r['request']['command']['action']=='receive_data' for r in self.captures()),1)

@@ -25,6 +25,16 @@ data has its separate ordered inbox and is not subject to this live-media age
 policy. A newly built helper/runtime is required for this behavior; the sealed
 3732254 candidate predates the correction.
 
+Node and Python also bound the residence of an already completed live receive
+result retained after a cancelled wait. After 200 ms in that adapter slot, the
+next wait consumes the original result as a one-packet typed gap. It does not
+replay the read or restart the helper. A result arriving while the next wait is
+active keeps its actual completion time, rather than the older request time.
+An existing exact gap and reliable-data result retain their original identity.
+These adapter discards are reported by the returned gap; Rust inbox statistics
+describe Rust-side discards only. This additional adapter behavior requires the
+new Node/Python package, as well as the new helper for Rust inbox expiration.
+
 The existing `media-stdio`/`NativeAudioClient` path is the earlier PCMU interface:
 it accepts fixed 160-byte audio payloads and has a 4 KiB record limit. It does
 not implement the negotiated audio/video/data contract for this task.

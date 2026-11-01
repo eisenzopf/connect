@@ -91,6 +91,14 @@ The Rust live-media inbox expires queued RTP/source-clock packets at 200 ms.
 This bounds local queue age only, and requires a helper built with the correction;
 the previously sealed 3732254 candidate retains its earlier receive behavior.
 
+The Node adapter also expires a completed RTP/clock result retained after a
+cancelled wait once its local slot residence reaches 200 ms. The next reader
+gets a frozen `gap` with `droppedPackets === 1n`, with no second read request or
+helper restart. Already reported gaps preserve their exact counts, and reliable
+data remains recoverable after that delay. Adapter expiration appears in the
+returned gap; `client.media.stats` still reports Rust inbox counters. This needs
+the updated Node package; the sealed 3732254 Node archive predates it.
+
 Cancellation or a deadline after a data frame was written preserves the
 original `OperationKey` with `uncertain` certainty. Before writing it remains
 `not-submitted`. The adapter never replays bytes or restarts the helper.

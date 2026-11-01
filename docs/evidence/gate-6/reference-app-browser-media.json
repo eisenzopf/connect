@@ -245,7 +245,9 @@
     "before_evidence": "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json",
     "sdk_evidence": "docs/evidence/gate-6/sdk-native-inbox-expiration.json",
     "installed_runtime_verified": false,
-    "scope": "shared Rust SDK live receive inbox age; new production runtime still required, retained adapter flight results not yet qualified"
+    "scope": "Rust inbox and Node/Python retained live result expiration locally verified; actual new production package/37check restart remains pending",
+    "adapter_evidence": "docs/evidence/gate-6/sdk-retained-live-media-expiration.json",
+    "adapter_component_cases_passed": 45
   },
   "current_ci_negative": "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json"
 }

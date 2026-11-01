@@ -62,6 +62,14 @@ both count toward `overflow_drops`. Reliable data uses a separate inbox and does
 not expire under this policy. Local queue age does not prove end-to-end latency.
 The previously sealed 3732254 candidate predates this correction.
 
+The Python adapter also expires an RTP/clock result that completed after a local
+wait was cancelled and then remained in its retained slot for 200 ms. The next
+wait returns `MediaGap(1)` without replaying the original read or restarting its
+helper. Existing gap counts and reliable-data results remain exact and
+recoverable. Rust inbox statistics exclude these adapter-only discards, which
+appear in the returned gap. This behavior needs the updated Python package;
+the sealed 3732254 Python package predates it.
+
 `send_clock(sequence, report, options)` requires negotiated source-clock support.
 Reports must describe the application's actual source; a report does not prove
 that another participant received or rendered media. `client.media.stats()`

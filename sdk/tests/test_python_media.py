@@ -46,6 +46,11 @@ class PythonMedia(unittest.IsolatedAsyncioTestCase):
             while not any(r['channel']=='media' and r['request']['command']['action']==action for r in self.captures()):
                 await asyncio.sleep(.005)
 
+    async def completed(self,action):
+        async with asyncio.timeout(1):
+            while not any(r['channel']=='media-completion' and r['action']==action for r in self.captures()):
+                await asyncio.sleep(.005)
+
     async def asyncTearDown(self):
         self.release.touch()
         for client in self.clients:
@@ -102,6 +107,40 @@ class PythonMedia(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(caught.exception.certainty,'read-only')
         self.release.touch()
         self.assertEqual((await self.stream(client).receive_packet(OPTIONS)).payload,b'synthetic-packet')
+
+    async def retained_live_result_expires(self,mode):
+        client=self.client(mode);signal=Cancellation()
+        original=asyncio.create_task(self.stream(client).receive_packet(RequestOptions(1000,signal)))
+        await self.seen('receive');signal.cancel()
+        with self.assertRaises(SdkError) as caught:await original
+        self.assertEqual((caught.exception.kind,caught.exception.certainty),('cancelled','read-only'))
+        self.release.touch();await self.completed('receive')
+        # A later response on the same socket fences the observation point.
+        await client.media.stats(OPTIONS);await asyncio.sleep(.25)
+        result=await self.stream(client).receive_packet(OPTIONS)
+        self.assertIsInstance(result,MediaGap);self.assertEqual(result.dropped_packets,1)
+        self.assertEqual(sum(r['channel']=='media' and r['request']['command']['action']=='receive' for r in self.captures()),1)
+        current=await self.stream(client).receive_packet(OPTIONS)
+        self.assertIsInstance(current,ClockPacket if mode=='clock-held' else RtpPacket)
+        await client.capabilities.refresh(OPTIONS)
+        self.assertEqual(len((self.root/'pids').read_text().splitlines()),1)
+
+    async def test_cancelled_live_rtp_result_expires_before_another_handle_resumes(self):
+        await self.retained_live_result_expires('receive-held')
+
+    async def test_cancelled_live_clock_result_expires_before_another_handle_resumes(self):
+        await self.retained_live_result_expires('clock-held')
+
+    async def test_retained_exact_gap_survives_live_packet_age_ceiling(self):
+        client=self.client('gap-held');signal=Cancellation()
+        original=asyncio.create_task(self.stream(client).receive_packet(RequestOptions(1000,signal)))
+        await self.seen('receive');signal.cancel()
+        with self.assertRaises(SdkError):await original
+        self.release.touch();await self.completed('receive')
+        await client.media.stats(OPTIONS);await asyncio.sleep(.25)
+        result=await self.stream(client).receive_packet(OPTIONS)
+        self.assertIsInstance(result,MediaGap);self.assertEqual(result.dropped_packets,2**64-1)
+        self.assertEqual(sum(r['channel']=='media' and r['request']['command']['action']=='receive' for r in self.captures()),1)
 
     async def test_sent_wait_cancellation_is_uncertain_without_restarting_control_or_replaying_bytes(self):
         client=self.client('send-held');stream=self.stream(client);signal=Cancellation()

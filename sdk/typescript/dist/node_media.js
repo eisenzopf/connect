@@ -300,11 +300,16 @@ class Owner {
         };
         try {
             if (!slot.flight) {
+                original.completedAt = undefined;
                 const flight = owned(this.request({
                     action: data ? "receive_data" : "receive",
                     binding: bindingWire(binding),
                     stream_id: id,
-                }, Buffer.alloc(0), { timeoutMs: options.timeoutMs }, decode));
+                }, Buffer.alloc(0), { timeoutMs: options.timeoutMs }, (frame) => {
+                    const result = decode(frame);
+                    original.completedAt = performance.now();
+                    return result;
+                }));
                 slot.flight = flight;
                 void flight.catch(() => {
                     if (original.flight === flight) {
@@ -316,6 +321,14 @@ class Owner {
             const flight = slot.flight, result = await localWait(flight, options);
             if (slot.flight === flight)
                 slot.flight = undefined;
+            // A cancelled wait may retain a completed packet outside Rust's
+            // live inbox. Do not give that old result a fresh playout origin.
+            // Reliable data and already reported gaps retain their identity.
+            if (!data &&
+                result.kind !== "gap" &&
+                original.completedAt !== undefined &&
+                performance.now() - original.completedAt >= 200)
+                return Object.freeze({ kind: "gap", droppedPackets: 1n });
             return result;
         }
         finally {

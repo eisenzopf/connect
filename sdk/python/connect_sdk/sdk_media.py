@@ -136,6 +136,7 @@ def data_stats(kind,value,payload) -> DataStats:
 class _Slot:
     flight: asyncio.Task | None = None
     busy: bool = False
+    completed_at: float | None = None
 
 
 class _Owner:
@@ -212,8 +213,13 @@ class _Owner:
                 self.slots.pop(key,None)
         try:
             if slot.flight is None:
+                slot.completed_at=None
+                def completed(*response):
+                    result=decode(*response)
+                    slot.completed_at=self.loop.time()
+                    return result
                 slot.flight=owned(asyncio.create_task(self.request({'action':action,'binding':binding._wire(),
-                    'stream_id':stream},b'',RequestOptions(options.timeout_ms),decode)))
+                    'stream_id':stream},b'',RequestOptions(options.timeout_ms),completed)))
                 def failed(done):
                     if (done.cancelled() or done.exception() is not None) and slot.flight is done:
                         slot.flight=None;forget()
@@ -222,6 +228,12 @@ class _Owner:
             result=await wait(original,options)
             if slot.flight is original:
                 slot.flight=None
+            # A cancelled local wait can retain a completed result after the
+            # Rust inbox has released it. Live media must not resume its age.
+            # Reliable data and an existing exact gap remain recoverable.
+            if (action=='receive' and not isinstance(result,MediaGap) and slot.completed_at is not None
+                    and self.loop.time()-slot.completed_at >= .2):
+                return MediaGap(1)
             return result
         finally:
             slot.busy=False

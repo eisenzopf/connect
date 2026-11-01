@@ -69,16 +69,17 @@ async def media(id,value,payload):
         if mode=='foreign-reply':result['binding']={**command['binding'],'connection_id':'foreign'}
         await write_frame(0x81,id,result)
     elif action=='receive':
-        if mode=='receive-held':await released()
+        if mode in ('receive-held','clock-held','gap-held'):await released()
         _,flags,seq,ts,ssrc=struct.unpack('!BBHII',last_rtp[:12])
         item={'type':'rtp','datagram_sequence':last_sequence,'header':{'payload_type':flags&127,'sequence_number':seq,'timestamp':ts,'ssrc':ssrc,'marker':bool(flags&128)}}
         body=last_rtp
-        if mode=='clock':
+        if mode in ('clock','clock-held'):
             item={'type':'clock','datagram_sequence':8,'report':{'ssrc':1,'ntp':str(2**64-1),'rtp':2,'packets':3,'octets':4,'cname':'synthetic-source'}};body=b''
-        elif mode=='gap':item={'type':'gap','dropped_packets':str(2**64-1)};body=b''
+        elif mode in ('gap','gap-held'):item={'type':'gap','dropped_packets':str(2**64-1)};body=b''
         elif mode=='bad-header':item['header']['ssrc']+=1
         result={'type':'packet','binding':command['binding'],'stream_id':command['stream_id'],'packet':item}
         await write_frame(0x82,id,result,body)
+        capture({'channel':'media-completion','action':action})
     elif action=='send_data':
         data_body=payload;data_command=command
         binding=command['binding'];key={'operationId':command['mutation']['operation_id'],'command':'message.send',
@@ -109,6 +110,7 @@ async def media(id,value,payload):
         if mode=='data-bad-json':metadata['format']='json';body=b'{broken}'
         if mode=='data-foreign-binding':metadata['binding']={**command['binding'],'connection_id':'foreign'}
         await write_frame(0x82,id,metadata,body)
+        capture({'channel':'media-completion','action':action})
     elif action=='data_stats':
         counters=('received_frames','accepted_messages','malformed_frames','unowned_frames','overflow_drops','binding_change_drops')
         await write_frame(0x81,id,{'type':'data_stats',**{k:str(2**64-1) for k in counters},'queued_messages':0,'queued_bytes':0})

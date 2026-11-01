@@ -1,0 +1,82 @@
+{
+  "format": "Prettier check for node_media.ts passed",
+  "tasks": [
+    "G6-072",
+    "G6-058"
+  ],
+  "status": "local-component-verified-production-package-pending",
+  "source_revision_before_change": "9005ebe34fae7de8d1bbd1e9801be9ae4df77d3d",
+  "implementation_inputs": {
+    "sdk/typescript/src/node_media.ts": "ee653f69d1ab20ff64d9cc47619fba8dc6c6aa873d42fd494e72fdc49b963397",
+    "sdk/typescript/dist/node_media.js": "5eb7cba7a296e59b508d59db66f72393bb5bde3e341a9fea7cabfdb24ad2df2e",
+    "sdk/python/connect_sdk/sdk_media.py": "f5a631b73f6dc2d10d89e75227882e57e01c17b14da56d3430da3c4b28109787",
+    "sdk/tests/fixtures/sdk_media_helper.py": "68caf4edffc93767a8d42ed57a3953afe509fdcf557826e630546f06bd7065e5",
+    "sdk/tests/node_media.test.mjs": "d830221e5df6b25ff76971605425f78014e29f165cc946122bbe46f5015fc0ab",
+    "sdk/tests/test_python_media.py": "a9bd203deb94d99749219268ef7f688fbc17b1de186659dbdb6a6f2815005f52",
+    "sdk/tests/test_python_data.py": "b8da2a4c55ccb2bf73fa070ae11f287b58562fc2346a7a5bfda9b165becbca0a",
+    ".github/workflows/gate6-runtime-candidate.yml": "96da265bfd12bf50caca5483184a122454d62eb3fe7938d31e04cd0fc3f6e579",
+    "docs/developer/sdk-programmatic-media.md": "3b7374fd6e92497ffcba8b2bfbce20fc7d3d8e917af7ededa87854a2c27f5886",
+    "docs/developer/node-media.md": "5adc30c26963165b9a7c17f4573fbf197b257dd1f9b3bb00f90aa42bd106f65a",
+    "docs/developer/python-media.md": "92900e2cdc6315258f5f046d210bca8209268283f0480bfae0a64f687bedb14b"
+  },
+  "baseline_implementation_inputs": {
+    "sdk/typescript/src/node_media.ts": "60cd3c1f4e7963b1a677ea71737c54b7f8f4c5fa539a84596b16b70bcf80556b",
+    "sdk/typescript/dist/node_media.js": "04b0df62a4f6f2d39f389cf7a9dede6858431347d6642eb5394a02740986fa21",
+    "sdk/python/connect_sdk/sdk_media.py": "24c39df5b4ba39c900e3d67a38ed8bcce878a5582aff2675a262d6c92955834d"
+  },
+  "node": "v26.7.0",
+  "python": "Python 3.14.7",
+  "scope": "Actual owned synthetic helper processes and authenticated C6M2 socket framing, public SDK read/cancel/status/close methods. No production Connect, browser playback, provider/model or WAN qualification.",
+  "procedure": "Cancel the original live packet wait after the helper observes its one receive request. Release its actual response; wait for the fixture completion marker, then a subsequent stats response on the same socket. Hold the completed result250ms. A cloned Stream handle must consume it as a one-packet gap with no second read, then receive a new current result. Repeat for RTP and source clocks. Exact u64 gap and reliable data are separately held beyond200ms and must preserve their original value.",
+  "before": {
+    "node": {
+      "tests": 17,
+      "passed": 16,
+      "failed": 1,
+      "failure": "Retained RTP returned instead of expected Gap; combined test stopped before Node clock branch."
+    },
+    "python": {
+      "tests": 14,
+      "passed": 12,
+      "failed": 2,
+      "failures": [
+        "Retained RTP returned instead of MediaGap",
+        "Retained clock returned instead of MediaGap"
+      ]
+    }
+  },
+  "after": {
+    "node_media_data": {
+      "tests": 18,
+      "passed": 18,
+      "failed": 0,
+      "rtp_and_clock_branches_verified": true
+    },
+    "python_media": {
+      "tests": 15,
+      "passed": 15,
+      "failed": 0
+    },
+    "python_data": {
+      "tests": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  },
+  "log_sha256": {
+    "node-before": "014bb720b7be84ee75dc62fc0d234ea7b1d803897a1745f295f938f793d8365b",
+    "python-before": "85699ac136481a969a70298668be470ed7f5c779cd30d94226c658bbbc9b5d14",
+    "node-after": "5a557a86831697cec7d420414bceab7946e3983bc35a87e298f01d4fb44174ad",
+    "python-after": "a6b4056bfeaada843254af33e09250304fe26f2cc4ea090379c46988fdbeb75e",
+    "python-data": "e77adddcaac560dac49b8dfc5d44ae353f4f695e4626ecc258383ef03077f777"
+  },
+  "behavior": "Stamp original validated result completion with the adapter monotonic clock. When a live RTP/clock result resides in a retained slot>=200ms, the next reader consumes it as Gap(1), without replay or helper replacement. Fresh results, reliable data and exact prior gaps preserve original semantics. Queue/slot/window bounds remain. Rust inbox stats exclude adapter discards, which are explicit in returned gaps.",
+  "compiler": "npm run build --prefix sdk/typescript passed; generated distribution committed with source",
+  "minimum_ci_profiles_pending": [
+    "Node22",
+    "Python3.12"
+  ],
+  "production_package_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

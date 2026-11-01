@@ -18,7 +18,8 @@ async function fixture(mode,body){
  const client=new NodeClient({config:path,executable:helper});
  const calls=async()=>{try{return (await readFile(join(dir,'capture'),'utf8')).trim().split('\n').filter(Boolean).map(JSON.parse);}catch{return [];}};
  const seen=async(action,count=1)=>{const expires=performance.now()+1000;while((await calls()).filter(r=>r.channel==='media' && r.request.command.action===action).length<count){assert(performance.now()<expires,'original request not observed');await sleep(5);}};
- try{await body(client,{dir,calls,seen,release:()=>writeFile(release,'ready')});}
+ const completed=async action=>{const expires=performance.now()+1000;while(!(await calls()).some(r=>r.channel==='media-completion' && r.action===action)){assert(performance.now()<expires,'original response not written');await sleep(5);}};
+ try{await body(client,{dir,calls,seen,completed,release:()=>writeFile(release,'ready')});}
  finally{
   await writeFile(release,'ready');await client.close({timeoutMs:2000});
   const pids=(await readFile(join(dir,'pids'),'utf8')).trim().split('\n');
@@ -84,11 +85,36 @@ test('Node cancelled data send preserves uncertain original key without mutation
  });
 });
 test('Node cancelled data receive retains one original result across cloned handles and control stays live',async()=>{
- await fixture('data-receive-held',async(client,{seen,release,calls})=>{
+ await fixture('data-receive-held',async(client,{seen,completed,release,calls})=>{
   const a=new AbortController(),s=client.media.connection(scope).streamById('application'),pending=s.receiveData({...options,signal:a.signal});await seen('receive_data');
   await assert.rejects(client.media.connection(scope).streamById('application').receiveData(options),error('conflict','read-only'));
   a.abort();await assert.rejects(pending,error('cancelled','read-only'));await client.capabilities.refresh(options);await release();
+  await completed('receive_data');await client.media.stats(options);await sleep(250);
   assert.equal((await s.receiveData(options)).messageId,'original-message');assert.equal((await calls()).filter(r=>r.channel==='media' && r.request.command.action==='receive_data').length,1);
+ });
+});
+test('Node cancelled live RTP and clock results expire before another handle resumes the original reader',async()=>{
+ for(const mode of ['receive-held','clock-held'])await fixture(mode,async(client,{seen,completed,release,calls,dir})=>{
+  const abort=new AbortController(),original=stream(client).receivePacket({...options,signal:abort.signal});await seen('receive');abort.abort();
+  await assert.rejects(original,error('cancelled','read-only'));await release();await completed('receive');
+  // This later response on the same socket proves the original packet was
+  // parsed before the controlled pause; no timing guess about helper startup.
+  await client.media.stats(options);await sleep(250);
+  const result=await stream(client).receivePacket(options);
+  assert.equal(result.kind,'gap');assert.equal(result.droppedPackets,1n);
+  assert.equal((await calls()).filter(r=>r.channel==='media' && r.request.command.action==='receive').length,1);
+  assert.equal((await stream(client).receivePacket(options)).kind,mode==='clock-held'?'clock':'rtp');
+  await client.capabilities.refresh(options);
+  assert.equal((await readFile(join(dir,'pids'),'utf8')).trim().split('\n').length,1);
+ });
+});
+test('Node retained exact loss observation survives the live packet age ceiling',async()=>{
+ await fixture('gap-held',async(client,{seen,completed,release,calls})=>{
+  const abort=new AbortController(),original=stream(client).receivePacket({...options,signal:abort.signal});await seen('receive');abort.abort();
+  await assert.rejects(original,error('cancelled','read-only'));await release();await completed('receive');
+  await client.media.stats(options);await sleep(250);
+  const result=await stream(client).receivePacket(options);assert.equal(result.kind,'gap');assert.equal(result.droppedPackets,2n**64n-1n);
+  assert.equal((await calls()).filter(r=>r.channel==='media' && r.request.command.action==='receive').length,1);
  });
 });
 test('Node media version refusal and pre-cancel retain original intent before attachment',async()=>{
