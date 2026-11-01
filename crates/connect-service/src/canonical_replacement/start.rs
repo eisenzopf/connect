@@ -10,6 +10,7 @@ pub(super) struct StartedReplacement {
     pub receipt: Arc<connect_store::NativeReplacementStarted>,
     pub policy: Arc<TargetPolicy>,
     pub controller: Arc<StreamController>,
+    pub resource_streams: Vec<String>,
     intent: connect_protocol::connection_control::OfferIntent,
     pub commit: std::sync::Mutex<Option<super::movement::Capture>>,
     pub phases: std::sync::Mutex<Vec<Arc<connect_store::NativeReplacementMediaCapture>>>,
@@ -178,13 +179,14 @@ impl Runtime {
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
             let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");
-            native.mute_native_audio_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|_|Error::forbidden())?;
+            native.mute_native_media_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|_|Error::forbidden())?;
             if !invocation.read.current() || activation.confirmed_generation()!=Some(policy.pending.generation()) || controller.revision()!=2 || !native.is_connection_live(&id) {return Err(Error::forbidden());}
-            let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":outcome.accepted.iter().map(|s|s.as_str()).collect::<Vec<_>>(),"resources_prepared":true,"prepared_muted":true,"media_ready":false});
-            Ok((controller,observation))
+            let resource_streams=outcome.accepted.iter().map(|s|s.as_str().to_owned()).collect::<Vec<_>>();
+            let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":resource_streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
+            Ok((controller,observation,resource_streams))
         }.await;
         drop(invocation);
-        let (controller, observation) = match result {
+        let (controller, observation, resource_streams) = match result {
             Ok(value) => value,
             Err(error) => {
                 let uncertain = Arc::new(attempt.uncertain());
@@ -208,6 +210,7 @@ impl Runtime {
             receipt,
             policy,
             controller,
+            resource_streams,
             intent,
             commit: Default::default(),
             phases: Default::default(),

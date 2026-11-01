@@ -1,0 +1,27 @@
+{
+  "format": "connect/gate6-native-private-av-service-integration/1",
+  "base_revision": "53b7b0f1",
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "patch": {
+    "path": "patches/rvoip/gate6-native-private-av-admission.patch",
+    "sha256": "0b5ca83b34ede0e64596311a93ac32e0a1d660d63ba9b1cc3d5c01f9968db402",
+    "source": "G6-058: mute the complete original confirmed audio/video native resource batch under the existing exact Gate intent before private admission. Require one duplex audio and optional video only. Rename adapter helper to describe all muted media; no readiness, public route, video unmute, deadline, clock or retry change. Service projects only provisioned negotiated AV and retains actual immutable resource IDs; physical AV replacement remains to be verified."
+  },
+  "typecheck": {
+    "command": "cargo check --locked --jobs 2 -p connect-service",
+    "exit": 0,
+    "source_inputs_unchanged": true,
+    "input_files_verified": 4307,
+    "source_inventory_sha256": "59cdcd59cec730ba473cce5b73a3c78169b2d450bbd8fffde01df155e847794a"
+  },
+  "implemented": [
+    "Native private admission mutes the complete original confirmed AV resource batch under its existing exact gate intent.",
+    "Only one duplex audio and optional video enter this native preparation; data and screen are refused.",
+    "Replacement media owners retain only provisioned codec-intersected Audio/Video capabilities.",
+    "Committed readiness metadata retains every immutable actual negotiated resource identity rather than just the audio ID.",
+    "Video remains muted through the audio movement; publication requires a separate current authorized control."
+  ],
+  "scope": "Source-guarded compilation only. Actual signed AV negotiation, movement and post-commit controls are the next behavioral check. Prior61Core and145+13Store checks remain separately scoped; no physical AV quality, complete cell or task pass.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

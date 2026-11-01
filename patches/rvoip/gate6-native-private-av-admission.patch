@@ -1,0 +1,33 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -164,10 +164,10 @@
+             ready_audio: crate::staged_media::ReadyAudioEgress::new(),
+         }))
+     }
+-    /// Mute an original, confirmed native audio batch before managed private
++    /// Mute an original, confirmed native audio/video batch before managed private
+     /// admission. The actual held media policy must separately approve the
+     /// exact Gate intent. This does not admit a participant or activate speech.
+-    pub async fn mute_native_audio_for_private_admission(
++    pub async fn mute_native_media_for_private_admission(
+         &self,
+         id: &ConnectionId,
+         a: &super::auth_dispatch::AuthorizedEnvelope,
+@@ -180,9 +180,15 @@
+             let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+             let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
+             let bindings = installed.controller.active_bindings();
+-            if bindings.is_empty()
++            use rvoip_core::stream_lifecycle::{Medium, StreamDirection};
++            let audio = bindings
++                .iter()
++                .filter(|b| b.negotiated.requested.medium == Medium::Audio)
++                .collect::<Vec<_>>();
++            if audio.len() != 1
++                || audio[0].negotiated.requested.direction != StreamDirection::Both
+                 || bindings.iter().any(|b| {
+-                    b.negotiated.requested.medium != rvoip_core::stream_lifecycle::Medium::Audio
++                    !matches!(b.negotiated.requested.medium, Medium::Audio | Medium::Video)
+                 })
+             {
+                 return Err(NativeOfferError::Unsupported);

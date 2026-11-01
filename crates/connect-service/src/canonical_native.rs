@@ -684,7 +684,7 @@ impl Runtime {
         if isolated {
             *stage = "isolated-mute";
             native
-                .mute_native_audio_for_private_admission(&id, &a, invocation.clone(), deadline)
+                .mute_native_media_for_private_admission(&id, &a, invocation.clone(), deadline)
                 .await
                 .map_err(denied)?;
         }

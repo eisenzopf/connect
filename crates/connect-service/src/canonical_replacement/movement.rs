@@ -103,7 +103,9 @@ impl Runtime {
                 .get(&actual.admitted)
                 .ok_or_else(Error::forbidden)?,
             participant_revision: actual.revision,
-            streams: vec![outcome.new_stream.logical.as_str().into()],
+            // Immutable identities from actual resource negotiation. Video
+            // remains muted; this does not assert decoded video IO readiness.
+            streams: started.resource_streams.clone(),
         };
         let capture = Arc::new(
             attempt
