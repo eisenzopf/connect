@@ -2,8 +2,8 @@
   "format": "connect/gate6-operational-visibility/1",
   "task": "G6-057",
   "date": "2026-10-31",
-  "status": "implementation-in-progress",
-  "source_revision": "894ed793842c039eef35a2e6ff77b46bb6191b49",
+  "status": "verified-complete-for-declared-linux-fixture-scope",
+  "source_revision": "5101276badd14ee2a1f11788ab4beff46f381807",
   "prerequisite_evidence": "docs/evidence/gate-6/linux-installation-verified.json",
   "work_started": "Audit actual admission/resource owners before adding authenticated diagnostic fields and enforcement/cleanup qualification.",
   "source_owners": [
@@ -53,17 +53,13 @@
       "finding": "Limits declares participants, physical/logical connection budget, message/upload/storage/receipt/Session bounds. Need explicit meaning of configured vs observed fields and no cross-transport pass inheritance."
     }
   ],
-  "next_required_work": [
-    "Verify expanded22function source-bound runtime evidence",
-    "Run actual production server/helper/browser profile with built browser SDK and verify source/SDK inputs, original owners and numeric-only resource observations",
-    "Complete task only when required behavior and current evidence all pass; G6-054 remains deferred"
-  ],
+  "next_required_work": [],
   "runtime_checks_run": true,
-  "task_complete": false,
+  "task_complete": true,
   "acceptance_qualified": false,
   "whole_gate_qualified": false,
   "implementation_checkpoint": {
-    "status": "implemented-unqualified-until-current-Rust-execution",
+    "status": "runtime-and-schema-independently-verified",
     "authorization": "Current health, admin and distinct installation.observe permissions, plus unrestricted recipient ceiling. Tenant admin alone omits global counts. Wildcard installation operator remains explicitly fully authorized.",
     "implemented": [
       "Explicit configured limits and operation-ledger state counts with no IDs or content",
@@ -79,22 +75,23 @@
       "workspace_format": "passed",
       "python_syntax": "passed"
     },
-    "rust_execution": "not-yet-run",
-    "openapi_generation": "Current c6f9c5ea reference independently verified:4624Git/4094prepared/4archives; includes mcp-connections; exact generator inputs match current tree",
-    "whole_task_complete": false
+    "rust_execution": "22focusedfunctions source-bound at230374da; productionprocessprofile at5101276b has6319unchanged componentinputs",
+    "openapi_generation": "Current230 schema1function plus generatedHTTP/OpenAPI independently verified; outputs match repository",
+    "whole_task_complete": true
   },
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
   "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
   "current_runtime_candidate": {
-    "source_revision": "230374da",
-    "run_id": 41262455931,
-    "job_id": 124718313843,
-    "status": "terminal-profile-browser-launch-failure-all22runtime-functions-pass",
-    "scope": "22focusedfunctions and corrected3role production process profile; no completion claim",
-    "evidence": "docs/evidence/gate-6/operational-runtime-230.json"
+    "source_revision": "5101276badd14ee2a1f11788ab4beff46f381807",
+    "run_id": 41263084330,
+    "job_id": 124720157337,
+    "status": "success-independently-verified-process-profile",
+    "component_run": 41262455931,
+    "component_source": "230374daa39c01033f2e94dd3d481963facb5acd",
+    "component_input_files_unchanged": 6319
   },
   "pending_socket_cleanup": {
-    "status": "implemented-not-yet-runtime-verified",
+    "status": "real-idle-lifetime-overload-and-drain-cases-passed-independently-verified",
     "idle_seconds": 30,
     "absolute_lifetime_seconds": 120,
     "drain_grace_seconds": 5,
@@ -106,24 +103,30 @@
     "quic_ingress": "Real semaphore permit holds the TLS/physical admission slot through the whole peer lifetime"
   },
   "hosting_limits_candidate": {
-    "status": "implemented-not-yet-runtime-verified",
+    "status": "all3quota-families-and-operation-overload-verified",
     "cases": [
       "Signed participant capacity refusal preserves conversation state and original refusal replay; removal permits a distinct new admission",
       "Application upload reservation and chunk limit refusal preserve bytes; completion/deletion reclaim quota while replay retains original refusal",
       "Eight live signed subscriptions refuse the ninth; lease expiry and physical reconnect permit later reads"
     ],
     "ci_visibility": "Separate source-guarded Store/Service/permit/public-socket/hosting-limit steps; aggregate refuses missing, changed-source or failed reports",
-    "task_complete": false,
+    "task_complete": true,
     "operation_overload": "Current Store shared receipt/journal budget refusal with retained cancellation and its causal event is now included in the isolated lane"
   },
   "process_measurement_candidate": {
-    "status": "implemented-not-yet-executed-on-Linux",
+    "status": "passed-independently-source-artifact-SDK-and-resource-verified",
     "profile": "Three independently launched owned process trees: production server, actual Rust typed SDK helper and Chromium/Node browser HTTP",
     "scope": "Synthetic read-only loopback capabilities/administrator health; no media/provider/model execution",
     "ownership": "Numeric /proc stat fields only; anchored birth ticks reject PID reuse and cross-role process adoption; no argv, environment, paths or process names in reports",
     "measurement": "Bounded samples report separate group RSS and observed CPU; samples can miss short-lived children and RSS can double-count shared pages",
-    "local_verification": "4 process boundary/privacy tests passed; Python and Node syntax passed",
-    "original_joins_required": true
+    "local_verification": "5process/privacy guards passed",
+    "original_joins_required": true,
+    "workflow_run_id": 41263084330,
+    "evidence": "docs/evidence/gate-6/operational-process-verified.json",
+    "samples": 65,
+    "browser_health_reads": 45,
+    "helper_reads": 17,
+    "original_joins_verified": true
   },
   "authorization_correction": {
     "finding": "Repository admin is also used for tenant administration; global observations need a distinct grant",
@@ -184,7 +187,7 @@
       "Original32 complete401 after release; used count returns0 and a distinct request is admitted",
       "Existing listener-boundary test retains primary/auxiliary slots until original listener exit"
     ],
-    "runtime_pass": false
+    "runtime_pass": true
   },
   "browser_fixture_correction": {
     "finding": "New browser fixture called the numeric port as a function and expected Outcome rather than typed Health data from health().",
@@ -208,7 +211,7 @@
     "scope": "15focused cases across seven named phases, actual shared MCP counters and overload, corrected owned browser profile; no current runtime pass"
   },
   "required_mcp_connection_gap": {
-    "status": "implemented-runtime-and-schema-verification-pending",
+    "status": "implemented-runtime-and-schema-verified",
     "finding": "Prior plain TcpListener admitted unbounded raw sockets before request middleware. BoundedListener now acquires actual shared configured socket permits before HTTP dispatch and retains them through socket drop.",
     "sources": {
       "crates/connect-mcp/src/socket_io.rs": "de144c21a095d4ca243f6a229f4b3ddfe87998a8bded3ce1e62efe033e906020",
@@ -222,7 +225,7 @@
       "Apply finite idle/lifetime and bounded drain to raw socket I/O, including abandoned incomplete headers",
       "Exercise actual connection capacity refusal, idle reclamation and joined listener shutdown; update schema/SDK closed pool kinds"
     ],
-    "task_can_close": false,
+    "task_can_close": true,
     "implementation": {
       "idle_seconds": 30,
       "absolute_lifetime_seconds": 120,
@@ -232,8 +235,8 @@
       "request_kind": "mcp-requests",
       "sharing": "One configured physical socket pool across canonical primary and task endpoints; independent per-listener cancellation",
       "new_cases": 3,
-      "focused_runtime_total": 18,
-      "runtime_pass": false
+      "focused_runtime_total": 22,
+      "runtime_pass": true
     },
     "local_checks": {
       "typescript_build": "passed",
@@ -298,8 +301,77 @@
     "scope": "Actual separate production server/helper/browser measurement still required;18focused functions independently verified. Expanded22function run41255161108 also reaches process failure; original evidence awaits independent audit."
   },
   "focused_process_candidate": {
-    "status": "implemented-not-yet-executed",
+    "status": "passed-independently-verified",
     "browser_sandbox": "disabled-in-isolated-synthetic-ci-profile",
-    "scope": "Actual production server/helper/browser measurement only; unchanged component behavior requires its separate22function evidence. No media/model/provider run."
+    "scope": "Actual production server/helper/browser measurement only; unchanged component behavior requires its separate22function evidence. No media/model/provider run.",
+    "workflow_run_id": 41263084330,
+    "evidence": "docs/evidence/gate-6/operational-process-verified.json"
+  },
+  "scope": "Declared native Ubuntu24.04x86_64 synthetic read-only operational profile; isolated unsandboxed owned Chromium. Sampled RSS may double-count shared pages; short-lived descendants can be missed. Helper observed CPU0.0 is limited to kernel accounting resolution, not zero CPU cost. No capacity/performance, WAN, media, provider, model or full acceptance claim.",
+  "process_verification": "docs/evidence/gate-6/operational-process-verified.json",
+  "completion_audit": {
+    "task": "G6-057",
+    "scope": "Declared synthetic Ubuntu24.04x86_64 operational profile; no media/provider/model/WAN or whole-gate acceptance claim",
+    "component_evidence": "docs/evidence/gate-6/operational-runtime-230.json",
+    "current_process_measurement_run": 41263084330,
+    "requirements": [
+      {
+        "requirement": "Redacted health, readiness, active operations and meaningful failure reasons",
+        "evidence": [
+          "store-authority (2)",
+          "service-observation (3)",
+          "public-client (3)",
+          "closed operational DTO/schema"
+        ],
+        "verified": true
+      },
+      {
+        "requirement": "Per-transport counters observe actual owners without extending their lifetime",
+        "evidence": [
+          "canonical.rs root-owned Native/WT/WSS probes",
+          "HTTP/HTTPS/records permit observers",
+          "MCP request/socket observers",
+          "permit-lifetime (2)",
+          "weak/busy/retired service probe tests"
+        ],
+        "verified": true
+      },
+      {
+        "requirement": "Participant, connection, upload, subscription and operation admission bounds",
+        "evidence": [
+          "hosting-limits (2): actual participant/upload/subscription refusal and reclaim",
+          "mcp-capacity (5): shared listener/request/socket capacity",
+          "operation-overload (1): retained cancellation and causal-event room"
+        ],
+        "verified": true
+      },
+      {
+        "requirement": "Explicit refusal before unsafe effects and original logical IDs preserved",
+        "evidence": [
+          "hosting-limits original-ID/state invariants",
+          "raw admission before HTTP parsing",
+          "operation-overload ledger assertions"
+        ],
+        "verified": true
+      },
+      {
+        "requirement": "Slow/abandoned connection expiry and graceful drain",
+        "evidence": [
+          "public-client real idle/fixed-lifetime/header tests",
+          "mcp-capacity real idle/fixed-lifetime/auxiliary drain tests",
+          "mcp-listener (4) abort/drop/cancel/independent retirement"
+        ],
+        "verified": true
+      },
+      {
+        "requirement": "Separate server, SDK helper and browser resource measurements with secret-free diagnostics",
+        "evidence": [
+          "docs/evidence/gate-6/operational-process-verified.json",
+          "Actual45browserhealthreads/17helperreads/65samples, server/helper /proc executable SHA, originalroots and observeddescendants retired"
+        ],
+        "verified": true
+      }
+    ],
+    "task_complete": true
   }
 }
