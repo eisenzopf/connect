@@ -8,6 +8,9 @@ import { dirname, join, resolve } from "node:path";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
+const movementFacts = value => ({ connection: value.connection.id,
+    retained: value.retained.map(v => v.id), admitted: value.admitted.map(v => v.id), retired: value.retired,
+    topologyRevision: value.topologyRevision, conversationRevision: value.conversationRevision ?? null, binding: value.binding });
 async function save(path, value) {
     const file = await open(path, "wx", 0o600);
     try { await file.writeFile(JSON.stringify(value, null, 2) + "\n"); await file.sync(); }
@@ -112,7 +115,8 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         const moved = done.value;
         assert.deepEqual(moved.retired, [intent.connectionId]);
         assert.deepEqual(moved.retained.map(v => v.id), [intent.retainedConnectionId]);
-        assert.equal(moved.retained[0].generation, intent.retainedGeneration);
+        const retained = await moved.retained[0].refresh({ timeoutMs: 5000 });
+        assert.equal(retained.id, intent.retainedConnectionId); assert.equal(retained.generation, intent.retainedGeneration);
         assert.equal(moved.binding.deviceId, intent.target.deviceId);
         assert.ok(id(moved.connection.id)); assert.notEqual(moved.connection.id, intent.connectionId);
         report.original_root_completed = true;
@@ -129,7 +133,10 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         const restored = controller.operations.restore(reference, controller.operationKinds.connection_replace);
         assert.deepEqual(restored.referenceJson(), reference);
         const recovered = await restored.wait({ timeoutMs: 8000 });
-        assert.equal(recovered.snapshot.state, "completed"); assert.deepEqual(recovered.value, moved);
+        assert.equal(recovered.snapshot.state, "completed");
+        // SDK handles carry methods, not captured snapshot facts. Compare the
+        // original result's identities/revisions/binding, then read current facts.
+        assert.deepEqual(movementFacts(recovered.value), movementFacts(moved));
         report.original_reference_preserved = true;
         phase = "original-source-owner-join";
         await retireOriginal(); report.original_source_owner_joined = true;
