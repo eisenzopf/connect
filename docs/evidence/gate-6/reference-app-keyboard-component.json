@@ -1,0 +1,145 @@
+{
+  "format": "connect/reference-app-keyboard-component-verification/1",
+  "task": "G6-072",
+  "source_revision": "a2e9b5113110defbdc0b99e17a81f07c7f0e2ca1",
+  "raw_report_sha256": "833db22644896e84f2ac2d267034b487a92e605967b0d86849441c1be97fb2e2",
+  "host": {
+    "system": "Darwin",
+    "architecture": "arm64",
+    "node": "v26.7.0",
+    "browser": "156.0.8078.48"
+  },
+  "passed": true,
+  "checks": [
+    "http-only-app-session",
+    "desktop-keyboard-create-and-participant-selection",
+    "keyboard-message-and-text-safe-timeline",
+    "keyboard-participant-selection-restores-focus-after-current-access-refresh",
+    "keyboard-incoming-invitation-and-decision",
+    "delayed-perspective-change-retains-current-peer-audience",
+    "actual-browser-microphone-permission-denial",
+    "actual-browser-camera-permission-denial",
+    "320px-no-horizontal-overflow",
+    "offline-keeps-only-original-ids-in-browser-storage",
+    "recovery-waits-for-delayed-reconnect",
+    "keyboard-reload-reconnect-original-recovery-without-duplicate",
+    "no-page-exceptions",
+    "original-owned-browser-joined",
+    "original-app-server-and-simulated-backend-joined"
+  ],
+  "original_git_files_verified": {
+    "examples/parley-on-connect/app/diagnostics.mjs": {
+      "sha256": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/diagnostics.test.mjs": {
+      "sha256": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/gateway.mjs": {
+      "sha256": "084c02efcc023197759c94815d84471d07d75705790d5ba11c325cd071950068",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/gateway.test.mjs": {
+      "sha256": "93124ada0b6b21d9fe7b234df553b59f42d9629e7e68c81ccc91f12af2a78d4e",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/intents.mjs": {
+      "sha256": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/intents.test.mjs": {
+      "sha256": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/main.mjs": {
+      "sha256": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/run.mjs": {
+      "sha256": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/server.mjs": {
+      "sha256": "121dc99a3fd23ee44f39a67cc5f20c364bda52f4e0c6a4c2c770e0a0c7b38b04",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/server.test.mjs": {
+      "sha256": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/setup.mjs": {
+      "sha256": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/setup.test.mjs": {
+      "sha256": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/ui/app.css": {
+      "sha256": "513b53aaa0a18eadd8a6997f461b7e6422c79f570f4a375fb9c8631aa6a7ceee",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/ui/app.mjs": {
+      "sha256": "b0cd32bd00751ff0b1e4cea36c175c728ca1e41387eed3f9bc877cd234ec97d1",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "examples/parley-on-connect/app/ui/index.html": {
+      "sha256": "6f4f54120138c2d9f7cb0c896b90a74d604fa5b4a3ccabe6e649dbed617fb346",
+      "git_mode": 420,
+      "recorded_runtime_mode": 420
+    },
+    "scripts/check-reference-app-ui.mjs": {
+      "sha256": "3bd2b097df1c1e526b01a01d19f0238adb4d3c2132ed90124604a920fda71b8b",
+      "git_mode": 420,
+      "recorded_runtime_mode": null
+    }
+  },
+  "recorded_modes_verified": 15,
+  "installed_browser_sdk_files_verified": 192,
+  "installed_browser_sdk_inputs_sha256": "486e1115aa3a8c82e7f063b4d35c27c4747095baccd9e1f5a0483824880a7f70",
+  "installed_sdk_inputs_identical_to": "docs/evidence/gate-6/reference-app-browser-component.json",
+  "app_component_tests_passed": 27,
+  "sources_unchanged": true,
+  "keyboard_participant_switch_and_focus_verified": true,
+  "visual_review": {
+    "desktop_sha256": "e1b2f2c6c899a3eb88978979348aecfae06463aabca79a0d83acc0f1ef4f2d2e",
+    "narrow_320px_sha256": "1e819e42633432407b69c7d3ea8c47c998f59d2b159b7f6c25286b663dcbca6f",
+    "both_reviewed": true,
+    "reviewed_pixels_identical_to_committed_source_run": true
+  },
+  "scope": "Owned actual browser/installed browser SDK with a simulated application backend. No Node helper, Connect server, media capture/transmission, model or provider qualification.",
+  "simulated_backend": true,
+  "installed_node_backend_verified": false,
+  "negotiated_media_capture_verified": false,
+  "two_platform_installed_candidate": {
+    "workflow_run_id": 41274865538,
+    "source_revision": "a2e9b5113110defbdc0b99e17a81f07c7f0e2ca1",
+    "jobs": {
+      "linux": 124754890526,
+      "macos": 124754890725
+    },
+    "status": "confirmed-live-both-platforms",
+    "runtime_verified": false
+  },
+  "remaining": [
+    "Current installed Node22/Linux and macOS keyboard flow verification",
+    "Negotiated media and capture integration and verification"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
