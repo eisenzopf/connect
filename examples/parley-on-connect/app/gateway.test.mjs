@@ -56,8 +56,18 @@ function fixture() {
                         update: (update, revision, options) => mutate("connection.update", { conversationId: cid, sessionId: sid, connectionId },
                             { update, revision }, options, { connection: { id: connectionId } }),
                         end: (sdk, options) => mutate("connection.end", { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { id: connectionId }),
-                        streams: Object.fromEntries(["subscribe", "unsubscribe"].map(action => [action, (sdk, options) =>
-                            mutate("stream." + action, { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { connection: { id: connectionId } })])),
+                        media: { refresh: async () => ({ streamRevision: service.streamRevision, streams: [
+                            { id: "stream-1", medium: "audio", direction: "sendrecv" },
+                            ...(service.receiving || service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
+                        ] }) },
+                        streams: Object.fromEntries(["subscribe", "unsubscribe"].map(action => [action, (sdk, options) => {
+                            // The installed public methods intentionally have
+                            // different shapes: selectors versus Stream IDs.
+                            assert.deepEqual(Object.keys(sdk).sort(), ["expectedStreamRevision", action === "subscribe" ? "selectors" : "streams"].sort());
+                            if (action === "unsubscribe") assert.equal(sdk.streams.first, "foreign-stream");
+                            service.receiving = action === "subscribe";
+                            return mutate("stream." + action, { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { connection: { id: connectionId } });
+                        }])),
                     }) } };
                     for (const [method, command] of Object.entries({ accept: "session.accept", reject: "session.reject", cancelInvitation: "session.cancel", end: "session.end" }))
                         session[method] = (sdk, options) => mutate(command, { conversationId: cid, sessionId: sid }, sdk, options,
@@ -90,7 +100,7 @@ function fixture() {
                     ...(service.connectionPresent ? [{ kind: "connection", data: { connection_id: service.connectionId, session_id: "session-1", participant_id: "participant-owner", state: "ready" } }] : []),
                     { kind: "stream", data: { connection_id: service.connectionId, stream_id: "stream-1", participant_id: "participant-owner", medium: "audio", session_id: "session-1" } },
                     ...(service.projectForeignStream ? [{ kind: "stream", data: { connection_id: service.connectionId,
-                        stream_id: "foreign-stream", participant_id: "participant-organizer", medium: "audio", session_id: "session-1" } }] : []),
+                        stream_id: "foreign-stream", participant_id: "participant-owner", medium: "audio", session_id: "session-1" } }] : []),
                 ];
                 const offset = envelope.payload.page ? Number(envelope.payload.page.replace("page_", "")) : 0;
                 assert.ok(Number.isInteger(offset) && offset >= 0 && offset < items.length);
@@ -237,8 +247,10 @@ test("Stream selection uses current present membership and the negotiated revisi
     assert.deepEqual(f.service.calls[0].sdk, { selectors: { first: { participant: "participant-organizer" }, rest: [] }, expectedStreamRevision: 8 });
     assert.deepEqual(selected.result, { conversationId: action.conversationId, sessionId: action.sessionId, connectionId: action.connectionId });
     f.service.streamRevision = 17;
-    await f.gateway.command("owner", "stop-listening", { ...action, type: "stream.unsubscribe" });
+    const { peer, ...connectionScope } = action;
+    await f.gateway.command("owner", "stop-listening", { ...connectionScope, type: "stream.unsubscribe" });
     assert.equal(f.service.calls[1].sdk.expectedStreamRevision, 17);
+    assert.deepEqual(f.service.calls[1].sdk.streams, { first: "foreign-stream", rest: [] });
     assert.equal(f.service.calls[1].command, "stream.unsubscribe");
     f.service.allowed = false;
     await assert.rejects(f.gateway.prepareIntent("owner", "revoked-listen", action), { kind: "authentication" });

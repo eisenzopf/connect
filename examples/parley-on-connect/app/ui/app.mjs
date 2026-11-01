@@ -202,8 +202,9 @@ async function view() {
             if (["ready", "active"].includes(connection.state)) {
                 for (const [text, action] of [["Mute", "mute"], ["Unmute", "unmute"], ["Hold", "hold"], ["Resume", "resume"]])
                     item.append(button(text, () => mutate({ type: "connection.update", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, action }), true));
-                for (const peer of connection.peers ?? []) for (const [text, type] of [["Listen to ", "stream.subscribe"], ["Stop listening to ", "stream.unsubscribe"]])
-                    item.append(button(text + peer.label, () => mutate({ type, conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, peer: peer.role }), true));
+                for (const peer of connection.peers ?? [])
+                    item.append(button("Listen to " + peer.label, () => mutate({ type: "stream.subscribe", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id, peer: peer.role }), true));
+                item.append(button("Stop listening", () => mutate({ type: "stream.unsubscribe", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id }), true));
                 item.append(button("End connection", () => mutate({ type: "connection.end", conversationId: cid, sessionId: connection.sessionId, connectionId: connection.id }), true));
             }
             return item;

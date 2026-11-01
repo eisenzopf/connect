@@ -1,7 +1,7 @@
 {
   "format": "connect/reference-app-connection-controls/1",
   "task": "G6-072",
-  "status": "implemented-local-components-pass-installed-runtime-unverified",
+  "status": "corrected-local-components-pass-installed-runtime-required",
   "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
   "implementation_inputs": {
     "examples/parley-on-connect/app/gateway.mjs": "bfc708d912d7b9a392c209c089b434542756d26a5a772c15e9c7ee402115c348",
@@ -50,15 +50,10 @@
     ]
   },
   "installed_check": {
-    "status": "confirmed-live-both-installed-platforms",
+    "status": "corrected-runtime-not-run",
     "expected_checks": 21,
-    "description": "Retain 16 prior checks, then keyboard-open two real audio Connections, select/unselect current peer Streams, exercise all four gates, verify 320px layout, and end both originals through the installed public Node SDK. Retain synthetic desktop/narrow control screenshots for visual review. Microphone and camera remain denied; no decoded media claim.",
     "runtime_verified": false,
-    "workflow_run_id": 41277276479,
-    "job_ids": {
-      "mac": 124761904247,
-      "linux": 124761904417
-    }
+    "description": "Same complete native-control scenario and deadlines. Explicit negotiated receiver IDs for unsubscribe, negotiated publication directions for mute, exact original scope assertions for every receipt, bounded latest API/action diagnostics."
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -67,5 +62,20 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "provider_or_model_execution": false,
-  "implementation_source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21"
+  "implementation_source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
+  "previous_installed_check": {
+    "status": "terminal-negative-independently-source-verified",
+    "expected_checks": 21,
+    "description": "Retain 16 prior checks, then keyboard-open two real audio Connections, select/unselect current peer Streams, exercise all four gates, verify 320px layout, and end both originals through the installed public Node SDK. Retain synthetic desktop/narrow control screenshots for visual review. Microphone and camera remain denied; no decoded media claim.",
+    "runtime_verified": false,
+    "workflow_run_id": 41277276479,
+    "job_ids": {
+      "mac": 124761904247,
+      "linux": 124761904417
+    },
+    "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-f414.json",
+    "passed_checks_per_platform": 13,
+    "actual_native_audio_connections_per_platform": 2
+  },
+  "correction": "Use participant selectors only for subscribe; stop listening selects current recvonly negotiated IDs and their negotiated revision. Mute selects only send-capable audio bindings. Different SDK argument shapes are enforced in component fixtures. The installed checker records each completed native action, exact original result scopes and the latest64 body-free API observations; existing deadlines and all21checks remain unchanged."
 }

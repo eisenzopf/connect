@@ -29,8 +29,8 @@ function request(value) {
             if (!["voice", "voice+video"].includes(value.medium)) fail("unsupported-app-action"); break;
         case "connection.end": closed(value, ["type", "conversationId", "sessionId", "connectionId"]); break;
         case "stream.subscribe": case "stream.unsubscribe":
-            closed(value, ["type", "conversationId", "sessionId", "connectionId", "peer"]);
-            if (!id(value.peer)) fail("invalid-app-request"); break;
+            closed(value, ["type", "conversationId", "sessionId", "connectionId", ...(value.type === "stream.subscribe" ? ["peer"] : [])]);
+            if (value.type === "stream.subscribe" && !id(value.peer)) fail("invalid-app-request"); break;
         default: closed(value, ["type", "conversationId", "sessionId"]);
     }
     for (const key of ["conversationId", "sessionId", "connectionId"])
@@ -215,19 +215,31 @@ export class AppGateway {
             const connection = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).refresh(options);
             if (action.type === "connection.end") return { scope, sdk: { reasonCode: 200, reason: "Reference app connection ended" } };
             if (connection.streamRevision === undefined) fail("app-resync-required");
-            if (action.type.startsWith("stream.")) {
+            if (action.type === "stream.unsubscribe") {
+                const negotiation = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).media.refresh(options);
+                const streams = negotiation.streams.filter(v => v.direction === "recvonly").map(v => v.id);
+                if (!streams.length) fail("app-resync-required");
+                return { scope, sdk: { streams: { first: streams[0], rest: streams.slice(1) }, expectedStreamRevision: negotiation.streamRevision } };
+            }
+            if (action.type === "stream.subscribe") {
                 const identity = this.#recipients(role, [action.peer])[0];
                 const peer = current.participants.find(p => p.identityId === identity && p.active);
                 if (!peer || !items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
                     v.data.participant_id === peer.id && v.data.membership_epoch === peer.membershipEpoch && v.data.state === "present")) fail("invalid-app-request");
                 return { scope, sdk: { selectors: { first: { participant: peer.id }, rest: [] }, expectedStreamRevision: connection.streamRevision } };
             }
-            const streams = items.filter(v => v.kind === "stream" && v.data.connection_id === action.connectionId &&
-                v.data.participant_id === own.id).map(v => v.data.stream_id);
-            if (["mute", "unmute"].includes(action.action) && !streams.length) fail("app-resync-required");
+            let streams = [], revision = connection.streamRevision;
+            if (["mute", "unmute"].includes(action.action)) {
+                // Snapshot Stream participant_id describes the containing
+                // Connection; it does not distinguish its incoming bindings.
+                const negotiation = await conversation.sessions.byId(action.sessionId).connections.byId(action.connectionId).media.refresh(options);
+                streams = negotiation.streams.filter(v => v.medium === "audio" && ["sendonly", "sendrecv"].includes(v.direction)).map(v => v.id);
+                revision = negotiation.streamRevision;
+                if (!streams.length) fail("app-resync-required");
+            }
             const update = action.action === "hold" ? { action: "hold", direction: "inactive" } :
                 ["mute", "unmute"].includes(action.action) ? { action: action.action, streams: { first: streams[0], rest: streams.slice(1) } } : { action: "resume" };
-            return { scope, sdk: { update, expectedRevision: connection.streamRevision } };
+            return { scope, sdk: { update, expectedRevision: revision } };
         }
         return { scope, sdk: action.type === "session.accept" ? { capabilities: session.capabilitiesOffer ?? {},
             expectedTopologyRevision: session.topologyRevision } : { reasonCode: action.type === "session.reject" ? 486 : 200,

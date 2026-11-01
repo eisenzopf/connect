@@ -152,12 +152,13 @@ try {
     report.api_observations = [];
     page.on("response", response => {
         const path = new URL(response.url()).pathname;
-        if (!/^\/api\/(?:state|view|prepare|lookup|submit|recover|reconnect|actor)$/.test(path) || report.api_observations.length >= 32) return;
+        if (!/^\/api\/(?:state|view|prepare|lookup|submit|recover|reconnect|actor)$/.test(path)) return;
         const reading = (async () => {
             const value = await response.json();
             report.api_observations.push({ path, status: response.status(), error: value.error?.code ?? null,
                 command: value.operation?.command ?? null, submission: value.operation?.submission ?? null,
                 state: value.operation?.state ?? null, result_keys: value.result ? Object.keys(value.result).sort() : [] });
+            if (report.api_observations.length > 64) report.api_observations.shift();
         })().catch(() => {}).finally(() => apiReads.delete(reading));
         apiReads.add(reading);
     });
@@ -225,12 +226,21 @@ try {
     assert.equal(await page.locator("#timeline li").filter({ hasText: marker }).count(), 1); check("keyboard-original-status-recovery-one-visible-message");
     // These controls negotiate two real native audio Connections. Browser
     // microphone/camera remain denied; this does not claim decoded media IO.
+    report.native_control_actions = [];
     const activate = async (name, command) => {
+        stage = "keyboard-action-" + name;
         const before = await page.locator("#operations li").filter({ hasText: command + " · completed" }).count();
+        const submitted = page.waitForResponse(response => new URL(response.url()).pathname === "/api/submit" && response.request().method() === "POST");
+        void submitted.catch(() => {});
         await page.getByRole("button", { name, exact: true }).focus(); await page.keyboard.press("Enter");
+        const outcome = await (await submitted).json();
+        assert.equal(Boolean(outcome.error), false);
+        assert.equal(outcome.operation.state, "completed");
         await page.waitForFunction(({ command, before }) =>
             [...document.querySelectorAll("#operations li")].filter(v => v.textContent.includes(command + " · completed")).length > before &&
             !document.querySelector("#actor").disabled, { command, before });
+        report.native_control_actions.push({ name, command });
+        return outcome;
     };
     const perspective = async (role, key) => {
         await page.locator("#actor input:checked").focus(); await page.keyboard.press(key);
@@ -242,18 +252,21 @@ try {
     await activate("Invite", "Invite");
     await perspective("owner", "ArrowDown");
     await activate("Accept", "Accept invitation");
-    await activate("Join audio", "Join media");
+    const ownerAudio = (await activate("Join audio", "Join media")).result;
     assert.equal(await page.locator("#connections li").count(), 1);
     await perspective("organizer", "ArrowUp");
-    await activate("Join audio", "Join media");
+    const organizerAudio = (await activate("Join audio", "Join media")).result;
     assert.equal(await page.locator("#connections li").count(), 1);
+    assert.equal(organizerAudio.conversationId, ownerAudio.conversationId);
+    assert.equal(organizerAudio.sessionId, ownerAudio.sessionId);
+    assert.notEqual(organizerAudio.connectionId, ownerAudio.connectionId);
     report.actual_native_audio_connections_opened = 2;
     check("keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session");
-    await activate("Listen to Owner", "Listen");
-    await activate("Stop listening to Owner", "Stop listening");
+    assert.deepEqual((await activate("Listen to Owner", "Listen")).result, organizerAudio);
+    assert.deepEqual((await activate("Stop listening", "Stop listening")).result, organizerAudio);
     report.native_stream_subscription_roundtrip_verified = true;
     check("keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions");
-    for (const name of ["Mute", "Unmute", "Hold", "Resume"]) await activate(name, "Update media");
+    for (const name of ["Mute", "Unmute", "Hold", "Resume"]) assert.deepEqual((await activate(name, "Update media")).result, organizerAudio);
     report.native_connection_gate_controls_verified = true;
     check("keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk");
     await page.setViewportSize({ width: 1440, height: 1100 });
@@ -264,9 +277,9 @@ try {
     report.ui_screenshots = Object.fromEntries(await Promise.all(["native-controls.png", "native-controls-narrow.png"].map(async name =>
         [name, sha(await readFile(join(output, name)))])));
     check("negotiated-connection-controls-fit-320px-without-horizontal-overflow");
-    await activate("End connection", "End connection");
+    assert.deepEqual((await activate("End connection", "End connection")).result, organizerAudio);
     await perspective("owner", "ArrowDown");
-    await activate("End connection", "End connection");
+    assert.deepEqual((await activate("End connection", "End connection")).result, ownerAudio);
     report.original_native_connection_end_receipts_verified = 2;
     check("keyboard-both-original-native-audio-connections-end-with-the-original-session-scope");
     report.negotiated_capture_playback_verified = false;
