@@ -461,6 +461,19 @@ try {
     }
     report.synthetic_capture_decoded_audio_verified = true;
     check("keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions");
+    report.active_session_capture_survival = await Promise.all(mediaPages.map(async ({ role, page: target }) => {
+        const before = await (await target.waitForFunction(() => {
+            const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            return document.querySelector("#media-status").dataset.sessionState === "active" && !metrics?.stopped &&
+                metrics?.phase === "active" ? metrics.capturedAudioFrames : false;
+        }, undefined, { timeout: 15000 })).jsonValue();
+        const after = await (await target.waitForFunction(before => {
+            const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+            return !metrics?.stopped && metrics?.capturedAudioFrames >= before + 3 ? metrics.capturedAudioFrames : false;
+        }, before, { timeout: 5000 })).jsonValue();
+        return { role, observed_session_state: "active", captured_before: before, captured_after: after };
+    }));
+    check("current-active-session-snapshots-preserve-original-browser-media-capture");
     await mediaPages[0].page.screenshot({ path: join(output, "capture-controls.png"), fullPage: true });
     await mediaPages[0].page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await mediaPages[0].page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -651,7 +664,7 @@ try {
         source_stack: [...String(error.stack ?? "").matchAll(/check-reference-app-installed\.mjs:(\d+):(\d+)/g)]
             .slice(0, 4).map(value => ({ line: Number(value[1]), column: Number(value[2]) })) };
     report.failure_media_pages = await Promise.all(mediaPages.map(async tone => ({ role: tone.role,
-        observation: await tone.page.evaluate(() => ({ state: document.querySelector("#media-status")?.dataset.state, status: document.querySelector("#media-status")?.textContent,
+        observation: await tone.page.evaluate(() => ({ session_state: document.querySelector("#media-status")?.dataset.sessionState ?? null, current_actor: document.querySelector("#actor input:checked")?.value ?? null, state: document.querySelector("#media-status")?.dataset.state, status: document.querySelector("#media-status")?.textContent,
             metrics: JSON.parse(document.querySelector("#media-status")?.dataset.metrics ?? "null"),
             output: window.__parley_audio_probe__ })).catch(() => null) })));
     if (page && !page.isClosed()) {

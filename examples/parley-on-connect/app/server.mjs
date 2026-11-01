@@ -79,7 +79,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
             response.setHeader("Set-Cookie", cookieName + "=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600");
             await serve(response, join(assets, "index.html"), "text/html"); return;
         }
-        if (request.method === "GET" && ["/app.mjs", "/app.css", "/media.mjs", "/audio-worklet.mjs", "/media-clock.mjs"].includes(url.pathname)) {
+        if (request.method === "GET" && ["/app.mjs", "/app.css", "/media.mjs", "/audio-worklet.mjs", "/media-clock.mjs", "/media-session.mjs"].includes(url.pathname)) {
             await serve(response, join(assets, url.pathname.slice(1)), url.pathname.endsWith(".css") ? "text/css" : "text/javascript"); return;
         }
         if (request.method === "GET" && url.pathname.startsWith("/sdk/")) {

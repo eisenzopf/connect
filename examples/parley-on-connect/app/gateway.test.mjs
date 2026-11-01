@@ -468,3 +468,28 @@ test("read sharing fences late retired-owner results and shutdown joins the orig
     release(); await stopped; await closing;
     assert.equal(joined, true);
 });
+
+test("media admission and new Connection preparation accept current ready/active Sessions and refuse terminal or unconsented states", async t => {
+    for (const state of ["accepted", "ready", "active"]) {
+        const f = await setup(); t.after(() => f.close()); f.service.sessionState = state;
+        const owner = {}, binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
+        const lease = await f.gateway.mediaOpen("owner", owner, binding);
+        assert.equal((await f.gateway.mediaReceive("owner", owner, { leaseId: lease.leaseId, streamId: "stream-1" })).kind, "gap");
+        await f.gateway.mediaRetire("owner", owner, { leaseId: lease.leaseId });
+        f.service.connectionPresent = false;
+        const prepared = await f.gateway.prepareIntent("owner", "join-" + state,
+            { type: "connection.offer", conversationId: binding.conversationId, sessionId: binding.sessionId, medium: "voice" });
+        assert.equal(prepared.operation.command, "connection.offer");
+        assert.equal(f.service.calls.length, 0);
+    }
+    for (const state of ["inviting", "ending", "ended", "failed"]) {
+        const f = await setup(); t.after(() => f.close()); f.service.sessionState = state;
+        const binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
+        await assert.rejects(f.gateway.mediaOpen("owner", {}, binding), { code: "app-resync-required" });
+        assert.equal(f.service.mediaDescribeReads ?? 0, 0);
+        f.service.connectionPresent = false;
+        await assert.rejects(f.gateway.prepareIntent("owner", "refuse-" + state,
+            { type: "connection.offer", conversationId: binding.conversationId, sessionId: binding.sessionId, medium: "voice" }),
+            { code: "invalid-app-request" });
+    }
+});

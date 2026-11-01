@@ -1,0 +1,78 @@
+{
+  "format": "connect/reference-app-session-lifecycle-regression/1",
+  "task": "G6-072",
+  "source_revision_before_change": "ac7d3c531adafd04c9a75e9538ce8ec720a1ad64",
+  "scope": "Controlled application public-SDK-shaped fixture and actual shared browser lifecycle predicate; not an installed media pass.",
+  "before": {
+    "command": [
+      "node",
+      "--test",
+      "examples/parley-on-connect/app/media-session.test.mjs",
+      "examples/parley-on-connect/app/gateway.test.mjs"
+    ],
+    "exit_code": 1,
+    "log_sha256": "77520f87fdf42f4abeb60bc3e54e2ab6baed3b384d129affa4611d2c99c38a1c",
+    "source_sha256": {
+      "examples/parley-on-connect/app/ui/media-session.mjs": "003555de0779e9ae6ca1b254ae7a90446fc6eb96c66c4ed906611540d91ec8e3",
+      "examples/parley-on-connect/app/ui/app.mjs": "85921f36bee236c9cf319ebdaa0a4192b80b9016fb353265aa637032c8620a9c",
+      "examples/parley-on-connect/app/gateway.mjs": "358d51fc035651cd95270b0219672302c38372031ed6ed051aceb271677f4e86",
+      "examples/parley-on-connect/app/gateway.test.mjs": "a0f725b76bae30352a8a11cb3636d8289ff23155059793071dc8cee228377e21",
+      "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191"
+    },
+    "summary": [
+      "\u2716 media admission and new Connection preparation accept current ready/active Sessions and refuse terminal or unconsented states (6.691083ms)",
+      "\u2716 current media survives consented Session progress but stops on actual scope, presence or lifetime loss (0.719375ms)",
+      "\u2139 tests 24",
+      "\u2139 suites 0",
+      "\u2139 pass 22",
+      "\u2139 fail 2",
+      "\u2139 cancelled 0",
+      "\u2139 skipped 0",
+      "\u2139 todo 0",
+      "\u2139 duration_ms 733.131167",
+      "\u2716 failing tests:",
+      "\u2716 media admission and new Connection preparation accept current ready/active Sessions and refuse terminal or unconsented states (6.691083ms)",
+      "\u2716 current media survives consented Session progress but stops on actual scope, presence or lifetime loss (0.719375ms)"
+    ]
+  },
+  "after": {
+    "command": [
+      "node",
+      "--test",
+      "examples/parley-on-connect/app/media-session.test.mjs",
+      "examples/parley-on-connect/app/gateway.test.mjs"
+    ],
+    "exit_code": 0,
+    "log_sha256": "82114d6aa46c92086b6401acbf463f116ea939d0948487765669b938d1b43358",
+    "source_sha256": {
+      "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968",
+      "examples/parley-on-connect/app/ui/app.mjs": "85921f36bee236c9cf319ebdaa0a4192b80b9016fb353265aa637032c8620a9c",
+      "examples/parley-on-connect/app/gateway.mjs": "358d51fc035651cd95270b0219672302c38372031ed6ed051aceb271677f4e86",
+      "examples/parley-on-connect/app/gateway.test.mjs": "a0f725b76bae30352a8a11cb3636d8289ff23155059793071dc8cee228377e21",
+      "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191"
+    },
+    "summary": [
+      "\u2139 tests 24",
+      "\u2139 suites 0",
+      "\u2139 pass 24",
+      "\u2139 fail 0",
+      "\u2139 cancelled 0",
+      "\u2139 skipped 0",
+      "\u2139 todo 0",
+      "\u2139 duration_ms 740.860709"
+    ]
+  },
+  "isolated_change": [
+    "examples/parley-on-connect/app/ui/media-session.mjs"
+  ],
+  "contract": {
+    "source_revision": "3732254f379a83a33da42024872ea0ec1481c9fc",
+    "file": "crates/connect-store/src/connection_control.rs",
+    "sha256": "7565128f7134ebf4e1d709eebb61319dadf823e945e1bc6fa6a43e64af727ed4",
+    "live_state_guard": "if !matches!(session.state.as_str(), \"accepted\" | \"ready\" | \"active\") {"
+  },
+  "full_local_app_cases_passed": 72,
+  "supplemental_actual_http_cases_passed": 8,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

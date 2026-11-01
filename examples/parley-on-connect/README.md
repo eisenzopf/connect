@@ -68,7 +68,10 @@ mute/unmute, hold/resume and original Connection end. Original Connection/Stream
 IDs are saved before SDK submission. “Listen to” selects a present peer's audio;
 “Watch” selects their video through the public participant/kind selector.
 “Stop watching” removes only the negotiated incoming video binding, preserving
-the local camera publication. These video additions are component-tested;
+the local camera publication. Consented Sessions remain live as they progress
+from accepted through ready and active; a view refresh retains their original
+capture binding. Ending, closed, absent or changed scopes still stop media.
+These video additions are component-tested;
 installed VP8 capture/render verification is still pending.
 
 Joining negotiates native resources. Explicit “Start microphone” or “Start

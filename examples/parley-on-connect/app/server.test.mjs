@@ -60,6 +60,9 @@ test("static SDK serving refuses traversal private configuration and symlink tar
     for (const path of ["/private.toml", "/sdk/private.toml", "/sdk/linked.js", "/sdk/%2e%2e%2fprivate.toml"])
         assert.equal((await fetch(f.server.origin + path)).status, 404, path);
     assert.equal((await fetch(f.server.origin + "/sdk/browser.js")).status, 200);
+    const lifecycle = await fetch(f.server.origin + "/media-session.mjs");
+    assert.equal(lifecycle.status, 200);
+    assert.match(await lifecycle.text(), /export function hasLiveMediaBinding/);
 });
 
 test("HTTP actions keep preparation and submission separate and bind the captured actor", async t => {

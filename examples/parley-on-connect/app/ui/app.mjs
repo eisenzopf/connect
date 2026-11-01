@@ -1,4 +1,5 @@
 import { BrowserAppMedia } from "./media.mjs";
+import { hasLiveMediaBinding, sessionAllowsMedia } from "./media-session.mjs";
 import { browserCaptureSupport } from "/sdk/browser.js";
 const $ = id => document.getElementById(id);
 let actor = "owner", epoch = 0, working = false, switching = false, pending = null, storageBlocked = false, selectedId = null;
@@ -189,10 +190,11 @@ async function view() {
     if (!selectedId) return;
     try {
         const value = await api("view", { conversationId: selectedId, ...(historyCursor ? { cursor: historyCursor } : {}) });
-        if (media && !media.closed && (!value.connections.some(c => c.id === media.binding?.connectionId &&
-            c.sessionId === media.binding?.sessionId && ["ready", "active"].includes(c.state)) ||
-            !value.sessions.some(s => s.id === media.binding?.sessionId && s.state === "accepted" && s.appearance === "present")))
-            await stopMedia();
+        if (media && !media.closed) {
+            const state = value.sessions.find(s => s.id === media.binding?.sessionId)?.state;
+            $("media-status").dataset.sessionState = ["inviting", "accepted", "ready", "active", "ending", "ended", "failed", "cancelled", "rejected"].includes(state) ? state : "missing-or-unsupported";
+            if (!hasLiveMediaBinding(value, media.binding)) await stopMedia("app-media-view-changed");
+        }
         const signature = JSON.stringify([value.conversation, value.participants, value.messages, value.sessions, value.connections, value.historyCursor]);
         if (current?.signature === signature) return;
         current = { ...value, signature }; contactChoices(); const cid = value.conversation.id;
@@ -206,7 +208,7 @@ async function view() {
             const item = node("li"); item.append(node("strong", session.media.join(" + ") || "Session"), document.createTextNode(" · " + session.state));
             const action = type => mutate({ type, conversationId: cid, sessionId: session.id });
             if (session.appearance === "invited") item.append(button("Accept", () => action("session.accept"), true), button("Decline", () => action("session.reject"), true));
-            if (session.state === "accepted" && session.appearance === "present" && session.media.includes("audio") &&
+            if (sessionAllowsMedia(session.state) && session.appearance === "present" && session.media.includes("audio") &&
                 !value.connections.some(v => v.sessionId === session.id && v.state !== "retired")) {
                 const join = medium => mutate({ type: "connection.offer", conversationId: cid, sessionId: session.id, medium });
                 item.append(button("Join audio", () => join("voice"), true));
@@ -270,10 +272,10 @@ async function recover(operationId) {
         await state(); await view(); if (value.error) problem(value.error);
     } finally { working = false; controls(); }
 }
-async function stopMedia() {
+async function stopMedia(reason = "stopped") {
     const old = media; if (!old) return;
     media = null; controls();
-    await old.stop();
+    await old.stop(reason);
     if (!media) {
         $("media-status").textContent = "Media stopped. No device is active.";
         $("media-status").dataset.state = "stopped";

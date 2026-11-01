@@ -1,6 +1,7 @@
 // Communications use public installed NodeClient handles only. No service,
 // Store, provider, internal helper protocol or model implementation is imported.
 import { AppMediaBridge } from "./media.mjs";
+import { sessionAllowsMedia } from "./ui/media-session.mjs";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual, inspect } from "node:util";
 
@@ -223,7 +224,7 @@ export class AppGateway {
             const physical = unique("connection", v => v.connection_id === binding.connectionId &&
                 v.session_id === binding.sessionId && v.participant_id === own.participant_id &&
                 v.membership_epoch === own.membership_epoch);
-            if (conversation.closed !== false || session.state !== "accepted" ||
+            if (conversation.closed !== false || !sessionAllowsMedia(session.state) ||
                 !id(own.participant_id) || !Number.isSafeInteger(own.membership_epoch) || own.membership_epoch < 1 ||
                 !Number.isSafeInteger(physical.generation) || physical.generation < 1 ||
                 !["ready", "active"].includes(physical.state) ||
@@ -299,7 +300,7 @@ export class AppGateway {
                 const media = action.medium === "voice" ? ["audio"] : ["audio", "video"];
                 const present = items.some(v => v.kind === "session_participant" && v.data.session_id === action.sessionId &&
                     v.data.participant_id === own.id && v.data.membership_epoch === own.membershipEpoch && v.data.state === "present");
-                if (session.state !== "accepted" || !present || !media.every(v => session.media.includes(v))) fail("invalid-app-request");
+                if (!sessionAllowsMedia(session.state) || !present || !media.every(v => session.media.includes(v))) fail("invalid-app-request");
                 if (items.some(v => v.kind === "connection" && v.data.session_id === action.sessionId &&
                     v.data.participant_id === own.id && v.data.state !== "retired")) fail("invalid-app-request");
                 scope.connectionId = "conn_app_" + randomUUID();
