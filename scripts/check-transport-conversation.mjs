@@ -314,8 +314,23 @@ try {
         check("native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences");
         phase = "six-native-connections-original-end";
         for (const item of connections) await complete(item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" }, mutation(item.prefix + "-end")));
-        const retired = await Promise.all(connections.map(v => v.connection.refresh(options)));
-        assert.ok(retired.every(v => v.state === "retired"));
+        report.data_workload.original_end_operations_completed = connections.length;
+        // End completion proves local engine termination. Its separate durable
+        // retirement snapshot may follow later (the public end contract). Read
+        // only the original IDs under one ordinary SDK observation deadline.
+        const retirementStarted = performance.now(), retirementUntil = retirementStarted + options.timeoutMs;
+        report.data_workload.retirement_observation_budget_ms = options.timeoutMs;
+        report.data_workload.retirement_observations = 0;
+        for (;;) {
+            const remaining = Math.floor(retirementUntil - performance.now());
+            assert.ok(remaining > 0);
+            const retired = await Promise.all(connections.map(v => v.connection.refresh({ timeoutMs: remaining })));
+            report.data_workload.retirement_observations++;
+            report.data_workload.after_end_states = retired.map(v => v.state);
+            if (retired.every((v, index) => v.id === connections[index].connection.id && v.state === "retired" && v.generation > before[index].generation)) break;
+            await new Promise(done => setTimeout(done, Math.min(50, Math.max(0, retirementUntil - performance.now()))));
+        }
+        report.data_workload.retirement_observation_elapsed_ms = Math.round(performance.now() - retirementStarted);
         report.data_workload.original_connections_retired = 6;
         for (const role of ["participant-1", "participant-2", "participant-3", "participant-4"])
             assert.equal((await clients.get(role).media.dataStats(options)).queuedBytes, 0);
