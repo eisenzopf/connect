@@ -1,6 +1,7 @@
 import { BrowserOpusCodec, BrowserVp8Codec, RtpSender, Vp8Assembler,
     decodeRtpDatagram, browserCodecSupport } from "/sdk/browser.js";
 import { MediaTimeline, rtpTimestamp, CaptureClock, playoutTime } from "./media-clock.mjs";
+import { VideoPlayout } from "./media-playout.mjs";
 const fail = code => { throw Object.assign(Error(code), { code }); };
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 function unbase64(value) {
@@ -20,7 +21,7 @@ export class BrowserAppMedia {
         decodedAudioFrames: 0, playedAudioFrames: 0, decodedVideoFrames: 0, paintedVideoFrames: 0,
         droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0,
         audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
-        videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0,
+        videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0, videoCapacityDrops: 0,
         lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0,
         lastAudioCaptureOffsetMs: null, lastVideoCaptureOffsetMs: null };
     constructor({ onState = () => {} } = {}) { this.#onState = onState; }
@@ -31,7 +32,7 @@ export class BrowserAppMedia {
             activeContexts: this.#context && this.#context.state !== "closed" ? 1 : 0,
             queuedAudioSources: this.#sources.size,
             queuedSendFrames: [...this.#routes.values()].reduce((n, r) => n + r.queue.length, 0),
-            queuedVideoFrames: [...this.#routes.values()].filter(r => r.pendingVideo).length,
+            queuedVideoFrames: [...this.#routes.values()].reduce((n, r) => n + (r.videoPlayout?.size ?? 0), 0),
             pendingRequests: this.#calls.size, stopped: this.#stopped };
     }
     #publish(state = this.#stopped ? "stopped" : "active") { this.#onState(state, this.diagnostics); }
@@ -198,6 +199,16 @@ export class BrowserAppMedia {
                     canvas.dataset.stream = binding.streamId;
                     this.#remote.append(canvas); route.canvas = canvas.getContext("2d");
                     if (!route.canvas) fail("unsupported-app-action");
+                    route.videoPlayout = new VideoPlayout({ now: () => this.#context.currentTime,
+                        paint: frame => {
+                            if (this.#stopped) return;
+                            try { route.canvas.drawImage(frame, 0, 0, 640, 360); this.#counts.paintedVideoFrames++; }
+                            catch { void this.stop("app-media-playback"); }
+                        }, drop: reason => {
+                            this.#counts.droppedFrames++;
+                            if (reason === "capacity") this.#counts.videoCapacityDrops++;
+                            else this.#counts.videoTimerDrops++;
+                        } });
                 }
                 this.#decoder(route);
             }
@@ -287,7 +298,7 @@ export class BrowserAppMedia {
                 if (timing.clockChanged) this.#counts.receiveClockCorrections++;
                 route.lastAudio = -Infinity;
                 for (const source of route.sources) { try { source.stop(); } catch {} source.disconnect(); this.#sources.delete(source); }
-                route.sources.clear(); route.pendingVideo?.frame.close(); route.pendingVideo = null; clearTimeout(route.paintTimer);
+                route.sources.clear(); route.videoPlayout?.clear();
             }
             if (route.binding.kind === "audio") {
                 if (timing.timestampUs <= route.lastAudio) { this.#counts.droppedFrames++; continue; }
@@ -331,17 +342,7 @@ export class BrowserAppMedia {
             if (desired > now + 0.2) this.#counts.videoHorizonDrops++;
             this.#counts.droppedFrames++; return;
         }
-        if (route.pendingVideo) { route.pendingVideo.frame.close(); this.#counts.droppedFrames++; }
-        clearTimeout(route.paintTimer); const owned = { frame: frame.clone(), desired }; route.pendingVideo = owned;
-        route.paintTimer = setTimeout(() => {
-            if (route.pendingVideo !== owned) return;
-            route.pendingVideo = null;
-            try {
-                if (!this.#stopped && this.#context.currentTime - owned.desired < 0.05) {
-                    route.canvas.drawImage(owned.frame, 0, 0, 640, 360); this.#counts.paintedVideoFrames++;
-                } else { this.#counts.videoTimerDrops++; this.#counts.droppedFrames++; }
-            } finally { owned.frame.close(); }
-        }, Math.max(0, (desired - now) * 1000));
+        route.videoPlayout.enqueue(frame, desired);
     }
     async #camera(route) {
         this.#video = this.#preview; this.#video.muted = true; this.#video.playsInline = true;
@@ -385,8 +386,7 @@ export class BrowserAppMedia {
         this.#sources.clear();
         for (const route of this.#routes.values()) {
             route.encoder?.close(); route.decoder?.close(); route.assembler.clear(); route.sources.clear();
-            route.queue.length = 0; route.queuedBytes = 0; clearTimeout(route.paintTimer);
-            route.pendingVideo?.frame.close(); route.pendingVideo = null;
+            route.queue.length = 0; route.queuedBytes = 0; route.videoPlayout?.close();
             if (route.canvas) { route.canvas.canvas.width = 0; route.canvas.canvas.height = 0; }
         }
         this.#routes.clear(); this.#timeline.clear(); this.#remote?.replaceChildren();

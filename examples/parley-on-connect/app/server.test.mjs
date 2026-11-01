@@ -63,6 +63,9 @@ test("static SDK serving refuses traversal private configuration and symlink tar
     const lifecycle = await fetch(f.server.origin + "/media-session.mjs");
     assert.equal(lifecycle.status, 200);
     assert.match(await lifecycle.text(), /export function hasLiveMediaBinding/);
+    const playout = await fetch(f.server.origin + "/media-playout.mjs");
+    assert.equal(playout.status, 200);
+    assert.match(await playout.text(), /export class VideoPlayout/);
 });
 
 test("HTTP actions keep preparation and submission separate and bind the captured actor", async t => {
