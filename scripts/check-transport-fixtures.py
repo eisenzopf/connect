@@ -16,7 +16,7 @@ import traceback
 
 from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
-from lib.transport_actors import enroll_actors
+from lib.transport_actors import enroll_actors, exact
 from lib.transport_fixture import FixtureError, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 
@@ -259,6 +259,46 @@ def main(actors=False, conversation=False, data_workload=False):
             assert files(directory) == installed
             report["checks"].append("changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan")
             before_revocation = {name: [] for name in records.keys() - {"participant-1"}}
+            if data_workload:
+                phase = "trusted-native-endpoint-verification"
+                verification = []
+                for name, actor in records.items():
+                    # Public issuance stdout exposes its existing Endpoint receipt;
+                    # never derive IDs or inspect the installer's private intent.
+                    issued_output = json.loads((PRIVATE / (name + "-enrollment.output")).read_bytes())
+                    endpoint = issued_output["endpoint"]
+                    assert endpoint["kind"] == "endpoint" and endpoint["identity_id"] == actor["identity_id"]
+                    assert endpoint["device_id"] == actor["device_id"] and endpoint["transport"] == "quic"
+                    assert endpoint["capabilities"] == ["data"] and endpoint["verification_state"] == "unverified"
+                    assert type(endpoint["revision"]) is int
+                    proof = PRIVATE / (name + "-scoped-native-read.output")
+                    evidence = "native-signed-control-sha256-" + digest(proof)
+                    verification.append(dict(type="verify_endpoint", operation_id="transport-verify-" + name + "-1",
+                        endpoint_id=endpoint["endpoint_id"], expected_revision=endpoint["revision"], evidence_ref=evidence))
+                assert len({v["endpoint_id"] for v in verification}) == 5
+                plan_path = PRIVATE / "endpoint-verifications.json"
+                exact(plan_path, (json.dumps(verification, sort_keys=True, indent=2) + "\n").encode())
+                self_verify = dict(verification[0], operation_id="transport-self-verify-refusal-1")
+                refused = json.loads(run("participant-cannot-verify-endpoint", ["provision", "--config", directory / "participant-1/application.toml"], self_verify, success=False))
+                assert refused["result"]["Err"]["code"] == "forbidden"
+                for index, command in enumerate(verification):
+                    response = json.loads(run("trusted-endpoint-verify-" + str(index), ["provision", "--config", state / "operator.application.toml"], command))
+                    current = response["result"]["Ok"]
+                    assert current["kind"] == "endpoint" and current["endpoint_id"] == command["endpoint_id"]
+                    assert current["verification_state"] == "verified" and current["revision"] == command["expected_revision"] + 1
+                    replay = json.loads(run("trusted-endpoint-verify-original-" + str(index), ["provision", "--config", state / "operator.application.toml"], command))
+                    assert replay == response
+                for name, actor in records.items():
+                    resumed_output = json.loads(run("post-verification-resume-" + name,
+                        ["issue-resume", "--config", state / "operator.application.toml", "--installation", Path(actor["config"]).parent]))
+                    assert resumed_output["endpoint"]["verification_state"] == "verified"
+                    assert resumed_output["endpoint"]["device_id"] == actor["device_id"]
+                assert files(directory) == installed
+                report["endpoint_verification"] = dict(initial_unverified=5, signed_control_proofs=5,
+                    endpoints_verified=5, original_verification_replays=5, verified_endpoint_issuance_resumes=5,
+                    participant_self_verification_refused=True,
+                    private_plan_sha256=digest(plan_path), public_administration_only=True)
+                report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
             if conversation:
                 phase = "public-sdk-conversation-control"
                 config_directory = PRIVATE / "sdk-configs"

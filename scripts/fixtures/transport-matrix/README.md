@@ -206,6 +206,14 @@ fresh scoped actors with the additional literal `stream.subscribe` and
 scope is never expanded on resume. The earlier 26-permission enrollment proof
 remains bound to its original source. Current fresh plans have 28 permissions.
 
+The trusted fixture backend first reads each safe Endpoint receipt from public CLI
+issuance output. Endpoints start unverified. After observing a successful signed
+native control read from each independently enrolled Device, the backend saves
+the exact verification commands and proof references before public IO. It rejects
+participant self-verification, verifies each Endpoint through the administrative
+API and replays the original commands without another revision change. The
+fixture does not inspect the installer's private intent or write Store state.
+
 Four participants join the main data Session; two join the second Session. The
 public SDK offers six distinct native Connections and subscribes each to the
 previous participant's stream in its Session. All six must be ready at the common

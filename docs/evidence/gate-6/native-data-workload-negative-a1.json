@@ -1,0 +1,58 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "a1aa160c2c1d47cea2b919986218d282fc0aa18c",
+  "workflow_run_id": 41269342841,
+  "job_id": 124738696422,
+  "artifact_id": 13068786537,
+  "zip_sha256": "5f35fec956f4a32109e99e07bd100a59989bf47ade70d51085c0a86fa202406c",
+  "source_inputs_sha256": "51e7d9120f93cc4be811b90b079fe370770b8a1b0e654256a537100588aa54eb",
+  "report_sha256": "da6ed2f43b34efbd6f89d74fa42d8f75a2e503e4cdf25f733b7288b5f39b246a",
+  "conversation_report_sha256": "154cade6c75d4fdcd3246e21bbb37b07eee76b6ed31a8dae40e0e98e1f72e0d5",
+  "sources_verified": {
+    "git": 4693,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "preceding_public_sdk_checks_passed": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change"
+  ],
+  "failure": {
+    "phase": "native-data-offer-session-0-participant-1",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "problem": {
+      "code": 400,
+      "category": "state",
+      "reason": "operation_rejected"
+    },
+    "original_status_read_kind": "authentication",
+    "source_stack": []
+  },
+  "native_offers_completed": 0,
+  "native_failure_stages": [
+    {
+      "stage": "prepare-status",
+      "code": "not-ready"
+    }
+  ],
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "established_precondition_gap": "Public CLI issuance creates an unverified Endpoint. select_native_endpoint_with_peer requires a verified Endpoint for the exact authenticated Device and returns not-ready otherwise. Issuance output currently drops the Endpoint receipt.",
+  "correction": "Expose safe existing Endpoint outcome in issue/resume stdout. The trusted fixture backend saves original verification IDs/payloads, verifies after actual signed Device control evidence, rejects participant self-verification and replays the same public VerifyEndpoint commands. No implicit verification or private Store access.",
+  "native_connection_workload_verified": false,
+  "local_topology_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

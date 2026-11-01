@@ -1191,14 +1191,17 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "source-verified-offer-validation-negative-diagnostic-follow-up",
+    "status": "source-verified-endpoint-precondition-negative-trusted-verification-correction",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "81a011503bc9dab73e5fb7f21b907fd2f349b301dc94c304dd4a9a5d689f49c3",
-      "scripts/check-transport-fixtures.py": "dedeb050efbf459c78f777aff847e06f0765d519874c9e94c27acba64fbe302c",
+      "scripts/check-transport-fixtures.py": "95738f69a2a2b390306cc26bae285baff9d39b0d783923dbc8b2ad9d3fd47e33",
       "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
       "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
       ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
-      ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff"
+      ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff",
+      "crates/connect-server/src/cli/credential_installation.rs": "2d7cac6ff307f43f6772138c485ac1e8a93ee40b61e7697f7228439f2a05baa5",
+      "scripts/fixtures/transport-matrix/README.md": "a1c502dffb0f830c04631fa627d4170520f0d5c37613d4eea9379fd0c9fae7d5",
+      "docs/operations/README.md": "54bc66e4b48f20b035b3ad822752d227d70dda410023b86880224cd9b7f057b2"
     },
     "local_transport_guards_passed": 21,
     "node_python_syntax": true,
@@ -1229,12 +1232,14 @@
     "task_complete": false,
     "negative_evidence": "docs/evidence/gate-6/native-data-workload-negative.json",
     "runtime_candidate": {
-      "source_revision": "a94d50b6ebf80c7259b88a479b57b825f98fb571",
-      "workflow_run_id": 41268992478,
-      "job_id": 124737668278,
-      "status": "completed-failure-native-offer-validation-refusal"
+      "source_revision": "a1aa160c2c1d47cea2b919986218d282fc0aa18c",
+      "workflow_run_id": 41269342841,
+      "job_id": 124738696422,
+      "status": "completed-failure-prepare-status-not-ready"
     },
-    "observed": "7precedingNodeSDKchecks pass with28literalpermissions;4activeConversationmembers/2acceptedSessionintents. Offerloop returnsvalidation/refused, source not established. All5helpers/2servergroupsjoin, noforce.",
-    "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed."
+    "observed": "Seven preceding SDK checks pass; zero native offers complete. First offer fails prepare-status/not-ready. Five original helpers and both server groups join without force. Current production source requires a verified Endpoint for the exact authenticated Device; issuance intentionally leaves it unverified.",
+    "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed.",
+    "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
+    "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access."
   }
 }

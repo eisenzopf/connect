@@ -487,9 +487,12 @@ async fn run(directory: Directory, admin: ApplicationClientConfig) -> Result<()>
         "install.json",
         &serde_json::to_vec_pretty(&complete(&directory, &issued)?)?,
     )?;
+    // Expose the already returned public receipt so the trusted caller can
+    // verify this exact Endpoint after obtaining evidence. Issuance itself
+    // leaves verification unchanged; addresses and secrets are absent here.
     println!(
         "{}",
-        serde_json::json!({"status":"credential-installed-or-reconciled","operation_id":issued.operation_id,"identity_id":issued.identity_id,"credential_id":issued.credential_id,"directory":directory.path})
+        serde_json::json!({"status":"credential-installed-or-reconciled","operation_id":issued.operation_id,"identity_id":issued.identity_id,"credential_id":issued.credential_id,"directory":directory.path,"endpoint":enrolled})
     );
     Ok(())
 }

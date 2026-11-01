@@ -118,6 +118,13 @@ connect request --config private/client-b/client.toml --envelope < conversation-
 ```
 
 `issue` confirms actual signed admission before marking installation complete.
+Its JSON result includes the existing public `endpoint` receipt: Endpoint ID,
+Device/Identity binding, revision, capabilities and verification state. Key
+enrollment does not verify that Endpoint for native media. A trusted backend
+obtains Device evidence and submits `verify_endpoint` with the exact Endpoint ID,
+expected revision and a saved original operation ID. Participant credentials
+cannot perform that administrative verification. The receipt contains no address
+or secret reference; keep the client installation and command output private.
 If delivery is uncertain, use the same `issue-resume` command and original
 directory, issuer and endpoint. It preserves the original credential, Device,
 key and absolute expiry. A partial/unsealed/changed installation refuses rather
