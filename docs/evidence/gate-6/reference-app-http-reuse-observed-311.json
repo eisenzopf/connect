@@ -1,0 +1,1086 @@
+{
+  "format": "connect/reference-app-http-reuse-observed/1",
+  "task": "G6-072",
+  "run_id": 41299837239,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41299837239",
+  "independent_linux_app_node_source_audit_passed": true,
+  "linux": {
+    "host": "linux",
+    "artifact_id": 13080164700,
+    "artifact_size": 829275,
+    "artifact_zip_sha256": "7f4b103cd6acfc0c26590d5ccbe18e9df1873a7d5c5e8f0c453ca7912f9f2ae4",
+    "source_revision": "311cb29260a2475344fb14ae22c5eb11ffaed08b",
+    "node": "v22.23.4",
+    "browser": "156.0.8078.4",
+    "git_app_checker_installer_cpu_inputs_verified": 30,
+    "node_package_source_inputs_verified": 197,
+    "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+    "installed_sdk_files_verified": 195,
+    "png_bytes_verified": 4,
+    "checks_passed": 25,
+    "checks_required": 37,
+    "cpu_profiles": [
+      {
+        "format": "connect/app-cpu-sample-summary/1",
+        "raw_profile_sha256": "2520278dc97f03a083a79a5ff63ec93dfbceac68227260b69d99ab50936fff00",
+        "samples": 82974,
+        "total_sampled_ms": 92781,
+        "top_self": [
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 87221,
+            "inclusive_sampled_ms": 87221
+          },
+          {
+            "module": "node-native",
+            "function": "writeBuffer",
+            "line": 0,
+            "self_sampled_ms": 627,
+            "inclusive_sampled_ms": 628
+          },
+          {
+            "module": "node-native",
+            "function": "writev",
+            "line": 0,
+            "self_sampled_ms": 405,
+            "inclusive_sampled_ms": 408
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 326,
+            "inclusive_sampled_ms": 3569
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "value",
+            "line": 120,
+            "self_sampled_ms": 325,
+            "inclusive_sampled_ms": 513
+          },
+          {
+            "module": "v8",
+            "function": "(program)",
+            "line": 0,
+            "self_sampled_ms": 270,
+            "inclusive_sampled_ms": 270
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "visit",
+            "line": 38,
+            "self_sampled_ms": 246,
+            "inclusive_sampled_ms": 350
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "visit",
+            "line": 25,
+            "self_sampled_ms": 223,
+            "inclusive_sampled_ms": 238
+          },
+          {
+            "module": "node-native",
+            "function": "exec",
+            "line": 0,
+            "self_sampled_ms": 194,
+            "inclusive_sampled_ms": 194
+          },
+          {
+            "module": "v8",
+            "function": "(garbage collector)",
+            "line": 0,
+            "self_sampled_ms": 192,
+            "inclusive_sampled_ms": 192
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "string",
+            "line": 101,
+            "self_sampled_ms": 127,
+            "inclusive_sampled_ms": 127
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "anonymous",
+            "line": 63,
+            "self_sampled_ms": 88,
+            "inclusive_sampled_ms": 259
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 69,
+            "inclusive_sampled_ms": 1334
+          },
+          {
+            "module": "node:internal/encoding",
+            "function": "encode",
+            "line": 351,
+            "self_sampled_ms": 68,
+            "inclusive_sampled_ms": 90
+          },
+          {
+            "module": "node:internal/per_context/domexception",
+            "function": "DOMException",
+            "line": 72,
+            "self_sampled_ms": 57,
+            "inclusive_sampled_ms": 57
+          },
+          {
+            "module": "sdk/node_media_types.js",
+            "function": "mediaFrozen",
+            "line": 9,
+            "self_sampled_ms": 56,
+            "inclusive_sampled_ms": 56
+          },
+          {
+            "module": "app/intents.mjs",
+            "function": "#decode",
+            "line": 97,
+            "self_sampled_ms": 46,
+            "inclusive_sampled_ms": 133
+          },
+          {
+            "module": "node-native",
+            "function": "spawn",
+            "line": 0,
+            "self_sampled_ms": 45,
+            "inclusive_sampled_ms": 45
+          },
+          {
+            "module": "node:internal/timers",
+            "function": "processTimers",
+            "line": 506,
+            "self_sampled_ms": 43,
+            "inclusive_sampled_ms": 155
+          },
+          {
+            "module": "sdk/uctp_json.js",
+            "function": "space",
+            "line": 97,
+            "self_sampled_ms": 40,
+            "inclusive_sampled_ms": 56
+          },
+          {
+            "module": "node:_http_incoming",
+            "function": "_addHeaderLine",
+            "line": 382,
+            "self_sampled_ms": 37,
+            "inclusive_sampled_ms": 43
+          },
+          {
+            "module": "app/media.mjs",
+            "function": "fingerprint",
+            "line": 11,
+            "self_sampled_ms": 36,
+            "inclusive_sampled_ms": 36
+          },
+          {
+            "module": "node-native",
+            "function": "read",
+            "line": 0,
+            "self_sampled_ms": 36,
+            "inclusive_sampled_ms": 36
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 71,
+            "self_sampled_ms": 33,
+            "inclusive_sampled_ms": 3575
+          }
+        ],
+        "top_inclusive": [
+          {
+            "module": "v8",
+            "function": "(root)",
+            "line": 0,
+            "self_sampled_ms": 0,
+            "inclusive_sampled_ms": 92781
+          },
+          {
+            "module": "v8",
+            "function": "(idle)",
+            "line": 0,
+            "self_sampled_ms": 87221,
+            "inclusive_sampled_ms": 87221
+          },
+          {
+            "module": "node:internal/process/task_queues",
+            "function": "processTicksAndRejections",
+            "line": 71,
+            "self_sampled_ms": 33,
+            "inclusive_sampled_ms": 3575
+          },
+          {
+            "module": "other",
+            "function": "other",
+            "line": 0,
+            "self_sampled_ms": 326,
+            "inclusive_sampled_ms": 3569
+          },
+          {
+            "module": "sdk/node_media.js",
+            "function": "request",
+            "line": 226,
+            "self_sampled_ms": 28,
+            "inclusive_sampled_ms": 1832
+          },
+          {
+            "module": "app/server.mjs",
+            "function": "handle",
+            "line": 84,
+            "self_sampled_ms": 69,
+            "inclusive_sampled_ms": 1334
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "exchange",
+            "line": 229,
+            "self_sampled_ms": 21,
+            "inclusive_sampled_ms": 1229
+          },
+          {
+            "module": "node:net",
+            "function": "Socket._writeGeneric",
+            "line": 936,
+            "self_sampled_ms": 6,
+            "inclusive_sampled_ms": 1117
+          },
+          {
+            "module": "node:events",
+            "function": "emit",
+            "line": 466,
+            "self_sampled_ms": 16,
+            "inclusive_sampled_ms": 979
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "anonymous",
+            "line": 283,
+            "self_sampled_ms": 11,
+            "inclusive_sampled_ms": 839
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "pump",
+            "line": 280,
+            "self_sampled_ms": 7,
+            "inclusive_sampled_ms": 819
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "Writable.write",
+            "line": 504,
+            "self_sampled_ms": 6,
+            "inclusive_sampled_ms": 711
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "_write",
+            "line": 453,
+            "self_sampled_ms": 16,
+            "inclusive_sampled_ms": 703
+          },
+          {
+            "module": "node:internal/streams/writable",
+            "function": "writeOrBuffer",
+            "line": 548,
+            "self_sampled_ms": 5,
+            "inclusive_sampled_ms": 685
+          },
+          {
+            "module": "node:net",
+            "function": "Socket._write",
+            "line": 978,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 679
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "writeGeneric",
+            "line": 146,
+            "self_sampled_ms": 5,
+            "inclusive_sampled_ms": 675
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "write",
+            "line": 168,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 662
+          },
+          {
+            "module": "sdk/node_media_channel.js",
+            "function": "anonymous",
+            "line": 169,
+            "self_sampled_ms": 1,
+            "inclusive_sampled_ms": 660
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "handleWriteReq",
+            "line": 46,
+            "self_sampled_ms": 2,
+            "inclusive_sampled_ms": 646
+          },
+          {
+            "module": "node:internal/stream_base_commons",
+            "function": "onStreamRead",
+            "line": 166,
+            "self_sampled_ms": 14,
+            "inclusive_sampled_ms": 631
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "Readable.push",
+            "line": 387,
+            "self_sampled_ms": 5,
+            "inclusive_sampled_ms": 631
+          },
+          {
+            "module": "node-native",
+            "function": "writeBuffer",
+            "line": 0,
+            "self_sampled_ms": 627,
+            "inclusive_sampled_ms": 628
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "readableAddChunkPushByteMode",
+            "line": 463,
+            "self_sampled_ms": 9,
+            "inclusive_sampled_ms": 624
+          },
+          {
+            "module": "node:internal/streams/readable",
+            "function": "addChunk",
+            "line": 550,
+            "self_sampled_ms": 9,
+            "inclusive_sampled_ms": 612
+          }
+        ],
+        "nodes": 2075,
+        "tail_four_seconds": {
+          "samples": 3156,
+          "total_sampled_ms": 4000,
+          "top_self": [
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 2992,
+              "inclusive_sampled_ms": 2992
+            },
+            {
+              "module": "node-native",
+              "function": "writeBuffer",
+              "line": 0,
+              "self_sampled_ms": 206,
+              "inclusive_sampled_ms": 206
+            },
+            {
+              "module": "node-native",
+              "function": "writev",
+              "line": 0,
+              "self_sampled_ms": 100,
+              "inclusive_sampled_ms": 100
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "value",
+              "line": 120,
+              "self_sampled_ms": 62,
+              "inclusive_sampled_ms": 118
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "visit",
+              "line": 25,
+              "self_sampled_ms": 53,
+              "inclusive_sampled_ms": 56
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "visit",
+              "line": 38,
+              "self_sampled_ms": 52,
+              "inclusive_sampled_ms": 63
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 45,
+              "inclusive_sampled_ms": 724
+            },
+            {
+              "module": "v8",
+              "function": "(garbage collector)",
+              "line": 0,
+              "self_sampled_ms": 44,
+              "inclusive_sampled_ms": 44
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "string",
+              "line": 101,
+              "self_sampled_ms": 28,
+              "inclusive_sampled_ms": 28
+            },
+            {
+              "module": "v8",
+              "function": "(program)",
+              "line": 0,
+              "self_sampled_ms": 27,
+              "inclusive_sampled_ms": 27
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaFrozen",
+              "line": 9,
+              "self_sampled_ms": 24,
+              "inclusive_sampled_ms": 24
+            },
+            {
+              "module": "node:internal/encoding",
+              "function": "encode",
+              "line": 351,
+              "self_sampled_ms": 20,
+              "inclusive_sampled_ms": 23
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "space",
+              "line": 97,
+              "self_sampled_ms": 18,
+              "inclusive_sampled_ms": 26
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 12,
+              "inclusive_sampled_ms": 221
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "anonymous",
+              "line": 63,
+              "self_sampled_ms": 12,
+              "inclusive_sampled_ms": 47
+            },
+            {
+              "module": "node-native",
+              "function": "spawn",
+              "line": 0,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "app/media.mjs",
+              "function": "fingerprint",
+              "line": 11,
+              "self_sampled_ms": 10,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 162,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 9
+            },
+            {
+              "module": "node:internal/streams/end-of-stream",
+              "function": "onclose",
+              "line": 154,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "anonymous",
+              "line": 46,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 51
+            },
+            {
+              "module": "node:_http_incoming",
+              "function": "_addHeaderLine",
+              "line": 382,
+              "self_sampled_ms": 9,
+              "inclusive_sampled_ms": 10
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "writevGeneric",
+              "line": 121,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 111
+            },
+            {
+              "module": "app/media.mjs",
+              "function": "#run",
+              "line": 89,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 53
+            },
+            {
+              "module": "node:_http_common",
+              "function": "parserOnHeadersComplete",
+              "line": 77,
+              "self_sampled_ms": 7,
+              "inclusive_sampled_ms": 78
+            }
+          ],
+          "top_inclusive": [
+            {
+              "module": "v8",
+              "function": "(root)",
+              "line": 0,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 4000
+            },
+            {
+              "module": "v8",
+              "function": "(idle)",
+              "line": 0,
+              "self_sampled_ms": 2992,
+              "inclusive_sampled_ms": 2992
+            },
+            {
+              "module": "node:internal/process/task_queues",
+              "function": "processTicksAndRejections",
+              "line": 71,
+              "self_sampled_ms": 6,
+              "inclusive_sampled_ms": 754
+            },
+            {
+              "module": "other",
+              "function": "other",
+              "line": 0,
+              "self_sampled_ms": 45,
+              "inclusive_sampled_ms": 724
+            },
+            {
+              "module": "sdk/node_media.js",
+              "function": "request",
+              "line": 226,
+              "self_sampled_ms": 6,
+              "inclusive_sampled_ms": 467
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "exchange",
+              "line": 229,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 332
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._writeGeneric",
+              "line": 936,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 329
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 283,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 263
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "pump",
+              "line": 280,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 247
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "_write",
+              "line": 453,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 223
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "Writable.write",
+              "line": 504,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 223
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "handle",
+              "line": 84,
+              "self_sampled_ms": 12,
+              "inclusive_sampled_ms": 221
+            },
+            {
+              "module": "node:internal/streams/writable",
+              "function": "writeOrBuffer",
+              "line": 548,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 221
+            },
+            {
+              "module": "node:net",
+              "function": "Socket._write",
+              "line": 978,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 218
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "write",
+              "line": 168,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 217
+            },
+            {
+              "module": "sdk/node_media_channel.js",
+              "function": "anonymous",
+              "line": 169,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 217
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "writeGeneric",
+              "line": 146,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 216
+            },
+            {
+              "module": "node:internal/stream_base_commons",
+              "function": "handleWriteReq",
+              "line": 46,
+              "self_sampled_ms": 2,
+              "inclusive_sampled_ms": 210
+            },
+            {
+              "module": "node-native",
+              "function": "writeBuffer",
+              "line": 0,
+              "self_sampled_ms": 206,
+              "inclusive_sampled_ms": 206
+            },
+            {
+              "module": "node:events",
+              "function": "emit",
+              "line": 466,
+              "self_sampled_ms": 3,
+              "inclusive_sampled_ms": 174
+            },
+            {
+              "module": "sdk/node_media_types.js",
+              "function": "mediaJson",
+              "line": 18,
+              "self_sampled_ms": 5,
+              "inclusive_sampled_ms": 146
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "parseCanonicalJson",
+              "line": 75,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 124
+            },
+            {
+              "module": "sdk/uctp_json.js",
+              "function": "parse",
+              "line": 78,
+              "self_sampled_ms": 0,
+              "inclusive_sampled_ms": 123
+            },
+            {
+              "module": "app/server.mjs",
+              "function": "json",
+              "line": 39,
+              "self_sampled_ms": 1,
+              "inclusive_sampled_ms": 122
+            }
+          ]
+        },
+        "observation": {
+          "stop_reason": "media-control-supervision",
+          "elapsed_ms": 92757,
+          "process_cpu_user_ms": 7150,
+          "process_cpu_system_ms": 1545
+        },
+        "scope": "Bounded Node/V8 sampling only. Application/SDK basenames and builtin frames; absolute URLs, values and unknown names excluded. Sample time is not a Rust/server CPU measurement or proof of timeout causation."
+      }
+    ],
+    "cpu_profile_requested": true,
+    "failure": {
+      "stage": "sustained-combined-browser-audio-video",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION",
+      "source_stack": [
+        {
+          "line": 656,
+          "column": 20
+        }
+      ]
+    },
+    "app_failures": [
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "phase": "media-control-supervision",
+        "elapsed_ms": 2003,
+        "event_loop_active_ms": 1617,
+        "event_loop_idle_ms": 386,
+        "process_cpu_user_ms": 698,
+        "process_cpu_system_ms": 62,
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "location": null,
+        "sdk_location": {
+          "file": "sdk_helper.js",
+          "line": 126,
+          "column": 16
+        }
+      },
+      {
+        "phase": "packet-native-negotiation",
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 66,
+          "column": 29
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-media-stopped",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "media.mjs",
+          "line": 5,
+          "column": 44
+        },
+        "sdk_location": null
+      },
+      {
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "cancelled",
+        "location": {
+          "file": "media.mjs",
+          "line": 174,
+          "column": 21
+        },
+        "sdk_location": {
+          "file": "node_media_channel.js",
+          "line": 11,
+          "column": 12
+        }
+      },
+      {
+        "phase": "media-control-supervision",
+        "elapsed_ms": 2000,
+        "event_loop_active_ms": 170,
+        "event_loop_idle_ms": 1830,
+        "process_cpu_user_ms": 165,
+        "process_cpu_system_ms": 10,
+        "code": null,
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "location": null,
+        "sdk_location": {
+          "file": "sdk_helper.js",
+          "line": 126,
+          "column": 16
+        }
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      },
+      {
+        "code": "app-resync-required",
+        "name": "Error",
+        "kind": null,
+        "location": {
+          "file": "gateway.mjs",
+          "line": 15,
+          "column": 38
+        },
+        "sdk_location": null
+      }
+    ],
+    "failure_media_pages": [
+      {
+        "role": "owner",
+        "observation": {
+          "session_state": null,
+          "current_actor": "owner",
+          "state": "app-media-network",
+          "status": "Media connection unavailable. Reconnect before starting media again.",
+          "metrics": {
+            "capturedAudioFrames": 124,
+            "capturedVideoFrames": 73,
+            "encodedFrames": 189,
+            "sentRtp": 171,
+            "receivedRtp": 89,
+            "clockReportsSent": 6,
+            "clockReportsReceived": 2,
+            "videoClockReportsSent": 3,
+            "videoClockReportsReceived": 1,
+            "decodedAudioFrames": 46,
+            "playedAudioFrames": 20,
+            "decodedVideoFrames": 11,
+            "paintedVideoFrames": 9,
+            "droppedFrames": 71,
+            "synchronizedPackets": 27,
+            "unsynchronizedPackets": 62,
+            "audioLateDrops": 26,
+            "audioHorizonDrops": 0,
+            "audioCapacityDrops": 0,
+            "videoLateDrops": 0,
+            "videoHorizonDrops": 1,
+            "videoTimerDrops": 0,
+            "videoCapacityDrops": 0,
+            "lastAudioOffsetMs": -276.988,
+            "lastVideoOffsetMs": 138.1,
+            "receiveClockCorrections": 2,
+            "lastAudioCaptureOffsetMs": 7,
+            "lastVideoCaptureOffsetMs": -10,
+            "phase": "stopped",
+            "stoppedAt": "active",
+            "stopReason": "app-media-network",
+            "activeTracks": 0,
+            "activeContexts": 0,
+            "queuedAudioSources": 0,
+            "queuedSendFrames": 0,
+            "queuedVideoFrames": 0,
+            "pendingRequests": 0,
+            "stopped": true
+          },
+          "output": {
+            "frames": 20,
+            "energy": 0.759654645819256,
+            "tone440": 0.00021694898258816018,
+            "tone880": 0.3614576419385817
+          }
+        }
+      },
+      {
+        "role": "organizer",
+        "observation": {
+          "session_state": null,
+          "current_actor": "organizer",
+          "state": "active",
+          "status": "Microphone shared with camera. Incoming audio playing.",
+          "metrics": {
+            "capturedAudioFrames": 149,
+            "capturedVideoFrames": 88,
+            "encodedFrames": 230,
+            "sentRtp": 221,
+            "receivedRtp": 91,
+            "clockReportsSent": 6,
+            "clockReportsReceived": 4,
+            "videoClockReportsSent": 3,
+            "videoClockReportsReceived": 2,
+            "decodedAudioFrames": 50,
+            "playedAudioFrames": 11,
+            "decodedVideoFrames": 36,
+            "paintedVideoFrames": 34,
+            "droppedFrames": 61,
+            "synchronizedPackets": 80,
+            "unsynchronizedPackets": 11,
+            "audioLateDrops": 39,
+            "audioHorizonDrops": 0,
+            "audioCapacityDrops": 0,
+            "videoLateDrops": 0,
+            "videoHorizonDrops": 0,
+            "videoTimerDrops": 0,
+            "videoCapacityDrops": 0,
+            "lastAudioOffsetMs": -196.338,
+            "lastVideoOffsetMs": 19.544,
+            "receiveClockCorrections": 4,
+            "lastAudioCaptureOffsetMs": -4,
+            "lastVideoCaptureOffsetMs": -7,
+            "phase": "active",
+            "stoppedAt": null,
+            "stopReason": null,
+            "activeTracks": 2,
+            "activeContexts": 1,
+            "queuedAudioSources": 0,
+            "queuedSendFrames": 0,
+            "queuedVideoFrames": 0,
+            "pendingRequests": 3,
+            "stopped": false
+          },
+          "output": {
+            "frames": 7,
+            "energy": 0.020273111016085185,
+            "tone440": 0.0099519861508162,
+            "tone880": 7.778340067487915e-06
+          }
+        }
+      }
+    ],
+    "runtime_binary_matches_previously_independently_audited_production_binary": true,
+    "new_runtime_archive_bytes_independently_audited": false,
+    "source_guards_passed": true,
+    "component_passed": false
+  },
+  "mac": {
+    "app_reached": false,
+    "job_id": 124828320523,
+    "retained_job_log_sha256": "541d374e43646d7878f5dd2cd10faf1d1138d1dc0160c5dd86d5c3b8b9cf1fec",
+    "failure": "Synthetic media helper first negotiation exhausted its original1000ms budget during Python interpreter startup;17passed/1failed. No Mac app result."
+  },
+  "interpretation": "Bounded HTTP reuse correctness passes local tests but does not resolve Linux combined browser media failure. A later2s signed supervisor timeout records170ms event-loop active/1830ms idle and175ms process CPU; native/control waiting needs direct observation. Mac stopped before the app at synthetic helper cold startup.",
+  "next_change": "Preflight only synthetic Python helper setup before packet cases while retaining1000ms packet deadlines; use an explicit held original attachment for the1ms ownership deadline test. Capture bounded native server stacks during original Mac app media.",
+  "scope": "30 exact Git app/checker/installer/summary inputs,197Node producer source records, actual195-file Node archive and dependencies,PNG digests,source guards and37-check prefix audited on Linux. Runtime binary matches prior independent d992 audit; new runtime archive bytes not independently re-read. Raw CPU profile remains private and was not independently recomputed. Mac failure is retained job-log evidence, not an app qualification.",
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

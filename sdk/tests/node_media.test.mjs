@@ -1,25 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {mkdir,mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
 import {NodeClient,NodeSdkError,SdkRtpPacket,SdkTextData,SdkJsonData,SdkBinaryData} from '../typescript/dist/index.js';
 import {MediaFrameReader,encodeFrame} from '../typescript/dist/node_media_channel.js';
 const helper=fileURLToPath(new URL('./fixtures/sdk_media_helper.py',import.meta.url));
+const privateBase=fileURLToPath(new URL('../../.local/gate-6/node-media-unit/',import.meta.url));
 const options={timeoutMs:1000};
 const scope={conversationId:'room',sessionId:'session',connectionId:'connection'};
 const error=(kind,certainty,id)=>e=>{assert(e instanceof NodeSdkError);assert.equal(e.kind,kind);assert.equal(e.certainty,certainty);if(id)assert.equal(e.operation.operationId,id);return true;};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function fixture(mode,body){
- const dir=await mkdtemp(join(tmpdir(),'connect-node-media-')),path=join(dir,'config.json'),release=join(dir,'release');
+ await mkdir(privateBase,{recursive:true,mode:0o700});
+ const dir=await mkdtemp(join(privateBase,'unit-')),path=join(dir,'config.json'),release=join(dir,'release');
  await writeFile(path,JSON.stringify({mode,pids:join(dir,'pids'),capture:join(dir,'capture'),release}));
  const client=new NodeClient({config:path,executable:helper});
  const calls=async()=>{try{return (await readFile(join(dir,'capture'),'utf8')).trim().split('\n').filter(Boolean).map(JSON.parse);}catch{return [];}};
  const seen=async(action,count=1)=>{const expires=performance.now()+1000;while((await calls()).filter(r=>r.channel==='media' && r.request.command.action===action).length<count){assert(performance.now()<expires,'original request not observed');await sleep(5);}};
+ const seenControl=async action=>{const expires=performance.now()+1000;while(!(await calls()).some(r=>r.channel==='control'&&r.action.type===action)){assert(performance.now()<expires,'original control request not observed');await sleep(5);}};
  const completed=async action=>{const expires=performance.now()+1000;while(!(await calls()).some(r=>r.channel==='media-completion' && r.action===action)){assert(performance.now()<expires,'original response not written');await sleep(5);}};
- try{await body(client,{dir,calls,seen,completed,release:()=>writeFile(release,'ready')});}
+ try{
+  // Framing/deadline cases use a ready synthetic Python process. Its cold
+  // interpreter/import time is not a production native-runtime measurement.
+  assert.equal((await client.capabilities.refresh({timeoutMs:5000})).selectedTransport,'quic');
+  await body(client,{dir,calls,seen,seenControl,completed,release:()=>writeFile(release,'ready')});
+ }
  finally{
   await writeFile(release,'ready');await client.close({timeoutMs:2000});
   const pids=(await readFile(join(dir,'pids'),'utf8')).trim().split('\n');
@@ -178,8 +185,13 @@ test('Node malformed RTP header and foreign submitted binding fence media with c
  await fixture('foreign-reply',async client=>{await assert.rejects(stream(client).sendRtp(new SdkRtpPacket(1,rtp()),options),error('protocol','uncertain'));await client.capabilities.refresh(options);});
 });
 test('Node close owns an attachment still opening after the caller deadline',async()=>{
- await fixture('normal',async client=>{
-  await assert.rejects(send(client,undefined,'opening',{timeoutMs:1}),e=>{assert(e instanceof NodeSdkError);assert.equal(e.kind,'deadline');assert.equal(e.operation.operationId,'opening');assert.equal(e.certainty,'not-submitted');return true;});
-  await client.close({timeoutMs:2000});
+ await fixture('attach-held',async(client,{seenControl,release,calls})=>{
+  const refused=assert.rejects(send(client,undefined,'opening',{timeoutMs:1}),e=>{assert(e instanceof NodeSdkError);assert.equal(e.kind,'deadline');assert.equal(e.operation.operationId,'opening');assert.equal(e.certainty,'not-submitted');return true;});
+  await seenControl('media_attach');await refused;
+  let joined=false;const closing=client.close({timeoutMs:2000}).then(()=>{joined=true;});
+  await sleep(10);assert.equal(joined,false,'close must join the original held attachment');
+  await release();await closing;
+  assert.equal((await calls()).filter(r=>r.channel==='media'&&r.request.command.action==='send_data').length,0);
+  assert.equal((await calls()).filter(r=>r.channel==='control'&&r.action.type==='media_attach').length,1);
  });
 });

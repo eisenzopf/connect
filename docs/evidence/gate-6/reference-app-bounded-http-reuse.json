@@ -54,5 +54,9 @@
   "after_fix_installed_ci_verified": false,
   "root_cause_resolved": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_after_fix_installed_ci_observed": true,
+  "actual_evidence": "docs/evidence/gate-6/reference-app-http-reuse-observed-311.json",
+  "after_fix_app_qualified": false,
+  "after_fix_installed_ci_passed": false
 }

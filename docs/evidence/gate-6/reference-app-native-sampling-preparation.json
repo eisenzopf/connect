@@ -1,0 +1,329 @@
+{
+  "format": "connect/reference-app-native-sampling-preparation/1",
+  "task": "G6-072",
+  "previous_evidence": "docs/evidence/gate-6/reference-app-http-reuse-observed-311.json",
+  "configuration": "docs/developer/reference-app-native-sampling.md",
+  "implementation_inputs": {
+    "scripts/lib/native_server_sample.mjs": "f043ec6ea29443126f4d83025f8e76939be05a133455c56af483e5eda4757011",
+    "scripts/tests/native_server_sample.test.mjs": "435cca3a4d99eedd44f9cfa2694f1cc057d5a69e253d4092174c22c92b31def2",
+    "scripts/check-reference-app-installed.mjs": "e30b0cb641d8605ad14c3394a0021aa2be166c6082856513b8a80640c9e6566a",
+    ".github/workflows/gate6-linux-fixtures.yml": "d6f4a27a31d577d29bbaf71ac197f5e991aa184c3c9cc64ad801e8dc3d745ed9",
+    ".github/workflows/gate6-runtime-candidate.yml": "2b3448053e21cff74491cad50c267bf8adcab215d8f6c92cf2f46069078af01c",
+    "sdk/tests/node_media.test.mjs": "ec45f049900c73d26fa244053938556cc652c3ff50ce34d90939c0cbc924f329",
+    "sdk/tests/fixtures/sdk_media_helper.py": "e5f84a1cd4dba40a0e6a354cdd04d6bf4e75c5dbd2d8e583744cf678f9ac1c42"
+  },
+  "bounds": {
+    "native_observer_seconds": 8,
+    "native_interval_ms": 10,
+    "native_observer_hard_timeout_ms": 12000,
+    "demangler_hard_timeout_ms": 3000,
+    "private_raw_bytes": 8388608,
+    "exact_owned_group_and_command": true,
+    "installed_binary_digest_required": true,
+    "original_observer_joined_before_server_stop": true,
+    "server_never_terminated_by_sampler": true,
+    "raw_stack_upload": false
+  },
+  "local_calibration": {
+    "runtime_source_revision": "39d038811a434826e42abb87c55afb43aa641eff",
+    "runtime_binary_sha256": "ecbd9e973d7bfdcab305370e906f362f3152c01ff1d5dd7ff8999f6d20c2cea6",
+    "scope": "Original production macOS runtime; owned synthetic idle fixture only, no media/CI quality claim",
+    "observation": {
+      "observed": true,
+      "observer_joined": true,
+      "forced": false,
+      "seconds_requested": 8,
+      "interval_ms": 10,
+      "elapsed_ms": 8131,
+      "available_parallelism": 14,
+      "server_cpu_delta_ms": 3400,
+      "resident_bytes_before": 36044800,
+      "resident_bytes_after": 37027840,
+      "rust_symbols_demangled": 53,
+      "format": "connect/native-server-stack-sample/1",
+      "raw_sample_sha256": "b080928a186c4dc568df803741cede9b37830caa3eff372d2ac3c79d11491762",
+      "symbols_observed": 59,
+      "top_stacks": [
+        {
+          "symbol": "<std::sys::thread::unix::Thread>::new::thread_start",
+          "stack_samples": 12433
+        },
+        {
+          "symbol": "<std::thread::lifecycle::spawn_unchecked<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}",
+          "stack_samples": 12433
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>",
+          "stack_samples": 12433
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::pool::Inner>::run",
+          "stack_samples": 12433
+        },
+        {
+          "symbol": "<parking_lot::condvar::Condvar>::wait_until_internal",
+          "stack_samples": 12116
+        },
+        {
+          "symbol": "__psynch_cvwait",
+          "stack_samples": 12116
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run",
+          "stack_samples": 9255
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "tokio::runtime::scheduler::multi_thread::worker::run",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}, ()>",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}::{closure#0}, ()>",
+          "stack_samples": 9254
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::park_internal",
+          "stack_samples": 9248
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::park::Inner>::park_condvar",
+          "stack_samples": 8592
+        },
+        {
+          "symbol": "std::rt::lang_start_internal",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "std::rt::lang_start::<core::result::Result<(), anyhow::Error>>::{closure#0}",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<fn() -> core::result::Result<(), anyhow::Error>, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "<tokio::runtime::runtime::Runtime>::block_on::<connect::main::{closure#0}>",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::multi_thread::MultiThread>::block_on<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>::{closure#0}, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "<tokio::runtime::park::CachedParkThread>::block_on::<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "<tokio::runtime::park::Inner>::park",
+          "stack_samples": 661
+        },
+        {
+          "symbol": "<tokio::runtime::time::Driver>::park_internal",
+          "stack_samples": 655
+        },
+        {
+          "symbol": "<tokio::runtime::io::driver::Driver>::turn",
+          "stack_samples": 655
+        },
+        {
+          "symbol": "kevent",
+          "stack_samples": 655
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 302
+        },
+        {
+          "symbol": "sqlite3_exec",
+          "stack_samples": 298
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 157
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 157
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 157
+        },
+        {
+          "symbol": "<connect_store::Store>::session_reconnect_page",
+          "stack_samples": 157
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_lifecycle_worker::{closure#2}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 154
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_lifecycle_worker::{closure#2}::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 154
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_lifecycle_worker::{closure#2}::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 154
+        },
+        {
+          "symbol": "<connect_store::Store>::session_lifecycle_hint_page",
+          "stack_samples": 154
+        },
+        {
+          "symbol": "__psynch_mutexwait",
+          "stack_samples": 151
+        },
+        {
+          "symbol": "core::ptr::drop_glue::<rusqlite::Connection>",
+          "stack_samples": 12
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::close",
+          "stack_samples": 12
+        },
+        {
+          "symbol": "sqlite3_step",
+          "stack_samples": 10
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run_task",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<connect_service::canonical_session_codecs::run::{closure#0}, alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "connect_service::canonical_session_codecs::run::{closure#0}",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "tokio::runtime::blocking::pool::spawn_blocking::<connect_service::canonical_session_codecs::run::{closure#0}::{closure#2}, core::result::Result<alloc::vec::Vec<connect_store::transitions::session_codecs::SessionCodecTarget>, connect_protocol::Error>>",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::pool::Spawner>::spawn_task",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<parking_lot::raw_mutex::RawMutex>::lock_slow",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#1}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#1}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<connect_service::canonical_runtime::Runtime>::install_session_reconnect_worker::{closure#2}::{closure#1}> as core::future::future::Future>::poll",
+          "stack_samples": 5
+        }
+      ],
+      "component_stacks": [
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 302
+        },
+        {
+          "symbol": "sqlite3_exec",
+          "stack_samples": 298
+        },
+        {
+          "symbol": "<connect_store::Store>::session_reconnect_page",
+          "stack_samples": 157
+        },
+        {
+          "symbol": "<connect_store::Store>::session_lifecycle_hint_page",
+          "stack_samples": 154
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::close",
+          "stack_samples": 12
+        },
+        {
+          "symbol": "sqlite3_step",
+          "stack_samples": 10
+        },
+        {
+          "symbol": "connect_service::canonical_session_codecs::run::{closure#0}",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "<connect_store::Store>::reconcile_session_reconnect",
+          "stack_samples": 5
+        },
+        {
+          "symbol": "connect_store::session_lifecycle::can_activate",
+          "stack_samples": 4
+        },
+        {
+          "symbol": "connect_store::session_lifecycle::pending_snapshot",
+          "stack_samples": 4
+        },
+        {
+          "symbol": "connect_store::session_control::view",
+          "stack_samples": 3
+        },
+        {
+          "symbol": "sqlite3_stricmp",
+          "stack_samples": 2
+        },
+        {
+          "symbol": "<rusqlite::statement::Statement>::query_row::<connect_protocol::session_control::SessionView, &[&dyn rusqlite::types::to_sql::ToSql], connect_store::session_control::view::{closure#0}>",
+          "stack_samples": 2
+        },
+        {
+          "symbol": "sqlite3_reset",
+          "stack_samples": 2
+        },
+        {
+          "symbol": "connect_store::session_lifecycle::readiness::observed_coverage",
+          "stack_samples": 2
+        }
+      ],
+      "scope": "Inclusive sampled stack counts across server threads; not CPU seconds or a transport/quality pass. Only fixed runtime waits and known Rust/SQLite symbols; PIDs, paths and raw stacks excluded."
+    },
+    "cleanup": {
+      "server_joined": true,
+      "exit_code": 0,
+      "remaining_group_members": 0
+    },
+    "prior_failed_controller": "First invocation imported from one directory too high; no observer started, original server still joined. Failure retained privately."
+  },
+  "local_checks": {
+    "node": "22.16.0",
+    "sampler_cases_passed": 3,
+    "sampler_failed": 0,
+    "sampler_skipped": 0,
+    "synthetic_sdk_functions_passed": 131,
+    "synthetic_sdk_typecheck_exit_code": 0,
+    "synthetic_sdk_source_count": 318,
+    "synthetic_sdk_source_inputs_sha256": "405d87d71e9ce1349ce71b732692ea8cf6aa7cd381f783619cd2b27fe66e677b",
+    "synthetic_sdk_log_sha256": "9869989d01ec888b4b8735dd723a449d59f7111d3e1011184a14ff242a0abc0e",
+    "synthetic_sdk_sources_unchanged": true,
+    "synthetic_sdk_forced_cleanup": false
+  },
+  "fixture_change": "Control readiness precedes synthetic media cases with a setup-only5s budget; packet budgets stay1000ms. The1ms opening attachment ownership test uses an explicit held original attachment and close joins it after release.",
+  "actual_after_fix_ci_observed": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

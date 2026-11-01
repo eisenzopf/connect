@@ -149,6 +149,7 @@ async def main():
             assert value['profile']=='connect-sdk-helper/4'
             capture({'channel':'control','action':action})
             if kind=='media_attach':
+                if config.get('mode')=='attach-held':await released()
                 endpoint=action['attachment']['endpoint'];host,port=endpoint.rsplit(':',1)
                 peer,writer=await asyncio.open_connection(host,int(port))
                 token=action['attachment']['token']

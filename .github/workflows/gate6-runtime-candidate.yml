@@ -11,6 +11,9 @@ on:
       app_cpu_profile:
         type: boolean
         default: false
+      native_server_sample:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -146,6 +149,7 @@ jobs:
         run: |
           npm run test:app --prefix examples/parley-on-connect
           node --test scripts/tests/app_cpu_summary.test.mjs
+          node --test scripts/tests/native_server_sample.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_reference_app_components.py -v
       - name: Package public Node SDK for the component app rehearsal
         if: ${{ inputs.reference_app && !inputs.qualification }}
@@ -179,7 +183,7 @@ jobs:
           npx --no-install playwright install --with-deps chromium
       - name: Rehearse all current installed app checks with original owners
         if: ${{ inputs.reference_app }}
-        run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser ${{ inputs.app_cpu_profile && '--profile-app-cpu' || '' }}
+        run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser ${{ inputs.app_cpu_profile && '--profile-app-cpu' || '' }} ${{ inputs.native_server_sample && runner.os == 'macOS' && '--sample-native-server' || '' }}
       - name: Retain app component proof and synthetic browser evidence
         if: ${{ always() && inputs.reference_app }}
         run: |
