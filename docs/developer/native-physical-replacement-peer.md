@@ -156,9 +156,12 @@ signed receipts and actual incoming Video negotiation stay private beside the
 original root. A failed or uncertain control stops the target without another
 mutation or a new operation ID. Opening audio does not open Video.
 
-This AV implementation is still undergoing Rust and signed integration
-verification. Its source-input and original-root boundary checks pass, but those
-checks establish neither an actual physical AV move nor decoded quality,
+This AV implementation is still undergoing standalone Cargo and signed integration
+verification. Its seven pure Rust cases pass against the source-matched normal-feature
+public client library, including actual public VP8 reassembly and full journal identity
+checks. All 4297 prepared/public source inputs, peer sources, linked public library
+bytes and the test binary remain unchanged. These checks establish neither an
+actual physical AV move nor decoded quality,
 paired synchronization, uninterrupted audio during control waits, twenty moves
 or any complete transport-matrix cell. The independent retained-packet decoder
 and the full required workload remain separate completion obligations.

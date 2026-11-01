@@ -1,6 +1,6 @@
 {
   "format": "connect/gate6-native-av-replacement-peer-candidate/1",
-  "implementation_status": "candidate-awaiting-guarded-rust-and-signed-runtime-verification",
+  "implementation_status": "seven-direct-public-crate-component-tests-pass-cargo-and-signed-runtime-pending",
   "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
   "candidate_source_sha256": {
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "83e7f3e1863c68a485732144bc2fea093f8a185d693ed46fb85f412766eaa72b",
@@ -55,9 +55,74 @@
     "The following default-feature integration compile and independent Rust consumer compile failed on ENOSPC: debug/deps resolved to the system drive through a symlink, while D2 had314GiB free. No native test or Rust consumer cases ran.",
     "The task-owned dependency cache is being relocated with per-file byte verification and preserved original paths; neither failed build is a runtime or physical AV result."
   ],
-  "scope": "Candidate adds original-ID matched AV negotiation, original-clock VP8 fragmentation, original journal observation using full correlated signed payloads, separate durable video gates/subscription, and a signed service AV fixture. Pending states do not open Video; unknown controls are not retried. Current source still needs guarded Rust compilation, its seven peer cases, the exact signed integration case and existing audio regression. Actual full AV move, decoded/paired quality, uninterrupted audio during control waits, twenty-transition workload and all32 required transport cells remain unqualified.",
+  "scope": "Candidate adds original-ID matched AV negotiation, original-clock VP8 fragmentation, original journal observation using full correlated signed payloads, separate durable video gates/subscription, and a signed service AV fixture. Pending states do not open Video; unknown controls are not retried. Seven pure peer cases now pass under direct rustc against the source-matched normal-feature public library. The standalone consumer Cargo build, exact signed integration case and existing audio regression remain required. Actual full AV move, decoded/paired quality, uninterrupted audio during control waits, twenty-transition workload and all32 required transport cells remain unqualified.",
   "physical_av_replacement_verified": false,
   "full_matrix_cells_qualified": 0,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "controlled_rust_checks": {
+    "mode": "direct-rustc-public-client-normal-feature-rlib",
+    "compile_exit": 0,
+    "compile_seconds": 3.222915416583419,
+    "cases_passed": 7,
+    "binary_sha256": "fb4774e3e51027545f5283f9f3c17954a23153e08914ca15be75f63530993686",
+    "test_log_sha256": "cc6698b83fa534b7220665e3f2c012195883de6145e08df60c1e9bd069c0ee8f",
+    "prepared_and_public_source_inputs_matched": 4297,
+    "prepared_and_public_source_inputs_unchanged": true,
+    "peer_sources_unchanged": true,
+    "public_artifacts_unchanged": true,
+    "public_artifacts": {
+      "serde": {
+        "features": [
+          "alloc",
+          "default",
+          "derive",
+          "rc",
+          "serde_derive",
+          "std"
+        ],
+        "sha256": "1e2c1ecd7749f25bae0d8246f96a86f8facba581d35087e981315f4ae60be1c6"
+      },
+      "serde_json": {
+        "features": [
+          "alloc",
+          "default",
+          "float_roundtrip",
+          "raw_value",
+          "std"
+        ],
+        "sha256": "b06650ac50e240d91bff4edb8274a287d62c0f1005786a116ec8cb2d78fef88c"
+      },
+      "tokio": {
+        "features": [
+          "bytes",
+          "default",
+          "fs",
+          "full",
+          "io-std",
+          "io-util",
+          "libc",
+          "macros",
+          "mio",
+          "net",
+          "parking_lot",
+          "process",
+          "rt",
+          "rt-multi-thread",
+          "signal",
+          "signal-hook-registry",
+          "socket2",
+          "sync",
+          "time",
+          "tokio-macros"
+        ],
+        "sha256": "85b7a363fe75f4322bb9c776da81b2f38bca33198db256083612a675ad7624cb"
+      },
+      "connect_client": {
+        "features": [],
+        "sha256": "b56b8bf1bbae740ab2b074019a877c9d5c79a17773468ae238dae23a7276cb24"
+      }
+    },
+    "scope": "Direct rustc same seven pure peer tests against the actual source-matched normal-feature root public connect-client rlib. Separate consumer Cargo build and signed runtime still required. Dependency cache is read only; all outputs are new D2 private files."
+  }
 }
