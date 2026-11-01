@@ -395,31 +395,8 @@ impl Manager {
                     _admission: admission,
                 });
             } else {
-                let mut readers = match wait {
-                    Some(_) => self.readers.lock().map_err(|_| Error::storage())?,
-                    None => self.readers.try_lock().map_err(|error| match error {
-                        std::sync::TryLockError::WouldBlock => authority_busy(),
-                        std::sync::TryLockError::Poisoned(_) => Error::storage(),
-                    })?,
-                };
-                readers.retain(|_, file| file.strong_count() > 0);
-                let resource = if let Some(resource) = readers.get(&name).and_then(Weak::upgrade) {
-                    resource
-                } else {
-                    let file = self.lock_file(&format!("{name}.resource"))?;
-                    // A cooperative exclusive owner retains admission. A shared
-                    // lock cannot contend here; do not wait under the map mutex.
-                    FileExt::try_lock_shared(file.file()).map_err(|_| {
-                        Error::new(
-                            "authority-unavailable",
-                            "Authority resource ownership is inconsistent",
-                        )
-                    })?;
-                    let file = Arc::new(file);
-                    readers.insert(name, Arc::downgrade(&file));
-                    file
-                };
-                drop(readers);
+                let resource = self
+                    .read_resource(&name, wait, || self.lock_file(&format!("{name}.resource")))?;
                 drop(admission);
                 held.push(Held::Read {
                     _resource: resource,
@@ -434,6 +411,52 @@ impl Manager {
             scopes: ordered,
             _held: held,
         }))
+    }
+    // The caller owns this scope's exclusive admission description. The
+    // factory only prepares its resource file; it cannot create an IO grant.
+    fn read_resource(
+        self: &Arc<Self>,
+        name: &str,
+        wait: Option<&AuthorityWait>,
+        prepare: impl FnOnce() -> Result<LockFile>,
+    ) -> Result<Arc<LockFile>> {
+        let existing = {
+            let mut readers = self.reader_registry(wait)?;
+            readers.retain(|_, file| file.strong_count() > 0);
+            readers.get(name).and_then(Weak::upgrade)
+        };
+        if let Some(resource) = existing {
+            return Ok(resource);
+        }
+        // This scope's admission remains reserved while file/ACL validation
+        // and resource locking run. Unrelated scopes need only the short map
+        // intervals above and below, never this potentially slow filesystem IO.
+        let file = prepare()?;
+        FileExt::try_lock_shared(file.file()).map_err(|_| {
+            Error::new(
+                "authority-unavailable",
+                "Authority resource ownership is inconsistent",
+            )
+        })?;
+        let resource = Arc::new(file);
+        // Same-name admission is still exclusive, so no other acquisition can
+        // install a resource for this name. A busy immediate registry drops
+        // this original file lock before returning; no partial reader survives.
+        self.reader_registry(wait)?
+            .insert(name.into(), Arc::downgrade(&resource));
+        Ok(resource)
+    }
+    fn reader_registry(
+        &self,
+        wait: Option<&AuthorityWait>,
+    ) -> Result<std::sync::MutexGuard<'_, BTreeMap<String, Weak<LockFile>>>> {
+        match wait {
+            Some(_) => self.readers.lock().map_err(|_| Error::storage()),
+            None => self.readers.try_lock().map_err(|error| match error {
+                std::sync::TryLockError::WouldBlock => authority_busy(),
+                std::sync::TryLockError::Poisoned(_) => Error::storage(),
+            }),
+        }
     }
     fn name(&self, key: &(Kind, String)) -> Result<String> {
         if let Ok(names) = self.names.try_lock() {

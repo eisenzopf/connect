@@ -1,0 +1,67 @@
+{
+  "format": "connect/authority-resource-preparation/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "source_files_sha256": {
+    "crates/connect-store/src/authority_fences.rs": "5aad81ee2aad407eee38b10de4045ed0e2dde10988d992e75aa366272d0a7404",
+    "crates/connect-store/src/authority_fences/tests.rs": "67334acef09ea801282d51c0583cd26493b4e55d7804597e014323c69c521e9d",
+    "crates/connect-store/src/authority_fences/tests/resource_preparation.rs": "9d2cbf6301c424bc01f3d7e7e2790600c77b6337cbf92cf575b3bc965de3e7e9"
+  },
+  "source_lock_sha256": "49c9f00fbf0c272cdd28a93085d7b8d3cdddcd3c1f89280e0ef2500def113a6c",
+  "upstream_patch_count": 267,
+  "before": {
+    "stage": "complete",
+    "passed": false,
+    "counterexample_verified": true,
+    "exit_code": 101,
+    "tests_passed": 1,
+    "tests_failed": 2,
+    "tests_ignored": 0,
+    "binary_sha256": "beb4837d84663747ca98f8447af552d700ef553511f4decabfafd23d252f5561",
+    "original_binary_preserved": true,
+    "elapsed_seconds": 25.615259415935725,
+    "source_inputs_unchanged": true
+  },
+  "before_method_extraction": "Equivalent resource acquisition helper extraction retains the original global reader-map lock around resource preparation, enabling deterministic controlled factories. No policy or file-validation behavior changed in the before run.",
+  "correction": "Keep this exact scope admission exclusively reserved while preparing and shared-locking its resource outside the global reader registry. Use short lookup/installation map intervals. Immediate installation contention drops the original resource lock; existing active resource shares remain owned until their final reader drops.",
+  "preserved_checks": [
+    "Original sorted complete scope set and same-scope writer exclusion.",
+    "Fresh state fingerprint, private directory, admission-file and resource-file validation.",
+    "Current effective ACL/mode/owner/inode/link checks and file lock ownership.",
+    "Immediate failure semantics, original wait/cancellation owner, SQL/clock/source sealing and per-packet authorization.",
+    "No idle authority reader, positive permission cache, deadline extension, IO retry or media-threshold change."
+  ],
+  "after_completed_cohorts": [
+    {
+      "name": "resource_preparation",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "authority_fences",
+      "passed": 45,
+      "failed": 0,
+      "ignored": 1
+    }
+  ],
+  "after_binary_sha256": "34bef9377790578a98974aba4cf56ff5e4d888dab0120b2648fd945393a3ab3a",
+  "native_stream_cohort": {
+    "status": "in-progress",
+    "exact_original_prefix": "connection_control::tests::native_stream_authority::",
+    "cases_required": 185
+  },
+  "controller_filter_correction": "Original wrapper used an empty native_stream_authority:: module prefix and stopped after the successful3+45 cases. Retained original state/logs; continue only the unrun185 cases on the same verified binary. Queued build and native controllers first stopped at that failed prerequisite before any commands; their terminal empty results are retained. No original native operation was replayed.",
+  "private_evidence_sha256": {
+    ".local/gate-6/authority-resource-preparation/before-state.json": "ae46dc652257798070bde8432279dd35fe13f02822e403db57ea0c5f6cbb0976",
+    ".local/gate-6/authority-resource-preparation/before-inputs.json": "1cfcf89bdb4777ac8a1c75a10371eaeafec0b86e9108fc0d17b81002452a1588",
+    ".local/gate-6/authority-resource-preparation/before.log": "981f681c26f07f3a2e81123c8d9979d3fb09e18438834c7a3a24967e398b7488",
+    ".local/gate-6/authority-resource-preparation/after-before-native-filter-correction.json": "0d5437f5cddb6a07742b4094f7e9a7b79f7f1bee342d952585b83dee743f455a",
+    ".local/gate-6/authority-resource-preparation/after-inputs.json": "aa8f3b0e4ac5d3a8771603708400f390ccfa1ad5ebfe9903cae4d646b72344c0",
+    ".local/gate-6/authority-resource-preparation/after.log": "a48c69a41c517560604a59431705fc4d1a515304e79249e4cc6feca115484f21",
+    ".local/gate-6/authority-resource-preparation/authority_fences.log": "0a1c16cf461c7a560795a60cc2cdcf6b03dd51c824ffbf35aa6abbce3932fc06"
+  },
+  "scope": "Controlled Store authority contention correction and already completed regression checks only. Full current native cohort, optimized runtime and fresh same-profile six-route quality verification remain pending. The retained8ba58446 baseline remains negative. No full Store suite, decoded media, twenty-move,32-cell or task qualification.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
