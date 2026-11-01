@@ -50,10 +50,23 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         PRIVATE, OUTPUT = BASE / "private/actors", BASE / "evidence/actors"
     assert signing_algorithm in {"EdDSA", "ES256"}
     os.umask(0o077)
-    assert platform.system() == "Linux" and platform.machine() == "x86_64"
-    release = platform.freedesktop_os_release()
-    assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
-    assert re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
+    if platform.system() == "Linux":
+        assert platform.machine() == "x86_64"
+        release = platform.freedesktop_os_release()
+        assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
+        assert re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
+        server_platform, target = "ubuntu24-x86_64", "x86_64-unknown-linux-gnu"
+        host = dict(os="linux", architecture="x86_64", kernel_release=platform.release(), distribution=release["PRETTY_NAME"])
+    else:
+        assert platform.system() == "Darwin" and platform.machine() == "arm64"
+        assert subprocess.check_output(["/usr/sbin/sysctl", "-n", "hw.optional.arm64"], text=True).strip() == "1"
+        server_platform, target = "macos-arm64", "aarch64-apple-darwin"
+        host = dict(os="darwin", architecture="arm64", kernel_release=platform.release(), version=platform.mac_ver()[0])
+    rust = subprocess.check_output(["rustc", "-Vv"], text=True)
+    assert "rustc 1.97.1 " in rust and "host: " + target in rust
+    host["rust"] = rust
+    host["platform"] = server_platform
+    assert os.environ.get("TRANSPORT_TARGET", server_platform) == server_platform
     PRIVATE.mkdir(parents=True)
     OUTPUT.mkdir(parents=True)
     source = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
@@ -62,8 +75,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
-        servers=[], signing_algorithm=signing_algorithm, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned loopback listener/namespace and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        servers=[], signing_algorithm=signing_algorithm, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
+        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned loopback listener/namespace and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
@@ -147,7 +160,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             while b"ready transport=quic" not in path.read_bytes():
                 assert server.poll() is None and time.monotonic() < until
                 time.sleep(.05)
-            assert digest(Path(f"/proc/{server.pid}/exe")) == report["binary_sha256"]
+            actual_executable = (Path(f"/proc/{server.pid}/exe") if server_platform == "ubuntu24-x86_64" else
+                Path(subprocess.check_output(["/bin/ps", "-ww", "-p", str(server.pid), "-o", "comm="], text=True).strip()))
+            assert actual_executable.is_absolute() and digest(actual_executable) == report["binary_sha256"]
             report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"], original_joined=False))
 
         def stop():
@@ -194,10 +209,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         original_seed = files(seed)
         original_server = tomllib.loads((seed / "server.toml").read_text())
         original_operator = tomllib.loads((seed / "operator.toml").read_text())
-        parameters = dict(cell_id="G6-058/ubuntu24-x86_64/local/native-quic/" + signing_algorithm,
+        parameters = dict(cell_id="G6-058/" + server_platform + "/local/native-quic/" + signing_algorithm,
             candidate_source_revision=report["source_revision"], candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=None,
-            topology=dict(kind="local-loopback", server_platform="ubuntu24-x86_64", client_platform="ubuntu24-x86_64",
+            topology=dict(kind="local-loopback", server_platform=server_platform, client_platform=server_platform,
                 client_emulated=False, native_endpoint=original_operator["endpoint"], server_name=original_operator["server_name"]))
         phase = "materialize"
         summary = materialize(ROOT, seed, output, parameters, binary, env)
@@ -220,7 +235,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             raise AssertionError("Existing fixture was replaced")
         assert files(output) == before_retry
         report["checks"].append("occupied-instance-refuses-without-overwrite")
-        wrong = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/native-quic/" + other_algorithm)
+        wrong = dict(parameters, cell_id="G6-058/" + server_platform + "/local/native-quic/" + other_algorithm)
         try:
             materialize(ROOT, seed, PRIVATE / "wrong-signing", wrong, binary, env)
         except FixtureError as error:
@@ -229,7 +244,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             raise AssertionError("Wrong signing cohort accepted")
         assert not (PRIVATE / "wrong-signing").exists()
         report["checks"].append("wrong-signing-seed-refuses-before-state-publication")
-        browser = dict(parameters, cell_id="G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
+        browser = dict(parameters, cell_id="G6-058/" + server_platform + "/local/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
         try:
             materialize(ROOT, seed, PRIVATE / "missing-browser", browser, binary, env)
         except FixtureError as error:
@@ -339,7 +354,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
                     executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
-                    server_pid=server.pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm), indent=2) + "\n").encode())
+                    server_pid=server.pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm, server_platform=server_platform), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
@@ -355,7 +370,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
-                assert observed["signing_algorithm"] == signing_algorithm
+                assert observed["signing_algorithm"] == signing_algorithm and observed["host"]["platform"] == server_platform
                 assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report["binary_sha256"]
                 if data_workload:
                     assert observed["actual_connection_workload_observed"] and observed["actual_topology_verified"]

@@ -224,12 +224,23 @@ participant self-verification, verifies each Endpoint through the administrative
 API and replays the original commands without another revision change. The
 fixture does not inspect the installer's private intent or write Store state.
 
-The data lane owns a separate `tcpdump` process on Linux loopback, filtered to
-UDP traffic at the exact synthetic server port. Its only added runner capability
-is `cap_net_raw`; the server and clients remain regular processes. Capture starts
+The configuration, actor, conversation and data lanes accept workflow input
+`transport_target`: `ubuntu24-x86_64` or `macos-arm64`. The latter uses the native
+`macos-15` arm64 runner and its existing platform build cache. Actual host,
+toolchain and architecture checks remain required. The macOS producer identifies
+the original server and helper executable images through native process reads
+and checks the server-owned UDP loopback socket through `lsof`. Linux retains
+its `/proc` executable, socket-inode and network-namespace observations. These
+collectors do not execute a browser or infer another platform's result.
+
+The data lane owns a separate `tcpdump` process on native loopback, filtered to
+UDP traffic at the exact synthetic server port. The Linux runner grants
+`cap_net_raw` to its capture tool; the disposable macOS runner grants its user
+access to BPF devices. The server and clients remain regular processes. Capture starts
 before the SDK workload and stops after revocation checks. Raw PCAP and logs stay
 in the private fixture directory. The collector bounds file/packet sizes,
-requires zero kernel drops, rejects truncated/foreign/fragmented packets, counts
+requires zero kernel drops, accepts identified Ethernet or BSD-loopback IPv4
+records, rejects truncated/foreign/fragmented packets, counts
 both directions and requires the captured UDP bytes in each direction to cover
 the six payloads. It joins the original capture owner on success and failure;
 forced cleanup or early capture termination cannot pass. Public evidence contains

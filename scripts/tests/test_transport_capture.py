@@ -65,6 +65,14 @@ class CaptureBoundary(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, "capture-(link-profile|format)"):
                 self.inspect(data)
 
+    def test_macos_bsd_loopback_headers_require_actual_ipv4_family(self):
+        for family in (b"\x02\0\0\0", b"\0\0\0\x02"):
+            result = self.inspect(pcap([family + value[14:] for value in self.duplex], link=0))
+            self.assertEqual(result["packets"], 2)
+            self.assertEqual(result["link_type"], "BSD-loopback/IPv4/UDP")
+        with self.assertRaisesRegex(AssertionError, "foreign-loopback"):
+            self.inspect(pcap([b"\x1e\0\0\0" + value[14:] for value in self.duplex], link=0))
+
     def test_fragmented_ip_and_inconsistent_udp_length_refuse(self):
         for offset, value in ((20, b"\x20\x00"), (38, b"\x00\x08")):
             invalid = bytearray(self.duplex[0])

@@ -1,11 +1,11 @@
 // Actual public Node SDK/native helper scenario. No Store, media or provider IO.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile, mkdir, stat, realpath, open, readdir, readlink } from "node:fs/promises";
+import { readFile, writeFile, mkdir, stat, realpath, open } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
+import { nativeHost, executableHash, childPids, processExists, observeLocalTopology } from "./lib/transport_host.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -19,6 +19,7 @@ assert.equal((await stat(inputPath)).mode & 0o077, 0);
 const input = JSON.parse(await readFile(inputPath, "utf8"));
 assert.equal(input.format, "connect/transport-conversation-input/1");
 assert.ok(["EdDSA", "ES256"].includes(input.signing_algorithm));
+assert.equal(input.server_platform, nativeHost().platform);
 assert.deepEqual(Object.keys(input.actors).sort(), ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"]);
 assert.equal(hash(await readFile(input.executable)), input.binary_sha256);
 const privateDirectory = join(dirname(inputPath), "conversation-control");
@@ -40,16 +41,17 @@ const options = { timeoutMs: 8000 };
 const mutation = name => ({ ...options, operationId: plan[name] });
 const clients = new Map();
 const observedHelpers = new Set();
+const dataFailures = new WeakMap();
 const report = { format: "connect/transport-conversation-control/1", passed: false, checks: [],
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
-    node: process.version, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
+    node: process.version, host: nativeHost(), plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
     maximum_active_members_observed: 0, concurrent_session_intents_observed: 0,
     actual_connection_workload_observed: false, live_media_upgrade_observed: false,
     replacement_media_ownership_observed: false, actual_topology_verified: false,
     cell_qualified: false, task_complete: false, whole_gate_qualified: false,
     workload_mode: dataWorkload ? "six-native-data-connections" : "control-only",
-    scope: "One source-bound Ubuntu/local/native signing cohort public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, remote topology, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
+    scope: "One source-bound native macOS-arm64 or Ubuntu-x86_64 local signing cohort public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, remote topology, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
 let phase = "client-setup";
 function check(name) { report.checks.push(name); phase = name; }
 async function complete(operation) {
@@ -68,9 +70,8 @@ async function refused(call, code, reason) {
     assert.equal(observed, true);
 }
 async function helpers() {
-    const pids = execFileSync("ps", ["-o", "pid=", "--ppid", String(process.pid)], { encoding: "utf8" }).trim().split(/\s+/).filter(Boolean);
-    for (const pid of pids) {
-        try { if (hash(await readFile(`/proc/${pid}/exe`)) === input.binary_sha256) observedHelpers.add(Number(pid)); }
+    for (const pid of childPids(process.pid)) {
+        try { if (await executableHash(pid) === input.binary_sha256) observedHelpers.add(pid); }
         catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
     }
 }
@@ -233,8 +234,31 @@ try {
         assert.ok(before.every(v => ["ready", "active"].includes(v.state)));
         assert.equal(new Set(before.map(v => v.id)).size, 6);
         phase = "six-native-reliable-data-flow";
-        const accepted = await Promise.all(flows.map(flow => complete(flow.source.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.sendData(flow.intent, mutation(flow.source.prefix + "-data")))));
-        const received = await Promise.all(flows.map(flow => flow.target.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.receiveData(options)));
+        report.native_data_submissions = report.native_data_completions = report.native_data_receives = 0;
+        const accepted = await Promise.all(flows.map(async flow => {
+            let step = "submission";
+            try {
+                const operation = await flow.source.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.sendData(flow.intent, mutation(flow.source.prefix + "-data"));
+                report.native_data_submissions++;
+                step = "completion";
+                const result = await complete(operation);
+                report.native_data_completions++;
+                return result;
+            } catch (error) {
+                dataFailures.set(error, { step, source_role: flow.source.role, session_index: flow.source.sid });
+                throw error;
+            }
+        }));
+        const received = await Promise.all(flows.map(async flow => {
+            try {
+                const result = await flow.target.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.receiveData(options);
+                report.native_data_receives++;
+                return result;
+            } catch (error) {
+                dataFailures.set(error, { step: "receive", target_role: flow.target.role, session_index: flow.target.sid });
+                throw error;
+            }
+        }));
         for (const [index, flow] of flows.entries()) {
             const value = received[index];
             assert.equal(accepted[index].boundary, "core-queue-admission");
@@ -258,20 +282,7 @@ try {
             payload_sha256: flows.map(v => hash(v.payload)), audio_video_workload_verified: false };
         check("six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions");
         phase = "owned-local-topology-observation";
-        assert.equal(process.platform, "linux"); assert.equal(process.arch, "x64");
-        assert.equal(hash(await readFile(`/proc/${input.server_pid}/exe`)), input.binary_sha256);
-        const serverNamespace = await readlink(`/proc/${input.server_pid}/ns/net`);
-        for (const pid of observedHelpers) assert.equal(await readlink(`/proc/${pid}/ns/net`), serverNamespace);
-        const inodes = new Set();
-        for (const fd of await readdir(`/proc/${input.server_pid}/fd`)) {
-            try { const value = await readlink(`/proc/${input.server_pid}/fd/${fd}`); const match = /^socket:\[(\d+)\]$/.exec(value); if (match) inodes.add(match[1]); }
-            catch (error) { if (error.code !== "ENOENT") throw error; }
-        }
-        const nativePort = Number(input.native_endpoint.split(":").at(-1));
-        const udp = (await readFile(`/proc/${input.server_pid}/net/udp`, "utf8")).trim().split("\n").slice(1).map(line => line.trim().split(/\s+/));
-        assert.ok(udp.some(row => row[1].split(":")[0] === "0100007F" && parseInt(row[1].split(":")[1], 16) === nativePort && inodes.has(row[9])));
-        report.local_topology = { same_network_namespace_observed: true, server_owned_loopback_udp_bind_observed: true,
-            helpers_in_server_namespace: observedHelpers.size, server_executable_sha256: input.binary_sha256, namespace_sha256: hash(serverNamespace) };
+        report.local_topology = await observeLocalTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256);
         report.actual_topology_verified = true;
         check("actual-server-loopback-listener-and-original-helper-network-namespace-observed");
         phase = "native-data-original-replay";
@@ -305,6 +316,9 @@ try {
     report.passed = true;
 } catch (error) {
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+    if (dataFailures.has(error)) report.failure.data_context = dataFailures.get(error);
+    if (["message.send", "operation.get", "connection.offer", "stream.subscribe"].includes(error.operation?.command))
+        report.failure.command = error.operation.command;
     if (Number.isInteger(error.problem?.code) && error.problem.code >= 100 && error.problem.code <= 599
         && /^[a-z-]{1,32}$/.test(error.problem.category) && /^[a-z_]{1,64}$/.test(error.problem.reason))
         report.failure.problem = { code: error.problem.code, category: error.problem.category, reason: error.problem.reason };
@@ -333,8 +347,7 @@ try {
         catch { report.passed = false; report.helper_close_failed = true; }
     }
     for (const pid of observedHelpers) {
-        try { await stat(`/proc/${pid}`); report.passed = false; report.helper_survived = true; }
-        catch (error) { if (error.code !== "ENOENT") throw error; }
+        if (await processExists(pid)) { report.passed = false; report.helper_survived = true; }
     }
     report.observed_helpers = observedHelpers.size;
     report.all_observed_helpers_joined = !report.helper_survived && !report.helper_close_failed;

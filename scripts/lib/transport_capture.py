@@ -2,6 +2,7 @@
 import hashlib
 import os
 from pathlib import Path
+import platform
 import re
 import signal
 import struct
@@ -25,7 +26,8 @@ def inspect_pcap(path, server_port):
         assert magic in {b"\xd4\xc3\xb2\xa1", b"\xa1\xb2\xc3\xd4"}, "capture-format"
         endian = "<" if magic[0] == 0xd4 else ">"
         major, minor, zone, accuracy, snaplen, link = struct.unpack(endian + "HHiIII", stream.read(20))
-        assert (major, minor, zone, accuracy, link) == (2, 4, 0, 0, 1), "capture-link-profile"
+        assert (major, minor, zone, accuracy) == (2, 4, 0, 0) and link in {0, 1}, "capture-link-profile"
+        counts["link_type"] = "Ethernet/IPv4/UDP" if link == 1 else "BSD-loopback/IPv4/UDP"
         assert 65550 <= snaplen <= 262144
         while header := stream.read(16):
             assert len(header) == 16, "capture-truncated-record"
@@ -34,8 +36,12 @@ def inspect_pcap(path, server_port):
             packet = stream.read(size)
             assert len(packet) == size, "capture-truncated-body"
             assert seconds > 0, "capture-invalid-timestamp"
-            assert packet[12:14] == b"\x08\x00", "capture-foreign-ethernet"
-            ip = packet[14:]
+            if link == 1:
+                assert packet[12:14] == b"\x08\x00", "capture-foreign-ethernet"
+                ip = packet[14:]
+            else:
+                assert packet[:4] in {b"\x02\x00\x00\x00", b"\x00\x00\x00\x02"}, "capture-foreign-loopback"
+                ip = packet[4:]
             assert len(ip) >= 28 and ip[0] >> 4 == 4 and ip[9] == 17, "capture-foreign-protocol"
             ihl = (ip[0] & 15) * 4
             length = int.from_bytes(ip[2:4], "big")
@@ -72,21 +78,23 @@ class NativeCapture:
         self.directory.mkdir(mode=0o700)
         self.path = self.directory / "native.pcap"
         self.log = self.directory / "capture.log"
-        binary = Path("/usr/bin/tcpdump")
+        assert platform.system() in {"Linux", "Darwin"}
+        self.interface = "lo" if platform.system() == "Linux" else "lo0"
+        binary = Path("/usr/bin/tcpdump" if platform.system() == "Linux" else "/usr/sbin/tcpdump")
         metadata = binary.stat()
         assert metadata.st_uid == 0 and metadata.st_mode & 0o022 == 0
         version = subprocess.check_output([str(binary), "--version"], env=self.env, timeout=5, text=True).splitlines()[0]
-        assert re.fullmatch(r"tcpdump version [0-9]+\.[0-9]+\.[0-9]+", version)
+        assert re.fullmatch(r"tcpdump version [0-9]+\.[0-9]+\.[0-9]+(?: -- Apple version [0-9]+)?", version)
         self.binary = binary
         self.binary_sha256 = digest(binary)
         self.version = version
         self.stream = self.log.open("xb")
         self.started = time.monotonic()
-        self.process = subprocess.Popen([str(binary), "-p", "-n", "-i", "lo", "-U", "-s", "262144",
+        self.process = subprocess.Popen([str(binary), "-p", "-n", "-i", self.interface, "-U", "-s", "262144",
             "-c", "8192", "-w", str(self.path), "udp", "and", "host", "127.0.0.1", "and", "port", str(self.port)],
             env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=self.stream, start_new_session=True)
         until = time.monotonic() + 10
-        while b"listening on lo," not in self.log.read_bytes():
+        while ("listening on " + self.interface + ",").encode() not in self.log.read_bytes():
             assert self.process.poll() is None and time.monotonic() < until, "capture-not-ready"
             time.sleep(.05)
         assert self.path.is_file() and self.path.stat().st_mode & 0o077 == 0
@@ -96,7 +104,7 @@ class NativeCapture:
         if self.report is not None:
             return self.report
         report = dict(format="connect/native-private-packet-capture/1", observed=False,
-            original_joined=False, forced=False, scope="Actual owned Linux loopback UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.")
+            original_joined=False, forced=False, scope="Actual owned native loopback UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.")
         self.report = report
         try:
             assert self.process is not None
@@ -126,10 +134,11 @@ class NativeCapture:
             counts = inspect_pcap(self.path, self.port)
             assert counts["packets"] < 8192, "capture-packet-limit-reached"
             assert counts["packets"] == int(captured[1]), "capture-count-disagreement"
+            link_type = counts.pop("link_type")
             report.update(observed=True, version=self.version, executable_sha256=self.binary_sha256,
                 pcap_sha256=digest(self.path), pcap_bytes=self.path.stat().st_size,
                 captured_seconds=time.monotonic() - self.started, kernel_dropped_packets=0,
-                interface="lo", link_type="Ethernet/IPv4/UDP", filter="udp and loopback host and exact owned native server port",
+                interface=self.interface, link_type=link_type, filter="udp and loopback host and exact owned native server port",
                 counts=counts, raw_capture_private=True, decoded_media_verified=False)
         except (AssertionError, OSError, ValueError, struct.error, subprocess.TimeoutExpired) as error:
             report["failure"] = str(error) if isinstance(error, AssertionError) else type(error).__name__

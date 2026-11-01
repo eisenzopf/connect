@@ -1237,7 +1237,7 @@
       "job_id": 124738696422,
       "status": "completed-failure-prepare-status-not-ready"
     },
-    "observed": "Seven preceding SDK checks pass; zero native offers complete. First offer fails prepare-status/not-ready. Five original helpers and both server groups join without force. Current production source requires a verified Endpoint for the exact authenticated Device; issuance intentionally leaves it unverified.",
+    "observed": "Source-verified473: all5trustedEndpointverifications/originalreplays/issuanceresumes and participantselfverificationrefusal pass; all6nativeConnectionoffers complete. Dataflow400validation/invalid_request; submission vs completion vs receive not established.5helpers+2servergroupsjoin,noforce. No payload/workload/topology/fullcell pass.",
     "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed.",
     "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
     "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
@@ -1245,12 +1245,15 @@
       "source_revision": "47377682b54d52ed9b8226dfba271c41e287b186",
       "workflow_run_id": 41269934969,
       "job_id": 124740444538,
-      "status": "confirmed-live-production-build-rehearsal",
-      "runtime_verified": false
-    }
+      "status": "completed-failure-reliable-data-flow-after-six-native-offers",
+      "runtime_verified": false,
+      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json"
+    },
+    "endpoint_precondition_runtime_verified": true,
+    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json"
   },
   "native_signing_cohorts": {
-    "status": "implemented-runtime-unverified",
+    "status": "source-verified-ES256-configuration-and-actor-stage-pass",
     "default": "EdDSA",
     "supported": [
       "EdDSA",
@@ -1274,12 +1277,17 @@
       "rust_formatted": true
     },
     "runtime_candidate": {
-      "source_revision": "d2a6a578",
+      "source_revision": "d2a6a578c7496fe4536be09d1cbd8f4b072f71bd",
       "workflow_run_id": 41270063787,
       "job_id": 124740837933,
       "signing_algorithm": "ES256",
-      "status": "confirmed-live-production-build-rehearsal"
-    }
+      "status": "completed-success-independently-source-verified"
+    },
+    "runtime_verified_cohorts": [
+      "ES256"
+    ],
+    "verification_evidence": "docs/evidence/gate-6/transport-actors-es256-verified.json",
+    "runtime_scope": "Normal production CLI ES256 bootstrap, stopped-backup restore, exact signing seed refusal, public scoped enrollment/signed reads/original recovery/current revocation. No Conversation/Session/Connection workload, packet capture, browser, remote topology or decoded media qualification."
   },
   "native_packet_capture": {
     "status": "implemented-runtime-unverified",
@@ -1297,5 +1305,31 @@
     "full_matrix_cells_qualified": 0,
     "local_transport_guards_passed": 28,
     "scope": "Actual private native data packet capture only; no decoded audio/video, browser/remote topology, replacement ownership or full cell qualification."
+  },
+  "native_platform_producers": {
+    "status": "implemented-macos-runtime-unverified",
+    "targets": [
+      "ubuntu24-x86_64",
+      "macos-arm64"
+    ],
+    "behavior": "Same exact public CLI/Node SDK scenario selects the actual native host and exact signing cohort. Linux retains actual executable/socket-inode/network-namespace checks. macOS checks arm64 kernel/toolchain, actual server/helper images and server-owned loopback UDP socket; captures use lo0/BSD loopback records. Per-platform caches and native CI runners are explicit.",
+    "local_verification": {
+      "python_transport_guards": 29,
+      "actual_macos_process_checks": 2,
+      "python_node_syntax": true,
+      "workflow_yaml_parsed": true
+    },
+    "implementation_hashes": {
+      "scripts/lib/transport_host.mjs": "8c5f9901d9b03b5594d744784a826eb0f28d983717195bf4bd50aae42253b22a",
+      "scripts/tests/transport_host.test.mjs": "81b40a1341991728d00b620179bc2824a4ee212838b5e44390e709a1440fcf52",
+      "scripts/lib/transport_capture.py": "a2fafed08a02f4eb2baa26a2c4253709e5ab374d3247a65bbfe067651d765735",
+      "scripts/tests/test_transport_capture.py": "ab1a9d0eee5b7c5aba4353bd901a6e339e6d2c222ae3421f78fdc33fb428d6b0",
+      "scripts/check-transport-fixtures.py": "96ec68070adc2e290a61f5d45312ddfe955273a80cc7ed90d2a88baf4fea9399",
+      "scripts/check-transport-conversation.mjs": "25acc9e37522b85c726e473a4c4f2e8b355aa47114cdff965345d41870c2fbda",
+      ".github/workflows/gate6-transport-matrix.yml": "c041d8d6a909b528404b4ff1ca1ff34cfc6aa92ed2963b45beed113c9edc2506",
+      ".github/workflows/gate6-linux-fixtures.yml": "d7e7d00d1494f194e7b89914078f18da6ec85302170162538804ba9142c47ac8"
+    },
+    "macos_full_native_stage_runtime_verified": false,
+    "full_matrix_cells_qualified": 0
   }
 }

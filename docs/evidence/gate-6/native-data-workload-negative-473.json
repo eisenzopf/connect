@@ -1,0 +1,76 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "47377682b54d52ed9b8226dfba271c41e287b186",
+  "workflow_run_id": 41269934969,
+  "job_id": 124740444538,
+  "artifact_id": 13068629108,
+  "zip_sha256": "a17e95ab69aadf5d310d0935bddbcba5e77922c4b6ec1b69b04049cc24afd3c4",
+  "source_inputs_sha256": "2655993fc714271f6c0100ba0a365b812aef7362b4d78d38f121126daa5bb2e0",
+  "report_sha256": "e47c0451af0f530ba7dfd38ba1cc189512c143b7113aaa1605e11851fb5f59f9",
+  "conversation_report_sha256": "4a2004c36662151fb8c5cf458f4df626949188383efa8af6e2b0b8386bb3571f",
+  "sources_verified": {
+    "git": 4694,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "60e74d9b7532d07f188954b9519e9888870f7f8dc439511b118ab0cacfb9e374",
+  "endpoint_verification": {
+    "initial_unverified": 5,
+    "signed_control_proofs": 5,
+    "endpoints_verified": 5,
+    "original_verification_replays": 5,
+    "verified_endpoint_issuance_resumes": 5,
+    "participant_self_verification_refused": true,
+    "private_plan_sha256": "dee78e031da02195938cc3f09a7a5b66027554d254922769a105cf06680e367c",
+    "public_administration_only": true
+  },
+  "parent_checks_passed": [
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification"
+  ],
+  "public_cli_commands": 46,
+  "preceding_public_sdk_checks_passed": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change"
+  ],
+  "native_offers_completed": 6,
+  "source_verified_assertions_reached": "All six subscriptions/own-and-foreign negotiated data descriptors and a common six ready/active Connection boundary precede the failing data-flow phase. The raw report does not retain those snapshots.",
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "problem": {
+      "code": 400,
+      "category": "validation",
+      "reason": "invalid_request"
+    },
+    "source_stack": []
+  },
+  "cause_established": false,
+  "next": "Closed per-flow submission/completion/receive stage, counts and public operation command, without changing payloads, assertions, scopes or deadlines.",
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "native_connection_payload_workload_verified": false,
+  "local_topology_verified": false,
+  "packet_capture_observed": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

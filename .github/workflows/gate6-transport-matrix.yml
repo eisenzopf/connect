@@ -5,18 +5,21 @@ on:
       component:
         type: string
         default: control
+      target:
+        type: string
+        default: ubuntu24-x86_64
       signing:
         type: string
         default: EdDSA
 permissions:
   contents: read
 concurrency:
-  group: gate6-transport-matrix-${{ inputs.component }}-${{ inputs.signing }}-${{ github.ref }}
+  group: gate6-transport-matrix-${{ inputs.target }}-${{ inputs.component }}-${{ inputs.signing }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   control:
-    name: Ubuntu transport ${{ inputs.component }} component
-    runs-on: ubuntu-24.04
+    name: ${{ inputs.target }} transport ${{ inputs.component }} component
+    runs-on: ${{ inputs.target == 'macos-arm64' && 'macos-15' || 'ubuntu-24.04' }}
     timeout-minutes: 240
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
@@ -27,6 +30,8 @@ jobs:
       CXX: clang++
       TRANSPORT_COMPONENT: ${{ inputs.component }}
       TRANSPORT_SIGNING: ${{ inputs.signing }}
+      TRANSPORT_TARGET: ${{ inputs.target }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -38,15 +43,26 @@ jobs:
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         with:
           node-version: '22'
-      - name: Install native prerequisites
+      - name: Install Linux native prerequisites
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev ffmpeg
       - name: Prepare private fixture capture
-        if: inputs.component == 'data'
+        if: inputs.component == 'data' && runner.os == 'Linux'
         run: |
           sudo apt-get install -y tcpdump libcap2-bin
           sudo setcap cap_net_raw=ep /usr/bin/tcpdump
+      - name: Prepare macOS native prerequisites
+        if: runner.os == 'macOS'
+        run: |
+          command -v clang
+          command -v cmake || brew install cmake
+          command -v pkg-config || brew install pkgconf
+          brew install opus
+      - name: Prepare private macOS fixture capture
+        if: inputs.component == 'data' && runner.os == 'macOS'
+        run: sudo chown "$USER" /dev/bpf*
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:
@@ -55,14 +71,18 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
-            g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
-            g6-linux-installation-v1-
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-linux-installation-v1-' }}
       - name: Prepare verified sources and locked dependencies
         run: |
           python3 scripts/lib/source_build_cache.py restore
-          python3 scripts/lib/ci_dependency_cache.py
+          if [ "$RUNNER_OS" = Linux ]; then
+            python3 scripts/lib/ci_dependency_cache.py
+          else
+            bash scripts/prepare-dependencies.sh
+          fi
           cargo fetch --locked
       - name: Check matrix scope and promotion guards
         run: |
@@ -70,7 +90,11 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_transport_*.py'
           python3 scripts/check-gate-6-transports.py --phase inventory
       - name: Validate selected signing cohort
-        run: python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}'
+        run: |
+          python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-x86_64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"'
+      - name: Check actual host process observation and original child joins
+        if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
+        run: node --test scripts/tests/transport_host.test.mjs
       - name: Build current Node browser-SDK control inputs
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         working-directory: sdk/typescript
@@ -89,7 +113,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-transport-matrix-${{ inputs.component }}${{ inputs.signing == 'ES256' && '-ES256' || '' }}
+          name: gate6-transport-matrix-${{ inputs.component }}${{ inputs.signing == 'ES256' && '-ES256' || '' }}${{ inputs.target == 'macos-arm64' && '-macos-arm64' || '' }}
           path: .local/gate6-transports/evidence/
           include-hidden-files: true
           retention-days: 7
@@ -119,4 +143,4 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-linux-installation-v1-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
