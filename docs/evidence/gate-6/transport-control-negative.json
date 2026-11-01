@@ -1,0 +1,129 @@
+{
+  "format": "connect/transport-control-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "390b677f7f99580f534980cd620d22fb45e587aa",
+  "workflow_run_id": 41265399764,
+  "job_id": 124727066259,
+  "artifact_id": 13067342065,
+  "zip_sha256": "a3b45c5cf34d63c2a3563ac58c9a2bd2a1bfb35216e144ed689826e9bbdfa338",
+  "report_sha256": "7ea8e04c4cd51b77e5eaf2c0d53c6bda1032b9eae6a37e219beabf67b9fa7ce9",
+  "source_inputs_sha256": "0f16995ac5590080d7865856f2d50410e7e11608274b1e7e6948aebb03137ab5",
+  "sources_verified": {
+    "git": 4677,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "failure": {
+    "phase": "typecheck",
+    "name": "AssertionError",
+    "line": 137
+  },
+  "compiler_diagnostics": [
+    {
+      "code": "E0599",
+      "message": "no method named `canonical_session_metadata_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/admission.rs",
+          "line": 86
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `test_webrtc_host` found for struct `connect_server::canonical::RunningCanonicalServer` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs",
+          "line": 421
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `canonical_session_role_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 181
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `with_canonical_media_registry_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 376
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `canonical_session_metadata_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 407
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `with_canonical_media_activation_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 462
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `canonical_session_role_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 572
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `canonical_session_role_for_test` found for struct `std::sync::Arc<connect_service::Service>` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs",
+          "line": 658
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `test_webrtc_host` found for struct `connect_server::canonical::RunningCanonicalServer` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_webrtc_browser.rs",
+          "line": 495
+        }
+      ]
+    },
+    {
+      "code": "E0599",
+      "message": "no method named `test_webrtc_host` found for struct `connect_server::canonical::RunningCanonicalServer` in the current scope",
+      "locations": [
+        {
+          "file": "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs",
+          "line": 178
+        }
+      ]
+    }
+  ],
+  "control_functions_executed": 0,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "correction": "Enable existing connect-server/test-support for both integration typecheck and test compilation; require actual Cargo artifact features. All15selected runtime functions and original deadlines remain unchanged. Production package features remain separate."
+}

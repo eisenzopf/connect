@@ -124,8 +124,8 @@ def main():
         runtime_inputs = sdk_inputs()
         control["sdk_dist_inputs"] = runtime_inputs
         for name, command, budget in [
-            ("typecheck", ["cargo", "check", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--test", "gate6_canonical_webtransport"], 3600),
-            ("compile", ["cargo", "test", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--test", "gate6_canonical_webtransport", "--no-run"], 5400),
+            ("typecheck", ["cargo", "check", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_webtransport"], 3600),
+            ("compile", ["cargo", "test", "--release", "--locked", "--message-format=json", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_webtransport", "--no-run"], 5400),
         ]:
             phase = name
             log = private / (name + ".log")
@@ -143,6 +143,8 @@ def main():
                 continue
             if value.get("reason") == "compiler-artifact" and value.get("executable") and value["target"]["name"] == "gate6_canonical_webtransport":
                 assert value["profile"]["test"] and value["profile"]["opt_level"] == "3"
+                assert "test-support" in value["features"]
+                control["fixture_features"] = value["features"]
                 artifacts.append(Path(value["executable"]))
         assert len(artifacts) == 1
         executable = artifacts[0]

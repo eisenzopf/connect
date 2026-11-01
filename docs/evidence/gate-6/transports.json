@@ -1065,10 +1065,11 @@
     "source_revision": "390b677f",
     "workflow_run_id": 41265399764,
     "job_id": 124727066259,
-    "status": "live-typecheck-compile-and-control-step",
+    "status": "completed-failure-at-typecheck-runtime-unrun",
     "ci_preconditions": "Native prerequisites, verified source preparation,6matrix guards/inventory and currentSDKbuild passed; no runtimecase result confirmed",
     "expected_functions": 15,
-    "full_matrix_cells_qualified": 0
+    "full_matrix_cells_qualified": 0,
+    "negative_evidence": "docs/evidence/gate-6/transport-control-negative.json"
   },
   "protected_fixture_configuration": {
     "status": "source-verified-configuration-stage-pass",
@@ -1125,6 +1126,14 @@
     "actual_topology_verified": false,
     "cell_qualified": false,
     "task_complete": false,
-    "scope": "Server-side enrollment stage only. Conversation membership, concurrent connections/sessions, actual replacement transition, actual browser transport, remote topology, capture and decoded media remain required."
-  }
+    "scope": "Server-side enrollment stage only. Conversation membership, concurrent connections/sessions, actual replacement transition, actual browser transport, remote topology, capture and decoded media remain required.",
+    "runtime_candidate": {
+      "source_revision": "c969f3a11122cdb177d284aa969a9faaaca70769",
+      "workflow_run_id": 41267389925,
+      "job_id": 124732939529,
+      "status": "confirmed-live-native-prerequisites",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41267389925"
+    }
+  },
+  "control_fixture_correction": "Enable existing test-support feature for complete integration-target typecheck/compile; record actual artifact feature list. No production feature change or broadened runtime selection."
 }
