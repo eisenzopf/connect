@@ -1,0 +1,7 @@
+{
+  "command": {
+    "type": "operation.get",
+    "payload": {"operation_id": "operations-guide-create-1"}
+  },
+  "scope": {}
+}

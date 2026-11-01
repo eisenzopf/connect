@@ -193,3 +193,7 @@ before the rehearsal starts. It uses synthetic identities and local
 networking only. Raw state/logs remain under ignored `.local/`. Its curated report
 must identify source/package digests and the actual assertions before G6-056 can
 be marked complete. Browser/media qualification remains G6-054.
+
+The [current operations guide](operations/README.md) adds original-operation
+reconciliation, scoped credential rotation, explicit fresh-state reprovisioning,
+retention and the [unpublished breaking-change draft](releases/gate-6-draft.md).

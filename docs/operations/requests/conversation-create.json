@@ -1,0 +1,12 @@
+{
+  "command": {
+    "type": "conversation.create",
+    "payload": {
+      "tenant_id": "tnt_default",
+      "policy": "persistent",
+      "initial_participants": [],
+      "metadata": {"fixture": "operations-guide"}
+    }
+  },
+  "scope": {"operation_id": "operations-guide-create-1"}
+}

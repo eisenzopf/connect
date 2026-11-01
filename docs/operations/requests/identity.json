@@ -1,0 +1,7 @@
+{
+  "type": "identity",
+  "operation_id": "operations-guide-person-1",
+  "alias": "operations-guide-person",
+  "kind": "human",
+  "display_name": "Operations guide synthetic participant"
+}

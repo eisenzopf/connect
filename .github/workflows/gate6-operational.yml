@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: ${{ fromJSON(inputs.phase == 'process' && '["process"]' || inputs.phase == 'typecheck' && '["typecheck"]' || inputs.phase == 'schema' && '["schema"]' || '["schema","runtime"]') }}
+        phase: ${{ fromJSON(inputs.phase == 'guide' && '["guide"]' || inputs.phase == 'process' && '["process"]' || inputs.phase == 'typecheck' && '["typecheck"]' || inputs.phase == 'schema' && '["schema"]' || '["schema","runtime"]') }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
       CARGO_BUILD_JOBS: '2'
@@ -64,7 +64,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p test_operational_component.py
       - name: Type check integration fixtures before optimized compilation
         id: types
-        if: ${{ matrix.phase != 'schema' && matrix.phase != 'process' && steps.prepare.outcome == 'success' }}
+        if: ${{ matrix.phase != 'schema' && matrix.phase != 'process' && matrix.phase != 'guide' && steps.prepare.outcome == 'success' }}
         run: python3 scripts/check-operational-visibility.py --phase typecheck
       - name: Store administrator authority and configured numeric bounds
         if: ${{ !cancelled() && matrix.phase == 'runtime' && steps.prepare.outcome == 'success' && steps.types.outcome == 'success' }}
@@ -116,12 +116,15 @@ jobs:
       - name: Measure actual production server SDK helper and owned browser separately
         if: ${{ (matrix.phase == 'runtime' && steps.component.outcome == 'success') || (matrix.phase == 'process' && steps.prepare.outcome == 'success') }}
         run: python3 scripts/check-operational-processes.py
+      - name: Exercise current operations guide commands on disposable state
+        if: ${{ matrix.phase == 'guide' && steps.prepare.outcome == 'success' }}
+        run: python3 scripts/check-operations-guide.py
       - name: Upload curated component and generated reference evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gate6-operational-${{ matrix.phase }}
-          path: .local/gate6-operational/evidence/
+          path: ${{ matrix.phase == 'guide' && '.local/gate6-operations/evidence/' || '.local/gate6-operational/evidence/' }}
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error

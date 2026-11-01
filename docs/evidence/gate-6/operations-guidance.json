@@ -1,0 +1,43 @@
+{
+  "format": "connect/operations-guidance/1",
+  "task": "G6-088",
+  "status": "implementation-in-progress-runtime-commands-unqualified",
+  "schema": 116,
+  "implementation": [
+    "docs/operations/README.md",
+    "docs/operations/requests/conversation-list.json",
+    "docs/operations/requests/conversation-create.json",
+    "docs/operations/requests/identity.json",
+    "docs/operations/requests/operation-get.json",
+    "docs/releases/gate-6-draft.md",
+    "docs/developer/operations.md",
+    "scripts/check-operations-guide.py",
+    ".github/workflows/gate6-operational.yml",
+    ".github/workflows/gate6-linux-fixtures.yml"
+  ],
+  "source_hashes": {
+    "docs/operations/README.md": "210cb785bab0f5a95b8f5f4b219f343b85431b655d9d63d4330728aab241451d",
+    "docs/operations/requests/conversation-list.json": "5ea2d0ada219399714984ca5f64fe2502279e3323470287f981a9f85fe8a4583",
+    "docs/operations/requests/conversation-create.json": "e7fb7061c556836d30ea7b5ff2ffdb8e35bf0137ac1e958330069c2fc7d5a4d2",
+    "docs/operations/requests/identity.json": "4d7ac0e4bd4fb80f48b21b7a103d2c5a34eed1a53d217029c6771f066fb84e83",
+    "docs/operations/requests/operation-get.json": "acd9350495a7a46c53c93299ff106be931f6fef487cef90835b60084f86f408f",
+    "docs/releases/gate-6-draft.md": "1b3c7e006682dea8b0de873380925361502f1b553cea3d351569b27af36a316f",
+    "docs/developer/operations.md": "870399de29a8d3fdd245125c13a7bface015e9efc8f57a0e1edeb4e8ae99ac1d",
+    "scripts/check-operations-guide.py": "0e5d110147519ae213bf3574fd5767711f20d798452f6f8a0300cdaeeaa0d2ad",
+    ".github/workflows/gate6-operational.yml": "d115a2619aeb38adf64b9f88f0454cd15c6da35a846afb564b2cd35f70630407",
+    ".github/workflows/gate6-linux-fixtures.yml": "f2ac2bb97b237c5e99f86bd696308ae1710434de55c8b1cb9e34a71b7ee1d2ed"
+  },
+  "local_verification": {
+    "python_syntax": true,
+    "json_templates_parsed": 4,
+    "scope": "Static checks only; production command rehearsal not yet executed"
+  },
+  "remaining": [
+    "Actual production CLI execution of every documented command form on disposable Linux state",
+    "Independent exact source/template/binary and result audit",
+    "Verify operator procedures and prior installation/recovery/retention evidence cover the full task"
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}

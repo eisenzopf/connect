@@ -152,8 +152,10 @@ Explicit result-retention maintenance requires a closed conversation for at leas
 30 days, a terminal operation older than that window and settled external effects.
 Full intent/results may then be removed; the original digest, ID and scope tombstone
 remain. A matching expired ID returns `gone`; changed intent conflicts. It can
-never execute again silently. Fresh state is schema 31; older candidates are refused
-unchanged and require a verified backup plus explicit new-state provisioning.
+never execute again silently. The current fresh state is schema 116; the earlier
+31/32 references above identify historical introduction points. Older candidates
+are refused unchanged and require preservation with their matching binary plus
+explicit new-state provisioning. See the current [operations guide](../operations/README.md).
 
 Local evidence distinguishes control/storage fixtures from real media. The crash
 harness exits actual child processes at 27 admission/claim/effect/ready/commit,

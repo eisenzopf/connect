@@ -1,0 +1,7 @@
+{
+  "command": {
+    "type": "conversation.list",
+    "payload": {"filter": {}, "limit": 20}
+  },
+  "scope": {}
+}
