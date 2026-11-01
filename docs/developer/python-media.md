@@ -55,6 +55,13 @@ of those exact captured bytes; debug output omits media contents.
 - `MediaGap`: the number of packets dropped by the local bounded queue, separate
   from network loss observable through transport/RTP sequence numbers.
 
+With a newly built helper, the shared Rust receive inbox expires live RTP and
+source-clock packets after 200 ms of local queue residence. Expired packets
+produce a `MediaGap` before any remaining current packets; capacity and age loss
+both count toward `overflow_drops`. Reliable data uses a separate inbox and does
+not expire under this policy. Local queue age does not prove end-to-end latency.
+The previously sealed 3732254 candidate predates this correction.
+
 `send_clock(sequence, report, options)` requires negotiated source-clock support.
 Reports must describe the application's actual source; a report does not prove
 that another participant received or rendered media. `client.media.stats()`

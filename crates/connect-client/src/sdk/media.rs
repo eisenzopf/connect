@@ -5,11 +5,14 @@ use std::{
     collections::{BTreeMap, VecDeque},
     sync::Mutex,
 };
-use tokio::sync::Notify;
+use tokio::{sync::Notify, time::Instant};
 pub(super) const SEND_CAPACITY: usize = 64;
 const STREAM_PACKETS: usize = 32;
 const TOTAL_PACKETS: usize = 256;
 const TOTAL_BYTES: usize = 4 * 1024 * 1024;
+// This inbox carries live RTP/source clocks, never reliable application data.
+// A resumed reader must not give old packets a new presentation-clock origin.
+const RECEIVE_QUEUE_AGE: Duration = Duration::from_millis(200);
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MediaStats {
     pub received_datagrams: u64,
@@ -17,6 +20,7 @@ pub struct MediaStats {
     pub clock_reports: u64,
     pub malformed_datagrams: u64,
     pub unknown_handles: u64,
+    /// Packets discarded by queue capacity or the local live-media age ceiling.
     pub overflow_drops: u64,
     /// Known-binding packets discarded by local direction or runtime controls.
     pub control_drops: u64,
@@ -31,7 +35,7 @@ pub(super) struct Binding {
 }
 struct Queue {
     binding: Binding,
-    items: VecDeque<(MediaPacket, usize)>,
+    items: VecDeque<(MediaPacket, usize, Instant)>,
     gap: u64,
 }
 #[derive(Default)]
@@ -185,7 +189,7 @@ impl Inbox {
             queue.gap = queue.gap.saturating_add(1);
             s.stats.overflow_drops = s.stats.overflow_drops.saturating_add(1);
         } else {
-            queue.items.push_back((packet, bytes.len()));
+            queue.items.push_back((packet, bytes.len(), Instant::now()));
             s.packets += 1;
             s.bytes += bytes.len();
         }
@@ -244,7 +248,7 @@ impl Inbox {
                 s.packets = s.packets.saturating_sub(queue.items.len());
                 s.bytes = s
                     .bytes
-                    .saturating_sub(queue.items.iter().map(|(_, n)| *n).sum::<usize>());
+                    .saturating_sub(queue.items.iter().map(|(_, n, _)| *n).sum::<usize>());
                 s.stats.binding_change_drops = s
                     .stats
                     .binding_change_drops
@@ -271,7 +275,7 @@ impl Inbox {
             let lost = if changed || !matches!(direction, Direction::Recvonly | Direction::Sendrecv)
             {
                 let count = queue.items.len();
-                let bytes: usize = queue.items.iter().map(|(_, n)| *n).sum();
+                let bytes: usize = queue.items.iter().map(|(_, n, _)| *n).sum();
                 queue.items.clear();
                 queue.gap = queue.gap.saturating_add(count as u64);
                 Some((count, bytes))
@@ -319,7 +323,7 @@ impl Inbox {
             queue.binding.stream.direction = *direction;
             if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
                 let packets = queue.items.len();
-                let bytes: usize = queue.items.iter().map(|(_, bytes)| *bytes).sum();
+                let bytes: usize = queue.items.iter().map(|(_, bytes, _)| *bytes).sum();
                 queue.items.clear();
                 queue.gap = queue.gap.saturating_add(packets as u64);
                 s.packets = s.packets.saturating_sub(packets);
@@ -355,7 +359,7 @@ impl Inbox {
                     s.handles.remove(&handle);
                 }
                 s.packets = s.packets.saturating_sub(queue.items.len());
-                let bytes: usize = queue.items.iter().map(|(_, bytes)| *bytes).sum();
+                let bytes: usize = queue.items.iter().map(|(_, bytes, _)| *bytes).sum();
                 s.bytes = s.bytes.saturating_sub(bytes);
             }
         }
@@ -404,14 +408,50 @@ impl Inbox {
                 ) {
                     return Err(Error::request(ErrorKind::Unsupported, None, false));
                 }
-                if let Some((packet, bytes)) = queue.items.pop_front() {
+                let now = Instant::now();
+                let mut expired_packets = 0usize;
+                let mut expired_bytes = 0usize;
+                while queue.items.front().is_some_and(|(_, _, arrived)| {
+                    now.saturating_duration_since(*arrived) >= RECEIVE_QUEUE_AGE
+                }) {
+                    if let Some((_, bytes, _)) = queue.items.pop_front() {
+                        expired_packets += 1;
+                        expired_bytes += bytes;
+                    }
+                }
+                // Expired prefix loss precedes the remaining fresh packets.
+                // Capacity loss still follows the packets admitted before it.
+                let next = if expired_packets == 0 {
+                    queue.items.pop_front()
+                } else {
+                    None
+                };
+                let gap = if expired_packets > 0 {
+                    (expired_packets as u64).saturating_add(if queue.items.is_empty() {
+                        std::mem::take(&mut queue.gap)
+                    } else {
+                        0
+                    })
+                } else if next.is_none() {
+                    std::mem::take(&mut queue.gap)
+                } else {
+                    0
+                };
+                s.bytes = s.bytes.saturating_sub(expired_bytes);
+                s.packets = s.packets.saturating_sub(expired_packets);
+                s.stats.overflow_drops = s
+                    .stats
+                    .overflow_drops
+                    .saturating_add(expired_packets as u64);
+                if let Some((packet, bytes, _)) = next {
                     s.bytes = s.bytes.saturating_sub(bytes);
                     s.packets = s.packets.saturating_sub(1);
                     return Ok(packet);
                 }
-                if queue.gap > 0 {
-                    let dropped_packets = std::mem::take(&mut queue.gap);
-                    return Ok(MediaPacket::Gap { dropped_packets });
+                if gap > 0 {
+                    return Ok(MediaPacket::Gap {
+                        dropped_packets: gap,
+                    });
                 }
             }
             tokio::select! {biased;
@@ -504,6 +544,93 @@ mod tests {
     }
     fn options() -> RequestOptions {
         RequestOptions::new(Duration::from_secs(1)).unwrap()
+    }
+    #[tokio::test(start_paused = true)]
+    async fn paused_receiver_discards_expired_packets_before_resuming_current_media() {
+        let inbox = inbox(2);
+        for sequence in 0..32 {
+            inbox.push(wire(1, sequence, 160)).unwrap();
+        }
+        // The other Stream is independently current when this one resumes.
+        tokio::time::advance(Duration::from_millis(201)).await;
+        inbox.push(wire(2, 80, 160)).unwrap();
+        assert!(matches!(
+            inbox.receive(&key(0), options()).await.unwrap(),
+            MediaPacket::Gap {
+                dropped_packets: 32
+            }
+        ));
+        let stats = inbox.stats().unwrap();
+        assert_eq!(stats.queued_packets, 1);
+        assert_eq!(stats.overflow_drops, 32);
+        assert_eq!(stats.queued_bytes, wire(2, 80, 160).len());
+        let MediaPacket::Rtp(other) = inbox.receive(&key(1), options()).await.unwrap() else {
+            panic!("the independently current Stream must retain its packet")
+        };
+        assert_eq!(other.datagram_sequence, 80);
+        inbox.push(wire(1, 90, 160)).unwrap();
+        let MediaPacket::Rtp(current) = inbox.receive(&key(0), options()).await.unwrap() else {
+            panic!("a fresh original-binding packet must follow the expiration gap")
+        };
+        assert_eq!(current.datagram_sequence, 90);
+        assert_eq!(inbox.stats().unwrap().queued_bytes, 0);
+        assert_eq!(inbox.stats().unwrap().queued_packets, 0);
+    }
+    #[tokio::test(start_paused = true)]
+    async fn receive_age_bound_preserves_current_frames_and_expires_at_the_boundary() {
+        let inbox = inbox(1);
+        inbox.push(wire(1, 0, 160)).unwrap();
+        tokio::time::advance(Duration::from_millis(199)).await;
+        assert!(matches!(
+            inbox.receive(&key(0), options()).await.unwrap(),
+            MediaPacket::Rtp(_)
+        ));
+        inbox.push(wire(1, 1, 160)).unwrap();
+        tokio::time::advance(Duration::from_millis(200)).await;
+        assert!(matches!(
+            inbox.receive(&key(0), options()).await.unwrap(),
+            MediaPacket::Gap { dropped_packets: 1 }
+        ));
+        assert_eq!(inbox.stats().unwrap().queued_packets, 0);
+    }
+    #[tokio::test(start_paused = true)]
+    async fn expired_rtp_and_source_clock_gap_precede_the_same_streams_fresh_suffix() {
+        let inbox = inbox(1);
+        inbox.push(wire(1, 0, 160)).unwrap();
+        inbox
+            .push(
+                crate::canonical::pack_sender_clock_datagram(
+                    &crate::canonical::SenderClockDatagram {
+                        stream_local_id: 1,
+                        seq: 1,
+                        report: SenderClockReport {
+                            ssrc: 1,
+                            ntp: 0x80000000ffffffff,
+                            rtp: 0,
+                            packets: 1,
+                            octets: 160,
+                            cname: "original-source".into(),
+                        },
+                    },
+                )
+                .unwrap()
+                .to_vec(),
+            )
+            .unwrap();
+        tokio::time::advance(Duration::from_millis(199)).await;
+        inbox.push(wire(1, 81, 160)).unwrap();
+        tokio::time::advance(Duration::from_millis(2)).await;
+        assert!(matches!(
+            inbox.receive(&key(0), options()).await.unwrap(),
+            MediaPacket::Gap { dropped_packets: 2 }
+        ));
+        assert_eq!(inbox.stats().unwrap().queued_packets, 1);
+        assert!(matches!(
+            inbox.receive(&key(0), options()).await.unwrap(),
+            MediaPacket::Rtp(packet) if packet.datagram_sequence == 81
+        ));
+        assert_eq!(inbox.stats().unwrap().queued_bytes, 0);
+        assert_eq!(inbox.stats().unwrap().overflow_drops, 2);
     }
     #[test]
     fn rtp_constructor_preserves_marker_csrc_extension_padding_and_payload_identity() {

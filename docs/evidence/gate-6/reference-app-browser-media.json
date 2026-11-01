@@ -26,7 +26,7 @@
     "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
     "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
     "examples/parley-on-connect/app/ui/media.mjs": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
-    "scripts/check-reference-app-installed.mjs": "a048a7232fb98734a1c795c1bdefd858d35a062599f37db8c726c9919fad4ffd",
+    "scripts/check-reference-app-installed.mjs": "ffe402d26860feb68d3a16ec6287fb9f20a85dd205f0e8287fcba91a0c1db782",
     "examples/parley-on-connect/README.md": "19de07583d202bc333bcd4f5d78ac0962c7a186dd7aafc7340145bbe05cc7aca",
     "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
     "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968",
@@ -240,5 +240,12 @@
     "native_timer_component_verified": true,
     "installed_local_runtime_after_correction_verified": true,
     "evidence_after": "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json"
-  }
+  },
+  "original_connection_restart_correction": {
+    "before_evidence": "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json",
+    "sdk_evidence": "docs/evidence/gate-6/sdk-native-inbox-expiration.json",
+    "installed_runtime_verified": false,
+    "scope": "shared Rust SDK live receive inbox age; new production runtime still required, retained adapter flight results not yet qualified"
+  },
+  "current_ci_negative": "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json"
 }

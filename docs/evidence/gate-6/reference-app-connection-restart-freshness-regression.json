@@ -1,0 +1,74 @@
+{
+  "format": "connect/reference-app-original-connection-freshness-regression/1",
+  "task": "G6-072",
+  "source_revision": "9c992ab71f9a4d0e3247d9b16dcfcddb565360fe",
+  "browser_report_sha256": "c7a67dd505e89f2d8527c60fcdb34a6a15193a64331aa6bf76e2ba0aaa235f0c",
+  "scope": "Local macOS Node26 Chromium153 with copied verified ordinary installed373SDK/runtime and fresh app state.",
+  "git_content_hashes_verified": 27,
+  "installed_sdk_file_hashes_verified": 195,
+  "runtime_binary_sha256": "bfc940b63a3cca6d644f6232c68b878b13c81dad0831a798d8e44a79be4e2a78",
+  "failure": {
+    "stage": "original-audio-connection-restart-queue-freshness",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 531,
+        "column": 12
+      }
+    ]
+  },
+  "restart": {
+    "metrics": {
+      "capturedAudioFrames": 120,
+      "capturedVideoFrames": 0,
+      "encodedFrames": 120,
+      "sentRtp": 120,
+      "receivedRtp": 32,
+      "clockReportsSent": 3,
+      "clockReportsReceived": 0,
+      "videoClockReportsSent": 0,
+      "videoClockReportsReceived": 0,
+      "decodedAudioFrames": 32,
+      "playedAudioFrames": 6,
+      "decodedVideoFrames": 0,
+      "paintedVideoFrames": 0,
+      "droppedFrames": 27,
+      "synchronizedPackets": 0,
+      "unsynchronizedPackets": 32,
+      "audioLateDrops": 0,
+      "audioHorizonDrops": 26,
+      "audioCapacityDrops": 0,
+      "videoLateDrops": 0,
+      "videoHorizonDrops": 0,
+      "videoTimerDrops": 0,
+      "videoCapacityDrops": 0,
+      "lastAudioOffsetMs": 672.5,
+      "lastVideoOffsetMs": null,
+      "receiveClockCorrections": 0,
+      "lastAudioCaptureOffsetMs": -170,
+      "lastVideoCaptureOffsetMs": null,
+      "phase": "active",
+      "stoppedAt": null,
+      "stopReason": null,
+      "activeTracks": 1,
+      "activeContexts": 1,
+      "queuedAudioSources": 0,
+      "queuedSendFrames": 0,
+      "queuedVideoFrames": 0,
+      "pendingRequests": 1,
+      "stopped": false
+    },
+    "output": {
+      "frames": 6,
+      "energy": 0.002455260987594121,
+      "tone440": 6.362620242099899e-07,
+      "tone880": 0.0012126792424994356
+    }
+  },
+  "procedure": "Stop original receiver only; peer continues >=75RTP submissions, then peer stops and its capture/render/requests join. Wait500ms; restart only original receiver, keep SDKowner/physicalConnection. Observe actual completed output for2s.",
+  "finding": "Original32queuedRTP packets reappear; six old880Hz buffers complete while peer is stopped, with no received SR and fresh fallback clock origin. No new offer, Connection or operation ID hides the replay.",
+  "after_fix_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

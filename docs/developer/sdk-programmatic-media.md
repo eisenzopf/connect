@@ -15,6 +15,16 @@ native sends use a bounded queue of 64. The language adapter must preserve those
 bounds, current binding/direction checks and typed gaps. It must not create an
 unbounded secondary queue to conceal a slow application.
 
+Live RTP and source-clock packets also expire after 200 ms in the Rust receive
+inbox. Resuming a paused reader discards expired packets and reports their loss
+as a typed gap before any remaining current packets; it cannot restart their
+presentation time. Capacity and age discards both increment `overflow_drops`
+(`overflowDrops` in Node). This is a local queue-age ceiling, not proof of source
+capture age, end-to-end latency or A/V synchronization. Reliable application
+data has its separate ordered inbox and is not subject to this live-media age
+policy. A newly built helper/runtime is required for this behavior; the sealed
+3732254 candidate predates the correction.
+
 The existing `media-stdio`/`NativeAudioClient` path is the earlier PCMU interface:
 it accepts fixed 160-byte audio payloads and has a 4 KiB record limit. It does
 not implement the negotiated audio/video/data contract for this task.

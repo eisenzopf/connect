@@ -1,0 +1,47 @@
+{
+  "format": "connect/sdk-native-inbox-expiration/1",
+  "tasks": [
+    "G6-072",
+    "G6-058"
+  ],
+  "status": "local-component-verified-production-runtime-pending",
+  "source_revision_before_change": "9c992ab71f9a4d0e3247d9b16dcfcddb565360fe",
+  "implementation_inputs": {
+    "crates/connect-client/Cargo.toml": "864a6584271199a2f3425e515d660e080f01351b33c6b232ea7d18246ba1e294",
+    "crates/connect-client/src/sdk/media.rs": "e3b2bbb8e7d04c216a7960e8cfd650754ebf26fc3d4e0cbf77a8053615e66b6b",
+    "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+    "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2",
+    "docs/developer/sdk-programmatic-media.md": "0d602bf57639603efa8d0af797b430b5f7addbba1b6e09ec7310556b3411baba",
+    "docs/developer/node-media.md": "e9a024b8f649a9b03796a674b5b58c283f79ceffcc7b9d7cbf42f23bc478d781",
+    "docs/developer/python-media.md": "e3077f2bd1d76f7f3c188e3672aa58e0d445fb988f1410e9d9c39923f468b719"
+  },
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "platform": "macOS arm64",
+  "dependency_preparation": "bash scripts/prepare-dependencies.sh passed against unchanged pinned source lock and existing prepared sources; no upstream edit",
+  "before": {
+    "command": "cargo test --locked -p connect-client --lib sdk::media::tests",
+    "passed": 6,
+    "failed": 2,
+    "log_sha256": "c6a55fb3edc4eb0579bbb76f15e503435750de4633c97f7fd6366fb85c47beab",
+    "added_regressions": [
+      "paused_receiver_discards_expired_packets_before_resuming_current_media",
+      "receive_age_bound_preserves_current_frames_and_expires_at_the_boundary"
+    ]
+  },
+  "after": {
+    "command": "cargo test --locked -p connect-client --lib sdk::",
+    "passed": 31,
+    "failed": 0,
+    "filtered_out": 221,
+    "log_sha256": "2f7b6180804a7e72741992a3292844a385301e9b5ce3fb61cc4fb014f04d7ebf",
+    "test_executable_sha256": "aa322f54e2a42334433aa66d8d48970978a488d4f7beb9dfa2ec733864885bbc",
+    "additional_regression": "expired_rtp_and_source_clock_gap_precede_the_same_streams_fresh_suffix"
+  },
+  "behavior": "Live RTP and source clocks are timestamped on admission to the Rust SDK inbox. A read discards packets with local residence>=200ms and reports prefix expiration before a remaining fresh suffix. Existing capacity loss follows originally admitted packets. Capacity/age losses count toward overflow_drops; perStream32/total256/4MiB bounds and cancelled-read ownership remain. Reliable application data is separate and unchanged.",
+  "browser_regression": "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json",
+  "scope": "Local SDK unit/component proof only. Does not prove newly installed production helper, cross-process retained read results, end-to-end source age, AV synchronization or matrix cells. The sealed373runtime predates this fix.",
+  "production_runtime_verified": false,
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

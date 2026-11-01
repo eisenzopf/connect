@@ -85,6 +85,12 @@ new physical binding. RTP inboxes remain separately bounded to 32 per Stream,
 256 packets/4 MiB overall. The adapter refuses overflow instead of hiding it in
 an unbounded application queue.
 
+The Rust live-media inbox expires queued RTP/source-clock packets at 200 ms.
+`receivePacket` reports those discards as `gap` before current queued packets;
+`overflowDrops` includes capacity and age discards. Reliable data is unaffected.
+This bounds local queue age only, and requires a helper built with the correction;
+the previously sealed 3732254 candidate retains its earlier receive behavior.
+
 Cancellation or a deadline after a data frame was written preserves the
 original `OperationKey` with `uncertain` certainty. Before writing it remains
 `not-submitted`. The adapter never replays bytes or restarts the helper.
