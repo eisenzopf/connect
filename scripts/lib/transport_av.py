@@ -179,6 +179,56 @@ def decode_audio(directory, index, rows, expected_hz):
         all_blocks_identified=bool(powers) and bad == 0, pcm_sha256=checksum(raw), ogg_sha256=checksum(path))
 
 
+def rtp_timing(rows, rate, step):
+    """Describe original RTP progression without filling gaps or retiming media."""
+    if not rows or len(rows) > 3200 or (rate, step) not in ((48000, 960), (90000, 3000)):
+        raise ValueError('RTP timing observation bound')
+    progress = 0; offsets = []; elapsed = 0
+    missing = repeats = backwards = irregular = sequence_missing = sequence_backwards = 0
+    for previous, current in zip(rows, rows[1:]):
+        arrival = current['elapsed_ms'] - previous['elapsed_ms']
+        if arrival < 0 or not math.isfinite(arrival):
+            raise ValueError('RTP observation arrival order')
+        delta = ((current['timestamp'] - previous['timestamp'] + 2 ** 31) % 2 ** 32) - 2 ** 31
+        progress += delta; elapsed += arrival
+        if delta == 0: repeats += 1
+        elif delta < 0: backwards += 1
+        else:
+            missing += max(0, delta // step - 1)
+            irregular += int(delta % step != 0)
+        offsets.append(progress * 1000 / rate - elapsed)
+        if 'sequence' in previous and 'sequence' in current:
+            distance = (current['sequence'] - previous['sequence']) % 65536
+            if distance > 32768: sequence_backwards += 1
+            elif distance: sequence_missing += distance - 1
+    return dict(packets_or_frames=len(rows), clock_rate=rate, nominal_step=step,
+        rtp_span_ms=(progress + step) * 1000 / rate,
+        arrival_span_ms=rows[-1]['elapsed_ms'] - rows[0]['elapsed_ms'] + step * 1000 / rate,
+        rtp_minus_arrival_span_ms=progress * 1000 / rate - elapsed,
+        minimum_progress_offset_ms=min(offsets, default=0), maximum_progress_offset_ms=max(offsets, default=0),
+        missing_timestamp_steps=missing, repeated_timestamps=repeats, backwards_timestamps=backwards,
+        non_nominal_timestamp_deltas=irregular, missing_rtp_sequence_packets=sequence_missing,
+        backwards_rtp_sequences=sequence_backwards,
+        scope='Original received header/arrival diagnostics only; no invented samples, PLC, source-age or clock synchronization claim.')
+
+
+def source_pixels(values, expected_index):
+    """Distinguish an identified other source marker from an unclassified pixel."""
+    colors = ((255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255))
+    if len(values) % 3 or expected_index not in range(6):
+        raise ValueError('Decoded source pixel observation')
+    counts = [0] * 6; unknown = 0
+    for at in range(0, len(values), 3):
+        found = next((i for i, color in enumerate(colors)
+            if all(abs(component - target) <= 40 for component, target in zip(values[at:at + 3], color))), None)
+        if found is None: unknown += 1
+        else: counts[found] += 1
+    return dict(expected_source_index=expected_index, source_marker_counts=counts,
+        expected_source_frames=counts[expected_index],
+        other_identified_source_frames=sum(counts) - counts[expected_index],
+        unclassified_pixel_frames=unknown, wrong_source_pixel_frames=len(values) // 3 - counts[expected_index])
+
+
 def verify(directory, manifest):
     """Decode bytes independently; retain explicit measurement limits."""
     results = []
@@ -232,8 +282,9 @@ def verify(directory, manifest):
         pixels = directory / f'received-{index}.rgb'
         command(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', str(ivf), '-an',
             '-vf', 'crop=16:16:8:8,scale=1:1', '-pix_fmt', 'rgb24', '-fps_mode', 'passthrough', '-f', 'rawvideo', str(pixels)], directory / f'decode-marker-{index}.log')
-        values = pixels.read_bytes(); expected = ((255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255))[captured['peer_index']]
-        wrong = sum(any(abs(component - target) > 40 for component, target in zip(values[at:at + 3], expected)) for at in range(0, len(values), 3))
+        values = pixels.read_bytes(); markers = source_pixels(values, captured['peer_index'])
+        wrong = markers['wrong_source_pixel_frames']
+        audio_result['rtp_timing'] = rtp_timing(audio, 48000, 960)
         bins = [sum(second * 1000 <= row['elapsed_ms'] < (second + 1) * 1000 for row in video) for second in range(2, 62)]
         gaps = [b['elapsed_ms'] - a['elapsed_ms'] for a, b in zip(audio, audio[1:])]
         passed = (audio_result['all_blocks_identified'] and audio_result['decoded_seconds'] >= 59.9 and audio_result['samples'] == len(audio) * 960
@@ -244,7 +295,8 @@ def verify(directory, manifest):
             received_window_audio_packets=len(audio), maximum_audio_arrival_gap_ms=max(gaps, default=None),
             video=dict(independent_decoder='FFmpeg VP8/framemd5/rgb24', width=640, height=360,
                 decoded_window_frames=len(window_hashes), changing_window_frames=changing, changing_fps=changing / 60,
-                frames_by_observation_second=bins, wrong_source_pixel_frames=wrong, ivf_sha256=checksum(ivf), framemd5_sha256=checksum(hashes)),
+                frames_by_observation_second=bins, wrong_source_pixel_frames=wrong, source_marker_classification=markers,
+                rtp_timing=rtp_timing(video, 90000, 3000), ivf_sha256=checksum(ivf), framemd5_sha256=checksum(hashes)),
             received_clocks=captured['received_clocks'], gap_packets=captured['gap_packets'], late_send_frames=captured['late_send_frames'],
             observation_sha256=checksum(path)))
     report = dict(format='connect/native-av-decoded-component/1', passed=all(row['passed'] for row in results),

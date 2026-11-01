@@ -1,0 +1,23 @@
+{
+  "format": "connect/native-av-observation-diagnostics/1",
+  "task": "G6-058",
+  "motivating_negative": "docs/evidence/gate-6/native-av-workload-decoded-negative-173.json",
+  "implementation_inputs": {
+    "scripts/lib/transport_av.py": "335fad6d777ddfb370d411ad628235e41f4dbb69a7adf740142448d33c329b52",
+    "scripts/tests/test_transport_av.py": "ef1d7902303ea36ba5c650d6f3341c77bafe122fca45f883f5a7c822aaa504e0"
+  },
+  "behavior": [
+    "Summarize original RTP timestamp progression, nominal missing steps, sequence gaps/reversals, wraps and source-versus-arrival span without filling gaps or retiming",
+    "Classify decoded corner pixels into the six fixed source markers or unknown; existing exact expected-marker tolerance and all pass conditions remain unchanged"
+  ],
+  "tests": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Independent FFmpeg Opus calibration, corrupt containers/other dimensions, late failure result retention, original RTP wrap/loss/slow-clock distinction and other-source versus unknown-pixel distinction."
+  },
+  "actual_new_runtime_observations": false,
+  "quality_thresholds_changed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

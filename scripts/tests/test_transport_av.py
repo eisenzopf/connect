@@ -12,7 +12,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from lib.package_environment import fixture_environment
-from lib.transport_av import opus_packets, decode_audio, ivf_frames, decode_completed
+from lib.transport_av import opus_packets, decode_audio, ivf_frames, decode_completed, rtp_timing, source_pixels
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'), 'Independent FFmpeg calibration requires the named prerequisite')
@@ -70,6 +70,31 @@ class CompletedObservationRetention(unittest.TestCase):
                 self.assertIsNone(decode_completed(control, Path('private-observation'), {}))
                 decoder.assert_not_called()
             self.assertFalse(control['passed'])
+
+
+class NativeObservationDiagnostics(unittest.TestCase):
+    def test_original_rtp_wrap_loss_and_slow_clock_remain_distinct(self):
+        rows = [dict(elapsed_ms=0, timestamp=2 ** 32 - 960, sequence=65535),
+            dict(elapsed_ms=20, timestamp=0, sequence=0),
+            dict(elapsed_ms=60, timestamp=1920, sequence=2)]
+        missing = rtp_timing(rows, 48000, 960)
+        self.assertEqual(missing['missing_timestamp_steps'], 1)
+        self.assertEqual(missing['missing_rtp_sequence_packets'], 1)
+        self.assertEqual(missing['rtp_minus_arrival_span_ms'], 0)
+        self.assertEqual(missing['backwards_timestamps'], 0)
+        slow = rtp_timing([dict(elapsed_ms=i * 40, timestamp=i * 960, sequence=i) for i in range(4)], 48000, 960)
+        self.assertEqual(slow['missing_timestamp_steps'], 0)
+        self.assertEqual(slow['missing_rtp_sequence_packets'], 0)
+        self.assertEqual(slow['rtp_minus_arrival_span_ms'], -60)
+        self.assertEqual(slow['minimum_progress_offset_ms'], -60)
+
+    def test_other_source_marker_is_not_conflated_with_unknown_corruption(self):
+        result = source_pixels(bytes([255, 0, 0, 0, 255, 0, 80, 80, 80]), 0)
+        self.assertEqual(result['expected_source_frames'], 1)
+        self.assertEqual(result['other_identified_source_frames'], 1)
+        self.assertEqual(result['unclassified_pixel_frames'], 1)
+        self.assertEqual(result['wrong_source_pixel_frames'], 2)
+        with self.assertRaises(ValueError): source_pixels(bytes([255]), 0)
 
 
 if __name__ == '__main__':
