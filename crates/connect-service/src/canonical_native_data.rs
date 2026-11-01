@@ -68,6 +68,9 @@ pub(crate) fn failure(stage: &'static str, error: &Error) {
     };
     tracing::debug!(target: "connect_service::canonical_native_data", stage, code=%error.code, origin, "Native data did not complete");
 }
+pub(crate) fn checkpoint(stage: &'static str) {
+    tracing::debug!(target: "connect_service::canonical_native_data", stage, "Native data stage reached");
+}
 impl Runtime {
     pub(crate) async fn native_data(
         self: &Arc<Self>,
@@ -163,6 +166,7 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<crate::canonical_native::Reply>>,
     ) {
+        checkpoint("worker-entered");
         let native = match self.native_adapter(physical.binding.transport()) {
             Ok(native) => native,
             Err(error) => {
@@ -265,6 +269,7 @@ impl Runtime {
             }
         };
         // One Core call only. Its success is queue admission, not a writer ACK.
+        checkpoint("core-publication-started");
         let outcome = native.publish_data(&id, &a);
         drop(invocation);
         if let Err(error) = outcome {
@@ -273,6 +278,7 @@ impl Runtime {
             let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
             return;
         }
+        checkpoint("core-publication-admitted");
         let receipt = match lease.queued() {
             Ok(v) => v,
             Err(e) => {
@@ -283,6 +289,7 @@ impl Runtime {
         };
         match store.complete_native_stream(&receipt) {
             Ok(record) => {
+                checkpoint("receipt-recorded");
                 let _ = tx.send(Ok(reply(record)));
                 return;
             }

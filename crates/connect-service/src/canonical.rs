@@ -516,6 +516,9 @@ impl AuthenticatedHandler for CanonicalHandler {
                 if is_offer {
                     crate::canonical_native::intent(a.envelope())?;
                 } else {
+                    if is_data {
+                        crate::canonical_native_data::checkpoint("handler-entered");
+                    }
                     crate::canonical_native_streams::intent(a.envelope()).inspect_err(|error| {
                         if is_data {
                             crate::canonical_native_data::failure("intent-validation", error);

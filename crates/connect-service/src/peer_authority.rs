@@ -206,6 +206,7 @@ impl StorePeerAuthority {
             Payload::MessageSend(_)
                 if e.scope(Scope::Session).is_some() || e.scope(Scope::Connection).is_some() =>
             {
+                crate::canonical_native_data::checkpoint("authority-entered");
                 let intent = match crate::canonical_native_streams::intent(e) {
                     Ok(intent) => intent,
                     Err(error) => {
