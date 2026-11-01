@@ -7,9 +7,9 @@ const owner = () => ({});
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const rtp = Buffer.from([0x80, 111, 0, 1, 0, 0, 3, 192, 0, 0, 0, 7, 1]);
 function fixture(t, overrides = {}) {
-    const calls = [], state = { generation: 1, revision: 1 };
+    const calls = [], state = { generation: 1, revision: 1, handle: 1 };
     const negotiation = () => ({ binding, sourceClock: true, streamRevision: state.revision,
-        streams: [{ id: "audio-1", medium: "audio", direction: "sendrecv", codec: { name: "opus" } },
+        streams: [{ id: "audio-1", medium: "audio", direction: "sendrecv", streamLocalId: state.handle, codec: { name: "opus" } },
             { id: "incoming-1", medium: "audio", direction: "recvonly", codec: { name: "opus" } }] });
     const snapshot = () => ({ generation: state.generation, negotiation: negotiation() });
     const stream = {
@@ -22,8 +22,13 @@ function fixture(t, overrides = {}) {
         openConnection: async (role, scope, options) => {
             calls.push({ kind: "open", role, scope, options });
             if (overrides.open) await overrides.open(options);
-            return { ...snapshot(), media: { streamById: id => { assert.ok(["audio-1", "incoming-1"].includes(id)); return stream; } },
-                check: async options => { calls.push({ kind: "check", options }); return snapshot(); } };
+            const captured = snapshot();
+            return { ...captured, controlCheck: async options => {
+                    calls.push({ kind: "control-check", options });
+                    if (overrides.control) return await overrides.control(options);
+                    return { generation: state.generation, state: "ready" };
+                }, media: { streamById: id => { assert.ok(["audio-1", "incoming-1"].includes(id)); return stream; } },
+                check: async options => { calls.push({ kind: "check", options }); return { ...snapshot(), generation: captured.generation }; } };
         } });
     t.after(() => bridge.close());
     return { bridge, calls, state, stream };
@@ -43,8 +48,8 @@ test("packet IO is scoped to the original actor and browser owner, with one phys
     assert.equal(f.calls.filter(c => c.kind === "send").length, 1);
 });
 
-test("physical generation and negotiated revision changes fence old packets before SDK IO", async t => {
-    for (const change of ["generation", "revision"]) {
+test("negotiated physical handle and revision changes fence old packets before SDK IO", async t => {
+    for (const change of ["handle", "revision"]) {
         const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding);
         f.state[change]++;
         await assert.rejects(f.bridge.send("owner", a, input(lease.leaseId)), { code: "app-media-stopped" });
@@ -85,7 +90,7 @@ test("owner retirement during authorization joins the opener and never publishes
     const opening = f.bridge.open("owner", a, binding);
     const refused = assert.rejects(opening, { code: "app-media-stopped" }); await entered.promise;
     let joined = false; const closing = f.bridge.closeOwner(a).then(() => { joined = true; });
-    assert.equal(signal.aborted, true); await Promise.resolve(); assert.equal(joined, false);
+    assert.equal(signal.aborted, false); await Promise.resolve(); assert.equal(joined, false);
     release.resolve(); await refused; await closing; assert.equal(joined, true);
 });
 
@@ -141,4 +146,29 @@ test("an empty authorized receive queue is idle; authority and cancellation rema
     assert.deepEqual(await f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "idle" });
     f.stream.receivePacket = async () => { throw { kind: "authentication", certainty: "read-only" }; };
     await assert.rejects(f.bridge.receive("owner", a, { leaseId: lease.leaseId, streamId: "audio-1" }), { kind: "authentication" });
+});
+
+
+test("independent signed supervision fences generation changes without network reads on each packet", async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding);
+    for (let i = 0; i < 3; i++) await f.bridge.send("owner", a, input(lease.leaseId));
+    assert.equal(f.calls.filter(c => c.kind === "control-check").length, 0);
+    f.state.generation++;
+    await new Promise(done => setTimeout(done, 550));
+    await assert.rejects(f.bridge.send("owner", a, input(lease.leaseId)), { code: "app-media-stopped" });
+    assert.equal(f.calls.filter(c => c.kind === "send").length, 3);
+    assert.equal(f.calls.filter(c => c.kind === "control-check").length, 1);
+});
+
+
+test("normal media retirement drains its original signed watcher without cancelling the shared SDK control owner", async t => {
+    const entered = deferred(), release = deferred(); let signal;
+    const f = fixture(t, { control: async options => { signal = options.signal; entered.resolve(); await release.promise;
+        return { generation: 1, state: "ready" }; } }), a = owner();
+    const lease = await f.bridge.open("owner", a, binding); await entered.promise;
+    let joined = false; const closing = f.bridge.closeOwner(a).then(() => { joined = true; });
+    assert.equal(signal.aborted, false); await Promise.resolve(); assert.equal(joined, false);
+    release.resolve(); await closing; assert.equal(joined, true);
+    const replacement = await f.bridge.open("owner", a, binding);
+    assert.notEqual(replacement.leaseId, lease.leaseId);
 });

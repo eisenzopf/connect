@@ -1,20 +1,20 @@
 {
   "format": "connect/reference-app-browser-media/1",
   "task": "G6-072",
-  "status": "coherent-current-media-opening-component-tested-runtime-required",
+  "status": "separate-control-supervision-and-native-packet-checks-component-tested-runtime-required",
   "source_revision_before_change": "7189c8ac6a52b586d12acf130f9e2e4f91040114",
   "implementation_inputs": {
     ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7",
     "examples/parley-on-connect/app/browser-media.test.mjs": "be7eea08f9e10ffb0400e4a6edb84196dc5893532d030b3c70da2601fda39068",
-    "examples/parley-on-connect/app/diagnostics.mjs": "a85e06e970f9c8e17f66171af3bc3dcff22ba4ae7ccc943c64abea98c6d04670",
+    "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
-    "examples/parley-on-connect/app/gateway.mjs": "1e00aff5d3cfdd93bc6875fbd59a181071e5b6b12b98357df5ff997da8ca546f",
+    "examples/parley-on-connect/app/gateway.mjs": "e39f9a4e29b891d5106541746903d3b4522964972112ca716b199eeed5aacd0a",
     "examples/parley-on-connect/app/gateway.test.mjs": "9603facd15e9d8112fce7bdd6377c4a0cce2523669b4ec998beb65600020f6b6",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
-    "examples/parley-on-connect/app/media.mjs": "62e70ee33510ff9d5bae89ebfe190a0f8b785fb7e2921f73a861daa601eedb45",
-    "examples/parley-on-connect/app/media.test.mjs": "25efd8cfe1811e271e6bd4d6983c27da01abbfa3bdaf3ec309b52aefeefa6033",
+    "examples/parley-on-connect/app/media.mjs": "4f3debfa070160745463870d662dc9fe443fa9b1d8f57bf9f8e934971fae4282",
+    "examples/parley-on-connect/app/media.test.mjs": "c7ce8aa3bd727500fc45b31cba2254723be067f3158ecc84c2d36065b47194f4",
     "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
     "examples/parley-on-connect/app/server.mjs": "adf4cda962a805449965b40cbf3faf24dd608eee118eadd2ef077d6d49cd947c",
     "examples/parley-on-connect/app/server.test.mjs": "21aa28f1ae350f2e5bb40a8b5ce5f4fb3c413128e93f89470fe445e3831835ef",
@@ -29,7 +29,7 @@
     "scripts/check-reference-app-installed.mjs": "cbef1f4251730a11d6261b2777efc361523521150bed34dd82514e169fea4b9c"
   },
   "local_verification": {
-    "app_component_functions_passed": 61,
+    "app_component_functions_passed": 63,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
     "scope": "Node application, actual HTTP boundary, PCM worklet in VM, and exact source/receive clock cases. No actual browser capture or installed packet playback proof yet."
@@ -57,7 +57,8 @@
       "playout_audio_sources": 10,
       "playout_video_frames_per_stream": 1,
       "receive_streams": 8,
-      "playout_horizon_ms": 200
+      "playout_horizon_ms": 200,
+      "control_supervision_cadence_ms": 500
     },
     "lifecycle": "Local tracks, requests, codecs, worklet, graph and retained frames retire on stop, hidden page, offline, actor/conversation switch, view loss, control binding changes and reconnect. Late original replies cannot become a replacement lease. A close must name its original lease; abandoned-open replies retire only that original.",
     "ui": "Explicit start microphone / start microphone and camera and stop-media controls; denied/pending/unsupported/offline states; stop local capture before resource-changing controls. No backend secret enters browser configuration."
@@ -86,13 +87,22 @@
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
-  "source_revision_before_correction": "ac9508fa02d96eb1cc987b047d401982d1f807d1",
-  "previous_runtime_failure": {
-    "workflow_run_id": 41281859253,
-    "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-ac950.json",
-    "checks_passed_per_platform": 16,
-    "captured_frames": 0,
-    "precise_original_cancelled_request_phase_unknown": true
-  },
-  "opening_correction": "Replace separately serialized Conversation,Session and initial Connection reads with their facts from one coherent current public Conversation snapshot: exact active participant/epoch, accepted present Session and owned ready physical Connection/generation. Native media.describe is still required; per-packet signed Connection and native negotiation checks remain. All2s/8s/30s and queue/playout bounds stay unchanged. Fixed allowlisted phase diagnostics identify any future opening/check failure; no root-cause resolution or performance pass is inferred."
+  "source_revision_before_correction": "bf780f633fba4b40dfe7dec7afcfd6a7b418e2f3",
+  "opening_correction": "One coherent current signed snapshot establishes original participant/epoch, accepted present Session and physical Connection/generation, followed by public native negotiation. Signed Connection/current-generation supervision runs one owned read at a time with500ms cadence and unchanged2s bound, separately from per-packet native handle/revision/format checks. SDK and Core authorization remain authoritative on actual IO. Read-only opening/supervision drains on local retirement, because cancelling a live stdio RPC fences the shared SDK control owner; packet work remains cancellable and joined. Local capture/render stops immediately. All2s/8s/30s and200ms media bounds remain; no success or timing/stability claim is inferred.",
+  "previous_runtime_failures": [
+    {
+      "workflow_run_id": 41281859253,
+      "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-ac950.json",
+      "checks_passed_per_platform": 16,
+      "captured_frames": 0,
+      "precise_original_cancelled_request_phase_unknown": true
+    },
+    {
+      "workflow_run_id": 41282336860,
+      "verification_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-bf780.json",
+      "checks_passed_per_platform": 16,
+      "actual_capture_and_native_packets_observed": true,
+      "identified_audio_verified": false
+    }
+  ]
 }

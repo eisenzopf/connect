@@ -204,18 +204,23 @@ export class AppGateway {
             const negotiation = await media.refresh(options);
             if (this.#client(role) !== client) fail("app-media-stopped");
             const check = async opts => {
-                let phase = "packet-current-connection";
                 try {
                     if (this.#client(role) !== client) fail("app-media-stopped");
-                    const current = await connection.refresh(opts);
-                    if (!["ready", "active"].includes(current.state)) fail("app-media-stopped");
-                    phase = "packet-native-negotiation";
                     const negotiation = await media.refresh(opts);
                     if (this.#client(role) !== client) fail("app-media-stopped");
-                    return { generation: current.generation, negotiation };
-                } catch (error) { this.#onError(error, { phase }); throw error; }
+                    return { generation: physical.generation, negotiation };
+                } catch (error) { this.#onError(error, { phase: "packet-native-negotiation" }); throw error; }
             };
-            return { generation: physical.generation, negotiation, media, check };
+            const controlCheck = async opts => {
+                try {
+                    if (this.#client(role) !== client) fail("app-media-stopped");
+                    return await connection.refresh(opts);
+                } catch (error) {
+                    if (opts.signal?.reason?.name !== "AbortError") this.#onError(error, { phase: "media-control-supervision" });
+                    throw error;
+                }
+            };
+            return { generation: physical.generation, negotiation, media, check, controlCheck };
         } catch (error) { this.#onError(error, { phase }); throw error; }
     }
     mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }

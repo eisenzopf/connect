@@ -125,9 +125,9 @@
   },
   "browser_media_candidate": {
     "evidence": "docs/evidence/gate-6/reference-app-browser-media.json",
-    "app_component_functions_passed": 61,
+    "app_component_functions_passed": 63,
     "installed_runtime_verified": false,
     "capture_playback_verified": false,
-    "previous_negative_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-ac950.json"
+    "previous_negative_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-bf780.json"
   }
 }

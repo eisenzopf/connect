@@ -1,5 +1,6 @@
 // Browser-facing packet ownership over genuine public Node SDK media handles.
 // This is an application boundary, not an implementation of the SDK transport.
+import { setTimeout as delay } from "node:timers/promises";
 import { randomUUID } from "node:crypto";
 const fail = code => { throw Object.assign(Error(code), { code }); };
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -30,12 +31,16 @@ export class AppMediaBridge {
             abort: new AbortController(), active: new Map(), timer: null };
         this.#owners.set(owner, lease);
         lease.opening = (async () => {
-            const result = await this.#open(role, lease.binding, this.#options(lease));
+            // A cancelled stdio control read fences its whole SDK owner.
+            // Drain bounded read-only admission instead; discard its late result.
+            const result = await this.#open(role, lease.binding, this.#controlOptions());
             if (lease.abort.signal.aborted || this.#owners.get(owner) !== lease) fail("app-media-stopped");
             if (!Number.isSafeInteger(result.generation) || result.generation < 1 ||
+                typeof result.controlCheck !== "function" ||
                 !Array.isArray(result.negotiation?.streams) || result.negotiation.streams.length > 32 ||
                 Object.keys(lease.binding).some(k => result.negotiation.binding?.[k] !== lease.binding[k])) fail("app-resync-required");
             lease.handle = result; lease.fingerprint = fingerprint(result); this.#touch(lease);
+            lease.supervision = this.#supervise(lease);
             return { leaseId: lease.id, generation: result.generation,
                 negotiation: structuredClone(result.negotiation) };
         })();
@@ -45,6 +50,25 @@ export class AppMediaBridge {
             if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
             throw error;
         }
+    }
+    async #supervise(lease) {
+        try {
+            while (!lease.abort.signal.aborted) {
+                await delay(500, undefined, { signal: lease.abort.signal, ref: false });
+                const current = await lease.handle.controlCheck(this.#controlOptions());
+                if (current.generation !== lease.handle.generation || !["ready", "active"].includes(current.state))
+                    fail("app-media-stopped");
+            }
+        } catch {
+            if (!lease.abort.signal.aborted) {
+                lease.abort.abort();
+                // Do not await this watcher from itself; the owner joins it.
+                void this.closeOwner(lease.owner).catch(() => {});
+            }
+        }
+    }
+    #controlOptions() {
+        return { timeoutMs: 2000, signal: AbortSignal.timeout(2000) };
     }
     #options(lease) {
         return { timeoutMs: 2000, signal: AbortSignal.any([lease.abort.signal, AbortSignal.timeout(2000)]) };
@@ -71,9 +95,10 @@ export class AppMediaBridge {
         if (lease.active.has(key)) fail("app-media-busy");
         const options = this.#options(lease); this.#touch(lease);
         const operation = (async () => {
-            // Preserve the captured physical generation and exact negotiated
-            // revision/format. A gate/resource change requires a fresh lease.
-            // The public SDK remains authoritative at each actual packet IO.
+            // The SDK's local negotiated handles/revision fence packet IO.
+            // Signed Connection supervision has its own bounded control lane;
+            // it must not serialize a network RPC ahead of every media packet.
+            // Core and SDK current authorization remain mandatory for real IO.
             const current = await lease.handle.check(options);
             if (fingerprint(current) !== lease.fingerprint) {
                 lease.abort.abort(); fail("app-media-stopped");
@@ -145,7 +170,7 @@ export class AppMediaBridge {
     async closeOwner(owner) {
         const lease = this.#owners.get(owner); if (!lease) return;
         lease.abort.abort(); clearTimeout(lease.timer);
-        await Promise.allSettled([lease.opening, ...lease.active.values()]);
+        await Promise.allSettled([lease.opening, lease.supervision, ...lease.active.values()]);
         if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
     }
     async closeRole(role) {
