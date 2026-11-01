@@ -23,7 +23,7 @@ async function body(request) {
 
 /** Local fixture UI only. Operator/provider credentials and SDK configurations
  * are never a route, response field, URL parameter or browser storage value. */
-export async function startAppServer({ gateway, sdkDirectory, roles, port = 0 }) {
+export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, onError = () => {} }) {
     if (!gateway || !Array.isArray(roles) || roles.length > 5 || !roles.some(v => v.role === "owner") ||
         roles.some(v => typeof v.label !== "string" || !["owner", "assistant", "booker", "organizer", "observer"].includes(v.role)) ||
         !Number.isSafeInteger(port) || port < 0 || port > 65535) fail("invalid-app-request");
@@ -44,7 +44,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0 })
     const server = createServer({ maxHeaderSize: 8192 }, (request, response) => {
         headers(response);
         if (closing || active.size >= 16) { json(response, 503, { error: { code: "app-request-capacity" } }); request.resume(); return; }
-        const work = handle(request, response).catch(error => json(response, 400, { error: publicError(error) }))
+        const work = handle(request, response).catch(error => { onError(error); json(response, 400, { error: publicError(error) }); })
             .finally(() => { active.delete(work); if (!request.complete) request.destroy(); });
         active.add(work);
     });

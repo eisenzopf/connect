@@ -50,13 +50,14 @@ export function publicError(error) {
 /** App-owned routing/presentation. Journal hints never grant membership or
  * capture authority; every read and action goes through the current SDK actor. */
 export class AppGateway {
-    #journal; #actors; #factory; #clients = new Map(); #flights = new Map(); #closed = false; #closing;
-    constructor({ journal, actors, createClient }) {
+    #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #closed = false; #closing;
+    constructor({ journal, actors, createClient, onError = () => {} }) {
         if (!journal || typeof createClient !== "function" || !actors || Object.keys(actors).length > 5) fail("invalid-app-request");
         for (const [role, actor] of Object.entries(actors))
             if (!["owner", "assistant", "booker", "organizer", "observer"].includes(role) ||
                 !id(actor.identityId) || typeof actor.config !== "string" || typeof actor.label !== "string") fail("invalid-app-request");
-        this.#journal = journal; this.#actors = copy(actors); this.#factory = createClient;
+        if (typeof onError !== "function") fail("invalid-app-request");
+        this.#journal = journal; this.#actors = copy(actors); this.#factory = createClient; this.#onError = onError;
     }
     [inspect.custom]() { return "AppGateway(private)"; }
     toJSON() { return { kind: "app-gateway" }; }
@@ -262,6 +263,7 @@ export class AppGateway {
             const operation = await this.#submit(client, saved); submitted = true;
             return await this.#observe(client, saved, operation);
         } catch (error) {
+            this.#onError(error);
             const current = this.#journal.read(saved.operationId);
             if (current.phase === "prepared" && !submitted && error?.certainty === "not-submitted") this.#journal.notSubmitted(saved.operationId);
             if (current.phase === "attempted") {

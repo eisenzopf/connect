@@ -14,30 +14,32 @@
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "8e2c53d51c5c81a474f9f99610bc97a04df7e35a54685efd6285ead6e0800c9d",
+    "examples/parley-on-connect/app/gateway.mjs": "60e461a32483263409a114ee8fc64a3135b5c9171ab7d67cbb6fd167cb1a87a7",
     "examples/parley-on-connect/app/gateway.test.mjs": "ec73d36cd0586d502dd4561c5f9cbc7ed3dc60e590b5cbcc27cbfd31e1f57fc6",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
-    "examples/parley-on-connect/app/main.mjs": "17bad57d56b092f69279d38fbe7ce396de941fbc8a4b97ee887754772fb17356",
-    "examples/parley-on-connect/app/server.mjs": "521f4319de3822df6ac6600fe483aa22484ce6f2e7aaa2e038b5a90e2807741a",
+    "examples/parley-on-connect/app/main.mjs": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
+    "examples/parley-on-connect/app/server.mjs": "f80df1a83278628acf45901b5d174848a06f8ead2b171c00a74ad5ba67b60cf4",
     "examples/parley-on-connect/app/server.test.mjs": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
     "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
     "examples/parley-on-connect/app/ui/app.mjs": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
     "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
-    "examples/parley-on-connect/app/run.mjs": "1c4748c615987db93c55ffe86e56724bf0949a4b9b6cca5384cf940b162ec77e",
+    "examples/parley-on-connect/app/run.mjs": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
     "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
     "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "a27ed92cccf1d0a47e63ae11cdc1be9ff59b261a8a649d8565b4ad756538c22b",
-    ".github/workflows/gate6-reference-app.yml": "dd7a4962113142bebed2d65a2fc3fa5e75a32b27dca334e2b8d4060d67db805b"
+    "scripts/check-reference-app-installed.mjs": "6ac64efb7a290df2ea4356bf70d66457fed6895cf32bbaa0b8b3b2cd44db952a",
+    ".github/workflows/gate6-reference-app.yml": "dd7a4962113142bebed2d65a2fc3fa5e75a32b27dca334e2b8d4060d67db805b",
+    "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 23,
+    "functions_passed": 24,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "7 private journal cases, 8 SDK-shaped gateway cases, 5 real loopback HTTP/socket cases and 3 SDK/CLI-shaped setup cases. No actual Connect execution for new setup yet. The separate 12-assertion macOS browser component uses a simulated backend."
+    "scope": "7 journal,8 SDK-shaped gateway,5 real HTTP/socket,3 setup and1 closed-diagnostic privacy case pass locally. Earlier actual Node22 CI passes23 pre-diagnostic component cases on both platforms. See exact separate actual production/backend observations; no full app pass."
   },
   "remaining_requirements": [
     "Verify actual one-command startup/scoped enrollment, restart and original recovery; current three setup tests use SDK/CLI-shaped fixtures.",
@@ -68,7 +70,7 @@
   "installed_verification_lane": {
     "workflow": ".github/workflows/gate6-reference-app.yml",
     "dispatch": "gate6-linux-fixtures.yml lane reference-app",
-    "status": "Both diagnostic jobs 41258922384 failed. macOS actual local validation rejects underscore aliases at setup.mjs122; Linux exits during init with its primary failure masked by cleanup. Correct new alias generation/validation, preserve old plans, keep primary failures and install/check documented Ubuntu shared-library prerequisites. Actual production before/after alias parser and full installed rerun pending.",
+    "status": "Run41259152049/98f71e78 Mac source-verified: production helper before/after alias guard passes all4 roles, actual one-command scoped setup ready and installed native SDK/browser control connected. Next conversation creation fails; backend cause unresolved. Linux still live in prerequisite installation. Add redacted backend classes/source locations and body-free public API observations for diagnosis; full app requirements unchanged.",
     "targets": [
       "Ubuntu24.04 x86_64 Node22",
       "macOS15 arm64 Node22"

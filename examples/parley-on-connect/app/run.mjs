@@ -80,6 +80,7 @@ async function main() {
         const env = Object.fromEntries(["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
         const processChild = spawn(file, argv, { env, stdio: ["ignore", "pipe", "pipe"] });
         const record = { process: processChild, failed: null, bytes: 0, writing: Promise.resolve() };
+        let diagnosticBuffer = "";
         record.done = new Promise(done => {
             processChild.once("error", error => done({ error }));
             processChild.once("close", (code, signal) => done({ code, signal }));
@@ -88,6 +89,15 @@ async function main() {
             record.bytes += bytes.length;
             if (record.bytes > maximum) { record.failed = "app-log-capacity"; processChild.kill("SIGTERM"); return; }
             record.writing = record.writing.then(() => log.writeFile(bytes)).catch(() => { record.failed = "app-log-write"; processChild.kill("SIGTERM"); });
+            if (name === "app" && stream === processChild.stderr) {
+                diagnosticBuffer += bytes.toString();
+                if (diagnosticBuffer.length > 8192) diagnosticBuffer = "";
+                let end;
+                while ((end = diagnosticBuffer.indexOf("\n")) >= 0) {
+                    const line = diagnosticBuffer.slice(0, end); diagnosticBuffer = diagnosticBuffer.slice(end + 1);
+                    if (/^PARLEY_APP_FAILURE \{[^\n]+\}$/.test(line)) process.stderr.write(line + "\n");
+                }
+            }
         });
         record.finished = record.done.then(async result => {
             try { await record.writing; await log.sync(); }

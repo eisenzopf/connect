@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { AppIntents } from "./intents.mjs";
 import { AppGateway } from "./gateway.mjs";
 import { startAppServer } from "./server.mjs";
+import { appDiagnostic } from "./diagnostics.mjs";
 
 const fail = code => { const error = Error(code); error.code = code; throw error; };
 async function digest(path) {
@@ -52,7 +53,8 @@ async function main() {
         actors[role] = { identityId: actor.identityId, label: actor.label, config: inside(directory, actor.config) };
     }
     const journal = await AppIntents.open(resolve(directory, "application-state"));
-    const gateway = new AppGateway({ journal, actors, createClient: actor => new NodeClient({ config: actor.config, executable }) });
+    const onError = error => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error)) + "\n");
+    const gateway = new AppGateway({ journal, actors, createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
     let app, closing;
     async function close(failed = false) {
         if (!closing) closing = (async () => {
@@ -64,7 +66,7 @@ async function main() {
     }
     try {
         app = await startAppServer({ gateway, sdkDirectory: dirname(fileURLToPath(import.meta.resolve("@rudeless/connect/browser"))),
-            port: config.port, roles: Object.entries(actors).map(([role, value]) => ({ role, label: value.label })) });
+            port: config.port, roles: Object.entries(actors).map(([role, value]) => ({ role, label: value.label })), onError });
         process.once("SIGINT", () => { void close(); }); process.once("SIGTERM", () => { void close(); });
         process.once("uncaughtException", () => { void close(true); }); process.once("unhandledRejection", () => { void close(true); });
         process.stdout.write("Parley local synthetic app: " + app.origin + "\n");

@@ -38,6 +38,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
     scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery and restart. No negotiated media, model, provider or WAN qualification." };
 let processChild, finished, context, browser, page, release, stage = "startup";
+const apiReads = new Set();
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
 async function deadline(promise, ms) {
     let timer;
@@ -58,7 +59,10 @@ async function start(number) {
     original.stdout.on("data", bytes => { stdout += bytes.toString(); if (stdout.length > 65536) original.kill("SIGTERM"); else {
         const match = /Parley local synthetic app: (http:\/\/127\.0\.0\.1:[0-9]+)\n/.exec(stdout); if (match) ready(match[1]);
     } });
-    original.stderr.on("data", bytes => { stderr += bytes.toString(); if (stderr.length > 65536) original.kill("SIGTERM"); });
+    original.stderr.on("data", bytes => {
+        stderr += bytes.toString(); if (stderr.length > 65536) original.kill("SIGTERM");
+        report.app_failures = [...stderr.matchAll(/^PARLEY_APP_FAILURE (\{[^\n]+\})$/gm)].slice(0, 16).map(match => JSON.parse(match[1]));
+    });
     try {
         const origin = await deadline(Promise.race([line, finished.then(() => { throw Object.assign(Error(), { code: "one-command-startup-failed" }); })]), 180000);
         report["owned_group_size_" + number] = groupMembers(original.pid).length;
@@ -100,6 +104,18 @@ try {
     browser = context.browser(); report.browser = browser.version(); page = context.pages()[0];
     await context.grantPermissions([], { origin });
     const errors = []; page.on("pageerror", error => errors.push(error.name));
+    report.api_observations = [];
+    page.on("response", response => {
+        const path = new URL(response.url()).pathname;
+        if (!/^\/api\/(?:state|view|prepare|lookup|submit|recover|reconnect|actor)$/.test(path) || report.api_observations.length >= 32) return;
+        const reading = (async () => {
+            const value = await response.json();
+            report.api_observations.push({ path, status: response.status(), error: value.error?.code ?? null,
+                command: value.operation?.command ?? null, submission: value.operation?.submission ?? null,
+                state: value.operation?.state ?? null, result_keys: value.result ? Object.keys(value.result).sort() : [] });
+        })().catch(() => {}).finally(() => apiReads.delete(reading));
+        apiReads.add(reading);
+    });
     await page.goto(origin); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     assert.equal(await page.evaluate(() => document.cookie), "");
     assert.match(await page.locator("#media-capability").textContent(), /QUIC/); check("actual-installed-native-SDK-control-connected");
@@ -180,6 +196,7 @@ try {
 } finally {
     release?.();
     if (context) await context.close().catch(() => { report.browser_cleanup_failed = true; report.passed = false; });
+    await deadline(Promise.allSettled([...apiReads]), 2000).catch(() => { report.api_diagnostics_incomplete = true; });
     if (processChild) await stop().catch(async () => {
         report.controller_exit_code = processChild.exitCode;
         report.process_cleanup_failed = groupMembers(processChild.pid).length !== 0;
