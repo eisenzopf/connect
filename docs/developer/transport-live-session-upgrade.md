@@ -38,3 +38,14 @@ This stage does not establish continuity of preexisting audio, physical Device
 replacement, paired AV synchronization, any complete G6-058 cell or Gate 6
 acceptance. It makes the data-to-AV upgrade observable through the public SDK;
 the remaining obligations keep their existing requirements.
+
+The later Linux `ac7b16d2` media lane stops during this preceding stage with a
+read-only deadline, before the six-Connection AV work starts. Its retained
+report does not locate the original awaited substep; it cannot establish an
+AV-work failure or resolve the earlier uncertain AV outcome. The current stage
+now records the original awaited action, Session/role indices, data round and
+bounded completed counters on either return path. It propagates the original
+error without repeating the mutation or extending the original deadlines.
+Five controlled Node cases now include a receive deadline after one completed
+send and verify that no receipt, retirement or subsequent upgrade is invented.
+See [the independently audited Linux result](../evidence/gate-6/native-live-upgrade-deadline-negative.json).
