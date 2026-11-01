@@ -14,7 +14,7 @@
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
     "examples/parley-on-connect/app/media.mjs": "b862602210e2b1cbbbf6b60b4b735c306c4b4587b5cf34af8926e5148689d5f7",
-    "examples/parley-on-connect/app/media.test.mjs": "c1a8347d4986780b870289088d95f1fc59cfde9959ddd944eaa849b4a664be15",
+    "examples/parley-on-connect/app/media.test.mjs": "88b1b9fd4797e2ef23e8a742432fbfeb53b4eb30ce50856ff4dbf2099f5baf72",
     "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
     "examples/parley-on-connect/app/server.mjs": "adf4cda962a805449965b40cbf3faf24dd608eee118eadd2ef077d6d49cd947c",
     "examples/parley-on-connect/app/server.test.mjs": "21aa28f1ae350f2e5bb40a8b5ce5f4fb3c413128e93f89470fe445e3831835ef",
@@ -33,7 +33,8 @@
     "app_component_functions_passed": 66,
     "command": "npm run test:app --prefix examples/parley-on-connect",
     "node": "v26.7.0",
-    "scope": "66 local application/HTTP/worklet/source-clock/playout-conversion cases. Current correction maps already-local RTP/SR timestamps directly into current AudioContext time without retaining a second first-decoded origin; test preserves stale/future rejection and AV offsets. Installed28check result remains required."
+    "scope": "66 local application/HTTP/worklet/source-clock/playout-conversion cases. Current correction maps already-local RTP/SR timestamps directly into current AudioContext time without retaining a second first-decoded origin; test preserves stale/future rejection and AV offsets. Installed28check result remains required.",
+    "late_admission_observer_disposal": "The existing retirement-during-admission case additionally asserts the late-created read-only control owner closes exactly once, including a repeated close. All13media cases pass on Node26; installed run41284218404 uses prior test assertions and unchanged application runtime."
   },
   "implementation": {
     "public_sdk": [

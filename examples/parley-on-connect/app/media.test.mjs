@@ -23,7 +23,7 @@ function fixture(t, overrides = {}) {
             calls.push({ kind: "open", role, scope, options });
             if (overrides.open) await overrides.open(options);
             const captured = snapshot();
-            return { ...captured, controlCheck: async options => {
+            return { ...captured, close: async () => { calls.push({ kind: "close-control-owner" }); }, controlCheck: async options => {
                     calls.push({ kind: "control-check", options });
                     if (overrides.control) return await overrides.control(options);
                     return { generation: state.generation, state: "ready" };
@@ -92,6 +92,9 @@ test("owner retirement during authorization joins the opener and never publishes
     let joined = false; const closing = f.bridge.closeOwner(a).then(() => { joined = true; });
     assert.equal(signal.aborted, false); await Promise.resolve(); assert.equal(joined, false);
     release.resolve(); await refused; await closing; assert.equal(joined, true);
+    assert.equal(f.calls.filter(c => c.kind === "close-control-owner").length, 1);
+    await f.bridge.closeOwner(a);
+    assert.equal(f.calls.filter(c => c.kind === "close-control-owner").length, 1);
 });
 
 test("malformed packets, receive-only publication, unknown Streams and invalid clocks never reach SDK IO", async t => {
