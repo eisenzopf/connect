@@ -349,12 +349,16 @@ try {
         assert.equal((await session.refresh(options)).state, "ended");
     }
     check("both-original-session-intents-end-through-public-sdk");
+    phase = "original-owner-sdk-close-before-independent-device-recovery";
     await owner.close({ timeoutMs: 5000 });
     clients.delete("participant-1");
     const replacement = clients.get("replacement-1");
+    phase = "independent-device-original-create-receipt-recovery";
     const restored = await complete(replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create));
     assert.equal(restored.id, cid);
+    phase = "independent-device-current-membership-read";
     assert.equal((await restored.refresh(options)).participants.filter(p => p.active).length, 4);
+    phase = "independent-device-original-history-audience-read";
     assert.deepEqual(await history(replacement), [plan.beforeMessage, plan.includedMessage, plan.from4Message, plan.afterMessage, ...ownerNativeMessageIds].sort());
     check("independent-device-recovers-original-create-and-history-after-original-helper-close");
     report.passed = true;

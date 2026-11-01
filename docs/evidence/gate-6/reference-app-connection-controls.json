@@ -1,7 +1,7 @@
 {
   "format": "connect/reference-app-connection-controls/1",
   "task": "G6-072",
-  "status": "audio-source-id-correction-local-components-pass-runtime-required",
+  "status": "original-observation-correction-local-components-pass-runtime-required",
   "source_revision_before_change": "a003dbf8a7811617612a37fcb1221b7bbceb8cec",
   "implementation_inputs": {
     "examples/parley-on-connect/app/gateway.mjs": "b25e427c342399113a03cc62c793ccfb390f11eb00f785a29c7497e85d23b797",
@@ -9,11 +9,13 @@
     "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
     "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "examples/parley-on-connect/app/ui/app.mjs": "693f80ead16763b3e092e809333a3f683697600ddfa8d9372d128d52921e0088",
-    "scripts/check-reference-app-installed.mjs": "731cccdc5be7164fa737a80e60f59b6228cf4e146d38b0437672ce9a8a768403",
-    ".github/workflows/gate6-reference-app.yml": "e64eef8d16de0168acdc7fd669db74a24d222b02bf5f2ed6b7f970e5076762d5"
+    "scripts/check-reference-app-installed.mjs": "e7cd37556c71c277d63800d03512750170ae4c00d67e54cb0584a80847f17018",
+    ".github/workflows/gate6-reference-app.yml": "e64eef8d16de0168acdc7fd669db74a24d222b02bf5f2ed6b7f970e5076762d5",
+    "examples/parley-on-connect/app/diagnostics.mjs": "78436143dfad95096a11981313309480127d168475d3fb4090e6154b79f4d1ad",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "9f71908d512beb677f9e385b10508615a4861f49d4847b073b769c1115a88156"
   },
   "local_verification": {
-    "app_component_functions_passed": 37,
+    "app_component_functions_passed": 38,
     "node": "v26.7.0",
     "scope": "SDK-shaped component clients and application-owned state only. No installed audio Connection or media IO proof yet."
   },
@@ -50,9 +52,10 @@
     ]
   },
   "installed_check": {
-    "status": "source-id-correction-runtime-not-run",
+    "status": "original-observation-correction-runtime-not-run",
     "expected_checks": 21,
-    "runtime_verified": false
+    "runtime_verified": false,
+    "description": "Capture only the original submit request ID; require exact-original UI completion and cleared pending state, using at most three existing keyboard original-recovery reads if needed. Observe the same completed original resource scope through the public recovery API. One shared30s action budget; no new submit IDs, dropped assertions or wider SDK/frontend deadlines."
   },
   "remaining": [
     "Installed Node22 Linux/macOS run, exact-source/package audit and synthetic UI visual review",
@@ -102,7 +105,13 @@
         "mac": 124763376602
       },
       "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-1f3.json"
+    },
+    {
+      "status": "terminal-negative-independently-source-verified",
+      "expected_checks": 21,
+      "runtime_verified": false,
+      "verification_evidence": "docs/evidence/gate-6/reference-app-connection-controls-negative-515.json"
     }
   ],
-  "implementation_source_revision_before_fix": "1f3b6d22eb2f7f2dd69f143b50e20509b4d09ca2"
+  "implementation_source_revision_before_fix": "515a4e7c7ca7c7e41a915a41664a77fb9eca7fb3"
 }

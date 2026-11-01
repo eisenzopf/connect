@@ -1411,6 +1411,29 @@
         "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
         "runtime_verified": true
       }
+    ],
+    "later_cohort_candidates": [
+      {
+        "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+        "workflow_run_id": 41277924535,
+        "job_id": 124763781476,
+        "target": "macos-arm64",
+        "signing": "EdDSA",
+        "network": "local",
+        "status": "confirmed-live-combined-build-rehearsal",
+        "runtime_verified": false
+      },
+      {
+        "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+        "workflow_run_id": 41277928115,
+        "job_id": 124763791993,
+        "target": "ubuntu24-x86_64",
+        "signing": "ES256",
+        "network": "remote-profile-fixture",
+        "status": "terminal-negative-independently-source-verified",
+        "runtime_verified": false,
+        "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-negative.json"
+      }
     ]
   },
   "native_signing_cohorts": {

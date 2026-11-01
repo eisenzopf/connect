@@ -229,16 +229,47 @@ try {
     report.native_control_actions = [];
     const activate = async (name, command) => {
         stage = "keyboard-action-" + name;
-        const before = await page.locator("#operations li").filter({ hasText: command + " · completed" }).count();
-        const submitted = page.waitForResponse(response => new URL(response.url()).pathname === "/api/submit" && response.request().method() === "POST");
+        const until = Date.now() + 30000, remaining = () => {
+            const value = until - Date.now(); assert.ok(value > 0, "native-control-observation-deadline"); return value;
+        };
+        const submitted = page.waitForRequest(request => new URL(request.url()).pathname === "/api/submit" && request.method() === "POST", { timeout: remaining() });
         void submitted.catch(() => {});
         await page.getByRole("button", { name, exact: true }).focus(); await page.keyboard.press("Enter");
-        const outcome = await (await submitted).json();
+        const operationId = (await submitted).postDataJSON().operationId;
+        assert.match(operationId, /^[A-Za-z0-9._~-]{1,128}$/);
+        const observeUi = async () => (await page.waitForFunction(operationId => {
+            const original = JSON.parse(document.querySelector("#operations").dataset.values ?? "[]").find(v => v.operationId === operationId);
+            const role = document.querySelector("#actor input:checked").value;
+            const pending = JSON.parse(localStorage.getItem("parley-original-action-" + role) ?? "null");
+            if (document.querySelector("#actor").disabled) return false;
+            if (original?.state === "completed" || pending?.operationId === operationId || original?.submission === "refused" ||
+                ["failed", "cancelled"].includes(original?.state)) return { completed: original?.state === "completed", pending: pending?.operationId === operationId };
+            return false;
+        }, operationId, { timeout: remaining() })).jsonValue();
+        let ui = await observeUi();
+        for (let read = 0; ui.pending && read < 3; read++) {
+            await page.getByRole("button", { name: "Recover original action", exact: true }).focus(); await page.keyboard.press("Enter");
+            ui = await observeUi();
+            report.native_control_original_recoveries = (report.native_control_original_recoveries ?? 0) + 1;
+        }
+        assert.equal(ui.completed, true);
+        assert.equal(ui.pending, false);
+        // Observe the same completed original through the public app API. CDP
+        // may no longer retain a no-store Fetch body after the UI consumed it.
+        // This is a status observation, never another offer/control mutation.
+        const observed = await page.evaluate(async ({ operationId, timeout }) => {
+            const response = await fetch("/api/recover", { method: "POST", credentials: "same-origin", redirect: "error", cache: "no-store",
+                referrerPolicy: "no-referrer", headers: { "Content-Type": "application/json", "X-Parley-Request": "1" },
+                body: JSON.stringify({ operationId }), signal: AbortSignal.timeout(timeout) });
+            return { status: response.status, value: await response.json() };
+        }, { operationId, timeout: Math.min(8000, remaining()) });
+        assert.equal(observed.status, 200);
+        const outcome = observed.value;
         assert.equal(Boolean(outcome.error), false);
+        assert.equal(outcome.operation.operationId, operationId);
         assert.equal(outcome.operation.state, "completed");
-        await page.waitForFunction(({ command, before }) =>
-            [...document.querySelectorAll("#operations li")].filter(v => v.textContent.includes(command + " · completed")).length > before &&
-            !document.querySelector("#actor").disabled, { command, before });
+        assert.ok(outcome.result);
+        assert.ok(remaining() > 0);
         report.native_control_actions.push({ name, command });
         return outcome;
     };

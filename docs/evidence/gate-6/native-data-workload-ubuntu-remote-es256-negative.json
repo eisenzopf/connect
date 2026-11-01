@@ -1,0 +1,224 @@
+{
+  "format": "connect/native-data-workload-independent-verification/1",
+  "task": "G6-058",
+  "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+  "workflow_run_id": 41277928115,
+  "job_id": 124763791993,
+  "artifact_id": 13071987291,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": false,
+    "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+    "artifact_sha256": "9d30673c9291d70d0e6cae2c08389c23566d0bc702f1fa03b4c179689aeebe3d",
+    "report_sha256": "c8e314d8be99a918d86689e7dbf8e7aa046b732e53f214e396652923aeccac70",
+    "source_inputs_sha256": "14c73fa64378a74f2eb0d89b8b91f93e362a68c4b7049c039e0eaef78fba66d3",
+    "sources_verified": {
+      "git": 4727,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "ES256",
+    "network": "remote-profile-fixture",
+    "reported_runtime_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 48,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "100de1ad1874920dac428b459eb39376f06d61f2be83ae6441ed96d11490e348",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_host": {
+    "os": "linux",
+    "architecture": "x86_64",
+    "kernel_release": "7.0.0-1017-azure",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-x86_64"
+  },
+  "node": "v22.23.4",
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification"
+  ],
+  "child_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+    "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed",
+    "native-data-original-replay-recovers-receipt-without-second-delivery",
+    "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+    "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+    "both-original-session-intents-end-through-public-sdk"
+  ],
+  "workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 8422,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true,
+    "original_end_operations_completed": 6,
+    "retirement_observation_budget_ms": 8000,
+    "retirement_observations": 5,
+    "retirement_observer": "single-current-authorized-conversation-snapshot",
+    "retirement_snapshot_pages": 1,
+    "retirement_snapshot_revision": 4,
+    "after_end_states": [
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired",
+      "retired"
+    ],
+    "retirement_observation_elapsed_ms": 4181,
+    "original_connections_retired": 6
+  },
+  "topology": {
+    "host": {
+      "platform": "ubuntu24-x86_64",
+      "os": "linux",
+      "architecture": "x64",
+      "kernel_release": "7.0.0-1017-azure",
+      "ordinary_user": true
+    },
+    "kind": "ubuntu-netns",
+    "distinct_client_server_network_namespaces_observed": true,
+    "helpers_in_client_namespace": 5,
+    "server_owned_veth_udp_bind_observed": true,
+    "ordinary_user_server_and_helpers_verified": true,
+    "client_connected_route_without_default_observed": true,
+    "server_namespace_sha256": "faa2d2822eaf7944616d9d45da25314cd09b54d6cffed4ffa4d2ad80a6315d29",
+    "client_namespace_sha256": "310dad4fc440e654f1e0ccad6695c5309bdb67bf78241cc7c48fdfcc0519237a",
+    "server_executable_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "c8f30ccb80376151057ecd91be9690449fc37d79c23ae82647157d618bff99e3",
+    "pcap_bytes": 3713208,
+    "captured_seconds": 33.748038846,
+    "kernel_dropped_packets": 0,
+    "interface": "owned-veth",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 1191,
+      "to_server_packets": 593,
+      "from_server_packets": 598,
+      "captured_bytes": 3694128,
+      "udp_payload_bytes": 3644106,
+      "to_server_udp_bytes": 790074,
+      "from_server_udp_bytes": 2854032
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "network_namespace": {
+    "kind": "ubuntu-netns",
+    "passed": true,
+    "original_namespace_removed": true,
+    "original_veth_removed": true,
+    "remaining_client_processes": 0,
+    "forced_cleanup": false,
+    "systemd_servers_verified": 2,
+    "unprivileged_client_launch_required": true,
+    "external_default_ipv4_route": false,
+    "failures": [],
+    "route_observation_sha256": "3aafe815671a450ce3f2f007d707f85bec5e298149717461cfafeb25c8b94fd7"
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": true
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "2a12a2b10b086d6fd2278d014dea23465e3dd21f05a700fdc4b073d18a2d6a3f",
+      "original_joined": true,
+      "managed_by_systemd": true
+    }
+  ],
+  "failure": {
+    "phase": "both-original-session-intents-end-through-public-sdk",
+    "name": "NodeSdkError",
+    "kind": "cancelled",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "all_helpers_joined": true,
+  "scope": "Negative Ubuntu isolated Remote-profile/ES256 component. Six exact64KiB payloads, all six original retirements in4181ms, empty queues and both Session ends are observed. A later original-owner close or independent-device recovery/read reports read-only cancellation; the previous phase label identifies only the last completed check, so the precise call/cause is unproven. Add fixed phase labels at each following call, retaining all IDs, operations and deadlines. Current revocation after the failed scenario and complete component remain unqualified. All original server/helper/namespace/veth owners join; ciphertext capture is not decoded media or WAN evidence.",
+  "component_passed": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
