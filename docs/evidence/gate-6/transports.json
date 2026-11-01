@@ -1308,6 +1308,21 @@
       "status": "confirmed-live-native-prerequisites",
       "runtime_verified": false,
       "description": "Private DEBUG records only fixed durable-cleanup stages/error codes and terminal custodian booleans; bounded curated arrays and complete stage counts. No IDs, payloads, Error.message, changed grants, effects, mutation replay or deadline extension. Rust compilation/runtime pending;42Python guards, syntax and Rust format checks pass."
+    },
+    "coherent_retirement_observer_candidate": {
+      "status": "implemented-local-guards-pass-runtime-unverified",
+      "description": "One current-authorized public Conversation snapshot per round for all six original IDs and Sessions, with one revision/watermark across pages and unchanged eight-second common deadline, retired state and later generation requirements. No change to production cleanup, end effects, enrollment scopes or the complete workload.",
+      "node_observer_tests_passed": 5,
+      "actual_host_owner_tests_passed": 2,
+      "python_transport_guards_passed": 42,
+      "runtime_verified": false,
+      "full_matrix_cells_qualified": 0,
+      "implementation_hashes": {
+        "scripts/lib/transport_snapshot.mjs": "2f4e2c0ba32b3b2ea578dc082e7219d7c060ca583a95a6854ce37d8ea73c7b8b",
+        "scripts/tests/transport_snapshot.test.mjs": "ab2aaa50b0dc2f75e05b8e89fec5412d8c0d2bae347870102dca675f6864414d",
+        "scripts/check-transport-conversation.mjs": "c8d6f1d70566d8b1207f244055583fd10f700abca82b70c0ce9c698a2ca35fc5",
+        ".github/workflows/gate6-transport-matrix.yml": "d7d877c2bc4311f12af0a73a15e6b729d3b358990dd08e35074dbb7c71b99edf"
+      }
     }
   },
   "native_signing_cohorts": {

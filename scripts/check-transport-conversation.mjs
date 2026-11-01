@@ -6,6 +6,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
 import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
+import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -321,11 +322,17 @@ try {
         const retirementStarted = performance.now(), retirementUntil = retirementStarted + options.timeoutMs;
         report.data_workload.retirement_observation_budget_ms = options.timeoutMs;
         report.data_workload.retirement_observations = 0;
+        report.data_workload.retirement_observer = "single-current-authorized-conversation-snapshot";
         for (;;) {
             const remaining = Math.floor(retirementUntil - performance.now());
             assert.ok(remaining > 0);
-            const retired = await Promise.all(connections.map(v => v.connection.refresh({ timeoutMs: remaining })));
+            const snapshot = await connectionSnapshots(owner, cid, connections.map(v => ({
+                id: v.connection.id, sessionId: plan["session" + v.sid],
+            })), { timeoutMs: remaining });
+            const retired = snapshot.connections;
             report.data_workload.retirement_observations++;
+            report.data_workload.retirement_snapshot_pages = snapshot.pages;
+            report.data_workload.retirement_snapshot_revision = snapshot.revision;
             report.data_workload.after_end_states = retired.map(v => v.state);
             if (retired.every((v, index) => v.id === connections[index].connection.id && v.state === "retired" && v.generation > before[index].generation)) break;
             await new Promise(done => setTimeout(done, Math.min(50, Math.max(0, retirementUntil - performance.now()))));

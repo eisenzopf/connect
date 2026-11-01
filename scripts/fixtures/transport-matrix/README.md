@@ -277,6 +277,14 @@ observation boundary, carry one independently identified 64KiB binary payload to
 the intended recipient, and remain current at the second boundary. Original data
 replay must recover the receipt without a second delivery. Every original
 Connection must retire through the public API, with owned data queues empty.
+After the six original end receipts, one current-authorized public Conversation
+snapshot observes the six original Connection IDs and their original Sessions
+per round. Pagination must retain one revision and watermark, and missing IDs,
+duplicates, changed Sessions or invalid continuations refuse the observation.
+Every Connection must be `retired` with a later generation under the same shared
+eight-second observation deadline. This avoids six independent captures of the
+same topology per round; it does not change end operations, cleanup behavior or
+retirement criteria. A partial or still-ready snapshot cannot pass.
 
 The fresh synthetic server explicitly configures `limits.message_bytes` to cover
 the 64KiB decoded payload before its first start and stopped backup. The normal

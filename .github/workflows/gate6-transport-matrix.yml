@@ -101,7 +101,7 @@ jobs:
           python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-x86_64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"; assert os.environ["TRANSPORT_NETWORK"] in {"local", "remote-profile-fixture"}; assert os.environ["TRANSPORT_NETWORK"] == "local" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"'
       - name: Check actual host process observation and original child joins
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
-        run: node --test scripts/tests/transport_host.test.mjs
+        run: node --test scripts/tests/transport_host.test.mjs scripts/tests/transport_snapshot.test.mjs
       - name: Build current Node browser-SDK control inputs
         if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         working-directory: sdk/typescript
