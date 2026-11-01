@@ -340,5 +340,511 @@
     "scope": "Two original completed local native audio moves pass independent decoding; the third reaches readiness and records an uncertain commit outcome. This is a failed twenty-move run. The readiness-contention branch was not reached in this sequence. Commit refusals require exact-stage diagnosis before any retry semantics change. No device presentation, paired AV, complete media quality, six-connection workload, full cell or task qualification.",
     "task_complete": false,
     "whole_gate_qualified": false
+  },
+  "debug_observer_twenty_original_audio_moves": {
+    "runtime_source_revision": "94696573a2815d47190d09d8fc3dc2b32b0a1d05",
+    "runtime_binary_sha256": "b5e8199cf4e5291a6c195bd4628d504831c8b86b443d30b1513b64007a5ed4de",
+    "independent_runtime_proof_sha256": "85b1c7a0f6475a1c8818bbfec47cc96ff59849a666a1f62a9938c53702c2e006",
+    "runtime_files_verified": 755,
+    "git_inputs_verified": 4855,
+    "prepared_inputs_verified": 4094,
+    "pinned_archives_verified": 4,
+    "requested": 20,
+    "attempted": 20,
+    "completed_original_roots_with_independently_decoded_audio": 20,
+    "original_journal_completed_roots": 20,
+    "confirmed_commit_effects_per_original": 1,
+    "original_controller_sha256": "94be9667f5c663cd24094c666afc22d7d26230679e5aeb92268e929b11c3f8e1",
+    "original_journal_audit_sha256": "08e3be6d6c630c69ee393077246aff2a0e14824c343d60776304ada08926e04f",
+    "independent_audio_audit_sha256": "4563f0b8c0098bbe6816077a931dd922f1af95e068c1902a45cb01a6d90ba5fd",
+    "source_guards": {
+      "sdk_dist_files_unchanged": true,
+      "sdk_dist_files": 192,
+      "credentials_unchanged": true,
+      "credential_files_guarded": 491,
+      "controller_module_unchanged": true,
+      "runtime_unchanged": true,
+      "harness_sources_unchanged": true
+    },
+    "server_joined": true,
+    "server_forced": false,
+    "maximum_decoded_packet_arrival_gap_ms": 101.95666699999992,
+    "minimum_total_intent_to_destination_arrival_ms": 898.5163749999997,
+    "maximum_total_intent_to_destination_arrival_ms": 2057.6131670000004,
+    "per_move": [
+      {
+        "index": 0,
+        "decoded_packet_arrival_gap_ms": 101.95666699999992,
+        "total_intent_to_identified_destination_arrival_ms": 1070.1149580000001,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 105
+          },
+          "retained": {
+            "440": 105,
+            "660": 470,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 471
+          }
+        }
+      },
+      {
+        "index": 1,
+        "decoded_packet_arrival_gap_ms": 40.49845800000003,
+        "total_intent_to_identified_destination_arrival_ms": 1049.332125,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 108
+          },
+          "retained": {
+            "440": 108,
+            "660": 463,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 465
+          }
+        }
+      },
+      {
+        "index": 2,
+        "decoded_packet_arrival_gap_ms": 41.906375000000025,
+        "total_intent_to_identified_destination_arrival_ms": 898.5163749999997,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 101
+          },
+          "retained": {
+            "440": 101,
+            "660": 471,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 471
+          }
+        }
+      },
+      {
+        "index": 3,
+        "decoded_packet_arrival_gap_ms": 40.40254199999981,
+        "total_intent_to_identified_destination_arrival_ms": 988.6990419999997,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 100
+          },
+          "retained": {
+            "440": 99,
+            "660": 467,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 469
+          }
+        }
+      },
+      {
+        "index": 4,
+        "decoded_packet_arrival_gap_ms": 43.00016700000015,
+        "total_intent_to_identified_destination_arrival_ms": 1017.5459579999999,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 103
+          },
+          "retained": {
+            "440": 104,
+            "660": 465,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 465
+          }
+        }
+      },
+      {
+        "index": 5,
+        "decoded_packet_arrival_gap_ms": 39.0525419999999,
+        "total_intent_to_identified_destination_arrival_ms": 1535.3909590000003,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 129
+          },
+          "retained": {
+            "440": 129,
+            "660": 438,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 440
+          }
+        }
+      },
+      {
+        "index": 6,
+        "decoded_packet_arrival_gap_ms": 60.38633299999992,
+        "total_intent_to_identified_destination_arrival_ms": 1087.3165829999998,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 108
+          },
+          "retained": {
+            "440": 106,
+            "660": 463,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 465
+          }
+        }
+      },
+      {
+        "index": 7,
+        "decoded_packet_arrival_gap_ms": 82.22166600000014,
+        "total_intent_to_identified_destination_arrival_ms": 917.9932080000001,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 96
+          },
+          "retained": {
+            "440": 96,
+            "660": 472,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 473
+          }
+        }
+      },
+      {
+        "index": 8,
+        "decoded_packet_arrival_gap_ms": 60.687417000000096,
+        "total_intent_to_identified_destination_arrival_ms": 1079.0679169999999,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 101
+          },
+          "retained": {
+            "440": 100,
+            "660": 462,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 464
+          }
+        }
+      },
+      {
+        "index": 9,
+        "decoded_packet_arrival_gap_ms": 57.68750000000023,
+        "total_intent_to_identified_destination_arrival_ms": 899.4012500000001,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 95
+          },
+          "retained": {
+            "440": 98,
+            "660": 476,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 477
+          }
+        }
+      },
+      {
+        "index": 10,
+        "decoded_packet_arrival_gap_ms": 40.44987500000025,
+        "total_intent_to_identified_destination_arrival_ms": 1169.9797080000003,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 111
+          },
+          "retained": {
+            "440": 110,
+            "660": 462,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 462
+          }
+        }
+      },
+      {
+        "index": 11,
+        "decoded_packet_arrival_gap_ms": 59.90804200000002,
+        "total_intent_to_identified_destination_arrival_ms": 1005.5471670000002,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 104
+          },
+          "retained": {
+            "440": 103,
+            "660": 472,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 474
+          }
+        }
+      },
+      {
+        "index": 12,
+        "decoded_packet_arrival_gap_ms": 42.38554199999999,
+        "total_intent_to_identified_destination_arrival_ms": 2057.6131670000004,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 146
+          },
+          "retained": {
+            "440": 145,
+            "660": 422,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 422
+          }
+        }
+      },
+      {
+        "index": 13,
+        "decoded_packet_arrival_gap_ms": 79.66250000000036,
+        "total_intent_to_identified_destination_arrival_ms": 1551.0888750000004,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 120
+          },
+          "retained": {
+            "440": 120,
+            "660": 448,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 450
+          }
+        }
+      },
+      {
+        "index": 14,
+        "decoded_packet_arrival_gap_ms": 41.63083400000005,
+        "total_intent_to_identified_destination_arrival_ms": 1117.3053340000001,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 106
+          },
+          "retained": {
+            "440": 107,
+            "660": 466,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 467
+          }
+        }
+      },
+      {
+        "index": 15,
+        "decoded_packet_arrival_gap_ms": 44.282250000000204,
+        "total_intent_to_identified_destination_arrival_ms": 1368.034958,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 120
+          },
+          "retained": {
+            "440": 121,
+            "660": 450,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 450
+          }
+        }
+      },
+      {
+        "index": 16,
+        "decoded_packet_arrival_gap_ms": 39.99587500000007,
+        "total_intent_to_identified_destination_arrival_ms": 1511.8182499999998,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 120
+          },
+          "retained": {
+            "440": 119,
+            "660": 446,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 446
+          }
+        }
+      },
+      {
+        "index": 17,
+        "decoded_packet_arrival_gap_ms": 101.38574999999992,
+        "total_intent_to_identified_destination_arrival_ms": 1543.70275,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 117
+          },
+          "retained": {
+            "440": 118,
+            "660": 453,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 455
+          }
+        }
+      },
+      {
+        "index": 18,
+        "decoded_packet_arrival_gap_ms": 59.582124999999905,
+        "total_intent_to_identified_destination_arrival_ms": 1655.0115410000003,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 130
+          },
+          "retained": {
+            "440": 129,
+            "660": 442,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 443
+          }
+        }
+      },
+      {
+        "index": 19,
+        "decoded_packet_arrival_gap_ms": 80.43108299999994,
+        "total_intent_to_identified_destination_arrival_ms": 1208.6415000000002,
+        "original_speaker_after_identified_destination_frames": 0,
+        "decoded_identified_counts": {
+          "original": {
+            "440": 0,
+            "660": 0,
+            "880": 107
+          },
+          "retained": {
+            "440": 106,
+            "660": 467,
+            "880": 0
+          },
+          "target": {
+            "440": 0,
+            "660": 0,
+            "880": 468
+          }
+        }
+      }
+    ],
+    "core_refusal_observer_events": 0,
+    "intermittent_commit_fault_reproduced": false,
+    "intermittent_commit_fault_resolved": false,
+    "previous_original_unknown_root_retried": false,
+    "device_presentation_measured": false,
+    "paired_av_sync_qualified": false,
+    "full_media_quality_qualified": false,
+    "six_connection_two_session_workload_qualified": false,
+    "twenty_transition_profile_qualified": false,
+    "full_transport_cell_qualified": false,
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "scope": "Twenty new original native audio moves complete on one local macOS arm64/EdDSA two-peer fixture. Every original root/effect independently matches the stopped journal; every original audio capture independently identifies the source/retained/destination and retains original packet arrival timing without PLC, gap filling or retiming. Each trial uses a fresh Conversation/Session with one designated target Device. This does not qualify the required four-participant/six-Connection/two-concurrent-Session workload, device presentation, pairedAV, sixty-second media quality, impairment or any complete matrix cell. Debug-only code changes do not resolve prior intermittent conflicts: no Core refusal occurred in this bounded run and the prior third original remains unknown."
   }
 }

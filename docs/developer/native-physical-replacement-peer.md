@@ -119,3 +119,17 @@ changed managed state and target-validation refusals before publication. It
 changes no commit/retry semantics. Exact production diagnosis remains pending;
 a generic conflict must not be treated as permission to repeat an uncertain
 movement.
+
+The source946 debug-observer production binary completes all twenty new original
+audio moves in a bounded local run. Independent journal inspection confirms one
+completed root and one confirmed commit effect per original; independent Opus
+decoding confirms all twenty original captures. The largest packet-arrival gap
+is 101.957 ms. Caller-monotonic intent-to-identified-destination arrival timings
+are recorded separately per move in the stage evidence. Every owner joins
+without force and all original source/credential/executable guards remain valid.
+
+No Core refusal is observed in that run. A debug-only observer cannot establish
+that an intermittent fault is fixed, and the earlier original unknown commit is
+neither retried nor reclassified. These twenty two-peer audio observations do
+not qualify the concurrent four-participant/six-Connection/two-Session workload,
+device presentation, paired AV, impairment or a complete transport cell.
