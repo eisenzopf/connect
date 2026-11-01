@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { nativeAv } from "../lib/transport_av.mjs";
 
-async function checkFailure(firstSubmissionAccepted, setupFailure = false) {
+async function checkFailure(firstSubmissionAccepted, setupFailure = false, withControl = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "transport-av-cancel-"));
     const sources = join(directory, "sources"); await mkdir(sources, { mode: 0o700 });
@@ -28,6 +28,9 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false) {
     const stream = {
         async sendRtp(_packet, options) {
             assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 200, "public-write-cannot-outlive-original-200ms-source-age");
+            if (withControl) return new Promise((_, reject) => {
+                options.signal.addEventListener("abort", () => reject(Object.assign(Error(), { kind: "cancelled" })), { once: true });
+            });
             if (firstSubmissionAccepted && !accepted) {
                 accepted = true;
                 return { boundary: "local-media-queue" };
@@ -59,7 +62,19 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false) {
         const started = performance.now();
         const observations = [];
         await assert.rejects(nativeAv(connections, roles, sources, join(directory, "received"), plan,
-            observation => { assert.equal(waiting, 0); observations.push(observation); }), error => error === failure);
+            observation => { assert.equal(waiting, 0); observations.push(observation); }, withControl ? async workload => {
+                await new Promise(setImmediate);
+                assert.equal(waiting, 12);
+                assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
+                assert.equal(workload.routes[0].role, workload.routes[4].role);
+                assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
+                const joined = await workload.routes[0].stopAndJoin();
+                assert.equal(joined.original_packet_tasks_joined, 4);
+                assert.equal(joined.shared_sdk_closed, false);
+                assert.equal(workload.signal.aborted, false);
+                assert.equal(waiting, 10); assert.equal(aborted, 2);
+                throw failure;
+            } : undefined), error => error === failure);
         assert.equal(observations.length, 1);
         const observed = observations[0];
         assert.equal(observed.original_tasks_joined, true);
@@ -71,7 +86,8 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false) {
             return;
         }
         assert.equal(observed.original_tasks_started, 24);
-        assert.deepEqual(observed.failure, { route_index: 0, medium: "audio", direction: "send",
+        assert.deepEqual(observed.failure, withControl ? { route_index: null, medium: null,
+            direction: "control", stage: "during-workload" } : { route_index: 0, medium: "audio", direction: "send",
             stage: firstSubmissionAccepted ? "clock" : "rtp" });
         assert.equal(observed.routes.length, 6);
         assert.equal(observed.routes.reduce((sum, r) => sum + r.submitted_packets.audio, 0), Number(firstSubmissionAccepted));
@@ -109,3 +125,5 @@ test("first send failure joins all twelve native readers and retains original cl
 test("clock failure retains only the completed original audio queue receipt and joins readers", () => checkFailure(true));
 
 test("original media setup failure remains explicit before any source clock or media task starts", () => checkFailure(false, true));
+
+test("in-workload control retires one Connection and preserves its shared participant second Session", () => checkFailure(false, false, true));

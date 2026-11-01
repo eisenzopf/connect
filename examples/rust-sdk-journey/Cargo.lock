@@ -382,6 +382,7 @@ dependencies = [
 name = "connect-external-rust-journey"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "connect-client",
  "serde",
  "serde_json",

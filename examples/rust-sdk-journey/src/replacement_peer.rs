@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
 mod owner;
 mod selected;
+mod timeline;
 mod video;
 
 #[derive(Deserialize)]
@@ -21,6 +22,8 @@ pub(super) struct Source {
     video: Option<video::Video>,
     #[serde(default)]
     owner_control: bool,
+    #[serde(default)]
+    program_start_unix_us: Option<u64>,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
@@ -127,6 +130,12 @@ pub(super) async fn run(
     output: PathBuf,
 ) -> Result<()> {
     source.validate()?;
+    // Refuse an expired original program before allocation or any network IO.
+    timeline::Program::at(
+        source.program_start_unix_us,
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(),
+        source.seconds,
+    )?;
     let offer_json = serde_json::to_value(&offer)?;
     let offered = offer_json["streams_offered"]
         .as_array()
@@ -199,6 +208,9 @@ pub(super) async fn run(
     let mut negotiated = Vec::<Value>::new();
     let mut owner_ready = false;
     let mut stop_requested = false;
+    let mut program_origin = None;
+    let mut source_start_audio_index = 0;
+    let mut source_start_video_index = 0;
     let work = async {
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
@@ -225,11 +237,17 @@ pub(super) async fn run(
         negotiated=selected.iter().map(|s|s.raw.clone()).collect();
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
-        let start = tokio::time::Instant::now();
-        let unix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
+        let anchor = tokio::time::Instant::now();
+        let program = timeline::Program::at(source.program_start_unix_us,
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(), source.seconds)?;
+        let start = anchor.checked_sub(program.elapsed).ok_or("original program monotonic origin out of bounds")?;
+        let unix = program.unix;
+        program_origin = Some(unix);
         let until = start + Duration::from_secs(u64::from(source.seconds));
-        let mut index = 0usize;
-        let mut video_index = 0usize;
+        let mut index = program.audio_index;
+        let mut video_index = program.video_index;
+        source_start_audio_index = index;
+        source_start_video_index = video_index;
         let mut datagram = 0u32;
         let mut octets = 0u32;
         let mut rtp_seq = 0u16;
@@ -291,7 +309,7 @@ pub(super) async fn run(
                             let bytes=&source.audio_packets[index];
                             client.send_native_media_datagram(&wire(handle,datagram,rtp_seq,timestamp,source.ssrc,pt,bytes))?;
                             datagram+=1;rtp_seq=rtp_seq.wrapping_add(1);sent+=1;octets+=bytes.len() as u32;
-                            if index%25==0 {
+                            if sent==1 || index%25==0 {
                                 client.send_native_media_datagram(&pack_sender_clock_datagram(&SenderClockDatagram {
                                     stream_local_id:handle,seq:datagram,report:SenderClockReport {ssrc:source.ssrc,rtp:timestamp,
                                         ntp:ntp(unix+index as u128*20_000),packets:sent,octets,cname:"g6-replacement-target".into()}})?)?;
@@ -347,6 +365,7 @@ pub(super) async fn run(
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
         "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
+        "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
         "negotiated_streams":negotiated});
     file.write_all(&serde_json::to_vec(&result)?).await?;
     file.sync_all().await?;
@@ -370,6 +389,7 @@ mod tests {
                 audio_packets: vec![],
                 video: None,
                 owner_control: false,
+                program_start_unix_us: None,
             },
             Source {
                 seconds: 31,
@@ -377,6 +397,7 @@ mod tests {
                 audio_packets: vec![vec![1]; 1550],
                 video: None,
                 owner_control: false,
+                program_start_unix_us: None,
             },
             Source {
                 seconds: 1,
@@ -384,6 +405,7 @@ mod tests {
                 audio_packets: vec![vec![1]; 50],
                 video: None,
                 owner_control: false,
+                program_start_unix_us: None,
             },
             Source {
                 seconds: 1,
@@ -391,6 +413,7 @@ mod tests {
                 audio_packets: vec![vec![1]; 49],
                 video: None,
                 owner_control: false,
+                program_start_unix_us: None,
             },
             Source {
                 seconds: 1,
@@ -398,6 +421,7 @@ mod tests {
                 audio_packets: vec![vec![1; 1169]; 50],
                 video: None,
                 owner_control: false,
+                program_start_unix_us: None,
             },
         ] {
             assert!(source.validate().is_err());

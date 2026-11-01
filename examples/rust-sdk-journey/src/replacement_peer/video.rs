@@ -1,5 +1,6 @@
 //! Original 30fps VP8 source; closing a gate never retimes a captured frame.
 use super::*;
+use base64::{engine::general_purpose::STANDARD, Engine};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Video {
@@ -7,7 +8,33 @@ pub(super) struct Video {
     pub receive_audio_stream_id: String,
     pub receive_video_stream_id: String,
     pub ssrc: u32,
+    #[serde(deserialize_with = "frames")]
     pub frames: Vec<Vec<u8>>,
+}
+fn frames<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Vec<Vec<u8>>, D::Error> {
+    let encoded = Vec::<String>::deserialize(deserializer)?;
+    if encoded.len() > 62 * 30 {
+        return Err(serde::de::Error::custom(
+            "VP8 frame count exceeds original program",
+        ));
+    }
+    let mut total = 0usize;
+    encoded
+        .into_iter()
+        .map(|value| {
+            if value.len() > (256 * 1024 + 2) / 3 * 4 {
+                return Err(serde::de::Error::custom("VP8 encoded frame exceeds bound"));
+            }
+            let frame = STANDARD.decode(value).map_err(serde::de::Error::custom)?;
+            total += frame.len();
+            if frame.len() > 256 * 1024 || total > 16 * 1024 * 1024 {
+                return Err(serde::de::Error::custom("VP8 decoded source exceeds bound"));
+            }
+            Ok(frame)
+        })
+        .collect()
 }
 pub(super) fn id(value: &str) -> bool {
     !value.is_empty()
@@ -96,6 +123,28 @@ pub(super) fn packets(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compact_original_frames_decode_exactly_and_refuse_noncanonical_or_unbounded_input() {
+        let source = json!({"stream_id":"camera","receive_audio_stream_id":"audio-in",
+            "receive_video_stream_id":"video-in","ssrc":2,"frames":[STANDARD.encode([0, 1, 255])]});
+        assert_eq!(
+            serde_json::from_value::<Video>(source.clone())
+                .unwrap()
+                .frames,
+            vec![vec![0, 1, 255]]
+        );
+        for invalid in [
+            json!(["!invalid!"]),
+            json!([[0, 1, 255]]),
+            json!(["AA== "]),
+            json!(vec!["AA=="; 1861]),
+            json!([STANDARD.encode(vec![0; 256 * 1024 + 1])]),
+        ] {
+            let mut changed = source.clone();
+            changed["frames"] = invalid;
+            assert!(serde_json::from_value::<Video>(changed).is_err());
+        }
+    }
     #[test]
     fn original_vp8_fragments_round_trip_public_receiver_with_wrap_and_exact_timestamps() {
         let binding = selected::Binding {

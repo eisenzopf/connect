@@ -241,3 +241,33 @@ five seconds before stopping the server. It never replays that earlier original.
 This short audio ownership component does not invoke or weaken the existing
 ten-second/300-packet transition oracle and does not qualify a full AV cell.
 See [the ownership evidence](../evidence/gate-6/native-replacement-live-owner.json).
+
+Continuous movement can now supply `source.programStartUnixUs`, the immutable
+Unix microsecond origin of the shared media program. The controller refuses a
+future or expired program before submitting the original move. The Rust target
+checks it again before opening a physical client and after negotiation, computes
+the current 20 ms audio and 30 fps video indices, and retains the original RTP
+coordinates and sender-report origin. Its deadline remains the original program
+end. It never restarts the source when another destination joins. The first
+submitted audio packet emits a sender report even when its index is not a
+multiple of the periodic report interval. Final observations retain the program
+origin and both initial indices for independent checks.
+
+The private Rust input now carries VP8 frames as canonical base64 strings. The
+controller validates the same original byte arrays, dimensions, keyframe cadence
+and byte limits, then encodes them without decimal-array expansion. The Rust
+consumer decodes those exact bytes before applying the existing source checks.
+The independent consumer explicitly pins its already-present base64 dependency;
+its locked build verifies the matching lockfile. Neither source codec nor media
+limits change.
+
+The six-Connection `nativeAv` worker now owns packet tasks per Connection. Its
+optional `during` callback receives the shared program origin, the workload abort
+signal and each Connection's `stopAndJoin`. That method cancels and joins only
+that Connection's four media tasks, preserving another Session on the same
+participant's SDK/helper. Callback failures still abort and join the remaining
+packet work; callbacks must own bounded original operations and join their own
+physical targets. This is the integration interface for continuous replacements,
+not completed twenty-move workload evidence. The caller still needs to collect
+replacement media segments, replace subscription bindings, independently decode
+the complete timeline, and qualify every required cell.

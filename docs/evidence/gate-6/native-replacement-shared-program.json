@@ -1,0 +1,81 @@
+{
+  "format": "connect/gate6-native-replacement-shared-program/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Shared source-program coordinates, compact immutable original VP8 inputs and per-Connection packet ownership for continuous device-movement workload integration. Components pass; actual physical AV replacement remains negative.",
+  "source_files_sha256": {
+    "examples/rust-sdk-journey/Cargo.toml": "d27b0f40fc1c750c8284543225bf0fc6072ee23e23cbf996c487ddffeb0a0188",
+    "examples/rust-sdk-journey/Cargo.lock": "c12dc1bb9c8763e7879b5aa6d8c6bbda3523cea1fb0a2b6cd819f3a2e20bb054",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "51d755f08b95211a3ca32c30ae65b395f3bce38f68f82ffe5fc35925f7f52bfc",
+    "examples/rust-sdk-journey/src/replacement_peer/timeline.rs": "f9682f03c6b59b4a4f1ca570a8051984174387ba812cb022d22ea76cf378120a",
+    "examples/rust-sdk-journey/src/replacement_peer/video.rs": "0c1185c04ee15db6f79a815e0f2dc8ee9da8ec412687f424085839efbd3337c3",
+    "scripts/lib/transport_replacement_target.mjs": "5d89cbfdd75c8e8673cf3223666d690c7155e8236959eca5164d6342f1b94a4d",
+    "scripts/lib/transport_media_owner.mjs": "a048bea4ba8f9c80137314294e3e8fd1a0e01b1b32c922830c26531c5df9e324",
+    "scripts/lib/transport_av.mjs": "571f80e3d7e590695adabf08ab5c1b525dee8655ae4131a23b1254af1a66f833",
+    "scripts/tests/transport_media_owner.test.mjs": "b530b82d9f29c3904227c6dc795fdd8fba5c2b08dd35137dc022e0e1ec51112b",
+    "scripts/tests/transport_av.test.mjs": "17f40ef0f55c2f55dc6a84b62cb903b4a2de81fba4410b131b47a1766912392b",
+    "scripts/tests/transport_replacement_target.test.mjs": "e6b7d4bab19b40910603cc747602f6a020b572a3bcf626ebd9fdcd35ff063938"
+  },
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "verification": {
+    "passed": true,
+    "rust_cases": 12,
+    "node_cases": 14,
+    "source_inputs_unchanged": true,
+    "source_input_count": 4251,
+    "peer_executable_sha256": "b6b4876c943d9b774a66433aa932b63938cf5b66fcb8ca1c5f41b2d87de2e637",
+    "rust_test_binary_sha256": "8371755ff09dc9cc678fcbcb9164337103acecf9b896c8924952b88920250125",
+    "locked_build_rust_inputs_still_match": true,
+    "exit_codes": [
+      0,
+      0
+    ]
+  },
+  "controlled_cases": [
+    "Original audio/video indices across successive admission times through61.999999seconds, with original RTP/sender-report coordinates. Future/expired origins refuse instead of rebasing.",
+    "Compact VP8 decoding preserves exact original bytes and refuses invalid base64, legacy numeric arrays and count/frame/total size excess. Existing dimensions/keyframe/packet limits remain.",
+    "Retiring one Connection joins its four packet tasks while the same participant second Session remains running; uncertainty/authority failures are preserved.",
+    "Six-Connection media callback exercises Connection-local retirement and preserves ten other original packet readers, then its control failure joins all24original packet tasks."
+  ],
+  "actual_negative_scenes": [
+    {
+      "private_path": ".local/gate-6/replacement-shared-program-av",
+      "input_bytes": 60633985,
+      "original_result": "Read-only completion deadline; original target stops during cleanup. No readiness or commit captured.",
+      "target_program_start_audio_index": 213,
+      "target_program_start_video_index": 127
+    },
+    {
+      "private_path": ".local/gate-6/replacement-shared-program-av-compact",
+      "input_bytes": 8463460,
+      "original_result": "Recorded failed original after confirmed actual duplex readiness; no commit effect. Distinct stage-specific pre-commit diagnosis required.",
+      "target_program_start_audio_index": 143,
+      "target_program_start_video_index": 85
+    }
+  ],
+  "same_original_source_assets_in_both_scenes": true,
+  "original_operation_budget_seconds": 8,
+  "private_evidence": {
+    ".local/gate-6/replacement-shared-program-final-verification/inputs.json": "21aa6a13a7cc75bcb8abe4aef322596c8a905b8488fea1d2cd23307a09de3c43",
+    ".local/gate-6/replacement-shared-program-final-verification/state.json": "c3733f368b764fe471af82612b9ccdd62046c7b3aadc4ad259d94bdba5641a33",
+    ".local/gate-6/replacement-shared-program-final-verification/node.log": "8e20a31d6736c253dfcfa942a7079554b5be055df9cd2fd45b165d27f7665522",
+    ".local/gate-6/replacement-shared-program-final-verification/rust.log": "425762d3eb83a574aba296b98d6562a897acd701989f3cc231edccfc7592feec",
+    ".local/gate-6/replacement-shared-program-compact-verified/state.json": "ffd12eaad9a95c970957532a6e3c93289c69cb5f3743824bc39537a889e2a603",
+    ".local/gate-6/replacement-shared-program-av/controller.json": "0be14e38ef22a5fbeb798dd2bc95c06f8297ac1afdb37567254c383eed57832c",
+    ".local/gate-6/replacement-shared-program-av/move/stage.json": "7e048201d4a406554a48f362f6b76da224a17d24277f6c3addec756054cdbb0b",
+    ".local/gate-6/replacement-shared-program-av/move/target-observation.json": "3e9601afcf63f61c74b013fbe851eddf914d6a60beab989c227eb9f3e82e85e5",
+    ".local/gate-6/replacement-shared-program-av-compact/controller.json": "76c4e957518bbf264db6a8bf7b8447104a7d42c0a5f00192c95d0cc1c6571662",
+    ".local/gate-6/replacement-shared-program-av-compact/move/stage.json": "3e3c3a16230c7a86381e7d1e93709e306ad57a0e3c4d66470f06f95a64515730",
+    ".local/gate-6/replacement-shared-program-av-compact/move/target-observation.json": "d0932da0382e7d6c8c9690dcac10c46e308157eb7d9ca8c4ed54bc5ff6eb4dce",
+    ".local/gate-6/replacement-shared-program-av-compact/negative-summary.json": "619482f2c6806d000dceaabc78beb2884f39a183f6f5294e1f25f60cb28d1513"
+  },
+  "limitations": [
+    "No physical AV replacement completion or decoded post-move video is established by these two failed scenes. Neither original is replayed.",
+    "First audio sender-report timing and compact input changes are both present in the second scene; its improved readiness does not isolate causality.",
+    "The per-Connection integration callback is present, but the main producer still requires the complete20-transition controller, updated video subscriptions, media segment custody and independent complete-timeline decoder.",
+    "All frozen four-participant/six-Connection/two-Session,60-second, impairment, packet capture, privacy, presentation, cleanup and32cell requirements remain."
+  ],
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

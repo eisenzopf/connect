@@ -42,6 +42,8 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     assert.ok(Number.isSafeInteger(expectedTopologyRevision) && expectedTopologyRevision > 0);
     assert.ok([originalGeneration, retainedGeneration].every(value => Number.isSafeInteger(value) && value > 0));
     assert.ok(Number.isInteger(source?.seconds) && source.seconds >= 1 && source.seconds <= (source.video ? 62 : 30));
+    if (source.programStartUnixUs !== undefined)
+        assert.ok(Number.isSafeInteger(source.programStartUnixUs) && source.programStartUnixUs > 0);
     assert.ok(Number.isInteger(source.ssrc) && source.ssrc > 0 && source.ssrc <= 0xffffffff);
     assert.ok(Array.isArray(source.audioPackets) && source.audioPackets.length === source.seconds * 50);
     const audio = source.audioPackets.map(bytes => {
@@ -67,7 +69,9 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
                 lastKey = index;
             }
             assert.ok(lastKey !== undefined && index - lastKey < 30);
-            return [...frame];
+            // Preserve exact encoded bytes without decimal-array expansion
+            // inside the original operation's bounded preparation window.
+            return Buffer.from(frame).toString("base64");
         });
         video = { stream_id: v.streamId, receive_audio_stream_id: v.receiveAudioStreamId,
             receive_video_stream_id: v.receiveVideoStreamId, ssrc: v.ssrc, frames };
@@ -84,7 +88,8 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             identity_assurance_offered: "identified", source_clock: "rtcp-sr-sdes/1",
         }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] },
             ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : [])] },
-        media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}) }, output };
+        media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
+            ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}) }, output };
 }
 
 export const physicalReplacementTarget = options => physicalTarget(options, false);
@@ -103,6 +108,10 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
     assert.equal((await stat(config)).mode & 0o077, 0);
     const output = join(resolve(directory), "target-observation.json");
     const input = replacementInput({ ...intent, target: { ...intent.target, nativeConfig: config }, output });
+    if (intent.source.programStartUnixUs !== undefined) {
+        const elapsed = Date.now() * 1000 - intent.source.programStartUnixUs;
+        assert.ok(elapsed >= 0 && elapsed < intent.source.seconds * 1_000_000, "original media program must be current before submission");
+    }
     if (live) input.media.owner_control = true;
     const configHash = hash(await readFile(config));
     await mkdir(directory, { mode: 0o700 });
@@ -166,6 +175,17 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.ok(Number.isInteger(observed.sent_audio_packets) && observed.sent_audio_packets > 0 &&
                 observed.sent_audio_packets <= intent.source.seconds * 50);
             assert.equal(observed.video_enabled, Boolean(intent.source.video));
+            if (intent.source.programStartUnixUs !== undefined) {
+                assert.equal(observed.program_start_unix_us, intent.source.programStartUnixUs);
+                assert.ok(Number.isInteger(observed.source_start_audio_index) && observed.source_start_audio_index >= 0 &&
+                    observed.source_start_audio_index < intent.source.seconds * 50);
+                assert.ok(Number.isInteger(observed.source_start_video_index) && observed.source_start_video_index >= 0 &&
+                    observed.source_start_video_index < intent.source.seconds * 30);
+                assert.ok(observed.sent_audio_packets <= intent.source.seconds * 50 - observed.source_start_audio_index);
+                report.original_program_start_unix_us = observed.program_start_unix_us;
+                report.target_start_audio_index = observed.source_start_audio_index;
+                report.target_start_video_index = observed.source_start_video_index;
+            }
             assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
             if (intent.source.video) {
                 assert.equal(observed.original_root_completed_observed, true);

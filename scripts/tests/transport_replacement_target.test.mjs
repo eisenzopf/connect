@@ -47,7 +47,7 @@ test("AV target retains independent stream identities and copies originals for t
     value.source.video.frames = Array.from({ length: 62 * 30 }, () => [...value.source.video.frames[0]]);
     const captured = replacementInput(value);
     value.source.video.frames[0][3] = 0;
-    assert.equal(captured.media.video.frames[0][3], 0x9d);
+    assert.equal(Buffer.from(captured.media.video.frames[0], "base64")[3], 0x9d);
     assert.equal(captured.media.seconds, 62);
     assert.deepEqual(captured.offer.capabilities.video_codecs,
         [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }]);
@@ -113,4 +113,16 @@ test("accepted-root reads share the original deadline and a changed preparation 
         assert.ok(result.failure.source.line > 0);
         assert.equal(result.target_config_unchanged, true); assert.equal(result.target_executable_unchanged, true);
     } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("replacement inputs carry one immutable AV program origin without shifting source packets", () => {
+    const value = avIntent(); value.source.programStartUnixUs = 1793600000123456;
+    const captured = replacementInput(value);
+    assert.equal(captured.media.program_start_unix_us, value.source.programStartUnixUs);
+    assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
+    assert.deepEqual(captured.media.video.frames.map(v => [...Buffer.from(v, "base64")]), value.source.video.frames);
+    for (const origin of [0, -1, 1.25, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+        value.source.programStartUnixUs = origin;
+        assert.throws(() => replacementInput(value));
+    }
 });

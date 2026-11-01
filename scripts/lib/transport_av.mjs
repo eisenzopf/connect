@@ -1,17 +1,19 @@
-// Owned native SDK media component. No control mutation, decoder or authority.
+// Owned native SDK packet workers. Control authority and decoding stay with the caller.
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { SdkRtpPacket } from "../../sdk/typescript/dist/index.js";
 import { RtpSender, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
+import { ConnectionMediaOwner } from "./transport_media_owner.mjs";
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
     BigInt(Math.floor((milliseconds % 1000) * 2 ** 32 / 1000));
 
-export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan, observe = () => {}) {
+export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan, observe = () => {}, during) {
     assert.equal(connections.length, 6);
+    assert.ok(during === undefined || typeof during === "function");
     const manifest = JSON.parse(await readFile(join(sourceDirectory, "manifest.json"), "utf8"));
     assert.equal(manifest.format, "connect/native-av-sources/2");
     assert.equal(manifest.seconds, 62); assert.equal(manifest.observation_seconds, 60);
@@ -60,14 +62,16 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     }
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
     const end = start + 62000, tasks = []; let error, workFailure, timer;
+    let controlResult;
+    for (const route of routes) route.owner = new ConnectionMediaOwner(controller.signal);
     async function sending(route, medium) {
         const video = medium === "video", entries = route.input[medium], sender = video ? route.videoSender : route.audioSender,
             stream = video ? route.sendVideo : route.sendAudio;
         let lastClock = -Infinity, submitted = { ssrc: 0, packets: 0, octets: 0 };
-        for (let index = 0; index < entries.length && !controller.signal.aborted; index++) {
+        for (let index = 0; index < entries.length && !route.owner.signal.aborted; index++) {
             const elapsed = video ? entries[index].timestamp / 90 : index * 20;
             await pause(start + elapsed - performance.now());
-            if (controller.signal.aborted) return;
+            if (route.owner.signal.aborted) return;
             // A delayed source frame is discarded at its original age. It is
             // never relabelled or replayed as current after event-loop delay.
             if (performance.now() - start - elapsed >= 200) { route.lateSendFrames++; continue; }
@@ -80,7 +84,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 const sequence = new DataView(packet.buffer, packet.byteOffset).getUint32(4);
                 const submittedAt = performance.now() - start;
                 route.stages.send[medium] = "rtp";
-                const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: remaining, signal: controller.signal });
+                const result = await stream.sendRtp(new SdkRtpPacket(sequence, packet.subarray(8)), { timeoutMs: remaining, signal: route.owner.signal });
                 assert.equal(result.boundary, "local-media-queue"); submitted = sender.submitted(packet);
                 if (!video) {
                     assert.ok(route.submittedAudio.length < 3100);
@@ -94,19 +98,19 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             if (frameCompleted && elapsed - lastClock >= 500) {
                 route.stages.send[medium] = "clock";
                 await stream.sendClock(sender.nextDatagramSequence(), { ...submitted, ntp: ntp(unixStart + elapsed), rtp: timestamp,
-                    cname: "g6-native-av-" + route.index }, { timeoutMs: 1000, signal: controller.signal });
+                    cname: "g6-native-av-" + route.index }, { timeoutMs: 1000, signal: route.owner.signal });
                 lastClock = elapsed;
             }
         }
     }
     async function receiving(route, medium) {
         const stream = medium === "audio" ? route.receiveAudio : route.receiveVideo, assembler = new Vp8Assembler();
-        while (!controller.signal.aborted && performance.now() < end + 100) {
+        while (!route.owner.signal.aborted && performance.now() < end + 100) {
             let value;
             route.stages.receive[medium] = "packet";
-            try { value = await stream.receivePacket({ timeoutMs: 500, signal: controller.signal }); }
+            try { value = await stream.receivePacket({ timeoutMs: 500, signal: route.owner.signal }); }
             catch (failure) {
-                if (controller.signal.aborted && failure.kind === "cancelled") return;
+                if (route.owner.signal.aborted && failure.kind === "cancelled") return;
                 if (failure.kind === "deadline" && failure.certainty === "read-only") continue;
                 throw failure;
             }
@@ -141,6 +145,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     }
     const launch = (task, route, medium, direction) => tasks.push(task.catch(failure => {
         if (!error) {
+            if (route.owner.signal.aborted && failure.kind === "cancelled") return;
             error = failure;
             workFailure = { route_index: route.index, medium, direction, stage: route.stages[direction][medium] ?? "pending" };
         }
@@ -148,14 +153,28 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     }));
     try {
         for (const route of routes) for (const medium of ["audio", "video"]) {
-            launch(receiving(route, medium), route, medium, "receive");
-            launch(sending(route, medium), route, medium, "send");
+            launch(route.owner.run(() => receiving(route, medium)), route, medium, "receive");
+            launch(route.owner.run(() => sending(route, medium)), route, medium, "send");
         }
+        if (during) tasks.push(Promise.resolve().then(() => during(Object.freeze({
+            signal: controller.signal, programStartUnixUs: unixStart * 1000,
+            routes: Object.freeze(routes.map(route => Object.freeze({ index: route.index,
+                peerIndex: route.peerIndex, connection: route.item.connection,
+                sessionIndex: route.item.sid, role: route.item.role,
+                // Retire only this Connection's four packet tasks. A second
+                // Session may still belong to the same live SDK/helper.
+                stopAndJoin: () => route.owner.stopAndJoin(),
+            }))),
+        }))).then(value => { controlResult = value; }, failure => {
+            if (!error) { error = failure; workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" }; }
+            controller.abort();
+        }));
         // The deadline aborts only reads owned by this component; originals and
         // their control/mutation owners are still closed by the caller.
         await Promise.race([new Promise(done => { timer = setTimeout(done, 62200); }), Promise.all(tasks)]);
     } finally {
         clearTimeout(timer); controller.abort(); await Promise.all(tasks);
+        await Promise.all(routes.map(route => route.owner.stopAndJoin().catch(() => {})));
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
             captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
@@ -163,7 +182,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
-            original_tasks_started: tasks.length, elapsed_ms: performance.now() - start, failure: workFailure ?? null,
+            original_tasks_started: routes.length * 4, control_task_started: Boolean(during), elapsed_ms: performance.now() - start, failure: workFailure ?? null,
             routes: routes.map(route => ({ index: route.index, received_audio: route.audio.length,
                 received_video: route.video.length, submitted_packets: { ...route.sent },
                 received_clocks: { ...route.clocks }, gap_packets: route.gaps, late_send_frames: route.lateSendFrames })),
@@ -174,5 +193,6 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         original_receive_tasks_joined: true, seconds: 62, warmup_seconds: 2, observation_seconds: 60,
         routes: routes.map(r => ({ index: r.index, peer_index: r.peerIndex, received_audio: r.audio.length, received_video: r.video.length,
             gap_packets: r.gaps, late_send_frames: r.lateSendFrames, received_clocks: r.clocks, submitted_packets: r.sent })),
+        ...(during ? { control_workload: controlResult } : {}),
         scope: "Real public SDK native RTP and source-clock transport only. Independent decoder and profile checks are separate; no full-cell qualification." };
 }

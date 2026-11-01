@@ -1,0 +1,184 @@
+{
+  "format": "connect/gate6-native-av-first-write-negative/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "source_revision": "31c108e23f35f8652b4f315a5bb66d9902c065e9",
+  "run": 41338289608,
+  "job": 124942681770,
+  "scope": "Independently verified Ubuntu24 x86_64/EdDSA/local retained media component. Live original Session upgrades pass, then the initial six-Connection AV workload fails on an original video RTP write. No physical replacement sequence executes.",
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "31c108e23f35f8652b4f315a5bb66d9902c065e9",
+    "artifact_sha256": "e8c6895c10b4ffce31234a235ff34ebf97e0ecaeb7a5e22f40b3e65b48b6657b",
+    "report_sha256": "d4de937f8000f013a79bf59d9d25e98ee9d23dc8b0418949edd61338fb679862",
+    "source_inputs_sha256": "2c6330d8d545c2ff2ed8568f1c1ef89ed254a1ee0b22658fee6a8452fee9b2a4",
+    "sources_verified": {
+      "git": 4880,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "f204084c504369305c194e01b7abde7fe861650569297217b4803f3ee86227cf",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "8d02d6a882b47645503adecfe2bb66a008456b7003ef03fef32ca5d0a6d6db12",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "live_session_upgrade": {
+    "format": "connect/live-session-upgrade-work-observation/1",
+    "passed": true,
+    "elapsed_ms": 5958.811906000001,
+    "failure": null,
+    "offers_completed": 4,
+    "selections_completed": 4,
+    "data_completed": 8,
+    "data_received": 8,
+    "upgrades_completed": 2,
+    "ends_completed": 4,
+    "retirements_observed": 4,
+    "scope": "Original awaited stage and bounded completed counters. No retry, payload, identity, media-readiness or full-cell qualification."
+  },
+  "native_av": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "original_tasks_started": 24,
+    "elapsed_ms": 806.1424970000007,
+    "failure": {
+      "route_index": 2,
+      "medium": "video",
+      "direction": "send",
+      "stage": "rtp"
+    },
+    "routes": [
+      {
+        "index": 0,
+        "received_audio": 31,
+        "received_video": 19,
+        "submitted_packets": {
+          "audio": 39,
+          "video": 54
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 1,
+        "received_audio": 32,
+        "received_video": 23,
+        "submitted_packets": {
+          "audio": 40,
+          "video": 57
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 2,
+        "received_audio": 33,
+        "received_video": 17,
+        "submitted_packets": {
+          "audio": 38,
+          "video": 42
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 3,
+        "received_audio": 32,
+        "received_video": 18,
+        "submitted_packets": {
+          "audio": 39,
+          "video": 46
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 4,
+        "received_audio": 33,
+        "received_video": 22,
+        "submitted_packets": {
+          "audio": 39,
+          "video": 55
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 5,
+        "received_audio": 33,
+        "received_video": 23,
+        "submitted_packets": {
+          "audio": 40,
+          "video": 56
+        },
+        "received_clocks": {
+          "audio": 1,
+          "video": 1
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      }
+    ],
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "uncertain",
+    "source_stack": []
+  },
+  "original_helpers_joined": true,
+  "original_servers_joined": 2,
+  "artifact_sha256": "e8c6895c10b4ffce31234a235ff34ebf97e0ecaeb7a5e22f40b3e65b48b6657b",
+  "verification_sha256": "414eea98b45216865b13d2836920fc29d8168535aa5623dc39467c540536320e",
+  "limitations": [
+    "Failure is a deadline with uncertain outcome at route2/video/send/rtp after806.142497ms, not a demonstrated packet loss, codec, network, Core or browser cause.",
+    "No original packet write or mutation is retried. Earlier failure results remain retained.",
+    "ZIP contains report and complete source inventories, not runtime executable bytes or decoded media. Its runtime digest is reported, not independently matched executable bytes.",
+    "Later local shared-program and ownership tests do not change this exact source-bound failure."
+  ],
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
