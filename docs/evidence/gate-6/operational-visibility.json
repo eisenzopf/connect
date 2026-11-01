@@ -86,12 +86,11 @@
   "source_owner_audit_revision": "ad04e36ee09b593581ee26834c2bffd39f981aba",
   "schema_verification": "docs/evidence/gate-6/operational-schema-verified.json",
   "current_runtime_candidate": {
-    "run_id": 41254268813,
-    "job_id": 124693998219,
-    "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
-    "status": "in-progress-MCP-and-integration-typecheck",
-    "scope": "18focused runtime functions, current rawMCP sockets and separate actual server/helper/browser process measurement; all runtime outcomes pending",
-    "task_complete": false
+    "source_revision": "230374da",
+    "run_id": 41262455931,
+    "job_id": 124718313843,
+    "status": "live",
+    "scope": "22focusedfunctions and corrected3role production process profile; no completion claim"
   },
   "pending_socket_cleanup": {
     "status": "implemented-not-yet-runtime-verified",
@@ -246,7 +245,7 @@
       "schema_generation": "Passed and independently source-verified at c6f9c5ea"
     }
   },
-  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-c6.json",
+  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-054.json",
   "fixture_type_correction": {
     "status": "implemented-not-yet-compiled",
     "health_snapshot": "Explicit as_ref for awaited Box<OperationalHealth> temporary",
@@ -285,10 +284,11 @@
     "existing_c6_run": "Still live; retain and inspect original result, no restart"
   },
   "mcp_listener_regression_candidate": {
-    "status": "existing-cases-added-to-next-aggregate-not-yet-executed",
+    "status": "all4functions-passed-independently-source-verified",
     "functions": 4,
     "scope": "Actual listener abort-before-poll, primary/auxiliary retirement, drop and cancelled shutdown ownership",
-    "total_next_focused_functions": 22
+    "total_next_focused_functions": 22,
+    "total_focused_functions_verified": 22
   },
   "process_profile_startup_correction": {
     "status": "implemented-local-guards-pass-not-yet-executed",

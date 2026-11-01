@@ -1,0 +1,236 @@
+{
+  "format": "connect/verified-operational-components/1",
+  "workflow_run_id": 41255161108,
+  "job_id": 124716604675,
+  "source_revision": "054d8abba077d2be811289749c00eeab9347b90c",
+  "artifact_id": 13065995216,
+  "artifact_zip_sha256": "0c86baa6bba96c3935944bfa0fa632dc9e6993f578ff0594a3ebcd72344ddcd7",
+  "source_counts": {
+    "git": 4628,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "all_source_maps_identical": true,
+  "focused_runtime_functions_passed": 22,
+  "runtime": {
+    "format": "connect/gate6-operational-component/1",
+    "phase": "runtime",
+    "selected_case": null,
+    "source_revision": "054d8abba077d2be811289749c00eeab9347b90c",
+    "source_inputs_sha256": "cc6e2b2cb137bf3e3d820c6da2f4291db629d243332ffa5d35520a27e5532dc7",
+    "source_count": 8726,
+    "steps": [
+      {
+        "name": "store-authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.415,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1301 filtered out; finished in 0.21s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_store",
+            "sha256": "c9c9bd8832a8ba55a960925adc772e3aeb90402abe170bca156cb656337ec008"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "service-observation",
+        "exit_code": 0,
+        "elapsed_seconds": 1.267,
+        "test_results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 60 filtered out; finished in 0.93s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_service",
+            "sha256": "15229c7d912c42544b3907385bce1e7c317559ef927a89049e452fe09a957f33"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "permit-lifetime",
+        "exit_code": 0,
+        "elapsed_seconds": 0.316,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 0.00s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_service",
+            "sha256": "15229c7d912c42544b3907385bce1e7c317559ef927a89049e452fe09a957f33"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "mcp-capacity",
+        "exit_code": 0,
+        "elapsed_seconds": 152.303,
+        "test_results": [
+          "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 151.97s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_mcp",
+            "sha256": "b55986c9674f217e01d3a18167e0a6450f59d9278ca1c247bdfe27c8748a3a8d"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "mcp-listener",
+        "exit_code": 0,
+        "elapsed_seconds": 1.117,
+        "test_results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.76s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_mcp",
+            "sha256": "b55986c9674f217e01d3a18167e0a6450f59d9278ca1c247bdfe27c8748a3a8d"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "public-client",
+        "exit_code": 0,
+        "elapsed_seconds": 156.379,
+        "test_results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.01s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "gate6_operational_visibility",
+            "sha256": "2da1afbd72727a0be5d91fe4f3973d6b46134b64e39e1852d9d511d9d07bb79f"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "hosting-limits",
+        "exit_code": 0,
+        "elapsed_seconds": 32.783,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.45s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "gate6_hosting_limits",
+            "sha256": "cf75083fda002c644d31c007f59293c7c1313d71a61afca95cec67597a5d9e50"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      },
+      {
+        "name": "operation-overload",
+        "exit_code": 0,
+        "elapsed_seconds": 0.465,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1302 filtered out; finished in 0.23s"
+        ],
+        "failed_tests": [],
+        "compiler_errors": [],
+        "executables": [
+          {
+            "name": "connect_store",
+            "sha256": "c9c9bd8832a8ba55a960925adc772e3aeb90402abe170bca156cb656337ec008"
+          }
+        ],
+        "checked_artifacts": [],
+        "failure_locations": []
+      }
+    ],
+    "passed": true,
+    "whole_gate_qualified": false,
+    "task_complete": false,
+    "scope": "Local synthetic operational component only; no provider/model/media or whole G6-057 qualification.",
+    "cases": [
+      {
+        "name": "store-authority",
+        "report_sha256": "460b3877722af92005e609a9b908c44b7c7afa9f92eb5d42e8ea4a7b75b3d8c0",
+        "passed": true
+      },
+      {
+        "name": "service-observation",
+        "report_sha256": "4fe7fca40e62c7894192451a7153b76aec487444b6fe32837812cc8257d694c7",
+        "passed": true
+      },
+      {
+        "name": "permit-lifetime",
+        "report_sha256": "9e7a54290b1fd79c7c7f7c3e9aeaca01b2d54cb86566b5c7350459e9afbde8a8",
+        "passed": true
+      },
+      {
+        "name": "mcp-capacity",
+        "report_sha256": "4e2d1e051ee00735eb3aea45d6d86aaa8bd0038bf00ee37f94201a3f0542b127",
+        "passed": true
+      },
+      {
+        "name": "mcp-listener",
+        "report_sha256": "a982b56f054fe3b084251e695db1bd144772aaa848386db304d0d24a209f13c5",
+        "passed": true
+      },
+      {
+        "name": "public-client",
+        "report_sha256": "0e42e8f9c77645ffaef9c0dd26f1dec0dab84f3c8ae9c6f69b4b0ac2fdfb76ab",
+        "passed": true
+      },
+      {
+        "name": "hosting-limits",
+        "report_sha256": "099fa295df8c70a1a499addefea2c12b3825965b2bd18a84f1052a9b7ac3b070",
+        "passed": true
+      },
+      {
+        "name": "operation-overload",
+        "report_sha256": "0a4f6e62178573efbf35d3af20306dd33b747e301e765ff49db3e25e882ad8e4",
+        "passed": true
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "cacheable_build": true,
+    "cacheable_typecheck": false,
+    "cache_scope": "Completed Cargo artifacts from unchanged sources only; missing/failed compilation remains unqualified and Cargo must rebuild it."
+  },
+  "process_profile": {
+    "format": "connect/gate6-operational-process-profile/1",
+    "passed": false,
+    "source_revision": "054d8abba077d2be811289749c00eeab9347b90c",
+    "source_inputs_sha256": "cc6e2b2cb137bf3e3d820c6da2f4291db629d243332ffa5d35520a27e5532dc7",
+    "source_count": 8726,
+    "checks": {},
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "scope": "Native Ubuntu24.04x86_64 production CLI server, separate actual Rust SDK helper and owned Chromium/Node browser HTTP client; synthetic loopback read-only profile. No media/performance capacity or provider/account qualification.",
+    "compile_exit_code": 0,
+    "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+    "source_inputs_unchanged": true
+  },
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "process_profile_finding": "All22focused functions pass, including4MCP listener abort/drop/cancel/independent-retirement functions. Aggregate source/case/executable hashes independently checked against4628Git4094prepared4archives. Process profile failed before browser readiness; no separate3role resource pass. Corrected workflow230374da builds the required TypeScript dist, pendingrun41262455931."
+}

@@ -85,5 +85,12 @@
     "scope": "Exact previously independently verified complete candidate ZIP/tar/manifest and selected native/npm assets; cold offline ordinary SDK install; current app source copied outside checkout; actual one-command startup, browser keyboard text/invitations, lost-response offline/original recovery, same-command restart and original group/browser joins. No compilation/media/model/provider lane.",
     "negative_evidence": "docs/evidence/gate-6/reference-app-installed-negative.json",
     "macos_diagnostic_dispatch": "gate6-linux-fixtures.yml lane reference-app-macos; independent concurrency; whole-app qualification still requires both platforms"
+  },
+  "installed_control_verification": {
+    "evidence": "docs/evidence/gate-6/reference-app-installed-control-macos.json",
+    "checks_passed": 15,
+    "platform": "macOS Node22",
+    "full_two_platform_run": 41262453814,
+    "full_two_platform_status": "live-not-yet-qualified"
   }
 }
