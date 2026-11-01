@@ -5,7 +5,6 @@
   "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
   "production_optimized_build": {
     "stage": "complete",
-    "controller_pid": 77695,
     "passed": true,
     "results": [
       {
@@ -31,11 +30,9 @@
     ],
     "binaries": {
       "connect": {
-        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/release/connect",
         "sha256": "3c510a7016836c53b258c5c91ca08f5fa36a95221638d783cddeb3addd0fb130"
       },
       "connect-external-rust-journey": {
-        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/release/connect-external-rust-journey",
         "sha256": "689ab7236cdbec39af3f6f99b7db908492da3dadb2438860f7d5ac1d30d9a92d"
       }
     },
@@ -583,5 +580,17 @@
   },
   "full_transport_cells_qualified": 0,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "controlled_retained_video_regression": {
+    "status": "compiling-original-production-code",
+    "patch": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
+    "patch_sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
+    "source_lock_sha256": "13f13f83449adb4a837ee54f9b43dc6c1ac7a7e5452536dfd11b819c4f430f1f",
+    "patch_count": 266,
+    "tests_added": 4,
+    "original_audio_tests_unchanged": true,
+    "production_code_changed": false,
+    "observed_counterexample_verified": false,
+    "contract": "Retained video policy runs outside model State; old model/credential/port/route callbacks cannot poll IO; contended initial or post-policy model metadata owns no idle reader and refuses without waiting. Same controlled fixture as existing audio tests; no decoded readiness or native loss cause inferred."
+  }
 }

@@ -1443,6 +1443,11 @@
       "path": "patches/rvoip/gate6-native-private-av-admission.patch",
       "sha256": "0b5ca83b34ede0e64596311a93ac32e0a1d660d63ba9b1cc3d5c01f9968db402",
       "source": "G6-058: mute the complete original confirmed audio/video native resource batch under the existing exact Gate intent before private admission. Require one duplex audio and optional video only. Rename adapter helper to describe all muted media; no readiness, public route, video unmute, deadline, clock or retry change. Service projects only provisioned negotiated AV and retains actual immutable resource IDs; physical AV replacement remains to be verified."
+    },
+    {
+      "path": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
+      "sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
+      "source": "G6-058 controlled retained-video model-lock regressions matching the existing retained-audio contract. Require external policy outside model State, revalidate original model/credential/port/route, retain no idle reader and refuse initial/post-policy metadata contention without waiting. Test-only; no production fix, readiness or decoded quality claim."
     }
   ]
 }

@@ -1,0 +1,178 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -217,3 +217,175 @@
+     assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
+     assert!(dropped, "fresh reader survived while waiting for State");
+ }
++
++
++// The same retained-packet contract applies to video. These are guarded IO
++// callbacks over controlled RTP bytes, not a decoded-video readiness claim.
++async fn queued_video(
++    f: &Fixture,
++    source: &AdapterMediaPort,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++) -> QueuedMedia {
++    source.try_publish(&frame(source, sequence)).unwrap();
++    receive(input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    outgoing(output).await
++}
++async fn assert_video_packet(queued: QueuedMedia) {
++    queued.deliver(|frame| async move {
++        assert_eq!(frame.kind, StreamKind::Video);
++        assert!(!frame.payload.is_empty());
++        Ok(())
++    }).await.unwrap();
++}
++#[tokio::test]
++async fn retained_video_policy_releases_state_and_fresh_delivery_keeps_no_idle_reader() {
++    let (f, actions) = fixture();
++    f.start(&[Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    let packet = queued_video(&f, &source, &mut input, &mut output, 160).await;
++    assert!(
++        f.policy.0.try_write().is_ok(),
++        "queue retained policy authority"
++    );
++    *actions.lock().unwrap() = Some(Box::new(|controller| {
++        assert!(
++            controller.state.try_lock().is_ok(),
++            "policy owns the model mutex"
++        );
++    }));
++    assert_video_packet(packet).await;
++    assert!(
++        f.policy.0.try_write().is_ok(),
++        "completed IO retained policy authority"
++    );
++}
++#[tokio::test]
++async fn retained_video_policy_cannot_lend_current_model_credential_or_route_to_an_older_callback()
++{
++    for changed in 0..5 {
++        let (f, actions) = fixture();
++        f.start(&[Medium::Video]).await;
++        let source = f.aa.port(Medium::Video);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        let packet = queued_video(&f, &source, &mut input, &mut output, 160).await;
++        let authority = f.policy.0.try_read().unwrap().owners["alice"].clone();
++        *actions.lock().unwrap() = Some(Box::new(move |controller| {
++            assert!(controller.state.try_lock().is_ok(), "policy owns State");
++            match changed {
++                0 => {
++                    // Same final permission and actual port, different revision.
++                    // Do not rely only on permits() after a pause/resume edge.
++                    let mut state = controller.state.lock().unwrap();
++                    for paused in [true, false] {
++                        let expected = state.model.revision();
++                        state
++                            .model
++                            .set_paused(
++                                &authority.current(),
++                                expected,
++                                &desired(Medium::Video).logical_id,
++                                paused,
++                            )
++                            .unwrap();
++                    }
++                }
++                1 => controller.credential.lock().unwrap().revision += 1,
++                2 => controller.state.lock().unwrap().closed = true,
++                3 => {
++                    let port = controller.state.lock().unwrap().active
++                        [&desired(Medium::Video).logical_id]
++                        .clone();
++                    port.retire();
++                }
++                4 => controller.shutdown.cancel(),
++                _ => unreachable!(),
++            }
++        }));
++        let called = AtomicBool::new(false);
++        let result = packet
++            .deliver(|_| async {
++                called.store(true, Ordering::Release);
++                Ok(())
++            })
++            .await;
++        assert!(result.is_err(), "changed={changed}");
++        assert!(
++            !called.load(Ordering::Acquire),
++            "changed={changed} polled IO"
++        );
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "refused attempt retained a reader"
++        );
++        if changed <= 1 {
++            assert_video_packet(queued_video(&f, &source, &mut input, &mut output, 320).await).await;
++        }
++    }
++}
++#[tokio::test]
++async fn retained_video_busy_initial_state_refuses_without_waiting_for_its_owner() {
++    let (f, _) = fixture();
++    f.start(&[Medium::Video]).await;
++    let port = f.aa.port(Medium::Video).0;
++    let ticket = port.ticket();
++    let held = f.a.state.lock().unwrap();
++    let controller = f.a.clone();
++    let (sent, received) = std::sync::mpsc::channel();
++    let worker =
++        std::thread::spawn(move || sent.send(attempt(&controller, &port, &ticket)).unwrap());
++    let result = received.recv_timeout(Duration::from_millis(500));
++    drop(held);
++    worker.join().unwrap();
++    assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
++    assert!(f.policy.0.try_write().is_ok());
++}
++#[tokio::test]
++async fn retained_video_busy_state_after_policy_drops_fresh_authority_before_retry_wait() {
++    let (f, actions) = fixture();
++    f.start(&[Medium::Video]).await;
++    let port = f.aa.port(Medium::Video).0;
++    let ticket = port.ticket();
++    let (release, released) = std::sync::mpsc::channel();
++    let holder = Arc::new(Mutex::new(None));
++    *actions.lock().unwrap() = Some(Box::new({
++        let holder = holder.clone();
++        move |controller| {
++            assert!(controller.state.try_lock().is_ok());
++            let controller = controller.clone();
++            let (ready, waiting) = std::sync::mpsc::channel();
++            *holder.lock().unwrap() = Some(std::thread::spawn(move || {
++                let held = controller.state.lock().unwrap();
++                ready.send(()).unwrap();
++                // Bound regression cleanup even if final admission blocks.
++                let _ = released.recv_timeout(Duration::from_secs(2));
++                drop(held);
++            }));
++            waiting.recv_timeout(Duration::from_secs(1)).unwrap();
++        }
++    }));
++    let controller = f.a.clone();
++    let (sent, received) = std::sync::mpsc::channel();
++    let worker =
++        std::thread::spawn(move || sent.send(attempt(&controller, &port, &ticket)).unwrap());
++    let result = received.recv_timeout(Duration::from_millis(500));
++    let dropped = f.policy.0.try_write().is_ok();
++    let _ = release.send(());
++    worker.join().unwrap();
++    if let Some(holder) = holder.lock().unwrap().take() {
++        holder.join().unwrap();
++    }
++    assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
++    assert!(dropped, "fresh reader survived while waiting for State");
++}
