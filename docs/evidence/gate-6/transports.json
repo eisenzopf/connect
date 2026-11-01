@@ -1071,7 +1071,7 @@
     "full_matrix_cells_qualified": 0
   },
   "protected_fixture_configuration": {
-    "status": "corrected-after-source-verified-default-limit-refusal",
+    "status": "source-verified-configuration-stage-pass",
     "implementation_hashes": {
       "scripts/lib/transport_fixture.py": "7fefb20a2ae1a3887a4722f6ae65b961404947b99d1ef89f09cfc83a88311fd8",
       "scripts/materialize-gate6-transport-fixture.py": "602aeeb41ef727e53d205ea73b17f8c57f38f6eb843405d790b9596f7e7822c1",
@@ -1084,19 +1084,21 @@
     "local_guard_tests_passed": 16,
     "behavior": "Validate a matching private stopped canonical backup, invoke production restore, preserve credential/key validity, and materialize absolute server/operator asset references in a new private instance. No listeners or actors are started by materialization.",
     "rehearsal": "Isolated transport-fixture CI lane: production CLI init/create/backup, real restore/materialization, occupied-output and wrong-signing/browser refusal, original conversation/operation native reads and original server joins.",
-    "runtime_verified": false,
+    "runtime_verified": true,
     "full_cell_materializer": false,
     "cell_qualified": false,
     "remaining": "Participant/device enrollment, actual topology observation, full workload, browser/fallback, capture/media and per-cell runtime collection remain required.",
     "runtime_candidate": {
-      "source_revision": "e4afeb1f1333a24529570a9eb9433d16a519642f",
-      "workflow_run_id": 41266891701,
-      "job_id": 124731450985,
-      "status": "rehearsal-failed-materialization-default-limit-refusal",
-      "url": "https://github.com/eisenzopf/connect/actions/runs/41266891701",
-      "runtime_verified": false
+      "source_revision": "3c254ebf0045615252c9870ba58f9e191698bb6e",
+      "workflow_run_id": 41267028212,
+      "job_id": 124731857047,
+      "status": "completed-success-independently-verified",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41267028212",
+      "runtime_verified": true
     },
     "negative_evidence": "docs/evidence/gate-6/transport-materializer-negative.json",
-    "correction": "Resolve the current serde-omitted default_sessions from its pinned protocol source definition; preserve seed/config bytes and refuse an explicit insufficient limit or changed default contract."
+    "correction": "Resolve the current serde-omitted default_sessions from its pinned protocol source definition; preserve seed/config bytes and refuse an explicit insufficient limit or changed default contract.",
+    "verification_evidence": "docs/evidence/gate-6/transport-materializer-verified.json",
+    "runtime_scope": "Ubuntu24.04 native x86_64, local EdDSA production CLI server/operator configuration; six behavior checks, six public CLI commands plus production restore, two original server groups joined. All32fullmatrixcells remain unqualified."
   }
 }

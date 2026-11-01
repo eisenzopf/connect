@@ -1,0 +1,53 @@
+{
+  "format": "connect/verified-transport-fixture-materialization/1",
+  "task": "G6-058",
+  "source_revision": "3c254ebf0045615252c9870ba58f9e191698bb6e",
+  "workflow_run_id": 41267028212,
+  "job_id": 124731857047,
+  "artifact_id": 13067199975,
+  "zip_sha256": "ad0ae56300d004626d3cdf8a6028e1fe7d0ae7169d1dcb940665ed853b53be1a",
+  "report_sha256": "cfb557410612b297f6567d976476c18a79744d4dccad6b32af00110239a43a64",
+  "source_inputs_sha256": "018cef7f4f0c7e5afdf40848d2b999697038432fe895c92b7aed0683f258ac62",
+  "sources_verified": {
+    "git": 4682,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+  "behavior_checks": [
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "normal-server-and-native-client-read-original-state-through-materialized-config",
+    "seed-unchanged-and-original-server-groups-joined"
+  ],
+  "public_cli_commands_succeeded": 6,
+  "original_server_groups_joined": 2,
+  "materialization": {
+    "format": "connect/transport-fixture-materialization/1",
+    "cell_id": "G6-058/ubuntu24-x86_64/local/native-quic/EdDSA",
+    "candidate_source_revision": "3c254ebf0045615252c9870ba58f9e191698bb6e",
+    "candidate_binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+    "seed_manifest_sha256": "7695b250be301788ed5dfb9cf3b602d238fc5898496166aebf92106a655efa36",
+    "service_contract_sha256": "ead889c7bf58c9e578ed48e8aa260918b9e81218511aace7f040bd96123ab0de",
+    "server_config_sha256": "c1b4e5980a758b1f3f73644e9c0041eb2481f5b9808d8bb4c7fa6e2c1153529d",
+    "operator_config_sha256": "8eb61ec6940f3c9390a5d6b934ee6e1129fe7eb209481ff79ae7b2f6af48bb79",
+    "production_restore_joined": true,
+    "server_configuration_materialized": true,
+    "participant_setup_complete": false,
+    "actual_topology_verified": false,
+    "runtime_authority_verified": false,
+    "packet_capture_observed": false,
+    "decoded_media_observed": false,
+    "cell_qualified": false,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "configuration_stage_verified": true,
+  "full_matrix_cells_qualified": 0,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore, private server/operator configuration and native control probe. One operator, no four-participant workload, actual browser, packet capture, media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified."
+}
