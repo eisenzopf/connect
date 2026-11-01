@@ -1,0 +1,155 @@
+{
+  "format": "connect/reference-app-media-batch-linux-negative/1",
+  "task": "G6-072",
+  "run_id": 41319848403,
+  "source_revision": "317c02a80d81bce644dc398bca9d7b9fcf79a6d2",
+  "artifact": {
+    "id": 13091335758,
+    "size": 849041,
+    "sha256": "694108e90ac34b04e3395630061b3554a8a17207678df768a8b749843d1eff3b"
+  },
+  "passed": false,
+  "checks_passed": 25,
+  "checks_required": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 721,
+        "column": 20
+      }
+    ]
+  },
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "identity_audit": {
+    "git_app_checker_installer_cpu_native_inputs_verified": 35,
+    "node_package_source_inputs_verified": 197,
+    "installed_sdk_files_verified": 195,
+    "source_guards_passed": true
+  },
+  "png_integrity": [
+    {
+      "name": "capture-controls.png",
+      "width": 1440,
+      "height": 2389,
+      "sha256": "cef463bc613650c4ed63d62bbb29d15c669f499a5f6eb13ededa85d8ab771fba"
+    },
+    {
+      "name": "capture-controls-narrow.png",
+      "width": 320,
+      "height": 3921,
+      "sha256": "320ac190fb8cca91df4aa509eac53ace2de1255f5d83380bf57abe2c2bbbf5cc"
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 4012,
+      "sha256": "dbd420c84dd73dddf6764f1106dbc9e117c1865d9e1826d1e41864ba7a243a0d"
+    },
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "sha256": "82e6a456ffd38c935dc2df2784d7d153b8a597e348d0b5d5ac751d4e9ed40681"
+    }
+  ],
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "317c02a80d81bce644dc398bca9d7b9fcf79a6d2",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4847,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "7d39ba8c8ae4d41bd4483e9bdc66abb2df02850084b996d8bbab64dfb3e54e8f",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "6ae7a841047a49c90e3320fadf863ebe4d01f1baf1390a42714f0e70f1127b25",
+    "manifest_sha256": "75dcd16980c05312b2eee2a4582cdebc27069f9089acb921cfd18c6bd93e0d00",
+    "artifact_zip_digests": {
+      "evidence": "f17aaa789ac98f96f48ea5246f54319a37f4dd144722251fe7d58a64babfc6bf",
+      "package": "c048a0d09174a3c22c32d9a29c189bdf4bd501a1b02b93e7078f654d398b4b17"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "browser_media": [
+    {
+      "role": "owner",
+      "capturedAudioFrames": 226,
+      "decodedAudioFrames": 25,
+      "playedAudioFrames": 2,
+      "paintedVideoFrames": 25,
+      "audioLateDrops": 23,
+      "lastAudioOffsetMs": -79.7,
+      "lastVideoOffsetMs": 83.146,
+      "lastAudioCaptureOffsetMs": 5,
+      "queuedSendFrames": 4,
+      "queuedVideoFrames": 2
+    },
+    {
+      "role": "organizer",
+      "capturedAudioFrames": 225,
+      "decodedAudioFrames": 18,
+      "playedAudioFrames": 16,
+      "paintedVideoFrames": 13,
+      "audioLateDrops": 2,
+      "lastAudioOffsetMs": 99,
+      "lastVideoOffsetMs": 86.304,
+      "lastAudioCaptureOffsetMs": 2,
+      "queuedSendFrames": 4,
+      "queuedVideoFrames": 0
+    }
+  ],
+  "trace_observer_counts": [
+    {
+      "label": "owner-audio",
+      "observed_responses": 465,
+      "skipped_pending": 4,
+      "observation_failures": 206,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-audio",
+      "observed_responses": 431,
+      "skipped_pending": 3,
+      "observation_failures": 197,
+      "response_errors": 0
+    },
+    {
+      "label": "owner-av",
+      "observed_responses": 291,
+      "skipped_pending": 111,
+      "observation_failures": 172,
+      "response_errors": 0
+    },
+    {
+      "label": "organizer-av",
+      "observed_responses": 281,
+      "skipped_pending": 114,
+      "observation_failures": 155,
+      "response_errors": 0
+    }
+  ],
+  "trace_replay_scope": "Most retained AV audio samples lack observed usable source-clock anchors; zero synchronized retained audio samples cannot support an audio source-age claim. Retained response events are not actual decoder/presentation timing.",
+  "next_correction": "Separate controlled SDK regression shows a late captured receive reply discarded on caller timeout. Corrected SDK source42eaafe8 retains that original reply;21cases and a195file clean Node package pass. Source42 hosted actual app run41326884138 is separate and unqualified until inspected.",
+  "scope": "Original source317 Linux media batching candidate remains a negative after25checks; capturing226/225audio frames yields only25/18decoded frames and2/16played frames in the saved failure observations. A concrete SDK read-deadline loss path is reproduced separately; it is not yet proved to be the sole cause of this hosted failure. Local37checks do not replace this result. No fullmedia/matrix/task/gate qualification.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
