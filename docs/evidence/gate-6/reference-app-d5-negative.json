@@ -1,0 +1,796 @@
+{
+  "format": "connect/gate-6/reference-app-d5-negative/1",
+  "task": "G6-072",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "run": 41358129138,
+  "source_revision": "d5fa96c1127781bac6f823677bd50c67fde856fd",
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41358129138",
+  "status": "Both original platform jobs terminal failure after successful production packaging and offline component installation. No rerun.",
+  "scope": "Original synthetic installed app execution. Independently checked exact downloaded archives/source maps and retained observations, without re-executing remote behavior. This revision predates the Store registry and queued realtime recovery corrections.",
+  "platforms": {
+    "mac": {
+      "identity": {
+        "format": "connect/private-app-d5-identity-audit/1",
+        "source_revision": "d5fa96c1127781bac6f823677bd50c67fde856fd",
+        "platform": "mac",
+        "exact_runtime_files_hash_and_mode": 755,
+        "source_counts": {
+          "archives": 4,
+          "prepared": 4094,
+          "git": 4913
+        },
+        "app_checker_inputs": 35,
+        "node_producer_inputs": 197,
+        "installed_sdk_reported_files_verified_against_exact_archive": 195,
+        "runtime_binary_sha256": "933e64f33a86190b4c98a4ef1ac86eece51d3bb1c7260bda17293e9c10a9c9c5",
+        "source_lock_sha256": "49c9f00fbf0c272cdd28a93085d7b8d3cdddcd3c1f89280e0ef2500def113a6c",
+        "diagnostic_proof_cross_hashes_verified": true,
+        "original_installation_raw_proof_reconstructable": false,
+        "remote_files_independently_reread": false,
+        "browser_checks": 5,
+        "failure": {
+          "stage": "native-browser-video-playout-component",
+          "name": "AssertionError",
+          "code": "ERR_ASSERTION",
+          "source_stack": [
+            {
+              "line": 293,
+              "column": 12
+            }
+          ]
+        },
+        "native_video_component": {
+          "painted": 0,
+          "dropped": 3,
+          "queued": 0,
+          "pixel": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "frame_construction_ms": 3,
+          "enqueue_ms": 0,
+          "page_state": {
+            "visibility": "visible",
+            "focused": true
+          },
+          "drop_reasons": {
+            "late": 3
+          },
+          "timer_samples": [
+            {
+              "requested_at_ms": 1050.1000000000931,
+              "requested_delay_ms": 80,
+              "fired_at_ms": 1713.1000000000931,
+              "wake_lateness_ms": 583,
+              "callback_duration_ms": 0.20000000018626451
+            }
+          ],
+          "omitted_timer_samples": 0,
+          "paint_samples": [],
+          "observation_ms": 1622
+        },
+        "raw_v8_profile_present": false,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "retained_clock_trace_exact_replay": true,
+      "clock_replay": {
+        "exact_replay": true,
+        "pages": [],
+        "scope": "Unchanged MediaTimeline replay at retained original response-event times, with the unchanged80ms playout allowance. Retained samples only; response-event clocks differ from actual browser decode/presentation. No runtime clock or packet is changed."
+      },
+      "raw_profile_present": false,
+      "native_server_sample": {
+        "observed": false,
+        "reason": "workload-not-reached"
+      },
+      "returned_browser_product": "full-chromium",
+      "owned_groups": {
+        "owned_group_size_1": 3
+      },
+      "app_failures": [],
+      "original_diagnostic_archive_sha256": "a7b6ddfefd67169fba0f5e3dcc5d13b10dddd638a42bb17e69fd95b38511bf48"
+    },
+    "linux": {
+      "identity": {
+        "format": "connect/private-app-d5-identity-audit/1",
+        "source_revision": "d5fa96c1127781bac6f823677bd50c67fde856fd",
+        "platform": "linux",
+        "exact_runtime_files_hash_and_mode": 753,
+        "source_counts": {
+          "archives": 4,
+          "prepared": 4094,
+          "git": 4913
+        },
+        "app_checker_inputs": 35,
+        "node_producer_inputs": 197,
+        "installed_sdk_reported_files_verified_against_exact_archive": 195,
+        "runtime_binary_sha256": "a34af0a343df78ca3b4776bcc63dc4d7b361df4f801b5cd9b2ad3cce575eba12",
+        "source_lock_sha256": "49c9f00fbf0c272cdd28a93085d7b8d3cdddcd3c1f89280e0ef2500def113a6c",
+        "diagnostic_proof_cross_hashes_verified": true,
+        "original_installation_raw_proof_reconstructable": false,
+        "remote_files_independently_reread": false,
+        "browser_checks": 25,
+        "failure": {
+          "stage": "sustained-combined-browser-audio-video",
+          "name": "AssertionError",
+          "code": "ERR_ASSERTION",
+          "source_stack": [
+            {
+              "line": 743,
+              "column": 20
+            }
+          ]
+        },
+        "native_video_component": {
+          "painted": 3,
+          "dropped": 0,
+          "queued": 0,
+          "pixel": [
+            0,
+            255,
+            0,
+            255
+          ],
+          "frame_construction_ms": 0,
+          "enqueue_ms": 0,
+          "page_state": {
+            "visibility": "visible",
+            "focused": true
+          },
+          "drop_reasons": {},
+          "timer_samples": [
+            {
+              "requested_at_ms": 263,
+              "requested_delay_ms": 80,
+              "fired_at_ms": 343.1999999997206,
+              "wake_lateness_ms": 0.19999999972060323,
+              "callback_duration_ms": 0.6000000000931323
+            },
+            {
+              "requested_at_ms": 343.79999999981374,
+              "requested_delay_ms": 33,
+              "fired_at_ms": 376.89999999990687,
+              "wake_lateness_ms": 0.10000000009313226,
+              "callback_duration_ms": 0.19999999972060323
+            },
+            {
+              "requested_at_ms": 377.09999999962747,
+              "requested_delay_ms": 33,
+              "fired_at_ms": 410.1999999997206,
+              "wake_lateness_ms": 0.10000000009313226,
+              "callback_duration_ms": 0.20000000018626451
+            }
+          ],
+          "omitted_timer_samples": 0,
+          "paint_samples": [
+            {
+              "began_ms": 343.39999999990687,
+              "duration_ms": 0.39999999990686774
+            },
+            {
+              "began_ms": 376.89999999990687,
+              "duration_ms": 0.19999999972060323
+            },
+            {
+              "began_ms": 410.29999999981374,
+              "duration_ms": 0.10000000009313226
+            }
+          ],
+          "observation_ms": 301
+        },
+        "raw_v8_profile_present": false,
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "retained_clock_trace_exact_replay": true,
+      "clock_replay": {
+        "exact_replay": true,
+        "pages": [
+          {
+            "label": "owner-audio",
+            "routes": [
+              {
+                "route_slot": 0,
+                "lease_slot": 0,
+                "medium": "audio",
+                "synchronized_retained_packets": 32,
+                "unsynchronized_retained_packets": 16,
+                "received_source_age": {
+                  "samples": 32,
+                  "minimum_ms": 18.163072999999713,
+                  "p50_ms": 41.273,
+                  "p95_ms": 83.601,
+                  "maximum_ms": 101.38850399999865
+                },
+                "estimated_playout_offset": {
+                  "samples": 32,
+                  "minimum_ms": -21.389000000000006,
+                  "p50_ms": 36.058,
+                  "p95_ms": 60.167,
+                  "maximum_ms": 61.837
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 3.15,
+                  "p50_ms": 7.938,
+                  "p95_ms": 16.337,
+                  "maximum_ms": 28.916
+                },
+                "receive_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 7.11,
+                  "p50_ms": 16.58,
+                  "p95_ms": 24.908,
+                  "maximum_ms": 160.816
+                }
+              },
+              {
+                "route_slot": 1,
+                "lease_slot": 1,
+                "medium": "audio",
+                "synchronized_retained_packets": 0,
+                "unsynchronized_retained_packets": 17,
+                "received_source_age": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "estimated_playout_offset": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 1.823,
+                  "p50_ms": 2.778,
+                  "p95_ms": 15.818,
+                  "maximum_ms": 42.022
+                },
+                "receive_http_duration": {
+                  "samples": 17,
+                  "minimum_ms": 8.685,
+                  "p50_ms": 18.902,
+                  "p95_ms": 682.847,
+                  "maximum_ms": 682.847
+                }
+              }
+            ]
+          },
+          {
+            "label": "organizer-audio",
+            "routes": [
+              {
+                "route_slot": 0,
+                "lease_slot": 0,
+                "medium": "audio",
+                "synchronized_retained_packets": 46,
+                "unsynchronized_retained_packets": 2,
+                "received_source_age": {
+                  "samples": 46,
+                  "minimum_ms": 30.216340999999375,
+                  "p50_ms": 36.123,
+                  "p95_ms": 64.421,
+                  "maximum_ms": 74.4348229999996
+                },
+                "estimated_playout_offset": {
+                  "samples": 46,
+                  "minimum_ms": 5.565,
+                  "p50_ms": 42.541,
+                  "p95_ms": 48.804,
+                  "maximum_ms": 49.784
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 1.856,
+                  "p50_ms": 2.246,
+                  "p95_ms": 14.623,
+                  "maximum_ms": 16.934
+                },
+                "receive_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 8.805,
+                  "p50_ms": 17.541,
+                  "p95_ms": 33.434,
+                  "maximum_ms": 36.816
+                }
+              },
+              {
+                "route_slot": 1,
+                "lease_slot": 1,
+                "medium": "audio",
+                "synchronized_retained_packets": 0,
+                "unsynchronized_retained_packets": 17,
+                "received_source_age": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "estimated_playout_offset": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "send_http_duration": {
+                  "samples": 17,
+                  "minimum_ms": 3.187,
+                  "p50_ms": 5.205,
+                  "p95_ms": 7.191,
+                  "maximum_ms": 7.191
+                },
+                "receive_http_duration": {
+                  "samples": 17,
+                  "minimum_ms": 15.151,
+                  "p50_ms": 18.87,
+                  "p95_ms": 66.201,
+                  "maximum_ms": 66.201
+                }
+              }
+            ]
+          },
+          {
+            "label": "owner-av",
+            "routes": [
+              {
+                "route_slot": 0,
+                "lease_slot": 0,
+                "medium": "video",
+                "synchronized_retained_packets": 0,
+                "unsynchronized_retained_packets": 0,
+                "received_source_age": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "estimated_playout_offset": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 7.548,
+                  "p50_ms": 17.781,
+                  "p95_ms": 40.891,
+                  "maximum_ms": 43.279
+                },
+                "receive_http_duration": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                }
+              },
+              {
+                "route_slot": 1,
+                "lease_slot": 0,
+                "medium": "audio",
+                "synchronized_retained_packets": 0,
+                "unsynchronized_retained_packets": 25,
+                "received_source_age": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "estimated_playout_offset": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 7.59,
+                  "p50_ms": 22.801,
+                  "p95_ms": 39.084,
+                  "maximum_ms": 45.377
+                },
+                "receive_http_duration": {
+                  "samples": 25,
+                  "minimum_ms": 11.922,
+                  "p50_ms": 24.678,
+                  "p95_ms": 38.018,
+                  "maximum_ms": 66.945
+                }
+              },
+              {
+                "route_slot": 2,
+                "lease_slot": 0,
+                "medium": "video",
+                "synchronized_retained_packets": 46,
+                "unsynchronized_retained_packets": 2,
+                "received_source_age": {
+                  "samples": 46,
+                  "minimum_ms": -27.06833299999562,
+                  "p50_ms": 22.904,
+                  "p95_ms": 110.906,
+                  "maximum_ms": 124.58273799999733
+                },
+                "estimated_playout_offset": {
+                  "samples": 46,
+                  "minimum_ms": -44.583,
+                  "p50_ms": 56.815,
+                  "p95_ms": 97.035,
+                  "maximum_ms": 107.068
+                },
+                "send_http_duration": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "receive_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 15.292,
+                  "p50_ms": 27.417,
+                  "p95_ms": 51.864,
+                  "maximum_ms": 63.262
+                }
+              }
+            ]
+          },
+          {
+            "label": "organizer-av",
+            "routes": [
+              {
+                "route_slot": 0,
+                "lease_slot": 0,
+                "medium": "audio",
+                "synchronized_retained_packets": 22,
+                "unsynchronized_retained_packets": 11,
+                "received_source_age": {
+                  "samples": 22,
+                  "minimum_ms": 260.76257899999473,
+                  "p50_ms": 274.863,
+                  "p95_ms": 305.095,
+                  "maximum_ms": 317.9337749999977
+                },
+                "estimated_playout_offset": {
+                  "samples": 22,
+                  "minimum_ms": -237.93399999999997,
+                  "p50_ms": -197.049,
+                  "p95_ms": -184.627,
+                  "maximum_ms": -180.763
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 7.268,
+                  "p50_ms": 20.431,
+                  "p95_ms": 51.683,
+                  "maximum_ms": 74.593
+                },
+                "receive_http_duration": {
+                  "samples": 33,
+                  "minimum_ms": 10.529,
+                  "p50_ms": 24.186,
+                  "p95_ms": 37.145,
+                  "maximum_ms": 37.888
+                }
+              },
+              {
+                "route_slot": 1,
+                "lease_slot": 0,
+                "medium": "video",
+                "synchronized_retained_packets": 0,
+                "unsynchronized_retained_packets": 0,
+                "received_source_age": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "estimated_playout_offset": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "send_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 5.597,
+                  "p50_ms": 16.705,
+                  "p95_ms": 30.013,
+                  "maximum_ms": 40.684
+                },
+                "receive_http_duration": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                }
+              },
+              {
+                "route_slot": 2,
+                "lease_slot": 0,
+                "medium": "video",
+                "synchronized_retained_packets": 46,
+                "unsynchronized_retained_packets": 2,
+                "received_source_age": {
+                  "samples": 46,
+                  "minimum_ms": -50.89655900000071,
+                  "p50_ms": 7.924,
+                  "p95_ms": 55.967,
+                  "maximum_ms": 63.5615919999982
+                },
+                "estimated_playout_offset": {
+                  "samples": 46,
+                  "minimum_ms": 16.43800000000001,
+                  "p50_ms": 70.997,
+                  "p95_ms": 123.726,
+                  "maximum_ms": 130.897
+                },
+                "send_http_duration": {
+                  "samples": 0,
+                  "minimum_ms": null,
+                  "p50_ms": null,
+                  "p95_ms": null,
+                  "maximum_ms": null
+                },
+                "receive_http_duration": {
+                  "samples": 48,
+                  "minimum_ms": 12.036,
+                  "p50_ms": 25.532,
+                  "p95_ms": 51.632,
+                  "maximum_ms": 207.359
+                }
+              }
+            ]
+          }
+        ],
+        "scope": "Unchanged MediaTimeline replay at retained original response-event times, with the unchanged80ms playout allowance. Retained samples only; response-event clocks differ from actual browser decode/presentation. No runtime clock or packet is changed."
+      },
+      "raw_profile_present": false,
+      "native_server_sample": {
+        "observed": false,
+        "reason": "not-requested"
+      },
+      "returned_browser_product": "full-chromium",
+      "owned_groups": {
+        "owned_group_size_1": 3,
+        "owned_group_size_after_media": 5
+      },
+      "app_failures": [
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 212,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 212,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 212,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-resync-required",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "original_diagnostic_archive_sha256": "ef52b7bd137d208f1443d5412ca2d8748562427a69663cd5eb930a27e7b66e2e",
+      "sustained_browser_av": [
+        [
+          {
+            "role": "owner",
+            "elapsed_ms": 2010.4000000003725,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 40,
+            "audio_energy": 0,
+            "desired_tone": 0,
+            "excluded_tone": 0,
+            "metrics": {
+              "capturedAudioFrames": 151,
+              "capturedVideoFrames": 89,
+              "encodedFrames": 237,
+              "sentRtp": 234,
+              "receivedRtp": 127,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 4,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 3,
+              "decodedAudioFrames": 40,
+              "playedAudioFrames": 2,
+              "decodedVideoFrames": 61,
+              "paintedVideoFrames": 52,
+              "droppedFrames": 125,
+              "synchronizedPackets": 123,
+              "unsynchronizedPackets": 4,
+              "audioLateDrops": 38,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 5,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -176.849,
+              "lastVideoOffsetMs": 93.644,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": 1,
+              "lastVideoCaptureOffsetMs": -10,
+              "receiveStartedMs": 396,
+              "deviceSetupMs": 54,
+              "captureGraphMs": 9,
+              "cameraSetupMs": 22,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 4,
+              "queuedVideoFrames": 3,
+              "pendingRequests": 5,
+              "stopped": false
+            }
+          },
+          {
+            "role": "organizer",
+            "elapsed_ms": 2011.2000000001863,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 48,
+            "audio_energy": 0,
+            "desired_tone": 0,
+            "excluded_tone": 0,
+            "metrics": {
+              "capturedAudioFrames": 151,
+              "capturedVideoFrames": 89,
+              "encodedFrames": 237,
+              "sentRtp": 238,
+              "receivedRtp": 118,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 5,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 3,
+              "decodedAudioFrames": 36,
+              "playedAudioFrames": 2,
+              "decodedVideoFrames": 57,
+              "paintedVideoFrames": 54,
+              "droppedFrames": 121,
+              "synchronizedPackets": 114,
+              "unsynchronizedPackets": 4,
+              "audioLateDrops": 34,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -243.312,
+              "lastVideoOffsetMs": 63.791,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": -3,
+              "lastVideoCaptureOffsetMs": -12,
+              "receiveStartedMs": 326,
+              "deviceSetupMs": 49,
+              "captureGraphMs": 12,
+              "cameraSetupMs": 21,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 1,
+              "queuedVideoFrames": 2,
+              "pendingRequests": 4,
+              "stopped": false
+            }
+          }
+        ]
+      ],
+      "png_artifacts": [
+        {
+          "name": "native-controls.png",
+          "sha256": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+          "width": 1440,
+          "height": 2559,
+          "crc_and_full_pixel_decompression": true,
+          "independent_ffmpeg_decode": true,
+          "viewport_restored": true
+        },
+        {
+          "name": "native-controls-narrow.png",
+          "sha256": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+          "width": 320,
+          "height": 4012,
+          "crc_and_full_pixel_decompression": true,
+          "independent_ffmpeg_decode": true,
+          "viewport_restored": true
+        },
+        {
+          "name": "capture-controls.png",
+          "sha256": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc",
+          "width": 1440,
+          "height": 2389,
+          "crc_and_full_pixel_decompression": true,
+          "independent_ffmpeg_decode": true,
+          "viewport_restored": true
+        },
+        {
+          "name": "capture-controls-narrow.png",
+          "sha256": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+          "width": 320,
+          "height": 3921,
+          "crc_and_full_pixel_decompression": true,
+          "independent_ffmpeg_decode": true,
+          "viewport_restored": true
+        }
+      ],
+      "images_visually_reviewed": false
+    }
+  },
+  "claims": {
+    "full_candidate_qualified": false,
+    "native_queue_cause_proven": false,
+    "browser_timer_cause_proven": false,
+    "raw_cpu_summary_independently_recomputed": false,
+    "actual_remote_files_reread": false,
+    "original_curated_installation_raw_hash_reconstructable": false,
+    "thresholds_changed": false
+  },
+  "next": "Keep current native media admission work separate; require source-matched runtime and browser quality evidence. Resolve macOS timer and Linux sustained audio failures without weakening original80ms/50ms bounds."
+}
