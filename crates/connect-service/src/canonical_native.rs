@@ -399,8 +399,24 @@ impl Runtime {
                 store.settle_native_offer_cleanup(&attempt, &absent)
             })
             .await;
-            if matches!(settled, Ok(Ok(()))) {
-                break;
+            match settled {
+                Ok(Ok(())) => {
+                    tracing::debug!(
+                        stage = "durable-retirement-recorded",
+                        "Native offer cleanup stage"
+                    );
+                    break;
+                }
+                Ok(Err(error)) => {
+                    tracing::debug!(stage="durable-retirement-retry", code=%error.code, "Native offer cleanup stage");
+                }
+                Err(_) => {
+                    tracing::debug!(
+                        stage = "durable-retirement-join",
+                        code = "join-error",
+                        "Native offer cleanup stage"
+                    );
+                }
             }
             if self.stop.is_cancelled() {
                 break;

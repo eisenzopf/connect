@@ -499,16 +499,27 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         for stream in streams:
             stream.close()
         if data_workload:
-            stages, data_stages, data_checkpoints = [], [], []
+            stages, data_stages, data_checkpoints, cleanup_stages, custodians = [], [], [], [], []
             for path in (PRIVATE / "seed-server.log", PRIVATE / "materialized-server.log"):
                 if not path.exists():
                     continue
                 for line in path.read_text().splitlines():
+                    line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+                    if "Native custodian observed terminal lifetime" in line:
+                        facts = {key: re.search(r'\b' + key + r'=(true|false)(?:\s|$)', line)
+                            for key in ("stopped", "physical_closed", "route_live")}
+                        if all(facts.values()):
+                            custodians.append({key: match[1] == "true" for key, match in facts.items()})
+                    if "Native offer cleanup stage" in line:
+                        stage = re.search(r'\bstage="?([a-z-]{1,64})"?(?:\s|$)', line)
+                        code = re.search(r'\bcode="?([a-z-]{1,64})"?(?:\s|$)', line)
+                        if stage:
+                            cleanup_stages.append(dict(stage=stage[1], code=code[1] if code else None))
+                        continue
                     is_data_failure = "Native data did not complete" in line
                     is_data_checkpoint = "Native data stage reached" in line
                     if "Native offer did not complete" not in line and not is_data_failure and not is_data_checkpoint:
                         continue
-                    line = re.sub(r"\x1b\[[0-9;]*m", "", line)
                     stage = re.search(r'\bstage="?([a-z-]{1,64})"?(?:\s|$)', line)
                     if stage and is_data_checkpoint:
                         data_checkpoints.append(stage[1])
@@ -524,6 +535,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             report["native_offer_failure_stages"] = stages[:16]
             report["native_data_failure_stages"] = data_stages[:32]
             report["native_data_checkpoints"] = data_checkpoints[:64]
+            report["native_offer_cleanup_stages"] = cleanup_stages[:64]
+            report["native_offer_cleanup_stage_counts"] = {stage: sum(item["stage"] == stage for item in cleanup_stages)
+                for stage in ("durable-retirement-recorded", "durable-retirement-retry", "durable-retirement-join")}
+            report["native_custodian_terminal_observations"] = custodians[:32]
         report["source_inputs_unchanged"] = before is not None and source() == before
         report["executables_unchanged"] = binary is not None and digest(binary) == report["binary_sha256"]
         if sdk_before is not None:
