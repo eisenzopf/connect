@@ -101,7 +101,7 @@ Create and retain `private/credential-a.json` and `private/credential-b.json`
 using the [scoped issuance fields](../developer/credential-installation.md):
 distinct saved `operation_id`, the returned `result.Ok.identity_id`, literal
 `operations` and `recipients`, and a future absolute `expires_at` within the
-issuer's lifetime. For this fixture use operations `health`, `list`, `send`,
+issuer's lifetime. For this fixture use operations `health`, `conversation.list`, `send`,
 `history`, `operation.get` and an empty recipient set. An empty set grants no
 peer audience; it is not a wildcard. Neither credential is an administrator.
 

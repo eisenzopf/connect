@@ -1,0 +1,146 @@
+{
+  "format": "connect/verified-operations-guide-negative/1",
+  "workflow_run_id": 41263963032,
+  "job_id": 124722760509,
+  "artifact_id": 13065919803,
+  "artifact_zip_sha256": "9d52ae6630ae14219ba775081a0e95902537b3e42751ab4807395e82d04f8210",
+  "sources_verified": {
+    "git": 4666,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "rehearsal": {
+    "format": "connect/operations-guide-rehearsal/1",
+    "task": "G6-088",
+    "passed": false,
+    "source_revision": "3f5034e0721c02c0547d018e1c1871bab56514f6",
+    "source_inputs_sha256": "1c3dad9a53a00d1894ca883abd58a22fc188cc30e5c136c3b24377fac03d8b8f",
+    "source_count": 8764,
+    "checks": [
+      "fresh-current-init-and-occupied-destination-refusal-without-overwrite",
+      "production-server-ready-with-documented-retention-policy-and-public-health",
+      "exact-documented-native-templates-recover-one-original-effect"
+    ],
+    "commands": [
+      {
+        "stage": "fresh-init",
+        "verb": "init",
+        "exit_code": 0,
+        "elapsed_seconds": 0.265
+      },
+      {
+        "stage": "occupied-init-refusal",
+        "verb": "init",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "current-health",
+        "verb": "health",
+        "exit_code": 0,
+        "elapsed_seconds": 0.016
+      },
+      {
+        "stage": "empty-current-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "create-original",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.165
+      },
+      {
+        "stage": "created-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "original-status",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.164
+      },
+      {
+        "stage": "replay-original",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "replayed-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "replayed-status",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.164
+      },
+      {
+        "stage": "create-identity",
+        "verb": "provision",
+        "exit_code": 0,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "issue-a",
+        "verb": "issue",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "resume-original-issue",
+        "verb": "issue-resume",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "issue-b",
+        "verb": "issue",
+        "exit_code": 0,
+        "elapsed_seconds": 0.115
+      },
+      {
+        "stage": "new-client-read",
+        "verb": "request",
+        "exit_code": 1,
+        "elapsed_seconds": 0.114
+      }
+    ],
+    "servers": [
+      {
+        "stage": "current-serve",
+        "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+        "original_joined": false
+      }
+    ],
+    "cli_envelope_profile": "connect-control/1",
+    "canonical_transport_profile": "connect/2",
+    "template_hashes": {
+      "conversation-create.json": "e7fb7061c556836d30ea7b5ff2ffdb8e35bf0137ac1e958330069c2fc7d5a4d2",
+      "conversation-list.json": "5ea2d0ada219399714984ca5f64fe2502279e3323470287f981a9f85fe8a4583",
+      "identity.json": "4d7ac0e4bd4fb80f48b21b7a103d2c5a34eed1a53d217029c6771f066fb84e83",
+      "operation-get.json": "acd9350495a7a46c53c93299ff106be931f6fef487cef90835b60084f86f408f"
+    },
+    "scope": "Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "compile_exit_code": 0,
+    "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+    "failure": {
+      "stage": "new-client-read",
+      "name": "AssertionError",
+      "line": 120
+    },
+    "source_inputs_unchanged": true
+  },
+  "finding": "Actual native templates pass, original conversation replay/get retains one effect, trusted identity and both scoped native installers/resume complete. New client list is refused. Guide/harness used literal permission list, but current Operation::Conversations::permission declares conversation.list; correct that exact permission, preserving empty peer ceiling and no admin/wildcard. Later rotation/backup/restore commands unrun. Original server forced failure cleanup, not a graceful pass.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

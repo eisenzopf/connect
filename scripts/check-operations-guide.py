@@ -115,8 +115,19 @@ def main():
                         except ProcessLookupError:
                             pass
                         child.wait()
-            report["commands"].append(dict(stage=name, verb=args[0], exit_code=code,
-                elapsed_seconds=round(time.monotonic() - started, 3)))
+            outcome = dict(stage=name, verb=args[0], exit_code=code,
+                elapsed_seconds=round(time.monotonic() - started, 3))
+            if code != 0:
+                try:
+                    error_code = json.loads(output_path.read_bytes())["result"]["Err"]["code"]
+                    outcome["error_code"] = error_code if error_code in {
+                        "forbidden", "unauthorized", "invalid-request", "transport-uncertain",
+                        "conflict", "unsupported-schema", "configuration", "protocol",
+                        "reconciliation-required", "authority-busy", "authority-unavailable",
+                        "storage-unavailable"} else "unclassified"
+                except (ValueError, KeyError, TypeError):
+                    outcome["error_code"] = None
+            report["commands"].append(outcome)
             assert (code == 0) == success, "Operator command outcome differs from required result"
             return output_path.read_bytes()
 
@@ -213,7 +224,7 @@ def main():
         for label in ("a", "b"):
             intent_path = PRIVATE / ("credential-" + label + ".json")
             intent_path.write_text(json.dumps(dict(operation_id="operations-guide-issue-" + label + "-1",
-                identity_id=identity["identity_id"], operations=["health", "list", "send", "history", "operation.get"], recipients=[], expires_at=expiry)))
+                identity_id=identity["identity_id"], operations=["health", "conversation.list", "send", "history", "operation.get"], recipients=[], expires_at=expiry)))
             output = PRIVATE / ("client-" + label)
             run("issue-" + label, ["issue", "--config", state / "operator.application.toml", "--native-template", state / "operator.toml", "--request", intent_path, "--output", output])
             issued = json.loads((output / "issued.json").read_text())
@@ -235,6 +246,8 @@ def main():
         revoked = json.loads(run("revoke-old-client", revoke_args))
         assert revoked["result"]["Ok"]["revoked"] is True
         assert json.loads(run("replay-original-revocation", revoke_args)) == revoked
+        changed = json.loads(run("changed-revocation-target-conflicts", [*revoke_args[:-1], child_ids["b"]], success=False))
+        assert changed["result"]["Err"]["code"] == "conflict"
         old = request("old-client-refused", PRIVATE / "client-a/client.toml", "conversation-list.json", success=False)
         assert old["code"] == "unauthorized"
         assert rooms("replacement-survives-revocation", PRIVATE / "client-b/client.toml") == []
