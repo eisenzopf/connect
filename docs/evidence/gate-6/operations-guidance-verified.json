@@ -1,0 +1,372 @@
+{
+  "format": "connect/verified-operations-guide/1",
+  "task": "G6-088",
+  "workflow_run_id": 41264133897,
+  "job_id": 124723265534,
+  "artifact_id": 13066637098,
+  "artifact_zip_sha256": "45df25a2844c8425a5d21a7c2f254dd5990f11b18552e82c8d7f1c2de4808c2b",
+  "sources_verified": {
+    "git": 4667,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "rehearsal": {
+    "format": "connect/operations-guide-rehearsal/1",
+    "task": "G6-088",
+    "passed": true,
+    "source_revision": "899baa6b354ecc7b8ff260e482f9fbad7481b280",
+    "source_inputs_sha256": "de1b2c474aa89efccf9f1738fc92606bf826a39f10d68fec3daae7c0010c5449",
+    "source_count": 8765,
+    "checks": [
+      "fresh-current-init-and-occupied-destination-refusal-without-overwrite",
+      "production-server-ready-with-documented-retention-policy-and-public-health",
+      "exact-documented-native-templates-recover-one-original-effect",
+      "scoped-independent-replacement-and-original-issuance-resume",
+      "original-id-revocation-replay-old-client-refused-new-client-preserved",
+      "live-writer-occupied-corrupt-and-unsupported-backup-refusals",
+      "restore-without-original-path-retains-original-operation-state-and-revocation",
+      "explicit-fresh-path-reset-preserves-all-original-state",
+      "all-original-server-and-command-processes-joined"
+    ],
+    "commands": [
+      {
+        "stage": "fresh-init",
+        "verb": "init",
+        "exit_code": 0,
+        "elapsed_seconds": 0.365
+      },
+      {
+        "stage": "occupied-init-refusal",
+        "verb": "init",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": null
+      },
+      {
+        "stage": "current-health",
+        "verb": "health",
+        "exit_code": 0,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "empty-current-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "create-original",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "created-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "original-status",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.164
+      },
+      {
+        "stage": "replay-original",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "replayed-list",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "replayed-status",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.164
+      },
+      {
+        "stage": "create-identity",
+        "verb": "provision",
+        "exit_code": 0,
+        "elapsed_seconds": 0.032
+      },
+      {
+        "stage": "issue-a",
+        "verb": "issue",
+        "exit_code": 0,
+        "elapsed_seconds": 0.265
+      },
+      {
+        "stage": "resume-original-issue",
+        "verb": "issue-resume",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "issue-b",
+        "verb": "issue",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "new-client-read",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "replacement-health",
+        "verb": "health",
+        "exit_code": 0,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "replacement-cannot-provision",
+        "verb": "provision",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": "forbidden"
+      },
+      {
+        "stage": "revoke-old-client",
+        "verb": "revoke",
+        "exit_code": 0,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "replay-original-revocation",
+        "verb": "revoke",
+        "exit_code": 0,
+        "elapsed_seconds": 0.008
+      },
+      {
+        "stage": "changed-revocation-target-conflicts",
+        "verb": "revoke",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": "conflict"
+      },
+      {
+        "stage": "old-client-refused",
+        "verb": "request",
+        "exit_code": 1,
+        "elapsed_seconds": 0.016,
+        "error_code": "unauthorized"
+      },
+      {
+        "stage": "replacement-survives-revocation",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "live-writer-backup-refusal",
+        "verb": "backup",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": null
+      },
+      {
+        "stage": "stopped-backup",
+        "verb": "backup",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "occupied-restore-refusal",
+        "verb": "restore",
+        "exit_code": 1,
+        "elapsed_seconds": 0.032,
+        "error_code": null
+      },
+      {
+        "stage": "unsupported-backup-refusal",
+        "verb": "restore",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": null
+      },
+      {
+        "stage": "corrupt-backup-refusal",
+        "verb": "restore",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": null
+      },
+      {
+        "stage": "current-restore",
+        "verb": "restore",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "restored-original-conversation",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "restored-original-status",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "restored-current-child",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "restored-revoked-child-refusal",
+        "verb": "request",
+        "exit_code": 1,
+        "elapsed_seconds": 0.016,
+        "error_code": "unauthorized"
+      },
+      {
+        "stage": "explicit-new-path-reprovision",
+        "verb": "init",
+        "exit_code": 0,
+        "elapsed_seconds": 0.264
+      },
+      {
+        "stage": "reprovisioned-empty-state",
+        "verb": "request",
+        "exit_code": 0,
+        "elapsed_seconds": 0.114
+      },
+      {
+        "stage": "old-client-cannot-adopt-fresh-installation",
+        "verb": "request",
+        "exit_code": 1,
+        "elapsed_seconds": 0.008,
+        "error_code": "transport-uncertain"
+      }
+    ],
+    "servers": [
+      {
+        "stage": "current-serve",
+        "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+        "original_joined": true
+      },
+      {
+        "stage": "restored-serve",
+        "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+        "original_joined": true
+      },
+      {
+        "stage": "reprovisioned-serve",
+        "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+        "original_joined": true
+      }
+    ],
+    "cli_envelope_profile": "connect-control/1",
+    "canonical_transport_profile": "connect/2",
+    "template_hashes": {
+      "conversation-create.json": "e7fb7061c556836d30ea7b5ff2ffdb8e35bf0137ac1e958330069c2fc7d5a4d2",
+      "conversation-list.json": "5ea2d0ada219399714984ca5f64fe2502279e3323470287f981a9f85fe8a4583",
+      "identity.json": "4d7ac0e4bd4fb80f48b21b7a103d2c5a34eed1a53d217029c6771f066fb84e83",
+      "operation-get.json": "acd9350495a7a46c53c93299ff106be931f6fef487cef90835b60084f86f408f"
+    },
+    "scope": "Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "compile_exit_code": 0,
+    "binary_sha256": "1852ccb859c748b04502b8023a28b38e5032706146c92aadb3883d199acea2b4",
+    "schema": 116,
+    "source_inputs_unchanged": true
+  },
+  "tested_source_files": {
+    "scripts/check-operations-guide.py": "0f8c02e9e70a7f64b6796b45796e4e4e09dc5ea5b159c8010a22edc48d568c1a",
+    "docs/operations/README.md": "4bbc2f65f22ffc313764a797d3e07f351ab4bdbff97e7a693e9dd2ed7e358ad0",
+    "docs/releases/gate-6-draft.md": "d67993c6edab35df28775428a459e9e3b0051e88d17b1090ca37381b53903d81",
+    "docs/developer/operations.md": "c481df975ab81df233c3fd9a1ee6d7822c250b27000a097cb1a428e53cdec901"
+  },
+  "executed_shell_block_sha256": [
+    "6504af3b600b629a5cfa50da58ac2507c62dbbd8460f38091f7c397731cc32c4",
+    "c4468a2d0c174daee999bfb2e4deb5aee08401a76de6135ca0cec55e00cb9a49",
+    "c8fb73829bb95e0fabb505415367e4ba7d711ba1a44e01f460e2a13a8e88dea3",
+    "ed28c570a369ab938ae523d54599696c6c7f873f85ecabc626ed2cca40b508d5",
+    "e1942dcf511c83a81e889ad773f60a85635827e50dbb09955bfbdbef29c1904c",
+    "961949f8ef7ac0e712b243478642bc2871f0103dc5515bc48dc15bd7eaefdeb7",
+    "a636bf0726be83e1074fa8f7d53b5313f40733784b19fd1e230cc5ae7a764494",
+    "c31cac3dd6dcd2a38a624ec9a0261b4d3ade50185c329722d5f8fc0911a413b8"
+  ],
+  "task_complete": true,
+  "whole_gate_qualified": false,
+  "scope": "Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
+  "completion_audit": [
+    {
+      "requirement": "Single current pre-alpha contract and intentional breaking changes",
+      "evidence": [
+        "docs/releases/gate-6-draft.md",
+        "docs/operations/README.md",
+        "CLI wrapper connect-control/1; signed transport and provisioning connect/2; schema116; no fallback, old-client support, migration or downgrade added"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Current-schema stopped backup/restore and unsupported-state handling",
+      "evidence": [
+        "Actual stopped backup/currentrestore, live-writer/occupied/corrupt/unsupported-manifest refusals; current original operation and revoked credential survive restore without original path",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/linux-installation-verified.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Explicit reset/reprovision preserves existing data",
+      "evidence": [
+        "Actual new-path init and signed empty-state read; old installation and restored directories unchanged; old child cannot adopt new trust/Identity"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Operation reconciliation without unsafe retry or redial",
+      "evidence": [
+        "Exact create/get/replay templates retain one conversation and one completed operation result, also after restore",
+        "docs/developer/crash-recovery.md",
+        "docs/evidence/gate-6/crash-recovery-scope.json",
+        "Only local control command forms; none dispatches a provider call. Unknown external cleanup remains attributed, source/current-authority bound and separately qualified"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Scoped credential rotation and original-ID recovery",
+      "evidence": [
+        "Actual two distinct issuances for same target Identity, original issuance-resume and expiry/asset preservation",
+        "Replacement has no admin/global health; old revocation replay returns same receipt; changed target conflicts; revoked old refuses before/after restore while replacement reads"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Record retention and cleanup procedures",
+      "evidence": [
+        "Actual named60second metadata policy parses and productionserver becomes ready with public health",
+        "Current record_outcomes.rs owned32item finalization/expiry worker and Store frozen policy source reviewed",
+        "docs/developer/record-retention.md",
+        "docs/evidence/gate-6/auxiliary-record-retention.json"
+      ],
+      "scope": "This lane verifies Linux policy configuration/startup, not a new Linux expiry-worker or captured-media qualification. Linked G6-046 retention component is scoped local macOS metadata/fixture behavior; full gate operating qualification remains separate.",
+      "verified": true
+    },
+    {
+      "requirement": "Documented command forms exercised on disposable state and no silent overwrite",
+      "evidence": [
+        "35CLIexecutions across init/health/request/provision/issue/issue-resume/revoke/backup/restore plus3actualserve/gracefuljoins;4exactJSON templates;8shellblocks unchanged",
+        "All10required refusals verified; direct state mutations use public APIs; only copied negative backups intentionally corrupted; no recursive deletion, SQL edits or externalcalls"
+      ],
+      "verified": true
+    }
+  ],
+  "guide_command_blocks_unchanged_after_result_note": true,
+  "current_guide_sha256": "c3dde7bcdf77077f3555bc66f487a7948e6ce07803d814e637524af2a8c03b78",
+  "qualification_note": "README result paragraph was updated after the run. Executed8shellblocks,4JSONtemplates, CLI rehearsal and production code remain identical; original tested-file hashes and exact source manifest are retained. No acceptance/publishing qualification."
+}

@@ -140,7 +140,7 @@
     },
     "source_inputs_unchanged": true
   },
-  "finding": "Actual native templates pass, original conversation replay/get retains one effect, trusted identity and both scoped native installers/resume complete. New client list is refused. Guide/harness used literal permission list, but current Operation::Conversations::permission declares conversation.list; correct that exact permission, preserving empty peer ceiling and no admin/wildcard. Later rotation/backup/restore commands unrun. Original server forced failure cleanup, not a graceful pass.",
+  "finding": "Actual native templates pass, original conversation replay/get retains one effect, trusted identity and both scoped native installers/resume complete. New client list is refused. Guide/harness used literal permission list, but current Operation::name() declares for Conversations conversation.list; correct that exact permission, preserving empty peer ceiling and no admin/wildcard. Later rotation/backup/restore commands unrun. Original server forced failure cleanup, not a graceful pass.",
   "task_complete": false,
   "whole_gate_qualified": false
 }

@@ -244,6 +244,11 @@ and logs under ignored `.local/`; curated evidence contains stage outcomes,
 source/binary/template hashes and no credentials. It also checks occupied-path,
 live-writer, corrupt/unsupported-backup and revoked-client refusals, original-ID
 one-effect recovery, restored revocation and preserved old state after a fresh
-reprovision. Current command execution remains unqualified until its evidence
-passes; earlier Linux installation, recovery and retention scopes are linked
-separately. No model, provider, telephone or media execution is part of this lane.
+reprovision. The [verified command rehearsal](../evidence/gate-6/operations-guidance-verified.json)
+passes 35 command executions, nine behavior checks and three graceful original
+server joins on Ubuntu 24.04 x86_64. It consumes these exact JSON templates and
+shell command forms. Retention configuration/startup is checked here; actual
+expiry-worker behavior retains its separately scoped G6-046 evidence, rather
+than a new Linux expiry qualification. Earlier installed systemd/upgrade and
+crash recovery scopes are linked separately. No model, provider, telephone or
+media execution is part of this lane.

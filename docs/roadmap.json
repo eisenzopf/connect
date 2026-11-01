@@ -481,8 +481,8 @@
         }
       ],
       "authorization": "evidence/gate-6/authorization.json",
-      "completed_task_count": 71,
-      "in_progress_task_count": 2,
+      "completed_task_count": 72,
+      "in_progress_task_count": 1,
       "deferred_task_count": 1,
       "work_order_amendment": "evidence/gate-6/owner-deferrals.json"
     }
