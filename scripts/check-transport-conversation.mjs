@@ -2,13 +2,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile, mkdir, stat, realpath, open } from "node:fs/promises";
+import { readFile, writeFile, mkdir, stat, realpath, open, readdir, readlink } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { NodeClient } from "../sdk/typescript/dist/node_sdk.js";
+import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
+const dataWorkload = process.argv[4] === "--data-workload";
+assert.ok(process.argv.length === 4 || (process.argv.length === 5 && dataWorkload));
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const encode = value => JSON.stringify(value, null, 2) + "\n";
 const privateRoot = await realpath(join(root, ".local"));
@@ -25,6 +27,11 @@ const plan = Object.fromEntries([
     "session0", "session1", "invite0", "invite1", "accept0", "accept1", "upgrade", "unsupported", "end0", "end1",
 ].map(name => [name, "transport_" + randomUUID()]));
 for (const name of ["before", "included", "from4", "after"]) plan[name + "Message"] = "message_" + randomUUID();
+const sessionRoles = dataWorkload ? [["participant-1", "participant-2", "participant-3", "participant-4"], ["participant-1", "participant-2"]] : [["participant-1", "participant-2"], ["participant-1", "participant-3"]];
+if (dataWorkload) for (const [sid, roles] of sessionRoles.entries()) for (const role of roles) {
+    const prefix = sid + "-" + role;
+    for (const field of ["connection", "stream", "offer", "select", "data", "message", "end", "accept"]) plan[prefix + "-" + field] = "workload_" + randomUUID();
+}
 const planFile = await open(join(privateDirectory, "plan.json"), "wx", 0o600);
 try { await planFile.writeFile(encode(plan)); await planFile.sync(); } finally { await planFile.close(); }
 const directory = await open(privateDirectory, "r"); try { await directory.sync(); } finally { await directory.close(); }
@@ -40,7 +47,8 @@ const report = { format: "connect/transport-conversation-control/1", passed: fal
     actual_connection_workload_observed: false, live_media_upgrade_observed: false,
     replacement_media_ownership_observed: false, actual_topology_verified: false,
     cell_qualified: false, task_complete: false, whole_gate_qualified: false,
-    scope: "One actual Ubuntu/local/native EdDSA public Node SDK control scenario: membership/audiences, two accepted Session intents, additive capability intent/refusal and original-operation recovery across an independent Device. No six-Connection workload, media ownership/duplex, packet capture, browser, remote topology, SIP, TURN, model or provider execution." };
+    workload_mode: dataWorkload ? "six-native-data-connections" : "control-only",
+    scope: "One Ubuntu/local/native EdDSA public Node SDK membership/audience/Session control scenario. Optional workload opens six actual native data Connections across four participants/two Sessions and verifies 64KiB reliable payloads. Audio/video duplex, live upgrade, replacement media ownership, packet capture, browser, remote topology, SIP, TURN, model/provider and complete matrix cells remain unqualified." };
 let phase = "client-setup";
 function check(name) { report.checks.push(name); phase = name; }
 async function complete(operation) {
@@ -169,12 +177,14 @@ try {
     assert.deepEqual(await history(late), [plan.afterMessage]);
     check("remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay");
     const caps = { data: ["reliable-ordered"], audio: ["g.711-mu"] };
-    for (const [index, role] of ["participant-2", "participant-3"].entries()) {
+    for (const [index, roles] of sessionRoles.entries()) {
         const session = await complete(conversation.sessions.invite({ sessionId: plan["session" + index],
-            to: [member(view, role).id], medium: "text-chat", intent: "synchronous-engagement", capabilities: caps }, mutation("invite" + index)));
-        const peerSession = clients.get(role).conversations.byId(cid).sessions.byId(session.id);
-        const before = await peerSession.refresh(options);
-        await complete(peerSession.accept({ capabilities: caps, expectedTopologyRevision: before.topologyRevision }, mutation("accept" + index)));
+            to: roles.slice(1).map(role => member(view, role).id), medium: "text-chat", intent: "synchronous-engagement", capabilities: caps }, mutation("invite" + index)));
+        for (const role of roles.slice(1)) {
+            const peerSession = clients.get(role).conversations.byId(cid).sessions.byId(session.id);
+            const before = await peerSession.refresh(options);
+            await complete(peerSession.accept({ capabilities: caps, expectedTopologyRevision: before.topologyRevision }, mutation(dataWorkload ? index + "-" + role + "-accept" : "accept" + index)));
+        }
     }
     const sessions = [0, 1].map(index => conversation.sessions.byId(plan["session" + index]));
     const simultaneous = await Promise.all(sessions.map(session => session.refresh(options)));
@@ -189,6 +199,91 @@ try {
     await refused(() => complete(sessions[0].update({ action: "medium-upgrade", media: { first: "video", rest: [] } }, upgraded.topologyRevision, mutation("unsupported"))), 501, "unsupported_feature");
     assert.deepEqual(await sessions[0].refresh(options), upgraded);
     check("additive-session-capability-intent-and-unoffered-video-refusal-without-state-change");
+    if (dataWorkload) {
+        phase = "six-native-data-connection-offers";
+        const connections = [], flows = [];
+        for (const [sid, roles] of sessionRoles.entries()) for (const role of roles) {
+            const prefix = sid + "-" + role, source = clients.get(role).conversations.byId(cid).sessions.byId(plan["session" + sid]);
+            const connection = await complete(source.connections.offer({ connectionId: plan[prefix + "-connection"],
+                streams: { first: { id: plan[prefix + "-stream"], kind: "data", direction: "sendrecv", codecs: { first: "binary", rest: [] } }, rest: [] } }, mutation(prefix + "-offer")));
+            connections.push({ sid, role, prefix, connection });
+        }
+        assert.equal(connections.length, 6);
+        phase = "six-native-data-subscriptions";
+        for (const target of connections) {
+            const roles = sessionRoles[target.sid], previous = roles[(roles.indexOf(target.role) + roles.length - 1) % roles.length];
+            const source = connections.find(v => v.sid === target.sid && v.role === previous);
+            const current = await target.connection.refresh(options);
+            assert.ok(current.streamRevision > 0);
+            await complete(target.connection.streams.subscribe({ selectors: { first: { stream: plan[source.prefix + "-stream"] }, rest: [] },
+                expectedStreamRevision: current.streamRevision }, mutation(target.prefix + "-select")));
+            const negotiated = await target.connection.media.refresh(options);
+            assert.ok(negotiated.streams.some(s => s.id === plan[target.prefix + "-stream"] && s.medium === "data"));
+            assert.ok(negotiated.streams.some(s => s.id === plan[source.prefix + "-stream"] && s.medium === "data"));
+            const payload = Buffer.from(Array.from({ length: 65536 }, (_, offset) => (offset * 13 + connections.indexOf(source) * 29) % 256));
+            flows.push({ source, target, payload, intent: { messageId: plan[source.prefix + "-message"],
+                to: { first: member(view, target.role).id, rest: [] }, payload: new SdkBinaryData(payload) } });
+        }
+        const heldStart = performance.now();
+        const before = await Promise.all(connections.map(v => v.connection.refresh(options)));
+        assert.ok(before.every(v => ["ready", "active"].includes(v.state)));
+        assert.equal(new Set(before.map(v => v.id)).size, 6);
+        phase = "six-native-reliable-data-flow";
+        const accepted = await Promise.all(flows.map(flow => complete(flow.source.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.sendData(flow.intent, mutation(flow.source.prefix + "-data")))));
+        const received = await Promise.all(flows.map(flow => flow.target.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.receiveData(options)));
+        for (const [index, flow] of flows.entries()) {
+            const value = received[index];
+            assert.equal(accepted[index].boundary, "core-queue-admission");
+            assert.equal(accepted[index].connectionId, flow.source.connection.id);
+            assert.equal(value.messageId, flow.intent.messageId);
+            assert.equal(value.operationId, plan[flow.source.prefix + "-data"]);
+            assert.equal(value.fromParticipant, member(view, flow.source.role).id);
+            assert.equal(value.payload.kind, "binary");
+            assert.deepEqual(Buffer.from(value.payload.value), flow.payload);
+        }
+        const after = await Promise.all(connections.map(v => v.connection.refresh(options)));
+        assert.ok(after.every((v, index) => ["ready", "active"].includes(v.state) && v.id === before[index].id && v.generation === before[index].generation));
+        const liveSessions = await Promise.all(sessions.map(v => v.refresh(options)));
+        assert.ok(liveSessions.every(v => !["ended", "failed", "cancelled", "rejected"].includes(v.state)));
+        assert.equal(liveSessions.filter(v => v.isMain).length, 1);
+        report.actual_connection_workload_observed = true;
+        report.data_workload = { connections: 6, participants: 4, sessions: 2, connection_counts_by_session: [4, 2],
+            before_states: before.map(v => v.state), after_states: after.map(v => v.state),
+            verified_payloads: 6, bytes_per_payload: 65536, total_received_bytes: 6 * 65536,
+            held_observation_milliseconds: Math.round(performance.now() - heldStart),
+            payload_sha256: flows.map(v => hash(v.payload)), audio_video_workload_verified: false };
+        check("six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions");
+        phase = "owned-local-topology-observation";
+        assert.equal(process.platform, "linux"); assert.equal(process.arch, "x64");
+        assert.equal(hash(await readFile(`/proc/${input.server_pid}/exe`)), input.binary_sha256);
+        const serverNamespace = await readlink(`/proc/${input.server_pid}/ns/net`);
+        for (const pid of observedHelpers) assert.equal(await readlink(`/proc/${pid}/ns/net`), serverNamespace);
+        const inodes = new Set();
+        for (const fd of await readdir(`/proc/${input.server_pid}/fd`)) {
+            try { const value = await readlink(`/proc/${input.server_pid}/fd/${fd}`); const match = /^socket:\[(\d+)\]$/.exec(value); if (match) inodes.add(match[1]); }
+            catch (error) { if (error.code !== "ENOENT") throw error; }
+        }
+        const nativePort = Number(input.native_endpoint.split(":").at(-1));
+        const udp = (await readFile(`/proc/${input.server_pid}/net/udp`, "utf8")).trim().split("\n").slice(1).map(line => line.trim().split(/\s+/));
+        assert.ok(udp.some(row => row[1].split(":")[0] === "0100007F" && parseInt(row[1].split(":")[1], 16) === nativePort && inodes.has(row[9])));
+        report.local_topology = { same_network_namespace_observed: true, server_owned_loopback_udp_bind_observed: true,
+            helpers_in_server_namespace: observedHelpers.size, server_executable_sha256: input.binary_sha256, namespace_sha256: hash(serverNamespace) };
+        report.actual_topology_verified = true;
+        check("actual-server-loopback-listener-and-original-helper-network-namespace-observed");
+        phase = "native-data-original-replay";
+        const flow = flows[0], sender = flow.source.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media;
+        assert.deepEqual(await complete(sender.sendData(flow.intent, mutation(flow.source.prefix + "-data"))), accepted[0]);
+        await assert.rejects(flow.target.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.receiveData({ timeoutMs: 120 }), error => error.kind === "deadline" && error.certainty === "read-only");
+        check("native-data-original-replay-recovers-receipt-without-second-delivery");
+        phase = "six-native-connections-original-end";
+        for (const item of connections) await complete(item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" }, mutation(item.prefix + "-end")));
+        const retired = await Promise.all(connections.map(v => v.connection.refresh(options)));
+        assert.ok(retired.every(v => v.state === "retired"));
+        report.data_workload.original_connections_retired = 6;
+        for (const role of ["participant-1", "participant-2", "participant-3", "participant-4"])
+            assert.equal((await clients.get(role).media.dataStats(options)).queuedBytes, 0);
+        check("all-six-original-native-connections-retire-and-owned-data-queues-drain");
+    }
     for (const [index, session] of sessions.entries()) {
         const current = await session.refresh(options);
         await complete(session.end({ expectedTopologyRevision: current.topologyRevision, reasonCode: 200, reason: "Synthetic fixture complete" }, mutation("end" + index)));

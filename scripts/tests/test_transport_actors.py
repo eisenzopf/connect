@@ -62,7 +62,7 @@ class ActorPlanBoundary(unittest.TestCase):
 
     def test_qualification_scope_excludes_admin_and_external_communications(self):
         self.assertFalse(set(OPERATIONS) & {"admin", "*", "installation.observe", "call_start", "sip_dial", "task"})
-        self.assertTrue({"connection.replace", "session.update", "conversation.participant.remove"} <= set(OPERATIONS))
+        self.assertTrue({"connection.replace", "session.update", "conversation.participant.remove", "stream.subscribe", "connection.end"} <= set(OPERATIONS))
 
 
 if __name__ == "__main__":

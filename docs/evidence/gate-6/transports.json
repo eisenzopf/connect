@@ -1189,5 +1189,43 @@
     "negative_evidence_9d": "docs/evidence/gate-6/transport-conversation-negative-9d.json",
     "snapshot_correction": "Require three active participants and absence of the removed identity in the current snapshot; current-access denial, old-epoch denial, stable-ID readmission and all later checks remain required. No product behavior change.",
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
+  },
+  "native_data_workload": {
+    "status": "implemented-runtime-unrun",
+    "implementation_hashes": {
+      "scripts/check-transport-conversation.mjs": "ed1326afa2da02edda180ccbd0c012565747db4a916ad0939c457d3f797e9cb8",
+      "scripts/check-transport-fixtures.py": "e5916653a8397517ab43d0ff676966ab09aec132a7e73c3e40a3a4ef61a49945",
+      "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
+      "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
+      ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
+      ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff"
+    },
+    "local_transport_guards_passed": 21,
+    "node_python_syntax": true,
+    "workflow_yaml_parsed": true,
+    "fresh_scope_operations": 28,
+    "scope_change": "Add only stream.subscribe and connection.end for fresh immutable enrollment plans; existing plans refuse scope changes. Historical26permission proof remains sourcebound.",
+    "required_actual_observations": {
+      "participants": 4,
+      "sessions": 2,
+      "connections": 6,
+      "connection_counts_by_session": [
+        4,
+        2
+      ],
+      "independently_received_payloads": 6,
+      "bytes_per_payload": 65536,
+      "common_current_state_boundaries": 2,
+      "original_replay_duplicate_deliveries": 0,
+      "original_connection_retirements": 6,
+      "owned_data_queued_bytes_after_drain": 0
+    },
+    "local_topology_observation": "Actual server-owned IPv4loopbackUDPsocket and matching actual server/helper network namespaces, with source/binary/config bindings. Raw process/socket state private.",
+    "runtime_verified": false,
+    "audio_video_workload_verified": false,
+    "packet_capture_observed": false,
+    "replacement_media_ownership_verified": false,
+    "cell_qualified": false,
+    "task_complete": false
   }
 }

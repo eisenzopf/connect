@@ -37,9 +37,12 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False):
+def main(actors=False, conversation=False, data_workload=False):
     global PRIVATE, OUTPUT
-    if conversation:
+    if data_workload:
+        actors = conversation = True
+        PRIVATE, OUTPUT = BASE / "private/data", BASE / "evidence/data"
+    elif conversation:
         actors = True
         PRIVATE, OUTPUT = BASE / "private/conversation", BASE / "evidence/conversation"
     elif actors:
@@ -58,7 +61,7 @@ def main(actors=False, conversation=False):
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Actual Ubuntu24.04x86_64 production CLI stopped-backup/restore and private configuration. Optional actor and public Node SDK conversation stages verify scoped devices, membership/audiences and two accepted Session intents. No six-Connection workload, actual browser, packet capture, live media, SIP, TURN, model/provider or remote-host execution. All full matrix cells remain unqualified.")
+        scope="Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads and observes the owned loopback listener/namespace. Audio/video duplex, live upgrade/replacement media ownership, packet capture, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
@@ -271,11 +274,15 @@ def main(actors=False, conversation=False):
                     configured_actors[name] = dict(identity_id=actor["identity_id"], config=str(sdk_config))
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
-                    executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"]), indent=2) + "\n").encode())
+                    executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
+                    server_pid=server.pid, native_endpoint=original_operator["endpoint"]), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
-                code = bounded(["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")],
+                command = ["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
+                if data_workload:
+                    command.append("--data-workload")
+                code = bounded(command,
                     PRIVATE / "conversation-control.log", env, 180)
                 report["conversation_exit_code"] = code
                 if (OUTPUT / "conversation.json").is_file():
@@ -285,6 +292,12 @@ def main(actors=False, conversation=False):
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
                 assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report["binary_sha256"]
+                if data_workload:
+                    assert observed["actual_connection_workload_observed"] and observed["actual_topology_verified"]
+                    workload = observed["data_workload"]
+                    assert workload["connections"] == 6 and workload["participants"] == 4 and workload["sessions"] == 2
+                    assert workload["verified_payloads"] == workload["original_connections_retired"] == 6
+                    assert workload["total_received_bytes"] == 6 * 65536
                 report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
                 before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}
                 assert all(len(value) == 1 for value in before_revocation.values())
@@ -348,5 +361,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
+    parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
     args = parser.parse_args()
-    raise SystemExit(main(args.actors, args.conversation))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload))

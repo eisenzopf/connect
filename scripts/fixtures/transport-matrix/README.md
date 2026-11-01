@@ -139,7 +139,7 @@ python3 scripts/enroll-gate6-transport-actors.py \
 
 The tool saves `plan.json` before public provisioning, including original identity
 and credential operation IDs and an absolute expiry. All state changes use the
-production `provision`, `issue` or `issue-resume` command. Each child receives 26
+production `provision`, `issue` or `issue-resume` command. Each child receives 28
 literal control permissions, the other three identities as its recipient ceiling,
 and a new device signer matching the cell's signing cohort. It checks the returned
 scope, expiry and identities, distinct credentials/keys, and absence of the parent
@@ -197,3 +197,30 @@ CLI commands, five joined SDK helpers and two joined servers. Nonempty history
 reads followed their cursor through the terminal page. Earlier pagination and
 active-snapshot fixture assumptions are retained as negative evidence. This
 result grants no other platform, topology, signing cohort or complete cell a pass.
+
+## Actual native data workload
+
+`transport-data` runs the current scenario with `--data-workload`. It enrolls
+fresh scoped actors with the additional literal `stream.subscribe` and
+`connection.end` permissions required for owned routing/drain; an existing plan's
+scope is never expanded on resume. The earlier 26-permission enrollment proof
+remains bound to its original source. Current fresh plans have 28 permissions.
+
+Four participants join the main data Session; two join the second Session. The
+public SDK offers six distinct native Connections and subscribes each to the
+previous participant's stream in its Session. All six must be ready at the common
+observation boundary, carry one independently identified 64KiB binary payload to
+the intended recipient, and remain current at the second boundary. Original data
+replay must recover the receipt without a second delivery. Every original
+Connection must retire through the public API, with owned data queues empty.
+
+The same run observes the server's actual loopback UDP socket through its owned
+socket inode and verifies that all five original SDK helpers share the server's
+network namespace. Process and configuration bindings use the same production
+executable and protected instance. Raw process/socket state stays private;
+published topology observations contain hashes, counts and booleans.
+
+This is a native reliable-data workload and local-topology check. It does not
+qualify simultaneous audio/video, decoded duplex, live media upgrades, replacement
+media ownership, packet capture, browser or remote-profile behavior. Complete
+matrix cells remain unqualified until their full checks execute and verify.

@@ -5,7 +5,7 @@ on:
       lane:
         description: 'Full fixtures or an isolated Python, video, return, native or telephone network component'
         type: choice
-        options: [transport-conversation, transport-actors, transport-fixture, transport-control, reference-app-macos, reference-app, full, python314, video-feedback, consultation-return, native-network, telephone-network, media-network, mixer-clock, sip-duplex, rtc-compound, installation, operations-guide, operational, operational-process, operational-schema, operational-typecheck, sdk-candidate, sdk-runtime, sdk-qualified]
+        options: [transport-data, transport-conversation, transport-actors, transport-fixture, transport-control, reference-app-macos, reference-app, full, python314, video-feedback, consultation-return, native-network, telephone-network, media-network, mixer-clock, sip-duplex, rtc-compound, installation, operations-guide, operational, operational-process, operational-schema, operational-typecheck, sdk-candidate, sdk-runtime, sdk-qualified]
         default: full
       source_revision:
         description: 'Installation lane only: exact source SHA for the current-schema baseline; blank selects this commit'
@@ -47,9 +47,14 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'transport-conversation' && '-transport-conversation' || inputs.lane == 'transport-actors' && '-transport-actors' || inputs.lane == 'transport-fixture' && '-transport-fixture' || inputs.lane == 'transport-control' && '-transport-control' || inputs.lane == 'reference-app-macos' && '-reference-app-macos' || inputs.lane == 'reference-app' && '-reference-app' || inputs.lane == 'operations-guide' && '-operations-guide' || inputs.lane == 'operational-process' && '-operational-process' || inputs.lane == 'operational-typecheck' && '-operational-typecheck' || inputs.lane == 'sdk-qualified' && '-sdk-runtime' || inputs.lane == 'sdk-runtime' && '-sdk-runtime' || inputs.lane == 'sdk-candidate' && '-sdk-candidate' || inputs.lane == 'operational-schema' && '-operational-schema' || inputs.lane == 'operational' && '-operational' || inputs.lane == 'installation' && '-installation' || inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || inputs.lane == 'sip-duplex' && '-sip-duplex' || inputs.lane == 'rtc-compound' && '-rtc-compound' || inputs.lane == 'mixer-clock' && '-mixer-clock' || inputs.lane == 'media-network' && '-media-network' || inputs.lane == 'telephone-network' && '-telephone-network' || '' }}
+  group: gate6-linux-fixtures-${{ github.ref }}${{ inputs.lane == 'transport-data' && '-transport-data' || inputs.lane == 'transport-conversation' && '-transport-conversation' || inputs.lane == 'transport-actors' && '-transport-actors' || inputs.lane == 'transport-fixture' && '-transport-fixture' || inputs.lane == 'transport-control' && '-transport-control' || inputs.lane == 'reference-app-macos' && '-reference-app-macos' || inputs.lane == 'reference-app' && '-reference-app' || inputs.lane == 'operations-guide' && '-operations-guide' || inputs.lane == 'operational-process' && '-operational-process' || inputs.lane == 'operational-typecheck' && '-operational-typecheck' || inputs.lane == 'sdk-qualified' && '-sdk-runtime' || inputs.lane == 'sdk-runtime' && '-sdk-runtime' || inputs.lane == 'sdk-candidate' && '-sdk-candidate' || inputs.lane == 'operational-schema' && '-operational-schema' || inputs.lane == 'operational' && '-operational' || inputs.lane == 'installation' && '-installation' || inputs.lane == 'python314' && '-python314' || inputs.lane == 'video-feedback' && '-video-feedback' || inputs.lane == 'consultation-return' && '-consultation-return' || inputs.lane == 'native-network' && '-native-network' || inputs.lane == 'sip-duplex' && '-sip-duplex' || inputs.lane == 'rtc-compound' && '-rtc-compound' || inputs.lane == 'mixer-clock' && '-mixer-clock' || inputs.lane == 'media-network' && '-media-network' || inputs.lane == 'telephone-network' && '-telephone-network' || '' }}
   cancel-in-progress: false
 jobs:
+  transport-data:
+    if: ${{ inputs.lane == 'transport-data' }}
+    uses: ./.github/workflows/gate6-transport-matrix.yml
+    with:
+      component: data
   transport-conversation:
     if: ${{ inputs.lane == 'transport-conversation' }}
     uses: ./.github/workflows/gate6-transport-matrix.yml
@@ -99,7 +104,7 @@ jobs:
       upgrade_run: ${{ inputs.upgrade_run || '' }}
       source_revision: ${{ inputs.source_revision || '' }}
   node-control:
-    if: ${{ inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
+    if: ${{ inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -135,7 +140,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   python-control:
-    if: ${{ inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
+    if: ${{ inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -185,7 +190,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   ubuntu-x86:
-    if: ${{ inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' }}
+    if: ${{ inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' }}
     name: ubuntu-x86 (Node ${{ matrix.node }})
     runs-on: ubuntu-24.04
     timeout-minutes: 90

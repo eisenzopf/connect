@@ -18,7 +18,7 @@ OPERATIONS = sorted({
     "send", "history", "inbox", "operation.get", "operation.cancel", "health", "session_get",
     "session.observation", "session.invite", "session.accept", "session.reject", "session.cancel",
     "session.end", "session.update", "connection.offer", "connection.update", "connection.replace",
-    "capability.advertise",
+    "connection.end", "stream.subscribe", "capability.advertise",
 })
 ROLES = tuple(f"participant-{n}" for n in range(1, 5))
 DEVICES = (*ROLES, "replacement-1")

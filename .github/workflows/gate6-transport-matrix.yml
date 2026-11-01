@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: '3.12'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: inputs.component == 'control' || inputs.component == 'conversation'
+        if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         with:
           node-version: '22'
       - name: Install native prerequisites
@@ -57,11 +57,11 @@ jobs:
           cargo fetch --locked
       - name: Check matrix scope and promotion guards
         run: |
-          python3 -c 'import os; assert os.environ["TRANSPORT_COMPONENT"] in {"control", "materializer", "actors", "conversation"}'
+          python3 -c 'import os; assert os.environ["TRANSPORT_COMPONENT"] in {"control", "materializer", "actors", "conversation", "data"}'
           python3 -m unittest discover -s scripts/tests -p 'test_transport_*.py'
           python3 scripts/check-gate-6-transports.py --phase inventory
       - name: Build current Node browser-SDK control inputs
-        if: inputs.component == 'control' || inputs.component == 'conversation'
+        if: inputs.component == 'control' || inputs.component == 'conversation' || inputs.component == 'data'
         working-directory: sdk/typescript
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
@@ -71,9 +71,9 @@ jobs:
         id: control
         run: python3 scripts/check-gate-6-transports.py --phase control
       - name: Rehearse production stopped-backup fixture materialization
-        if: inputs.component == 'materializer' || inputs.component == 'actors' || inputs.component == 'conversation'
+        if: inputs.component == 'materializer' || inputs.component == 'actors' || inputs.component == 'conversation' || inputs.component == 'data'
         id: materializer
-        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }}
+        run: python3 scripts/check-transport-fixtures.py ${{ inputs.component == 'data' && '--data-workload' || inputs.component == 'conversation' && '--conversation' || inputs.component == 'actors' && '--actors' || '' }}
       - name: Upload redacted component and unqualified matrix inventory
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -90,7 +90,7 @@ jobs:
           python3 - <<'PY'
           import hashlib,json,os,pathlib,runpy,subprocess
           component=os.environ['TRANSPORT_COMPONENT']
-          assert component in {'control','materializer','actors','conversation'}
+          assert component in {'control','materializer','actors','conversation','data'}
           base=pathlib.Path('.local/gate6-transports/evidence')/component
           report=json.loads((base/('control.json' if component=='control' else 'rehearsal.json')).read_text())
           assert report['cacheable_build'] and report['source_inputs_unchanged'] and report['executables_unchanged']
