@@ -14,32 +14,32 @@
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "5d01031571032cffe2136b97cd3b1ea11c5d87714d9b4393d906b95cfea1cf81",
-    "examples/parley-on-connect/app/gateway.test.mjs": "534130256a4b39a7556e99946bd6012f3a34a296249bd1d86d155e4cf230cf8e",
+    "examples/parley-on-connect/app/gateway.mjs": "084c02efcc023197759c94815d84471d07d75705790d5ba11c325cd071950068",
+    "examples/parley-on-connect/app/gateway.test.mjs": "93124ada0b6b21d9fe7b234df553b59f42d9629e7e68c81ccc91f12af2a78d4e",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
-    "examples/parley-on-connect/app/server.mjs": "f80df1a83278628acf45901b5d174848a06f8ead2b171c00a74ad5ba67b60cf4",
+    "examples/parley-on-connect/app/server.mjs": "121dc99a3fd23ee44f39a67cc5f20c364bda52f4e0c6a4c2c770e0a0c7b38b04",
     "examples/parley-on-connect/app/server.test.mjs": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
     "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
-    "examples/parley-on-connect/app/ui/app.mjs": "7f9ec9d39799ebe77d879c47cb285eda81444a132357065f9d6a58a687bee787",
+    "examples/parley-on-connect/app/ui/app.mjs": "fd0f9077e048e6565064e7725c37db2a99175c0b44f442bfdd9c0c9df9ca203d",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
-    "scripts/check-reference-app-ui.mjs": "4ab95c64f315889683ac4c288708c4098d93bba88b1b3fb758c1a902f8a84717",
+    "scripts/check-reference-app-ui.mjs": "d725540917fc1b991fb5a446a511d2e5ab3ac644a89aec4b1341fe686ed29a50",
     "examples/parley-on-connect/app/run.mjs": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
     "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
     "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "537b3a4b893cb24f4795e7430b5e6de29fcc7d4234d3f17795bea200860816a4",
+    "scripts/check-reference-app-installed.mjs": "33b0e9c1daa63c68c8c9fed2301d5100656dd85ea18ca4e2c54d382b62481c3a",
     ".github/workflows/gate6-reference-app.yml": "e7930fa4636a4b8306760bf732d07eeb472ea4597489b77d16a81ea25c2b6cee",
     "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
     "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 25,
+    "functions_passed": 27,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "7 journal,9 SDK-shaped gateway,5 real HTTP/socket,3 setup and1 closed-diagnostic privacy case pass locally. New gateway test uses server page_size1 and three coherent snapshot pages; frozen wire and server page ceilings are independently enforced. Actual production observations remain separate and incomplete."
+    "scope": "7journal,11SDK-shaped gateway,5real HTTP/socket,3setup and1closed-diagnostic privacy case pass. Held original-owner closure verifies concurrent reads/mutations refuse, duplicate reconnects share one flight, and shutdown creates no replacement. Actual production observations remain separate and incomplete."
   },
   "remaining_requirements": [
     "Verify actual one-command startup/scoped enrollment, restart and original recovery; current three setup tests use SDK/CLI-shaped fixtures.",
@@ -59,7 +59,7 @@
   },
   "browser_component": {
     "evidence": "docs/evidence/gate-6/reference-app-browser-component.json",
-    "checks_passed": 13,
+    "checks_passed": 14,
     "browser": "Chrome 156.0.8078.48 on macOS arm64",
     "backend": "simulated; no actual Connect server/helper",
     "native_select_keyboard": "Unqualified: fixture perspective selected through selectOption after stock native-select keyboard counterexamples.",
@@ -67,10 +67,10 @@
     "sources_unchanged": true,
     "original_owners_joined": true,
     "latest_private_run": {
-      "run": "ui-08",
-      "checks_passed": 13,
+      "run": "ui-09",
+      "checks_passed": 14,
       "sources_unchanged": true,
-      "scope": "Actual Chrome/installed browser SDK, simulated backend; deliberately delayed perspective reads preserve current peer selection and original offline recovery. ui-07 retains the exact empty-audience counterexample."
+      "scope": "Actual Chrome/installed browser SDK with simulated backend and delayed reconnect; recovery disabled until current access ready. Later test-only addition described in component evidence."
     }
   },
   "installed_verification_lane": {

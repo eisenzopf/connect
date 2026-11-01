@@ -12,6 +12,7 @@ const explanations = {
     "app-resync-required": "The saved view is no longer current. Refresh the conversation.",
     "resync-required": "The saved view is no longer current. Refresh the conversation.",
     "app-session-expired": "The local app restarted or your session expired. Reload this page.",
+    "app-reconnecting": "Reconnecting. Wait for current access before recovering the original action.",
     "app-local-state": "Recovery state could not be saved. The action has not been sent.",
     "app-corrupt-local-state": "Saved recovery state is unreadable. Do not repeat the action.",
     "different-original-intent": "This saved action has different contents. Recover its original outcome.",
@@ -31,6 +32,10 @@ function button(text, action, mutation = false) {
     if (mutation) value.dataset.mutation = "";
     value.addEventListener("click", () => Promise.resolve().then(action).catch(problem)); return value;
 }
+function recoveryButton(text, action) {
+    const value = button(text, action); value.dataset.recovery = "";
+    value.disabled = working || switching || navigator.onLine === false; return value;
+}
 const savedKey = () => "parley-original-action-" + actor;
 function readPending() {
     storageBlocked = false;
@@ -49,6 +54,7 @@ function controls() {
     for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || switching || storageBlocked || Boolean(pending) ||
         navigator.onLine === false || (value.closest("#message-form,#invite-form") !== null && (!selectedId || !current || current.conversation.closed));
     $("reconnect").disabled = working || switching; $("actor").disabled = working || switching;
+    for (const value of document.querySelectorAll("[data-recovery]")) value.disabled = working || switching || navigator.onLine === false;
 }
 function clearView() {
     current = null;
@@ -113,7 +119,7 @@ function progress(values) {
             const state = value.submission === "refused" ? "Not accepted" : value.state ??
                 (value.submission === "prepared" ? "Saved, awaiting submission" : "Outcome uncertain");
             const item = node("li"); item.append(node("strong", label[value.command] ?? "Action"), document.createTextNode(" · " + state));
-            if (value.needsRecovery || value.submission === "prepared") item.append(button(
+            if (value.needsRecovery || value.submission === "prepared") item.append(recoveryButton(
                 value.submission === "prepared" ? "Submit saved action" : "Recover original", () => recover(value.operationId)));
             list.append(item);
         }
@@ -123,8 +129,8 @@ function progress(values) {
 function renderPending() {
     const recovery = $("pending"); recovery.replaceChildren();
     if (pending) {
-        recovery.append(node("p", "An original action needs observation. Recover it before starting another."), button("Recover original action", recoverPending));
-        if (pending.operationId === null) recovery.append(button("Discard unsent preparation", () => { savePending(null); renderPending(); controls(); }));
+        recovery.append(node("p", "An original action needs observation. Recover it before starting another."), recoveryButton("Recover original action", recoverPending));
+        if (pending.operationId === null) recovery.append(recoveryButton("Discard unsent preparation", () => { savePending(null); renderPending(); controls(); }));
     }
 }
 async function state(append = false) {
@@ -203,7 +209,7 @@ async function mutate(action) {
     } catch (error) { problem(error); } finally { working = false; controls(); }
 }
 async function recoverPending() {
-    if (!pending || working) return;
+    if (!pending || working || switching) return;
     if (!pending.operationId) {
         const value = await api("lookup", { key: pending.key });
         if (!value.operation) { notice("Preparation is still unobserved. No submission was issued by this page.", true); return; }
@@ -212,7 +218,7 @@ async function recoverPending() {
     await recover(pending.operationId);
 }
 async function recover(operationId) {
-    if (working) return; working = true; controls();
+    if (working || switching) return; working = true; controls();
     try {
         const value = await api("recover", { operationId });
         if (settled(value) && pending?.operationId === operationId) savePending(null);
@@ -254,7 +260,12 @@ $("actor").addEventListener("change", async event => {
 $("create-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "conversation.create", recipients: selected("create-contacts") }); });
 $("message-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "message.send", conversationId: selectedId, recipients: selected("message-contacts"), text: $("message").value }); });
 $("invite-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "session.invite", conversationId: selectedId, recipients: selected("invite-contacts"), medium: $("medium").value }); });
-$("reconnect").addEventListener("click", async () => { try { await api("reconnect"); await state(); await view(); } catch (error) { problem(error); } });
+$("reconnect").addEventListener("click", async () => {
+    if (working || switching) return; working = true; retire(); stopPreview(); controls();
+    notice("Reconnecting. Reading current access and original outcomes…");
+    try { await api("reconnect"); await state(); await view(); }
+    catch (error) { clearView(); problem(error); } finally { working = false; controls(); }
+});
 $("refresh").addEventListener("click", async () => { historyCursor = null; try { await state(); await view(); } catch (error) { problem(error); } });
 $("more-conversations").addEventListener("click", () => state(true).catch(problem));
 $("more-messages").addEventListener("click", () => { historyCursor = nextHistory; view().catch(problem); });

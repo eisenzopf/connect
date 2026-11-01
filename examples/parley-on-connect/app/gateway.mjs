@@ -39,7 +39,7 @@ function savedReference(saved) {
 }
 export function publicError(error) {
     const local = new Set(["invalid-app-request", "unsupported-app-action", "different-original-intent", "unknown-app-actor",
-        "unknown-app-operation", "app-request-capacity", "app-intent-capacity", "app-snapshot-capacity", "app-resync-required"]);
+        "unknown-app-operation", "app-request-capacity", "app-intent-capacity", "app-snapshot-capacity", "app-resync-required", "app-reconnecting"]);
     if (local.has(error?.code)) return { code: error.code };
     if (error?.kind === "authentication" || error?.problem?.category === "forbidden") return { code: "permission-denied" };
     if (error?.certainty === "refused") return { code: "action-refused" };
@@ -50,7 +50,7 @@ export function publicError(error) {
 /** App-owned routing/presentation. Journal hints never grant membership or
  * capture authority; every read and action goes through the current SDK actor. */
 export class AppGateway {
-    #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #closed = false; #closing;
+    #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #reconnects = new Map(); #closed = false; #closing;
     constructor({ journal, actors, createClient, onError = () => {} }) {
         if (!journal || typeof createClient !== "function" || !actors || Object.keys(actors).length > 5) fail("invalid-app-request");
         for (const [role, actor] of Object.entries(actors))
@@ -67,6 +67,7 @@ export class AppGateway {
     }
     #client(role) {
         const actor = this.#actor(role);
+        if (this.#reconnects.has(role)) fail("app-reconnecting");
         if (!this.#clients.has(role)) this.#clients.set(role, this.#factory(actor));
         return this.#clients.get(role);
     }
@@ -282,15 +283,24 @@ export class AppGateway {
         if (saved.intent.actor !== role) fail("unknown-app-operation");
         return this.command(role, saved.clientKey, saved.intent.input.request);
     }
-    async reconnect(role) {
-        this.#actor(role); const current = this.#clients.get(role);
-        if (current) await current.close({ timeoutMs: 5000 });
-        this.#clients.delete(role); return this.capabilities(role);
+    reconnect(role) {
+        this.#actor(role);
+        const existing = this.#reconnects.get(role); if (existing) return existing;
+        const current = this.#clients.get(role);
+        const work = (async () => {
+            if (current) await current.close({ timeoutMs: 5000 });
+            this.#clients.delete(role);
+            const actor = this.#actor(role); // Closing the gateway fences replacement after the old owner joins.
+            const client = this.#factory(actor); this.#clients.set(role, client);
+            const value = await client.capabilities.refresh(this.#options());
+            return { transport: value.selectedTransport, features: [...value.features] };
+        })().finally(() => this.#reconnects.delete(role));
+        this.#reconnects.set(role, work); return work;
     }
     close() {
         if (this.#closing) return this.#closing;
         this.#closed = true;
-        const flights = [...this.#flights.values()].map(value => value.work);
+        const flights = [...this.#flights.values()].map(value => value.work).concat([...this.#reconnects.values()]);
         this.#closing = (async () => {
             const settled = await Promise.allSettled([...this.#clients.values()].map(client => client.close({ timeoutMs: 5000 })));
             await Promise.allSettled(flights);

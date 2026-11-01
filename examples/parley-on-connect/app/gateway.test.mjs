@@ -86,7 +86,7 @@ function fixture() {
                 return [frame("conversation.snapshot", { revision: 1, cursor: "watermark", has_more: end < items.length,
                     ...(end < items.length ? { next_page: "page_" + end } : {}), items: items.slice(offset, end) })];
             } },
-            close: async () => { current.closes++; current.closed = true; },
+            close: async () => { current.closes++; if (service.closeBarrier) await service.closeBarrier; current.closed = true; },
         };
     };
     return service;
@@ -177,6 +177,31 @@ test("reconnect is explicit and closes the original client; malformed actions pe
     assert.equal(f.service.clients.length, 1);
     await f.gateway.reconnect("owner"); assert.equal(f.service.clients[0].closes, 1); assert.equal(f.service.clients.length, 2);
     await f.close(); assert.equal(f.service.clients[1].closes, 1);
+});
+
+test("reconnect joins one original owner and refuses concurrent work until its replacement is ready", async () => {
+    const f = await setup(); await f.gateway.capabilities("owner");
+    let release; f.service.closeBarrier = new Promise(done => { release = done; });
+    const first = f.gateway.reconnect("owner"), duplicate = f.gateway.reconnect("owner");
+    assert.equal(first, duplicate); assert.equal(f.service.clients[0].closes, 1);
+    await assert.rejects(f.gateway.capabilities("owner"), { code: "app-reconnecting" });
+    await assert.rejects(f.gateway.command("owner", "during-reconnect", { type: "conversation.create", recipients: ["organizer"] }), { code: "app-reconnecting" });
+    assert.equal(f.service.clients.length, 1); assert.equal(f.service.calls.length, 0);
+    release(); f.service.closeBarrier = null; await first;
+    assert.equal(f.service.clients[0].closed, true); assert.equal(f.service.clients.length, 2);
+    assert.equal((await f.gateway.capabilities("owner")).transport, "quic");
+    await f.close(); assert.equal(f.service.clients[1].closes, 1);
+});
+
+test("shutdown during reconnect joins the old owner without creating a replacement client", async () => {
+    const f = await setup(); await f.gateway.capabilities("owner");
+    let release; f.service.closeBarrier = new Promise(done => { release = done; });
+    const reconnect = f.gateway.reconnect("owner");
+    const observed = assert.rejects(reconnect, { code: "unknown-app-actor" });
+    const closing = f.gateway.close(); release(); f.service.closeBarrier = null;
+    await observed; await closing;
+    assert.equal(f.service.clients.length, 1); assert.equal(f.service.clients[0].closed, true);
+    f.journal.close();
 });
 
 test("UI preparation survives a lost observation without submitting until an explicit second action", async () => {

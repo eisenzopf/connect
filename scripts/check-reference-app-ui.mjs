@@ -95,7 +95,10 @@ const gateway = {
             sessions: model.sessions.filter(value => value.cid === cid).map(value => ({ id: value.id, state: value.state, media: ["data"], appearance: value.appearances[actor] ?? "unavailable" })),
             connections: [], historyCursor: null, sampledAt: Date.now() };
     },
-    reconnect: async () => { model.reconnects++; return { transport: "quic" }; },
+    reconnect: async () => {
+        model.reconnecting = true; await new Promise(done => setTimeout(done, 200));
+        model.reconnects++; model.reconnecting = false; return { transport: "quic" };
+    },
     close: async () => { model.closed++; for (const done of model.holds.splice(0)) done(); },
 };
 let app, context, browser, page;
@@ -166,7 +169,11 @@ try {
     await context.setOffline(false); await page.reload();
     await page.getByRole("button", { name: "Recover original action", exact: true }).waitFor();
     await page.getByRole("button", { name: "Reconnect", exact: true }).focus(); await page.keyboard.press("Enter");
+    await wait(() => model.reconnecting);
+    assert.equal(await page.getByRole("button", { name: "Recover original action", exact: true }).isDisabled(), true);
+    check("recovery-waits-for-delayed-reconnect");
     await wait(() => model.reconnects === 1);
+    await page.waitForFunction(() => !document.querySelector("#reconnect").disabled);
     await page.getByRole("button", { name: "Recover original action", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.waitForFunction(() => localStorage.getItem("parley-original-action-organizer") === null);
     assert.equal(model.effects, originalEffects); assert.equal(model.messages.filter(value => value.text === marker).length, 1);

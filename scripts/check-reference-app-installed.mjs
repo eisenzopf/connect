@@ -180,7 +180,7 @@ try {
     await context.setOffline(false); await page.reload();
     await page.getByRole("button", { name: "Recover original action", exact: true }).waitFor();
     await page.getByRole("button", { name: "Reconnect", exact: true }).focus(); await page.keyboard.press("Enter");
-    await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
+    await page.waitForFunction(() => !document.querySelector("#reconnect").disabled && document.querySelector("#notice").textContent.startsWith("Connected"));
     await page.getByRole("button", { name: "Recover original action", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.waitForFunction(() => localStorage.getItem("parley-original-action-organizer") === null);
     await page.waitForFunction(marker => document.querySelector("#timeline").textContent.includes(marker), marker);

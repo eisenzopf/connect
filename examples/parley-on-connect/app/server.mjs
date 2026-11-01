@@ -44,7 +44,7 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
     const server = createServer({ maxHeaderSize: 8192 }, (request, response) => {
         headers(response);
         if (closing || active.size >= 16) { json(response, 503, { error: { code: "app-request-capacity" } }); request.resume(); return; }
-        const work = handle(request, response).catch(error => { onError(error); json(response, 400, { error: publicError(error) }); })
+        const work = handle(request, response).catch(error => { onError(error); json(response, error?.code === "app-reconnecting" ? 503 : 400, { error: publicError(error) }); })
             .finally(() => { active.delete(work); if (!request.complete) request.destroy(); });
         active.add(work);
     });
