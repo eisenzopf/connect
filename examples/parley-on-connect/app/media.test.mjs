@@ -163,9 +163,16 @@ test("independent signed supervision fences generation changes without network r
 
 test("normal media retirement drains its original signed watcher without cancelling the shared SDK control owner", async t => {
     const entered = deferred(), release = deferred(); let signal;
+    t.after(() => release.resolve());
     const f = fixture(t, { control: async options => { signal = options.signal; entered.resolve(); await release.promise;
         return { generation: 1, state: "ready" }; } }), a = owner();
-    const lease = await f.bridge.open("owner", a, binding); await entered.promise;
+    const lease = await f.bridge.open("owner", a, binding);
+    let timer;
+    try {
+        await Promise.race([entered.promise, new Promise((_, reject) => {
+            timer = setTimeout(() => reject(Error("supervision-start-deadline")), 2000);
+        })]);
+    } finally { clearTimeout(timer); }
     let joined = false; const closing = f.bridge.closeOwner(a).then(() => { joined = true; });
     assert.equal(signal.aborted, false); await Promise.resolve(); assert.equal(joined, false);
     release.resolve(); await closing; assert.equal(joined, true);

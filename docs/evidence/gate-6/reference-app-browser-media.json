@@ -14,7 +14,7 @@
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
     "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
     "examples/parley-on-connect/app/media.mjs": "4f3debfa070160745463870d662dc9fe443fa9b1d8f57bf9f8e934971fae4282",
-    "examples/parley-on-connect/app/media.test.mjs": "c7ce8aa3bd727500fc45b31cba2254723be067f3158ecc84c2d36065b47194f4",
+    "examples/parley-on-connect/app/media.test.mjs": "c1a8347d4986780b870289088d95f1fc59cfde9959ddd944eaa849b4a664be15",
     "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
     "examples/parley-on-connect/app/server.mjs": "adf4cda962a805449965b40cbf3faf24dd608eee118eadd2ef077d6d49cd947c",
     "examples/parley-on-connect/app/server.test.mjs": "21aa28f1ae350f2e5bb40a8b5ce5f4fb3c413128e93f89470fe445e3831835ef",
@@ -104,5 +104,6 @@
       "actual_capture_and_native_packets_observed": true,
       "identified_audio_verified": false
     }
-  ]
+  ],
+  "component_harness_finding": "docs/evidence/gate-6/reference-app-browser-media-harness-negative-4ca.json"
 }

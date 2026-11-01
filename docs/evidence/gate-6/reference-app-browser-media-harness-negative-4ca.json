@@ -1,0 +1,29 @@
+{
+  "format": "connect/reference-app-component-harness-negative/1",
+  "task": "G6-072",
+  "source_revision": "4ca0b3f7e83bc27d99a74c90cd74c928dffb3fd3",
+  "workflow_run_id": 41282928282,
+  "jobs": {
+    "mac": 124778358062,
+    "linux": 124778358305
+  },
+  "source_contents": {
+    "examples/parley-on-connect/app/media.test.mjs": "c7ce8aa3bd727500fc45b31cba2254723be067f3158ecc84c2d36065b47194f4",
+    ".github/workflows/gate6-reference-app.yml": "fda0a0e1d36a614c56edf49b7609ccc18d28b91ad400569c25975fd91f0ab5a7"
+  },
+  "failed_log_sha256": "1b6e6c6ba35494ecdd372a104d10b05c40c22c1934cf84de5283589901f97556",
+  "configured_node_major": 22,
+  "result_each": {
+    "tests": 63,
+    "passed": 62,
+    "failed": 0,
+    "cancelled": 1
+  },
+  "test": "normal media retirement drains its original signed watcher without cancelling the shared SDK control owner",
+  "finding": "Node22 cancels the new test with cancelledByParent because its initial await observes an intentionally unreferenced500ms production timer without a test-owned referenced wait. The runtime watcher must remain unreferenced. Keep a test-owned2s referenced observation bound and release the fixture barrier on cleanup; no production code/deadline/assertion change.",
+  "installed_package_phase_executed": false,
+  "browser_rehearsal_executed": false,
+  "source_and_behavior_scope": "Authoritative CI head/jobs/failed-test log and original Git test/workflow bytes only. No installation, package, runtime or audio qualification from this failed run.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
