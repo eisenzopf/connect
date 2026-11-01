@@ -278,6 +278,15 @@ the intended recipient, and remain current at the second boundary. Original data
 replay must recover the receipt without a second delivery. Every original
 Connection must retire through the public API, with owned data queues empty.
 
+The fresh synthetic server explicitly configures `limits.message_bytes` to cover
+the 64KiB decoded payload before its first start and stopped backup. The normal
+initializer's smaller message default remains unchanged. Materialization refuses
+a supplied seed whose configured message limit is missing or too small; it does
+not edit that seed. The rehearsal records the initialized, configured and required
+limits. Successful native publications also appear in durable addressed history:
+the workload checks exact sender/recipient message IDs for all four participants
+and includes the original owner's native messages in independent-device recovery.
+
 The same run observes the server's actual loopback UDP socket through its owned
 socket inode and verifies that all five original SDK helpers share the server's
 network namespace. Process and configuration bindings use the same production

@@ -39,7 +39,7 @@ class FixtureBoundary(unittest.TestCase):
             certificate="asset-0000.bin", private_key="asset-0001.bin", signing_private_key="asset-0002.bin",
             signing_key_id="fixture-server", signing_algorithm="EdDSA", signing_key_not_before=self.start,
             signing_key_expires_at=self.end, http_bind="127.0.0.1:8080", https=[],
-            limits=dict(participants=4, connections=6, sessions=2))
+            limits=dict(participants=4, connections=6, sessions=2, message_bytes=65536))
         self.operator = dict(network_profile="local", endpoint="127.0.0.1:4433", server_name="localhost",
             credential="synthetic-not-a-real-bearer", identity_id="fixture-operator", device_id="fixture-device", signing_algorithm="EdDSA",
             server_key_id="fixture-server", server_algorithm="EdDSA", server_key_not_before=self.start,
@@ -139,6 +139,24 @@ class FixtureBoundary(unittest.TestCase):
         path.write_text(path.read_text().replace('default = "default_sessions"', 'default = "other_sessions"'))
         with self.assertRaisesRegex(FixtureError, "session-default-contract"):
             inspect_seed(self.root, self.seed, self.parameters)
+
+    def test_full_size_native_payload_requires_explicit_seed_capacity_without_rewriting_it(self):
+        for limit in (None, True, 16384, 65535):
+            with self.subTest(limit=limit):
+                if limit is None:
+                    self.server["limits"].pop("message_bytes", None)
+                else:
+                    self.server["limits"]["message_bytes"] = limit
+                self.save()
+                before = {p.name: p.read_bytes() for p in self.seed.iterdir()}
+                with self.assertRaisesRegex(FixtureError, "workload-message-limit"):
+                    inspect_seed(self.root, self.seed, self.parameters)
+                self.assertEqual({p.name: p.read_bytes() for p in self.seed.iterdir()}, before)
+        for limit in (65536, 131072):
+            with self.subTest(limit=limit):
+                self.server["limits"]["message_bytes"] = limit
+                self.save()
+                self.assertEqual(inspect_seed(self.root, self.seed, self.parameters)["server"]["limits"]["message_bytes"], limit)
 
     def test_symlink_or_public_secret_asset_refuses(self):
         path = self.seed / "asset-0000.bin"

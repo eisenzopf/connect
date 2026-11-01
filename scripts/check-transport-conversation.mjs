@@ -43,6 +43,7 @@ const mutation = name => ({ ...options, operationId: plan[name] });
 const clients = new Map();
 const observedHelpers = new Set();
 const dataFailures = new WeakMap();
+const ownerNativeMessageIds = [];
 const report = { format: "connect/transport-conversation-control/1", passed: false, checks: [],
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
     node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
@@ -211,6 +212,9 @@ try {
         phase = "six-native-data-connection-offers";
         report.native_offers_completed = 0;
         const connections = [], flows = [];
+        const priorHistory = new Map();
+        for (const role of ["participant-1", "participant-2", "participant-3", "participant-4"])
+            priorHistory.set(role, await history(clients.get(role)));
         for (const [sid, roles] of sessionRoles.entries()) for (const role of roles) {
             phase = "native-data-offer-session-" + sid + "-" + role;
             const prefix = sid + "-" + role, source = clients.get(role).conversations.byId(cid).sessions.byId(plan["session" + sid]);
@@ -298,6 +302,16 @@ try {
         assert.deepEqual(await complete(sender.sendData(flow.intent, mutation(flow.source.prefix + "-data"))), accepted[0]);
         await assert.rejects(flow.target.connection.streams.byId(plan[flow.source.prefix + "-stream"]).media.receiveData({ timeoutMs: 120 }), error => error.kind === "deadline" && error.certainty === "read-only");
         check("native-data-original-replay-recovers-receipt-without-second-delivery");
+        // Native admission shares the durable addressed-message history. Check
+        // exact sender/recipient IDs rather than hiding binary journal entries
+        // from the history assertions once actual publication succeeds.
+        for (const [role, previous] of priorHistory) {
+            const nativeIds = flows.filter(v => v.source.role === role || v.target.role === role).map(v => v.intent.messageId);
+            assert.deepEqual(await history(clients.get(role)), [...previous, ...nativeIds].sort());
+            if (role === "participant-1") ownerNativeMessageIds.push(...nativeIds);
+        }
+        report.data_workload.frozen_message_history_audiences_verified = true;
+        check("native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences");
         phase = "six-native-connections-original-end";
         for (const item of connections) await complete(item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" }, mutation(item.prefix + "-end")));
         const retired = await Promise.all(connections.map(v => v.connection.refresh(options)));
@@ -319,7 +333,7 @@ try {
     const restored = await complete(replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create));
     assert.equal(restored.id, cid);
     assert.equal((await restored.refresh(options)).participants.filter(p => p.active).length, 4);
-    assert.deepEqual(await history(replacement), [plan.beforeMessage, plan.includedMessage, plan.from4Message, plan.afterMessage].sort());
+    assert.deepEqual(await history(replacement), [plan.beforeMessage, plan.includedMessage, plan.from4Message, plan.afterMessage, ...ownerNativeMessageIds].sort());
     check("independent-device-recovers-original-create-and-history-after-original-helper-close");
     report.passed = true;
 } catch (error) {

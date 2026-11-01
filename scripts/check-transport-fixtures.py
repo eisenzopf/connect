@@ -19,7 +19,7 @@ from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors, exact
 from lib.transport_capture import NativeCapture
 from lib.transport_namespace import NativeNamespace
-from lib.transport_fixture import FixtureError, materialize, publish, toml_bytes
+from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -227,13 +227,23 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             assert public_key[0] == 4
         assert len({digest(state / name) for name in ("server-signing.der", "operator-signing.der", "private-key.der")}) == 3
         report["checks"].append("selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement")
+        # The production default is a smaller ordinary-message installation.
+        # Configure this fresh synthetic installation for its required 64KiB
+        # decoded native workload before starting or sealing the stopped seed.
+        # Existing seeds remain immutable and must refuse insufficient limits.
+        server_config = initial_server
+        initialized_message_bytes = server_config["limits"]["message_bytes"]
+        server_config["limits"]["message_bytes"] = max(initialized_message_bytes, RELIABLE_PAYLOAD_BYTES)
+        report["workload_message_limits"] = dict(initialized_message_bytes=initialized_message_bytes,
+            configured_message_bytes=server_config["limits"]["message_bytes"],
+            required_decoded_payload_bytes=RELIABLE_PAYLOAD_BYTES)
         if namespace is not None:
-            server_config = tomllib.loads((state / "server.toml").read_text())
             server_config.update(network_profile="remote", bind=f"{namespace.server_ip}:{native}")
-            (state / "server.toml").write_bytes(toml_bytes(server_config))
             operator_config = tomllib.loads((state / "operator.toml").read_text())
             operator_config.update(network_profile="remote", endpoint=f"{namespace.server_ip}:{native}")
             (state / "operator.toml").write_bytes(toml_bytes(operator_config))
+        (state / "server.toml").write_bytes(toml_bytes(server_config))
+        report["checks"].append("fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload")
         start("seed-server", state / "server.toml")
         request("seed-create", state / "operator.toml", "conversation.create",
             dict(tenant_id="tnt_default", policy="persistent", initial_participants=[], metadata=dict(fixture="transport-materialization")),

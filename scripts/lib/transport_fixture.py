@@ -22,6 +22,7 @@ from .transport_matrix import digest, inventory
 
 MAX_CONFIG = 1024 * 1024
 MAX_SEED_BYTES = 512 * 1024 * 1024  # Synthetic fixture bound, not a product quota.
+RELIABLE_PAYLOAD_BYTES = 64 * 1024  # The declared native workload's decoded payload.
 ASSET = re.compile(r"(?:server\.toml|operator\.toml|state\.sqlite3|asset-\d{4}\.bin|peer-\d{4}\.toml)")
 PROVIDER_FIELDS = ("telephone", "public_vapi", "provider_voice", "provider_messages", "mcp")
 
@@ -90,6 +91,8 @@ def workload_capacity(root, server, workload):
             ("connections", workload["connections"]), ("sessions", workload["concurrent_sessions"])):
         if type(effective.get(key)) is not int or effective[key] < count:
             raise FixtureError("fixture-workload-capacity")
+    if type(effective.get("message_bytes")) is not int or effective["message_bytes"] < RELIABLE_PAYLOAD_BYTES:
+        raise FixtureError("fixture-workload-message-limit")
 
 
 def inspect_seed(root, seed, parameters):
