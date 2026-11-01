@@ -78,11 +78,13 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         decoded_media_verified: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
     let phase = "original-submission", worker, completed, log;
     try {
+        const operationUntil = performance.now() + 8000;
+        const remaining = () => { const value = Math.floor(operationUntil - performance.now()); assert.ok(value > 0); return value; };
         const connection = controller.conversations.byId(intent.conversationId).sessions.byId(intent.sessionId)
             .connections.byId(intent.connectionId);
         const operation = await connection.replaceDevice({ retain: intent.retainedConnectionId,
             target: { endpoint: intent.target.endpointId }, expectedTopologyRevision: intent.expectedTopologyRevision },
-        { timeoutMs: 8000, operationId: intent.operationId });
+        { timeoutMs: remaining(), operationId: intent.operationId });
         const reference = operation.referenceJson();
         assert.equal(reference.command, "connection.replace"); assert.equal(reference.operation_id, intent.operationId);
         assert.deepEqual(Object.keys(reference.scope).sort(), ["connection_id", "conversation_id", "session_id"]);
@@ -91,17 +93,27 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         assert.equal(reference.scope.connection_id, intent.connectionId);
         await save(join(directory, "original-reference.json"), reference);
         phase = "original-allocation-root";
-        const frames = await controller.raw.request(controller.raw.validate({ v: 2, id: "target_" + randomUUID(),
-            ts: new Date().toISOString(), type: "operation.get", cid: intent.conversationId, sid: intent.sessionId,
-            connid: intent.connectionId, payload: { operation_id: intent.operationId } }), { timeoutMs: 8000 });
-        const updates = frames.filter(frame => frame.value.type === "operation.updated");
-        assert.equal(updates.length, 1);
-        const root = updates[0].value.payload;
-        assert.equal(root.operation_id, intent.operationId); assert.ok(id(root.record_id));
-        assert.equal(root.command_type, "connection.replace");
-        assert.equal(root.expected_revision, intent.expectedTopologyRevision);
-        assert.ok(Number.isSafeInteger(root.revision) && root.revision >= 0);
-        assert.ok(["accepted", "preparing"].includes(root.state));
+        let root, recordId, revision = -1, savedAccepted = false;
+        for (;;) {
+            const frames = await controller.raw.request(controller.raw.validate({ v: 2, id: "target_" + randomUUID(),
+                ts: new Date().toISOString(), type: "operation.get", cid: intent.conversationId, sid: intent.sessionId,
+                connid: intent.connectionId, payload: { operation_id: intent.operationId } }), { timeoutMs: remaining() });
+            const updates = frames.filter(frame => frame.value.type === "operation.updated");
+            assert.equal(updates.length, 1);
+            root = updates[0].value.payload;
+            assert.equal(root.operation_id, intent.operationId); assert.ok(id(root.record_id));
+            recordId ??= root.record_id; assert.equal(root.record_id, recordId);
+            assert.equal(root.command_type, "connection.replace");
+            assert.equal(root.expected_revision, intent.expectedTopologyRevision);
+            assert.ok(Number.isSafeInteger(root.revision) && root.revision >= 0 && root.revision >= revision);
+            revision = root.revision;
+            assert.ok(["accepted", "preparing"].includes(root.state));
+            if (root.state === "preparing") break;
+            if (!savedAccepted) { await save(join(directory, "accepted-root.json"), root); savedAccepted = true; }
+            // Read only the same root. Acceptance alone creates no candidate
+            // allocation; do not launch a target against an unprepared intent.
+            await new Promise(done => setTimeout(done, Math.min(20, remaining())));
+        }
         input.root = root;
         await save(join(directory, "target-input.json"), input);
         phase = "independent-physical-target";
@@ -112,7 +124,7 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
             worker.once("close", (code, signal) => done({ code, signal }));
         });
         phase = "original-completion";
-        const done = await operation.wait({ timeoutMs: 8000 });
+        const done = await operation.wait({ timeoutMs: remaining() });
         assert.equal(done.snapshot.state, "completed");
         const moved = done.value;
         assert.deepEqual(moved.retired, [intent.connectionId]);

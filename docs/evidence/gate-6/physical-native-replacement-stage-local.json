@@ -1,0 +1,244 @@
+{
+  "format": "connect/physical-native-replacement-stage-local/1",
+  "task": "G6-058",
+  "controller_source_revision": "f358a3b9cab9cc05b32d9d30aa2ce45c86254f79",
+  "controller_module_sha256": "64e7bf4336513e59ad6f3baa667c55be83badb181d573f139e5fb089c6aee383",
+  "rust_target_source_module_sha256": "2dfcc3b8d0842b982fa37b103672d6ea4fd74a833aedfb7628aca74d8c875936",
+  "runtime_source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "runtime_binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+  "single_move_observations": [
+    {
+      "controller_stage": {
+        "format": "connect/physical-native-replacement-stage/1",
+        "passed": true,
+        "target_executable_sha256": "8581499e9589f0c3cfd5f71f6160a1a42a1c8b4e0765acaad2e47b33260b356b",
+        "original_command_sha256": "91126486f41a6c52513559f3e1d78f88e9982369d93a6fbb7034be6da697d543",
+        "original_reference_preserved": true,
+        "original_root_completed": true,
+        "original_source_owner_joined": true,
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "target_config_unchanged": true,
+        "target_executable_unchanged": true,
+        "decoded_media_verified": false,
+        "cell_qualified": false,
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "target_observation_sha256": "d1a4eb059d3ef2df100e64dddd8ee50820bb085fa05b969e5499de2d96992275",
+        "target_sent_packets": 500,
+        "target_skipped_frames": 0,
+        "target_received_datagrams": 487
+      },
+      "independent_audio": {
+        "original_speaker_after_identified_destination_frames": 0,
+        "retained_receiver_last_original_speaker_ms": 2249.019333,
+        "retained_receiver_first_destination_speaker_ms": 2285.69275,
+        "decoded_packet_arrival_gap_ms": 16.673416999999972,
+        "one_observation_within_1000ms": true,
+        "decoder": "independent FFmpeg Opus/f32le; per-original-packet spectral identity",
+        "device_presentation_measured": false,
+        "paired_av_sync_qualified": false,
+        "full_media_quality_qualified": false,
+        "full_transport_cell_qualified": false,
+        "scope": "Decoded original packets retain their receive order and each 960-sample output maps to its original arrival. No PLC, invented samples or source-clock correction. Packet-arrival timing is not decoder completion or device presentation.",
+        "decoded": {
+          "original": {
+            "packets": 107,
+            "samples": 102720,
+            "identified_counts": {
+              "440": 0,
+              "660": 0,
+              "880": 107
+            },
+            "unclassified": 0,
+            "pcm_sha256": "a292987b8d5348fcb5666e8817a72a72c430b518b4eeae7084013674b375d32e",
+            "ogg_sha256": "08934bf8c13bc81ab245cf3f2e459bbb992e046adfea49cdf130c4689d505176"
+          },
+          "retained": {
+            "packets": 584,
+            "samples": 560640,
+            "identified_counts": {
+              "440": 107,
+              "660": 476,
+              "880": 0
+            },
+            "unclassified": 1,
+            "pcm_sha256": "e7aef9d8236cd5af9ee6248d1e1b8a7472ba05c349a48ff86725706c46414107",
+            "ogg_sha256": "9aaca65f3497720d4a8864956b940301228ac3c1236e3012c6ee1d2488cd365d"
+          },
+          "target": {
+            "packets": 477,
+            "samples": 457920,
+            "identified_counts": {
+              "440": 0,
+              "660": 0,
+              "880": 476
+            },
+            "unclassified": 1,
+            "pcm_sha256": "a72d9def137e25f20fbb15d4e5a4ecdd38ae8d0a9258d984d445d8c30d45f370",
+            "ogg_sha256": "550864886e0ac8de697612d00c663f78184f6e1640b9c47ac43f9404356ad417"
+          }
+        },
+        "controller_source_revision": "f358a3b9",
+        "decoder_source_revision": "5cc3c30f851966b36ab17a3cdb2c357d626efb04",
+        "decoder_source_sha256": "b6ced409ea85e6b93ebacb30c382a169a3e73181ac01bf0cc5133cb203ac4f1d",
+        "original_probe_sha256": "fc7c3203c5bd77979a9aa14d38d15a29d321a6b218581a4e4b3e8ea22083084e",
+        "original_target_sha256": "d1a4eb059d3ef2df100e64dddd8ee50820bb085fa05b969e5499de2d96992275"
+      },
+      "original_helper_processes_joined": true,
+      "original_owner_quiet_ms": 500,
+      "private_stage_sha256": "bfb8be00ef37d71a8ffed989521f4d8f30558a21fc395a4b71d4e1d6ae94ae1c",
+      "private_probe_sha256": "fc7c3203c5bd77979a9aa14d38d15a29d321a6b218581a4e4b3e8ea22083084e"
+    },
+    {
+      "controller_stage": {
+        "format": "connect/physical-native-replacement-stage/1",
+        "passed": true,
+        "target_executable_sha256": "8581499e9589f0c3cfd5f71f6160a1a42a1c8b4e0765acaad2e47b33260b356b",
+        "original_command_sha256": "b3940e26f3dd645de64afdade30a5b02bab78490d9c8e69a6521c77a908ba639",
+        "original_reference_preserved": true,
+        "original_root_completed": true,
+        "original_source_owner_joined": true,
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "target_config_unchanged": true,
+        "target_executable_unchanged": true,
+        "decoded_media_verified": false,
+        "cell_qualified": false,
+        "task_complete": false,
+        "whole_gate_qualified": false,
+        "target_observation_sha256": "49b78fe7967a3d35ad01c9bdc1567e48c6cd9940f8fd9d01a6a0fac5a7ecd54d",
+        "target_sent_packets": 500,
+        "target_skipped_frames": 0,
+        "target_received_datagrams": 475
+      },
+      "independent_audio": {
+        "original_speaker_after_identified_destination_frames": 0,
+        "retained_receiver_last_original_speaker_ms": 2171.725708,
+        "retained_receiver_first_destination_speaker_ms": 2231.6015829999997,
+        "decoded_packet_arrival_gap_ms": 39.87587499999972,
+        "one_observation_within_1000ms": true,
+        "decoder": "independent FFmpeg Opus/f32le; per-original-packet spectral identity",
+        "device_presentation_measured": false,
+        "paired_av_sync_qualified": false,
+        "full_media_quality_qualified": false,
+        "full_transport_cell_qualified": false,
+        "scope": "Decoded original packets retain their receive order and each 960-sample output maps to its original arrival. No PLC, invented samples or source-clock correction. Packet-arrival timing is not decoder completion or device presentation.",
+        "decoded": {
+          "original": {
+            "packets": 108,
+            "samples": 103680,
+            "identified_counts": {
+              "440": 0,
+              "660": 0,
+              "880": 108
+            },
+            "unclassified": 0,
+            "pcm_sha256": "c540c0cfe28fb2da3759b6d1875cb7c7798f4f225d709771c86baa8320cb007c",
+            "ogg_sha256": "2576b4f3e33a51a8d591d673f2061710df420b3a154bf826f0d6f65c0ffa4a29"
+          },
+          "retained": {
+            "packets": 573,
+            "samples": 550080,
+            "identified_counts": {
+              "440": 108,
+              "660": 464,
+              "880": 0
+            },
+            "unclassified": 1,
+            "pcm_sha256": "00363ab202a6e54b87f4aff1bad39f9fc376bd883f54ed3b6d9fe27fdb5a99ba",
+            "ogg_sha256": "beb08cd2d4f356a7fb25df40e39e72526fc9045b9c9755087eb0b60443cfd183"
+          },
+          "target": {
+            "packets": 465,
+            "samples": 446400,
+            "identified_counts": {
+              "440": 0,
+              "660": 0,
+              "880": 464
+            },
+            "unclassified": 1,
+            "pcm_sha256": "1fb9838ce8916cad4f83f8149b4b5c3e1eeb79eb9f184d6f428d1d62505b6300",
+            "ogg_sha256": "c13c90d2b1dbff5203017b9eac0c836ccd55da83a929c9ddcb1b17176c48bf53"
+          }
+        },
+        "controller_source_revision": "f358a3b9",
+        "decoder_source_revision": "5cc3c30f851966b36ab17a3cdb2c357d626efb04",
+        "decoder_source_sha256": "b6ced409ea85e6b93ebacb30c382a169a3e73181ac01bf0cc5133cb203ac4f1d",
+        "original_probe_sha256": "71de0e20f64505138988404fcb3760bc2458ca09503e4dc9f002702a07833d87",
+        "original_target_sha256": "49b78fe7967a3d35ad01c9bdc1567e48c6cd9940f8fd9d01a6a0fac5a7ecd54d"
+      },
+      "original_helper_processes_joined": true,
+      "original_owner_quiet_ms": 500,
+      "private_stage_sha256": "01e1f3b38c85924c5b5d9ee4a0764eaeb14a86e7941cef08b0ad93eb0ddc4cfc",
+      "private_probe_sha256": "71de0e20f64505138988404fcb3760bc2458ca09503e4dc9f002702a07833d87"
+    }
+  ],
+  "twenty_move_execution": {
+    "requested_transitions": 20,
+    "attempted_transitions": 2,
+    "passed_transitions": 1,
+    "passed": false,
+    "stop_on_original_second_failure": true,
+    "server_joined": true,
+    "server_forced": false,
+    "runtime_unchanged": true,
+    "sdk_dist_files_unchanged": true,
+    "sdk_dist_files": 192,
+    "credentials_unchanged": true,
+    "controller_module_unchanged": true,
+    "private_controller_sha256": "4e49b0de329a670f11d4beeb6f5b9e3cfd89a516d58dd93ca61671a815c709b2",
+    "original_second_root_state_after_shutdown": "accepted",
+    "original_second_preparation_steps": 0,
+    "original_second_effects": 0,
+    "original_second_root_unresolved": true,
+    "second_target_work_stage": "allocation",
+    "second_target_problem_code": "invalid-request",
+    "second_controller_problem_code": 503
+  },
+  "diagnostic_reproduction": {
+    "original_new_attempts": 2,
+    "passed": false,
+    "first_move_passed": true,
+    "second_move_passed": false,
+    "existing_reservation_diagnostic_counts": {
+      "reservation-sql": 7,
+      "reservation-authority": 84
+    },
+    "server_joined": true,
+    "server_forced": false,
+    "owned_two_second_native_sample_exit": 0,
+    "raw_sample_sha256": "243e141b9444ade042011e0886595201bccd476ca3c937cc1d54370289a69d4a",
+    "raw_log_sha256": "8592ceff88837211df974183cdb371348edaa3f81699f8f640e4e0a9b7870f58",
+    "scope": "Existing debug events identify repeated authority admission refusal; a two-second sample observes the same original owned server. No raw logs, identities, credentials, media or private paths published."
+  },
+  "earlier_negatives": [
+    {
+      "stage": "client-setup",
+      "cause": "copied controller/target credentials expired",
+      "target_launched": false,
+      "owners_joined": true
+    },
+    {
+      "stage": "original-reference-scope",
+      "cause": "strict comparison of canonical null-prototype scope against a plain object; fixed by exact field/scope checks",
+      "target_launched": false,
+      "original_root_reconciliation_unproven": true,
+      "owners_joined": true
+    }
+  ],
+  "whole_gate_qualified": false,
+  "task_complete": false,
+  "full_transport_cell_qualified": false,
+  "twenty_transition_profile_qualified": false,
+  "scope": "Local macOS arm64 EdDSA native audio-only component. Original controller and physical target have separate owners; public Rust native allocation, real RTP and independent Opus decoding are observed. Two positive moves do not qualify the failed 20-move sequence, device presentation, paired AV, six-connection workload, other matrix cells or G6-054. Current metadata writer-admission correction still needs its own compiled/runtime evidence.",
+  "writer_correction_controlled_verification": {
+    "optimized_store_custody_tests_passed": 15,
+    "controlled_controller_cases_passed": 3,
+    "independent_decoder_cases_passed": 4,
+    "store_test_binary_sha256": "23ba1b7851009793f8a9522ebb668e7b2e24e34cbefd2c9f09968012f43f6dcd",
+    "store_test_log_sha256": "c8bbb7d978fa799fbf16e04a821e70e7d7b0d9ffdb9bd71a733b9ff214eba9e5",
+    "production_runtime_verified": false,
+    "scope": "Compiled local optimized Store custody regression, current controller and decoder controlled cases. One existing custody case validates configured telephone digits without dialing; no SIP/TURN/provider lane or deferred G6-054 qualification is executed. Future native CI selection excludes that configuration case."
+  }
+}

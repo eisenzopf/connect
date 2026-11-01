@@ -61,6 +61,25 @@ bounds/refusal and a mismatched original root that cannot launch a physical
 target. Actual repeated transition and full matrix integration evidence remain
 separate requirements.
 
+The target stage now polls only its original operation until the journal enters
+preparation; acceptance alone does not allocate a candidate. These reads and the
+original completion wait share one eight-second budget. The source/retained
+generations and original record remain pinned throughout. The backend's metadata
+reservation briefly queues writer admission outside SQLite, then resolves every
+current scope/fact again before its once-only durable reservation. Packet
+freshness, authority and media limits remain unchanged.
+
+Two local captures through the reusable stage independently identify duplex
+Opus and original decoded-packet arrival gaps of 16.673 and 39.876 ms. The
+twenty-move sequence stops at its original second failure: the first move passes,
+the second root stays accepted without preparation/effects, and the target's
+early allocation is refused. A separate two-move reproduction records repeated
+reservation authority contention. See
+[the stage evidence](../evidence/gate-6/physical-native-replacement-stage-local.json).
+The writer-admission correction and preparation wait still require verification
+against a newly compiled production runtime; these older captures cannot prove
+that correction or the twenty-transition profile.
+
 `scripts/lib/transport_replacement_audio.py` independently decodes the private
 original RTP payloads after native RTCP demultiplexing. It requires exactly 960
 decoded samples for each original Opus packet and classifies speaker identity

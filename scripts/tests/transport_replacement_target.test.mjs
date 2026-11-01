@@ -32,7 +32,7 @@ test("unbounded sources, duplicate physical legs and invalid originals refuse be
     }
 });
 
-test("a changed original allocation root is recorded negative before any physical worker starts", async () => {
+test("accepted-root reads share the original deadline and a changed preparation cannot launch a target", async () => {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "physical-original-root-"));
     try {
@@ -44,7 +44,7 @@ test("a changed original allocation root is recorded negative before any physica
         const reference = { command: "connection.replace", operation_id: value.operationId,
             scope: Object.assign(Object.create(null), { conversation_id: value.conversationId,
                 session_id: value.sessionId, connection_id: value.connectionId }) };
-        let originalSubmitted = false, sourceClosed = false;
+        let originalSubmitted = false, sourceClosed = false, reads = 0, lastBudget = 8001;
         const controller = { conversations: { byId: () => ({ sessions: { byId: () => ({ connections: { byId: () => ({
             replaceDevice: async (_, options) => {
                 assert.equal(options.operationId, value.operationId);
@@ -52,15 +52,21 @@ test("a changed original allocation root is recorded negative before any physica
                 assert.equal(saved.operation_id, value.operationId); originalSubmitted = true;
                 return { referenceJson: () => reference, wait: () => assert.fail("wrong root reached completion wait") };
             },
-        }) } }) } }) }, raw: { validate: v => v, request: async () => [{ value: { type: "operation.updated", payload: {
-            operation_id: value.operationId, record_id: "original-record", revision: 0,
-            command_type: "connection.replace", expected_revision: 999, state: "preparing",
-        } } }] } };
+        }) } }) } }) }, raw: { validate: v => v, request: async (frame, options) => {
+            assert.equal(frame.payload.operation_id, value.operationId);
+            assert.ok(options.timeoutMs < lastBudget); lastBudget = options.timeoutMs; reads++;
+            return [{ value: { type: "operation.updated", payload: {
+                operation_id: value.operationId, record_id: "original-record", revision: reads - 1,
+                command_type: "connection.replace", expected_revision: reads === 1 ? 1 : 999,
+                state: reads === 1 ? "accepted" : "preparing",
+            } } }];
+        } } };
         await assert.rejects(physicalReplacementTarget({ controller, retireOriginal: async () => { sourceClosed = true; },
             privateRoot: parent, directory: join(directory, "stage"), executable,
             executableSha256: createHash("sha256").update(await readFile(executable)).digest("hex"), ...value }));
         const result = JSON.parse(await readFile(join(directory, "stage/stage.json"), "utf8"));
         assert.equal(originalSubmitted, true); assert.equal(sourceClosed, false);
+        assert.equal(reads, 2);
         assert.equal(result.passed, false); assert.equal(result.target_worker_joined, false);
         assert.equal(result.failure.phase, "original-allocation-root");
         assert.ok(result.failure.source.line > 0);

@@ -93,6 +93,52 @@ pub(super) fn cancel(f: &Fixture, key: &str, command: &TransitionCommand) {
         .unwrap();
 }
 #[test]
+fn reservation_queues_writer_outside_sql_and_finishes_after_the_original_reader_releases() {
+    let (f, key, command, origin, sources) = setup();
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let scope = crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Read).unwrap();
+    let held = f.store.try_acquire_authority(&[scope.clone()]).unwrap();
+    std::thread::scope(|threads| {
+        let store = &f.store;
+        let worker = threads.spawn(move || store.prepare_native_replacement(read, request()));
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        loop {
+            match f.store.try_acquire_authority(&[scope.clone()]) {
+                Err(error) if error.code == "authority-busy" => break,
+                Ok(guard) => drop(guard),
+                Err(error) => panic!("unexpected packet admission refusal: {error:?}"),
+            }
+            assert!(
+                std::time::Instant::now() < until,
+                "reservation never queued writer admission"
+            );
+            std::thread::yield_now();
+        }
+        assert!(!worker.is_finished(), "writer bypassed the original reader");
+        // A file wait must never retain the shared SQL mutex. Original status
+        // reads remain available and cannot observe an effect before admission.
+        let before: (String, i64) = f.store.try_connection().unwrap().query_row(
+            "SELECT state,(SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=operations.record_id) FROM operations WHERE record_id=?1",
+            [origin.record_id()], |row| Ok((row.get(0)?,row.get(1)?)),
+        ).unwrap();
+        assert_eq!(before, ("accepted".into(), 0));
+        drop(held);
+        let lease = worker.join().unwrap().unwrap().unwrap();
+        assert_eq!(lease.plan().unwrap()["generation"], 2);
+    });
+    assert_eq!(f.count("native_replacements"), 1);
+    assert_eq!(status(&f, &key, &command).effects.len(), 1);
+}
+
+#[test]
 fn endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect() {
     let (f, key, _, origin, sources) = setup();
     let before = Store::inspect_snapshot(f.store.path()).unwrap();

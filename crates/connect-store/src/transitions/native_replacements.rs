@@ -216,21 +216,29 @@ impl Store {
     ) -> Result<Option<NativeReplacementPreparationLease>> {
         validate_request(&request)?;
         let selection = read.into_selection()?;
-        // Original operation status polling shares this SQL mutex. Repeatedly
-        // releasing it between writer admission and scope validation can starve
-        // the reservation. Couple only immediate acquisitions:
-        // no authority file wait may run while SQL is held. The transaction
-        // below still resolves and validates every current fact and scope.
-        let mut c = self.try_connection().map_err(|error| {
-            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
-            error
-        })?;
+        // Continuous packet readers can overlap every immediate writer retry.
+        // Reserve writer admission outside SQLite so fresh packets stop entering
+        // while the original readers finish. This bounded metadata wait neither
+        // retains an input grant nor performs any Core/allocation effect.
+        let scopes = {
+            let c = self.try_connection()?;
+            selection.scopes(self, &c, true)?
+        };
         let held = self
-            .try_acquire_authority(&selection.scopes(self, &c, true)?)
+            .acquire_authority(
+                &scopes,
+                &crate::AuthorityWait::new(std::time::Duration::from_millis(250)),
+            )
             .map_err(|error| {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
                 error
             })?;
+        // Reacquire SQL only after file admission, then resolve every current
+        // scope/fact again before the once-only durable reservation below.
+        let mut c = self.try_connection().map_err(|error| {
+            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
+            error
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| {

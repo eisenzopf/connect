@@ -117,6 +117,7 @@ jobs:
           cargo test --release --locked -p connect-store --lib peer_authority::connection_media::snapshot::tests -- --nocapture
           cargo test --release --locked -p connect-store --lib transitions::tests::peer_operations -- --nocapture
           cargo test --release --locked -p connect-store --lib native_stream_authority::data_reads -- --nocapture
+          cargo test --release --locked -p connect-store --lib connection_control::tests::replacement_sources::custody -- --test-threads=1 --skip replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing --nocapture
       - name: Check native media failure joins
         if: inputs.component == 'media'
         run: |
