@@ -1,0 +1,587 @@
+{
+  "format": "connect/gate6-optimized-six-route-negative/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "source_lock_sha256": "9421b955ff70323fd4530dd7f0ec2771e1fe64cfcd10001c43de55930ecccfcc",
+  "production_optimized_build": {
+    "stage": "complete",
+    "controller_pid": 77695,
+    "passed": true,
+    "results": [
+      {
+        "name": "native-stream-tests",
+        "exit_code": 0
+      },
+      {
+        "name": "admission-test",
+        "exit_code": 0
+      },
+      {
+        "name": "format",
+        "exit_code": 0
+      },
+      {
+        "name": "release-cli",
+        "exit_code": 0
+      },
+      {
+        "name": "release-peer",
+        "exit_code": 0
+      }
+    ],
+    "binaries": {
+      "connect": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/release/connect",
+        "sha256": "3c510a7016836c53b258c5c91ca08f5fa36a95221638d783cddeb3addd0fb130"
+      },
+      "connect-external-rust-journey": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/target-media-freshness/release/connect-external-rust-journey",
+        "sha256": "689ab7236cdbec39af3f6f99b7db908492da3dadb2438860f7d5ac1d30d9a92d"
+      }
+    },
+    "elapsed_seconds": 1614.8758410410956,
+    "source_inputs_unchanged": true
+  },
+  "build_input_manifest_sha256": "6c5d2eb1ac18fb063d3eac06cc36985e30f1bae3113a32a150963557e7772a8e",
+  "scope": "Current optimized normal CLI and physical peer; separate fresh local synthetic four-participant/six-AV-route/two-Session fixtures. No concurrent task-owned compile or test process during media. No transport cell inherits these component observations.",
+  "movement": {
+    "passed": false,
+    "planned_originals": 20,
+    "admitted_originals": 2,
+    "completed_originals": 0,
+    "original_mutations_retried": false,
+    "unknown_operations": 0,
+    "unknown_activation_effects": 1,
+    "all_original_published_lifetimes_retired": true,
+    "journal_db_and_wal_unchanged": true,
+    "retained_sqlite_shared_memory_guard_drift": "First audit included ephemeral SQLite reader-index bytes and reported drift. DB and WAL hashes match the original before/after; original drift result retained separately.",
+    "roots": [
+      {
+        "source_index": 0,
+        "ordinal": 0,
+        "admitted": true,
+        "state": "failed",
+        "revision": 12,
+        "phases": [
+          {
+            "phase": "allocate",
+            "state": "confirmed",
+            "attempt": 1
+          },
+          {
+            "phase": "prepare",
+            "state": "confirmed",
+            "attempt": 1
+          },
+          {
+            "phase": "start",
+            "state": "confirmed",
+            "attempt": 1
+          },
+          {
+            "phase": "activate",
+            "state": "unknown",
+            "attempt": 1
+          },
+          {
+            "phase": "attach",
+            "state": "confirmed",
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "source_index": 4,
+        "ordinal": 0,
+        "admitted": true,
+        "state": "failed",
+        "revision": 8,
+        "phases": [
+          {
+            "phase": "allocate",
+            "state": "confirmed",
+            "attempt": 1
+          },
+          {
+            "phase": "prepare",
+            "state": "confirmed",
+            "attempt": 1
+          },
+          {
+            "phase": "start",
+            "state": "confirmed",
+            "attempt": 1
+          }
+        ]
+      }
+    ],
+    "failure": {
+      "kind": "deadline",
+      "certainty": "read-only",
+      "phase": "six-live-routes-with-twenty-moves"
+    },
+    "observation": {
+      "format": "connect/native-av-work-observation/1",
+      "original_tasks_joined": true,
+      "original_tasks_started": 24,
+      "control_task_started": true,
+      "elapsed_ms": 14362.746459,
+      "failure": {
+        "route_index": null,
+        "medium": null,
+        "direction": "control",
+        "stage": "during-workload"
+      },
+      "routes": [
+        {
+          "index": 0,
+          "received_audio": 50,
+          "received_video": 93,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1006
+          },
+          "received_clocks": {
+            "audio": 12,
+            "video": 9
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 1,
+          "received_audio": 42,
+          "received_video": 141,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1002
+          },
+          "received_clocks": {
+            "audio": 9,
+            "video": 10
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 2,
+          "received_audio": 42,
+          "received_video": 155,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1005
+          },
+          "received_clocks": {
+            "audio": 8,
+            "video": 11
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 3,
+          "received_audio": 37,
+          "received_video": 129,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1004
+          },
+          "received_clocks": {
+            "audio": 8,
+            "video": 10
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 4,
+          "received_audio": 152,
+          "received_video": 244,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1008
+          },
+          "received_clocks": {
+            "audio": 10,
+            "video": 13
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 5,
+          "received_audio": 155,
+          "received_video": 209,
+          "submitted_packets": {
+            "audio": 717,
+            "video": 1007
+          },
+          "received_clocks": {
+            "audio": 11,
+            "video": 13
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        }
+      ],
+      "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+    },
+    "helpers_joined": true,
+    "closure": {
+      "server_joined": true,
+      "server_forced": false,
+      "server_exit_code": 0,
+      "source_assets_unchanged": true,
+      "inputs_unchanged": true
+    },
+    "causal_limit": "Target-stop markers were saved before the recorded activation refusal; that cleanup-time refusal does not explain the original8-second timeout. No Core effect is retried; activation uncertainty is retained even though the root later failed during target cleanup."
+  },
+  "baseline": {
+    "execution_completed": true,
+    "quality_passed": false,
+    "control_workload_started": false,
+    "source_program_seconds": 62,
+    "observation_seconds": 60,
+    "source_manifest_sha256": "4179a0a2498ee498d740cad310c6f47efcd58510e5943711e004ffad01babf47",
+    "observation": {
+      "format": "connect/native-av-work-observation/1",
+      "original_tasks_joined": true,
+      "original_tasks_started": 24,
+      "control_task_started": false,
+      "elapsed_ms": 62257.366540999996,
+      "failure": null,
+      "routes": [
+        {
+          "index": 0,
+          "received_audio": 606,
+          "received_video": 1009,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4382
+          },
+          "received_clocks": {
+            "audio": 54,
+            "video": 55
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 1,
+          "received_audio": 628,
+          "received_video": 1169,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4369
+          },
+          "received_clocks": {
+            "audio": 55,
+            "video": 57
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 2,
+          "received_audio": 604,
+          "received_video": 1182,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 50,
+            "video": 57
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 3,
+          "received_audio": 627,
+          "received_video": 1067,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 55,
+            "video": 56
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 4,
+          "received_audio": 1680,
+          "received_video": 1477,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 60,
+            "video": 61
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 5,
+          "received_audio": 1495,
+          "received_video": 1484,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4379
+          },
+          "received_clocks": {
+            "audio": 60,
+            "video": 60
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        }
+      ],
+      "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+    },
+    "session_end": [
+      {
+        "elapsed_ms": 49.675209000000905
+      },
+      {
+        "elapsed_ms": 47.487207999998645
+      }
+    ],
+    "closure": {
+      "server_joined": true,
+      "server_forced": false,
+      "server_exit_code": 0,
+      "source_assets_unchanged": true,
+      "inputs_unchanged": true
+    },
+    "decoded_routes": [
+      {
+        "index": 0,
+        "audio_decoded_seconds": 11.82,
+        "audio_bad_identity_blocks": 3,
+        "decoded_video_frames": 984,
+        "changing_fps": 16.383333333333333,
+        "minimum_frames_in_an_observation_second": 5,
+        "source_pixels": {
+          "expected_source_index": 3,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            302,
+            0,
+            0
+          ],
+          "expected_source_frames": 302,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 686,
+          "wrong_source_pixel_frames": 686
+        },
+        "paired_receive_markers": "failed"
+      },
+      {
+        "index": 1,
+        "audio_decoded_seconds": 12.22,
+        "audio_bad_identity_blocks": 3,
+        "decoded_video_frames": 1142,
+        "changing_fps": 19.016666666666666,
+        "minimum_frames_in_an_observation_second": 8,
+        "source_pixels": {
+          "expected_source_index": 0,
+          "source_marker_counts": [
+            293,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 293,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 854,
+          "wrong_source_pixel_frames": 854
+        },
+        "paired_receive_markers": "failed"
+      },
+      {
+        "index": 2,
+        "audio_decoded_seconds": 11.88,
+        "audio_bad_identity_blocks": 0,
+        "decoded_video_frames": 1153,
+        "changing_fps": 19.2,
+        "minimum_frames_in_an_observation_second": 6,
+        "source_pixels": {
+          "expected_source_index": 1,
+          "source_marker_counts": [
+            0,
+            315,
+            0,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 315,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 867,
+          "wrong_source_pixel_frames": 867
+        },
+        "paired_receive_markers": "failed"
+      },
+      {
+        "index": 3,
+        "audio_decoded_seconds": 12.32,
+        "audio_bad_identity_blocks": 4,
+        "decoded_video_frames": 1025,
+        "changing_fps": 17.066666666666666,
+        "minimum_frames_in_an_observation_second": 4,
+        "source_pixels": {
+          "expected_source_index": 2,
+          "source_marker_counts": [
+            0,
+            0,
+            294,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 294,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 734,
+          "wrong_source_pixel_frames": 734
+        },
+        "paired_receive_markers": "failed"
+      },
+      {
+        "index": 4,
+        "audio_decoded_seconds": 32.76,
+        "audio_bad_identity_blocks": 3,
+        "decoded_video_frames": 1434,
+        "changing_fps": 23.883333333333333,
+        "minimum_frames_in_an_observation_second": 16,
+        "source_pixels": {
+          "expected_source_index": 5,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            554
+          ],
+          "expected_source_frames": 554,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 905,
+          "wrong_source_pixel_frames": 905
+        },
+        "paired_receive_markers": "failed"
+      },
+      {
+        "index": 5,
+        "audio_decoded_seconds": 29.16,
+        "audio_bad_identity_blocks": 11,
+        "decoded_video_frames": 1439,
+        "changing_fps": 23.966666666666665,
+        "minimum_frames_in_an_observation_second": 16,
+        "source_pixels": {
+          "expected_source_index": 4,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            724,
+            0
+          ],
+          "expected_source_frames": 724,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 760,
+          "wrong_source_pixel_frames": 760
+        },
+        "paired_receive_markers": "failed"
+      }
+    ],
+    "decode_inputs_unchanged": true,
+    "causal_limit": "Steady-state media also fails without any replacement. Unclassified decoded pixels are preserved separately from identified other-source pixels; no cross-source privacy or complete quality pass is inferred."
+  },
+  "bounded_trace": {
+    "seconds_requested": 8,
+    "expected_stop": "bounded-packet-read-trace-stop",
+    "actual_stop": "bounded-packet-read-trace-stop",
+    "log_bytes": 6252361,
+    "log_sha256": "75fc56fe55469839ce9973ef958595f6e33a8963e966c1778af933f5ffe64e2a",
+    "packet_policy_rows": 20815,
+    "store_read_observations": [
+      {
+        "publishing": "true",
+        "receiving": "false",
+        "owned_file_custody": "false",
+        "problem": "none",
+        "count": 14125,
+        "median_us": 702,
+        "p95_us": 6054,
+        "maximum_us": 32830
+      },
+      {
+        "publishing": "true",
+        "receiving": "false",
+        "owned_file_custody": "false",
+        "problem": "authority-busy",
+        "count": 1425,
+        "median_us": 10358,
+        "p95_us": 12712,
+        "maximum_us": 48424
+      },
+      {
+        "publishing": "false",
+        "receiving": "true",
+        "owned_file_custody": "true",
+        "problem": "none",
+        "count": 2862,
+        "median_us": 62,
+        "p95_us": 1046,
+        "maximum_us": 15104
+      },
+      {
+        "publishing": "false",
+        "receiving": "true",
+        "owned_file_custody": "false",
+        "problem": "none",
+        "count": 2373,
+        "median_us": 531,
+        "p95_us": 2973,
+        "maximum_us": 16624
+      },
+      {
+        "publishing": "false",
+        "receiving": "true",
+        "owned_file_custody": "false",
+        "problem": "authority-busy",
+        "count": 30,
+        "median_us": 12906,
+        "p95_us": 18026,
+        "maximum_us": 18151
+      }
+    ],
+    "guarded_audio_refusal_stages": {
+      "source-egress": 1183,
+      "target-egress": 375,
+      "mixer-target": 1
+    },
+    "closure": {
+      "server_joined": true,
+      "server_forced": false,
+      "server_exit_code": 0,
+      "source_assets_unchanged": true,
+      "inputs_unchanged": true
+    },
+    "scope": "Trace logging perturbs timing. These are Store-read durations and original refusal counts, not CPU/resource qualification or an identified lock cause. Retained video still holds model State across external policy in the inspected source; a controlled regression is required before attributing these native losses to it."
+  },
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

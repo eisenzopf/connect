@@ -1,0 +1,170 @@
+{
+  "format": "connect/gate6-local-app-pinned-browser/1",
+  "passed": true,
+  "checks": 37,
+  "runtime_source_revision": "07ec393a27be6ac205d0752b2f5f0156ed376451",
+  "checker_source_revision": "520392112d9689c51fcc46b5eea7fcc1c6414090",
+  "runtime_sha256": "a89e497018a83a8b038eeb9455601d1e20be33a04d57edb27274ae9c06a6866a",
+  "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+  "browser": "156.0.8078.4",
+  "node": "v22.16.0",
+  "app_files_verified": 30,
+  "installed_sdk_files_verified": 195,
+  "original_clock_replay_exact": true,
+  "cpu_profiles": [
+    {
+      "raw_sha256": "b5410316126d1385d3502f7f279e5c2037e86b3e430d89516308f359b1d3c02a",
+      "samples": 382,
+      "total_sampled_ms": 574,
+      "recomputed_exactly": true
+    },
+    {
+      "raw_sha256": "73f757059ec470d56a0690fd8552515cb75f76de47c98669a078e183f46aae54",
+      "samples": 27316,
+      "total_sampled_ms": 39606,
+      "recomputed_exactly": true
+    }
+  ],
+  "native_raw_sample_hash_verified": true,
+  "native_observer_joined": true,
+  "native_observer_forced": false,
+  "owned_processes_remaining": 0,
+  "source_inputs_unchanged": true,
+  "timer": {
+    "painted": 3,
+    "dropped": 0,
+    "queued": 0,
+    "pixel": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "frame_construction_ms": 0,
+    "enqueue_ms": 0,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {},
+    "timer_samples": [
+      {
+        "requested_at_ms": 193.40000009536743,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 276.30000019073486,
+        "wake_lateness_ms": 2.9000000953674316,
+        "callback_duration_ms": 0.3000001907348633
+      },
+      {
+        "requested_at_ms": 276.6000003814697,
+        "requested_delay_ms": 30,
+        "fired_at_ms": 308.1000003814697,
+        "wake_lateness_ms": 1.5,
+        "callback_duration_ms": 0.19999980926513672
+      },
+      {
+        "requested_at_ms": 308.30000019073486,
+        "requested_delay_ms": 32,
+        "fired_at_ms": 340.5,
+        "wake_lateness_ms": 0.19999980926513672,
+        "callback_duration_ms": 0.10000038146972656
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [
+      {
+        "began_ms": 276.30000019073486,
+        "duration_ms": 0.3000001907348633
+      },
+      {
+        "began_ms": 308.2000002861023,
+        "duration_ms": 0.09999990463256836
+      },
+      {
+        "began_ms": 340.5,
+        "duration_ms": 0.10000038146972656
+      }
+    ],
+    "observation_ms": 420
+  },
+  "sustained_av": {
+    "observations": 10,
+    "minimum_identified_audio_buffers": 84,
+    "maximum_identified_audio_buffers": 96,
+    "minimum_new_video_paints": 58,
+    "maximum_new_video_paints": 59
+  },
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Actual local macOS Node22.16/Chromium156 installed app checks against the exact07ec runtime/Node archives, with current52039211 checker timer observations. No current-runtime, Linux, remote, full quality or Gate6 qualification inherited.",
+  "installed_runtime_files_hash_and_mode_verified": 755,
+  "screenshots": {
+    "native-controls-narrow.png": {
+      "sha256": "2ee5ef0d20934c550abe8de4e021f16a068375a577f3e5e181af561b4feb0d95",
+      "width": 320,
+      "height": 3900,
+      "png_crc_and_structure_verified": true
+    },
+    "desktop.png": {
+      "sha256": "15ceafbee68006acfe7c3745587a052b53150d430c9139bcc24374f2688b28bb",
+      "width": 1440,
+      "height": 1906,
+      "png_crc_and_structure_verified": true
+    },
+    "video-controls.png": {
+      "sha256": "3aa529c71434ee72be04e36d047d5439c8c4dbc69976dffa07947e9d908cff4d",
+      "width": 1440,
+      "height": 3587,
+      "png_crc_and_structure_verified": true
+    },
+    "narrow.png": {
+      "sha256": "11a51c87012b62b08ac9a684537dabf6610a936813029ac800530560086a5c74",
+      "width": 320,
+      "height": 4270,
+      "png_crc_and_structure_verified": true
+    },
+    "video-controls-narrow.png": {
+      "sha256": "f32983784f0d2f4fb440a0893e39f2eb856f93cb0e47cc5528f055bf5ff0a726",
+      "width": 320,
+      "height": 4696,
+      "png_crc_and_structure_verified": true
+    },
+    "capture-controls-narrow.png": {
+      "sha256": "ded2722136de3054885c595c7deb7481552ff307a2988c9da48e4ae73303edaf",
+      "width": 320,
+      "height": 3753,
+      "png_crc_and_structure_verified": true
+    },
+    "native-controls.png": {
+      "sha256": "e90682cd71a6197e82a798e0079e4a56e5c43963d4d8ee8fb7c74f94e6510c07",
+      "width": 1440,
+      "height": 2559,
+      "png_crc_and_structure_verified": true
+    },
+    "capture-controls.png": {
+      "sha256": "98a54994063bb58f6640949825b962da85806156066d217a49fef266cfe7253b",
+      "width": 1440,
+      "height": 2389,
+      "png_crc_and_structure_verified": true
+    }
+  },
+  "visual_review": {
+    "files": [
+      "video-controls.png",
+      "video-controls-narrow.png"
+    ],
+    "observed": "Desktop and320px controls wrap without horizontal overflow. Original retired audio connection and ready AV connection are separately shown; remote green camera marker visible. Text-injection fixture is rendered as literal text. Screenshot is not a timing or decoder-quality measurement."
+  },
+  "updated": "2026-11-01",
+  "task": "G6-072",
+  "initial_setup_failure": {
+    "class": "ENOENT",
+    "cause": "Pinned Chromium1248 executable absent before browser/app startup",
+    "logged_validation_checks": 2,
+    "controller_forced_cleanup": false,
+    "owned_processes_remaining": 0,
+    "original_attempt_retained": true
+  },
+  "linux_failure_still_open": true,
+  "current_runtime_requalified": false
+}
