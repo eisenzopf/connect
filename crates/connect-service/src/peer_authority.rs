@@ -206,8 +206,15 @@ impl StorePeerAuthority {
             Payload::MessageSend(_)
                 if e.scope(Scope::Session).is_some() || e.scope(Scope::Connection).is_some() =>
             {
-                let Ok(intent) = crate::canonical_native_streams::intent(e) else {
-                    return self.rejection_request(credentials, d, e);
+                let intent = match crate::canonical_native_streams::intent(e) {
+                    Ok(intent) => intent,
+                    Err(error) => {
+                        crate::canonical_native_data::failure(
+                            "authority-intent-validation",
+                            &error,
+                        );
+                        return self.rejection_request(credentials, d, e);
+                    }
                 };
                 PeerCommand::NativeStream(intent)
             }

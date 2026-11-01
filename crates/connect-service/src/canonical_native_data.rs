@@ -56,6 +56,18 @@ fn reply(record: connect_protocol::transitions::OperationRecord) -> crate::canon
         answered: false,
     }
 }
+pub(crate) fn failure(stage: &'static str, error: &Error) {
+    let origin = match error.message.as_str() {
+        "Invalid native application message" => "native-message-validation",
+        "Invalid native stream selection intent" => "native-intent-validation",
+        "Invalid transition lifecycle action" => "transition-action-validation",
+        "Invalid addressed message" => "conversation-message-validation",
+        "Logical request ID is required" => "receipt-id-validation",
+        "Unsupported operation" => "ordinary-operation-resource-validation",
+        _ => "other",
+    };
+    tracing::debug!(target: "connect_service::canonical_native_data", stage, code=%error.code, origin, "Native data did not complete");
+}
 impl Runtime {
     pub(crate) async fn native_data(
         self: &Arc<Self>,
@@ -154,6 +166,7 @@ impl Runtime {
         let native = match self.native_adapter(physical.binding.transport()) {
             Ok(native) => native,
             Err(error) => {
+                failure("native-adapter", &error);
                 let _ = tx.send(Err(error));
                 return;
             }
@@ -176,6 +189,7 @@ impl Runtime {
             }
             Ok(_) => (),
             Err(e) => {
+                failure("original-record-read", &e);
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -193,6 +207,7 @@ impl Runtime {
         {
             Ok(id) => id,
             Err(e) => {
+                failure("source-format-preflight", &e);
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -200,6 +215,7 @@ impl Runtime {
         let accepted = match self.accept_after_managed(&a, &physical, &credential).await {
             Ok(v) => v,
             Err(e) => {
+                failure("durable-admission", &e);
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -221,6 +237,7 @@ impl Runtime {
                     return;
                 }
                 Err(e) => {
+                    failure("attempt-begin", &e);
                     let _ = tx.send(Err(e));
                     return;
                 }
@@ -242,6 +259,7 @@ impl Runtime {
         {
             Ok(v) => v,
             Err(e) => {
+                failure("data-invocation", &e);
                 let _ = tx.send(store.fail_native_stream_without_effect(lease, e).map(reply));
                 return;
             }
@@ -250,6 +268,7 @@ impl Runtime {
         let outcome = native.publish_data(&id, &a);
         drop(invocation);
         if let Err(error) = outcome {
+            tracing::debug!(target: "connect_service::canonical_native_data", stage="core-publication", code="adapter-error", origin="native-adapter", "Native data did not complete");
             tracing::debug!(?error, "Native data queue admission remains uncertain");
             let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
             return;
@@ -257,6 +276,7 @@ impl Runtime {
         let receipt = match lease.queued() {
             Ok(v) => v,
             Err(e) => {
+                failure("queue-receipt", &e);
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -267,6 +287,7 @@ impl Runtime {
                 return;
             }
             Err(error) => {
+                failure("receipt-record", &error);
                 tracing::debug!(code=%error.code,"Native data queue receipt awaits recording");
                 let _ = tx.send(Ok(reply(started)));
             }

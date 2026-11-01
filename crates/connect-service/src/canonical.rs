@@ -516,10 +516,18 @@ impl AuthenticatedHandler for CanonicalHandler {
                 if is_offer {
                     crate::canonical_native::intent(a.envelope())?;
                 } else {
-                    crate::canonical_native_streams::intent(a.envelope())?;
+                    crate::canonical_native_streams::intent(a.envelope()).inspect_err(|error| {
+                        if is_data {
+                            crate::canonical_native_data::failure("intent-validation", error);
+                        }
+                    })?;
                 }
 
-                let credential = self.authorize(&a).await?;
+                let credential = self.authorize(&a).await.inspect_err(|error| {
+                    if is_data {
+                        crate::canonical_native_data::failure("handler-authorization", error);
+                    }
+                })?;
                 let physical = self.physical.clone().ok_or_else(|| {
                     Error::new(
                         "unsupported-media-profile",

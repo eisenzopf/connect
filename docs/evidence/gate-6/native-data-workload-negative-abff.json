@@ -1,0 +1,80 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
+  "workflow_run_id": 41271017676,
+  "job_id": 124743962150,
+  "artifact_id": 13069745524,
+  "zip_sha256": "477c69e3111aacd2423f22b52b1ea9a070cb853e75b1b6ab47ded7a7d11c6357",
+  "source_inputs_sha256": "2d2dda69208f9e0c85a1fa56f29f63aec906644ab9c9fa5978dc8a5bb395040d",
+  "report_sha256": "f6837523877430131dc4c7a79175bfa75c780e2e8526e2007b45608d74f8de67",
+  "conversation_report_sha256": "990672856bdbb61995de74dbbbb0b238f7f0386cefa3a5b1a39fcc4d64a7ea56",
+  "sources_verified": {
+    "git": 4700,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1d903cdb2a9c441a5fd142480da60376d2cfb784d7205708093948b6484d000e",
+  "native_offers_completed": 6,
+  "native_data_submissions": 0,
+  "native_data_completions": 0,
+  "native_data_receives": 0,
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "data_context": {
+      "step": "submission",
+      "source_role": "participant-1",
+      "session_index": 0
+    },
+    "command": "message.send",
+    "problem": {
+      "code": 400,
+      "category": "validation",
+      "reason": "invalid_request"
+    },
+    "source_stack": []
+  },
+  "established_stage": "message.send submission before any returned data Operation handle; result recovery and receive were not reached",
+  "cause_established": false,
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native loopback UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "a410474f3a1c7da8dc6ed27daf17fae7abcf2d63e0d34a19b4ee4b88f05a00fa",
+    "pcap_bytes": 1317341,
+    "captured_seconds": 14.759153459999993,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and loopback host and exact owned native server port",
+    "counts": {
+      "packets": 659,
+      "to_server_packets": 355,
+      "from_server_packets": 304,
+      "captured_bytes": 1306773,
+      "udp_payload_bytes": 1279095,
+      "to_server_udp_bytes": 663588,
+      "from_server_udp_bytes": 615507
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "next": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics.",
+  "native_connection_payload_workload_verified": false,
+  "local_topology_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

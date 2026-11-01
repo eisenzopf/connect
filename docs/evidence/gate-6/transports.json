@@ -1191,17 +1191,20 @@
     "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
   },
   "native_data_workload": {
-    "status": "source-verified-six-offer-data-flow-negative-diagnostic-follow-up",
+    "status": "source-verified-data-submission-negative-admission-diagnostics",
     "implementation_hashes": {
       "scripts/check-transport-conversation.mjs": "81a011503bc9dab73e5fb7f21b907fd2f349b301dc94c304dd4a9a5d689f49c3",
-      "scripts/check-transport-fixtures.py": "95738f69a2a2b390306cc26bae285baff9d39b0d783923dbc8b2ad9d3fd47e33",
+      "scripts/check-transport-fixtures.py": "d2193652b7c293a358eefac2993fe03224db882dfa5e9acf18ad73ea246d3b02",
       "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
       "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
       ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
       ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff",
       "crates/connect-server/src/cli/credential_installation.rs": "2d7cac6ff307f43f6772138c485ac1e8a93ee40b61e7697f7228439f2a05baa5",
       "scripts/fixtures/transport-matrix/README.md": "a1c502dffb0f830c04631fa627d4170520f0d5c37613d4eea9379fd0c9fae7d5",
-      "docs/operations/README.md": "54bc66e4b48f20b035b3ad822752d227d70dda410023b86880224cd9b7f057b2"
+      "docs/operations/README.md": "54bc66e4b48f20b035b3ad822752d227d70dda410023b86880224cd9b7f057b2",
+      "crates/connect-service/src/canonical_native_data.rs": "1248f094c5f6c5e1aa669adb7e3ee964586dd8d6897b2acee9aa79a574674693",
+      "crates/connect-service/src/canonical.rs": "71c02a4758d7dbbe11ec00224967e16fb8ff8ec13423704c9bd6af0ffa5c5677",
+      "crates/connect-service/src/peer_authority.rs": "4c37ba3468348e280ff97413cfebc94c28f732cb171a041ce8aae4ae805ce27e"
     },
     "local_transport_guards_passed": 21,
     "node_python_syntax": true,
@@ -1237,8 +1240,8 @@
       "job_id": 124738696422,
       "status": "completed-failure-prepare-status-not-ready"
     },
-    "observed": "Source-verified473: all5trustedEndpointverifications/originalreplays/issuanceresumes and participantselfverificationrefusal pass; all6nativeConnectionoffers complete. Dataflow400validation/invalid_request; submission vs completion vs receive not established.5helpers+2servergroupsjoin,noforce. No payload/workload/topology/fullcell pass.",
-    "diagnostic_follow_up": "Per actor/session offer progress and count, closed public problem and original-operation status read; existing native server failure stage/code parsed from private debug logs only. No assertions, product behavior, scopes or deadlines relaxed.",
+    "observed": "Six native offers complete, but the first reliable-data failure is message.send submission/session0/participant1. Zero returned data Operation handles/completions/receives. Result recovery was not reached. Five helpers/two servers/capture owner join without force; current private capture659packets/zero kernel drops. Concrete refusal origin not yet established.",
+    "diagnostic_follow_up": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics.",
     "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
     "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
     "corrected_endpoint_candidate": {
@@ -1252,7 +1255,7 @@
       "data_workload_passed": false
     },
     "endpoint_precondition_runtime_verified": true,
-    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json",
+    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-abff.json",
     "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json"
   },
   "native_signing_cohorts": {

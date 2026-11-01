@@ -153,7 +153,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             path = PRIVATE / (name + ".log")
             stream = path.open("wb")
             streams.append(stream)
-            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug") if data_workload else env
+            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug") if data_workload else env
             server = subprocess.Popen([str(binary), "serve", "--config", str(config)], cwd=ROOT, env=server_env,
                 stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
             until = time.monotonic() + 15
@@ -433,19 +433,26 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         for stream in streams:
             stream.close()
         if data_workload:
-            stages = []
+            stages, data_stages = [], []
             for path in (PRIVATE / "seed-server.log", PRIVATE / "materialized-server.log"):
                 if not path.exists():
                     continue
                 for line in path.read_text().splitlines():
-                    if "Native offer did not complete" not in line:
+                    is_data_failure = "Native data did not complete" in line
+                    if "Native offer did not complete" not in line and not is_data_failure:
                         continue
                     line = re.sub(r"\x1b\[[0-9;]*m", "", line)
                     stage = re.search(r'\bstage="?([a-z-]{1,64})"?(?:\s|$)', line)
                     code = re.search(r'\bcode="?([a-z-]{1,64})"?(?:\s|$)', line)
                     if stage and code:
-                        stages.append(dict(stage=stage[1], code=code[1]))
+                        if is_data_failure:
+                            origin = re.search(r'\borigin="?([a-z-]{1,64})"?(?:\s|$)', line)
+                            if origin:
+                                data_stages.append(dict(stage=stage[1], code=code[1], origin=origin[1]))
+                        else:
+                            stages.append(dict(stage=stage[1], code=code[1]))
             report["native_offer_failure_stages"] = stages[:16]
+            report["native_data_failure_stages"] = data_stages[:32]
         report["source_inputs_unchanged"] = before is not None and source() == before
         report["executables_unchanged"] = binary is not None and digest(binary) == report["binary_sha256"]
         if sdk_before is not None:
