@@ -73,11 +73,14 @@ async def media(id,value,payload):
         _,flags,seq,ts,ssrc=struct.unpack('!BBHII',last_rtp[:12])
         item={'type':'rtp','datagram_sequence':last_sequence,'header':{'payload_type':flags&127,'sequence_number':seq,'timestamp':ts,'ssrc':ssrc,'marker':bool(flags&128)}}
         body=last_rtp
-        if mode in ('clock','clock-held'):
+        if mode in ('clock','clock-held','clock-reply-held'):
             item={'type':'clock','datagram_sequence':8,'report':{'ssrc':1,'ntp':str(2**64-1),'rtp':2,'packets':3,'octets':4,'cname':'synthetic-source'}};body=b''
         elif mode in ('gap','gap-held'):item={'type':'gap','dropped_packets':str(2**64-1)};body=b''
         elif mode=='bad-header':item['header']['ssrc']+=1
         result={'type':'packet','binding':command['binding'],'stream_id':command['stream_id'],'packet':item}
+        if mode in ('receive-reply-held','clock-reply-held'):
+            capture({'channel':'packet-captured','action':action})
+            await released()
         await write_frame(0x82,id,result,body)
         capture({'channel':'media-completion','action':action})
     elif action=='send_data':

@@ -51,6 +51,9 @@ export declare class MediaChannel {
     constructor(owner: SocketOwner, listenerClosed: Promise<void>, observe: (v: Json, key: OperationKey) => void);
     get pendingCount(): number;
     exchange(command: JsonObject, payload: Buffer, options: CanonicalRequestOptions, mutation?: boolean, key?: OperationKey): Promise<MediaFrame>;
+    /** The receive owner keeps this original reply across caller wait expiry. */
+    exchangeOwned(command: JsonObject, payload: Buffer, options: CanonicalRequestOptions): Promise<MediaFrame>;
+    private enqueue;
     private pump;
     private receive;
     markClosing(): void;

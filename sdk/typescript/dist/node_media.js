@@ -223,7 +223,7 @@ class Owner {
         this.helper = helper;
         this.ctx = ctx;
     }
-    async request(command, payload, options, decode, mutation = false, key) {
+    async request(command, payload, options, decode, mutation = false, key, ownedReply = false) {
         const started = performance.now();
         let captured;
         try {
@@ -256,7 +256,12 @@ class Owner {
         const remaining = Math.floor(options.timeoutMs - (performance.now() - started));
         if (remaining <= 0)
             throw mediaError("deadline", mutation, false, key);
-        const frame = await channel.exchange(captured, payload, { timeoutMs: remaining, signal: options.signal }, mutation, key);
+        // A sent receive can complete before its helper deadline while the IPC
+        // reply arrives after the caller wait. Keep that original reply in the
+        // stream slot; the outer receive wait owns only the caller's deadline.
+        const frame = await (ownedReply
+            ? channel.exchangeOwned(captured, payload, { timeoutMs: remaining })
+            : channel.exchange(captured, payload, { timeoutMs: remaining, signal: options.signal }, mutation, key));
         try {
             return decode(frame);
         }
@@ -309,7 +314,7 @@ class Owner {
                     const result = decode(frame);
                     original.completedAt = performance.now();
                     return result;
-                }));
+                }, false, undefined, true));
                 slot.flight = flight;
                 void flight.catch(() => {
                     if (original.flight === flight) {

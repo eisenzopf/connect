@@ -195,3 +195,38 @@ test('Node close owns an attachment still opening after the caller deadline',asy
   assert.equal((await calls()).filter(r=>r.channel==='control'&&r.action.type==='media_attach').length,1);
  });
 });
+
+// Negative regression: a packet captured before the caller deadline replies later.
+test('Node original receive deadline retains the already captured original reply',async()=>{
+ await fixture('receive-reply-held',async(client,{seen,completed,release,calls})=>{
+  await client.media.stats(options);
+  const waiting=stream(client).receivePacket({timeoutMs:40});
+  const rejected=assert.rejects(waiting,error('deadline','read-only'));
+  await seen('receive');await rejected;await release();await completed('receive');
+  await client.media.stats(options);
+  const packet=await stream(client).receivePacket(options);assert.equal(packet.kind,'rtp');
+  const inputs=(await calls()).filter(r=>r.channel==='media'&&r.request.command.action==='receive');
+  assert.equal(inputs.length,1,'late original packet was discarded and a second receive submitted');
+ });
+});
+
+test('Node original deadline keeps received clocks and preserves exact helper read budget',async()=>{
+ await fixture('clock-reply-held',async(client,{seen,completed,release,calls})=>{
+  await client.media.stats(options);
+  const waiting=stream(client).receivePacket({timeoutMs:40}),refused=assert.rejects(waiting,error('deadline','read-only'));
+  await seen('receive');await refused;await release();await completed('receive');await client.media.stats(options);
+  const result=await stream(client).receivePacket(options);assert.equal(result.kind,'clock');assert.equal(result.report.ntp,2n**64n-1n);
+  const inputs=(await calls()).filter(r=>r.channel==='media'&&r.request.command.action==='receive');
+  assert.equal(inputs.length,1);assert(inputs[0].request.timeout_ms>0&&inputs[0].request.timeout_ms<=40);
+ });
+});
+test('Node original receive deadline retains reliable data beyond live packet expiry',async()=>{
+ await fixture('data-receive-held',async(client,{seen,completed,release,calls})=>{
+  await client.media.stats(options);const data=client.media.connection(scope).streamById('application');
+  const waiting=data.receiveData({timeoutMs:40}),refused=assert.rejects(waiting,error('deadline','read-only'));
+  await seen('receive_data');await refused;await release();await completed('receive_data');await client.media.stats(options);await sleep(250);
+  assert.equal((await data.receiveData(options)).messageId,'original-message');
+  const inputs=(await calls()).filter(r=>r.channel==='media'&&r.request.command.action==='receive_data');
+  assert.equal(inputs.length,1);assert(inputs[0].request.timeout_ms>0&&inputs[0].request.timeout_ms<=40);
+ });
+});

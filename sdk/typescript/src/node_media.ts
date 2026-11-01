@@ -377,6 +377,7 @@ class Owner {
         decode: (f: MediaFrame) => T,
         mutation = false,
         key?: OperationKey,
+        ownedReply = false,
     ): Promise<T> {
         const started = performance.now();
         let captured: JsonObject;
@@ -424,13 +425,18 @@ class Owner {
             options.timeoutMs - (performance.now() - started),
         );
         if (remaining <= 0) throw mediaError("deadline", mutation, false, key);
-        const frame = await channel.exchange(
-            captured,
-            payload,
-            { timeoutMs: remaining, signal: options.signal },
-            mutation,
-            key,
-        );
+        // A sent receive can complete before its helper deadline while the IPC
+        // reply arrives after the caller wait. Keep that original reply in the
+        // stream slot; the outer receive wait owns only the caller's deadline.
+        const frame = await (ownedReply
+            ? channel.exchangeOwned(captured, payload, { timeoutMs: remaining })
+            : channel.exchange(
+                  captured,
+                  payload,
+                  { timeoutMs: remaining, signal: options.signal },
+                  mutation,
+                  key,
+              ));
         try {
             return decode(frame);
         } catch {
@@ -495,6 +501,9 @@ class Owner {
                             original.completedAt = performance.now();
                             return result;
                         },
+                        false,
+                        undefined,
+                        true,
                     ),
                 );
                 slot.flight = flight;

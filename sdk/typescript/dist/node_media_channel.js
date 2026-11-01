@@ -227,6 +227,13 @@ export class MediaChannel {
         return this.pending.size;
     }
     exchange(command, payload, options, mutation = false, key) {
+        return this.enqueue(command, payload, options, mutation, key, true);
+    }
+    /** The receive owner keeps this original reply across caller wait expiry. */
+    exchangeOwned(command, payload, options) {
+        return this.enqueue(command, payload, options, false, undefined, false);
+    }
+    enqueue(command, payload, options, mutation, key, applicationWait) {
         try {
             mediaDuration(options);
         }
@@ -268,6 +275,8 @@ export class MediaChannel {
         this.pending.set(job.id, job);
         this.queue.push(job);
         this.pump();
+        if (!applicationWait)
+            return original;
         return localWait(original, options, mutation, () => job.sent, key).catch((e) => {
             if (!job.sent) {
                 this.pending.delete(job.id);

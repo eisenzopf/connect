@@ -76,14 +76,23 @@ publisher labels. The [installed consumer](../../sdk/tests/node_sdk_server_consu
 shows the complete offer, selection, saved-intent and recovery journey.
 
 The channel owns at most 16 requests and 16 queued responses. A scoped Stream
-has one receive flight across cloned handles. Cancelling a local wait retains
-that original flight/result for its next wait; a concurrent second reader is
+has one receive flight across cloned handles. Cancelling or timing out a caller
+wait retains that original flight/result for its next wait; a concurrent second reader is
 refused. At most 16 reliable-data receive flights/results retain 1 MiB of
 payload. Rust separately bounds its data inbox to 32 messages per Stream and
 256 messages/1 MiB overall; overflow requires explicit resynchronization on a
 new physical binding. RTP inboxes remain separately bounded to 32 per Stream,
 256 packets/4 MiB overall. The adapter refuses overflow instead of hiding it in
 an unbounded application queue.
+
+A receive reply can arrive after its caller deadline even when the helper had
+already captured the packet. The receive owner keeps that original IPC result;
+a later reader does not submit a replacement read. The helper retains its
+original timeout. RTP, exact unsigned-64-bit clock reports and reliable data
+follow this rule; ordinary outbound request waits keep their existing behavior.
+The [deadline regression evidence](../evidence/gate-6/node-media-receive-deadline-retention.json)
+records the original failure and 21 passing controlled media cases. Actual
+installed app verification of this correction remains pending.
 
 The Rust live-media inbox expires queued RTP/source-clock packets at 200 ms.
 `receivePacket` reports those discards as `gap` before current queued packets;

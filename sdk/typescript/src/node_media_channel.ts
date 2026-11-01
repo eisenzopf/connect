@@ -327,6 +327,24 @@ export class MediaChannel {
         mutation = false,
         key?: OperationKey,
     ): Promise<MediaFrame> {
+        return this.enqueue(command, payload, options, mutation, key, true);
+    }
+    /** The receive owner keeps this original reply across caller wait expiry. */
+    exchangeOwned(
+        command: JsonObject,
+        payload: Buffer,
+        options: CanonicalRequestOptions,
+    ): Promise<MediaFrame> {
+        return this.enqueue(command, payload, options, false, undefined, false);
+    }
+    private enqueue(
+        command: JsonObject,
+        payload: Buffer,
+        options: CanonicalRequestOptions,
+        mutation: boolean,
+        key: OperationKey | undefined,
+        applicationWait: boolean,
+    ): Promise<MediaFrame> {
         try {
             mediaDuration(options);
         } catch {
@@ -378,6 +396,7 @@ export class MediaChannel {
         this.pending.set(job.id, job);
         this.queue.push(job);
         this.pump();
+        if (!applicationWait) return original;
         return localWait(
             original,
             options,

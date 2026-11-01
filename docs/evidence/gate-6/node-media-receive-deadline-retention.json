@@ -1,0 +1,40 @@
+{
+  "format": "connect/node-media-original-receive-deadline-retention/1",
+  "tasks": [
+    "G6-072",
+    "G6-064",
+    "G6-070"
+  ],
+  "baseline_source_revision": "94696573a2815d47190d09d8fc3dc2b32b0a1d05",
+  "baseline_regression_failed": true,
+  "baseline_original_receive_requests": 2,
+  "required_original_receive_requests": 1,
+  "baseline_log_sha256": "566136f4208ff730253710a50ba23b5a6c3419030d4f109956b5836701bda249",
+  "typescript_build_passed": true,
+  "actual_checkout_tests_passed": 21,
+  "tests_failed": 0,
+  "tests_skipped": 0,
+  "new_deadline_regressions": 3,
+  "actual_checkout_test_log_sha256": "6cf537e6a85faafa28e6c2289eeebe9f939a65ad4626108551a38b36149feade",
+  "node": "v22.16.0",
+  "controlled_peer": "Owned isolated Python C6M2 helper; packet captured before delayed original reply. No server, provider, model or communications account execution.",
+  "behavior": "A receive owner retains the original sent IPC reply across expiration of its caller wait. The next scoped reader consumes that original result without submitting a second receive. Ordinary outbound waits and helper read timeout remain unchanged.",
+  "verified": [
+    "late RTP result retains original identity with one helper receive",
+    "late exact-u64 clock report retains identity with original helper budget at most40ms",
+    "reliable data remains original after250ms with one helper receive",
+    "existing200ms RTP/clock slot expiry reports gap without another receive",
+    "existing clone-reader exclusivity, bounded slots, independent control, framing, original data recovery and owned close remain passing"
+  ],
+  "source_sha256": {
+    "sdk/typescript/src/node_media.ts": "1e50e981fcf75f3550dabe74df41925805a3526dde88d28c4accd3104669ba08",
+    "sdk/typescript/src/node_media_channel.ts": "1c29094e7def1f88b12801dce4943a3cf35e6c83e47c5b484e9170059b03384a",
+    "sdk/typescript/dist/node_media.js": "5dd82c8d2fb79f8dd035ed58ab75f8d64caaa0de73491aa2d0723e5a0c2959ba",
+    "sdk/typescript/dist/node_media_channel.js": "b3028c56eec5273b8df940b310792f6cb16bc75aedd0bbf718ae58ab08b65315",
+    "sdk/tests/node_media.test.mjs": "a81607aaa3b7a1fe2abf5f7cd963855a2de512bccd9dc911a6d200b4aa3cad44",
+    "sdk/tests/fixtures/sdk_media_helper.py": "dd22bf1266f2702335761da6b537744bcb0aba534c40a17df70e21f079d19454"
+  },
+  "scope": "Controlled SDK regression and generated TypeScript outputs only. This identifies a concrete late-reply loss path but does not prove it is the sole cause of hosted AV failure. Matching installed packages and actual local/hosted app rehearsals remain pending. No task/full-media/matrix/gate promotion.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
