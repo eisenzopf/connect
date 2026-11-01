@@ -40,7 +40,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, task_complete: false, whole_gate_qualified: false,
     scope: "Actual production G6-069 installed runtime/Node SDK, current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
-let processChild, finished, context, browser, page, release, stage = "startup";
+let processChild, finished, context, browser, page, release, chrome, stage = "startup";
 const apiReads = new Set(), mediaBrowsers = [], mediaPages = [];
 const check = value => { report.checks.push(value); stage = value; process.stdout.write(JSON.stringify({ check: value }) + "\n"); };
 async function deadline(promise, ms) {
@@ -108,6 +108,12 @@ try {
     }
     check("actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages");
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
+    // Use the installed full Chromium browser in headless mode. The separate
+    // headless shell does not support this file-backed capture without a fake
+    // permission UI; real grants/revocation must remain in the browser path.
+    chrome = process.env.CONNECT_GATE6_CHROME ? resolve(process.env.CONNECT_GATE6_CHROME) : chromium.executablePath();
+    report.browser_product = process.env.CONNECT_GATE6_CHROME ? "explicit-owned-chromium-executable" : "full-chromium";
+    report.browser_launcher_sha256 = await digest(chrome);
     const origin = await start(1); check("one-command-four-actor-scoped-setup-ready");
     stage = "trusted-native-media-endpoint-original-recovery";
     const setup = JSON.parse(await readFile(join(state, "setup.json"), "utf8"));
@@ -144,7 +150,7 @@ try {
     report.original_endpoint_decision_recovery_verified = true;
     check("four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery");
     context = await chromium.launchPersistentContext(join(output, "profile"), { headless: true,
-        ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
+        executablePath: chrome,
         viewport: { width: 1440, height: 1100 }, args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions"] });
     browser = context.browser(); report.browser = browser.version(); page = context.pages()[0];
     await context.grantPermissions([], { origin });
@@ -341,7 +347,7 @@ try {
             await writeFile(cameraPath, Buffer.concat(frames), { mode: 0o600 });
         }
         const owned = await chromium.launch({ headless: true,
-            ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
+            executablePath: chrome,
             args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions",
                 "--use-fake-device-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath,
                 ...(cameraPath ? ["--use-file-for-fake-video-capture=" + cameraPath] : [])] });
@@ -570,12 +576,14 @@ try {
     await startMicrophone(target);
     // Chromium's actual permission override revokes this owned microphone.
     // No synthetic ended event or substituted track is used.
+    await lifecycle.context.clearPermissions();
     await lifecycle.context.grantPermissions(["camera"], { origin });
     await target.waitForFunction(async () => (await navigator.permissions.query({ name: "microphone" })).state === "denied");
     report.media_lifecycle.permission_revocation = await stoppedMedia(target);
     assert.equal(report.media_lifecycle.permission_revocation.metrics.stopReason, "app-media-device-ended");
     assert.ok(report.media_lifecycle.permission_revocation.last_capture_ended_events >= 1);
     check("actual-microphone-permission-revocation-ends-tracks-and-joins-media");
+    await lifecycle.context.clearPermissions();
     await lifecycle.context.grantPermissions(["microphone"], { origin });
 
     stage = "active-capture-participant-switch-retirement";
@@ -670,9 +678,11 @@ try {
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
         sha(await readFile(join(root, "scripts/install-reference-app-candidate.py"))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
+    report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;
     report.application_runtime_matches = await digest(join(state, "runtime/connect")).then(value => value === sourceInputs.runtime).catch(() => null);
     if (!report.runtime_unchanged || report.application_runtime_matches !== true) report.passed = false;
     if (!report.sources_unchanged) report.passed = false;
+    if (chrome && report.browser_launcher_unchanged !== true) report.passed = false;
     if (!report.passed) process.exitCode = 1;
     await writeFile(join(output, "summary.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
     process.stdout.write(JSON.stringify({ passed: report.passed, checks: report.checks.length, failure: report.failure }) + "\n");

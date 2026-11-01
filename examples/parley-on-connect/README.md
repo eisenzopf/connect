@@ -96,6 +96,9 @@ than claiming an OS permission dialog was exercised. These new lifecycle checks
 require installed verification with actual ended-event/stop-cause checks. The
 old fake permission-UI bypass is removed; explicit browser permission grants
 remain limited to owned synthetic devices.
+The rehearsal explicitly launches the installed full Chromium browser in headless
+mode. It clears prior permission overrides before applying a camera-only grant
+to revoke the microphone; adding another grant alone does not revoke one.
 
 After going offline, capture and mutations stay stopped and passive polling
 stays suspended until an explicit Reconnect refreshes current access. Original

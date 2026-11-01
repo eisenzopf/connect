@@ -1,0 +1,45 @@
+{
+  "format": "connect/reference-app-device-permission-diagnostic/1",
+  "task": "G6-072",
+  "scope": "Standalone owned local loopback HTML and synthetic browser devices only. No Connect, model, provider or personal device calls. Different browser build from CI; no task qualification.",
+  "browser": "153.0.8010.12",
+  "node": "v26.7.0",
+  "playwright": "1.64.1",
+  "probe_source_sha256": "e5f2e6d77d23fea27bcb34eebb7c85e4e8e8b38fb4e3fe012bbaaa574fb82a2f",
+  "cases": [
+    {
+      "name": "full-file",
+      "permission": "granted",
+      "captured": true,
+      "track_count": 1,
+      "revocation": {
+        "permission": "denied",
+        "ended_events": 1,
+        "states": [
+          "ended"
+        ]
+      }
+    },
+    {
+      "name": "shell-file",
+      "permission": "granted",
+      "captured": false,
+      "error": "NotSupportedError",
+      "message": "Not supported"
+    },
+    {
+      "name": "shell-file-fake-ui",
+      "permission": "granted",
+      "captured": true,
+      "track_count": 1,
+      "revocation": {
+        "permission": "denied",
+        "ended_events": 1,
+        "states": [
+          "ended"
+        ]
+      }
+    }
+  ],
+  "task_complete": false
+}
