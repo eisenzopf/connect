@@ -677,6 +677,53 @@ fn replacement_telephone_reservation_requires_explicit_valid_configured_digits_w
 }
 
 #[test]
+fn replacement_preflight_retry_requires_the_exact_unreserved_original_and_is_read_only() {
+    let (f, key, command, origin, sources) = setup();
+    let before = status(&f, &key, &command);
+    let journal = f.count("journal");
+    assert!(f
+        .store
+        .native_replacement_preflight_unstarted(&key, command.clone(), origin.record_id())
+        .unwrap());
+    assert_eq!(status(&f, &key, &command), before);
+    assert_eq!(f.count("journal"), journal);
+    let mut changed = command.clone();
+    changed.expected_revision += 1;
+    assert!(f
+        .store
+        .native_replacement_preflight_unstarted(&key, changed, origin.record_id())
+        .is_err());
+    assert!(f
+        .store
+        .native_replacement_preflight_unstarted(&key, command.clone(), "other-record")
+        .is_err());
+    let _lease = prepare(&f, &origin, &sources);
+    assert!(!f
+        .store
+        .native_replacement_preflight_unstarted(&key, command.clone(), origin.record_id())
+        .unwrap());
+    assert_eq!(status(&f, &key, &command).state, OperationState::Preparing);
+}
+
+#[test]
+fn replacement_preflight_retry_refuses_cancelled_or_revoked_original_authority() {
+    for cancelled in [false, true] {
+        let (f, key, command, origin, _) = setup();
+        if cancelled {
+            cancel(&f, &key, &command);
+        } else {
+            let admin = f.store.revalidate(&f.admin).unwrap();
+            f.store.revoke(&admin, &key).unwrap();
+        }
+        assert!(f
+            .store
+            .native_replacement_preflight_unstarted(&key, command, origin.record_id())
+            .is_err());
+        assert_eq!(f.count("native_replacements"), 0);
+    }
+}
+
+#[test]
 fn replacement_preflight_refusal_is_exact_and_cannot_close_a_reserved_attempt() {
     let (f, key, command, origin, sources) = setup();
     let mut changed = command.clone();

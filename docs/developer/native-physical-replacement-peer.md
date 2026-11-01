@@ -186,3 +186,16 @@ three physical Connections/lifetimes retired. The full source/binary guards pass
 See [the scoped service result](../evidence/gate-6/native-av-replacement-signed-local.json).
 This service fixture does not execute the independently owned Rust target or
 establish decoded moving-video quality or a complete transport cell.
+
+After byte-verified relocation of the active dependency cache to external storage,
+the independent consumer's locked Cargo build and all seven peer tests pass with
+unchanged inputs. The following existing four-scene audio regression passes its
+first three scenes, then fails before preparation in the fourth. Its retained
+original remains accepted at revision zero with no reservation or effects.
+The current worker change keeps that same job across transient metadata failure;
+current Store proof of an exact, unreserved, effect-free original is required
+before another preflight attempt. Reservations or effects prevent whole-preflight
+repetition. Current cancellation/revocation/expiry continue to refuse execution.
+Three Store guards, three worker cases and the full service typecheck pass.
+Fresh signed/native runtime verification of this fix is still pending. See
+[the original failure and scoped checks](../evidence/gate-6/native-replacement-preflight-deferral.json).

@@ -1,0 +1,52 @@
+{
+  "format": "connect/gate6-native-replacement-preflight-deferral/1",
+  "baseline_source_revision": "122902fb7ac6867a39b3ea9c2fbe374d18a0b3d5",
+  "baseline_case": "canonical_native_connections::consultation::groups::replacement::production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires",
+  "baseline_function_passed": false,
+  "baseline_test_exit": 101,
+  "baseline_runtime_seconds": 115.769902958069,
+  "baseline_binary_sha256": "ea43cc66206a6793467eec951fe8db23fde278ed5e27ddd96e1c3a4def9e1806",
+  "baseline_source_inputs_unchanged": true,
+  "baseline_extern_inputs_unchanged": true,
+  "baseline_runtime_log_sha256": "d9390908a244e054cded0fca664f785cfea46ccca9d32b93d33a0583c26f074b",
+  "observed_successful_scenes": 3,
+  "observed_completed_replacement_roots": 4,
+  "failed_scene": {
+    "planned_case": "target-key-revocation",
+    "actual_failure_before_key_revocation": true,
+    "location": "replacement.rs:14 wait_prepared",
+    "logged_code": "authority-busy",
+    "original_state": "accepted",
+    "original_revision": 0,
+    "reservations": 0,
+    "effects": 0,
+    "original_replayed": false
+  },
+  "fix": {
+    "job_retained_across_transient_metadata_deferral": true,
+    "only_current_exact_unstarted_original_can_repeat_preflight": true,
+    "reservation_or_effect_blocks_whole_preflight_repetition": true,
+    "current_cancellation_revocation_expiry_enforced": true,
+    "metadata_phase_reads_may_repeat_but_grant_no_io": true,
+    "new_mutation_ids_generated": false,
+    "original_timeouts_changed": false
+  },
+  "verification": {
+    "store_cases_passed": 3,
+    "store_seconds": 21.3477220418863,
+    "store_source_inputs_unchanged": true,
+    "store_log_sha256": "2526c671ff5f7b24e1e7859ed043c5d2b22bc48f80e29eebb2fbeffab706d1e3",
+    "worker_cases_passed": 3,
+    "worker_source_unchanged": true,
+    "worker_linked_inputs_unchanged": true,
+    "worker_binary_sha256": "66cf153f370bd0de683e8c82b30610cecb85fbb32f09c0a49f6e1767b14982d2",
+    "worker_log_sha256": "c610fef16f9f3b4add1e1d9729af18ed7975155eb7b13702203ca4c5468b5d15",
+    "service_check_exit": 0,
+    "service_check_seconds": 67.7603380838409,
+    "service_check_source_inputs_unchanged": true
+  },
+  "fixed_native_runtime_verified": false,
+  "scope": "The existing composite audio function fails in its fourth independent scene before preparation, after three observed successful scenes including a subsequent generation-three move. The deferred job currently exits without a saved preparation, leaving the original accepted row unowned. New guarded worker/Store logic retains the same job and permits preflight repetition only after current read-only proof of an exact unreserved/effect-free original; begun/unknown IO is never retried. Three Store and three direct worker tests and the full service typecheck pass. Fresh normal-feature signed AV and four-scene native audio runtime cohort is running; this record does not claim that runtime fix or any full transport cell.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -55,7 +55,7 @@
     "The following default-feature integration compile and independent Rust consumer compile failed on ENOSPC: debug/deps resolved to the system drive through a symlink, while D2 had314GiB free. No native test or Rust consumer cases ran.",
     "The task-owned dependency cache is being relocated with per-file byte verification and preserved original paths; neither failed build is a runtime or physical AV result."
   ],
-  "scope": "Candidate adds original-ID matched AV negotiation, original-clock VP8 fragmentation, original journal observation using full correlated signed payloads, separate durable video gates/subscription, and a signed service AV fixture. Pending states do not open Video; unknown controls are not retried. Seven pure peer cases now pass under direct rustc against the source-matched normal-feature public library. The signed service AV case now passes on normal production features with full source/artifact guards. The standalone consumer Cargo build, independently owned physical AV peer/controller rehearsal and existing audio regression remain required. Actual full AV move, decoded/paired quality, uninterrupted audio during control waits, twenty-transition workload and all32 required transport cells remain unqualified.",
+  "scope": "Candidate adds original-ID matched AV negotiation, original-clock VP8 fragmentation, original journal observation using full correlated signed payloads, separate durable video gates/subscription, and a signed service AV fixture. Pending states do not open Video; unknown controls are not retried. Seven pure peer cases now pass under direct rustc against the source-matched normal-feature public library. The signed service AV case now passes on normal production features with full source/artifact guards. The standalone consumer Cargo build and all seven peer cases now pass with unchanged source inputs. The independently owned physical AV peer/controller rehearsal remains required; the existing four-scene audio regression fails at an unstarted authority-busy preflight, tracked in native-replacement-preflight-deferral.json. Actual full AV move, decoded/paired quality, uninterrupted audio during control waits, twenty-transition workload and all32 required transport cells remain unqualified.",
   "physical_av_replacement_verified": false,
   "full_matrix_cells_qualified": 0,
   "task_complete": false,
@@ -126,5 +126,13 @@
     "scope": "Direct rustc same seven pure peer tests against the actual source-matched normal-feature root public connect-client rlib. Separate consumer Cargo build and signed runtime still required. Dependency cache is read only; all outputs are new D2 private files."
   },
   "signed_native_service_av_movement_verified": true,
-  "signed_service_av_evidence": "native-av-replacement-signed-local.json"
+  "signed_service_av_evidence": "native-av-replacement-signed-local.json",
+  "standalone_cargo_checks": {
+    "exit_code": 0,
+    "seven_cases_passed": true,
+    "elapsed_seconds": 83.15359779121354,
+    "source_inputs_unchanged": true,
+    "test_binary_sha256": "4de3f6437230aa7aef241df2941127b4d67b91a25c1416c2d2eb33e67063b68b",
+    "log_sha256": "0c0a783daedcf7761dce01c62a0bedb5519ff37f9766c013b72fb5093b39973f"
+  }
 }

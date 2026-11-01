@@ -107,6 +107,38 @@ impl NativeReplacementOrigin {
     }
 }
 impl Store {
+    /// Revalidate the same original before repeating an unstarted preflight.
+    /// A reservation, worker or any effect makes whole-preflight replay unsafe.
+    /// This read grants no Core IO and retains no authority after returning.
+    pub fn native_replacement_preflight_unstarted(
+        &self,
+        credential: &str,
+        command: TransitionCommand,
+        record: &str,
+    ) -> Result<bool> {
+        let origin = self.native_replacement_origin(credential, command)?;
+        if origin.record_id() != record {
+            return Err(Error::forbidden());
+        }
+        let _held = self.transition_operation_authority(
+            credential,
+            &origin.request.operation_id,
+            &["connection.replace"],
+            None,
+        )?;
+        let c = self.try_connection()?;
+        origin.require(self, &c)?;
+        let row = rows::by_record(&c, record)?;
+        Ok(row.record.state == OperationState::Accepted
+            && !row.record.cancel_requested
+            && row
+                .record
+                .expires_at
+                .is_some_and(|expires| crate::now() < expires)
+            && !row.native_replacement
+            && row.worker.is_none()
+            && row.record.effects.is_empty())
+    }
     /// A source for an already admitted exact command. It keeps no reader and
     /// cannot reserve a Core candidate or authorize telephone submission.
     pub fn native_replacement_origin(

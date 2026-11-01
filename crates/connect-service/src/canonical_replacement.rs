@@ -4,6 +4,7 @@ pub(crate) mod continuation;
 mod media;
 pub(crate) use media::TargetPolicy;
 mod movement;
+mod preflight;
 mod preparation;
 mod start;
 use crate::{
@@ -137,7 +138,13 @@ impl Runtime {
         };
         work.spawn(async move {
             let _job=job;
-            let result=runtime.prepare_replacement(credential.clone(),command.clone(),record.clone()).await;
+            let result=preflight::run(&runtime.stop,
+                || runtime.prepare_replacement(credential.clone(),command.clone(),record.clone()),
+                || {
+                    let store=runtime.media.store.clone();let key=credential.clone();
+                    let command=command.clone();let record=record.clone();
+                    store_call(move || store.native_replacement_preflight_unstarted(&key,command,&record))
+                }).await;
             if let Err(error)=result {
                 if matches!(error.code.as_str(),"unsupported-media-profile"|"invalid-request"|"forbidden"|"conflict") {
                     let _=retry_metadata(&runtime.stop,||{let store=runtime.media.store.clone();let key=credential.clone();let command=command.clone();let code=error.code.clone();store_call(move||store.fail_native_replacement_preflight(&key,command,&code))}).await;
