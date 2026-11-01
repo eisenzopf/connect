@@ -1,7 +1,7 @@
 # Durable transition operations
 
-The [shared control receipts continuation](control-receipts.md) records current
-schema-32 operation ownership. The [owned runtime continuation](owned-runtime.md)
+The [shared control receipts continuation](control-receipts.md) records operation
+ownership introduced at schema 32. The [owned runtime continuation](owned-runtime.md)
 records the earlier schema-31 startup boundary. Earlier evidence reports retain the schema/source state they
 qualified; they are historical checkpoints.
 
