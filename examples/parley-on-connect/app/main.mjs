@@ -44,7 +44,7 @@ async function main() {
     if (!(await lstat(packageRoot)).isDirectory() || (await lstat(packageRoot)).isSymbolicLink() ||
         !entry.split(sep).includes("node_modules") || packageInfo.name !== "@rudeless/connect" ||
         packageInfo.version !== config.sdkVersion) fail("installed-sdk-required");
-    const { NodeClient } = await import("@rudeless/connect");
+    const { NodeClient, SdkRtpPacket } = await import("@rudeless/connect");
     const executable = await checkedAsset(directory, config.runtime.executable, config.runtime.sha256, true);
     const actors = {};
     for (const [role, actor] of Object.entries(config.actors)) {
@@ -54,7 +54,7 @@ async function main() {
     }
     const journal = await AppIntents.open(resolve(directory, "application-state"));
     const onError = error => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error)) + "\n");
-    const gateway = new AppGateway({ journal, actors, createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
+    const gateway = new AppGateway({ journal, actors, createRtpPacket: (sequence, bytes) => new SdkRtpPacket(sequence, bytes), createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
     let app, closing;
     async function close(failed = false) {
         if (!closing) closing = (async () => {

@@ -1454,6 +1454,17 @@
       "scope": "Only add fixed call-phase labels after Session ends to distinguish original SDK close, original create recovery, current membership and history. IO, IDs and all budgets/assertions unchanged.",
       "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
       "prior_cancellation_cause_resolved": false
+    },
+    "macos_eddsa_data_negative": {
+      "workflow_run_id": 41277924535,
+      "status": "terminal-failure-independently-source-verified",
+      "evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json",
+      "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+      "native_offers": 6,
+      "data_submissions": 6,
+      "data_completions": 5,
+      "receive_assertions_reached": false,
+      "cause_resolved": false
     }
   },
   "native_signing_cohorts": {

@@ -1,0 +1,428 @@
+{
+  "format": "connect/native-data-workload-independent-negative/1",
+  "task": "G6-058",
+  "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+  "workflow_run_id": 41277924535,
+  "job_id": 124763781476,
+  "artifact_id": 13073156894,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": false,
+    "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
+    "artifact_sha256": "772ddbd6cf0a32b8ec9311873ca786a97ea450e59a342462352a7d8f342c368a",
+    "report_sha256": "f6e24238aa1a47643da5e6bf827ab53a94a744d367ab3335292f27320238be9c",
+    "source_inputs_sha256": "14c73fa64378a74f2eb0d89b8b91f93e362a68c4b7049c039e0eaef78fba66d3",
+    "sources_verified": {
+      "git": 4727,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "macos-arm64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 48,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "f2918c0cbc02bb83c2ca60c49ea629f01f1d89d60e8b80840b97260802b55a73",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 5,
+      "native_data_receives": 0
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "runtime_host": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "kernel_release": "24.6.0",
+    "version": "15.8.2",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "macos-arm64"
+  },
+  "node": "v22.23.4",
+  "parent_checks": [
+    "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+    "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+    "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+    "occupied-instance-refuses-without-overwrite",
+    "wrong-signing-seed-refuses-before-state-publication",
+    "incomplete-browser-seed-refuses-without-native-only-downgrade",
+    "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+    "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+    "all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+    "participant-credential-cannot-provision-an-identity",
+    "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+    "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification"
+  ],
+  "child_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change"
+  ],
+  "commands": [
+    {
+      "name": "initialize",
+      "verb": "init",
+      "exit_code": 0
+    },
+    {
+      "name": "unsupported-init-signing",
+      "verb": "init",
+      "exit_code": 2
+    },
+    {
+      "name": "existing-init-signing-refusal",
+      "verb": "init",
+      "exit_code": 1
+    },
+    {
+      "name": "seed-create",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "seed-list",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "stopped-backup",
+      "verb": "backup",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-list",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "materialized-original",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-enrollment",
+      "verb": "issue",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-identity",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-1-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-2-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-3-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-participant-4-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "resume-replacement-1-enrollment",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-1-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-2-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-3-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "participant-4-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "replacement-1-scoped-native-read",
+      "verb": "request",
+      "exit_code": 0
+    },
+    {
+      "name": "actor-cannot-provision",
+      "verb": "provision",
+      "exit_code": 1
+    },
+    {
+      "name": "participant-cannot-verify-endpoint",
+      "verb": "provision",
+      "exit_code": 1
+    },
+    {
+      "name": "trusted-endpoint-verify-0",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-0",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-1",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-1",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-2",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-2",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-3",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-3",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-4",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "trusted-endpoint-verify-original-4",
+      "verb": "provision",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-1",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-2",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-3",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-participant-4",
+      "verb": "issue-resume",
+      "exit_code": 0
+    },
+    {
+      "name": "post-verification-resume-replacement-1",
+      "verb": "issue-resume",
+      "exit_code": 0
+    }
+  ],
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "application",
+    "certainty": "recorded",
+    "data_context": {
+      "step": "completion",
+      "source_role": "participant-1",
+      "session_index": 0
+    },
+    "command": "message.send",
+    "source_stack": []
+  },
+  "native_data_failure_stages": [
+    {
+      "stage": "data-invocation",
+      "code": "authority-busy",
+      "origin": "other"
+    }
+  ],
+  "native_data_checkpoints": [
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "handler-entered",
+    "handler-entered",
+    "worker-entered",
+    "handler-entered",
+    "worker-entered",
+    "handler-entered",
+    "worker-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "worker-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "authority-entered",
+    "authority-entered",
+    "handler-entered",
+    "handler-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "worker-entered",
+    "worker-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded"
+  ],
+  "cleanup_stage_counts": {
+    "durable-retirement-recorded": 6,
+    "durable-retirement-retry": 3,
+    "durable-retirement-join": 0
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "ca36b43f42db6d50ddf4083dd1ed4dc0b6d43683ace0d7ab51b92ceb93bf1188",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "all_helpers_joined": true,
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.1 -- Apple version 148",
+    "executable_sha256": "d2795643c46818192727289c100dbf862ef66d791356e29ca2a4cfd511fd31fe",
+    "pcap_sha256": "4665d03faa5069bda8c6ba050635a417c0e359ace0b1989380f56aaa0a55c4d8",
+    "pcap_bytes": 1817778,
+    "captured_seconds": 22.615166874999886,
+    "kernel_dropped_packets": 0,
+    "interface": "lo0",
+    "link_type": "BSD-loopback/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 2104,
+      "to_server_packets": 986,
+      "from_server_packets": 1118,
+      "captured_bytes": 1784090,
+      "udp_payload_bytes": 1716762,
+      "to_server_udp_bytes": 682351,
+      "from_server_udp_bytes": 1034411
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "finding": "All six native offers and six data submissions observed. Five completions succeed; participant-1/Session0 original message.send completion fails with a recorded application result. A data-invocation authority-busy marker is retained. Receive assertions were not reached, so zero observed receives does not establish zero delivery. Five helpers, both original server groups and private capture join without forced cleanup. Six durable retirements and three authority-busy retries are over the complete runtime including failure cleanup; no per-ID timing inference.",
+  "cause_resolved": false,
+  "remaining": "Resolve the recorded data authority-busy failure without changing original IDs, concurrency workload, current authority or deadlines; then requalify the same Mac EdDSA data component.",
+  "component_passed": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

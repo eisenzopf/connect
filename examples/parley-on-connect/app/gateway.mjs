@@ -1,5 +1,6 @@
 // Communications use public installed NodeClient handles only. No service,
 // Store, provider, internal helper protocol or model implementation is imported.
+import { AppMediaBridge } from "./media.mjs";
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual, inspect } from "node:util";
 
@@ -47,7 +48,7 @@ function savedReference(saved) {
 }
 export function publicError(error) {
     const local = new Set(["invalid-app-request", "unsupported-app-action", "different-original-intent", "unknown-app-actor",
-        "unknown-app-operation", "app-request-capacity", "app-intent-capacity", "app-snapshot-capacity", "app-resync-required", "app-reconnecting"]);
+        "unknown-app-operation", "app-request-capacity", "app-intent-capacity", "app-snapshot-capacity", "app-resync-required", "app-reconnecting", "app-media-busy", "app-media-stopped"]);
     if (local.has(error?.code)) return { code: error.code };
     if (error?.kind === "authentication" || error?.problem?.category === "forbidden") return { code: "permission-denied" };
     if (error?.certainty === "refused") return { code: "action-refused" };
@@ -58,14 +59,16 @@ export function publicError(error) {
 /** App-owned routing/presentation. Journal hints never grant membership or
  * capture authority; every read and action goes through the current SDK actor. */
 export class AppGateway {
-    #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #reconnects = new Map(); #closed = false; #closing;
-    constructor({ journal, actors, createClient, onError = () => {} }) {
+    #media; #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #reconnects = new Map(); #closed = false; #closing;
+    constructor({ journal, actors, createClient, createRtpPacket, onError = () => {} }) {
         if (!journal || typeof createClient !== "function" || !actors || Object.keys(actors).length > 5) fail("invalid-app-request");
         for (const [role, actor] of Object.entries(actors))
             if (!["owner", "assistant", "booker", "organizer", "observer"].includes(role) ||
                 !id(actor.identityId) || typeof actor.config !== "string" || typeof actor.label !== "string") fail("invalid-app-request");
         if (typeof onError !== "function") fail("invalid-app-request");
         this.#journal = journal; this.#actors = copy(actors); this.#factory = createClient; this.#onError = onError;
+        this.#media = new AppMediaBridge({ openConnection: (role, binding, options) => this.#openMedia(role, binding, options),
+            createPacket: createRtpPacket });
     }
     [inspect.custom]() { return "AppGateway(private)"; }
     toJSON() { return { kind: "app-gateway" }; }
@@ -168,6 +171,34 @@ export class AppGateway {
                         ["ready", "active"].includes(v.data.state))).map(peer => ({ role: peer.role, label: peer.label })) })),
             sampledAt: Date.now() };
     }
+    async #openMedia(role, binding, options) {
+        const client = this.#client(role), conversation = client.conversations.byId(binding.conversationId);
+        const current = await conversation.refresh(options);
+        const own = current.participants.find(p => p.identityId === this.#actor(role).identityId && p.active);
+        if (current.closed || !own) fail("app-resync-required");
+        const session = conversation.sessions.byId(binding.sessionId), state = await session.refresh(options);
+        const items = await this.#topology(role, binding.conversationId, options);
+        if (state.state !== "accepted" || !items.some(v => v.kind === "session_participant" &&
+            v.data.session_id === binding.sessionId && v.data.participant_id === own.id &&
+            v.data.membership_epoch === own.membershipEpoch && v.data.state === "present") ||
+            !items.some(v => v.kind === "connection" && v.data.connection_id === binding.connectionId &&
+                v.data.session_id === binding.sessionId && v.data.participant_id === own.id &&
+                ["ready", "active"].includes(v.data.state))) fail("app-resync-required");
+        const connection = session.connections.byId(binding.connectionId), media = connection.media;
+        const check = async opts => {
+            if (this.#client(role) !== client) fail("app-media-stopped");
+            const snapshot = await connection.refresh(opts);
+            if (!["ready", "active"].includes(snapshot.state)) fail("app-media-stopped");
+            const negotiation = await media.refresh(opts);
+            if (this.#client(role) !== client) fail("app-media-stopped");
+            return { generation: snapshot.generation, negotiation };
+        };
+        return { ...await check(options), media, check };
+    }
+    mediaOpen(role, owner, binding) { this.#actor(role); return this.#media.open(role, owner, binding); }
+    mediaSend(role, owner, input) { this.#actor(role); return this.#media.send(role, owner, input); }
+    mediaReceive(role, owner, input) { this.#actor(role); return this.#media.receive(role, owner, input); }
+    mediaCloseOwner(owner) { return this.#media.closeOwner(owner); }
     #recipients(role, names) {
         return names.map(name => { if (name === role) fail("invalid-app-request"); return this.#actor(name).identityId; });
     }
@@ -360,6 +391,7 @@ export class AppGateway {
         const existing = this.#reconnects.get(role); if (existing) return existing;
         const current = this.#clients.get(role);
         const work = (async () => {
+            await this.#media.closeRole(role);
             if (current) await current.close({ timeoutMs: 5000 });
             this.#clients.delete(role);
             const actor = this.#actor(role); // Closing the gateway fences replacement after the old owner joins.
@@ -374,6 +406,7 @@ export class AppGateway {
         this.#closed = true;
         const flights = [...this.#flights.values()].map(value => value.work).concat([...this.#reconnects.values()]);
         this.#closing = (async () => {
+            await this.#media.close();
             const settled = await Promise.allSettled([...this.#clients.values()].map(client => client.close({ timeoutMs: 5000 })));
             await Promise.allSettled(flights);
             this.#clients.clear();

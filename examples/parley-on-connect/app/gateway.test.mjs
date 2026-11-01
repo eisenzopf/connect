@@ -52,14 +52,18 @@ function fixture() {
                             service.connectionPresent = true; service.connectionId = sdk.connectionId;
                             return mutate("connection.offer", { conversationId: cid, sessionId: sid, connectionId: sdk.connectionId }, sdk, options, { id: sdk.connectionId });
                         }, byId: connectionId => ({
-                        refresh: async () => ({ id: connectionId, streamRevision: service.streamRevision, state: "ready" }),
+                        refresh: async () => { permitted(); return { id: connectionId, generation: service.connectionGeneration ?? 1, streamRevision: service.streamRevision, state: "ready" }; },
                         update: (update, revision, options) => mutate("connection.update", { conversationId: cid, sessionId: sid, connectionId },
                             { update, revision }, options, { connection: { id: connectionId } }),
                         end: (sdk, options) => mutate("connection.end", { conversationId: cid, sessionId: sid, connectionId }, sdk, options, { id: connectionId }),
-                        media: { refresh: async () => ({ streamRevision: service.streamRevision, streams: [
+                        media: { refresh: async () => { permitted(); return { binding: { conversationId: cid, sessionId: sid, connectionId }, sourceClock: true, streamRevision: service.streamRevision, streams: [
                             { id: "stream-1", medium: "audio", direction: "sendrecv" },
                             ...(service.projectForeignStream ? [{ id: "foreign-stream", medium: "audio", direction: "recvonly" }] : []),
-                        ] }) },
+                        ] }; }, streamById: streamId => ({
+                            sendRtp: async (packet, options) => { permitted(); service.packetCalls ??= []; service.packetCalls.push(packet);
+                                return { boundary: "local-media-queue", datagramSequence: packet.sequence }; },
+                            receivePacket: async () => { permitted(); return { kind: "gap", droppedPackets: 0n }; },
+                        }) },
                         streams: Object.fromEntries(["subscribe", "unsubscribe"].map(action => [action, (sdk, options) => {
                             // The installed public methods intentionally have
                             // different shapes: selectors versus Stream IDs.
@@ -113,14 +117,14 @@ function fixture() {
                 return [frame("conversation.snapshot", { revision: 1, cursor: "watermark", has_more: end < items.length,
                     ...(end < items.length ? { next_page: "page_" + end } : {}), items: items.slice(offset, end) })];
             } },
-            close: async () => { current.closes++; if (service.closeBarrier) await service.closeBarrier; current.closed = true; },
+            close: async () => { current.closes++; service.closeStarted?.(); if (service.closeBarrier) await service.closeBarrier; current.closed = true; },
         };
     };
     return service;
 }
 async function setup(service = fixture()) {
     const directory = await mkdtemp(join(root, "gateway-")), journal = await AppIntents.open(directory);
-    const gateway = new AppGateway({ journal, actors, createClient: service.createClient });
+    const gateway = new AppGateway({ journal, actors, createClient: service.createClient, createRtpPacket: (sequence, bytes) => ({ sequence, bytes: Buffer.from(bytes) }) });
     return { directory, journal, gateway, service, close: async () => { await gateway.close(); journal.close(); } };
 }
 
@@ -211,7 +215,7 @@ test("media offer saves original Connection and Stream IDs before submission and
     const uncertain = await f.gateway.command("owner", "join-media", action);
     assert.equal(uncertain.operation.operationId, prepared.operation.operationId); assert.equal(uncertain.operation.needsRecovery, true);
     await f.close();
-    const journal = await AppIntents.open(f.directory), gateway = new AppGateway({ journal, actors, createClient: service.createClient });
+    const journal = await AppIntents.open(f.directory), gateway = new AppGateway({ journal, actors, createClient: service.createClient, createRtpPacket: (sequence, bytes) => ({ sequence, bytes: Buffer.from(bytes) }) });
     const recovered = await gateway.recover("owner", prepared.operation.operationId);
     assert.deepEqual(recovered.result, { conversationId: action.conversationId, sessionId: action.sessionId, connectionId: saved.intent.scope.connectionId });
     assert.equal(service.calls.length, 1); assert.deepEqual(service.calls[0].sdk, saved.intent.input.sdk);
@@ -277,8 +281,9 @@ test("reconnect is explicit and closes the original client; malformed actions pe
 test("reconnect joins one original owner and refuses concurrent work until its replacement is ready", async () => {
     const f = await setup(); await f.gateway.capabilities("owner");
     let release; f.service.closeBarrier = new Promise(done => { release = done; });
+    const closeStarted = new Promise(done => { f.service.closeStarted = done; });
     const first = f.gateway.reconnect("owner"), duplicate = f.gateway.reconnect("owner");
-    assert.equal(first, duplicate); assert.equal(f.service.clients[0].closes, 1);
+    assert.equal(first, duplicate); await closeStarted; assert.equal(f.service.clients[0].closes, 1);
     await assert.rejects(f.gateway.capabilities("owner"), { code: "app-reconnecting" });
     await assert.rejects(f.gateway.command("owner", "during-reconnect", { type: "conversation.create", recipients: ["organizer"] }), { code: "app-reconnecting" });
     assert.equal(f.service.clients.length, 1); assert.equal(f.service.calls.length, 0);
@@ -310,4 +315,27 @@ test("UI preparation survives a lost observation without submitting until an exp
     const submitted = await f.gateway.recover("owner", prepared.operation.operationId);
     assert.equal(submitted.operation.state, "completed"); assert.equal(f.service.calls.length, 1);
     await f.close();
+});
+
+
+test("media bridge opens only the current own present Session and fences SDK IO on authority loss and reconnect", async t => {
+    const f = await setup(); t.after(f.close); const owner = {};
+    const binding = { conversationId: "conversation-created", sessionId: "session-1", connectionId: "connection-1" };
+    await assert.rejects(f.gateway.mediaOpen("owner", owner, { ...binding, connectionId: "foreign" }), { code: "app-resync-required" });
+    f.service.sessionState = "ended";
+    await assert.rejects(f.gateway.mediaOpen("owner", owner, binding), { code: "app-resync-required" });
+    f.service.sessionState = "accepted";
+    const lease = await f.gateway.mediaOpen("owner", owner, binding);
+    const send = { leaseId: lease.leaseId, streamId: "stream-1", sequence: 1,
+        packet: { kind: "rtp", base64: Buffer.from([128,111,0,1,0,0,3,192,0,0,0,7,1]).toString("base64") } };
+    assert.equal((await f.gateway.mediaSend("owner", owner, send)).boundary, "local-media-queue");
+    f.service.allowed = false;
+    await assert.rejects(f.gateway.mediaSend("owner", owner, send), { kind: "authentication" });
+    assert.equal(f.service.packetCalls.length, 1);
+    f.service.allowed = true;
+    await f.gateway.reconnect("owner");
+    await assert.rejects(f.gateway.mediaSend("owner", owner, send), { code: "app-media-stopped" });
+    assert.equal(f.service.clients[0].closed, true);
+    const replacement = await f.gateway.mediaOpen("owner", owner, binding);
+    assert.notEqual(replacement.leaseId, lease.leaseId);
 });

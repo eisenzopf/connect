@@ -1,0 +1,145 @@
+// Browser-facing packet ownership over genuine public Node SDK media handles.
+// This is an application boundary, not an implementation of the SDK transport.
+import { randomUUID } from "node:crypto";
+const fail = code => { throw Object.assign(Error(code), { code }); };
+const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
+function exact(value, keys) {
+    if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+        Object.keys(value).sort().join() !== [...keys].sort().join()) fail("invalid-app-request");
+}
+const fingerprint = value => JSON.stringify({ generation: value.generation, negotiation: value.negotiation });
+const directions = { send: ["sendonly", "sendrecv"], receive: ["recvonly", "sendrecv"] };
+
+export class AppMediaBridge {
+    #open; #packet; #owners = new Map(); #closed = false;
+    constructor({ openConnection, createPacket }) {
+        if (typeof openConnection !== "function") fail("invalid-app-request");
+        this.#open = openConnection; this.#packet = createPacket;
+    }
+    async open(role, owner, binding) {
+        exact(binding, ["conversationId", "sessionId", "connectionId"]);
+        if (!Object.values(binding).every(id)) fail("invalid-app-request");
+        if (this.#closed || typeof this.#packet !== "function") fail("unsupported-app-action");
+        const capturedBinding = structuredClone(binding);
+        await this.closeOwner(owner);
+        if (this.#closed || this.#owners.size >= 16) fail("app-request-capacity");
+        if (this.#owners.has(owner) || [...this.#owners.values()].some(v =>
+            v.binding.connectionId === capturedBinding.connectionId))
+            fail("app-media-busy");
+        const lease = { role, owner, binding: capturedBinding, id: randomUUID(),
+            abort: new AbortController(), active: new Map(), timer: null };
+        this.#owners.set(owner, lease);
+        lease.opening = (async () => {
+            const result = await this.#open(role, lease.binding, this.#options(lease));
+            if (lease.abort.signal.aborted || this.#owners.get(owner) !== lease) fail("app-media-stopped");
+            if (!Number.isSafeInteger(result.generation) || result.generation < 1 ||
+                !Array.isArray(result.negotiation?.streams) || result.negotiation.streams.length > 32 ||
+                Object.keys(lease.binding).some(k => result.negotiation.binding?.[k] !== lease.binding[k])) fail("app-resync-required");
+            lease.handle = result; lease.fingerprint = fingerprint(result); this.#touch(lease);
+            return { leaseId: lease.id, generation: result.generation,
+                negotiation: structuredClone(result.negotiation) };
+        })();
+        try { return await lease.opening; }
+        catch (error) {
+            lease.abort.abort(); clearTimeout(lease.timer);
+            if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
+            throw error;
+        }
+    }
+    #options(lease) {
+        return { timeoutMs: 2000, signal: AbortSignal.any([lease.abort.signal, AbortSignal.timeout(2000)]) };
+    }
+    #touch(lease) {
+        clearTimeout(lease.timer);
+        lease.timer = setTimeout(() => { void this.closeOwner(lease.owner).catch(() => {}); }, 5000);
+        lease.timer.unref();
+    }
+    #require(role, owner, leaseId) {
+        const lease = this.#owners.get(owner);
+        if (!lease || lease.role !== role || lease.id !== leaseId || lease.abort.signal.aborted || !lease.handle)
+            fail("app-media-stopped");
+        return lease;
+    }
+    async #run(role, owner, input, direction, work) {
+        if (!id(input.leaseId) || !id(input.streamId)) fail("invalid-app-request");
+        const leaseId = input.leaseId, streamId = input.streamId;
+        const lease = this.#require(role, owner, leaseId);
+        const stream = lease.handle.negotiation.streams.find(v => v.id === streamId);
+        if (!stream || !["audio", "video", "screen"].includes(stream.medium) ||
+            !directions[direction].includes(stream.direction)) fail("invalid-app-request");
+        const key = direction + ":" + streamId;
+        if (lease.active.has(key)) fail("app-media-busy");
+        const options = this.#options(lease); this.#touch(lease);
+        const operation = (async () => {
+            // Preserve the captured physical generation and exact negotiated
+            // revision/format. A gate/resource change requires a fresh lease.
+            // The public SDK remains authoritative at each actual packet IO.
+            const current = await lease.handle.check(options);
+            if (fingerprint(current) !== lease.fingerprint) {
+                lease.abort.abort(); fail("app-media-stopped");
+            }
+            this.#require(role, owner, leaseId);
+            const value = await work(lease.handle.media.streamById(streamId), options);
+            this.#require(role, owner, leaseId); // Discard late original replies.
+            return value;
+        })().finally(() => lease.active.delete(key));
+        lease.active.set(key, operation);
+        return operation;
+    }
+    send(role, owner, input) {
+        exact(input, ["leaseId", "streamId", "sequence", "packet"]);
+        if (!Number.isInteger(input.sequence) || input.sequence < 0 || input.sequence > 0xffffffff)
+            fail("invalid-app-request");
+        const packet = input.packet;
+        if (packet?.kind === "rtp") {
+            exact(packet, ["kind", "base64"]);
+            if (typeof packet.base64 !== "string" || packet.base64.length > 21864 ||
+                !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(packet.base64))
+                fail("invalid-app-request");
+            const bytes = Buffer.from(packet.base64, "base64");
+            if (bytes.length < 12 || bytes.length > 16396 || bytes.toString("base64") !== packet.base64)
+                fail("invalid-app-request");
+            // Copy/validate through the actual installed SDK before async IO.
+            const captured = this.#packet(input.sequence, bytes);
+            return this.#run(role, owner, input, "send", (stream, options) => stream.sendRtp(captured, options));
+        }
+        if (packet?.kind === "clock") {
+            exact(packet, ["kind", "report"]);
+            const report = packet.report;
+            exact(report, ["ssrc", "ntp", "rtp", "packets", "octets", "cname"]);
+            if (["ssrc", "rtp", "packets", "octets"].some(k => !Number.isInteger(report[k]) ||
+                report[k] < 0 || report[k] > 0xffffffff) || typeof report.ntp !== "string" ||
+                !/^(0|[1-9][0-9]{0,19})$/.test(report.ntp) || BigInt(report.ntp) >= 2n ** 64n ||
+                typeof report.cname !== "string" || !report.cname || Buffer.byteLength(report.cname) > 255)
+                fail("invalid-app-request");
+            const captured = { ...report, ntp: BigInt(report.ntp) }, sequence = input.sequence;
+            return this.#run(role, owner, input, "send", (stream, options) => stream.sendClock(sequence, captured, options));
+        }
+        fail("invalid-app-request");
+    }
+    receive(role, owner, input) {
+        exact(input, ["leaseId", "streamId"]);
+        return this.#run(role, owner, input, "receive", async (stream, options) => {
+            const packet = await stream.receivePacket(options);
+            if (packet.kind === "rtp") return { kind: "rtp", sequence: packet.datagramSequence,
+                base64: Buffer.from(packet.bytes).toString("base64") };
+            if (packet.kind === "clock") return { kind: "clock", sequence: packet.datagramSequence,
+                report: { ...packet.report, ntp: packet.report.ntp.toString() } };
+            if (packet.kind === "gap") return { kind: "gap", droppedPackets: packet.droppedPackets.toString() };
+            fail("app-resync-required");
+        });
+    }
+    async closeOwner(owner) {
+        const lease = this.#owners.get(owner); if (!lease) return;
+        lease.abort.abort(); clearTimeout(lease.timer);
+        await Promise.allSettled([lease.opening, ...lease.active.values()]);
+        if (this.#owners.get(owner) === lease) this.#owners.delete(owner);
+    }
+    async closeRole(role) {
+        await Promise.all([...this.#owners.values()].filter(v => v.role === role).map(v => this.closeOwner(v.owner)));
+    }
+    async close() {
+        this.#closed = true;
+        await Promise.all([...this.#owners.keys()].map(owner => this.closeOwner(owner)));
+    }
+}

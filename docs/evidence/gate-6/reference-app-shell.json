@@ -116,5 +116,11 @@
     "installed_verification_evidence": "docs/evidence/gate-6/reference-app-installed-connection-controls.json",
     "installed_checks_per_platform": 21,
     "capture_playback_verified": false
+  },
+  "media_bridge_candidate": {
+    "evidence": "docs/evidence/gate-6/reference-app-media-bridge.json",
+    "component_functions_passed": 49,
+    "runtime_verified": false,
+    "capture_playback_verified": false
   }
 }

@@ -67,12 +67,14 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
         const url = new URL(request.url, origin);
         if (url.origin !== origin || url.search || url.hash) { json(response, 400, { error: { code: "invalid-app-request" } }); return; }
         if (request.method === "GET" && url.pathname === "/") {
-            for (const [key, value] of sessions) if (value.expires <= Date.now()) sessions.delete(key);
+            for (const [key, value] of sessions) if (value.expires <= Date.now()) {
+                await gateway.mediaCloseOwner?.(value.mediaOwner); sessions.delete(key);
+            }
             const existing = (request.headers.cookie ?? "").split(";").map(v => v.trim()).filter(v => v.startsWith(cookieName + "="));
             let token = existing.length === 1 ? existing[0].slice(cookieName.length + 1) : null;
             if (!sessions.has(token)) {
                 if (sessions.size >= 16) { json(response, 503, { error: { code: "app-request-capacity" } }); return; }
-                token = randomBytes(32).toString("hex"); sessions.set(token, { role: "owner", expires: Date.now() + 3600000 });
+                token = randomBytes(32).toString("hex"); sessions.set(token, { role: "owner", expires: Date.now() + 3600000, mediaOwner: {} });
             }
             response.setHeader("Set-Cookie", cookieName + "=" + token + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600");
             await serve(response, join(assets, "index.html"), "text/html"); return;
@@ -94,7 +96,15 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
         const cookies = (request.headers.cookie ?? "").split(";").map(v => v.trim()).filter(v => v.startsWith(cookieName + "="));
         const session = cookies.length === 1 ? sessions.get(cookies[0].slice(cookieName.length + 1)) : undefined;
         if (!session || session.expires <= Date.now()) { json(response, 401, { error: { code: "app-session-expired" } }); return; }
-        const actor = session.role, input = await body(request); let value;
+        const actor = session.role, mediaOwner = session.mediaOwner, input = await body(request); let value;
+        const mediaAction = async action => {
+            if (session.role !== actor || session.mediaOwner !== mediaOwner) fail("app-media-stopped");
+            const result = await action();
+            if (session.role !== actor || session.mediaOwner !== mediaOwner) {
+                await gateway.mediaCloseOwner(mediaOwner); fail("app-media-stopped");
+            }
+            return result;
+        };
         switch (url.pathname) {
             case "/api/state": {
                 object(input, [], ["cursor"]);
@@ -110,7 +120,21 @@ export async function startAppServer({ gateway, sdkDirectory, roles, port = 0, o
             }
             case "/api/actor":
                 object(input, ["role"]); if (!roles.some(v => v.role === input.role)) fail("invalid-app-request");
-                session.role = input.role; value = { actor: input.role, mode: "fixture" }; break;
+                session.mediaOwner = {}; session.role = input.role;
+                await gateway.mediaCloseOwner?.(mediaOwner);
+                value = { actor: input.role, mode: "fixture" }; break;
+            case "/api/media/open":
+                object(input, ["conversationId", "sessionId", "connectionId"]);
+                value = await mediaAction(() => gateway.mediaOpen(actor, mediaOwner, input)); break;
+            case "/api/media/send":
+                object(input, ["leaseId", "streamId", "sequence", "packet"]);
+                value = await mediaAction(() => gateway.mediaSend(actor, mediaOwner, input)); break;
+            case "/api/media/receive":
+                object(input, ["leaseId", "streamId"]);
+                value = await mediaAction(() => gateway.mediaReceive(actor, mediaOwner, input)); break;
+            case "/api/media/close":
+                object(input, []);
+                await gateway.mediaCloseOwner?.(mediaOwner); value = { stopped: true }; break;
             case "/api/view": object(input, ["conversationId"], ["cursor"]); value = await gateway.view(actor, input.conversationId, input.cursor); break;
             case "/api/prepare": object(input, ["key", "action"]); value = await gateway.prepareIntent(actor, input.key, input.action); break;
             case "/api/lookup": object(input, ["key"]); value = { operation: gateway.lookupKey(actor, input.key) }; break;

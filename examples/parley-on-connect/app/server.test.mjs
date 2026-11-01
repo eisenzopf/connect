@@ -83,3 +83,27 @@ test("owned shutdown closes an actual abandoned header socket and joins the gate
     assert.ok(Date.now() - started < 2000); assert.deepEqual(f.calls, [{ type: "close" }]);
     await f.server.close(); assert.equal(f.calls.length, 1);
 });
+
+
+test("media HTTP routes keep owner identity private and actor switch fences late lease publication", async t => {
+    const f = await fixture(t); let release, entered;
+    const ready = new Promise(r => { entered = r; }), barrier = new Promise(r => { release = r; });
+    const owners = [];
+    f.gateway.mediaOpen = async (role, owner, binding) => {
+        owners.push(owner); f.calls.push({ type: "media-open", role, binding }); entered(); await barrier;
+        return { leaseId: "old-lease", negotiation: { streams: [] } };
+    };
+    f.gateway.mediaCloseOwner = async owner => { f.calls.push({ type: "media-close", owner }); };
+    const opening = f.api("media/open", { conversationId: "c1", sessionId: "s1", connectionId: "conn1" });
+    await ready;
+    assert.equal((await f.api("actor", { role: "organizer" })).status, 200);
+    release(); const late = await opening; assert.equal(late.status, 400);
+    assert.deepEqual(await late.json(), { error: { code: "app-media-stopped" } });
+    assert.ok(f.calls.filter(c => c.type === "media-close").every(c => c.owner === owners[0]));
+    f.gateway.mediaOpen = async (role, owner) => { owners.push(owner); return { leaseId: "new-lease", actor: role }; };
+    const fresh = await (await f.api("media/open", { conversationId: "c1", sessionId: "s1", connectionId: "conn1" })).json();
+    assert.deepEqual(fresh, { leaseId: "new-lease", actor: "organizer" }); assert.notEqual(owners[0], owners[1]);
+    const count = owners.length;
+    assert.equal((await f.api("media/open", { conversationId: "c1", sessionId: "s1", connectionId: "conn1" }, { Origin: "https://foreign.example" })).status, 403);
+    assert.equal(owners.length, count);
+});

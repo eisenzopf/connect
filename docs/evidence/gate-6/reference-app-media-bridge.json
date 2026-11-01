@@ -1,0 +1,51 @@
+{
+  "format": "connect/reference-app-media-bridge-component/1",
+  "task": "G6-072",
+  "status": "public-sdk-http-media-boundary-component-tested-runtime-required",
+  "source_revision_before_change": "1b79a11e5ad41f29331bf374b6a45e054bb284c6",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/gateway.mjs": "500ef2a8ed3cc4cdcf71df553a230e04eb8e6c31e759c3ced9e5a91e5cec68af",
+    "examples/parley-on-connect/app/gateway.test.mjs": "05163351f97bc3907ece9b1f4f018e330749d9b5996bb83ffc83e240ba21cdc7",
+    "examples/parley-on-connect/app/main.mjs": "2396cd19cc043e14123128a8a5c7a92373e5ba32e5ca0de2eaddd335534efb99",
+    "examples/parley-on-connect/app/server.mjs": "4ee9a79dc1b3b2f8026d92601915f2b889af6676e06d80db24d4ef5ea5044fb7",
+    "examples/parley-on-connect/app/server.test.mjs": "1174f233a9f53e2e98cf0829d6f6d805c605845cc1650e292d354461a1e4b59e",
+    "examples/parley-on-connect/app/media.mjs": "4cf2fb573bdd544e4a787da2de956b9036bb954eb7dc183a7412f89df966c3d0",
+    "examples/parley-on-connect/app/media.test.mjs": "dab1a42374eeec2af63ac1f2ca302b45fad488939e3a2064c7987f9bc4d1c23d"
+  },
+  "local_verification": {
+    "command": "npm run test:app --prefix examples/parley-on-connect",
+    "app_component_functions_passed": 49,
+    "node": "v26.7.0",
+    "scope": "SDK-shaped component clients and actual local HTTP server; no installed packet or browser capture/playback proof."
+  },
+  "implementation": {
+    "public_sdk": [
+      "SdkRtpPacket",
+      "connection.refresh",
+      "connection.media.refresh",
+      "connection.media.streamById.sendRtp",
+      "connection.media.streamById.sendClock",
+      "connection.media.streamById.receivePacket"
+    ],
+    "ownership": "One browser-session owner and actor per lease; only current own ready/active Connections in accepted present Sessions. Original Connection generation and complete negotiation are rechecked before packet IO. SDK/server remain authoritative.",
+    "bounds": {
+      "owners": 16,
+      "negotiated_streams_per_owner": 32,
+      "in_flight_per_stream_direction": 1,
+      "sdk_operation_shared_timeout_ms": 2000,
+      "idle_retirement_ms": 5000,
+      "rtp_bytes": 16396
+    },
+    "failure_recovery": "Actor switches, reconnect and shutdown abort and join original in-flight operations. Late replies cannot publish an old lease or old packet. No waiting application packet queue, silent media replay or invented delivery receipt. Explicit fresh lease is required after negotiation/resource changes.",
+    "http": "Same-origin POST, exact body fields, HttpOnly SameSite session and X-Parley boundary. Internal owner object stays server-side. RTP and exact NTP/gap integer values are serialized without private configuration or SDK internals."
+  },
+  "remaining": [
+    "Wire owned browser capture and render through this boundary using public codecs",
+    "Verify actual installed packet IO, identified duplex decoded media and failure/teardown lifecycle",
+    "Measure quality and bounds in required platform/browser profiles"
+  ],
+  "installed_runtime_verified": false,
+  "browser_capture_playback_verified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
