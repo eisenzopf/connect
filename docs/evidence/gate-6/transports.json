@@ -1252,7 +1252,8 @@
       "data_workload_passed": false
     },
     "endpoint_precondition_runtime_verified": true,
-    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json"
+    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json",
+    "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json"
   },
   "native_signing_cohorts": {
     "status": "source-verified-ES256-configuration-and-actor-stage-pass",
@@ -1292,7 +1293,7 @@
     "runtime_scope": "Normal production CLI ES256 bootstrap, stopped-backup restore, exact signing seed refusal, public scoped enrollment/signed reads/original recovery/current revocation. No Conversation/Session/Connection workload, packet capture, browser, remote topology or decoded media qualification."
   },
   "native_packet_capture": {
-    "status": "implemented-runtime-unverified",
+    "status": "source-verified-private-capture-stage-during-data-negative",
     "platform": "Ubuntu24.04x86_64",
     "transport": "native-quic",
     "behavior": "Separate owned tcpdump on loopback/exact fixture UDP port, private raw PCAP/logs. Require both directions, wire bytes at least six64KiB payloads each way, no kernel drops, bounded complete records and original capture owner join. Reject foreign/truncated/fragmented records, unsupported links, early packet-bound exit or forced cleanup.",
@@ -1302,11 +1303,19 @@
       "scripts/check-transport-fixtures.py": "9b1a03c3a80ae5c702066c7cc4c5b5fd63525a5116adbe6ea8496d0a4775d837",
       ".github/workflows/gate6-transport-matrix.yml": "8027e2b96d4d4336d3a33f2308062bf1a2594fcf079f4962813d026e6c18642e"
     },
-    "runtime_verified": false,
+    "runtime_verified": true,
     "decoded_media_verified": false,
     "full_matrix_cells_qualified": 0,
     "local_transport_guards_passed": 28,
-    "scope": "Actual private native data packet capture only; no decoded audio/video, browser/remote topology, replacement ownership or full cell qualification."
+    "scope": "Actual private native data packet capture only; no decoded audio/video, browser/remote topology, replacement ownership or full cell qualification.",
+    "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json",
+    "runtime_scope": "Private native-loopback packet capture during the six-offer data-flow negative. Complete captured records and original capture owner join verified; ciphertext byte counts do not establish payload delivery, independent decoded media, local topology collector completion or a full cell.",
+    "observed": {
+      "packets": 666,
+      "pcap_bytes": 1317853,
+      "kernel_dropped_packets": 0,
+      "original_owner_joined": true
+    }
   },
   "native_platform_producers": {
     "status": "implemented-macos-runtime-unverified",
@@ -1349,7 +1358,8 @@
         "target": "ubuntu24-x86_64",
         "signing_algorithm": "EdDSA",
         "component": "data",
-        "status": "pending-behind-original-capture-run"
+        "status": "confirmed-live-verified-source-preparation",
+        "job_id": 124743962150
       }
     ]
   }

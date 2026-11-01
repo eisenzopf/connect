@@ -1,0 +1,70 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "1b86e13d43df2d22b7662967c8fb40ea934ee032",
+  "workflow_run_id": 41270267591,
+  "job_id": 124742518009,
+  "artifact_id": 13069431270,
+  "zip_sha256": "00f49357f5831d26d681d0d6ca60c5a87285b68440e6ec316a70fb44b59cb7eb",
+  "source_inputs_sha256": "618d014bdc06f2450dfe77fbb2cd58df0d93b5ba6e609ea978dc077a479eb2d0",
+  "report_sha256": "4d0f6fe2fb789bb8865aebabea3fb30d2807c3521e812e8107187fc12e16aaa7",
+  "conversation_report_sha256": "d6a17e8e6d34749b5aa1f5ce3d93aa7da9f1ddedc64890b35f7e10c91db9bf46",
+  "sources_verified": {
+    "git": 4696,
+    "prepared": 4094,
+    "pinned_archives": 4
+  },
+  "sdk_dist_files_verified": 192,
+  "binary_sha256": "1d903cdb2a9c441a5fd142480da60376d2cfb784d7205708093948b6484d000e",
+  "native_offers_completed": 6,
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "validation",
+    "certainty": "refused",
+    "problem": {
+      "code": 400,
+      "category": "validation",
+      "reason": "invalid_request"
+    },
+    "source_stack": []
+  },
+  "cause_established": false,
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned Linux loopback UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "e606dac77850ceac28640e37fdca55de75b8337cef482d861be23cae1cd54f32",
+    "pcap_bytes": 1317853,
+    "captured_seconds": 7.2636280799999895,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and loopback host and exact owned native server port",
+    "counts": {
+      "packets": 666,
+      "to_server_packets": 368,
+      "from_server_packets": 298,
+      "captured_bytes": 1307173,
+      "udp_payload_bytes": 1279201,
+      "to_server_udp_bytes": 664011,
+      "from_server_udp_bytes": 615190
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "observed_sdk_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "runtime_scope": "Private native-loopback packet capture during the six-offer data-flow negative. Complete captured records and original capture owner join verified; ciphertext byte counts do not establish payload delivery, independent decoded media, local topology collector completion or a full cell.",
+  "native_connection_payload_workload_verified": false,
+  "local_topology_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
