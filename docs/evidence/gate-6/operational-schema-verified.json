@@ -1,12 +1,12 @@
 {
   "format": "connect/verified-operational-schema/1",
-  "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
-  "workflow_run_id": 41254268813,
-  "job_id": 124693998064,
-  "artifact_id": 13061664199,
-  "artifact_zip_sha256": "d23ee866b0b18f4d73800b3c37999aefffc7daf29546c0f7d85ec4f8fe63f195",
+  "source_revision": "230374daa39c01033f2e94dd3d481963facb5acd",
+  "workflow_run_id": 41262455931,
+  "job_id": 124718313647,
+  "artifact_id": 13065419172,
+  "artifact_zip_sha256": "32a103f4b577d53cc76fd2e6b2cca8b072ffbaf58e327f2ca974862b8ed52529",
   "sources_verified": {
-    "git": 4624,
+    "git": 4652,
     "prepared": 4094,
     "pinned_archives": 4
   },
@@ -20,5 +20,29 @@
   "mcp_physical_connections_in_closed_enum": true,
   "runtime_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "previous_schema_evidence": {
+    "format": "connect/verified-operational-schema/1",
+    "source_revision": "c6f9c5ea9c654c0eddc54aa88920dcbc7231dcda",
+    "workflow_run_id": 41254268813,
+    "job_id": 124693998064,
+    "artifact_id": 13061664199,
+    "artifact_zip_sha256": "d23ee866b0b18f4d73800b3c37999aefffc7daf29546c0f7d85ec4f8fe63f195",
+    "sources_verified": {
+      "git": 4624,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "protocol_cases_passed": 1,
+    "generated": {
+      "application-http-dispatch.json": "40025d8b6d77765dda1aaeca27e0f73e3eddc2c464dddd5beddae1906e420b67",
+      "openapi-application-http.json": "c3cdc2252b77822799309abf887b1ce187562dadce3f05225abfe1ffd2b1bd21"
+    },
+    "generated_inputs_match_current_sources": true,
+    "authorization_description_includes_distinct_installation_grant": true,
+    "mcp_physical_connections_in_closed_enum": true,
+    "runtime_qualified": false,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  }
 }

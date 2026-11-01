@@ -89,8 +89,9 @@
     "source_revision": "230374da",
     "run_id": 41262455931,
     "job_id": 124718313843,
-    "status": "live",
-    "scope": "22focusedfunctions and corrected3role production process profile; no completion claim"
+    "status": "terminal-profile-browser-launch-failure-all22runtime-functions-pass",
+    "scope": "22focusedfunctions and corrected3role production process profile; no completion claim",
+    "evidence": "docs/evidence/gate-6/operational-runtime-230.json"
   },
   "pending_socket_cleanup": {
     "status": "implemented-not-yet-runtime-verified",
@@ -245,7 +246,7 @@
       "schema_generation": "Passed and independently source-verified at c6f9c5ea"
     }
   },
-  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-054.json",
+  "runtime_component_verification": "docs/evidence/gate-6/operational-runtime-230.json",
   "fixture_type_correction": {
     "status": "implemented-not-yet-compiled",
     "health_snapshot": "Explicit as_ref for awaited Box<OperationalHealth> temporary",
@@ -295,5 +296,10 @@
     "finding": "Terminal failure after production CLI compilation, server readiness and actual SDK helper read. Retained job traceback identifies browser_lines.read(15): owned browser ended before ready. Raw browser stderr was private and not retained. Source review finds no TypeScript installation/build in the clean runtime workflow although the driver requires ignored sdk/typescript/dist. Add explicit locked build, hash generated SDK inputs, and retain closed startup-failure stage/code without private messages. No three-role resource measurement pass.",
     "process_privacy_guards_passed": 5,
     "scope": "Actual separate production server/helper/browser measurement still required;18focused functions independently verified. Expanded22function run41255161108 also reaches process failure; original evidence awaits independent audit."
+  },
+  "focused_process_candidate": {
+    "status": "implemented-not-yet-executed",
+    "browser_sandbox": "disabled-in-isolated-synthetic-ci-profile",
+    "scope": "Actual production server/helper/browser measurement only; unchanged component behavior requires its separate22function evidence. No media/model/provider run."
   }
 }

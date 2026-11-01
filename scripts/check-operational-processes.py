@@ -179,6 +179,11 @@ def main():
             endpoint=f"http://127.0.0.1:{http_port}", credential=application["credential"],
             profile=str(PRIVATE / "browser-profile"))))
         browser_env = dict(env, CONNECT_PLAYWRIGHT_MODULE=str(ROOT / "scripts/video/observer-tools/node_modules/playwright/index.mjs"))
+        # This disposable CI profile uses the same explicit Chromium sandbox
+        # mode as the successful Playwright installed-app fixture. The owned
+        # launcher still bounds and joins the original browser process.
+        browser_env["CONNECT_GATE6_OWNED_BROWSER_CONTAINER"] = "1"
+        report["browser_sandbox"] = "disabled-in-isolated-synthetic-ci-profile"
         chrome = os.environ.get("CONNECT_GATE6_CHROME")
         if chrome:
             browser_env["CONNECT_GATE6_CHROME"] = chrome
