@@ -85,8 +85,10 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         { timeoutMs: 8000, operationId: intent.operationId });
         const reference = operation.referenceJson();
         assert.equal(reference.command, "connection.replace"); assert.equal(reference.operation_id, intent.operationId);
-        assert.deepEqual(reference.scope, { conversation_id: intent.conversationId,
-            session_id: intent.sessionId, connection_id: intent.connectionId });
+        assert.deepEqual(Object.keys(reference.scope).sort(), ["connection_id", "conversation_id", "session_id"]);
+        assert.equal(reference.scope.conversation_id, intent.conversationId);
+        assert.equal(reference.scope.session_id, intent.sessionId);
+        assert.equal(reference.scope.connection_id, intent.connectionId);
         await save(join(directory, "original-reference.json"), reference);
         phase = "original-allocation-root";
         const frames = await controller.raw.request(controller.raw.validate({ v: 2, id: "target_" + randomUUID(),
@@ -160,6 +162,8 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
         report.passed = true;
     } catch (error) {
         report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+        const at = error.stack?.match(/transport_replacement_target\.mjs:(\d+):(\d+)/);
+        if (at) report.failure.source = { line: Number(at[1]), column: Number(at[2]) };
         throw error;
     } finally {
         if (worker && !report.target_worker_joined) {
@@ -171,8 +175,8 @@ export async function physicalReplacementTarget({ controller, retireOriginal, pr
             }
         }
         await log?.close();
-        report.target_executable_unchanged = hash(await readFile(executable)) === executableSha256;
-        report.target_config_unchanged = hash(await readFile(config)) === configHash;
+        report.target_executable_unchanged = await readFile(executable).then(bytes => hash(bytes) === executableSha256, () => false);
+        report.target_config_unchanged = await readFile(config).then(bytes => hash(bytes) === configHash, () => false);
         report.passed &&= report.target_worker_joined && !report.target_worker_forced &&
             report.target_executable_unchanged && report.target_config_unchanged;
         await save(join(directory, "stage.json"), report);

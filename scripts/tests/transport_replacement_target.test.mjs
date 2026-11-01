@@ -42,14 +42,15 @@ test("a changed original allocation root is recorded negative before any physica
         await writeFile(executable, "invalid-original-must-refuse-before-spawn", { mode: 0o700 });
         const value = intent(); value.target.nativeConfig = config;
         const reference = { command: "connection.replace", operation_id: value.operationId,
-            scope: { conversation_id: value.conversationId, session_id: value.sessionId, connection_id: value.connectionId } };
+            scope: Object.assign(Object.create(null), { conversation_id: value.conversationId,
+                session_id: value.sessionId, connection_id: value.connectionId }) };
         let originalSubmitted = false, sourceClosed = false;
         const controller = { conversations: { byId: () => ({ sessions: { byId: () => ({ connections: { byId: () => ({
             replaceDevice: async (_, options) => {
                 assert.equal(options.operationId, value.operationId);
                 const saved = JSON.parse(await readFile(join(directory, "stage/original-command.json"), "utf8"));
                 assert.equal(saved.operation_id, value.operationId); originalSubmitted = true;
-                return { referenceJson: () => structuredClone(reference), wait: () => assert.fail("wrong root reached completion wait") };
+                return { referenceJson: () => reference, wait: () => assert.fail("wrong root reached completion wait") };
             },
         }) } }) } }) }, raw: { validate: v => v, request: async () => [{ value: { type: "operation.updated", payload: {
             operation_id: value.operationId, record_id: "original-record", revision: 0,
@@ -62,6 +63,7 @@ test("a changed original allocation root is recorded negative before any physica
         assert.equal(originalSubmitted, true); assert.equal(sourceClosed, false);
         assert.equal(result.passed, false); assert.equal(result.target_worker_joined, false);
         assert.equal(result.failure.phase, "original-allocation-root");
+        assert.ok(result.failure.source.line > 0);
         assert.equal(result.target_config_unchanged, true); assert.equal(result.target_executable_unchanged, true);
     } finally { await rm(directory, { recursive: true, force: true }); }
 });
