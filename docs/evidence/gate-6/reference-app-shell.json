@@ -6,47 +6,55 @@
   "implementation": {
     "app_owned_intent_journal": "Bounded128-record private application SQLite state; original IDs before dispatch, no automatic reattempt after uncertainty/process exit, immutable replay, monotone bound observations, known not-submitted refusal, actor-scoped body/reference-free progress.",
     "connect_database_access": false,
-    "communication_transport": "Gateway routes communications through the installed public Node SDK; real backend application execution remains required.",
-    "public_sdk_gateway": "Implemented typed ordinary participant routing, original-ID recovery, explicit reconnect, finite authorized history/topology reads, invitations/decisions and connection-update controls. SDK-shaped fixtures only so far.",
+    "communication_transport": "Communications use installed public Node SDK handles; owned browser capture uses public codec/RTP exports with an app-owned HTTP boundary. Recorded installed controls/lifecycle evidence is linked below. New SDK media freshness package qualification remains pending.",
+    "public_sdk_gateway": "Typed participant routing, immutable original-ID recovery, authorized paged history/topology, invitations, media gates/offers/stream selection and original Ends are implemented and exercised against the installed SDK/runtime in the recorded scopes.",
     "http_boundary": "Implemented loopback-only Host/Origin/session checks, bounded body/concurrency/socket lifetimes, private/static symlink refusal and joined shutdown.",
-    "ui": "Responsive participant selection, timeline, invitations, operation progress and explicit original-ID recovery. Actual macOS Chrome component passed desktop creation/text/invitation decision, denied microphone/camera, 320px layout and offline/reload recovery; backend simulated. Abort exceptions are wrapped without mutating browser-owned code; offline exposes saved original recovery immediately.",
-    "startup": "One-command app/run.mjs now snapshots the installed binary, creates a protected public-CLI installation, seals bootstrap files, provisions four synthetic identities through the installed NodeAdministrativeClient and installs explicit non-admin, three-peer scoped credentials through public issue/issue-resume. Original setup/issuance IDs, ports and absolute expiry persist; native and application tables are combined for the ordinary SDK. Owned server/app children have bounded private logs and joined shutdown. Actual installed execution pending.",
+    "ui": "Desktop and320px keyboard participant selection, conversation/timeline, incoming invitation decisions, denied microphone/camera, operation progress, explicit offline Reconnect and original status recovery have real installed backend evidence. Owned synthetic audio/video/lifecycle scope is separately recorded; current candidate freshness/profile checks remain open.",
+    "startup": "One-command app/run.mjs snapshots its provided installed runtime, provisions four synthetic scoped identities and verified native media Endpoints through public CLI/SDK APIs, and retains original setup/issuance/verification IDs. Cold ordinary-consumer setup, restart and joined shutdown have recorded installed evidence. No manual database edits or user-copied resource IDs are part of the UI.",
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
-    "examples/parley-on-connect/app/gateway.mjs": "084c02efcc023197759c94815d84471d07d75705790d5ba11c325cd071950068",
-    "examples/parley-on-connect/app/gateway.test.mjs": "93124ada0b6b21d9fe7b234df553b59f42d9629e7e68c81ccc91f12af2a78d4e",
+    "examples/parley-on-connect/app/gateway.mjs": "358d51fc035651cd95270b0219672302c38372031ed6ed051aceb271677f4e86",
+    "examples/parley-on-connect/app/gateway.test.mjs": "a0f725b76bae30352a8a11cb3636d8289ff23155059793071dc8cee228377e21",
     "examples/parley-on-connect/app/intents.mjs": "fd1079c69378bf6b7bef691d9d3d0cbbcbfd550f051a5446c96d98e37bf3956f",
     "examples/parley-on-connect/app/intents.test.mjs": "f99135240e9ed9dfcb1ee379020bd357e420d35b5562cc4eaf3a682f107d0d0a",
-    "examples/parley-on-connect/app/main.mjs": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
-    "examples/parley-on-connect/app/server.mjs": "121dc99a3fd23ee44f39a67cc5f20c364bda52f4e0c6a4c2c770e0a0c7b38b04",
-    "examples/parley-on-connect/app/server.test.mjs": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
-    "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
-    "examples/parley-on-connect/app/ui/app.mjs": "fd0f9077e048e6565064e7725c37db2a99175c0b44f442bfdd9c0c9df9ca203d",
-    "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
-    "scripts/check-reference-app-ui.mjs": "d725540917fc1b991fb5a446a511d2e5ab3ac644a89aec4b1341fe686ed29a50",
-    "examples/parley-on-connect/app/run.mjs": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
-    "examples/parley-on-connect/app/setup.mjs": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
-    "examples/parley-on-connect/app/setup.test.mjs": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
+    "examples/parley-on-connect/app/main.mjs": "12dc3d7c18f3546fdd6bf3a9c7388d8bc2f55dafc87b959b4bc73d0578ba1e1d",
+    "examples/parley-on-connect/app/server.mjs": "736389c02b1d9b27447ea2a93597342ca6915a13b9ccb7d6efe191773a9b74d5",
+    "examples/parley-on-connect/app/server.test.mjs": "cb9b867bccc5ff3fbbca8a72bbc4871a58b848fd89c021439569a1107d0b4bb4",
+    "examples/parley-on-connect/app/ui/app.css": "167ce3761c48ca12d4b24e90d8c0d060e1b34fe1ec0deb178c6ba4a34cdff0f3",
+    "examples/parley-on-connect/app/ui/app.mjs": "85921f36bee236c9cf319ebdaa0a4192b80b9016fb353265aa637032c8620a9c",
+    "examples/parley-on-connect/app/ui/index.html": "d5b4ff133efafc28e25078b259aa357e1643d6f62c2d48cf5435b242a2240a20",
+    "scripts/check-reference-app-ui.mjs": "3bd2b097df1c1e526b01a01d19f0238adb4d3c2132ed90124604a920fda71b8b",
+    "examples/parley-on-connect/app/run.mjs": "4dfaeff88b9a09d781602001f6bac7950a5d28c46e665e3d44cf9b4426ed69d2",
+    "examples/parley-on-connect/app/setup.mjs": "d0ea21f0bbaffe027f9ff637b73e0ee1c673db9482e0505c726972671cf4e0dd",
+    "examples/parley-on-connect/app/setup.test.mjs": "2c2e4fa58de0234b7bc4c32187b4fa236c327c70c6511c16a212a208e24dd1ea",
     "scripts/install-reference-app-candidate.py": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
-    "scripts/check-reference-app-installed.mjs": "33b0e9c1daa63c68c8c9fed2301d5100656dd85ea18ca4e2c54d382b62481c3a",
-    ".github/workflows/gate6-reference-app.yml": "e7930fa4636a4b8306760bf732d07eeb472ea4597489b77d16a81ea25c2b6cee",
-    "examples/parley-on-connect/app/diagnostics.mjs": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
-    "examples/parley-on-connect/app/diagnostics.test.mjs": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e"
+    "scripts/check-reference-app-installed.mjs": "ffe402d26860feb68d3a16ec6287fb9f20a85dd205f0e8287fcba91a0c1db782",
+    ".github/workflows/gate6-reference-app.yml": "7234b8be1a4b5502e1f724fad017428aab31bd8bd4311344f2b47a7043393d84",
+    "examples/parley-on-connect/app/diagnostics.mjs": "5f2831b9f87a4fd2a39aebfbd313f79e2ff1dc952339ffc2b32222b243f45ead",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "9ad41e10165b7c2b130a66ec24a7b7cfb935b14c141b7233bbfe28bb323c0489",
+    "examples/parley-on-connect/app/media.test.mjs": "88b1b9fd4797e2ef23e8a742432fbfeb53b4eb30ce50856ff4dbf2099f5baf72",
+    "examples/parley-on-connect/app/media-session.test.mjs": "7544bfc190ac6cd780f4c634f68e26a68ad059cff26a03adad132ac0201a8191",
+    "examples/parley-on-connect/app/media.mjs": "b862602210e2b1cbbbf6b60b4b735c306c4b4587b5cf34af8926e5148689d5f7",
+    "examples/parley-on-connect/app/media-playout.test.mjs": "214be0a23931a335ef80140e434247fff81817987001d36d8836d159fed066ba",
+    "examples/parley-on-connect/app/browser-media.test.mjs": "4f253606d22db7466856af3a95278f8626ff0a7f34e5da09d5e1c6d0647fb7af",
+    "examples/parley-on-connect/app/ui/media-session.mjs": "1fd28c7821e47add7f2d320f5d1a2cb4837c9bd020d236869a98fbef76d69968",
+    "examples/parley-on-connect/app/ui/media.mjs": "52239777580f13ddc9f7fc75603a5ce04da14df7bff776a912ce9a5f6a7009e0",
+    "examples/parley-on-connect/app/ui/audio-worklet.mjs": "bf8d66629a6ce60686c0f710b177e635e020e779e47ff1727146f1dd835154c4",
+    "examples/parley-on-connect/app/ui/media-playout.mjs": "a3903ca2b8e4897efcd7ca552d28315835806edd47a73ef6b7265720186f9c9c",
+    "examples/parley-on-connect/app/ui/media-clock.mjs": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 27,
+    "functions_passed": 75,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "7journal,11SDK-shaped gateway,5real HTTP/socket,3setup and1closed-diagnostic privacy case pass. Held original-owner closure verifies concurrent reads/mutations refuse, duplicate reconnects share one flight, and shutdown creates no replacement. Actual production observations remain separate and incomplete."
+    "scope": "75Node26 application component cases pass. Separately31RustSDK and45Node/Python adapter cases verify live queue/result expiration. These local checks do not qualify new installed production packages."
   },
   "remaining_requirements": [
-    "Verify actual one-command startup/scoped enrollment, restart and original recovery; current three setup tests use SDK/CLI-shaped fixtures.",
-    "Real installed Node SDK/native helper/Connect server application execution",
-    "Complete required browser flows against the actual installed backend, with Linux/Node22 and full keyboard participant selection; current 12-assertion macOS component uses a simulated backend.",
-    "Complete functional negotiated-media controls/capture integration as required by shell; local preview alone is not a media-connection pass",
-    "Qualified minimumNode22/Linux app profile and final requirement audit"
+    "Qualify and independently audit the newly built production runtime and Node/Python packages containing both Rust inbox and retained adapter result expiration.",
+    "Run the current37check installed shell rehearsal on its minimum Linux/Node22 and supported macOS profiles, including original Connection restart with no queued old audio and resumption of current peer audio.",
+    "Resolve the Linux combined AV audio lateness/signed-supervisor deadline seen in the31ec candidate without widening timing criteria; complete the current candidate requirement audit."
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
@@ -125,7 +133,7 @@
   },
   "browser_media_candidate": {
     "evidence": "docs/evidence/gate-6/reference-app-browser-media.json",
-    "app_component_functions_passed": 63,
+    "app_component_functions_passed": 75,
     "installed_runtime_verified": false,
     "capture_playback_verified": false,
     "previous_negative_evidence": "docs/evidence/gate-6/reference-app-browser-media-negative-bf780.json",
@@ -133,6 +141,55 @@
     "identified_audio_evidence": "docs/evidence/gate-6/reference-app-browser-audio-e355.json",
     "installed_audio_evidence": "docs/evidence/gate-6/reference-app-installed-browser-audio.json",
     "installed_av_component_evidence": "docs/evidence/gate-6/reference-app-installed-browser-av.json",
-    "installed_lifecycle_evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
-  }
+    "installed_lifecycle_evidence": "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+    "retained_adapter_freshness_evidence": "docs/evidence/gate-6/sdk-retained-live-media-expiration.json",
+    "sdk_inbox_freshness_evidence": "docs/evidence/gate-6/sdk-native-inbox-expiration.json",
+    "current_full_candidate_qualified": false
+  },
+  "requirements_audit": [
+    {
+      "requirement": "One-command local setup and scoped enrollment",
+      "result": "verified in recorded installed scopes; current package qualification pending",
+      "evidence": [
+        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
+      ],
+      "observations": "Cold install, four actor-scoped identities/devices, verified media Endpoints with original decisions, same-command restart and joined shutdown."
+    },
+    {
+      "requirement": "Participant selection, timeline, incoming invitations and operation progress",
+      "result": "verified in recorded installed scopes",
+      "evidence": [
+        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
+      ],
+      "observations": "Real keyboard controls, authorized text rendering, invitation acceptance and original status recovery after a lost response."
+    },
+    {
+      "requirement": "Desktop and narrow-width keyboard flow, denied microphone/camera and offline recovery",
+      "result": "verified in recorded scopes; current candidate rerun pending",
+      "evidence": [
+        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+        "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json"
+      ],
+      "observations": "LinuxNode22 all34checks at728; localMacNode26 all36at31ec. Actual track revocation, delayed device result, actor/offline retirement and original-operation explicit reconnect; desktop/320px images reviewed in the lifecycle proof."
+    },
+    {
+      "requirement": "Functional negotiated-media controls and capture through installed public SDKs",
+      "result": "partial; current full candidate not qualified",
+      "evidence": [
+        "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json",
+        "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json",
+        "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json"
+      ],
+      "observations": "Local ten-second combined audio/video liveness passed. CI Linux late audio/supervisor failure and original32packet stale restart were reproduced. Both SDK freshness corrections have local component evidence; new installed runtime/profile verification remains required."
+    },
+    {
+      "requirement": "Backend secrets and public communication boundary",
+      "result": "implemented with source and HTTP/component evidence; final source-bound audit remains required",
+      "evidence": [
+        "docs/evidence/gate-6/reference-app-browser-media.json"
+      ],
+      "observations": "Private operator/participant configuration stays on backend. Host/Origin/cookie/actor ownership guards, closed error projection and public SDK routing are exercised; final current-candidate source map is retained below."
+    }
+  ],
+  "requirement_audit_scope": "Completion remains unproven. Historical positive and negative results retain their exact source/runtime/OS/Node scope; no later source change inherits a whole-candidate pass."
 }
