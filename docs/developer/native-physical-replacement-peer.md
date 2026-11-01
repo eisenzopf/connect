@@ -133,3 +133,5 @@ that an intermittent fault is fixed, and the earlier original unknown commit is
 neither retried nor reclassified. These twenty two-peer audio observations do
 not qualify the concurrent four-participant/six-Connection/two-Session workload,
 device presentation, paired AV, impairment or a complete transport cell.
+
+The same twenty-move log records two actual readiness-conflict deferrals that\ncomplete after the service releases its invocation and reacquires fresh\nauthority/event state for the original root. This exercises the readiness\ncorrection; it does not diagnose or resolve the separate uncertain commit.\n

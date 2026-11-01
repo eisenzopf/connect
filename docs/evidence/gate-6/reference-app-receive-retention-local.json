@@ -1,0 +1,278 @@
+{
+  "format": "connect/reference-app-receive-retention-local/1",
+  "task": "G6-072",
+  "source_revision": "73aca98138715ed514f9903524fac08ffdfe040d",
+  "runtime_source_revision": "73aca98138715ed514f9903524fac08ffdfe040d",
+  "passed": true,
+  "original_installed_checks_passed": 37,
+  "node": "v22.16.0",
+  "browser": "156.0.8078.4",
+  "runtime_binary_sha256": "b5e8199cf4e5291a6c195bd4628d504831c8b86b443d30b1513b64007a5ed4de",
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "73aca98138715ed514f9903524fac08ffdfe040d",
+    "target": "aarch64-apple-darwin",
+    "sources_verified": {
+      "git": 4857,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 755,
+    "binary_sha256": "b5e8199cf4e5291a6c195bd4628d504831c8b86b443d30b1513b64007a5ed4de",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "e5e296016dd380c30bae6c301df1de5017ef6cf3a3a4c030d694151d2f33bbd9",
+    "manifest_sha256": "2cf15d755fe069c4903d9a189a13914891488c88606add135230552d5acafe7b",
+    "artifact_zip_digests": {
+      "evidence": "28b8d459bc298d2d2ec9aea6ee8a813b8689c5085998b0365493bcc8f1d6e472",
+      "package": "d1217d7a69b900fe8e816f24cda18627bec5081a36799f984ebb91ff99668ae5"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+  "git_app_checker_installer_cpu_sampler_trace_inputs_verified": 35,
+  "node_git_inputs_verified": 197,
+  "installed_sdk_files_verified": 195,
+  "source_guards_passed": true,
+  "original_browser_report_sha256": "303704290983b093a0009c48d711346f984f52db72adda14834c710b8eb39994",
+  "original_installation_proof_sha256": "78c5262df025ba9eccfce32758b4f9539ba947d50ce064387876eec2d60169e5",
+  "independent_local_audit_sha256": "fdd8fd88f7876bf224e9dbbc622c61498bf151c21f18cce6c6da551d0cd992e4",
+  "screenshot_capture_profile": "document-height-viewport/2",
+  "independent_captures": [
+    {
+      "name": "desktop.png",
+      "width": 1440,
+      "height": 1906,
+      "png_sha256": "15ceafbee68006acfe7c3745587a052b53150d430c9139bcc24374f2688b28bb",
+      "rgb_sha256": "66d5446912cb5155a7559d76fe3c3bde6d2e017df89eeb34b937185402390d0b",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "png_sha256": "cab72dc685e89be5bd1e6e10b394fb9b0b713e950c563d24dc3d6249b8a9c7a4",
+      "rgb_sha256": "c41b37dee902c48e2981bc0dae60d1f6e66a96baaa897b28fb7555a48b0af1e6",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 3900,
+      "png_sha256": "1496d07353cb7b8e39d0a1df2e393fc53b76d5f1ed7df5b5ee08d64c67f176bc",
+      "rgb_sha256": "99e0ff2650a4a90a1f8fc1c756e7f7a3b460dd487046d2efc54ed768611f448f",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "capture-controls.png",
+      "width": 1440,
+      "height": 2389,
+      "png_sha256": "bde35bcc33c5fa4f68ae0ec5d461aa3a8df1585872cecfc1feae5a34491028af",
+      "rgb_sha256": "7ac16463464d53c62a46ed5caeabfda6f88cd21c649e63ae53ef0ebbc36bc58d",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "capture-controls-narrow.png",
+      "width": 320,
+      "height": 3753,
+      "png_sha256": "87a3649f68e145b702473375c15fb5001b759b55b6e6edc67f47e1c9ab81f1c0",
+      "rgb_sha256": "a23d5d986f54138ff995424956d486a06607bab187d0f480cd311111b21f3526",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "video-controls.png",
+      "width": 1440,
+      "height": 3587,
+      "png_sha256": "b74adc2184a6783750b9ef1a0cde4ab219e456cd765f5fc90ca586e66533a624",
+      "rgb_sha256": "2c7a5965f1a6630c4e9ef54f1a18f6859ded5a926569bdf78f3c39fc73de53d3",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "video-controls-narrow.png",
+      "width": 320,
+      "height": 4696,
+      "png_sha256": "b08ec25b92bf8019ce2ee944fc6f583d65e401e7628242f773c67c09eb934837",
+      "rgb_sha256": "e90faf46794a7a607d097d6720886b4724169dac52880b1f9702981ca9d5fd09",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "narrow.png",
+      "width": 320,
+      "height": 4602,
+      "png_sha256": "e2116e35d55ecdd06eb2e83291d166c2bb9b25cd5306bc431d0476da62f80ab2",
+      "rgb_sha256": "1c2f936386cb816599effa3a3dfa5440ca61cd719851f2fb788e2e01e2c88cc3",
+      "crc_decompression_geometry_verified": true,
+      "header_reference_rows": [
+        10,
+        60
+      ],
+      "repeated_header_strips": 0
+    }
+  ],
+  "av_windows": [
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2000.5,
+        "completed_audio_frames": 76,
+        "painted_video_frames": 58,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2000.5,
+        "completed_audio_frames": 96,
+        "painted_video_frames": 57,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 3
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2000.0999999046326,
+        "completed_audio_frames": 76,
+        "painted_video_frames": 59,
+        "audio_late_drops": 0,
+        "queued_send_frames": 1,
+        "queued_video_frames": 1
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2000.0999999046326,
+        "completed_audio_frames": 88,
+        "painted_video_frames": 58,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 3
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2001.0999999046326,
+        "completed_audio_frames": 88,
+        "painted_video_frames": 58,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2001,
+        "completed_audio_frames": 88,
+        "painted_video_frames": 59,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2001,
+        "completed_audio_frames": 84,
+        "painted_video_frames": 58,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2001,
+        "completed_audio_frames": 92,
+        "painted_video_frames": 59,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2001.8000001907349,
+        "completed_audio_frames": 87,
+        "painted_video_frames": 58,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 2
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2002,
+        "completed_audio_frames": 91,
+        "painted_video_frames": 57,
+        "audio_late_drops": 0,
+        "queued_send_frames": 0,
+        "queued_video_frames": 3
+      }
+    ]
+  ],
+  "zero_observed_late_audio_drops_in_all_five_windows": true,
+  "original_and_restarted_app_helper_and_browser_joins_passed": true,
+  "initial_launcher_preflight_negative_preserved": {
+    "cause": "Incorrect private runtime archive directory; owned-file preflight refused before app setup/execution. Corrected launcher uses the independently verified source73 archive in the existing versioned runtime output root.",
+    "log_sha256": "92ba304ce11b54dbd807052b0a05770319792b9bc8d85925566537e91eef353c",
+    "native_rebuild_needed": false
+  },
+  "hosted_rehearsal": {
+    "run_id": 41326884138,
+    "source_revision": "42eaafe8750514e8c1a30827612decc0981b19b4",
+    "linux": "production package build in progress at last inspection",
+    "macos": "production package build in progress at last inspection",
+    "qualified": false
+  },
+  "scope": "Actual source-matched official offline Node/runtime component installation and original37app checks on local macOSarm64, Node22.16/Chromium156.0.8078.4. Independent195file SDK,35app/harness Git inputs,197Node inputs and8PNG CRC/decompression/RGB/geometry/no-repeated-header checks pass. Five original two-second AV windows in each direction have identified output and zero reported late-audio drops. This is not the frozen G6-058 Mac Chrome profile, sixty-second media/pairedAV quality, hostedLinux/Mac or fulltransport qualification.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

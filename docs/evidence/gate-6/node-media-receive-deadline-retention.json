@@ -57,5 +57,17 @@
     "lane": "reference-app-components",
     "app_clock_trace": true,
     "result": "queued at dispatch; not a pass"
+  },
+  "actual_local_app_verification": {
+    "evidence": "docs/evidence/gate-6/reference-app-receive-retention-local.json",
+    "source_revision": "73aca98138715ed514f9903524fac08ffdfe040d",
+    "source_matched_native_runtime_verified": true,
+    "original_installed_app_checks_passed": 37,
+    "app_source_inputs_verified": 35,
+    "node_source_inputs_verified": 197,
+    "installed_sdk_files_verified": 195,
+    "independently_decoded_screenshots": 8,
+    "late_audio_drops_in_five_original_av_windows": 0,
+    "hosted_verification_pending": true
   }
 }
