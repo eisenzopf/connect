@@ -198,6 +198,7 @@ try {
     await page.goto(origin); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     assert.equal(await page.evaluate(() => document.cookie), "");
     assert.match(await page.locator("#media-capability").textContent(), /QUIC/); check("actual-installed-native-SDK-control-connected");
+    stage = "native-browser-video-playout-component";
     report.native_video_playout_component = await page.evaluate(async () => {
         const { VideoPlayout } = await import("/media-playout.mjs");
         const input = new OffscreenCanvas(8, 8), source = input.getContext("2d");
@@ -808,6 +809,8 @@ try {
         try { report.native_server_sample = await nativeSample.finish(); }
         catch { report.native_server_sample = { observed: false, reason: "native-sample-result-unavailable" }; }
     }
+    if (sampleNative && !nativeSample && !report.native_server_sample)
+        report.native_server_sample = { observed: false, reason: "workload-not-reached" };
     if (sampleNative && !report.native_server_sample?.observed) report.passed = false;
     if (processChild) await stop().catch(async () => {
         report.controller_exit_code = processChild.exitCode;

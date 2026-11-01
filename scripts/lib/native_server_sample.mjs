@@ -36,6 +36,11 @@ export function summarizeNativeSample(text, pid, demangled = new Map()) {
         component_stacks: entries(ranked.filter(([name]) => /^<?(?:connect_[a-z_]+::|rvoip_[a-z_]+::|rusqlite::|sqlite3_)/.test(name)).slice(0, 32)),
         scope: "Inclusive sampled stack counts across server threads; not CPU seconds or a transport/quality pass. Only fixed runtime waits and known Rust/SQLite symbols; PIDs, paths and raw stacks excluded." };
 }
+export function normalizeNativeSymbol(name) {
+    // GNU includes Rust crate disambiguators; Apple's LLVM omits them. They
+    // identify compiler instances, not different sampled call sites here.
+    return name.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\[[0-9a-f]{16}\](?=::)/g, "$1");
+}
 export async function demangleNativeSymbols(text) {
     if (Buffer.byteLength(text) > 8 * 1024 * 1024) fail();
     // Feed only bounded Rust symbol tokens to the platform demangler. Raw stack
@@ -52,7 +57,7 @@ export async function demangleNativeSymbols(text) {
     });
     const lines = result.trimEnd().split("\n");
     if (lines.length !== names.length || lines.some(line => line.length > 16000)) fail();
-    return new Map(names.map((name, index) => [name, lines[index]]));
+    return new Map(names.map((name, index) => [name, normalizeNativeSymbol(lines[index])]));
 }
 function cpuMilliseconds(value) {
     const parts = value.split(":").map(Number);

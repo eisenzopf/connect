@@ -1,0 +1,76 @@
+{
+  "format": "connect/reference-app-native-sampling-unreached/1",
+  "task": "G6-072",
+  "run_id": 41301182419,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41301182419",
+  "independent_mac_app_node_source_audit_passed": true,
+  "mac": {
+    "host": "mac",
+    "artifact_id": 13081133660,
+    "artifact_size": 23983,
+    "artifact_zip_sha256": "d0f9887342ac0075d8842987cc8c3cee9c10c9c06591235fb8d578eb6653d475",
+    "source_revision": "56c601b5f7169ab26bd712d020add6ee390215f1",
+    "node": "v22.23.4",
+    "browser": "156.0.8078.4",
+    "git_app_checker_installer_cpu_native_inputs_verified": 31,
+    "node_package_source_inputs_verified": 197,
+    "node_archive_sha256": "af185823a739caeaf303d06a89e1f7df24bf70823db99ec396fb0be444e4d86e",
+    "installed_sdk_files_verified": 195,
+    "png_bytes_verified": 0,
+    "checks_passed": 5,
+    "checks_required": 37,
+    "native_video_playout_component": {
+      "painted": 0,
+      "dropped": 3,
+      "queued": 0,
+      "pixel": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "native_server_sample_requested": true,
+    "native_server_sample": null,
+    "failure": {
+      "stage": "actual-installed-native-SDK-control-connected",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION",
+      "source_stack": [
+        {
+          "line": 219,
+          "column": 12
+        }
+      ]
+    },
+    "app_failures": [],
+    "failure_media_pages": [],
+    "runtime_binary_matches_previously_independently_audited_production_binary": true,
+    "new_runtime_archive_bytes_independently_audited": false,
+    "source_guards_passed": true,
+    "component_passed": false
+  },
+  "mac_job_log_sha256": "e8a4e4461b58f164c5db004d0986365c89d0ead6aa1f36fc133c7512ae2d9188",
+  "linux": {
+    "app_reached": false,
+    "job_id": 124832236985,
+    "job_log_sha256": "d1f3e0e747f44078f1ad463b5e948308c51ddf2888dff8868a4c8999df1e313e",
+    "failure": "Actual GNU c++filt includes crate disambiguator tokio[39464302fedf0c29]; Apple LLVM omits it. New demangler exact-spelling assertion failed2passed/1failed before app."
+  },
+  "interpretation": "Both jobs are terminal failures. Mac now passes all18Node media fixture checks,82app plus3CPU summary plus3native parser cases, then reaches five installed checks. All3native browser playout frames drop before any paint; unchanged painted>=1 criterion refuses. Native8s sampler starts later at actual microphone work and was not reached. No native CI stack observation or root cause is inferred.",
+  "correction": "Normalize only16-hex Rust crate disambiguators before module separators, preserving known symbol identity; actual GNU counterexample has a local regression. Explicitly report workload-not-reached when requested native sampling cannot start before an earlier failure.",
+  "scope": "31Git app/checker/installer/CPU/native-summary inputs,197Node producer sources,actual195-file byte-identical Node payload/dependencies and check prefix verified. Runtime binary matches independently audited production d992. No new raw runtime archive audit,no native CI capture,no app/transport/Gate qualification.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "correction_inputs": {
+    "scripts/lib/native_server_sample.mjs": "8f4f5b3ae463e7e933e00d82bdb93b6df555be2700cba7250d7d42de25baf9eb",
+    "scripts/tests/native_server_sample.test.mjs": "cec8841d404665e677fc73d67f7b0df06167c0d3b0f2ac94bc299edd68adc78b",
+    "scripts/check-reference-app-installed.mjs": "917b0b8b6b825399b5cb35d7f376f3194f607648241eb9f9a3fbb52da085e1df"
+  },
+  "local_correction_checks": {
+    "node": "22.16.0",
+    "native_sampler_passed": 4,
+    "failed": 0,
+    "skipped": 0
+  }
+}

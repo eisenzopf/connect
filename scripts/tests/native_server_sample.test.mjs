@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectOwnedServer, summarizeNativeSample, demangleNativeSymbols } from "../lib/native_server_sample.mjs";
+import { selectOwnedServer, summarizeNativeSample, demangleNativeSymbols, normalizeNativeSymbol } from "../lib/native_server_sample.mjs";
 test("native stack observer selects one exact original group and command without fallback", () => {
     const lines = "10 20 /owned/connect serve --config /owned/server.toml\n11 30 /owned/connect serve --config /owned/server.toml\n12 20 /owned/connect sdk-stdio --config /owned/device.toml";
     assert.equal(selectOwnedServer(lines, 20, "/owned/connect serve --config /owned/server.toml"), 10);
@@ -16,6 +16,13 @@ test("platform Rust demangling exposes actual production v0 symbols without publ
     assert.deepEqual(result.top_stacks, [{ symbol: names.get(symbol), stack_samples: 12 }]);
     assert.ok(!JSON.stringify(result).includes("0xabc"));
     await assert.rejects(demangleNativeSymbols("x".repeat(8 * 1024 * 1024 + 1)));
+});
+test("GNU crate disambiguators and LLVM Rust names have the same curated spelling", () => {
+    const gnu = "<tokio[39464302fedf0c29]::runtime::blocking::pool::Inner>::run";
+    const llvm = "<tokio::runtime::blocking::pool::Inner>::run";
+    assert.equal(normalizeNativeSymbol(gnu), llvm);
+    assert.equal(normalizeNativeSymbol(llvm), llvm);
+    assert.equal(normalizeNativeSymbol("core[0123456789abcdef]::array<[u8; 16]>"), "core::array<[u8; 16]>");
 });
 test("native stack summary binds original PID and excludes raw paths, addresses and unknown labels", () => {
     const text = "Process: connect [10]\nPath: /private/secret/connect\nCall graph:\n" +
