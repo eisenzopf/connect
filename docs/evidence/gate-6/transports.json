@@ -1391,7 +1391,7 @@
     "network": "remote-profile-fixture",
     "behavior": "Disposable Ubuntu24.04 systemd server as ordinary user; scoped native CLI/SDK clients in one owned network namespace/veth without external default route. Preserve original private resource intent, regular-user process identities, actual source/binary/route/socket/namespace observations and original service/client/network retirement. Same full public scenario and optional native data/capture producers; no private Store access.",
     "implementation_hashes": {
-      "scripts/lib/transport_namespace.py": "ff47a04bb728dff559c16f05c25a505aef890520163f91a5b1175d35e2085c30",
+      "scripts/lib/transport_namespace.py": "d77f7789e98e08b4f2931e6d90e4d87b7acd656dd77ecf838e6bd13bb39e506e",
       "scripts/tests/test_transport_namespace.py": "465980e0212a6743bfbc9473fc4322e27243ae8bf840515450307ad7b9ec56fe",
       "scripts/lib/transport_host.mjs": "c09bf5eb66782f80e503ca3696fdd5d85bb4089d122967bbf5dd065fa98e32ab",
       "scripts/lib/transport_capture.py": "5981b31d37cb327c7d65c0ab46de58841fb519c9b130f4a8b4349390caf48c46",
@@ -1411,6 +1411,14 @@
     "macos_remote_guest_implemented": false,
     "full_matrix_cells_qualified": 0,
     "task_complete": false,
-    "scope": "Owned isolated Remote-profile native configuration/control producer only. No named external hosts, provider/model execution, browser, decoded audio/video, replacement ownership or full matrix qualification."
+    "scope": "Owned isolated Remote-profile native configuration/control producer only. No named external hosts, provider/model execution, browser, decoded audio/video, replacement ownership or full matrix qualification.",
+    "runtime_candidate": {
+      "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
+      "workflow_run_id": 41272768297,
+      "job_id": 124748754159,
+      "status": "confirmed-live-verified-source-preparation",
+      "component": "conversation",
+      "signing_algorithm": "EdDSA"
+    }
   }
 }

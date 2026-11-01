@@ -167,7 +167,7 @@ class NativeNamespace:
         result = dict(kind="ubuntu-netns", passed=False, original_namespace_removed=False,
             original_veth_removed=False, remaining_client_processes=None, forced_cleanup=self.client_forced,
             systemd_servers_verified=self.servers_verified, unprivileged_client_launch_required=True,
-            external_default_route=False, failures=[])
+            external_default_ipv4_route=False if hasattr(self, "route_sha256") else None, failures=[])
         self.closed = result
         def attempt(work):
             try:
