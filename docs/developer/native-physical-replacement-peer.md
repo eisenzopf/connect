@@ -60,3 +60,14 @@ traffic. Controlled tests cover copied sources/native capability shape,
 bounds/refusal and a mismatched original root that cannot launch a physical
 target. Actual repeated transition and full matrix integration evidence remain
 separate requirements.
+
+`scripts/lib/transport_replacement_audio.py` independently decodes the private
+original RTP payloads after native RTCP demultiplexing. It requires exactly 960
+decoded samples for each original Opus packet and classifies speaker identity
+against the original receive order/timestamps. Its ten-second component requires
+at least twenty identified baseline packets and three hundred identified
+destination/retained packets. It refuses self audio, an identified old speaker
+after the destination, and a decoded packet-arrival gap over one second. This
+observation does not measure device presentation, paired AV synchronization or
+the full media quality profile. Four controlled cases cover sample/arrival
+correspondence, speaker/refusal conditions and that original gap bound.
