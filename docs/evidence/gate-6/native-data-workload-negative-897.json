@@ -1,0 +1,229 @@
+{
+  "format": "connect/native-data-workload-negative-verification/1",
+  "task": "G6-058",
+  "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
+  "workflow_run_id": 41273896036,
+  "job_id": 124752048854,
+  "artifact_id": 13070169391,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "data",
+    "component_passed": false,
+    "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
+    "artifact_sha256": "857ca42d0a1e851fb73cf212984481591ac52a6447d42f7c83609eb4aafabd73",
+    "report_sha256": "7437e55ecf6681ed66c3c83d8fb47313f638968cf09ba8566f5fedce64cd83e5",
+    "source_inputs_sha256": "18fda3a7576f8514376ce5b1ac3fbeb71793a8483728804e48966063fe58c1b9",
+    "sources_verified": {
+      "git": 4709,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "674cafd5b2a7f661179334f1f6b2db54203cccdd2b1887b2d214b8af86c6f033",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 48,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "3757fadd570606e65ee643f38a03a7af114a09441c112f71d004f68abe8bfc8a",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 6,
+      "native_data_completions": 6,
+      "native_data_receives": 6
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "workload_message_limits": {
+    "initialized_message_bytes": 16384,
+    "configured_message_bytes": 65536,
+    "required_decoded_payload_bytes": 65536
+  },
+  "failure": {
+    "phase": "six-native-connections-original-end",
+    "name": "AssertionError",
+    "kind": null,
+    "certainty": null,
+    "source": {
+      "file": "scripts/check-transport-conversation.mjs",
+      "line": 318,
+      "column": 16
+    },
+    "source_stack": [
+      {
+        "line": 318,
+        "column": 16
+      }
+    ],
+    "assertion": {
+      "actual": {
+        "type": "boolean"
+      },
+      "expected": {
+        "type": "boolean"
+      }
+    }
+  },
+  "verified_checks": [
+    "five-independent-public-sdk-helpers-bound-to-production-executable",
+    "scoped-native-conversation-and-nonmember-current-access-refusal",
+    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+    "two-current-accepted-session-intents-coexist-with-one-main-session",
+    "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+    "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+    "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+    "native-data-original-replay-recovers-receipt-without-second-delivery",
+    "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences"
+  ],
+  "data_workload": {
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "connection_counts_by_session": [
+      4,
+      2
+    ],
+    "before_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "after_states": [
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+      "ready"
+    ],
+    "verified_payloads": 6,
+    "bytes_per_payload": 65536,
+    "total_received_bytes": 393216,
+    "held_observation_milliseconds": 4344,
+    "payload_sha256": [
+      "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+      "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+      "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+      "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+      "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62"
+    ],
+    "audio_video_workload_verified": false,
+    "frozen_message_history_audiences_verified": true
+  },
+  "topology": {
+    "host": {
+      "platform": "ubuntu24-x86_64",
+      "os": "linux",
+      "architecture": "x64",
+      "kernel_release": "7.0.0-1017-azure",
+      "ordinary_user": true
+    },
+    "same_network_namespace_observed": true,
+    "server_owned_loopback_udp_bind_observed": true,
+    "helpers_in_server_namespace": 5,
+    "server_executable_sha256": "674cafd5b2a7f661179334f1f6b2db54203cccdd2b1887b2d214b8af86c6f033",
+    "namespace_sha256": "faa2d2822eaf7944616d9d45da25314cd09b54d6cffed4ffa4d2ad80a6315d29"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "0d28d014ffd7839852a426cfde6448bda549aef90a4937f787673a6ca3152cf0",
+    "pcap_sha256": "969039744360c48552cc70e6bb724cc56c1f9fc978b42c92e4ac87ae951f263e",
+    "pcap_bytes": 3522914,
+    "captured_seconds": 14.239343676999994,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 1076,
+      "to_server_packets": 540,
+      "from_server_packets": 536,
+      "captured_bytes": 3505674,
+      "udp_payload_bytes": 3460482,
+      "to_server_udp_bytes": 785165,
+      "from_server_udp_bytes": 2675317
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "native_data_failure_stages": [],
+  "native_data_checkpoints": [
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "authority-entered",
+    "handler-entered",
+    "worker-entered",
+    "handler-entered",
+    "handler-entered",
+    "handler-entered",
+    "worker-entered",
+    "worker-entered",
+    "worker-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "authority-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "handler-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "core-publication-started",
+    "core-publication-admitted",
+    "worker-entered",
+    "receipt-recorded",
+    "authority-entered",
+    "receipt-recorded",
+    "handler-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "worker-entered",
+    "core-publication-started",
+    "core-publication-admitted",
+    "receipt-recorded",
+    "authority-entered",
+    "handler-entered",
+    "worker-entered"
+  ],
+  "message_limit_correction_runtime_confirmed": true,
+  "six_payload_stage_verified": true,
+  "end_operations_completed_before_failed_assertion": 6,
+  "durable_retirement_states_not_in_failed_report": true,
+  "original_helpers_joined": 5,
+  "original_server_groups_joined": 2,
+  "forced_cleanup": false,
+  "retirement_contract_source_sha256": "d14d7bf08a41dff391f24251148420d63e67769bea4b1e3751e81e73473b0e69",
+  "scope": "All six actual64KiB payload submissions, Core-queue completions and intended receives pass. Common six-ready before/after boundaries, original replay/no second receive, exact sender/recipient histories and actual local native topology pass. All six original end operations complete, but immediate durable-state assertion fails; states were not curated. This remains an overall negative. Separate durable retirement, empty queues, Session end and replacement-device final history/revocation continuation were not verified. No audio/video or complete transport-cell pass.",
+  "follow_up": {
+    "source_revision": "b563f7b193834e8c94280026e60402c3544d8896",
+    "workflow_run_id": 41274176272,
+    "job_id": 124752870284,
+    "description": "Observe original six IDs under one8second shared metadata deadline after all original end receipts; require retired state and later generation. No mutation replay, payload change, wider180second scenario budget or product behavior change. Curate actual states/count/elapsed time.",
+    "runtime_verified": false
+  },
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
