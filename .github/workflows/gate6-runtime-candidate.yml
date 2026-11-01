@@ -79,6 +79,12 @@ jobs:
             bash scripts/prepare-dependencies.sh
           fi
           cargo fetch --locked
+      - name: Check fresh Session metadata snapshots and current lifecycle guards
+        if: ${{ inputs.reference_app }}
+        run: |
+          cargo test --release --locked -p connect-store --test session_metadata_polling -- --nocapture
+          cargo test --release --locked -p connect-store --lib session_observation -- --nocapture
+          cargo test --release --locked -p connect-store --lib native_stream_authority::flow_facts -- --test-threads=2
       - name: Build and package production platform assets
         id: package
         run: python3 scripts/package-sdk-runtime.py --target ${{ matrix.target }} --output dist/sdk/runtime --evidence .local/gate6-runtime-candidate/evidence/${{ matrix.target }}

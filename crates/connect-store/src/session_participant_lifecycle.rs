@@ -368,14 +368,7 @@ impl Store {
         // Template polling is not an authorization boundary. Use a separate
         // bounded committed read snapshot so idle background work cannot make
         // an actual media/control try_connection fail on our foreground mutex.
-        let mut snapshot = Connection::open_with_flags(
-            self.path(),
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        )
-        .map_err(|_| Error::storage())?;
-        snapshot
-            .busy_timeout(std::time::Duration::from_millis(50))
-            .map_err(|_| Error::storage())?;
+        let mut snapshot = self.session_readers.lifecycle()?;
         let transaction = snapshot
             .transaction_with_behavior(rusqlite::TransactionBehavior::Deferred)
             .map_err(|_| Error::storage())?;

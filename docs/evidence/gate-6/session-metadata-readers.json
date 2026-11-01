@@ -1,0 +1,73 @@
+{
+  "format": "connect/session-metadata-readers/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "motivation": "docs/evidence/gate-6/reference-app-native-sampling-preparation.json",
+  "configuration": "docs/developer/session-metadata-readers.md",
+  "implementation_inputs": {
+    "crates/connect-store/src/lib.rs": "1d75e535d2010b8099b78d25c7c24facd79c71a9870c173858261c5b6ae25c39",
+    "crates/connect-store/src/session_reconnect.rs": "8e2f1bd8db59b36994023c5f404b75474c69b477834e6cead156da3c893c1287",
+    "crates/connect-store/src/session_participant_lifecycle.rs": "77c137d838661026b8900f4d2a701e2b2add700a8aec7a42cca8019e02711914",
+    "crates/connect-store/src/session_observation.rs": "10c033367fd3a3fc8a488b4c95e3e9f5c3714e7e99d3d1391836421e63fd6473",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/flow_facts.rs": "799cd8cefe1ef6c4f1e806ad61ea740ca1e9f66ebeaa93c0d93b4a558850a9bc",
+    "crates/connect-store/tests/session_metadata_polling.rs": "9d3a2255f60fd13ea87b4081d795505bb535aa647a590cd421f33eaffc7c89ec",
+    ".github/workflows/gate6-runtime-candidate.yml": "7f81c4c442ab9db96ff9af1fa90a8f095aaefef8488e21003f1f23024552edf4"
+  },
+  "behavior": {
+    "dedicated_read_only_connections": 2,
+    "foreground_connection_reused": false,
+    "packet_observer_pool_reused": false,
+    "per_page_deferred_transaction": true,
+    "retained_transaction_or_grant": false,
+    "same_reader_contention": "immediate authority-busy refusal; existing worker keeps cursor",
+    "sqlite_busy_timeout_ms": 50,
+    "poll_cadence_ms": 100,
+    "resource_lifetime": "closed with original Store; fixed two additional descriptors",
+    "current_authorization_and_delivery_checks_unchanged": true,
+    "source_timestamps_and_quality_thresholds_unchanged": true
+  },
+  "before": {
+    "revision": "1866a38f7351ec21532cbaba541f79d5d47211cb",
+    "source_inputs": {
+      "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
+      "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2",
+      "crates/connect-store/src/lib.rs": "e14ebd6e64e2ffd70901aeaabf4d8d148d487ad440f3a954ef0a90b0d817ef57",
+      "crates/connect-store/src/session_reconnect.rs": "8684d0f9c84b7c4d396fbd53d09bb01061226caa2eebc8717da75fcb4707d1a8",
+      "crates/connect-store/src/session_participant_lifecycle.rs": "bb2d6429ffda725f3e5b21136755dd80600b1fc90529d9bcc49bf03be3885235",
+      "crates/connect-store/tests/session_metadata_polling.rs": "9d3a2255f60fd13ea87b4081d795505bb535aa647a590cd421f33eaffc7c89ec"
+    },
+    "log_sha256": "fcdf1c2f171e0937657fe8442c143618353253efb6e8e71b735f78265ca575a4",
+    "binary_sha256": "3d947171407c653d8a5e418350663bc8a6262f33bf1dd87a6c5854be8808cab9",
+    "thirty_pair_ms": 204,
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0
+  },
+  "after": {
+    "thirty_pair_ms": 7,
+    "comparison_test_sha256": "9d3a2255f60fd13ea87b4081d795505bb535aa647a590cd421f33eaffc7c89ec",
+    "log_sha256": "77c94e7b1a92da450556b24caaa8929d2a6460e031198193bc35b554a5c7fc6a"
+  },
+  "local_checks": {
+    "profile": "release optimized; debug0; native macOS arm64",
+    "empty_pages_schema_and_wal": 1,
+    "read_only_independent_committed_snapshots": 1,
+    "current_flow_and_lifecycle_guards": 25,
+    "total": 27,
+    "failed": 0,
+    "ignored": 0,
+    "unselected_store_unit_cases": 1281,
+    "logs_sha256": {
+      "session-poll-after.log": "77c94e7b1a92da450556b24caaa8929d2a6460e031198193bc35b554a5c7fc6a",
+      "session-poll-readers.log": "8231ed9b2805b87756ac899b5a9db60bf62168826642805be0ac2b6257625889",
+      "session-poll-flow-facts.log": "d05317e7446992688f9ac2fab6756431de049303a20bbfc406027d3d269ad30c"
+    }
+  },
+  "interpretation": "Same actual original Store API empty-page probe improves204ms to7ms for30pairs, including first use. This is one local component comparison without a timing assertion. Warm public pollers see committed loss/terminal facts, connections are read-only, committed snapshots are independent and refresh after a page, concurrent same-reader access refuses immediately, schema changes are observed and completed polls do not pin WAL.25selected existing/new flow/lifecycle cases pass. Reduced repeated schema preparation is established locally; original media/control/browser failure cause remains unproven.",
+  "actual_changed_runtime_ci_observed": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

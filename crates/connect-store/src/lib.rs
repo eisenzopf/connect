@@ -92,6 +92,7 @@ mod authority_fences;
 mod packet_observation;
 mod peer_authority;
 mod peer_credentials;
+mod session_observation;
 mod user_delegation;
 pub use authority_fences::{
     AuthorityGuardSet, AuthorityMode, AuthorityScope, AuthorityWait, CancelAuthorityWait,
@@ -218,6 +219,7 @@ pub struct Store {
     connection: Mutex<Connection>,
     // Bounded read-only WAL observers; never command transactions or grants.
     packet_connections: Vec<Mutex<Connection>>,
+    session_readers: session_observation::Readers,
     pub(crate) limits: Limits,
     path: PathBuf,
     blob_directory: PathBuf,
@@ -584,6 +586,7 @@ impl Store {
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             packet_connections: packet_observation::open(path)?,
+            session_readers: session_observation::Readers::open(path)?,
             limits,
             path: path.into(),
             blob_directory,
@@ -675,6 +678,7 @@ impl Store {
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             packet_connections: packet_observation::open(path)?,
+            session_readers: session_observation::Readers::open(path)?,
             limits,
             path: path.into(),
             blob_directory,

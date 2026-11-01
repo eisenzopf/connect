@@ -129,14 +129,7 @@ impl Store {
     /// The cursor rotates through accepted/ready and active Sessions; returned IDs confer no grant.
     pub fn session_reconnect_page(&self, after: &str) -> Result<(String, Vec<(String, String)>)> {
         self.require_runtime_owner()?;
-        let mut snapshot = Connection::open_with_flags(
-            self.path(),
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        )
-        .map_err(|_| Error::storage())?;
-        snapshot
-            .busy_timeout(std::time::Duration::from_millis(50))
-            .map_err(|_| Error::storage())?;
+        let mut snapshot = self.session_readers.reconnect()?;
         let tx = snapshot
             .transaction_with_behavior(rusqlite::TransactionBehavior::Deferred)
             .map_err(|_| Error::storage())?;

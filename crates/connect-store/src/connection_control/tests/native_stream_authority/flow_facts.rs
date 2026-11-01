@@ -524,6 +524,37 @@ fn reconnect_scan_is_read_only_and_connected_session_never_expires_from_silence(
     });
 }
 #[test]
+fn warm_session_metadata_pages_see_committed_loss_and_terminal_facts() {
+    let (f, _, origin) = started_fixture();
+    assert!(f.store.session_reconnect_page("").unwrap().1.is_empty());
+    let first = f.store.session_lifecycle_hint_page(0).unwrap();
+    let cursor = first.last().unwrap().0;
+    assert!(f
+        .store
+        .session_lifecycle_hint_page(cursor)
+        .unwrap()
+        .is_empty());
+    grace_loss(&f, &origin, true);
+    assert_eq!(
+        f.store.session_reconnect_page("").unwrap().1,
+        vec![(
+            origin.conversation_id().to_owned(),
+            origin.session_id().to_owned()
+        )]
+    );
+    assert!(f
+        .store
+        .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
+        .unwrap());
+    assert!(f.store.session_reconnect_page("").unwrap().1.is_empty());
+    let terminal = f.store.session_lifecycle_hint_page(cursor).unwrap();
+    assert!(terminal.iter().any(|row| matches!(
+        &row.2,
+        connect_protocol::events::JournalData::SessionEnded(_)
+    )));
+    assert_eq!(state(&f, &origin), "ended");
+}
+#[test]
 fn idle_connected_reconnect_reconciliation_does_not_queue_a_writer_behind_live_media() {
     let (f, _, origin) = started_fixture();
     let held = f.store.try_native_media_read(&origin, None).unwrap();
