@@ -10,6 +10,8 @@ export interface SdkValidatedEnvelope {
 export interface SdkRawCanonical {
     /** Synchronous frozen Rust schema check, bounded to two seconds, without configuration or network. */
     validate(value: Json): SdkValidatedEnvelope;
+    /** Finite read through the owned Rust parser and signed peer, without a synchronous validator child. */
+    read(value: Json, options: CanonicalRequestOptions): Promise<readonly SdkValidatedEnvelope[]>;
     /** Same owned Rust SDK peer; fresh transport metadata, original logical intent, no retry. */
     request(envelope: SdkValidatedEnvelope, options: CanonicalRequestOptions): Promise<readonly SdkValidatedEnvelope[]>;
 }

@@ -37,9 +37,9 @@ if (process.argv[2] === 'sdk-validate-envelope') {
  if(config.validator==='boolean')result.valid='true';
  if(config.validator==='foreign-key')result.request={key:{...key(value),operationId:'foreign'}};
  if(config.validator==='error-array')result.request={error:{...error(value),kind:['unsupported']}};
- if(config.validator==='duplicate')process.stdout.write('{"profile":"connect-sdk-validation/1","profile":"connect-sdk-validation/1","valid":false,"request":null}');
- else if(config.validator==='oversize')process.stdout.write('x'.repeat(20000));
- else process.stdout.write(JSON.stringify(result)+'\n');
+ const output=config.validator==='duplicate'?'{"profile":"connect-sdk-validation/1","profile":"connect-sdk-validation/1","valid":false,"request":null}':
+  config.validator==='oversize'?'x'.repeat(20000):JSON.stringify(result)+'\n';
+ await new Promise((resolve,reject)=>process.stdout.write(output,error=>error?reject(error):resolve()));
  process.exit(0);
 }
 const path=process.argv[process.argv.indexOf('--config')+1], config=JSON.parse(readFileSync(path,'utf8')),dir=dirname(path);

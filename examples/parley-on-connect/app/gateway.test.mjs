@@ -90,15 +90,13 @@ function fixture() {
             operations: { restore: (reference, kind) => { assert.equal(kind.command, reference.command); return operation(reference); } },
             capabilities: { refresh: async () => { permitted(); return { selectedTransport: "quic", features: new Set(["original-id-operations"]) }; } },
             conversations: { byId: conversation, create: (sdk, options) => mutate("conversation.create", {}, sdk, options, { id: "conversation-created" }) },
-            raw: { validate: value => {
-                if (value.type === "conversation.get" && value.payload.limit !== undefined) {
+            raw: { read: async envelope => {
+                if (envelope.type === "conversation.get" && envelope.payload.limit !== undefined) {
                     const limit = frozen.$defs.ConversationGet.properties.limit;
-                    assert.ok(Number.isInteger(value.payload.limit) && value.payload.limit >= limit.minimum && value.payload.limit <= limit.maximum,
+                    assert.ok(Number.isInteger(envelope.payload.limit) && envelope.payload.limit >= limit.minimum && envelope.payload.limit <= limit.maximum,
                         "Application topology requests must satisfy the frozen public wire limit");
                 }
-                return { value };
-            }, request: async checked => {
-                permitted(); const envelope = checked.value, frame = (type, payload) => ({ value: { type, cid: envelope.cid, payload } });
+                permitted(); const frame = (type, payload) => ({ value: { type, cid: envelope.cid, payload } });
                 if (envelope.type === "conversation.list") return [frame("ack", { details: { page: { conversations: [{ id: "conversation-created", closed: false }], next_cursor: null } } })];
                 if (envelope.type === "message.history") return [frame("message.send", { msg_id: "message-1", from: "participant-owner", body: "visible text", content_type: "text/plain", body_encoding: "utf8" }), frame("ack", {})];
                 assert.equal(envelope.type, "conversation.get");

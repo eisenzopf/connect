@@ -85,3 +85,40 @@ test('local validation subprocess output and time are bounded and original child
   const start=performance.now();assert.throws(()=>client.raw.validate(get()),error('configuration','not-submitted'));assert.ok(performance.now()-start<3000);
  });
 });
+test('raw reads keep timers responsive and capture intent through the original Rust owner without a validator child',async()=>{
+ await fixture({validator:'hang',delayMs:100},async(client,dir)=>{
+  const value=get();value.payload.vendor={optional:'preserved'};
+  let ticked=false;const timer=setTimeout(()=>{ticked=true;},10);
+  try{
+   const pending=client.raw.read(value,opts);value.cid='foreign';value.payload.vendor.optional='changed';
+   const replies=await pending;assert.equal(ticked,true);assert.equal(replies.at(-1).value.payload.details.original,'preserved');
+   const calls=await lines(dir,'requests.jsonl');assert.equal(calls.length,1);assert.equal(calls[0].request.action.envelope.cid,'room');
+   assert.deepEqual(calls[0].request.action.envelope.payload.vendor,{optional:'preserved'});
+   assert.equal((await lines(dir,'validation.jsonl')).length,0);
+   assert.throws(()=>replies.push(replies[0]));assert.throws(()=>replies[0].value.signature.alg='ES256');
+  }finally{clearTimeout(timer);}
+ });
+});
+test('raw read refuses mutations, replies, live subscriptions and ambiguous mutation scope before helper I/O',async()=>{
+ await fixture({},async(client,dir)=>{
+  for(const value of [mutation(),{...get(),type:'ack',payload:{}},{...get(),type:'conversation.subscribe',payload:{live:true}},
+   {...get(),type:'conversation.subscribe',payload:{}},{...get(),operation_id:'unexpected'},null,{},
+   {...get(),payload:{oversize:'x'.repeat(1048576)}}])await assert.rejects(client.raw.read(value,opts),error('validation','read-only'));
+  assert.equal((await lines(dir,'requests.jsonl')).length,0);assert.equal((await lines(dir,'validation.jsonl')).length,0);
+  await client.raw.read({...get(),type:'conversation.subscribe',payload:{live:false}},opts);
+  assert.equal((await lines(dir,'requests.jsonl')).length,1);
+ });
+});
+test('raw read cancellation and deadline preserve read-only certainty and never retry',async()=>{
+ await fixture({mode:'partial'},async(client,dir)=>{
+  await assert.rejects(client.raw.read(get(),{...opts,signal:AbortSignal.abort()}),error('cancelled','read-only'));
+  assert.equal((await lines(dir,'requests.jsonl')).length,0);
+  await assert.rejects(client.raw.read(get(),{timeoutMs:1000}),error('deadline','read-only'));
+  assert.equal((await lines(dir,'requests.jsonl')).length,1);assert.equal((await lines(dir,'validation.jsonl')).length,0);
+ });
+ for(const mode of ['raw-correlation','raw-bad-signature','raw-empty'])await fixture({mode},async(client)=>{
+  // Separate synthetic Node startup from the signed-response parser deadline.
+  await client.capabilities.refresh({timeoutMs:5000});
+  await assert.rejects(client.raw.read(get(),opts),error('protocol','read-only'));
+ });
+});

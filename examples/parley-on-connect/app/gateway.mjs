@@ -133,7 +133,7 @@ export class AppGateway {
     async #raw(role, type, payload, conversationId, options = this.#options(), client = this.#client(role)) {
         const envelope = { v: 2, id: "app_read_" + randomUUID(), ts: new Date().toISOString(), type, payload,
             ...(conversationId ? { cid: conversationId } : {}) };
-        return (await client.raw.request(client.raw.validate(envelope), options)).map(item => item.value);
+        return (await client.raw.read(envelope, options)).map(item => item.value);
     }
     async conversations(role, cursor) {
         if (cursor !== undefined && (typeof cursor !== "string" || cursor.length > 2048)) fail("invalid-app-request");

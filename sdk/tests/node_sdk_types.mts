@@ -77,6 +77,9 @@ client.conversations.byId(roomId).receipts(participant.id,{timeoutMs:1000});
 
 const checkedEnvelope = client.raw.validate({v:2,id:'attempt',ts:'2026-10-28T00:00:00Z',type:'operation.get',payload:{operation_id:'original'}});
 const rawReplies = await client.raw.request(checkedEnvelope,{timeoutMs:1000});
+const readReplies = await client.raw.read({v:2,id:'read-attempt',ts:'2026-10-28T00:00:00Z',type:'operation.get',payload:{operation_id:'original'}},{timeoutMs:1000});
+// @ts-expect-error Read batches retain immutable validated replies.
+readReplies.push(checkedEnvelope);
 // @ts-expect-error Local validation token cannot be forged from ordinary JSON.
 client.raw.request({value:checkedEnvelope.value},{timeoutMs:1000});
 // @ts-expect-error Validated token value is immutable.

@@ -23,6 +23,11 @@ export interface SdkValidatedEnvelope {
 export interface SdkRawCanonical {
     /** Synchronous frozen Rust schema check, bounded to two seconds, without configuration or network. */
     validate(value: Json): SdkValidatedEnvelope;
+    /** Finite read through the owned Rust parser and signed peer, without a synchronous validator child. */
+    read(
+        value: Json,
+        options: CanonicalRequestOptions,
+    ): Promise<readonly SdkValidatedEnvelope[]>;
     /** Same owned Rust SDK peer; fresh transport metadata, original logical intent, no retry. */
     request(
         envelope: SdkValidatedEnvelope,
@@ -167,6 +172,43 @@ export function createRaw(
     executable: string,
 ): SdkRawCanonical {
     return Object.freeze({
+        async read(
+            value: Json,
+            options: CanonicalRequestOptions,
+        ): Promise<readonly SdkValidatedEnvelope[]> {
+            let captured: JsonObject;
+            try {
+                captured = parseCanonicalJson(
+                    Buffer.from(canonicalJson(value)),
+                ) as JsonObject;
+                validateEnvelope(captured);
+                // This is only a conservative read/mutation boundary. The same
+                // owned Rust helper still parses the full frozen schema and
+                // classifies intent before it can submit any canonical IO.
+                if (
+                    ![
+                        "conversation.get",
+                        "conversation.list",
+                        "conversation.subscribe",
+                        "message.history",
+                        "operation.get",
+                    ].includes(captured.type as string) ||
+                    "operation_id" in captured ||
+                    (captured.type === "conversation.subscribe" &&
+                        (captured.payload as JsonObject).live !== false)
+                )
+                    throw new Error();
+            } catch {
+                throw new NodeSdkError("validation", "read-only");
+            }
+            return helper.request(
+                { type: "raw_request", envelope: captured },
+                options,
+                (value) => batch(value, captured),
+                undefined,
+                false,
+            );
+        },
         validate(value: Json): SdkValidatedEnvelope {
             let captured: JsonObject, bytes: Buffer;
             try {
@@ -183,7 +225,11 @@ export function createRaw(
                 maxBuffer: 16 * 1024,
                 stdio: ["pipe", "pipe", "ignore"],
             });
-            if (child.error || child.status !== 0)
+            if (
+                child.error ||
+                child.status !== 0 ||
+                child.stdout.length > 16 * 1024
+            )
                 throw new NodeSdkError("configuration", "not-submitted");
             try {
                 const result = parseCanonicalJson(child.stdout, 16 * 1024);

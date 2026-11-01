@@ -1,0 +1,67 @@
+{
+  "format": "connect/native-av-eddsa-original-negative/1",
+  "task": "G6-058",
+  "run_id": 41292563962,
+  "source_revision": "b4ad0b90e259668a9946c0a4eb508ea71361ddb8",
+  "artifact_id": 13078024998,
+  "artifact_zip_sha256": "c9a95d92b0657f99e38e3af6616a602ec4363d524c44a720ecbe2aa195de1638",
+  "independent_identity_audit": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "media",
+    "component_passed": false,
+    "source_revision": "b4ad0b90e259668a9946c0a4eb508ea71361ddb8",
+    "artifact_sha256": "c9a95d92b0657f99e38e3af6616a602ec4363d524c44a720ecbe2aa195de1638",
+    "report_sha256": "d5531fe603eb665ef5c64756edb87e27f66dd6e2f21c92f546f5fa4aa3ecee35",
+    "source_inputs_sha256": "9cfa57356fad8c47dd349d5c0f9325835df65b8dc68c5e00b2c6f62f2ea92895",
+    "sources_verified": {
+      "git": 4779,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "EdDSA",
+    "network": "local",
+    "reported_runtime_binary_sha256": "f7881b399a2660dff4662acb957848de244cf364d6e7c58bfe73c39a8b1fd7c1",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "commands_observed": 58,
+      "original_servers_joined": 2,
+      "conversation_report_sha256": "765b3e57a2d4c787e56cc4fb11452af13d4fe0dec2260f3f4f7f6b852d9cffce",
+      "conversation_passed": false,
+      "helpers_observed": 5,
+      "helpers_joined": true,
+      "native_offers_completed": 6,
+      "native_data_submissions": 5,
+      "native_data_completions": 4,
+      "native_data_receives": 0
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "failure": {
+    "phase": "six-native-reliable-data-flow",
+    "name": "NodeSdkError",
+    "kind": "application",
+    "certainty": "recorded",
+    "data_context": {
+      "step": "completion",
+      "source_role": "participant-4",
+      "session_index": 0
+    },
+    "command": "message.send",
+    "source_stack": []
+  },
+  "media_workload_reached": false,
+  "all_original_helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "scope": "Original b4ad EdDSA run is terminal failure in the preceding reliable-data completion step. It supplies no actual media observation and is not restarted solely because the earlier observation timed out.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

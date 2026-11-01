@@ -112,6 +112,31 @@ function batch(value, original) {
 }
 export function createRaw(helper, executable) {
     return Object.freeze({
+        async read(value, options) {
+            let captured;
+            try {
+                captured = parseCanonicalJson(Buffer.from(canonicalJson(value)));
+                validateEnvelope(captured);
+                // This is only a conservative read/mutation boundary. The same
+                // owned Rust helper still parses the full frozen schema and
+                // classifies intent before it can submit any canonical IO.
+                if (![
+                    "conversation.get",
+                    "conversation.list",
+                    "conversation.subscribe",
+                    "message.history",
+                    "operation.get",
+                ].includes(captured.type) ||
+                    "operation_id" in captured ||
+                    (captured.type === "conversation.subscribe" &&
+                        captured.payload.live !== false))
+                    throw new Error();
+            }
+            catch {
+                throw new NodeSdkError("validation", "read-only");
+            }
+            return helper.request({ type: "raw_request", envelope: captured }, options, (value) => batch(value, captured), undefined, false);
+        },
         validate(value) {
             let captured, bytes;
             try {
@@ -129,7 +154,9 @@ export function createRaw(helper, executable) {
                 maxBuffer: 16 * 1024,
                 stdio: ["pipe", "pipe", "ignore"],
             });
-            if (child.error || child.status !== 0)
+            if (child.error ||
+                child.status !== 0 ||
+                child.stdout.length > 16 * 1024)
                 throw new NodeSdkError("configuration", "not-submitted");
             try {
                 const result = parseCanonicalJson(child.stdout, 16 * 1024);

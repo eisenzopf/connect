@@ -1,0 +1,466 @@
+{
+  "format": "connect/reference-app-current-sdk-ci-negative/1",
+  "task": "G6-072",
+  "run_id": 41295617702,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41295617702",
+  "independent_identity_audit_passed": true,
+  "profiles": [
+    {
+      "platform": "linux",
+      "artifact_id": 13079236156,
+      "artifact_zip_sha256": "dbbfe907aad52918e0d8956e0b894a8d115d54929856db0295ed0f7eeb4dbe8d",
+      "artifact_size": 815603,
+      "source_revision": "bb7fec8f77ebf044805e575e87d82536fa8650bf",
+      "runtime_source_revision": "d9928b1d07aaef13fc0e2b3ddbd7d05611863753",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_inputs_verified": 27,
+      "sdk_payload_files_verified": 195,
+      "screenshots_verified": 4,
+      "checks_passed": 25,
+      "checks_required": 37,
+      "binary_sha256": "1e1927fc853ca508d7e4e211f8a88547bee3ca59b502fe60f188d89bd41b33a5",
+      "installation_proof_sha256": "151404ba90df6fb84da80a238e7ef58b3b6ffa819e0774b22e35f563e2ea1e95",
+      "failure": {
+        "stage": "sustained-combined-browser-audio-video",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 652,
+            "column": 20
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "phase": "packet-native-negotiation",
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 174,
+            "column": 21
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-resync-required",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "gateway.mjs",
+            "line": 15,
+            "column": 38
+          },
+          "sdk_location": null
+        }
+      ],
+      "sustained_browser_av": [
+        [
+          {
+            "role": "owner",
+            "elapsed_ms": 2002.800000000003,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 52,
+            "audio_energy": 0,
+            "desired_tone": 0,
+            "excluded_tone": 0,
+            "metrics": {
+              "capturedAudioFrames": 152,
+              "capturedVideoFrames": 90,
+              "encodedFrames": 233,
+              "sentRtp": 203,
+              "receivedRtp": 199,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 6,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 3,
+              "decodedAudioFrames": 104,
+              "playedAudioFrames": 16,
+              "decodedVideoFrames": 68,
+              "paintedVideoFrames": 61,
+              "droppedFrames": 150,
+              "synchronizedPackets": 143,
+              "unsynchronizedPackets": 56,
+              "audioLateDrops": 88,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 0,
+              "videoHorizonDrops": 3,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -163.381,
+              "lastVideoOffsetMs": 51.805,
+              "receiveClockCorrections": 2,
+              "lastAudioCaptureOffsetMs": 3,
+              "lastVideoCaptureOffsetMs": -2,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 8,
+              "queuedVideoFrames": 1,
+              "pendingRequests": 5,
+              "stopped": false
+            }
+          },
+          {
+            "role": "organizer",
+            "elapsed_ms": 2004.8000000000175,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 57,
+            "audio_energy": 0,
+            "desired_tone": 0,
+            "excluded_tone": 0,
+            "metrics": {
+              "capturedAudioFrames": 151,
+              "capturedVideoFrames": 89,
+              "encodedFrames": 230,
+              "sentRtp": 198,
+              "receivedRtp": 165,
+              "clockReportsSent": 6,
+              "clockReportsReceived": 6,
+              "videoClockReportsSent": 3,
+              "videoClockReportsReceived": 3,
+              "decodedAudioFrames": 91,
+              "playedAudioFrames": 8,
+              "decodedVideoFrames": 74,
+              "paintedVideoFrames": 70,
+              "droppedFrames": 117,
+              "synchronizedPackets": 161,
+              "unsynchronizedPackets": 4,
+              "audioLateDrops": 83,
+              "audioHorizonDrops": 0,
+              "audioCapacityDrops": 0,
+              "videoLateDrops": 4,
+              "videoHorizonDrops": 0,
+              "videoTimerDrops": 0,
+              "videoCapacityDrops": 0,
+              "lastAudioOffsetMs": -327.195,
+              "lastVideoOffsetMs": -5.087,
+              "receiveClockCorrections": 1,
+              "lastAudioCaptureOffsetMs": 5,
+              "lastVideoCaptureOffsetMs": 0,
+              "phase": "active",
+              "stoppedAt": null,
+              "stopReason": null,
+              "activeTracks": 2,
+              "activeContexts": 1,
+              "queuedAudioSources": 0,
+              "queuedSendFrames": 10,
+              "queuedVideoFrames": 0,
+              "pendingRequests": 5,
+              "stopped": false
+            }
+          }
+        ]
+      ],
+      "original_connection_restart": {
+        "metrics": {
+          "capturedAudioFrames": 125,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 125,
+          "sentRtp": 125,
+          "receivedRtp": 0,
+          "clockReportsSent": 3,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 0,
+          "playedAudioFrames": 0,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 2,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 0,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": null,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": 10,
+          "lastVideoCaptureOffsetMs": null,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 1,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 1,
+          "stopped": false
+        },
+        "output": {
+          "frames": 0,
+          "energy": 0,
+          "tone440": 0,
+          "tone880": 0
+        },
+        "resumed_remote_audio": {
+          "metrics": {
+            "capturedAudioFrames": 175,
+            "capturedVideoFrames": 0,
+            "encodedFrames": 175,
+            "sentRtp": 175,
+            "receivedRtp": 21,
+            "clockReportsSent": 4,
+            "clockReportsReceived": 0,
+            "videoClockReportsSent": 0,
+            "videoClockReportsReceived": 0,
+            "decodedAudioFrames": 21,
+            "playedAudioFrames": 21,
+            "decodedVideoFrames": 0,
+            "paintedVideoFrames": 0,
+            "droppedFrames": 2,
+            "synchronizedPackets": 0,
+            "unsynchronizedPackets": 21,
+            "audioLateDrops": 0,
+            "audioHorizonDrops": 0,
+            "audioCapacityDrops": 0,
+            "videoLateDrops": 0,
+            "videoHorizonDrops": 0,
+            "videoTimerDrops": 0,
+            "videoCapacityDrops": 0,
+            "lastAudioOffsetMs": 86.9,
+            "lastVideoOffsetMs": null,
+            "receiveClockCorrections": 0,
+            "lastAudioCaptureOffsetMs": 8,
+            "lastVideoCaptureOffsetMs": null,
+            "phase": "active",
+            "stoppedAt": null,
+            "stopReason": null,
+            "activeTracks": 1,
+            "activeContexts": 1,
+            "queuedAudioSources": 5,
+            "queuedSendFrames": 0,
+            "queuedVideoFrames": 0,
+            "pendingRequests": 1,
+            "stopped": false
+          },
+          "output": {
+            "frames": 17,
+            "energy": 1.7889983645333076,
+            "tone440": 0.0005374958552032881,
+            "tone880": 0.8816959041282337
+          }
+        }
+      },
+      "source_guards_passed": true,
+      "component_passed": false
+    },
+    {
+      "platform": "mac",
+      "artifact_id": 13078874564,
+      "artifact_zip_sha256": "7efa95e9fcb2b5753b7dcc1b9bd86b3697c116a6715501feeae6bd67f2282c04",
+      "artifact_size": 413521,
+      "source_revision": "bb7fec8f77ebf044805e575e87d82536fa8650bf",
+      "runtime_source_revision": "d9928b1d07aaef13fc0e2b3ddbd7d05611863753",
+      "node": "v22.23.4",
+      "browser": "156.0.8078.4",
+      "git_inputs_verified": 27,
+      "sdk_payload_files_verified": 195,
+      "screenshots_verified": 2,
+      "checks_passed": 18,
+      "checks_required": 37,
+      "binary_sha256": "327c33dccd95274eef6bedbd6b67e51e675ed81110bdb3fb18ca3613fb16deff",
+      "installation_proof_sha256": "7952bbb18c6f05b1bdc2d01704cf44823a49498c3c71c04696f6018d27da740e",
+      "failure": {
+        "stage": "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+        "name": "TimeoutError",
+        "code": null,
+        "source_stack": [
+          {
+            "line": 504,
+            "column": 44
+          },
+          {
+            "line": 503,
+            "column": 75
+          }
+        ]
+      },
+      "app_failures": [
+        {
+          "phase": "media-control-supervision",
+          "elapsed_ms": 2000,
+          "event_loop_active_ms": 1591,
+          "event_loop_idle_ms": 410,
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "deadline",
+          "location": null,
+          "sdk_location": {
+            "file": "sdk_helper.js",
+            "line": 126,
+            "column": 16
+          }
+        },
+        {
+          "phase": "packet-native-negotiation",
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": null,
+          "name": "NodeSdkError",
+          "kind": "cancelled",
+          "location": {
+            "file": "media.mjs",
+            "line": 66,
+            "column": 29
+          },
+          "sdk_location": {
+            "file": "node_media_channel.js",
+            "line": 11,
+            "column": 12
+          }
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        },
+        {
+          "code": "app-media-stopped",
+          "name": "Error",
+          "kind": null,
+          "location": {
+            "file": "media.mjs",
+            "line": 5,
+            "column": 44
+          },
+          "sdk_location": null
+        }
+      ],
+      "sustained_browser_av": null,
+      "original_connection_restart": null,
+      "source_guards_passed": true,
+      "component_passed": false
+    }
+  ],
+  "interpretation": "Both original source-bound app CI profiles failed. Linux receives and paints identified video but completes no audio buffers in its first combined two-second window; audio offsets are -163/-327ms and late drops rise. Mac identifies duplex audio before a signed control supervisor deadline with 1591ms active/410ms idle Node event-loop time. Timing identifies symptoms, not a proved common cause.",
+  "scope": "Exact Git inputs, matching independently audited d992 production SDK package/binary, curated installation identity (original private-path proof bytes unavailable), all available PNG bytes, check prefix and unchanged runtime/source guards audited. Not a passing app profile, full transport or Gate acceptance.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

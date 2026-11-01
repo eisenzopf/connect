@@ -18,6 +18,15 @@ npm install --offline --ignore-scripts ./dependencies/*.tgz ./rudeless-connect-0
 Use the SDK examples and documentation shipped alongside the matching candidate.
 Candidate packaging and complete platform qualification are still in progress.
 
+For finite canonical reads, `await client.raw.read(envelope, options)` uses the
+existing Rust owner to validate the full frozen schema and perform the signed
+exchange. It accepts `conversation.list`, `conversation.get`, `message.history`,
+`operation.get`, and `conversation.subscribe` with explicit `live: false`.
+It captures the input before awaiting, enforces the ordinary request deadline,
+and creates no synchronous validation subprocess. Each exchange checks current
+authorization; reads are neither cached nor retried. Mutations continue to use
+`raw.validate` and `raw.request` with their captured original logical intent.
+
 Source and API documentation: https://github.com/eisenzopf/connect
 
 MIT licensed; see LICENSE.

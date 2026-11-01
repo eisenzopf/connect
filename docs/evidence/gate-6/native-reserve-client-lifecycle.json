@@ -75,7 +75,9 @@
     "late_failure_collection_regressions_passed": 2
   },
   "actual_after_fix_component_verified": false,
-  "scope": "Real read-only Mac Node22 two-client idle diagnostic plus explicit fixture lifecycle and late-failure decoder collection corrections. Ubuntu after-fix native workload still requires execution; no complete matrix cell or Gate acceptance.",
+  "scope": "Real read-only Mac Node22 idle diagnostic plus actual Ubuntu ES256 original-reference recovery after the 62-second six-Connection workload. The recovery/lifecycle correction passes; independent media quality still fails, so no full media component, transport matrix cell or Gate acceptance.",
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_after_fix_recovery_verified": true,
+  "after_fix_evidence": "docs/evidence/gate-6/native-av-workload-decoded-negative-173.json"
 }
