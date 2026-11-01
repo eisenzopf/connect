@@ -43,13 +43,22 @@
       "passed": 45,
       "failed": 0,
       "ignored": 1
+    },
+    {
+      "name": "native_stream_authority",
+      "passed": 185,
+      "failed": 0,
+      "ignored": 0
     }
   ],
   "after_binary_sha256": "34bef9377790578a98974aba4cf56ff5e4d888dab0120b2648fd945393a3ab3a",
   "native_stream_cohort": {
-    "status": "in-progress",
+    "status": "complete",
     "exact_original_prefix": "connection_control::tests::native_stream_authority::",
-    "cases_required": 185
+    "cases_required": 185,
+    "passed": 185,
+    "failed": 0,
+    "ignored": 0
   },
   "controller_filter_correction": "Original wrapper used an empty native_stream_authority:: module prefix and stopped after the successful3+45 cases. Retained original state/logs; continue only the unrun185 cases on the same verified binary. Queued build and native controllers first stopped at that failed prerequisite before any commands; their terminal empty results are retained. No original native operation was replayed.",
   "private_evidence_sha256": {
@@ -59,9 +68,43 @@
     ".local/gate-6/authority-resource-preparation/after-before-native-filter-correction.json": "0d5437f5cddb6a07742b4094f7e9a7b79f7f1bee342d952585b83dee743f455a",
     ".local/gate-6/authority-resource-preparation/after-inputs.json": "aa8f3b0e4ac5d3a8771603708400f390ccfa1ad5ebfe9903cae4d646b72344c0",
     ".local/gate-6/authority-resource-preparation/after.log": "a48c69a41c517560604a59431705fc4d1a515304e79249e4cc6feca115484f21",
-    ".local/gate-6/authority-resource-preparation/authority_fences.log": "0a1c16cf461c7a560795a60cc2cdcf6b03dd51c824ffbf35aa6abbce3932fc06"
+    ".local/gate-6/authority-resource-preparation/authority_fences.log": "0a1c16cf461c7a560795a60cc2cdcf6b03dd51c824ffbf35aa6abbce3932fc06",
+    ".local/gate-6/authority-resource-preparation/after-state.json": "54653d6b1febc1115b526b2d37ff63ea22363e2ad70ff5eba8f2a80c35ca3ed1",
+    ".local/gate-6/authority-resource-preparation/native_stream_authority.log": "173c7d6ce4806898e904c6c211050db4ea61f6e63763987bb3d7a648fed5c0eb"
   },
-  "scope": "Controlled Store authority contention correction and already completed regression checks only. Full current native cohort, optimized runtime and fresh same-profile six-route quality verification remain pending. The retained8ba58446 baseline remains negative. No full Store suite, decoded media, twenty-move,32-cell or task qualification.",
+  "scope": "Controlled Store authority contention correction;3focused cases, full45authority-fence cases(including the3focused cases) and185native-stream cases pass,230distinct cases. One process worker is intentionally invoked by its passing parent cases. Optimized runtime and fresh unchanged62s/60s six-route quality verification remain pending. Retained8ba58446 baseline is negative. No full Store suite, decoded media, twenty-move,32-cell or task qualification.",
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "after_verification": {
+    "stage": "complete",
+    "passed": true,
+    "cohorts": [
+      {
+        "name": "resource_preparation",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "authority_fences",
+        "passed": 45,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "name": "native_stream_authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "binary_sha256": "34bef9377790578a98974aba4cf56ff5e4d888dab0120b2648fd945393a3ab3a",
+    "elapsed_seconds": 52.052967249881476,
+    "source_inputs_unchanged": true,
+    "original_controller_filter_error_preserved": true,
+    "fixed_binary_preserved": true,
+    "continuation_elapsed_seconds": 108.64827937493101
+  },
+  "distinct_passing_cases": 230,
+  "repeated_focused_case_invocations": 3
 }
