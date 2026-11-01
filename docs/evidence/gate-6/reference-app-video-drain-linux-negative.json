@@ -1,0 +1,307 @@
+{
+  "source_revision": "3cd0b85d204d04be9b1ddcc127b627646c2f3a63",
+  "artifact_id": 13094861248,
+  "artifact_size": 847535,
+  "artifact_zip_sha256": "b50f986e99b90446fe809ee09b0a20b8d67b8e47c6e911b380dff70bbb29bf4c",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "git_app_checker_installer_cpu_native_inputs_verified": 35,
+  "node_package_source_inputs_verified": 197,
+  "node_archive_sha256": "1c780ede273c306d53443566b03d6320487c5fa2b8edad5cff59f79e8db06208",
+  "installed_sdk_files_verified": 195,
+  "checks_passed": 25,
+  "checks_required": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 721,
+        "column": 20
+      }
+    ]
+  },
+  "failure_media_pages": [
+    {
+      "role": "owner",
+      "observation": {
+        "session_state": "accepted",
+        "current_actor": "owner",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 238,
+          "sentRtp": 238,
+          "receivedRtp": 227,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 141,
+          "playedAudioFrames": 46,
+          "decodedVideoFrames": 70,
+          "paintedVideoFrames": 68,
+          "droppedFrames": 115,
+          "synchronizedPackets": 223,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 95,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -70.72,
+          "lastVideoOffsetMs": 39.049,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": -8,
+          "lastVideoCaptureOffsetMs": -11,
+          "receiveStartedMs": 313,
+          "deviceSetupMs": 58,
+          "captureGraphMs": 9,
+          "cameraSetupMs": 27,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 1,
+          "queuedVideoFrames": 1,
+          "pendingRequests": 4,
+          "stopped": false
+        },
+        "output": {
+          "frames": 42,
+          "energy": 2.0517769506339296,
+          "tone440": 0.0005768862708927394,
+          "tone880": 1.0102588883520298
+        }
+      }
+    },
+    {
+      "role": "organizer",
+      "observation": {
+        "session_state": null,
+        "current_actor": "organizer",
+        "state": "active",
+        "status": "Microphone shared with camera. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 236,
+          "sentRtp": 236,
+          "receivedRtp": 228,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 142,
+          "playedAudioFrames": 82,
+          "decodedVideoFrames": 85,
+          "paintedVideoFrames": 83,
+          "droppedFrames": 64,
+          "synchronizedPackets": 224,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 60,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -40.421,
+          "lastVideoOffsetMs": 58.068,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": 2,
+          "lastVideoCaptureOffsetMs": 0,
+          "receiveStartedMs": 269,
+          "deviceSetupMs": 50,
+          "captureGraphMs": 11,
+          "cameraSetupMs": 21,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 3,
+          "stopped": false
+        },
+        "output": {
+          "frames": 75,
+          "energy": 0.6255775315514759,
+          "tone440": 0.3077144806253684,
+          "tone880": 0.00017747449618284506
+        }
+      }
+    }
+  ],
+  "source_guards_passed": true,
+  "component_passed": false,
+  "format": "connect/gate6-reference-app-video-drain-linux-negative/1",
+  "workflow_run_id": 41330222748,
+  "job_id": 124918554572,
+  "native_runtime": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "3cd0b85d204d04be9b1ddcc127b627646c2f3a63",
+    "target": "x86_64-unknown-linux-gnu",
+    "sources_verified": {
+      "git": 4862,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 753,
+    "binary_sha256": "2c3518b8365c457da8a885edcaaccbae6779df121c8047222ff1fa0514d7735c",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "ac87a4791619838f42a908c67a638f0ef8f7f1d9a23066344c65e973bcd51d4c",
+    "manifest_sha256": "1e7c249641c4b300c652bfe71aa629cbe7163494fe54b5525cfd903bdb5a8e9f",
+    "artifact_zip_digests": {
+      "evidence": "f178012fbbfa9d74c779087bd2f32954337561cc71288e92b9b35bfc6a2b6aaf",
+      "package": "1a2a5e9543185968dfbb6d7f06f195cf98307d0e445c3b9dd3f3c1174066c4d8"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "independent_replay": {
+    "original_replay_function_byte_equal": true,
+    "replay_function_sha256": "1cb4c9fb0c12c7e4afcaa3ffcab3f7008ec1b397c66455b79c18ef9059dbdf58",
+    "mapper_sha256": "d2b14a792ce305b4d49c130cb0280b4a78db3c40725b194527d60595b8c567d5",
+    "trace_replay_exact": true
+  },
+  "independent_png": [
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "png_sha256": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+      "rgb_sha256": "0991d5af2da2adb7ecc75b16681f4dec2a383f5107513a5fd17bd21009e5c524",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 4012,
+      "png_sha256": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+      "rgb_sha256": "b4ab07a76db0d35bd78dd08d9e553ce3c280fe95b607f784474c747c4358710d",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "capture-controls.png",
+      "width": 1440,
+      "height": 2389,
+      "png_sha256": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc",
+      "rgb_sha256": "4ad6f58652ea841bd55474472247646dc97ef6732afcf0a3ef0607229b8dcce0",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    },
+    {
+      "name": "capture-controls-narrow.png",
+      "width": 320,
+      "height": 3921,
+      "png_sha256": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+      "rgb_sha256": "c38f9d75f801c52d24e0b8b0c35f64c53c25a48f7273a49bf391ed569bfdd0f7",
+      "crc_decompression_geometry_verified": true,
+      "repeated_header_strips": 0
+    }
+  ],
+  "initial_capture_files_not_exported": [
+    "desktop.png",
+    "narrow.png"
+  ],
+  "known_organizer_av_retained_clock_replay": {
+    "audio": {
+      "route_slot": 1,
+      "lease_slot": 0,
+      "medium": "audio",
+      "synchronized_retained_packets": 47,
+      "unsynchronized_retained_packets": 1,
+      "received_source_age": {
+        "samples": 47,
+        "minimum_ms": 18.352515000002313,
+        "p50_ms": 96.115,
+        "p95_ms": 124.205,
+        "maximum_ms": 128.69665800000075
+      },
+      "estimated_playout_offset": {
+        "samples": 47,
+        "minimum_ms": -48.697,
+        "p50_ms": -16.115,
+        "p95_ms": 56.72,
+        "maximum_ms": 61.647
+      },
+      "send_http_duration": {
+        "samples": 48,
+        "minimum_ms": 3.56,
+        "p50_ms": 12.698,
+        "p95_ms": 37.136,
+        "maximum_ms": 49.58
+      },
+      "receive_http_duration": {
+        "samples": 48,
+        "minimum_ms": 4.855,
+        "p50_ms": 25.484,
+        "p95_ms": 45.262,
+        "maximum_ms": 55.44
+      }
+    },
+    "video": {
+      "route_slot": 2,
+      "lease_slot": 0,
+      "medium": "video",
+      "synchronized_retained_packets": 43,
+      "unsynchronized_retained_packets": 1,
+      "received_source_age": {
+        "samples": 43,
+        "minimum_ms": -2.1665439999997034,
+        "p50_ms": 16.66,
+        "p95_ms": 42.266,
+        "maximum_ms": 62.46142200000031
+      },
+      "estimated_playout_offset": {
+        "samples": 43,
+        "minimum_ms": 17.538999999999998,
+        "p50_ms": 63.34,
+        "p95_ms": 76.487,
+        "maximum_ms": 82.167
+      },
+      "send_http_duration": {
+        "samples": 0,
+        "minimum_ms": null,
+        "p50_ms": null,
+        "p95_ms": null,
+        "maximum_ms": null
+      },
+      "receive_http_duration": {
+        "samples": 44,
+        "minimum_ms": 10.471,
+        "p50_ms": 31.122,
+        "p95_ms": 47.85,
+        "maximum_ms": 86.416
+      }
+    }
+  },
+  "owner_av_clock_age_excluded": true,
+  "scope": "Corrected video drain still fails the original combined AV check after25/37. Organizer AV retained receive-event replay estimates audio source age96.115ms median/124.205ms p95, video16.66ms median/42.266ms p95, at different retained packet samples. Audio is often already beyond the unchanged80ms target at the network observer. These are not paired decoded AV sync, browser presentation times or a proven upstream delay cause. Unknown owner AV rates remain excluded. Video late drops are0 in both captured failure pages; audio late drops95/60 remain.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

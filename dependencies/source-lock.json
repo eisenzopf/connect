@@ -1433,6 +1433,11 @@
       "path": "patches/rvoip/gate6-quarantined-video-preparation-regression.patch",
       "sha256": "974eb86de151d87995afc7189681f13d0070b1bc3becb724aa32824d0a904d83",
       "source": "Connect G6-058: actual staged endpoint regression for one duplex audio stream with separately muted video; no public media grant."
+    },
+    {
+      "path": "patches/rvoip/gate6-quarantined-video-preparation.patch",
+      "sha256": "706c6c1be61636c47258b2d12ff1c4f6720b2afa66d4e2e093d44ef795f8b1fa",
+      "source": "G6-058 permits decoder-only audio preparation with separately muted active video resources. Recheck video quarantine/physical readiness on every audio proof and replacement stamp; retain all negotiated ports in commit custody. Audio replacement must not unmute video. Existing authority/duplex/role/clock/media thresholds unchanged; Core component verification and full Store/UCTP/service/physical AV integration remain required. Pin original video port custody so removing a retired active port cannot lend fresh audio readiness; fixture grants retain the exact offered stream set."
     }
   ]
 }

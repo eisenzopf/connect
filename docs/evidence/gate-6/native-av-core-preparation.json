@@ -1,0 +1,59 @@
+{
+  "format": "connect/gate6-core-quarantined-video-preparation/1",
+  "base_revision": "6fbfdfc9",
+  "target": "aarch64-apple-darwin",
+  "build": "actual debug Core lib tests with opus",
+  "patch": {
+    "path": "patches/rvoip/gate6-quarantined-video-preparation.patch",
+    "sha256": "706c6c1be61636c47258b2d12ff1c4f6720b2afa66d4e2e093d44ef795f8b1fa",
+    "source": "G6-058 permits decoder-only audio preparation with separately muted active video resources. Recheck video quarantine/physical readiness on every audio proof and replacement stamp; retain all negotiated ports in commit custody. Audio replacement must not unmute video. Existing authority/duplex/role/clock/media thresholds unchanged; Core component verification and full Store/UCTP/service/physical AV integration remain required. Pin original video port custody so removing a retired active port cannot lend fresh audio readiness; fixture grants retain the exact offered stream set."
+  },
+  "source_lock_sha256": "b70c1534ea69d3f9279b8168c73b1f3988d29d1f1a350e04aafca18d12b6eef1",
+  "binary_sha256": "d1ec304dc7d83fc9c01a19854901952b0c7873621a08a6ba4d6f00e24b1b7654",
+  "prepared_file_count": 4098,
+  "source_inputs_unchanged": true,
+  "compile_exit": 0,
+  "private_scene_tests": {
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "filtered": 510
+  },
+  "proved": [
+    "One duplex audio stream plus separately muted active video allows discard-only audio preparation.",
+    "Audio proof never grants public video.",
+    "Video unmute, hold or actual adapter port retirement invalidates new and captured readiness.",
+    "Original video port identities remain pinned when retirement removes them from the active map.",
+    "Audio replacement commits with quarantined video, preserving the remote audio binding and leaving video muted.",
+    "Existing privacy/current authorization/revocation/roles/cancellation/unknown-effect checks remain passing."
+  ],
+  "retained_negatives": [
+    {
+      "preparation": "v80",
+      "passed": 0,
+      "failed": 1,
+      "failure": "Unsupported before optional video preparation"
+    },
+    {
+      "preparation": "v81",
+      "passed": 59,
+      "failed": 2,
+      "failure": "Original draft overlooked retired video removed from active map; AV resource fixture approved only audio."
+    },
+    {
+      "preparation": "v82",
+      "tests_executed": false,
+      "compile_exit": 101,
+      "failure": "Private commit field access corrected to existing commit() accessor."
+    },
+    {
+      "preparation": "v83",
+      "tests_executed": false,
+      "compile_exit": 101,
+      "failure": "Diagnostic assertion label referenced change outside its test scope; production code unchanged by correction."
+    }
+  ],
+  "scope": "Local Core synthetic adapter/codec component only. No SIP transport, provider or model execution. Store AV preparation and identity custody are separately checked; UCTP/service/physical-peer AV integration, all32transport cells and quality/failure profile remain unqualified.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
