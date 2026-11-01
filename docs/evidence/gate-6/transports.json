@@ -1060,5 +1060,14 @@
     "Keep G6-054 deferred and all required verification binding; no cell inherits an earlier component or another cell"
   ],
   "full_cell_materializers_implemented": false,
-  "publication_authorized": false
+  "publication_authorized": false,
+  "current_control_candidate": {
+    "source_revision": "390b677f",
+    "workflow_run_id": 41265399764,
+    "job_id": 124727066259,
+    "status": "live-typecheck-compile-and-control-step",
+    "ci_preconditions": "Native prerequisites, verified source preparation,6matrix guards/inventory and currentSDKbuild passed; no runtimecase result confirmed",
+    "expected_functions": 15,
+    "full_matrix_cells_qualified": 0
+  }
 }
