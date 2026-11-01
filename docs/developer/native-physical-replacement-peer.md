@@ -172,3 +172,17 @@ journal fields. The narrower typed `OperationUpdated` projection omits
 `command_type` and `expected_revision`; serializing that projection cannot prove
 these original preconditions. Audio and Video sender reports share the original
 source clock and CNAME. Pending status reads never authorize Video.
+
+The separate signed service AV fixture now passes on local macOS arm64/EdDSA
+with normal production features. Actual PCMU readiness and generation-two
+movement retain both original resources. The retained peer observes muted
+replacement Video after audio commit; a distinct authorized unmute and its
+original receipt replay then allow exact encoded VP8 reception in both
+directions. The fixture retires its Video subscriptions, preserves the later
+strict audio and authority probes, drains native slots and joins its server.
+Its retained journal has one reservation, one completed original replacement,
+one commit at attempt one, one original explicit camera-unmute row, and all
+three physical Connections/lifetimes retired. The full source/binary guards pass.
+See [the scoped service result](../evidence/gate-6/native-av-replacement-signed-local.json).
+This service fixture does not execute the independently owned Rust target or
+establish decoded moving-video quality or a complete transport cell.

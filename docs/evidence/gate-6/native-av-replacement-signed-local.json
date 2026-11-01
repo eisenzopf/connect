@@ -1,0 +1,101 @@
+{
+  "format": "connect/gate6-native-av-replacement-signed-local/1",
+  "component_passed": true,
+  "platform": "macos-arm64",
+  "signing": "EdDSA",
+  "media_profile": [
+    "PCMU",
+    "VP8"
+  ],
+  "case": "canonical_native_connections::consultation::groups::replacement::av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+  "compile_exit": 0,
+  "compile_seconds": 111.37311529088765,
+  "test_exit": 0,
+  "exact_functions_passed": 1,
+  "runtime_seconds": 31.27,
+  "binary_sha256": "ea43cc66206a6793467eec951fe8db23fde278ed5e27ddd96e1c3a4def9e1806",
+  "source_inputs_matched": 5656,
+  "source_inputs_unchanged": true,
+  "extern_inputs_unchanged": true,
+  "binary_unchanged": true,
+  "compiler_profile": "Exact normal-feature Cargo-recorded integration compiler arguments with only output/incremental redirected to fresh private D2 directories. Dependency cache read only. Selected signed native AV case only; no SDK/package, model/provider or full matrix qualification.",
+  "original_compiler_args_sha256": "d95758f4b2e3731197a3c57e6686d74a2af5617266103e057698e824f9fa4183",
+  "runtime_log_sha256": "2cc65cd7a1526ca0ef1bd995fc702659eab7f47277578aceeaf07448e9240c67",
+  "retained_journal_audit": {
+    "passed": true,
+    "original_replacement_rows": 1,
+    "original_record_state": "completed",
+    "generation": 2,
+    "readiness_streams": [
+      "replacement-camera",
+      "replacement-voice"
+    ],
+    "original_source_retired_in_result": true,
+    "retained_connection_pinned_in_result": true,
+    "native_reservation_rows": 1,
+    "explicit_video_unmute_original_completed_rows": 1,
+    "connections": [
+      {
+        "state": "retired",
+        "count": 3
+      }
+    ],
+    "native_lifetimes": [
+      {
+        "retired": 1,
+        "count": 3
+      }
+    ],
+    "effects": [
+      {
+        "provider": "native-replacement-activate",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-allocate",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-attach",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-commit",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-prepare",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-readiness",
+        "state": "confirmed",
+        "attempt": 1
+      },
+      {
+        "provider": "native-replacement-start",
+        "state": "confirmed",
+        "attempt": 1
+      }
+    ],
+    "scope": "Read-only retained completed synthetic fixture journal. AV/packet and cleanup predicates are the independently retained runtime test, not inferred from rows."
+  },
+  "actual_behavior": [
+    "Original signed allocation/parameter confirmation retains one Audio and one Video resource.",
+    "Actual private duplex audio readiness precedes generation-two movement; historical readiness includes both negotiated resource IDs.",
+    "A retained peer selects the replacement camera and receives no VP8 while its source gate remains muted after audio commit.",
+    "Separately authorized original video-unmute command completes; exact original replay returns the same receipt.",
+    "Original encoded VP8 frame is physically received and reassembled in each direction through the public native receiver.",
+    "Separate Video subscriptions retire and drain before unchanged strict audio/current-authority/late-cancel/retirement probes. All native slots drain and server shutdown joins."
+  ],
+  "standalone_rust_peer_av_execution_verified": false,
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One actual native signed service AV replacement component on normal production features, built with recorded Cargo compiler arguments with output directories redirected to D2. The separate consumer Cargo build, actual independently owned AV peer/controller rehearsal, moving-picture independent decode,60second quality,paired presentation,20transitions and all32transport cells remain required. Black VP8 encoded-frame assembly is not decoded/sync/video-quality evidence."
+}
