@@ -6,6 +6,7 @@
     "desktop-keyboard-create-and-participant-selection",
     "keyboard-message-and-text-safe-timeline",
     "keyboard-incoming-invitation-and-decision",
+    "delayed-perspective-change-retains-current-peer-audience",
     "actual-browser-microphone-permission-denial",
     "actual-browser-camera-permission-denial",
     "320px-no-horizontal-overflow",
@@ -18,14 +19,22 @@
   "scope": "Owned actual browser/installed browser SDK with a simulated application backend. No Node helper, Connect server, media capture/transmission, model or provider qualification.",
   "task_complete": false,
   "whole_gate_qualified": false,
-  "source_revision": "d48f83971040ec8d079ab7e77c42d3c4d0517cac",
+  "source_revision": "15be1a454d1f17414ec1c748d7f0a2f32751747c",
   "source_inputs": {
+    "app/diagnostics.mjs": {
+      "sha256": "6103d8cd49868655eab461e65ded3fb17288eeb41cf449f572b0beb8143a3a97",
+      "mode": 420
+    },
+    "app/diagnostics.test.mjs": {
+      "sha256": "022821a9cd935ea71cf36e099298b62485f0d112ad2c5368f3ccf301e154147e",
+      "mode": 420
+    },
     "app/gateway.mjs": {
-      "sha256": "8e2c53d51c5c81a474f9f99610bc97a04df7e35a54685efd6285ead6e0800c9d",
+      "sha256": "5d01031571032cffe2136b97cd3b1ea11c5d87714d9b4393d906b95cfea1cf81",
       "mode": 420
     },
     "app/gateway.test.mjs": {
-      "sha256": "ec73d36cd0586d502dd4561c5f9cbc7ed3dc60e590b5cbcc27cbfd31e1f57fc6",
+      "sha256": "534130256a4b39a7556e99946bd6012f3a34a296249bd1d86d155e4cf230cf8e",
       "mode": 420
     },
     "app/intents.mjs": {
@@ -37,15 +46,27 @@
       "mode": 420
     },
     "app/main.mjs": {
-      "sha256": "17bad57d56b092f69279d38fbe7ce396de941fbc8a4b97ee887754772fb17356",
+      "sha256": "37330262ebbbadcd6b981c10e8817d9f0ce35672d2ea6bb789a548a841fca48f",
+      "mode": 420
+    },
+    "app/run.mjs": {
+      "sha256": "248b325d4e3aecf316b8090d822397a068adca8c8f2a4bf24868f959c1f9bed7",
       "mode": 420
     },
     "app/server.mjs": {
-      "sha256": "521f4319de3822df6ac6600fe483aa22484ce6f2e7aaa2e038b5a90e2807741a",
+      "sha256": "f80df1a83278628acf45901b5d174848a06f8ead2b171c00a74ad5ba67b60cf4",
       "mode": 420
     },
     "app/server.test.mjs": {
       "sha256": "2137b093d7b87e71cd2ca85fa3e60595602af041aa6f9b8a13ec9294389252fa",
+      "mode": 420
+    },
+    "app/setup.mjs": {
+      "sha256": "7ee01d75989724d7e33f9c7d4c3501d87237ee7a0248dda88a997e79d55789e9",
+      "mode": 420
+    },
+    "app/setup.test.mjs": {
+      "sha256": "2a689fb0ed9ed86208a2eab4384e65cc1eea1a17c744918c572bc01b86600ede",
       "mode": 420
     },
     "app/ui/app.css": {
@@ -53,7 +74,7 @@
       "mode": 420
     },
     "app/ui/app.mjs": {
-      "sha256": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
+      "sha256": "7f9ec9d39799ebe77d879c47cb285eda81444a132357065f9d6a58a687bee787",
       "mode": 420
     },
     "app/ui/index.html": {
@@ -829,7 +850,7 @@
       "mode": 384
     },
     "scripts/check-reference-app-ui.mjs": {
-      "sha256": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab"
+      "sha256": "4ab95c64f315889683ac4c288708c4098d93bba88b1b3fb758c1a902f8a84717"
     }
   },
   "browser": "156.0.8078.48",
@@ -848,47 +869,25 @@
     ],
     "notice": "Connected \u00b7 Local synthetic participants. Outcomes below are last observed states.",
     "permission": "Device preview is local.",
-    "conversationButtons": 1,
+    "conversationButtons": 0,
     "activeElement": "",
     "pending": false
   },
-  "desktop_sha256": "df8e713d4a8fb4b3a2b966a2ba150ae74cd86726671eebc2505b5224d727b31c",
+  "desktop_sha256": "a21e9b498a2764b5ee8c5fc8c6d212f5ef9527098ce03c7d9c1c30a9e174670a",
   "narrow_sha256": "bc340b497d9608d24438083b31d7b0fd1c48c1ffd66c3fe4111da198d7d66e0b",
   "sources_unchanged": true,
-  "source_revision_note": "Base Git revision; exact app, harness and installed SDK bytes/modes are bound by source_inputs and rechecked after original-owner shutdown. The UI abort fix was an uncommitted change at execution.",
-  "negative_runs": [
-    {
-      "run": "ui-01",
-      "summary_sha256": "448796ed825ed1dd6057e42c8a4a2ea2eed00e79bc1cc6a7e7b0db923f1f31df",
-      "passed": false,
-      "checks_passed": 3,
-      "sources_unchanged": null,
-      "scope": "Initial native-select timeout; source inventory not captured."
-    },
-    {
-      "run": "ui-02",
-      "summary_sha256": "62515110e969f3727a47c1536a5d3f6109faaea5fd0091f100492c0ca2b6defa",
-      "passed": false,
-      "checks_passed": 3,
-      "sources_unchanged": true,
-      "scope": "Source-bound native-select keyboard timeout; no app defect inferred."
-    },
-    {
-      "run": "ui-03",
-      "summary_sha256": "523bcc821b94df73f59a7f6b337f806802d6340c41f37889cd8b7b5eae17eb00",
-      "passed": false,
-      "checks_passed": 3,
-      "sources_unchanged": true,
-      "scope": "Source-bound alternate native-select keyboard timeout."
-    },
-    {
-      "run": "ui-04",
-      "summary_sha256": "d662f8a6664aa8e25d6fec8ca9e1eba82d37165bc05b99f7aa2a859a2793bf88",
-      "passed": false,
-      "checks_passed": 7,
-      "sources_unchanged": true,
-      "scope": "Source-bound offline recovery failed: assigning to read-only DOMException.code replaced the offline notice; original effect and state retained."
-    }
-  ],
-  "remaining": "Actual installed Node helper/Connect backend, one-command setup/enrollment, Linux/Node22, complete keyboard participant switching and negotiated capture/media integration remain unqualified. G6-072 stays in progress."
+  "source_revision_note": "Base Git revision; exact app/harness/installed SDK bytes are bound by source_inputs and unchanged-source verification. Audience/switching correction was uncommitted at execution.",
+  "previous_public_evidence": {
+    "commit": "c452f67b",
+    "sha256": "ed44f84b9802982a6bc485a46dad3c3ceb0841c854fefc21bb5cb9befb5b4228",
+    "scope": "Earlier12-check owned browser component and its historical negatives; preserved in Git and private ui-05 summary."
+  },
+  "delayed_audience_counterexample": {
+    "run": "ui-07",
+    "summary_sha256": "a64358373630fdd574ef1c1bddaf7809435fa349b0b48b8d954d7c1983a7d999",
+    "sources_unchanged": true,
+    "checks_passed": 4,
+    "finding": "Delayed receiving-perspective state update leaves no checked message recipients; expected current peer owner. Retained failed before correction."
+  },
+  "remaining": "Actual installed Node/Connect browser offline/restart/full two-platform checks and negotiated capture remain required; this simulated-backend component does not complete G6-072."
 }

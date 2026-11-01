@@ -1,6 +1,6 @@
 import { browserCaptureSupport } from "/sdk/browser.js";
 const $ = id => document.getElementById(id);
-let actor = "owner", epoch = 0, working = false, pending = null, storageBlocked = false, selectedId = null;
+let actor = "owner", epoch = 0, working = false, switching = false, pending = null, storageBlocked = false, selectedId = null;
 let historyCursor = null, nextHistory = null, nextConversations = null, current = null, contacts = [], timer;
 const requests = new Set(), previews = new Set(); let captureEpoch = 0;
 const label = { "conversation.create": "Create conversation", "message.send": "Send message", "session.invite": "Invite",
@@ -46,9 +46,9 @@ function savePending(value) {
     catch { storageBlocked = true; throw Object.assign(Error(), { code: "app-local-state" }); }
 }
 function controls() {
-    for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || storageBlocked || Boolean(pending) ||
-        navigator.onLine === false || (value.closest("#message-form,#invite-form") !== null && (!selectedId || current?.conversation.closed));
-    $("reconnect").disabled = working;
+    for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || switching || storageBlocked || Boolean(pending) ||
+        navigator.onLine === false || (value.closest("#message-form,#invite-form") !== null && (!selectedId || !current || current.conversation.closed));
+    $("reconnect").disabled = working || switching; $("actor").disabled = working || switching;
 }
 function clearView() {
     current = null;
@@ -87,20 +87,22 @@ async function api(path, input = {}) {
             typeof error?.code === "string" ? error.code : "offline-or-uncertain" });
     } finally { clearTimeout(timeout); requests.delete(controller); }
 }
-function choices(id, people) {
-    const value = $(id), signature = JSON.stringify(people); if (value.dataset.people === signature) return;
+function choices(id, people, context) {
+    const value = $(id), signature = JSON.stringify([context, people]); if (value.dataset.people === signature) return;
+    const initialized = value.dataset.context === context && value.dataset.initialized === "true";
     const selected = new Set([...value.querySelectorAll("input:checked")].map(input => input.value));
-    value.replaceChildren(); value.dataset.people = signature;
+    value.replaceChildren(); value.dataset.people = signature; value.dataset.context = context;
+    value.dataset.initialized = String(initialized || people.length > 0);
     for (const [index, person] of people.entries()) {
         const label = node("label"), input = node("input"); input.type = "checkbox"; input.value = person.role;
-        input.checked = selected.size ? selected.has(person.role) : index === 0;
+        input.checked = initialized ? selected.has(person.role) : index === 0;
         label.append(input, document.createTextNode(person.label)); value.append(label);
     }
 }
 function contactChoices() {
-    choices("create-contacts", contacts);
+    choices("create-contacts", contacts, actor);
     const present = new Set(current?.participants.map(value => value.role) ?? []);
-    for (const id of ["message-contacts", "invite-contacts"]) choices(id, contacts.filter(person => present.has(person.role)));
+    for (const id of ["message-contacts", "invite-contacts"]) choices(id, contacts.filter(person => present.has(person.role)), actor + "/" + (selectedId ?? ""));
 }
 const selected = id => [...$(id).querySelectorAll("input:checked")].map(input => input.value);
 function progress(values) {
@@ -144,7 +146,9 @@ async function state(append = false) {
         if ([...$("conversations").children].some(item => item.dataset.conversation === conversation.id)) continue;
         const item = node("li"); item.dataset.conversation = conversation.id;
         const select = button("Conversation " + ($("conversations").children.length + 1) + (conversation.closed ? " · closed" : ""), async () => {
-            if (working) return; retire(); selectedId = conversation.id; historyCursor = null; clearView(); await view();
+            if (working || switching) return;
+            if (selectedId !== conversation.id) $("message").value = "";
+            retire(); selectedId = conversation.id; historyCursor = null; clearView(); await view();
         });
         select.setAttribute("aria-current", String(conversation.id === selectedId)); item.append(select); $("conversations").append(item);
     }
@@ -186,7 +190,7 @@ async function view() {
 const settled = value => value.operation?.submission === "refused" || ["failed", "cancelled"].includes(value.operation?.state) ||
     (value.operation?.state === "completed" && value.result !== null);
 async function mutate(action) {
-    if (working || pending || storageBlocked) return; working = true; controls();
+    if (working || switching || pending || storageBlocked) return; working = true; controls();
     try {
         savePending({ key: "ui_" + crypto.randomUUID(), operationId: null });
         const prepared = await api("prepare", { key: pending.key, action });
@@ -240,9 +244,12 @@ async function preview(kind) {
     } finally { clearTimeout(timeout); }
 }
 $("actor").addEventListener("change", async event => {
-    retire(); stopPreview(); selectedId = null; historyCursor = null; clearView();
-    try { const value = await api("actor", { role: event.target.value }); actor = value.actor; readPending(); await state(); }
-    catch (error) { problem(error); }
+    const requested = event.target.value; switching = true;
+    retire(); stopPreview(); selectedId = null; historyCursor = null; contacts = []; $("message").value = "";
+    $("conversations").replaceChildren(); delete $("conversations").dataset.page;
+    clearView(); contactChoices();
+    try { const value = await api("actor", { role: requested }); actor = value.actor; readPending(); await state(); }
+    catch (error) { problem(error); } finally { switching = false; controls(); }
 });
 $("create-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "conversation.create", recipients: selected("create-contacts") }); });
 $("message-form").addEventListener("submit", event => { event.preventDefault(); mutate({ type: "message.send", conversationId: selectedId, recipients: selected("message-contacts"), text: $("message").value }); });
@@ -258,7 +265,7 @@ window.addEventListener("online", () => notice("Network available. Reconnect to 
 window.addEventListener("pagehide", () => { clearTimeout(timer); retire(); stopPreview(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") stopPreview(); });
 async function tick() {
-    if (!working && navigator.onLine !== false && document.visibilityState !== "hidden") try { await state(); await view(); } catch (error) { problem(error); }
+    if (!working && !switching && navigator.onLine !== false && document.visibilityState !== "hidden") try { await state(); await view(); } catch (error) { problem(error); }
     timer = setTimeout(tick, 5000);
 }
 readPending(); controls(); await tick();

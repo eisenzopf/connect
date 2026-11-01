@@ -47,7 +47,12 @@ const gateway = {
     contacts: actor => roles.filter(value => value.role !== actor),
     capabilities: async () => ({ transport: "quic", features: ["original-id-operations", "incoming-invitations"] }),
     progress: actor => [...model.records.values()].filter(value => value.actor === actor).map(progress),
-    conversations: async actor => ({ conversations: model.conversations.filter(value => value.people.includes(actor)).map(value => ({ id: value.id, closed: false })), cursor: null }),
+    conversations: async actor => {
+        if (actor === "organizer" && !model.delayedPerspective) {
+            model.delayedPerspective = true; await new Promise(done => setTimeout(done, 200));
+        }
+        return { conversations: model.conversations.filter(value => value.people.includes(actor)).map(value => ({ id: value.id, closed: false })), cursor: null };
+    },
     prepareIntent: async (actor, key, action) => {
         let value = model.records.get(key);
         if (value) { assert.equal(value.actor, actor); assert.deepEqual(value.action, action); }
@@ -136,6 +141,8 @@ try {
     await page.getByRole("button", { name: "Accept", exact: true }).waitFor();
     await page.getByRole("button", { name: "Accept", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.querySelector("#sessions").textContent.includes("accepted")); check("keyboard-incoming-invitation-and-decision");
+    assert.deepEqual(await page.locator("#message-contacts input:checked").evaluateAll(values => values.map(value => value.value)), ["owner"]);
+    check("delayed-perspective-change-retains-current-peer-audience");
     for (const [kind, permission] of [["microphone", "microphone"], ["camera", "camera"]]) {
         assert.equal(await page.evaluate(async name => (await navigator.permissions.query({ name })).state, permission), "denied");
         await page.locator("#" + kind).focus(); await page.keyboard.press("Enter");

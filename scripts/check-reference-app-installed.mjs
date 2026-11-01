@@ -143,11 +143,12 @@ try {
     await page.waitForFunction(() => !document.querySelector("#create-form button").disabled && document.querySelector("#sessions li"));
     // Changing the synthetic receiving perspective is fixture preparation.
     await page.locator("#actor").selectOption("organizer");
-    await page.waitForFunction(() => document.querySelector("#actor").value === "organizer" && document.querySelector("#conversations button"));
+    await page.waitForFunction(() => document.querySelector("#actor").value === "organizer" && !document.querySelector("#actor").disabled && document.querySelector("#conversations button"));
     await page.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "Accept", exact: true }).waitFor();
     await page.getByRole("button", { name: "Accept", exact: true }).focus(); await page.keyboard.press("Enter");
     await page.waitForFunction(() => [...document.querySelectorAll("#operations li")].some(value => value.textContent.includes("Accept invitation · completed")));
+    assert.deepEqual(await page.locator("#message-contacts input:checked").evaluateAll(values => values.map(value => value.value)), ["owner"]);
     check("keyboard-incoming-invitation-and-actual-acceptance");
     for (const kind of ["microphone", "camera"]) {
         assert.equal(await page.evaluate(async name => (await navigator.permissions.query({ name })).state, kind), "denied");
@@ -159,6 +160,7 @@ try {
     await page.setViewportSize({ width: 320, height: 850 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true); check("320px-no-horizontal-overflow");
     const marker = "one original installed message after lost HTTP response";
+    await page.waitForFunction(() => !document.querySelector("#message-form button").disabled);
     let observed;
     const accepted = new Promise(done => { observed = done; });
     let originalOperationId;
