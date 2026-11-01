@@ -5,6 +5,9 @@ on:
       qualification:
         type: boolean
         default: false
+      reference_app:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -74,18 +77,20 @@ jobs:
         id: package
         run: python3 scripts/package-sdk-runtime.py --target ${{ matrix.target }} --output dist/sdk/runtime --evidence .local/gate6-runtime-candidate/evidence/${{ matrix.target }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: ${{ inputs.qualification }}
+        if: ${{ inputs.qualification || inputs.reference_app }}
         with:
           node-version: '22'
-      - name: Prepare locked SDK package builders
-        if: ${{ inputs.qualification }}
+      - name: Prepare locked Node SDK package builder
+        if: ${{ inputs.qualification || inputs.reference_app }}
         run: |
           npm ci --ignore-scripts --no-audit --no-fund --prefix sdk/typescript
           npm run build --prefix sdk/typescript
           git diff --exit-code -- sdk/typescript/dist
-          python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
-      - name: Check live receive result expiration and reliable-data recovery
+      - name: Prepare locked Python SDK package builder
         if: ${{ inputs.qualification }}
+        run: python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
+      - name: Check live receive result expiration and reliable-data recovery
+        if: ${{ inputs.qualification || inputs.reference_app }}
         run: |
           node --test sdk/tests/node_media.test.mjs
           python3 -m unittest discover -s sdk/tests -p test_python_media.py -v
@@ -132,6 +137,81 @@ jobs:
             --offline-proof .local/gate6-runtime-candidate/evidence/${{ matrix.target }}/offline/summary.json \
             --offline-inputs dist/sdk/offline --output dist/sdk/candidate \
             --evidence .local/gate6-runtime-candidate/evidence/${{ matrix.target }}/assembled
+      - name: Check app recovery and component installation boundaries
+        if: ${{ inputs.reference_app }}
+        run: |
+          npm run test:app --prefix examples/parley-on-connect
+          python3 -m unittest discover -s scripts/tests -p test_reference_app_components.py -v
+      - name: Package public Node SDK for the component app rehearsal
+        if: ${{ inputs.reference_app && !inputs.qualification }}
+        run: python3 sdk/tests/check_node_installation.py --output .local/gate6-runtime-candidate/components/node
+      - name: Install current source-matched runtime and Node components offline
+        if: ${{ inputs.reference_app }}
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,subprocess
+          base=pathlib.Path('.local/gate6-runtime-candidate')
+          native=base/'evidence/${{ matrix.target }}/runtime.json'
+          node=base/'components/node/summary.json'
+          runtime=json.loads(native.read_text());package=json.loads(node.read_text())
+          subprocess.run(['python3','scripts/install-reference-app-components.py',
+              '--runtime',str(pathlib.Path('dist/sdk/runtime')/runtime['archive_name']),
+              '--runtime-proof',str(native),
+              '--node',str(pathlib.Path('dist/sdk/typescript/node')/package['archive_name']),
+              '--node-proof',str(node),'--output','.local/gate6-reference-app/candidate'],check=True)
+          PY
+      - name: Install Ubuntu app codec prerequisite
+        if: ${{ inputs.reference_app && runner.os == 'Linux' }}
+        run: sudo apt-get install -y ffmpeg
+      - name: Ensure macOS app codec prerequisite
+        if: ${{ inputs.reference_app && runner.os == 'macOS' }}
+        run: command -v ffmpeg || brew install ffmpeg
+      - name: Install pinned owned full Chromium for app rehearsal
+        if: ${{ inputs.reference_app }}
+        working-directory: scripts/video/observer-tools
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --no-install playwright install --with-deps chromium
+      - name: Rehearse all current installed app checks with original owners
+        if: ${{ inputs.reference_app }}
+        run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser
+      - name: Retain app component proof and synthetic browser evidence
+        if: ${{ always() && inputs.reference_app }}
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,shutil
+          base=pathlib.Path('.local/gate6-reference-app')
+          out=base/'evidence';out.mkdir(parents=True,exist_ok=True)
+          for name,source in [('installation.json',base/'candidate/installation.json'),('browser.json',base/'browser/summary.json')]:
+              if not source.is_file():continue
+              value=json.loads(source.read_text())
+              for key in ('consumer','executable'):value.pop(key,None)
+              (out/name).write_text(json.dumps(value,indent=2)+'\n')
+          node=pathlib.Path('.local/gate6-runtime-candidate/components/node')
+          for name,source in [('node-producer.json',node/'summary.json'),('node-source-inputs.json',node/'source-inputs.json')]:
+              if source.is_file():shutil.copyfile(source,out/name)
+          for name in ['native-controls.png','native-controls-narrow.png','capture-controls.png','capture-controls-narrow.png','video-controls.png','video-controls-narrow.png']:
+              source=base/'browser'/name
+              if source.is_file():shutil.copyfile(source,out/name)
+          PY
+      - name: Upload curated current component app results
+        if: ${{ always() && inputs.reference_app }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-reference-app-components-${{ matrix.target }}
+          path: .local/gate6-reference-app/evidence/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Upload unpublished Node component archives
+        if: ${{ always() && inputs.reference_app }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-reference-app-node-package-${{ matrix.target }}
+          path: dist/sdk/typescript/node/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: warn
       - name: Upload curated build and source evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -142,6 +222,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Upload unpublished production platform assets
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gate6-runtime-candidate-package-${{ matrix.target }}

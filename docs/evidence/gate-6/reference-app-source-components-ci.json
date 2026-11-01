@@ -1,0 +1,52 @@
+{
+  "format": "connect/reference-app-source-components-ci/1",
+  "task": "G6-072",
+  "status": "prepared-not-executed",
+  "lane": "reference-app-components",
+  "platforms": [
+    "ubuntu24-x86_64",
+    "macos-arm64"
+  ],
+  "node": "22",
+  "implementation_inputs": {
+    ".github/workflows/gate6-runtime-candidate.yml": "504e85602cd12cae73ee985135509906c3929546ba49bd4220493ca367490471",
+    ".github/workflows/gate6-linux-fixtures.yml": "0b734dbdb5483d14436231da1330731b4b5c52f42df1e63e3760dd3a6b106715"
+  },
+  "behavior": {
+    "production_native_assets_from_exact_current_commit": true,
+    "node_archive_input_bytes_match_native_source_revision": true,
+    "normal_offline_npm_install_scripts_disabled": true,
+    "complete_sdk_candidate_qualified": false,
+    "current_browser_checks": 37,
+    "same_current_deadlines_and_thresholds": true,
+    "owned_full_chromium": true,
+    "current_media_adapter_expiration_cases": 45,
+    "app_unit_cases": 76,
+    "component_installer_refusal_cases": 5,
+    "separate_artifacts_for_native_archive_and_node_archive_and_proofs": true,
+    "retain_successful_native_archive_on_later_app_failure": true,
+    "publication": false
+  },
+  "static_verification": {
+    "yaml_jobs_and_calls_parse": true,
+    "embedded_python_snippets_parse": 3,
+    "installer_refusal_cases_pass": 5
+  },
+  "available_production_cache_ids": {
+    "x86_64-unknown-linux-gnu": 9824890042,
+    "aarch64-apple-darwin": 9825741084
+  },
+  "current_full_sdk_qualification": {
+    "run_id": 41289033374,
+    "source_revision": "d9928b1d07aaef13fc0e2b3ddbd7d05611863753",
+    "jobs": [
+      124810016527,
+      124810016578
+    ],
+    "status": "both production builds completed; actual installed examples running",
+    "duplicate_native_build_started": false
+  },
+  "scope": "Current-source runtime/Node component app CI path prepared with normal package verification and existing37behavior checks. Full Rust/Node/Python SDK candidate qualification remains separate. No actual new CI app execution or task promotion is claimed.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
