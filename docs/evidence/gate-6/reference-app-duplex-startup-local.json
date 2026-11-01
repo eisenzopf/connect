@@ -1,0 +1,290 @@
+{
+  "format": "connect/reference-app-duplex-startup-local/1",
+  "task": "G6-072",
+  "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "runtime_source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+  "binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+  "all37_original_behavior_checks_passed": true,
+  "checks_passed": 37,
+  "checks_required": 37,
+  "node": "v22.16.0",
+  "browser": "156.0.8078.4",
+  "browser_launcher_sha256": "c8509aee32abd6977968e9999769980b7a420dea05402d90042d9e5b41db15ef",
+  "private_report_sha256": "124d186ca267e36efbd8971cd206d22fb6c7163fd0d3fb4cd30b1a3a85e0611b",
+  "identity_audit": {
+    "app_checker_installer_summary_git_inputs_verified": 32,
+    "node_producer_sources_verified": 197,
+    "installed_node_payload_files_verified": 195,
+    "png_bytes_verified": 6,
+    "image_rgb_decodes": [
+      {
+        "name": "native-controls.png",
+        "png_sha256": "89aadda46e33321cb457f1d0f98955f1309e41ac05fbbdb631c370a73d04891c",
+        "width": 1440,
+        "height": 2559,
+        "rgb_sha256": "47a6c844f1533bae168c93e0c8789c3b0c600d79be263d6172e7dba3ce5f1c1c",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "png_sha256": "809519e406b62519a36bdefcfbe194814b6fd959e7736e96ffcd166567333e49",
+        "width": 320,
+        "height": 3900,
+        "rgb_sha256": "9d8dbab1bc31178e638f64a8dd5903589418aaf50ae9bb5776927f6f36bc5c4a",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "capture-controls.png",
+        "png_sha256": "6c7b0ffd7c89a6e960981d32192aed0a5def4ca7250514712addaa134acd506d",
+        "width": 1440,
+        "height": 2389,
+        "rgb_sha256": "2b3385e53e9fd555dbcdb18907ef95b27eaf7f2bfce141f41116d81db6ac9158",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "png_sha256": "ec3ed50e19e626d0455ce958141424319255308fbf92a439313e4bfa1eb0007b",
+        "width": 320,
+        "height": 3753,
+        "rgb_sha256": "a2661f5e3592d31a2c0801773fa0d9cbe1f38b6929fdce7d861116c4b9974e70",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "video-controls.png",
+        "png_sha256": "32631a8811bb4164d6d9ff9ef1ace9b9cb0c7c11459d8e2f5e5b2edb7fd0da6d",
+        "width": 1440,
+        "height": 3587,
+        "rgb_sha256": "f00f1e60d2a7e7fdeb9911faaaccf97d17eb333bda6333c0ed9dc17fe03600e7",
+        "repeated_header_rows": []
+      },
+      {
+        "name": "video-controls-narrow.png",
+        "png_sha256": "21349023cf42f7aa96f55d5776753b9fc52baf6e0c5292e5482f685274facbea",
+        "width": 320,
+        "height": 4696,
+        "rgb_sha256": "6dda29277bc4e773b496262e6e23d399e0a1be374b3f3f1aa30ed44a2e16faaa",
+        "repeated_header_rows": []
+      }
+    ],
+    "checks_exactly_match_all37": true,
+    "production_runtime_evidence": {
+      "format": "connect/verified-native-sdk-runtime/1",
+      "source_revision": "10abb934e2a9a87f42d3facd058fe08d94e1485d",
+      "target": "aarch64-apple-darwin",
+      "sources_verified": {
+        "git": 4830,
+        "prepared": 4094,
+        "pinned_archives": 0
+      },
+      "files_verified": 755,
+      "binary_sha256": "1b37ecfbca2b134da70537ba079fb1e53aee5e543bbb3c1adf736d6ea2036576",
+      "helper_profiles": {
+        "helper.rs:PROFILE": "connect-sdk-helper/4",
+        "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+        "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+        "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+        "helper/media.rs:PROFILE": "connect-sdk-media/2",
+        "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+      },
+      "archive_sha256": "5bb7a7eae6fa9c217c4f6a610c6ab305689bd67a7daf003ef4033caf44258945",
+      "manifest_sha256": "41a4fbb969ab4dc5f4c57fcfcba0dcf2773f5f4c39dd4a493ec1a581b012abab",
+      "artifact_zip_digests": {
+        "evidence": "4764bf1e02504f21e525f7841180eaa5b43a861b4b3ea6f2812a7b292fd6acf0",
+        "package": "3cb5dbbac55840b73b0651e07efa82c5f235184d7a6c3e43c4c9219feee88220"
+      },
+      "passed": true,
+      "production_build_verified": true,
+      "sdk_installation_qualified": false,
+      "package_input": "retained-file",
+      "task_complete": false,
+      "whole_gate_qualified": false,
+      "publication_authorized": false
+    },
+    "profile_curation_audit": {
+      "native_stack_curation_recomputed": true,
+      "raw_native_sha256": "f4b02e4f42611b88d17ef2cf27a5d1c2f8281ef8c457bd0d93c12b70adf11325",
+      "app_cpu_curations_recomputed": 2,
+      "app_cpu_raw_digests": [
+        "864bd95dea6dbaecc5f89f66b74607f324c533c5ae10b76fc88ad7270ff099fd",
+        "cdb6fa0876e07bd50220875db565aebb228617e238866a1563e7aa78baf9878f"
+      ],
+      "raw_profiles_uploaded": false
+    }
+  },
+  "sustained_av_observations": [
+    {
+      "window": 0,
+      "role": "owner",
+      "elapsed_ms": 2001.3000001907349,
+      "completed_audio_frames": 87,
+      "painted_video_frames": 58,
+      "last_audio_offset_ms": 71.241,
+      "last_video_offset_ms": 59.722,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 408,
+      "device_setup_ms": 125,
+      "capture_graph_ms": 2,
+      "camera_setup_ms": 20
+    },
+    {
+      "window": 0,
+      "role": "organizer",
+      "elapsed_ms": 2001.5,
+      "completed_audio_frames": 88,
+      "painted_video_frames": 57,
+      "last_audio_offset_ms": 62.194,
+      "last_video_offset_ms": 85.088,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 399,
+      "device_setup_ms": 130,
+      "capture_graph_ms": 3,
+      "camera_setup_ms": 30
+    },
+    {
+      "window": 1,
+      "role": "owner",
+      "elapsed_ms": 2001.0999999046326,
+      "completed_audio_frames": 84,
+      "painted_video_frames": 59,
+      "last_audio_offset_ms": 71.832,
+      "last_video_offset_ms": 87.327,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 408,
+      "device_setup_ms": 125,
+      "capture_graph_ms": 2,
+      "camera_setup_ms": 20
+    },
+    {
+      "window": 1,
+      "role": "organizer",
+      "elapsed_ms": 2001,
+      "completed_audio_frames": 78,
+      "painted_video_frames": 59,
+      "last_audio_offset_ms": 62.183,
+      "last_video_offset_ms": 84.187,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 399,
+      "device_setup_ms": 130,
+      "capture_graph_ms": 3,
+      "camera_setup_ms": 30
+    },
+    {
+      "window": 2,
+      "role": "owner",
+      "elapsed_ms": 2001.0999999046326,
+      "completed_audio_frames": 83,
+      "painted_video_frames": 58,
+      "last_audio_offset_ms": 51.093,
+      "last_video_offset_ms": 63.197,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 408,
+      "device_setup_ms": 125,
+      "capture_graph_ms": 2,
+      "camera_setup_ms": 20
+    },
+    {
+      "window": 2,
+      "role": "organizer",
+      "elapsed_ms": 2001.0999999046326,
+      "completed_audio_frames": 89,
+      "painted_video_frames": 57,
+      "last_audio_offset_ms": 61.473,
+      "last_video_offset_ms": 67.479,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 399,
+      "device_setup_ms": 130,
+      "capture_graph_ms": 3,
+      "camera_setup_ms": 30
+    },
+    {
+      "window": 3,
+      "role": "owner",
+      "elapsed_ms": 2002.3000001907349,
+      "completed_audio_frames": 79,
+      "painted_video_frames": 57,
+      "last_audio_offset_ms": 51.106,
+      "last_video_offset_ms": 65.896,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 408,
+      "device_setup_ms": 125,
+      "capture_graph_ms": 2,
+      "camera_setup_ms": 20
+    },
+    {
+      "window": 3,
+      "role": "organizer",
+      "elapsed_ms": 2002.5999999046326,
+      "completed_audio_frames": 91,
+      "painted_video_frames": 59,
+      "last_audio_offset_ms": 61.988,
+      "last_video_offset_ms": 83.984,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 399,
+      "device_setup_ms": 130,
+      "capture_graph_ms": 3,
+      "camera_setup_ms": 30
+    },
+    {
+      "window": 4,
+      "role": "owner",
+      "elapsed_ms": 2001.0999999046326,
+      "completed_audio_frames": 83,
+      "painted_video_frames": 60,
+      "last_audio_offset_ms": 50.191,
+      "last_video_offset_ms": 79.4,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 408,
+      "device_setup_ms": 125,
+      "capture_graph_ms": 2,
+      "camera_setup_ms": 20
+    },
+    {
+      "window": 4,
+      "role": "organizer",
+      "elapsed_ms": 2000.8000001907349,
+      "completed_audio_frames": 84,
+      "painted_video_frames": 58,
+      "last_audio_offset_ms": 61.499,
+      "last_video_offset_ms": 67.68,
+      "audio_late_drops": 0,
+      "audio_horizon_drops": 0,
+      "receive_started_ms": 399,
+      "device_setup_ms": 130,
+      "capture_graph_ms": 3,
+      "camera_setup_ms": 30
+    }
+  ],
+  "native_server_observation": {
+    "observed": true,
+    "observer_joined": true,
+    "forced": false,
+    "seconds_requested": 8,
+    "elapsed_ms": 8207,
+    "server_cpu_delta_ms": 2030,
+    "raw_sample_sha256": "f4b02e4f42611b88d17ef2cf27a5d1c2f8281ef8c457bd0d93c12b70adf11325"
+  },
+  "visual_review": {
+    "all6_pngs_byte_verified": true,
+    "all6_independently_rgb_decoded": true,
+    "reference_header_rows": [
+      10,
+      60
+    ],
+    "repeated_header_blocks_found": 0,
+    "desktop_and_narrow_av_visually_inspected": true,
+    "viewport_clip_padding_and_restoration_checked": true
+  },
+  "scope": "Fresh local macOS arm64 production runtime and installed public Node SDK, actual original37 app checks on full pinned Chromium156.0.8078.4 with Node22.16.0. All755 native files,4830 Git and4094 prepared inputs independently verify; zero pinned archive bytes were available to this local archive audit.32 app/checker/installer/profile sources and197 Node producer sources match Git;195 actual installed SDK files and offline dependency archives verify. Native raw stack and both app CPU curations independently recomputed. Hosted CI macOS/Linux outcomes, frozen G6-058 macOS Chrome156.0.8078.48, full SDK parity, all32 transport cells and acceptance remain separate. No G6-054, SIP, TURN, model or provider execution.",
+  "hosted_failures_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

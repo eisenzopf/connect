@@ -1,0 +1,126 @@
+{
+  "format": "connect/reference-app-source-paired-sql-macos-negative/1",
+  "task": "G6-072",
+  "run_id": 41308113112,
+  "job_id": 124852621221,
+  "job_terminal": true,
+  "job_conclusion": "failure",
+  "parent_terminal": true,
+  "parent_conclusion": "failure",
+  "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+  "app_artifact": {
+    "artifact_id": 13086531304,
+    "artifact_size": 427280,
+    "artifact_zip_sha256": "fe2fc255b3315af4a302a54e90e74e8e0992645190531d1fa7e0d23ca7479c47"
+  },
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "checks_passed": 17,
+  "checks_required": 37,
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "TimeoutError",
+    "code": null,
+    "source_stack": [
+      {
+        "line": 541,
+        "column": 47
+      }
+    ]
+  },
+  "current_media": [
+    {
+      "role": "owner",
+      "session_state": "active",
+      "state": "active",
+      "captured_audio": 1406,
+      "encoded_audio": 1401,
+      "sent_rtp": 1390,
+      "decoded_audio": 1331,
+      "played_audio": 1,
+      "late_audio": 0,
+      "future_horizon_audio": 1330,
+      "last_audio_offset_ms": 1095.129,
+      "last_audio_capture_offset_ms": -748,
+      "clock_corrections": 2,
+      "pending_requests": 1,
+      "queued_send_frames": 0,
+      "queued_audio_sources": 0,
+      "independently_completed_output_frames": 0
+    },
+    {
+      "role": "organizer",
+      "session_state": "active",
+      "state": "active",
+      "captured_audio": 1407,
+      "encoded_audio": 1401,
+      "sent_rtp": 1393,
+      "decoded_audio": 1324,
+      "played_audio": 1,
+      "late_audio": 0,
+      "future_horizon_audio": 1323,
+      "last_audio_offset_ms": 793.501,
+      "last_audio_capture_offset_ms": -686,
+      "clock_corrections": 1,
+      "pending_requests": 1,
+      "queued_send_frames": 0,
+      "queued_audio_sources": 0,
+      "independently_completed_output_frames": 0
+    }
+  ],
+  "app_failure_count": 0,
+  "source_payload_audit": {
+    "git_app_checker_installer_cpu_sampler": 31,
+    "node_producer_inputs": 197,
+    "actual_node_payload_files": 195,
+    "png_bytes_verified": 2,
+    "exact_check_prefix": true,
+    "all_source_guards": true
+  },
+  "runtime_independent_verification": {
+    "format": "connect/verified-native-sdk-runtime/1",
+    "source_revision": "8a5421d98eae8e4e80630722d76940185132f082",
+    "target": "aarch64-apple-darwin",
+    "sources_verified": {
+      "git": 4820,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "files_verified": 755,
+    "binary_sha256": "2360ee924843085d6871fc8dbb7a1ba287b37a20ce999e840a415f6512559ede",
+    "helper_profiles": {
+      "helper.rs:PROFILE": "connect-sdk-helper/4",
+      "helper.rs:VALIDATION_PROFILE": "connect-sdk-validation/1",
+      "helper/administrative.rs:PROFILE": "connect-sdk-administration/2",
+      "helper/administrative.rs:VALIDATION_PROFILE": "connect-sdk-provisioning-validation/1",
+      "helper/media.rs:PROFILE": "connect-sdk-media/2",
+      "helper/media.rs:CAPABILITY": "managed-media-ipc-v2"
+    },
+    "archive_sha256": "c8468c1df069e95c4f92a0024884f7fdbb28fe0cd11d4797e32856dafcee7f59",
+    "manifest_sha256": "3e269e5b56596f039f8e441cee8bd556071f50f8a52731b5ac719cf03d3e1b8f",
+    "artifact_zip_digests": {
+      "evidence": "5ec009dc25e177660d1f50770215cf43383b95976c3be3d039afb4f6d8b72aba",
+      "package": "1715e15ec034623bc856d4817040f99ff021dd550a396e70fb01630e20fb8549"
+    },
+    "passed": true,
+    "production_build_verified": true,
+    "sdk_installation_qualified": false,
+    "package_input": "retained-file",
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "publication_authorized": false
+  },
+  "native_sampler": {
+    "observed": true,
+    "observer_joined": true,
+    "forced": false,
+    "seconds_requested": 8,
+    "elapsed_ms": 10175,
+    "server_cpu_delta_ms": 4550
+  },
+  "interpretation": "The original8a macOS job fails audio-only playback before the combinedAV scene. Both receive and decode original audio while only one frame per direction is scheduled; all remaining decoded frames are rejected beyond the unchanged200ms output horizon, with last offsets+1095.129/+793.501ms. Neither direction independently completes an output frame. This differs from Linux8a lateaudio; their causes are unresolved. Camera startup coupling alone cannot explain this audio-only failure.",
+  "scope": "755nativefiles/4820Git/4094prepared/4pinnedarchives and31app/checker/installer/profile inputs/197Nodeproducerinputs/195actualSDKfiles verify independently. Hosted raw V8/native stacks were not uploaded; no independent recomputation of profile curation. NoG054/provider/model/SIP/TURN execution.",
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
