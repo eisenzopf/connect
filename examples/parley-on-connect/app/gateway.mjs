@@ -14,11 +14,13 @@ const kinds = Object.freeze({ "conversation.create": "conversation_create", "mes
     "stream.subscribe": "stream_subscribe", "stream.unsubscribe": "stream_unsubscribe" });
 const fail = code => { const error = Error(code); error.code = code; throw error; };
 const copy = value => structuredClone(value);
-const readStamp = () => ({ at: performance.now(), loop: performance.eventLoopUtilization() });
+const readStamp = () => ({ at: performance.now(), loop: performance.eventLoopUtilization(), cpu: process.cpuUsage() });
 function readTiming(stamp) {
     const loop = performance.eventLoopUtilization(stamp.loop);
+    const cpu = process.cpuUsage(stamp.cpu);
     return { elapsedMs: Math.ceil(performance.now() - stamp.at),
-        eventLoopActiveMs: Math.ceil(loop.active), eventLoopIdleMs: Math.ceil(loop.idle) };
+        eventLoopActiveMs: Math.ceil(loop.active), eventLoopIdleMs: Math.ceil(loop.idle),
+        cpuUserMs: Math.ceil(cpu.user / 1000), cpuSystemMs: Math.ceil(cpu.system / 1000) };
 }
 function closed(value, keys) {
     if (!value || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype ||

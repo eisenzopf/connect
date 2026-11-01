@@ -31,12 +31,13 @@ test("media diagnostics admit only fixed operation phases and omit arbitrary con
 test("media read timing admits only bounded integers in a known phase without copying error properties", () => {
     const error = Object.assign(Error("private body"), { elapsedMs: "private-token" });
     const value = appDiagnostic(error, { phase: "media-control-supervision", elapsedMs: 2001,
-        totalElapsedMs: 2010, eventLoopActiveMs: 3, eventLoopIdleMs: 1998, credential: "private-token" });
+        totalElapsedMs: 2010, eventLoopActiveMs: 3, eventLoopIdleMs: 1998, cpuUserMs: 2, cpuSystemMs: 1, credential: "private-token" });
     assert.deepEqual([value.elapsed_ms, value.total_elapsed_ms, value.event_loop_active_ms, value.event_loop_idle_ms], [2001, 2010, 3, 1998]);
+    assert.deepEqual([value.process_cpu_user_ms, value.process_cpu_system_ms], [2, 1]);
     assert.ok(!JSON.stringify(value).includes("private"));
     for (const bad of [-1, 60001, NaN, Infinity, 1.5, "private-token", {}]) {
         const rejected = appDiagnostic(error, { phase: "open-current-snapshot", elapsedMs: bad,
-            totalElapsedMs: bad, eventLoopActiveMs: bad, eventLoopIdleMs: bad });
+            totalElapsedMs: bad, eventLoopActiveMs: bad, eventLoopIdleMs: bad, cpuUserMs: bad, cpuSystemMs: bad });
         assert.ok(Object.keys(rejected).every(key => !key.endsWith("_ms")));
     }
     assert.ok(Object.keys(appDiagnostic(error, { phase: "private-token", elapsedMs: 2 })).every(key => !key.endsWith("_ms")));

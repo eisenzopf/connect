@@ -57,7 +57,13 @@ async function main() {
     let profiler;
     try { profiler = process.env.PARLEY_APP_CPU_PROFILE === "1" ? await startCpuProfile(resolve(directory, "logs")) : null; }
     catch (error) { journal.close(); throw error; }
-    const onError = (error, context) => process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error, context)) + "\n");
+    const onError = (error, context) => {
+        process.stderr.write("PARLEY_APP_FAILURE " + JSON.stringify(appDiagnostic(error, context)) + "\n");
+        // End the original profile at its first relevant failure, before a
+        // subsequent browser observation timeout adds unrelated idle samples.
+        if (context?.phase === "media-control-supervision")
+            void profiler?.stop("media-control-supervision").catch(() => {});
+    };
     const gateway = new AppGateway({ journal, actors, createRtpPacket: (sequence, bytes) => new SdkRtpPacket(sequence, bytes), createClient: actor => new NodeClient({ config: actor.config, executable }), onError });
     let app, closing;
     async function close(failed = false) {

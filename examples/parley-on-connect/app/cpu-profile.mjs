@@ -19,22 +19,30 @@ export async function startCpuProfile(directory, maximumMs = 120000) {
         await post("Profiler.setSamplingInterval", { interval: 1000 });
         await post("Profiler.start");
     } catch (error) { session.disconnect(); throw error; }
+    const began = performance.now(), cpuStart = process.cpuUsage();
     let stopping, timer;
-    const stop = () => stopping ??= (async () => {
-        clearTimeout(timer);
-        try {
-            const { profile } = await post("Profiler.stop");
-            if (!Array.isArray(profile.nodes) || profile.nodes.length > 50000 ||
-                !Array.isArray(profile.samples) || profile.samples.length > 150000)
-                throw Error("CPU profile observation capacity");
-            const bytes = Buffer.from(JSON.stringify(profile));
-            if (bytes.length > 8 * 1024 * 1024) throw Error("CPU profile byte capacity");
-            const file = join(path, "cpu-" + randomUUID() + ".json");
-            await writeFile(file, bytes, { flag: "wx", mode: 0o600 });
-            return { file, samples: profile.samples.length, nodes: profile.nodes.length, bytes: bytes.length };
-        } finally { session.disconnect(); }
-    })();
+    const stop = (reason = "shutdown") => {
+        if (!["shutdown", "bound", "media-control-supervision"].includes(reason)) throw Error("Unknown CPU observation boundary");
+        return stopping ??= (async () => {
+            clearTimeout(timer);
+            const cpu = process.cpuUsage(cpuStart);
+            const observation = { stop_reason: reason, elapsed_us: Math.round((performance.now() - began) * 1000),
+                process_cpu_user_us: cpu.user, process_cpu_system_us: cpu.system };
+            try {
+                const { profile } = await post("Profiler.stop");
+                profile.connect_observation = observation;
+                if (!Array.isArray(profile.nodes) || profile.nodes.length > 50000 ||
+                    !Array.isArray(profile.samples) || profile.samples.length > 150000)
+                    throw Error("CPU profile observation capacity");
+                const bytes = Buffer.from(JSON.stringify(profile));
+                if (bytes.length > 8 * 1024 * 1024) throw Error("CPU profile byte capacity");
+                const file = join(path, "cpu-" + randomUUID() + ".json");
+                await writeFile(file, bytes, { flag: "wx", mode: 0o600 });
+                return { file, samples: profile.samples.length, nodes: profile.nodes.length, bytes: bytes.length };
+            } finally { session.disconnect(); }
+        })();
+    };
     // A later close observes any failure. Never leave an unhandled timer error.
-    timer = setTimeout(() => { void stop().catch(() => {}); }, maximumMs); timer.unref();
+    timer = setTimeout(() => { void stop("bound").catch(() => {}); }, maximumMs); timer.unref();
     return Object.freeze({ stop });
 }

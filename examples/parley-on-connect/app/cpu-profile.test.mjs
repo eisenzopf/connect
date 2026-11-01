@@ -21,9 +21,25 @@ test("explicit CPU observation stops at its bound, writes private bytes and join
         assert.ok(result.samples > 0); assert.ok(result.bytes > 0 && result.bytes <= 8 * 1024 * 1024);
         const profile = JSON.parse(await readFile(result.file));
         assert.equal(profile.timeDeltas.length, profile.samples.length);
+        assert.equal(profile.connect_observation.stop_reason, "bound");
+        assert.ok(profile.connect_observation.process_cpu_user_us >= 0);
         assert.equal((await stat(result.file)).mode & 0o077, 0);
         await chmod(directory, 0o755);
         await assert.rejects(startCpuProfile(directory, 60));
+    } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("first control failure seals its original CPU window before later idle shutdown", async () => {
+    const base = fileURLToPath(new URL("../../../.local/gate-6/reference-app/cpu-tests/", import.meta.url));
+    await mkdir(base, { recursive: true, mode: 0o700 });
+    const directory = await mkdtemp(join(base, "failure-"));
+    try {
+        const owner = await startCpuProfile(directory);
+        const first = await owner.stop("media-control-supervision");
+        assert.equal(await owner.stop("shutdown"), first);
+        const profile = JSON.parse(await readFile(first.file));
+        assert.equal(profile.connect_observation.stop_reason, "media-control-supervision");
+        assert.equal((await readdir(directory)).length, 1);
     } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

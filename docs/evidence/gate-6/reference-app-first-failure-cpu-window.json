@@ -1,0 +1,42 @@
+{
+  "format": "connect/reference-app-first-failure-cpu-window/1",
+  "task": "G6-072",
+  "previous_evidence": "docs/evidence/gate-6/reference-app-cpu-observed-532-negative.json",
+  "implementation_inputs": {
+    "examples/parley-on-connect/app/gateway.mjs": "08c7e981fd9dda28dded9e689bfd381f33af37258ec75bd15575f045ca48d716",
+    "examples/parley-on-connect/app/diagnostics.mjs": "2f654ccfd68b70967b5f7bdd395c7d7429b892654779471df5bbebde27df63e5",
+    "examples/parley-on-connect/app/diagnostics.test.mjs": "ba8af83967e18abd5eea5b03a819119ed217e7fa3e993c33c6a1e4e33a367455",
+    "examples/parley-on-connect/app/cpu-profile.mjs": "ff5baea799ff7e6ec2645695d0ed8ff434d133f870c5ae72c148318ff2986a4f",
+    "examples/parley-on-connect/app/cpu-profile.test.mjs": "5d049a43be428189d0e13f3f6ed8ec0331d6332f7772c818544247c82a6f938a",
+    "examples/parley-on-connect/app/main.mjs": "e4e8ad00393b01f9636d6eff2487fa9de17d620d74095711c16108a87f2c2838",
+    "scripts/lib/app_cpu_summary.mjs": "540e07a9bed91f079a95859739e5d573190d031356ea26c286df473f1669866e",
+    "scripts/tests/app_cpu_summary.test.mjs": "daf23eed62e43b556af731bb213481a06205364d85946b085a91bb92df92125b"
+  },
+  "behavior": [
+    "Seal the original opt-in CPU profile at its first media-control-supervision failure, before a later browser timeout adds unrelated idle samples",
+    "Retain a closed stop reason and whole-process user/system CPU counters; the failed read also records actual process CPU deltas in its original request window",
+    "Attribute the final four seconds by clipping original sample intervals; expose only a fixed runtime-name allowlist for empty-source builtin frames; unknown names remain excluded"
+  ],
+  "preserved": [
+    "37installed browser criteria",
+    "2s signed supervisor request deadline",
+    "Source/media timing and quality thresholds",
+    "Same original SDK/action/media ownership and current authorization",
+    "120s/8MiB/150000sample profiling caps and private raw files"
+  ],
+  "local_checks": {
+    "node": "22.16.0",
+    "app_cases_passed": 79,
+    "summary_cases_passed": 3,
+    "total": 82,
+    "failed": 0,
+    "skipped": 0,
+    "first_failure_idempotence_test": true,
+    "original_sample_interval_clipping_test": true,
+    "cpu_metadata_privacy_test": true
+  },
+  "actual_refined_ci_observed": false,
+  "root_cause_resolved": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

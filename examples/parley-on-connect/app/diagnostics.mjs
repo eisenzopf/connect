@@ -11,7 +11,8 @@ export function appDiagnostic(error, context) {
     const phase = ["open-current-snapshot", "open-native-negotiation", "packet-current-connection", "packet-native-negotiation", "media-control-supervision"].includes(context?.phase) ? context.phase : null;
     const timing = {};
     if (phase) for (const [field, key] of Object.entries({ elapsed_ms: "elapsedMs", total_elapsed_ms: "totalElapsedMs",
-        event_loop_active_ms: "eventLoopActiveMs", event_loop_idle_ms: "eventLoopIdleMs" })) {
+        event_loop_active_ms: "eventLoopActiveMs", event_loop_idle_ms: "eventLoopIdleMs",
+        process_cpu_user_ms: "cpuUserMs", process_cpu_system_ms: "cpuSystemMs" })) {
         const value = context?.[key];
         if (Number.isSafeInteger(value) && value >= 0 && value <= 60000) timing[field] = value;
     }
