@@ -17,6 +17,7 @@ import traceback
 from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import enroll_actors, exact
+from lib.transport_capture import NativeCapture
 from lib.transport_fixture import FixtureError, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 
@@ -62,13 +63,14 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads and observes the owned loopback listener/namespace. Audio/video duplex, live upgrade/replacement media ownership, packet capture, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        scope="Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned loopback listener/namespace and requires private packet capture. Audio/video duplex, live upgrade/replacement media ownership, browser, remote topology, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     before = None
     server = None
     streams = []
     phase = "dependencies"
     binary = None
     sdk_before = None
+    capture = None
     try:
         code = bounded(["bash", "scripts/prepare-dependencies.sh"], PRIVATE / "dependencies.log", env, 600)
         assert code == 0
@@ -317,6 +319,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     participant_self_verification_refused=True,
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
+                phase = "owned-native-packet-capture-start"
+                capture = NativeCapture(PRIVATE / "packet-capture", native, env)
+                capture.start()
             if conversation:
                 phase = "public-sdk-conversation-control"
                 config_directory = PRIVATE / "sdk-configs"
@@ -371,6 +376,13 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 assert rooms(name + "-after-revocation", Path(records[name]["config"])) == before_revocation[name]
             assert files(directory) == installed
             report["checks"].append("revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable")
+        if capture is not None:
+            phase = "owned-native-packet-capture-finish"
+            report["packet_capture"] = capture.finish()
+            assert report["packet_capture"]["observed"]
+            assert report["packet_capture"]["counts"]["to_server_udp_bytes"] >= 6 * 65536
+            assert report["packet_capture"]["counts"]["from_server_udp_bytes"] >= 6 * 65536
+            report["checks"].append("private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join")
         stop()
         report["checks"].append("normal-server-and-native-client-read-original-state-through-materialized-config")
         assert files(seed) == original_seed
@@ -383,6 +395,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         if isinstance(error, FixtureError):
             report["failure"]["code"] = str(error)
     finally:
+        if capture is not None:
+            report["packet_capture"] = capture.finish()
+            report["passed"] = bool(report["passed"] and report["packet_capture"]["observed"])
         if server is not None and server.poll() is None:
             server.send_signal(signal.SIGTERM)
             forced = False

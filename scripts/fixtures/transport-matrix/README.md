@@ -224,6 +224,18 @@ participant self-verification, verifies each Endpoint through the administrative
 API and replays the original commands without another revision change. The
 fixture does not inspect the installer's private intent or write Store state.
 
+The data lane owns a separate `tcpdump` process on Linux loopback, filtered to
+UDP traffic at the exact synthetic server port. Its only added runner capability
+is `cap_net_raw`; the server and clients remain regular processes. Capture starts
+before the SDK workload and stops after revocation checks. Raw PCAP and logs stay
+in the private fixture directory. The collector bounds file/packet sizes,
+requires zero kernel drops, rejects truncated/foreign/fragmented packets, counts
+both directions and requires the captured UDP bytes in each direction to cover
+the six payloads. It joins the original capture owner on success and failure;
+forced cleanup or early capture termination cannot pass. Public evidence contains
+only hashes, version, duration and counts. Encrypted packet capture does not
+establish decoded audio/video or a complete matrix cell.
+
 Four participants join the main data Session; two join the second Session. The
 public SDK offers six distinct native Connections and subscribes each to the
 previous participant's stream in its Session. All six must be ready at the common

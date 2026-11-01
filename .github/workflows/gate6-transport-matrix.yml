@@ -42,6 +42,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev ffmpeg
+      - name: Prepare private fixture capture
+        if: inputs.component == 'data'
+        run: |
+          sudo apt-get install -y tcpdump libcap2-bin
+          sudo setcap cap_net_raw=ep /usr/bin/tcpdump
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:

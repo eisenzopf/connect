@@ -1272,6 +1272,30 @@
       "python_node_syntax": true,
       "workflow_yaml_parsed": true,
       "rust_formatted": true
+    },
+    "runtime_candidate": {
+      "source_revision": "d2a6a578",
+      "workflow_run_id": 41270063787,
+      "job_id": 124740837933,
+      "signing_algorithm": "ES256",
+      "status": "confirmed-live-production-build-rehearsal"
     }
+  },
+  "native_packet_capture": {
+    "status": "implemented-runtime-unverified",
+    "platform": "Ubuntu24.04x86_64",
+    "transport": "native-quic",
+    "behavior": "Separate owned tcpdump on loopback/exact fixture UDP port, private raw PCAP/logs. Require both directions, wire bytes at least six64KiB payloads each way, no kernel drops, bounded complete records and original capture owner join. Reject foreign/truncated/fragmented records, unsupported links, early packet-bound exit or forced cleanup.",
+    "implementation_hashes": {
+      "scripts/lib/transport_capture.py": "4f65d90f32c2c1335d95883961feb2a20a4e2b6fdffeada5d64389b0c450219f",
+      "scripts/tests/test_transport_capture.py": "fbc1c91fa37c629184c47f3ad8cf0e55ae808e2dcfe191e4dc2e9d5c736e681e",
+      "scripts/check-transport-fixtures.py": "9b1a03c3a80ae5c702066c7cc4c5b5fd63525a5116adbe6ea8496d0a4775d837",
+      ".github/workflows/gate6-transport-matrix.yml": "8027e2b96d4d4336d3a33f2308062bf1a2594fcf079f4962813d026e6c18642e"
+    },
+    "runtime_verified": false,
+    "decoded_media_verified": false,
+    "full_matrix_cells_qualified": 0,
+    "local_transport_guards_passed": 28,
+    "scope": "Actual private native data packet capture only; no decoded audio/video, browser/remote topology, replacement ownership or full cell qualification."
   }
 }
