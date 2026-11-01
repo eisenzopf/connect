@@ -287,7 +287,8 @@ pub(super) async fn run(
                     if rows.len()>=maximum_rows || captured_bytes>16*1024*1024 {
                         return Err("replacement receive observation bound exceeded".into());
                     }
-                    rows.push(json!({"elapsed_us":start.elapsed().as_micros(),"datagram":packet}));
+                    rows.push(json!({"elapsed_us":start.elapsed().as_micros(),"datagram":packet,
+                        "original_root_completed_observed":root_observed}));
                 }
                 Err(_) => {
                     if let Some(video)=&source.video {

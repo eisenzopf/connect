@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { SdkRtpPacket } from "../../sdk/typescript/dist/index.js";
 import { RtpSender, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
 import { ConnectionMediaOwner } from "./transport_media_owner.mjs";
+import { SwitchingMediaReader } from "./transport_media_reader.mjs";
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
@@ -45,6 +46,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             const input = JSON.parse(raw);
             assert.equal(input.audio.length, 3100); assert.equal(input.video.length, 1860);
             routes.push({ index, item, peerIndex: connections.indexOf(peer), input,
+                generation: snapshot.generation,
                 audioSender: sender(ownAudio, "opus"), videoSender: sender(ownVideo, "vp8"),
                 sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
                 receiveAudio: item.connection.streams.byId(ownAudio.id).media,
@@ -63,7 +65,11 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
     const end = start + 62000, tasks = []; let error, workFailure, timer;
     let controlResult;
-    for (const route of routes) route.owner = new ConnectionMediaOwner(controller.signal);
+    for (const route of routes) {
+        route.owner = new ConnectionMediaOwner(controller.signal);
+        const peer = connections[route.peerIndex];
+        route.videoReader = new SwitchingMediaReader(plan[peer.prefix + "-video"], route.receiveVideo, route.owner.signal);
+    }
     async function sending(route, medium) {
         const video = medium === "video", entries = route.input[medium], sender = video ? route.videoSender : route.audioSender,
             stream = video ? route.sendVideo : route.sendAudio;
@@ -104,11 +110,14 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         }
     }
     async function receiving(route, medium) {
-        const stream = medium === "audio" ? route.receiveAudio : route.receiveVideo, assembler = new Vp8Assembler();
+        let assembler = new Vp8Assembler(), previousVideoStream;
         while (!route.owner.signal.aborted && performance.now() < end + 100) {
-            let value;
+            let value, streamId;
             route.stages.receive[medium] = "packet";
-            try { value = await stream.receivePacket({ timeoutMs: 500, signal: route.owner.signal }); }
+            try {
+                if (medium === "audio") value = await route.receiveAudio.receivePacket({ timeoutMs: 500, signal: route.owner.signal });
+                else ({ value, streamId } = await route.videoReader.receivePacket({ timeoutMs: 500 }));
+            }
             catch (failure) {
                 if (route.owner.signal.aborted && failure.kind === "cancelled") return;
                 if (failure.kind === "deadline" && failure.certainty === "read-only") continue;
@@ -131,12 +140,17 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 route.audio.push({ elapsed_ms: elapsed, timestamp: value.header.timestamp, sequence: value.header.sequenceNumber,
                     ssrc: value.header.ssrc, payload: Buffer.from(value.payload).toString("base64") });
             } else {
+                if (previousVideoStream !== streamId) {
+                    assembler.clear();
+                    previousVideoStream = streamId;
+                }
                 const frame = assembler.push({ ...value.header, sequence: value.header.sequenceNumber, payload: value.payload });
                 if (frame) {
                     assert.ok(route.video.length < 2000);
                     route.capturedBytes += frame.bytes.byteLength;
                     assert.ok(route.capturedBytes <= 16 * 1024 * 1024, "bounded-native-media-recording-bytes");
                     route.video.push({ elapsed_ms: elapsed, timestamp: frame.timestamp, key: frame.key,
+                        stream_id: streamId,
                         ssrc: value.header.ssrc,
                         payload: Buffer.from(frame.bytes).toString("base64") });
                 }
@@ -164,6 +178,30 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 // Retire only this Connection's four packet tasks. A second
                 // Session may still belong to the same live SDK/helper.
                 stopAndJoin: () => route.owner.stopAndJoin(),
+                expectRetirement: operationId => route.owner.expectRetirement({ operationId,
+                    connectionId: route.item.connection.id, generation: route.generation }),
+                switchIncomingVideo: (operationId, streamId, select) => route.videoReader.switchWith(operationId, async () => {
+                    const operation = await select();
+                    const reference = operation.referenceJson();
+                    assert.equal(reference.operation_id, operationId);
+                    assert.equal(reference.command, "stream.subscribe");
+                    assert.equal(reference.scope.connection_id, route.item.connection.id);
+                    const completed = await operation.wait({ timeoutMs: 8000 });
+                    assert.equal(completed.snapshot.state, "completed");
+                    const receipt = completed.value;
+                    assert.equal(receipt.connection.id, route.item.connection.id);
+                    assert.equal(receipt.connectionGeneration, route.generation);
+                    assert.ok(Array.isArray(receipt.bindings), "camera switch requires paired capture");
+                    const native = await route.item.connection.media.refresh({ timeoutMs: 8000 });
+                    assert.equal(native.streamRevision, receipt.streamRevision);
+                    const stream = native.streams.find(s => s.id === streamId && s.medium === "video" && s.direction === "recvonly");
+                    assert.ok(stream);
+                    const captured = receipt.bindings.find(b => b.parameters.id === streamId);
+                    assert.ok(captured, "camera switch requires its exact captured binding");
+                    assert.equal(captured.connectionGeneration, route.generation);
+                    assert.deepEqual(captured.parameters, stream);
+                    return { streamId, media: route.item.connection.streams.byId(streamId).media };
+                }),
             }))),
         }))).then(value => { controlResult = value; }, failure => {
             if (!error) { error = failure; workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" }; }
@@ -179,6 +217,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
             captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
             clock_reports: route.clockReports, submitted_audio: route.submittedAudio,
+            video_reader: route.videoReader.observation,
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,

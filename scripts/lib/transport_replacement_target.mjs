@@ -276,11 +276,12 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         report.original_root_completed = true;
         phase = "original-retirement-observation";
         const until = performance.now() + 5000;
+        let retiredOriginal;
         for (;;) {
             const remaining = Math.floor(until - performance.now()); assert.ok(remaining > 0);
             const original = await connection.refresh({ timeoutMs: remaining });
             assert.equal(original.id, intent.connectionId);
-            if (original.state === "retired") { assert.ok(original.generation > intent.originalGeneration); break; }
+            if (original.state === "retired") { assert.ok(original.generation > intent.originalGeneration); retiredOriginal = original; break; }
             await new Promise(done => setTimeout(done, Math.min(50, remaining)));
         }
         phase = "original-reference-recovery";
@@ -293,7 +294,9 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         assert.deepEqual(movementFacts(recovered.value), movementFacts(moved));
         report.original_reference_preserved = true;
         phase = "original-source-owner-join";
-        await retireOriginal(); report.original_source_owner_joined = true;
+        await retireOriginal({ reference: structuredClone(reference), original: retiredOriginal,
+            movement: structuredClone(movementFacts(moved)) });
+        report.original_source_owner_joined = true;
         if (live) {
             phase = "target-live-owner-observation";
             const readyUntil = performance.now() + 8000;

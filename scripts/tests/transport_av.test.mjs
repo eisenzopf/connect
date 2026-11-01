@@ -29,7 +29,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         async sendRtp(_packet, options) {
             assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 200, "public-write-cannot-outlive-original-200ms-source-age");
             if (withControl) return new Promise((_, reject) => {
-                options.signal.addEventListener("abort", () => reject(Object.assign(Error(), { kind: "cancelled" })), { once: true });
+                options.signal.addEventListener("abort", () => reject(Object.assign(Error(), { kind: "cancelled", certainty: "read-only" })), { once: true });
             });
             if (firstSubmissionAccepted && !accepted) {
                 accepted = true;
@@ -41,7 +41,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             if (clocksPending-- > 0) return Promise.resolve({ kind: "clock", report: clock });
             waiting++;
             return new Promise((_, reject) => {
-                signal.addEventListener("abort", () => { waiting--; aborted++; reject(Object.assign(Error(), { kind: "cancelled" })); }, { once: true });
+                signal.addEventListener("abort", () => { waiting--; aborted++; reject(Object.assign(Error(), { kind: "cancelled", certainty: "read-only" })); }, { once: true });
             });
         },
     };
@@ -54,8 +54,9 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             { id: plan[item.prefix + "-video"], medium: "video", direction: "sendonly", streamLocalId: 2, codec: { name: "vp8", params: { payload_type: 96 } } },
             { id: plan[peer.prefix + "-video"], medium: "video", direction: "recvonly", streamLocalId: 3, codec: { name: "vp8", params: { payload_type: 96 } } },
         ];
+        item.negotiated = negotiated; item.revision = 1;
         item.connection = { id: "connection-" + item.index, async refresh() { return { generation: 1 }; },
-            media: { async refresh() { if (setupFailure && item.index === 1) throw failure; return { sourceClock: true, binding: { sessionId: "session-" + item.sid }, streams: negotiated }; } },
+            media: { async refresh() { if (setupFailure && item.index === 1) throw failure; return { sourceClock: true, streamRevision: item.revision, binding: { sessionId: "session-" + item.sid }, streams: item.negotiated }; } },
             streams: { byId() { return { media: stream }; } } };
     }
     try {
@@ -73,6 +74,26 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 assert.equal(joined.shared_sdk_closed, false);
                 assert.equal(workload.signal.aborted, false);
                 assert.equal(waiting, 10); assert.equal(aborted, 2);
+                let selectionCalls = 0;
+                const target = connections[1];
+                await workload.routes[1].switchIncomingVideo("original-camera-selection", "new-camera", async () => {
+                    selectionCalls++;
+                    return { referenceJson: () => ({ operation_id: "original-camera-selection", command: "stream.subscribe",
+                        scope: { connection_id: target.connection.id } }), async wait() {
+                        target.revision = 2;
+                        target.negotiated = target.negotiated.filter(s => s.direction !== "recvonly").concat({
+                            id: "new-camera", medium: "video", direction: "recvonly", streamLocalId: 4,
+                            codec: { name: "vp8", params: { payload_type: 96 } },
+                        });
+                        return { snapshot: { state: "completed" }, value: { connection: target.connection,
+                            connectionGeneration: 1, streamRevision: 2,
+                            bindings: target.negotiated.map(parameters => ({ parameters, connectionGeneration: 1, streamGeneration: 1 })) } };
+                    } };
+                });
+                await new Promise(setImmediate);
+                assert.equal(selectionCalls, 1);
+                assert.equal(workload.signal.aborted, false);
+                assert.equal(waiting, 10); assert.equal(aborted, 3);
                 throw failure;
             } : undefined), error => error === failure);
         assert.equal(observations.length, 1);
@@ -94,11 +115,12 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         for (const hidden of ["private-synthetic-clock", "synthetic first-write refusal", "connection-", "ssrc", "ntp", "payload"])
             assert.equal(JSON.stringify({ ...observed, scope: undefined }).includes(hidden), false);
         assert.ok(performance.now() - started < 1000);
-        assert.equal(waiting, 0); assert.equal(aborted, 12);
+        assert.equal(waiting, 0); assert.equal(aborted, 12 + Number(withControl));
         let submissions = 0;
         for (const item of connections) {
             const result = JSON.parse(await readFile(join(directory, "received", "received-" + item.index + ".json"), "utf8"));
             assert.equal(result.audio.length, 0); assert.equal(result.video.length, 0);
+            assert.equal(result.video_reader.completed_switches, Number(withControl && item.index === 1));
             submissions += result.submitted_audio.length;
             for (const receipt of result.submitted_audio) {
                 assert.equal(receipt.timestamp, 0);
@@ -126,4 +148,4 @@ test("clock failure retains only the completed original audio queue receipt and 
 
 test("original media setup failure remains explicit before any source clock or media task starts", () => checkFailure(false, true));
 
-test("in-workload control retires one Connection and preserves its shared participant second Session", () => checkFailure(false, false, true));
+test("in-workload control retires one Connection, rebinds a captured camera and preserves the shared participant second Session", () => checkFailure(false, false, true));

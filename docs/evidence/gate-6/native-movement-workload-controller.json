@@ -1,0 +1,91 @@
+{
+  "format": "connect/gate6-native-movement-workload-controller/1",
+  "updated": "2026-11-01",
+  "task": "G6-058",
+  "scope": "Controller and packet-owner integration for twenty physical replacements across the full native six-route/two-Session workload. Controlled ownership cases pass; first actual six-route movement workload is negative before target launch. Main producer/complete timeline decoder wiring remains open.",
+  "source_files_sha256": {
+    "scripts/lib/transport_media_reader.mjs": "6cdfd1b16dd9e12f049721f982c71415d5fdef1f5b6be42c8302afae53ea3c01",
+    "scripts/lib/transport_media_owner.mjs": "6c06e5e0ef4ff11d7b373d9e89ccadf633421f72373b4c9ca3c9e0ba938f80fc",
+    "scripts/lib/transport_movement_workload.mjs": "85e14293ba22086fd878ce607b193b73aba25081250b8e3443a4b9d48e4ecf3d",
+    "scripts/lib/transport_av.mjs": "fd2405f6b4fcd52b3050e83602aed8314d7562c41d2352b33c7504e787ce2075",
+    "scripts/lib/transport_replacement_target.mjs": "a0c16a80bbec304eb1d9d5ca56c1a8afb620732b11a1f61395043c76644f35ad",
+    "scripts/tests/transport_media_reader.test.mjs": "1faecdd76e8560fe827810e1cc0c111a76c8b7f95b405edd37837f0bd918a79d",
+    "scripts/tests/transport_media_owner.test.mjs": "e48dc5ebecc91a764f04ffc7c639045c91c4bd72edd29224755434285f2c42c2",
+    "scripts/tests/transport_movement_workload.test.mjs": "8b8b3dcac6734bc31db926c2e7a8a7e8405e434c57632f9d02d159a968889658",
+    "scripts/tests/transport_av.test.mjs": "25ef6e802fbfad95d6e8e410692630922e1a5abf2797fbe931f5df72e62b308f",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "ec03da55635ae9e2f830c397246f4b62d8017833a5dec88459ab41e9f4506871"
+  },
+  "verification": {
+    "stage": "complete",
+    "controller_pid": 72033,
+    "passed": true,
+    "exits": [
+      0,
+      0,
+      0
+    ],
+    "elapsed_seconds": 5.85001645796001,
+    "source_inputs_unchanged": true,
+    "input_count": 5572,
+    "peer_sha256": "b4a433bb82294bcee40602cec5578759f402cc37351b113066d287b16f5a6e82",
+    "rust_cases": 12,
+    "node_cases": 25
+  },
+  "controlled_behavior": [
+    "Two ten-move Session chains use twenty distinct durable original IDs, alternate the two enrolled Devices, keep one source-program origin and submit each camera selection once.",
+    "Connection-local retirement waits only for the exact original completed replacement reference and a newer retired incarnation. Uncertain IO and unrelated authority refusal remain failures; parent cancellation releases proof waits.",
+    "Incoming camera readers keep their original finite deadline while waiting for the exact original selection and paired native capture. Old local read cancellation switches binding once; no unknown IO is retried or suppressed.",
+    "A late refusal in one chain joins admitted targets in both chains, including a target whose camera selection has not started. Cancelling final natural source waits cannot promote twenty completed roots to a workload pass.",
+    "Retiring one Connection and rebinding one captured camera leaves the same participant second Session and nine other packet readers live until the caller aborts.",
+    "Each physical packet observation now records whether that original root completion had actually been observed, distinguishing private readiness traffic from established program segments."
+  ],
+  "actual_negative": {
+    "runtime_sha256": "9c4e68dc464ee5716c9e229f450a2b59af1bbfd5969d4e02179a7c61944dac5d",
+    "physical_peer_sha256": "b4a433bb82294bcee40602cec5578759f402cc37351b113066d287b16f5a6e82",
+    "participants": 4,
+    "sessions": 2,
+    "native_av_connections": 6,
+    "original_packet_tasks": 24,
+    "media_elapsed_ms": 5588.475917000001,
+    "original_moves_completed": 0,
+    "failure_phase": "original-submission",
+    "error": {
+      "kind": "application",
+      "certainty": "uncertain",
+      "protocol_problem_code": 503
+    },
+    "target_launches": 0,
+    "retained_database_operation_rows_for_planned_moves": 0,
+    "native_replacement_rows": 0,
+    "original_mutation_replayed": false,
+    "source_input_files_unchanged": true,
+    "all_packet_tasks_joined": true,
+    "helpers_joined": true,
+    "server_joined": true,
+    "server_forced": false,
+    "scope": "A retained read-only database audit finds no planned move record or native replacement. This does not authorize resubmitting the uncertain original. No target was launched, so target_worker_joined=false is not a child join failure."
+  },
+  "admission_followup": "A separate fresh controlled Store test reproduces authority-busy when endpoint replacement admission requests a write fence while current packet readers remain held. Metadata-only admission correction is under Store-suite verification; no actual corrected-runtime result is claimed here.",
+  "limitations": [
+    "Main scripts/check-transport-conversation.mjs still does not invoke the new controller. It needs current final connection/end handling, merged physical segment custody and the independent complete timeline decoder before full qualification.",
+    "Eight Connection slots is the planned upper bound for six active routes plus at most two concurrent candidates, not an observed peak or capacity claim.",
+    "No actual twenty-transition, sixty-second, impairment, paired presentation, packet-capture/resource or full32-cell pass."
+  ],
+  "private_evidence_sha256": {
+    ".local/gate-6/movement-workload-verified/inputs.json": "6b0eef7053250b755f6aba994a6c2215a281385848b2200c23dbb9cd8b14a63f",
+    ".local/gate-6/movement-workload-verified/state.json": "8c0ffe6e04752393ca10f2fb3a1ceae64da466d585f71d086d316a885a43f0d2",
+    ".local/gate-6/movement-workload-verified/node-tests.log": "ef68444be7721f90f6f955aded4a1f28657a442652bb475764009b5dc34b0a82",
+    ".local/gate-6/movement-workload-verified/peer-tests.log": "3b14aac4108f9edb9d6780cd43d29d6899b7916a7ddc7711742ad984d3880d5a",
+    ".local/gate-6/movement-workload-native/controller.json": "57f703eef26ed251a40ae256baf85084386ef8aede3eb2ec1b1540e1b68cd1e7",
+    ".local/gate-6/movement-workload-native/prepare.json": "51bfecf33a376d4fb112eb670d78500e7ebb36010c5799a28a143b6a0d756d06",
+    ".local/gate-6/movement-workload-native/probe.json": "adfa11756ed92a0eb2275772ed22eb7fb7886107c1b62cdcac03d1026eac5f52",
+    ".local/gate-6/movement-workload-native/probe.mjs": "c53771c61d3559aed6233034f25c8fbd93c6e7d8170919abffb84b1596746e26",
+    ".local/gate-6/movement-workload-native/moves/plan.json": "9bcd27b2a8ce3d2c30f2ea75a6cfa303ccad5ef99db891d5f4fe8a917d86bf2e",
+    ".local/gate-6/movement-workload-native/moves/movement-failure.json": "a5055690a66bd9a163dce4f25ede20baa3512a1dff814363c93ffc2ddce7bbb7",
+    ".local/gate-6/movement-workload-native/moves/0-0/stage.json": "3e634b4490060a9ea749a410d877d1c4aef38de9027825f504815806038e79f6",
+    ".local/gate-6/movement-workload-native/moves/0-0/original-command.json": "bce3c126dd3860b62f21ea52cff6de17dcfe170cfd2b2fcbc9fe68c60946f187"
+  },
+  "full_transport_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
