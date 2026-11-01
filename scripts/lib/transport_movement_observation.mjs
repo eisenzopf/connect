@@ -1,0 +1,129 @@
+// Offline custody checks for already completed original movement operations.
+import assert from "node:assert/strict";
+import { constants } from "node:fs";
+import { open, realpath } from "node:fs/promises";
+import { resolve, join } from "node:path";
+import { createHash } from "node:crypto";
+import { physicalAvSegment } from "./transport_replacement_observation.mjs";
+
+const sha = bytes => createHash("sha256").update(bytes).digest("hex");
+const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
+async function originalFile(path, maximum) {
+    assert.equal(await realpath(path), path, "capture evidence cannot follow a substituted path");
+    const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+        const before = await file.stat();
+        assert.ok(before.isFile() && !(before.mode & 0o077) && before.size > 0 && before.size <= maximum);
+        const bounded = Buffer.alloc(before.size + 1);
+        let count = 0;
+        while (count < bounded.length) {
+            const read = await file.read(bounded, count, bounded.length - count, count);
+            if (!read.bytesRead) break;
+            count += read.bytesRead;
+        }
+        const bytes = bounded.subarray(0, count), after = await file.stat();
+        for (const key of ["dev", "ino", "size", "mtimeMs", "ctimeMs"]) assert.equal(before[key], after[key]);
+        assert.equal(bytes.length, before.size);
+        return { bytes, digest: sha(bytes), value: JSON.parse(bytes) };
+    } finally { await file.close(); }
+}
+
+export async function physicalMovementSegments({ directory, movement, plan,
+    packetWorkersJoined, conversationId, sessionIds, connectionIds, streamIds, executableSha256 }) {
+    assert.equal(packetWorkersJoined, true, "original packet workers must join before offline interpretation");
+    assert.equal(movement.original_moves_completed, 20);
+    assert.equal(movement.concurrent_session_chains, 2);
+    assert.deepEqual(movement.moves_per_source, [10, 10]);
+    assert.equal(movement.active_av_routes, 6);
+    assert.equal(movement.maximum_pending_candidates, 2);
+    assert.equal(movement.shared_sdk_closed_during_replacement, false);
+    assert.ok(Number.isSafeInteger(movement.original_program_start_unix_us) && movement.original_program_start_unix_us > 0);
+    assert.ok(id(conversationId) && sessionIds.length === 2 && sessionIds.every(id));
+    assert.equal(new Set(sessionIds).size, 2);
+    assert.equal(connectionIds.length, 6); assert.ok(connectionIds.every(id));
+    assert.equal(new Set(connectionIds).size, 6);
+    assert.equal(streamIds.length, 6);
+    assert.ok(streamIds.every(v => id(v.audio) && id(v.video)));
+    assert.match(executableSha256, /^[0-9a-f]{64}$/);
+    assert.equal(plan.length, 20); assert.equal(movement.moves.length, 20);
+    assert.equal(movement.physical_segments.length, 20);
+    const keys = new Set(), operations = new Set(), streamNames = new Set();
+    for (const step of plan) {
+        assert.ok([0, 4].includes(step.sourceIndex) && Number.isInteger(step.ordinal) && step.ordinal >= 0 && step.ordinal < 10);
+        const key = step.sourceIndex + "-" + step.ordinal;
+        assert.ok(!keys.has(key)); keys.add(key);
+        assert.ok(id(step.operationId) && !operations.has(step.operationId)); operations.add(step.operationId);
+        for (const name of [step.subscriptionId, step.audioId, step.videoId]) {
+            assert.ok(id(name) && !streamNames.has(name)); streamNames.add(name);
+        }
+    }
+    const root = resolve(directory);
+    assert.ok(root.split("/").includes(".local"));
+    assert.equal(await realpath(root), root);
+    const segments = [], current = new Map([[0, connectionIds[0]], [4, connectionIds[4]]]);
+    const usedConnections = new Set(connectionIds), usedCaptures = new Set(), usedMoves = new Set();
+    for (const sourceIndex of [0, 4]) for (let ordinal = 0; ordinal < 10; ordinal++) {
+        const step = plan.find(v => v.sourceIndex === sourceIndex && v.ordinal === ordinal);
+        assert.ok(step);
+        const folder = join(root, sourceIndex + "-" + ordinal), sid = sourceIndex === 0 ? 0 : 1;
+        const peer = sourceIndex === 0 ? 3 : 5;
+        const moves = movement.moves.filter(v => v.source_index === sourceIndex && v.ordinal === ordinal);
+        assert.equal(moves.length, 1);
+        const move = moves[0]; usedMoves.add(move);
+        assert.equal(move.session_index, sid);
+        assert.equal(resolve(move.stage_directory), folder);
+        for (const flag of ["original_reference_preserved", "original_retired", "camera_subscription_completed"])
+            assert.equal(move[flag], true, flag);
+        const path = join(folder, "target-observation.json");
+        const captures = movement.physical_segments.filter(v => v.sourceIndex === sourceIndex && resolve(v.observation) === path);
+        assert.equal(captures.length, 1);
+        const capture = captures[0]; usedCaptures.add(capture);
+        const stage = await originalFile(join(folder, "stage.json"), 65536);
+        assert.equal(stage.value.format, "connect/physical-native-replacement-stage/1");
+        for (const flag of ["passed", "original_reference_preserved", "original_root_completed",
+            "original_source_owner_joined", "target_worker_joined", "target_config_unchanged", "target_executable_unchanged"])
+            assert.equal(stage.value[flag], true, flag);
+        assert.equal(stage.value.target_worker_forced, false);
+        assert.equal(stage.value.target_executable_sha256, executableSha256);
+        const reference = await originalFile(join(folder, "original-reference.json"), 65536);
+        assert.equal(reference.value.command, "connection.replace");
+        assert.equal(reference.value.operation_id, step.operationId);
+        assert.equal(reference.value.scope.conversation_id, conversationId);
+        assert.equal(reference.value.scope.session_id, sessionIds[sid]);
+        assert.equal(reference.value.scope.connection_id, current.get(sourceIndex));
+        const admission = await originalFile(join(folder, "admission.json"), 65536);
+        const moved = admission.value.movement;
+        assert.deepEqual(moved.retired, [current.get(sourceIndex)]);
+        assert.deepEqual(moved.retained, [connectionIds[peer]]);
+        assert.ok(id(moved.connection) && !usedConnections.has(moved.connection));
+        usedConnections.add(moved.connection);
+        const ready = await originalFile(join(folder, "target-observation.owner-ready.json"), 65536);
+        assert.equal(ready.digest, stage.value.target_owner_ready_sha256);
+        assert.equal(ready.value.format, "connect/native-replacement-owner-ready/1");
+        assert.equal(ready.value.operation_id, step.operationId);
+        assert.equal(ready.value.connection_id, moved.connection);
+        assert.equal(ready.value.video_enabled, true);
+        assert.equal(ready.value.operation_completed_inferred, false);
+        assert.equal(ready.value.decoded_media_verified, false);
+        const observed = await originalFile(path, 80 * 1024 * 1024);
+        assert.equal(observed.digest, capture.sha256);
+        assert.equal(observed.digest, stage.value.target_observation_sha256);
+        assert.deepEqual(observed.value.negotiated_streams, ready.value.negotiated_streams);
+        const normalized = physicalAvSegment(observed.value, {
+            programStartUnixUs: movement.original_program_start_unix_us,
+            audioStreamId: step.audioId, sendVideoStreamId: step.videoId,
+            receiveVideoStreamId: streamIds[peer].video,
+        });
+        segments.push({ source_index: sourceIndex, ordinal, operation_id: step.operationId,
+            connection_id: moved.connection, original_capture_sha256: observed.digest,
+            custody_sha256: { stage: stage.digest, reference: reference.digest,
+                admission: admission.digest, ready: ready.digest }, capture: normalized });
+        current.set(sourceIndex, moved.connection);
+    }
+    assert.equal(usedMoves.size, 20); assert.equal(usedCaptures.size, 20);
+    return { format: "connect/physical-movement-segments/1", original_move_records_bound: 20,
+        program_start_unix_us: movement.original_program_start_unix_us, segments,
+        final_connections: [...current].map(([source_index, connection_id]) => ({ source_index, connection_id })),
+        full_timeline_decoded: false, cell_qualified: false, task_complete: false,
+        scope: "Offline custody and original packet interpretation only. These twenty target segments still require the original six captures, separate physical codec histories and independent whole-window decoding. No decoded quality or transport qualification." };
+}

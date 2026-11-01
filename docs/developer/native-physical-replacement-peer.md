@@ -285,3 +285,14 @@ whose fragments straddle completion and another whose fragments exceed the
 original assembly age. These cases use synthetic encoded fragments and do not
 decode media. Connecting this reader to the movement collector and independently
 decoding the complete physical timeline remain required.
+
+`physicalMovementSegments` in `scripts/lib/transport_movement_observation.mjs`
+binds the twenty target captures after the caller confirms that all original
+packet workers have joined. Each of the two ten-step chains must preserve its
+original operation, Conversation, Session, predecessor and retained Connection.
+The reader checks final target ownership, unchanged executable and capture
+digests, and the original ready marker before interpreting codec bytes. Reads
+are bounded and reject substituted symlink paths or non-private evidence files.
+The result retains each physical capture separately and records both final
+Connection IDs. The original six captures and whole-window decoder still need
+to be connected by the main producer; this reader creates no quality result.

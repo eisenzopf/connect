@@ -118,10 +118,19 @@ jobs:
           cargo test --release --locked -p connect-store --lib transitions::tests::peer_operations -- --nocapture
           cargo test --release --locked -p connect-store --lib native_stream_authority::data_reads -- --nocapture
           cargo test --release --locked -p connect-store --lib connection_control::tests::replacement_sources::custody -- --test-threads=1 --skip replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing --nocapture
-      - name: Check native media failure joins
+      - name: Check native media ownership capture custody and failure joins
         if: inputs.component == 'media'
         run: |
-          node --test scripts/tests/transport_av.test.mjs scripts/tests/transport_live_upgrade.test.mjs scripts/tests/transport_replacement_target.test.mjs
+          node --test --test-concurrency=1 \
+            scripts/tests/transport_av.test.mjs \
+            scripts/tests/transport_live_upgrade.test.mjs \
+            scripts/tests/transport_media_owner.test.mjs \
+            scripts/tests/transport_media_reader.test.mjs \
+            scripts/tests/transport_movement_workload.test.mjs \
+            scripts/tests/transport_replacement_target.test.mjs \
+            scripts/tests/transport_replacement_owner.test.mjs \
+            scripts/tests/transport_replacement_observation.test.mjs \
+            scripts/tests/transport_movement_observation.test.mjs
           PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -p test_transport_replacement_audio.py -v
       - name: Run exact non-media QUIC HTTP3 and WSS control functions
         if: inputs.component == 'control'

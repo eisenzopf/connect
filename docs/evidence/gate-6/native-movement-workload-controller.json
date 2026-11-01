@@ -118,5 +118,33 @@
     "scope": "Controlled offline parsing/ownership boundaries only, using synthetic encoded fragments. Actual twenty-root collector wiring and full independent decoded timeline remain open. No new native execution, decoded quality, packet capture, impairment, capacity or transport-cell pass.",
     "task_complete": false,
     "whole_gate_qualified": false
+  },
+  "offline_capture_custody": {
+    "source_files_sha256": {
+      "scripts/lib/transport_movement_observation.mjs": "c97b0de01092c0e5ebc14c599bdee199a087c2c34b18b66da6a93f599e96caae",
+      "scripts/tests/transport_movement_observation.test.mjs": "6849933fc3b7c9d13eab4cd483b4083e4e343fd84c62c25e65f1a76b5d048dad",
+      ".github/workflows/gate6-transport-matrix.yml": "dbddd0e49388bd4187d48af9c0c9fff51b685da9b77d50fd58d359555eb92200"
+    },
+    "node": "v22.16.0",
+    "controlled_new_cases": 6,
+    "related_node_cohort_passed": 45,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "elapsed_seconds": 1.7935444163158536,
+    "source_inputs_unchanged": true,
+    "input_manifest_sha256": "4825ee91c60228bb34d29d0a54b19848f19ce1a9a9b31efc3bf2085494e08d92",
+    "test_log_sha256": "422edcc24ba4fb17511721ab57f97fbe825dbeafabec29491f1a3683e44f6119",
+    "boundaries": [
+      "No offline parsing before original packet workers join; twenty distinct recorded originals in two ten-step chains required.",
+      "Original Conversation/Session/predecessor and retained Connection match the exact recorded references; repeated candidate IDs refuse.",
+      "Final stage must prove target joined without force, unchanged executable/config and exact raw-capture/ready hashes.",
+      "Raw captures retain original shared source program and separate physical SSRC histories.",
+      "Bounded private read rejects mutated bytes, symlink substitutions and escaped folders."
+    ],
+    "ci": "Transport media workflow now runs all nine owned media/reader/movement/capture test files serially with unchanged assertions. Workflow YAML syntax independently parsed with Ruby YAML; default Python has no PyYAML, no dependency installed.",
+    "scope": "Controlled synthetic capture-file custody only. Positive fixtures simulate twenty metadata records and tiny encoded packets; they execute no native replacement and decode no media. The actual optimized six-route baseline is still separate and pending after Store correction. Main producer, final Connection end handling and complete independent physical timeline decoding remain open.",
+    "task_complete": false,
+    "whole_gate_qualified": false
   }
 }
