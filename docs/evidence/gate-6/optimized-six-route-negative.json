@@ -583,7 +583,7 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "controlled_retained_video_regression": {
-    "status": "before-counterexample-confirmed-after-verification-in-progress",
+    "status": "controlled-before-fails-after-passes-native-verification-pending",
     "patch": "patches/rvoip/gate6-retained-video-policy-state-regression.patch",
     "patch_sha256": "67bbe510e3e2ade306beed1c82a188bd6e967377a4fef74a20afeaf935d3ec0b",
     "source_lock_sha256": "13f13f83449adb4a837ee54f9b43dc6c1ac7a7e5452536dfd11b819c4f430f1f",
@@ -611,8 +611,64 @@
       "source_lock_sha256": "49c9f00fbf0c272cdd28a93085d7b8d3cdddcd3c1f89280e0ef2500def113a6c",
       "patch_count": 267,
       "mechanism": "Extend retained audio external-policy detachment to all non-data realtime stream kinds, including video/screen. Keep original model/credential/port/consumer/scene checks after the callback; refuse metadata contention without retaining a fresh reader. No data-policy change, retry, deadline or media-threshold change.",
-      "after_core_verification": "in-progress",
-      "fresh_native_after_result": "not-run"
+      "after_core_verification": {
+        "passed": true,
+        "test_count": 61,
+        "failed": 0,
+        "ignored": 0,
+        "cohorts": {
+          "packet_admission": {
+            "sha256": "0a17e5dc35b94061a6645a2e66b02bcaeb13256978e931a2e1df071ff3c1bdcb",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0
+          },
+          "ingress_policy_snapshot": {
+            "sha256": "33f33e6ec3b7a9a2ccf08bc4ac2404f7fe2408909150db70e6428d4a85c5abe6",
+            "passed": 6,
+            "failed": 0,
+            "ignored": 0
+          },
+          "fresh_metadata_recovery": {
+            "sha256": "eb40169ed279a910a58781dff42ba0752443f9f0dc8223ce255c7a2f463f189a",
+            "passed": 7,
+            "failed": 0,
+            "ignored": 0
+          },
+          "packet_expiry": {
+            "sha256": "23aeaa2eb8ea44fff3d9c91205d4ab263a68296651314d0b29d1da9cc8f17289",
+            "passed": 2,
+            "failed": 0,
+            "ignored": 0
+          },
+          "direct_subscriptions": {
+            "sha256": "394465ae33ebaf812ee362ed6294507cb387a0a1a8f15a80120c8ea4fc02789b",
+            "passed": 9,
+            "failed": 0,
+            "ignored": 0
+          },
+          "video_repair": {
+            "sha256": "6726c5a4661dbaa0ce2598202e99e0dca01af1130e96609927e172cce3445455",
+            "passed": 10,
+            "failed": 0,
+            "ignored": 0
+          },
+          "reliable_data": {
+            "sha256": "1132eb016bd5754e1e17c092b6935c0e44f5b9b56d04f4ddeac66142f7b52143",
+            "passed": 19,
+            "failed": 0,
+            "ignored": 0
+          }
+        },
+        "test_binary_sha256": "6116fd0d96ca30988da37e9aa3071ee1fc37b3608f07cea02fc4135a8f0673b5",
+        "original_fixed_binary_preserved": true,
+        "elapsed_seconds": 434.3840068751015,
+        "source_inputs_unchanged": true,
+        "input_manifest_sha256": "eb01d25572659ef5fd81dce67dcf170a06bb3666b171b2906e19f8ed15c90cf1",
+        "state_sha256": "5e6cb871eb238b84fe9ff0308ffa53f63e01b19753e89faeab53c877169fd824",
+        "scope": "Controlled original callback, metadata contention, expiry, subscription, repair and reliable-data cases only. No decoded media, native throughput, full-suite or transport-cell qualification."
+      },
+      "fresh_native_after_result": "waiting-for-guarded-optimized-runtime-build"
     }
   }
 }
