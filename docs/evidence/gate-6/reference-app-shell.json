@@ -10,7 +10,7 @@
     "public_sdk_gateway": "Implemented typed ordinary participant routing, original-ID recovery, explicit reconnect, finite authorized history/topology reads, invitations/decisions and connection-update controls. SDK-shaped fixtures only so far.",
     "http_boundary": "Implemented loopback-only Host/Origin/session checks, bounded body/concurrency/socket lifetimes, private/static symlink refusal and joined shutdown.",
     "ui": "Responsive participant selection, timeline, invitations, operation progress and explicit original-ID recovery. Actual macOS Chrome component passed desktop creation/text/invitation decision, denied microphone/camera, 320px layout and offline/reload recovery; backend simulated. Abort exceptions are wrapped without mutating browser-owned code; offline exposes saved original recovery immediately.",
-    "startup": "Installed-package-only Node entry with private setup manifest/asset hash checks and owned SDK cleanup. One-command manifest/credential setup not yet implemented.",
+    "startup": "One-command app/run.mjs now snapshots the installed binary, creates a protected public-CLI installation, seals bootstrap files, provisions four synthetic identities through the installed NodeAdministrativeClient and installs explicit non-admin, three-peer scoped credentials through public issue/issue-resume. Original setup/issuance IDs, ports and absolute expiry persist; native and application tables are combined for the ordinary SDK. Owned server/app children have bounded private logs and joined shutdown. Actual installed execution pending.",
     "app_state_profile": "parley-app-intents/2; stores completed SDK resource IDs as discovery hints requiring a new authorized SDK read; old development profiles refuse unchanged."
   },
   "source_hashes": {
@@ -24,17 +24,23 @@
     "examples/parley-on-connect/app/ui/app.css": "ad38157736418f63c2592e78055c0ea7faa4a88cb0a2e5df0dcf9deaba3d3529",
     "examples/parley-on-connect/app/ui/app.mjs": "42da705bd98f447a01685ec566bc620327f689b702db396703791cced93ab578",
     "examples/parley-on-connect/app/ui/index.html": "42162c8d919a752ed3ffe680b7a234877b00fae80b7921a13620fc22a80eec13",
-    "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab"
+    "scripts/check-reference-app-ui.mjs": "7388cbe4e3a42640519eec7cee129aa1753f02f949c00b2185a6fdcd99e569ab",
+    "examples/parley-on-connect/app/run.mjs": "f14f8c7a26660ed9f929c3306e38845702be817598bdc1bfd3df75beb6011b0d",
+    "examples/parley-on-connect/app/setup.mjs": "ec3f07a139a34f6c1496b982fa4c5f6daff12eaa3d2ec76c6c77c3dc6fe49305",
+    "examples/parley-on-connect/app/setup.test.mjs": "fb88625ce027f0e29ffa909896a6a6c00142aac416c2342260480e02f5a4e58b",
+    "scripts/install-reference-app-candidate.py": "2588fab32696f86362e739ffc4921e865296c9a697600ca4a4b62a3f10731de7",
+    "scripts/check-reference-app-installed.mjs": "3f5ef3cf551b20913be66f047167d3703950851152bb8b06f6f775c119f70a5a",
+    ".github/workflows/gate6-reference-app.yml": "e4a3343646c60eaf2b11a1cce64aabc8cd2b415f85be9ca13d306efe644fcff2"
   },
   "local_verification": {
     "command": "npm run test:app --prefix examples/parley-on-connect",
-    "functions_passed": 20,
+    "functions_passed": 23,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-    "scope": "7 private journal cases, 8 SDK-shaped gateway cases and 5 real loopback HTTP/socket cases. All 20 pass after the browser-discovered abort fix. Separate actual Chrome UI component has 12 passing assertions against a simulated application backend."
+    "scope": "7 private journal cases, 8 SDK-shaped gateway cases, 5 real loopback HTTP/socket cases and 3 SDK/CLI-shaped setup cases. No actual Connect execution for new setup yet. The separate 12-assertion macOS browser component uses a simulated backend."
   },
   "remaining_requirements": [
-    "One-command local setup and scoped credential installation without manual IDs or database edits",
+    "Verify actual one-command startup/scoped enrollment, restart and original recovery; current three setup tests use SDK/CLI-shaped fixtures.",
     "Real installed Node SDK/native helper/Connect server application execution",
     "Complete required browser flows against the actual installed backend, with Linux/Node22 and full keyboard participant selection; current 12-assertion macOS component uses a simulated backend.",
     "Complete functional negotiated-media controls/capture integration as required by shell; local preview alone is not a media-connection pass",
@@ -58,5 +64,16 @@
     "original_recovery": "One simulated accepted message with withheld HTTP response, actual browser offline and reload/reconnect, recovery of original ID, one effect only; browser stores keys/IDs only.",
     "sources_unchanged": true,
     "original_owners_joined": true
+  },
+  "installed_verification_lane": {
+    "workflow": ".github/workflows/gate6-reference-app.yml",
+    "dispatch": "gate6-linux-fixtures.yml lane reference-app",
+    "status": "prepared; not run",
+    "targets": [
+      "Ubuntu24.04 x86_64 Node22",
+      "macOS15 arm64 Node22"
+    ],
+    "runtime_candidate_source": "3732254f379a83a33da42024872ea0ec1481c9fc",
+    "scope": "Exact previously independently verified complete candidate ZIP/tar/manifest and selected native/npm assets; cold offline ordinary SDK install; current app source copied outside checkout; actual one-command startup, browser keyboard text/invitations, lost-response offline/original recovery, same-command restart and original group/browser joins. No compilation/media/model/provider lane."
   }
 }

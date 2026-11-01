@@ -8,6 +8,7 @@
     "node": ">=22.16"
   },
   "scripts": {
+    "app": "node app/run.mjs",
     "test": "node --test tests/*.test.mjs worker/*.test.mjs app/*.test.mjs",
     "test:app": "node --test app/*.test.mjs"
   }

@@ -12,12 +12,36 @@ SDK with a simulated application backend. Native participant dropdown keyboard
 interaction remains unqualified on macOS headless Chrome; perspective selection
 uses the normal select automation for fixture preparation. See
 [the browser component evidence](../../docs/evidence/gate-6/reference-app-browser-component.json).
-One-command setup, scoped
-credential installation, actual package/server execution and the remaining
-browser/media controls still require verification. `app/main.mjs` requires an
+One-command setup and scoped credential installation are now implemented in
+`app/run.mjs` and `app/setup.mjs`. Their three fixture tests cover literal peer
+ceilings, original setup IDs after lost responses, partial installer recovery
+and changed bootstrap refusal. Actual production package/server execution is
+being checked separately on Node 22/Linux and macOS. The remaining browser/media
+controls still require verification. `app/main.mjs` requires an
 app-owned private setup manifest and an ordinary installed `@rudeless/connect`;
 operator configuration is never served to the browser. The application state is
 separate from Connect's authoritative journal and database.
+
+With Node 22.16 or later, the ordinary `@rudeless/connect` 0.1.0 package installed
+here, and the matching candidate's `connect` executable on PATH, run:
+
+```sh
+npm run app
+```
+
+This creates a private `.local/parley` installation, provisions the four synthetic
+participants, installs separate credentials limited to their three peers, and
+prints the loopback UI URL. It starts neither a model nor a communications
+provider. An explicit installed executable or application state location can be
+selected with `npm run app -- --connect /installed/bin/connect --state .local/demo`.
+No participant IDs, tokens or database changes are entered manually.
+
+Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
+command preserves the original ports, identities, issuance IDs, absolute expiry
+and application state. Interrupted child installations use `connect issue-resume`;
+changed assets, a different runtime, expiry or an unsealed initial bootstrap
+refuse and retain the original state for inspection. This is the local synthetic
+profile; functional negotiated browser capture remains unfinished.
 
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
 seventeen stages, explicit audiences, business gates, observable outcomes and
