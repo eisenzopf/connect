@@ -1,0 +1,260 @@
+{
+  "format": "connect/transport-control-independent-verification/1",
+  "task": "G6-058",
+  "source_revision": "e5bf5977e723de738c118b90c8cca63acc6f51e9",
+  "workflow_run_id": 41271725390,
+  "job_id": 124745696980,
+  "artifact_id": 13069954917,
+  "independent_verification": {
+    "format": "connect/transport-component-independent-verification/1",
+    "evidence_verified": true,
+    "component": "control",
+    "component_passed": true,
+    "source_revision": "e5bf5977e723de738c118b90c8cca63acc6f51e9",
+    "artifact_sha256": "b7b1c805a7b9d1f42c43d227b26754967add6498aad00d3dc365c96a887d80c9",
+    "report_sha256": "1f3d6b5057482afbd16e5d0862045a22bf91a9e4fcfdceb93054ce4a7e30ab7f",
+    "source_inputs_sha256": "e10a4b670614fb4a76910249632a1f81fe48f64b3f42c613b3dbd468fe6499af",
+    "sources_verified": {
+      "git": 4703,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "sdk_dist_files_verified": 192,
+    "target": "ubuntu24-x86_64",
+    "signing": "both",
+    "network": "local",
+    "reported_runtime_binary_sha256": "6f0df9ba465620e81c763753014a4a0ede0873078bddf4719e316e0cc9cf2ea7",
+    "binary_bytes_in_artifact": false,
+    "outcomes": {
+      "selected_cases": 15,
+      "executed_cases": 15,
+      "passed_cases": 15,
+      "complete_control_selection": true
+    },
+    "full_matrix_cells_qualified": 0,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "host": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "node": "v22.23.4"
+  },
+  "fixture_features": [
+    "cli",
+    "default",
+    "test-support"
+  ],
+  "type_validation": "full-optimized-test-compilation",
+  "separate_typecheck_run": false,
+  "steps": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "elapsed_seconds": 0.164,
+      "log_sha256": "02d3c179c544c718824f5fdd2fe5b63ae5748c84a10a6bda04d5c8ec873687a2",
+      "test_results": [],
+      "compiler_errors": [],
+      "failure_locations": []
+    },
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "elapsed_seconds": 1901.612,
+      "log_sha256": "e931477e8b06d7bd3f31ce614d35a732bb4fc41c4ecf855c426db4bfbca0bde8",
+      "test_results": [],
+      "compiler_errors": [],
+      "failure_locations": []
+    }
+  ],
+  "cases": [
+    {
+      "name": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.715,
+      "log_sha256": "e992fcdd73391ca853eb69b12db5d6e278a9b4ee7febd4f6795d2dc6a207c7fc",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.66s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.816,
+      "log_sha256": "e785d54476d6c97a586ec9de4e66b5a38b506d0a45a0863e434028b69e1057da",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.77s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+      "exit_code": 0,
+      "elapsed_seconds": 0.716,
+      "log_sha256": "09982fe83b4be9238b4910c66f9f8657b3f3c8e2b6fcab415aac7472cabad26f",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.68s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+      "exit_code": 0,
+      "elapsed_seconds": 0.415,
+      "log_sha256": "8d6dc050a32df82531c7aca25d26d6efa21d6aafc99fa4ab44b8643f4e356fbb",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.37s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+      "exit_code": 0,
+      "elapsed_seconds": 0.315,
+      "log_sha256": "b8242c9d0b64010851491748d398768299a4b531cae0ed9835e8b1ce99deef71",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.30s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+      "exit_code": 0,
+      "elapsed_seconds": 0.365,
+      "log_sha256": "a083e3b6fb0d6f66a47aefce6dfc3b1ea523feeb0b076968e86fc06af83bee33",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.34s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.565,
+      "log_sha256": "fe3d41cd481707ab2de99ac4b291bd1a42d6682c5a50f18662543b553dfd02a5",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.56s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.565,
+      "log_sha256": "81ca13428ffb2f76e373396f029e1d50604133dcbb1088d5e60bb604311b374e",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.56s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::tls_origin_mount_refusals_do_not_consume_canonical_slots",
+      "exit_code": 0,
+      "elapsed_seconds": 0.515,
+      "log_sha256": "f21de27a52ee2a8d766942a4557d39bf04a6252a180b754fc14983219a6bbe88",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.47s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots",
+      "exit_code": 0,
+      "elapsed_seconds": 0.816,
+      "log_sha256": "04976e2c1e4d03c255a3d90398ad89fe9124e34900b9bc39850560f182099875",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.80s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::dropping_host_closes_live_wss_and_releases_tcp_listener",
+      "exit_code": 0,
+      "elapsed_seconds": 0.415,
+      "log_sha256": "8bd9856578b86eeb150bec1cdf9aece852c429d3d0aa9df67d6f8f4db3c91023",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.40s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::cancelling_host_shutdown_keeps_wss_and_pending_tls_owned",
+      "exit_code": 0,
+      "elapsed_seconds": 0.465,
+      "log_sha256": "80a37a54eaba792024576f0e442f7c730d07fe95d94eb66d6e6bb7b513259a56",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.43s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::signing_expiry_retires_wss_and_linked_native_and_http3",
+      "exit_code": 0,
+      "elapsed_seconds": 3.472,
+      "log_sha256": "fd7b37946509a2193c8a4bac93aaa1e116134f7960f65d83a8469040d645f6ae",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 3.42s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_eddsa",
+      "exit_code": 0,
+      "elapsed_seconds": 0.715,
+      "log_sha256": "77ad30f004097ed602fb2934b5bee8138ff03607ee7bbe121684f080f9de15bd",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.69s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    },
+    {
+      "name": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_es256",
+      "exit_code": 0,
+      "elapsed_seconds": 0.715,
+      "log_sha256": "3e4fb87bcf5a9f8d1476f840ec8be1f963a33388a8f9c373e9df7ac799e43c6f",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.69s"
+      ],
+      "compiler_errors": [],
+      "failure_locations": [],
+      "status": "passed"
+    }
+  ],
+  "runtime_case_seconds": 11.585,
+  "previous_negative_retained": "docs/evidence/gate-6/transport-control-negative-505.json",
+  "scope": "All15 exact isolated native QUIC/independent Rust HTTP3/TLS WSS and public Node browser-SDK control functions pass for their selected EdDSA/ES256 cases on actual Ubuntu24x86_64/Node22. No actual Chrome/Firefox process, native64KiB data payload, audio/video, packet-capture, replacement, Remote profile or complete transport-cell qualification. The corrected unrelated discovery listener uses an independent Service with the same Store; duplicate operational-owner conflict remains explicitly checked.",
+  "full_matrix_cells_qualified": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -1062,16 +1062,18 @@
   "full_cell_materializers_implemented": false,
   "publication_authorized": false,
   "current_control_candidate": {
-    "source_revision": "50571865fa628b63b41e6e91f425cd04142a118d",
-    "workflow_run_id": 41267483044,
-    "job_id": 124733201072,
-    "status": "completed-negative-14-of15-source-verified",
-    "url": "https://github.com/eisenzopf/connect/actions/runs/41267483044",
+    "source_revision": "e5bf5977e723de738c118b90c8cca63acc6f51e9",
+    "workflow_run_id": 41271725390,
+    "job_id": 124745696980,
+    "status": "independently-source-verified-positive-15-of15",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41271725390",
     "expected_functions": 15,
-    "full_matrix_cells_qualified": 0,
-    "verification_evidence": "docs/evidence/gate-6/transport-control-negative-505.json",
-    "passed_functions": 14,
-    "failed_functions": 1
+    "passed_functions": 15,
+    "failed_functions": 0,
+    "verification_evidence": "docs/evidence/gate-6/transport-control-verified.json",
+    "artifact_sha256": "b7b1c805a7b9d1f42c43d227b26754967add6498aad00d3dc365c96a887d80c9",
+    "report_sha256": "1f3d6b5057482afbd16e5d0862045a22bf91a9e4fcfdceb93054ce4a7e30ab7f",
+    "full_matrix_cells_qualified": 0
   },
   "protected_fixture_configuration": {
     "status": "source-verified-configuration-stage-pass",
@@ -1435,5 +1437,6 @@
       "component": "conversation",
       "signing_algorithm": "EdDSA"
     }
-  }
+  },
+  "previous_control_negative_evidence": "docs/evidence/gate-6/transport-control-negative-505.json"
 }
