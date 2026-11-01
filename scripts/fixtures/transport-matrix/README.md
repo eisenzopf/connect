@@ -288,3 +288,39 @@ This is a native reliable-data workload and local-topology check. It does not
 qualify simultaneous audio/video, decoded duplex, live media upgrades, replacement
 media ownership, packet capture, browser or remote-profile behavior. Complete
 matrix cells remain unqualified until their full checks execute and verify.
+
+## Independently verify retained component evidence
+
+Use `scripts/verify-transport-component.py` after downloading a curated workflow
+artifact ZIP and obtaining its digest from GitHub. Supply the original full Git
+revision, selected component, native platform, signing cohort and network. The
+verifier reads JSON only; it never extracts or executes an artifact. For example,
+to audit the retained data refusal:
+
+```sh
+python3 scripts/verify-transport-component.py \
+  --artifact .local/gate-6/transport-matrix/data-abff.zip \
+  --artifact-sha256 477c69e3111aacd2423f22b52b1ea9a070cb853e75b1b6ab47ded7a7d11c6357 \
+  --revision abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2 \
+  --component data --target ubuntu24-x86_64 --signing EdDSA \
+  --network local --expect-result failed
+```
+
+The prepared source tree must match that candidate. `--prepared` selects it;
+`--archives` may point to the four pinned crate archives when they are retained
+separately. `--sdk-dist` selects the exact generated SDK runtime to compare.
+Every Git blob and mode, complete prepared-file inventory and pinned archive is
+checked independently. The verifier also checks report hashes, shared service
+contract, runtime platform/signing/network bindings, component outcomes and
+original owner observations. The complete control lane uses `--signing both`;
+partial control selections cannot stand in for its complete case list. Reports
+that lack runtime host or executable integrity observations cannot pass this
+audit; older historical evidence remains scoped to its recorded manual audit.
+
+Exit zero means the explicitly requested positive or negative evidence was
+verified. Read `component_passed` for the actual runtime result. The retained
+negative above remains a failure with zero submitted/completed/received payloads.
+The artifact contains reported binary hashes, not binary bytes; the verifier
+checks their report bindings without claiming an independent binary download.
+No component audit qualifies a complete transport cell or Gate 6 task. Missing
+media, browser, replacement and full workload evidence remains required.
