@@ -30,6 +30,10 @@ on:
         description: 'Component app on macOS only: sample the exact owned native server for 8 seconds'
         type: boolean
         default: false
+      app_clock_trace:
+        description: 'App component only: bounded original media HTTP/clock timing observations'
+        type: boolean
+        default: false
       source_revision:
         description: 'Installation lane only: exact source SHA for the current-schema baseline; blank selects this commit'
         type: string
@@ -123,6 +127,7 @@ jobs:
       reference_app: true
       app_cpu_profile: ${{ inputs.app_cpu_profile || false }}
       native_server_sample: ${{ inputs.native_server_sample || false }}
+      app_clock_trace: ${{ inputs.app_clock_trace || false }}
   reference-app:
     if: ${{ inputs.lane == 'reference-app' || inputs.lane == 'reference-app-macos' }}
     permissions:

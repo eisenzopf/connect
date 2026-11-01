@@ -10,11 +10,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { newSetupPlan, digest } from "../examples/parley-on-connect/app/setup.mjs";
 import { summarizeCpuProfile } from "./lib/app_cpu_summary.mjs";
 import { startNativeServerSample, finishNativeBeforeStop } from "./lib/native_server_sample.mjs";
+import { AppMediaClockTrace } from "./lib/app_media_clock_trace.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 const flags = process.argv.slice(4);
-assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server"].includes(flag)) && new Set(flags).size === flags.length);
+assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server", "--trace-media-clock"].includes(flag)) && new Set(flags).size === flags.length);
 const cpuProfile = flags.includes("--profile-app-cpu"), sampleNative = flags.includes("--sample-native-server");
+const clockTrace = flags.includes("--trace-media-clock") ? new AppMediaClockTrace() : null;
 if (sampleNative) assert.equal(process.platform, "darwin");
 assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(root, ".local") + "/") && base !== output);
 await mkdir(output, { recursive: false, mode: 0o700 });
@@ -50,6 +52,7 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     checker: sha(await readFile(fileURLToPath(import.meta.url))),
     cpu_summary: sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))),
     native_sampler: sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))),
+    clock_trace: sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))),
     installer: sha(await readFile(join(root, producer.installer))) };
 if (producer.kind === "verified-local-components") assert.equal(installation.installer_sha256, sourceInputs.installer);
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
@@ -62,6 +65,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, cpu_profile_requested: cpuProfile,
     native_server_sample_requested: sampleNative, task_complete: false, whole_gate_qualified: false,
+    media_clock_trace_requested: Boolean(clockTrace),
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
         "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
         " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
@@ -499,6 +503,7 @@ try {
         });
         const target = await captureContext.newPage(); mediaPages.push({ ...tone, page: target, context: captureContext });
         observeApi(target, tone.role + "-owned-media-browser");
+        clockTrace?.attach(target, tone.role + (video ? "-av" : "-audio"), origin);
         target.on("pageerror", error => errors.push(error.name));
         await target.goto(origin); await target.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
         if (tone.role === "organizer") {
@@ -852,6 +857,7 @@ try {
     await Promise.all(mediaBrowsers.map(owned => owned.close().catch(() => { report.synthetic_browser_cleanup_failed = true; report.passed = false; })));
     if (context) await context.close().catch(() => { report.browser_cleanup_failed = true; report.passed = false; });
     await deadline(Promise.allSettled([...apiReads]), 2000).catch(() => { report.api_diagnostics_incomplete = true; });
+    if (clockTrace) report.media_clock_trace = await clockTrace.finish();
     if (nativeSample) {
         try { report.native_server_sample = await nativeSample.finish(); }
         catch { report.native_server_sample = { observed: false, reason: "native-sample-result-unavailable" }; }
@@ -885,6 +891,7 @@ try {
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
         sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))) === sourceInputs.cpu_summary &&
         sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))) === sourceInputs.native_sampler &&
+        sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))) === sourceInputs.clock_trace &&
         sha(await readFile(join(root, producer.installer))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
     report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;
