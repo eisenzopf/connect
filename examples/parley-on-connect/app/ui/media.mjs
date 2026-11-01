@@ -12,7 +12,7 @@ export class BrowserAppMedia {
     #calls = new Set(); #loops = new Set(); #routes = new Map(); #sources = new Set();
     #context; #input; #worklet; #silent; #stream; #lease; #binding; #video; #videoCallback;
     #preview; #remote; #timer; #audioOrigin; #timeline = new MediaTimeline();
-    #phase = "idle"; #stoppedAt = null;
+    #phase = "idle"; #stoppedAt = null; #stopReason = null;
     #cname = "parley-" + crypto.randomUUID(); #onState;
     #counts = { capturedAudioFrames: 0, capturedVideoFrames: 0, encodedFrames: 0,
         sentRtp: 0, receivedRtp: 0, clockReportsSent: 0, clockReportsReceived: 0,
@@ -27,7 +27,7 @@ export class BrowserAppMedia {
     get binding() { return this.#binding ? { ...this.#binding } : null; }
     get closed() { return this.#stopped; }
     get diagnostics() {
-        return { ...this.#counts, phase: this.#phase, stoppedAt: this.#stoppedAt, activeTracks: this.#stream?.getTracks().filter(t => t.readyState === "live").length ?? 0,
+        return { ...this.#counts, phase: this.#phase, stoppedAt: this.#stoppedAt, stopReason: this.#stopReason, activeTracks: this.#stream?.getTracks().filter(t => t.readyState === "live").length ?? 0,
             activeContexts: this.#context && this.#context.state !== "closed" ? 1 : 0,
             queuedAudioSources: this.#sources.size,
             queuedSendFrames: [...this.#routes.values()].reduce((n, r) => n + r.queue.length, 0),
@@ -374,7 +374,7 @@ export class BrowserAppMedia {
     }
     stop(reason = "stopped") {
         if (this.#closing) return this.#closing;
-        this.#stoppedAt = this.#phase; this.#phase = "stopped";
+        this.#stoppedAt = this.#phase; this.#phase = "stopped"; this.#stopReason = reason;
         this.#stopped = true; this.#abort.abort(); clearInterval(this.#timer);
         if (this.#videoCallback !== undefined) this.#video?.cancelVideoFrameCallback(this.#videoCallback);
         this.#video?.pause(); if (this.#preview) this.#preview.srcObject = null;

@@ -40,7 +40,8 @@ function fixture() {
             return operation(reference);
         };
         const conversation = cid => ({
-            refresh: async () => { permitted(); service.conversationRefreshReads = (service.conversationRefreshReads ?? 0) + 1; return { id: cid, closed: false, participants: Object.entries(actors).map(([role, value]) =>
+            refresh: async () => { permitted(); service.conversationRefreshReads = (service.conversationRefreshReads ?? 0) + 1;
+                service.readEntered?.(); if (service.readBarrier) await service.readBarrier; return { id: cid, closed: false, participants: Object.entries(actors).map(([role, value]) =>
                 ({ id: "participant-" + role, identityId: value.identityId, active: true, membershipEpoch: service.membershipEpoch })) }; },
             send: (sdk, options) => mutate("message.send", { conversationId: cid }, sdk, options, { messageId: sdk.messageId }),
             sessions: {
@@ -422,4 +423,48 @@ test("video selection uses the current peer selector and unsubscribes only negot
     assert.equal(f.service.calls.length, 2);
     assert.throws(() => f.gateway.prepareIntent("owner", "changed-medium", { ...action, medium: "screen" }),
         { code: "unsupported-app-action" });
+});
+
+test("concurrent identical actor reads share only their active SDK work and never cache authorization or cross actors", async t => {
+    const f = await setup(); t.after(() => f.close());
+    const cid = "conversation-created";
+    const [one, duplicate, other] = await Promise.all([
+        f.gateway.view("owner", cid), f.gateway.view("owner", cid), f.gateway.view("organizer", cid),
+    ]);
+    assert.deepEqual(one, duplicate);
+    assert.equal(one.connections.length, 1); assert.equal(other.connections.length, 0);
+    assert.equal(f.service.conversationRefreshReads, 2);
+    assert.equal(f.service.topologyPages, 2);
+    await f.gateway.view("owner", cid);
+    assert.equal(f.service.conversationRefreshReads, 3); // Completed data is not retained.
+    f.service.allowed = false;
+    await assert.rejects(f.gateway.view("owner", cid), { kind: "authentication" });
+    await assert.rejects(f.gateway.view("organizer", cid), { kind: "authentication" });
+});
+
+test("read sharing fences late retired-owner results and shutdown joins the original read", async t => {
+    const f = await setup(); let release = () => {};
+    t.after(async () => { release(); await f.close(); });
+    const block = () => {
+        let entered;
+        const started = new Promise(resolve => { entered = resolve; });
+        f.service.readEntered = entered;
+        f.service.readBarrier = new Promise(resolve => { release = resolve; });
+        return started;
+    };
+    const cid = "conversation-created", entered = block();
+    const read = f.gateway.view("owner", cid);
+    const refused = assert.rejects(read, { code: "app-resync-required" });
+    await entered; await f.gateway.reconnect("owner");
+    release(); await refused;
+    f.service.readBarrier = null; f.service.readEntered = null;
+    assert.equal((await f.gateway.view("owner", cid)).conversation.id, cid);
+    const enteredAgain = block(), late = f.gateway.view("owner", cid);
+    const stopped = assert.rejects(late, { code: "app-resync-required" });
+    await enteredAgain;
+    let joined = false; const closing = f.gateway.close().then(() => { joined = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(joined, false);
+    release(); await stopped; await closing;
+    assert.equal(joined, true);
 });

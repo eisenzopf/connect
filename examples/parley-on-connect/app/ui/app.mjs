@@ -3,6 +3,7 @@ import { browserCaptureSupport } from "/sdk/browser.js";
 const $ = id => document.getElementById(id);
 let actor = "owner", epoch = 0, working = false, switching = false, pending = null, storageBlocked = false, selectedId = null;
 let historyCursor = null, nextHistory = null, nextConversations = null, current = null, contacts = [], timer;
+let networkNeedsReconnect = false;
 const requests = new Set(), previews = new Set(); let captureEpoch = 0, media = null;
 const label = { "conversation.create": "Create conversation", "message.send": "Send message", "session.invite": "Invite",
     "session.accept": "Accept invitation", "session.reject": "Decline invitation", "session.cancel": "Cancel invitation",
@@ -15,6 +16,7 @@ const explanations = {
     "resync-required": "The saved view is no longer current. Refresh the conversation.",
     "app-session-expired": "The local app restarted or your session expired. Reload this page.",
     "app-reconnecting": "Reconnecting. Wait for current access before recovering the original action.",
+    "app-needs-reconnect": "Reconnect to refresh current access and original outcomes.",
     "app-local-state": "Recovery state could not be saved. The action has not been sent.",
     "app-corrupt-local-state": "Saved recovery state is unreadable. Do not repeat the action.",
     "different-original-intent": "This saved action has different contents. Recover its original outcome.",
@@ -45,7 +47,7 @@ function button(text, action, mutation = false) {
 }
 function recoveryButton(text, action) {
     const value = button(text, action); value.dataset.recovery = "";
-    value.disabled = working || switching || navigator.onLine === false; return value;
+    value.disabled = working || switching || networkNeedsReconnect || navigator.onLine === false; return value;
 }
 const savedKey = () => "parley-original-action-" + actor;
 function readPending() {
@@ -62,11 +64,11 @@ function savePending(value) {
     catch { storageBlocked = true; throw Object.assign(Error(), { code: "app-local-state" }); }
 }
 function controls() {
-    for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || switching || storageBlocked || Boolean(pending) ||
+    for (const value of document.querySelectorAll("[data-mutation]")) value.disabled = working || switching || networkNeedsReconnect || storageBlocked || Boolean(pending) ||
         navigator.onLine === false || (value.closest("#message-form,#invite-form") !== null && (!selectedId || !current || current.conversation.closed));
     $("stop-media").disabled = !media;
-    $("reconnect").disabled = working || switching; $("actor").disabled = working || switching;
-    for (const value of document.querySelectorAll("[data-recovery]")) value.disabled = working || switching || navigator.onLine === false;
+    $("reconnect").disabled = working || switching || navigator.onLine === false; $("actor").disabled = working || switching || networkNeedsReconnect;
+    for (const value of document.querySelectorAll("[data-recovery]")) value.disabled = working || switching || networkNeedsReconnect || navigator.onLine === false;
 }
 function clearView() {
     void stopMedia(); stopPreview(); current = null;
@@ -76,6 +78,7 @@ function clearView() {
 }
 function retire() { epoch++; for (const request of requests) request.abort(); requests.clear(); }
 async function api(path, input = {}) {
+    if (networkNeedsReconnect && path !== "reconnect") throw Object.assign(Error(), { code: "app-needs-reconnect" });
     const captured = epoch, controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
     requests.add(controller);
     try {
@@ -278,7 +281,7 @@ async function stopMedia() {
     }
 }
 async function startMedia(binding, video) {
-    if (working || switching || pending || storageBlocked) return;
+    if (working || switching || networkNeedsReconnect || pending || storageBlocked) return;
     working = true; controls(); stopPreview();
     try {
         await stopMedia();
@@ -341,8 +344,8 @@ $("invite-form").addEventListener("submit", event => { event.preventDefault(); m
 $("reconnect").addEventListener("click", async () => {
     if (working || switching) return; working = true; retire(); await stopMedia(); stopPreview(); controls();
     notice("Reconnecting. Reading current access and original outcomes…");
-    try { await api("reconnect"); await state(); await view(); }
-    catch (error) { clearView(); problem(error); } finally { working = false; controls(); }
+    try { await api("reconnect"); networkNeedsReconnect = false; await state(); await view(); }
+    catch (error) { networkNeedsReconnect = true; clearView(); problem(error); } finally { working = false; controls(); }
 });
 $("refresh").addEventListener("click", async () => { historyCursor = null; try { await state(); await view(); } catch (error) { problem(error); } });
 $("more-conversations").addEventListener("click", () => state(true).catch(problem));
@@ -350,12 +353,12 @@ $("more-messages").addEventListener("click", () => { historyCursor = nextHistory
 $("microphone").addEventListener("click", () => preview("microphone")); $("camera").addEventListener("click", () => preview("camera"));
 $("stop-media").addEventListener("click", () => { void stopMedia().catch(problem); });
 $("stop-preview").addEventListener("click", () => { stopPreview(); $("permission").textContent = "Local preview stopped."; });
-window.addEventListener("offline", () => { retire(); void stopMedia(); stopPreview(); clearView(); renderPending(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
-window.addEventListener("online", () => notice("Network available. Reconnect to refresh current access and outcomes."));
+window.addEventListener("offline", () => { networkNeedsReconnect = true; retire(); void stopMedia(); stopPreview(); clearView(); renderPending(); notice("Offline. Saved actions remain available for original-ID recovery.", true); });
+window.addEventListener("online", () => { controls(); notice("Network available. Reconnect to refresh current access and outcomes."); });
 window.addEventListener("pagehide", () => { clearTimeout(timer); retire(); void stopMedia(); stopPreview(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { void stopMedia(); stopPreview(); } });
 async function tick() {
-    if (!working && !switching && navigator.onLine !== false && document.visibilityState !== "hidden") try { await state(); await view(); } catch (error) { problem(error); }
+    if (!working && !switching && !networkNeedsReconnect && navigator.onLine !== false && document.visibilityState !== "hidden") try { await state(); await view(); } catch (error) { problem(error); }
     timer = setTimeout(tick, 5000);
 }
 readPending(); controls(); await tick();

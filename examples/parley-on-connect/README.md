@@ -31,7 +31,11 @@ native handles, and play the other source's identified tone. Explicit stop joins
 capture, rendering and packet work; original Connection end, application restart
 and every owned browser/server/helper join also pass.
 See [the installed audio evidence](../../docs/evidence/gate-6/reference-app-installed-browser-audio.json).
-Video and full failure/restart freshness qualification remain open.
+At source91bdfc90 both installed platforms also identify both remote camera
+markers at decoded/painted VP8 output, with video source clocks. The full runs
+still fail later control/recovery steps; this is component evidence only. See
+[the installed AV component evidence](../../docs/evidence/gate-6/reference-app-installed-browser-av.json).
+Full failure/restart freshness qualification remains open.
 
 The app keeps its private setup manifest, administrator configuration and
 credentials on the backend. Application recovery state remains separate from
@@ -89,7 +93,16 @@ a controlled late device result after cancellation, real microphone permission
 revocation, offline retirement and participant switching. The delayed result
 uses a real owned synthetic browser stream; it models promise delivery rather
 than claiming an OS permission dialog was exercised. These new lifecycle checks
-and the current sender-clock calibration still require installed verification.
+require installed verification with actual ended-event/stop-cause checks. The
+old fake permission-UI bypass is removed; explicit browser permission grants
+remain limited to owned synthetic devices.
+
+After going offline, capture and mutations stay stopped and passive polling
+stays suspended until an explicit Reconnect refreshes current access. Original
+Connection end happens before replacing the owning SDK client, and recovery
+observes the same saved operation ID. Identical reads already in flight share
+work only within the same actor, selector and SDK owner. No snapshot or
+authorization result remains cached after that work finishes.
 
 Ctrl-C joins the app, its SDK helpers and its owned server. Repeating the same
 command preserves the original ports, identities, issuance IDs, absolute expiry

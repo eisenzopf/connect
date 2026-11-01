@@ -60,7 +60,7 @@ export function publicError(error) {
 /** App-owned routing/presentation. Journal hints never grant membership or
  * capture authority; every read and action goes through the current SDK actor. */
 export class AppGateway {
-    #media; #journal; #actors; #factory; #onError; #clients = new Map(); #flights = new Map(); #reconnects = new Map(); #closed = false; #closing;
+    #media; #journal; #actors; #factory; #onError; #clients = new Map(); #reads = new Map(); #flights = new Map(); #reconnects = new Map(); #closed = false; #closing;
     constructor({ journal, actors, createClient, createRtpPacket, onError = () => {} }) {
         if (!journal || typeof createClient !== "function" || !actors || Object.keys(actors).length > 5) fail("invalid-app-request");
         for (const [role, actor] of Object.entries(actors))
@@ -84,6 +84,27 @@ export class AppGateway {
         return this.#clients.get(role);
     }
     #options() { return { timeoutMs: 5000, signal: AbortSignal.timeout(5000) }; }
+    #readShared(role, kind, input, read) {
+        const client = this.#client(role), key = JSON.stringify([role, kind, input]);
+        const current = this.#reads.get(key);
+        if (current?.client === client) return current.work;
+        if (this.#reads.size >= 32) fail("app-request-capacity");
+        const slot = { client };
+        const currentOwner = () => !this.#closed && !this.#reconnects.has(role) && this.#clients.get(role) === client;
+        // Share only an identical read already in flight on this exact actor
+        // and SDK owner. There is no retained snapshot or authorization cache.
+        slot.work = Promise.resolve().then(() => {
+            if (!currentOwner()) fail("app-resync-required");
+            return read(client);
+        }).then(value => {
+            if (!currentOwner()) fail("app-resync-required");
+            return value;
+        }, error => {
+            if (!currentOwner()) fail("app-resync-required");
+            throw error;
+        }).finally(() => { if (this.#reads.get(key) === slot) this.#reads.delete(key); });
+        this.#reads.set(key, slot); return slot.work;
+    }
     contacts(role) {
         this.#actor(role);
         return Object.entries(this.#actors).filter(([name]) => name !== role)
@@ -96,8 +117,10 @@ export class AppGateway {
         return this.progress(role).find(value => value.operationId === saved.operationId);
     }
     async capabilities(role) {
-        const value = await this.#client(role).capabilities.refresh(this.#options());
-        return { transport: value.selectedTransport, features: [...value.features] };
+        return this.#readShared(role, "capabilities", null, async client => {
+            const value = await client.capabilities.refresh(this.#options());
+            return { transport: value.selectedTransport, features: [...value.features] };
+        });
     }
     async #raw(role, type, payload, conversationId, options = this.#options(), client = this.#client(role)) {
         const envelope = { v: 2, id: "app_read_" + randomUUID(), ts: new Date().toISOString(), type, payload,
@@ -106,13 +129,15 @@ export class AppGateway {
     }
     async conversations(role, cursor) {
         if (cursor !== undefined && (typeof cursor !== "string" || cursor.length > 2048)) fail("invalid-app-request");
-        const frames = await this.#raw(role, "conversation.list", { limit: 20, ...(cursor ? { cursor } : {}) });
-        const ack = frames.find(frame => frame.type === "ack"), page = ack?.payload?.details?.page;
-        if (!page || !Array.isArray(page.conversations) || page.conversations.length > 20) fail("app-resync-required");
-        return { conversations: page.conversations.map(value => {
-            if (!id(value.id) || typeof value.closed !== "boolean") fail("app-resync-required");
-            return { id: value.id, closed: value.closed };
-        }), cursor: page.next_cursor ?? null };
+        return this.#readShared(role, "conversations", cursor ?? null, async client => {
+            const frames = await this.#raw(role, "conversation.list", { limit: 20, ...(cursor ? { cursor } : {}) }, undefined, this.#options(), client);
+            const ack = frames.find(frame => frame.type === "ack"), page = ack?.payload?.details?.page;
+            if (!page || !Array.isArray(page.conversations) || page.conversations.length > 20) fail("app-resync-required");
+            return { conversations: page.conversations.map(value => {
+                if (!id(value.id) || typeof value.closed !== "boolean") fail("app-resync-required");
+                return { id: value.id, closed: value.closed };
+            }), cursor: page.next_cursor ?? null };
+        });
     }
     async #topology(role, cid, options, client) {
         let page, cursor, revision, watermark; const items = [];
@@ -138,39 +163,41 @@ export class AppGateway {
     async view(role, cid, historyCursor) {
         if (historyCursor !== undefined && historyCursor !== null &&
             (typeof historyCursor !== "string" || historyCursor.length > 2048)) fail("invalid-app-request");
-        const client = this.#client(role), options = this.#options();
-        const conversation = await client.conversations.byId(cid).refresh(options);
-        const items = await this.#topology(role, cid, options);
-        const own = conversation.participants.find(p => p.identityId === this.#actor(role).identityId && p.active);
-        if (!own) fail("app-resync-required");
-        const history = await this.#raw(role, "message.history", { limit: 50, include_attachments: false,
-            ...(historyCursor ? { cursor: historyCursor } : {}) }, cid, options);
-        const label = identity => Object.values(this.#actors).find(actor => actor.identityId === identity)?.label ?? "Participant";
-        const participants = conversation.participants.filter(p => p.active).map(p =>
-            ({ id: p.id, label: label(p.identityId), role: Object.entries(this.#actors).find(([, a]) => a.identityId === p.identityId)?.[0] ?? null }));
-        const messages = history.filter(frame => frame.type === "message.send").map(frame => {
-            const message = frame.payload;
-            const text = message.content_type === "text/plain" ? (message.body_encoding === "base64" ?
-                new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(message.body, "base64")) : message.body) : "[Attachment or non-text message]";
-            return { id: message.msg_id, from: participants.find(p => p.id === message.from)?.label ?? "Former participant", text };
+        return this.#readShared(role, "view", [cid, historyCursor ?? null], async client => {
+            const options = this.#options();
+            const conversation = await client.conversations.byId(cid).refresh(options);
+            const items = await this.#topology(role, cid, options, client);
+            const own = conversation.participants.find(p => p.identityId === this.#actor(role).identityId && p.active);
+            if (!own) fail("app-resync-required");
+            const history = await this.#raw(role, "message.history", { limit: 50, include_attachments: false,
+                ...(historyCursor ? { cursor: historyCursor } : {}) }, cid, options, client);
+            const label = identity => Object.values(this.#actors).find(actor => actor.identityId === identity)?.label ?? "Participant";
+            const participants = conversation.participants.filter(p => p.active).map(p =>
+                ({ id: p.id, label: label(p.identityId), role: Object.entries(this.#actors).find(([, a]) => a.identityId === p.identityId)?.[0] ?? null }));
+            const messages = history.filter(frame => frame.type === "message.send").map(frame => {
+                const message = frame.payload;
+                const text = message.content_type === "text/plain" ? (message.body_encoding === "base64" ?
+                    new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(message.body, "base64")) : message.body) : "[Attachment or non-text message]";
+                return { id: message.msg_id, from: participants.find(p => p.id === message.from)?.label ?? "Former participant", text };
+            });
+            const sessions = items.filter(item => item.kind === "session").map(item => item.data);
+            const appearances = items.filter(item => item.kind === "session_participant" &&
+                item.data.participant_id === own.id && item.data.membership_epoch === own.membershipEpoch).map(item => item.data);
+            return { conversation: { id: cid, closed: conversation.closed }, participants, messages,
+                historyCursor: history.find(frame => frame.type === "ack")?.payload?.next_cursor ?? null,
+                sessions: sessions.map(session => ({ id: session.id, state: session.state, media: session.media,
+                    appearance: appearances.find(p => p.session_id === session.id)?.state ?? "unavailable" })),
+                connections: items.filter(item => item.kind === "connection" && item.data.participant_id === own.id)
+                    .map(item => ({ id: item.data.connection_id, sessionId: item.data.session_id, state: item.data.state,
+                        media: [...new Set(items.filter(v => v.kind === "stream" && v.data.connection_id === item.data.connection_id).map(v => v.data.medium))],
+                        peers: participants.filter(peer => peer.id !== own.id && peer.role && items.some(v =>
+                            v.kind === "session_participant" && v.data.session_id === item.data.session_id &&
+                            v.data.participant_id === peer.id && v.data.state === "present" && v.data.membership_epoch ===
+                                conversation.participants.find(p => p.id === peer.id)?.membershipEpoch) && items.some(v =>
+                            v.kind === "connection" && v.data.session_id === item.data.session_id && v.data.participant_id === peer.id &&
+                            ["ready", "active"].includes(v.data.state))).map(peer => ({ role: peer.role, label: peer.label })) })),
+                sampledAt: Date.now() };
         });
-        const sessions = items.filter(item => item.kind === "session").map(item => item.data);
-        const appearances = items.filter(item => item.kind === "session_participant" &&
-            item.data.participant_id === own.id && item.data.membership_epoch === own.membershipEpoch).map(item => item.data);
-        return { conversation: { id: cid, closed: conversation.closed }, participants, messages,
-            historyCursor: history.find(frame => frame.type === "ack")?.payload?.next_cursor ?? null,
-            sessions: sessions.map(session => ({ id: session.id, state: session.state, media: session.media,
-                appearance: appearances.find(p => p.session_id === session.id)?.state ?? "unavailable" })),
-            connections: items.filter(item => item.kind === "connection" && item.data.participant_id === own.id)
-                .map(item => ({ id: item.data.connection_id, sessionId: item.data.session_id, state: item.data.state,
-                    media: [...new Set(items.filter(v => v.kind === "stream" && v.data.connection_id === item.data.connection_id).map(v => v.data.medium))],
-                    peers: participants.filter(peer => peer.id !== own.id && peer.role && items.some(v =>
-                        v.kind === "session_participant" && v.data.session_id === item.data.session_id &&
-                        v.data.participant_id === peer.id && v.data.state === "present" && v.data.membership_epoch ===
-                            conversation.participants.find(p => p.id === peer.id)?.membershipEpoch) && items.some(v =>
-                        v.kind === "connection" && v.data.session_id === item.data.session_id && v.data.participant_id === peer.id &&
-                        ["ready", "active"].includes(v.data.state))).map(peer => ({ role: peer.role, label: peer.label })) })),
-            sampledAt: Date.now() };
     }
     async #openMedia(role, binding, options) {
         const client = this.#client(role);
@@ -458,7 +485,7 @@ export class AppGateway {
     close() {
         if (this.#closing) return this.#closing;
         this.#closed = true;
-        const flights = [...this.#flights.values()].map(value => value.work).concat([...this.#reconnects.values()]);
+        const flights = [...this.#flights.values()].map(value => value.work).concat([...this.#reconnects.values()], [...this.#reads.values()].map(value => value.work));
         this.#closing = (async () => {
             await this.#media.close();
             const settled = await Promise.allSettled([...this.#clients.values()].map(client => client.close({ timeoutMs: 5000 })));

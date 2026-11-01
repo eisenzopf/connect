@@ -150,18 +150,19 @@ try {
     await context.grantPermissions([], { origin });
     const errors = []; page.on("pageerror", error => errors.push(error.name));
     report.api_observations = [];
-    page.on("response", response => {
+    const observeApi = (target, source) => target.on("response", response => {
         const path = new URL(response.url()).pathname;
         if (!/^\/api\/(?:state|view|prepare|lookup|submit|recover|reconnect|actor)$/.test(path)) return;
         const reading = (async () => {
             const value = await response.json();
-            report.api_observations.push({ path, status: response.status(), error: value.error?.code ?? null,
+            report.api_observations.push({ source, path, status: response.status(), error: value.error?.code ?? null,
                 command: value.operation?.command ?? null, submission: value.operation?.submission ?? null,
                 state: value.operation?.state ?? null, result_keys: value.result ? Object.keys(value.result).sort() : [] });
             if (report.api_observations.length > 64) report.api_observations.shift();
         })().catch(() => {}).finally(() => apiReads.delete(reading));
         apiReads.add(reading);
     });
+    observeApi(page, "main");
     await page.goto(origin); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     assert.equal(await page.evaluate(() => document.cookie), "");
     assert.match(await page.locator("#media-capability").textContent(), /QUIC/); check("actual-installed-native-SDK-control-connected");
@@ -342,7 +343,7 @@ try {
         const owned = await chromium.launch({ headless: true,
             ...(process.env.CONNECT_GATE6_CHROME ? { executablePath: process.env.CONNECT_GATE6_CHROME } : {}),
             args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions",
-                "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath,
+                "--use-fake-device-for-media-stream", "--use-file-for-fake-audio-capture=" + audioPath,
                 ...(cameraPath ? ["--use-file-for-fake-video-capture=" + cameraPath] : [])] });
         mediaBrowsers.push(owned);
         assert.equal(owned.version(), report.browser);
@@ -358,7 +359,8 @@ try {
             Object.defineProperty(window, "__parley_device_probe__", { value: devices });
             const getUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
             navigator.mediaDevices.getUserMedia = async constraints => {
-                const stream = await getUserMedia(constraints), entry = { tracks: stream.getTracks(), pending: false };
+                const stream = await getUserMedia(constraints), entry = { tracks: stream.getTracks(), pending: false, endedEvents: 0 };
+                for (const track of entry.tracks) track.addEventListener("ended", () => { entry.endedEvents++; }, { once: true });
                 devices.captures.push(entry);
                 if (devices.hold) {
                     entry.pending = true;
@@ -393,6 +395,8 @@ try {
             };
         });
         const target = await captureContext.newPage(); mediaPages.push({ ...tone, page: target, context: captureContext });
+        observeApi(target, tone.role + "-owned-media-browser");
+        target.on("pageerror", error => errors.push(error.name));
         await target.goto(origin); await target.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
         if (tone.role === "organizer") {
             await target.locator("#actor input:checked").focus(); await target.keyboard.press("ArrowUp");
@@ -413,6 +417,7 @@ try {
                 metrics.queuedVideoFrames === 0 && metrics.pendingRequests === 0 &&
                 devices.captures.every(c => c.tracks.every(t => t.readyState === "ended")))
                 return { metrics, actual_tracks: devices.captures.flatMap(c => c.tracks).length,
+                    last_capture_ended_events: devices.captures.at(-1)?.endedEvents ?? 0,
                     ended_tracks: devices.captures.flatMap(c => c.tracks).filter(t => t.readyState === "ended").length };
             return false;
         });
@@ -568,16 +573,10 @@ try {
     await lifecycle.context.grantPermissions(["camera"], { origin });
     await target.waitForFunction(async () => (await navigator.permissions.query({ name: "microphone" })).state === "denied");
     report.media_lifecycle.permission_revocation = await stoppedMedia(target);
+    assert.equal(report.media_lifecycle.permission_revocation.metrics.stopReason, "app-media-device-ended");
+    assert.ok(report.media_lifecycle.permission_revocation.last_capture_ended_events >= 1);
     check("actual-microphone-permission-revocation-ends-tracks-and-joins-media");
     await lifecycle.context.grantPermissions(["microphone"], { origin });
-
-    stage = "active-capture-offline-retirement";
-    await startMicrophone(target);
-    await lifecycle.context.setOffline(true);
-    report.media_lifecycle.offline = await stoppedMedia(target);
-    check("actual-browser-offline-transition-stops-capture-render-and-packet-work");
-    await lifecycle.context.setOffline(false);
-    await target.waitForFunction(() => navigator.onLine && document.querySelector("#notice").textContent.startsWith("Connected"));
 
     stage = "active-capture-participant-switch-retirement";
     await startMicrophone(target);
@@ -585,11 +584,44 @@ try {
     await target.waitForFunction(() => document.querySelector("#actor input:checked").value === "organizer" && !document.querySelector("#actor").disabled);
     report.media_lifecycle.participant_switch = await stoppedMedia(target);
     check("keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work");
+    await target.getByRole("button", { name: "Conversation 1", exact: true }).focus(); await target.keyboard.press("Enter");
+    stage = "active-capture-offline-retirement";
+    await startMicrophone(target);
+    await lifecycle.context.setOffline(true);
+    report.media_lifecycle.offline = await stoppedMedia(target);
+    check("actual-browser-offline-transition-stops-capture-render-and-packet-work");
+    await lifecycle.context.setOffline(false);
+    await target.waitForFunction(() => navigator.onLine && document.querySelector("#notice").textContent.startsWith("Network available") && document.querySelector("#actor").disabled && !document.querySelector("#reconnect").disabled);
+
+    const ownerAvEnd = await activate("End connection", "End connection");
+    assert.deepEqual(ownerAvEnd.result, ownerVideo);
+    await perspective("organizer", "ArrowUp");
+    const organizerAvEnd = await activate("End connection", "End connection");
+    assert.deepEqual(organizerAvEnd.result, organizerVideo);
+    // Reconnect replaces the SDK owner, so first end both original native
+    // Connections explicitly. Then observe the original completed outcome.
+    stage = "explicit-offline-reconnect-original-outcome";
+    await target.getByRole("button", { name: "Reconnect", exact: true }).focus(); await target.keyboard.press("Enter");
+    await target.waitForFunction(id => {
+        const metrics = JSON.parse(document.querySelector("#media-status").dataset.metrics ?? "null");
+        const original = JSON.parse(document.querySelector("#operations").dataset.values ?? "[]").find(v => v.operationId === id);
+        return document.querySelector("#notice").textContent.startsWith("Connected") &&
+            !document.querySelector("#actor").disabled && metrics?.stopped && original?.state === "completed";
+    }, organizerAvEnd.operation.operationId);
+    const recovered = await target.evaluate(async operationId => {
+        const response = await fetch("/api/recover", { method: "POST", credentials: "same-origin", redirect: "error",
+            cache: "no-store", headers: { "Content-Type": "application/json", "X-Parley-Request": "1" },
+            body: JSON.stringify({ operationId }), signal: AbortSignal.timeout(8000) });
+        return { status: response.status, value: await response.json() };
+    }, organizerAvEnd.operation.operationId);
+    assert.equal(recovered.status, 200); assert.equal(Boolean(recovered.value.error), false);
+    assert.equal(recovered.value.operation.operationId, organizerAvEnd.operation.operationId);
+    assert.equal(recovered.value.operation.state, "completed"); assert.deepEqual(recovered.value.result, organizerVideo);
+    report.media_lifecycle.offline_original_recovery = { original_operation_preserved: true, current_access_observed: true,
+        ...await stoppedMedia(target) };
+    check("keyboard-explicit-offline-reconnect-observes-original-av-end-without-resuming-capture");
     await Promise.all(mediaBrowsers.map(owned => owned.close()));
     assert.ok(mediaBrowsers.every(owned => !owned.isConnected())); mediaBrowsers.length = 0;
-    assert.deepEqual((await activate("End connection", "End connection")).result, ownerVideo);
-    await perspective("organizer", "ArrowUp");
-    assert.deepEqual((await activate("End connection", "End connection")).result, organizerVideo);
     report.original_native_av_connection_end_receipts_verified = 2;
     check("both-original-av-connections-and-additional-owned-browsers-join");
     report.negotiated_capture_playback_verified = false; // Full lifecycle/failure/restart freshness remains unqualified.
