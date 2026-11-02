@@ -20,5 +20,36 @@
   "actual_cargo_dependency_inventory_sha256": "4eada1d9a2fe0edb0add265eda4d34c46e78cc40c09e67c667bed78b52831f1b",
   "public_api": "CanonicalClient.request_value and start_signaling_reader; no new client API",
   "whole_programme_qualification": false,
-  "task": "G6-058"
+  "task": "G6-058",
+  "complete_peer_candidate": {
+    "format": "connect/final-physical-owner-peer-preview/1",
+    "tests_passed": 29,
+    "failed": 0,
+    "ignored": 0,
+    "includes_original_nine_end_custody_cases": true,
+    "complete_independent_consumer_compiled": true,
+    "applied": false,
+    "actual_public_client_end_run": false,
+    "full_programme_qualified": false,
+    "patch_apply_check_passed": true,
+    "patch_sha256": "76eff67d91c279aa5fb07daef39bb647431a7cd636d02c73db1b0e6a52ff811a",
+    "source_sha256": {
+      "examples/rust-sdk-journey/src/replacement_peer.rs": "03b39d84c5dff0b83d1db88348594b36529b59c39ba02b649b630b3840360633",
+      "examples/rust-sdk-journey/src/replacement_peer/terminal.rs": "3ff7d44972387ef1479c0f779217f8a651bf6fa29c41cc7a790ac51b1c739be0",
+      "examples/rust-sdk-journey/src/replacement_peer/terminal/end.rs": "310f006f5314929f4730b90f9c9ef676c1dff8fd01ea26e5c32055f958537ffc",
+      "examples/rust-sdk-journey/src/replacement_peer/terminal/io.rs": "023203b02cc00556cc079826d97aec6afcc4ab4c2f2e52b9c44b6926892f01c0"
+    },
+    "original_source_sha256": {
+      "examples/rust-sdk-journey/src/replacement_peer.rs": "18aa8633c449c7f0878a754abe1dc4ea26f80ccd2769b74de36e855d161963c0",
+      "examples/rust-sdk-journey/src/replacement_peer/terminal.rs": null,
+      "examples/rust-sdk-journey/src/replacement_peer/terminal/end.rs": null,
+      "examples/rust-sdk-journey/src/replacement_peer/terminal/io.rs": null
+    },
+    "unit_binary_sha256": "3a96bb73b76d96b88d516dc1319fc97782539eb062707c413a7a52baa4681d26",
+    "unit_log_sha256": "90194628b20a649b6ab727c80889fbe104e482cdee4950b8ae0a53a899a61749",
+    "scope": "Complete independent public Rust consumer candidate with a final-owner end operation after the original62second media loop, under its original5second teardown cutoff. Metadata compile and29unit cases only. No tracked peer source changed and no actual final end command executed.",
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false
+  }
 }
