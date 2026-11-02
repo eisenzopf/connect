@@ -743,6 +743,244 @@
       "Decoded receive-marker alignment passes all six routes with55\u201367equal-ordinal pairs and original80msmedian/120msp95 limits. This does not measure live decoder completion or physical device presentation.",
       "All six actual per-second video minima are26\u201329, above24; this does not qualify movement, impairments, browser/remote profiles or a complete transport cell.",
       "Single before/after observations do not establish a statistical performance benchmark. Inclusive stack counts are not CPU shares; NotReady counts include admission retries, not final frame drops."
-    ]
+    ],
+    "additional_sql_custody_diagnostic": {
+      "status": "Completed one fresh bounded8second diagnostic using existing SQL timing instrumentation and unchanged sealed4e00e890 runtime.",
+      "binary_sha256": "4e00e890c2b43000b49bc2a1b10ee0ace9ab6de7eee691524928b604e0dfcc43",
+      "sample_audit": {
+        "summary_recomputed_exactly": true,
+        "raw_sha256": "de680f3fbe7209e9f98e4b1e90331d563bfe68a5f29e6640831be54464a2e944",
+        "observer_joined": true,
+        "observer_forced": false,
+        "server_joined": true,
+        "server_forced": false,
+        "source_inputs_unchanged": true
+      },
+      "sample": {
+        "seconds_requested": 8,
+        "interval_ms": 10,
+        "elapsed_ms": 8192,
+        "server_cpu_delta_ms": 14060,
+        "raw_sample_sha256": "de680f3fbe7209e9f98e4b1e90331d563bfe68a5f29e6640831be54464a2e944"
+      },
+      "all_helpers_joined": true,
+      "source_and_script_guards_unchanged": true,
+      "expected_negative_stop": true,
+      "sql_custody": {
+        "format": "connect/private-media-slow-sql-custody/1",
+        "log_sha256": "440f1fe4007397a56c5ca3e61013a8b00a49e27ec233bb2e0bae5294962da858",
+        "log_bytes": 9704614,
+        "reported_threshold_us": 500,
+        "publication_trace_window_seconds": 8.367409,
+        "reported_slow_units": 1778,
+        "rows": [
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 347,
+            "count": 1570,
+            "minimum_us": 500,
+            "median_us": 3143.5,
+            "p95_us": 4792,
+            "maximum_us": 46903,
+            "summed_elapsed_us": 5077183
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 381,
+            "count": 145,
+            "minimum_us": 514,
+            "median_us": 3243,
+            "p95_us": 8824,
+            "maximum_us": 10323,
+            "summed_elapsed_us": 571318
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/flow_facts.rs",
+            "line": 62,
+            "count": 6,
+            "minimum_us": 2508,
+            "median_us": 9275.5,
+            "p95_us": 32736,
+            "maximum_us": 32736,
+            "summed_elapsed_us": 82437
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 775,
+            "count": 11,
+            "minimum_us": 527,
+            "median_us": 764,
+            "p95_us": 10181,
+            "maximum_us": 10181,
+            "summed_elapsed_us": 17596
+          },
+          {
+            "file": "crates/connect-store/src/session_reconnect.rs",
+            "line": 176,
+            "count": 13,
+            "minimum_us": 731,
+            "median_us": 913,
+            "p95_us": 1171,
+            "maximum_us": 1171,
+            "summed_elapsed_us": 12174
+          },
+          {
+            "file": "crates/connect-store/src/session_participant_lifecycle.rs",
+            "line": 341,
+            "count": 12,
+            "minimum_us": 516,
+            "median_us": 847.5,
+            "p95_us": 1823,
+            "maximum_us": 1823,
+            "summed_elapsed_us": 11106
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 777,
+            "count": 8,
+            "minimum_us": 504,
+            "median_us": 698.5,
+            "p95_us": 1075,
+            "maximum_us": 1075,
+            "summed_elapsed_us": 5562
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 184,
+            "count": 7,
+            "minimum_us": 523,
+            "median_us": 575,
+            "p95_us": 750,
+            "maximum_us": 750,
+            "summed_elapsed_us": 4241
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 762,
+            "count": 3,
+            "minimum_us": 511,
+            "median_us": 529,
+            "p95_us": 1119,
+            "maximum_us": 1119,
+            "summed_elapsed_us": 2159
+          },
+          {
+            "file": "crates/connect-store/src/conversation_control.rs",
+            "line": 541,
+            "count": 2,
+            "minimum_us": 517,
+            "median_us": 690.0,
+            "p95_us": 863,
+            "maximum_us": 863,
+            "summed_elapsed_us": 1380
+          },
+          {
+            "file": "crates/connect-store/src/session_lifecycle.rs",
+            "line": 214,
+            "count": 1,
+            "minimum_us": 552,
+            "median_us": 552,
+            "p95_us": 552,
+            "maximum_us": 552,
+            "summed_elapsed_us": 552
+          }
+        ],
+        "scope": "Existing actual SQL-custody diagnostics at or above500us, within first/last publication authority trace completions. Shorter units and partial boundaries are omitted. Durations include scheduling/descheduling; overlapping summed intervals are neither wall time nor CPU time, and do not establish a specific SQL statement or packet-loss cause.",
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "packet_trace": {
+        "log_sha256": "440f1fe4007397a56c5ca3e61013a8b00a49e27ec233bb2e0bae5294962da858",
+        "log_bytes": 9704614,
+        "policy": [
+          {
+            "publishing": "true",
+            "receiving": "false",
+            "owned_file_custody": "false",
+            "problem": "none",
+            "count": 19627,
+            "median_us": 202,
+            "p95_us": 796,
+            "maximum_us": 47861
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "true",
+            "problem": "none",
+            "count": 7349,
+            "median_us": 44,
+            "p95_us": 84,
+            "maximum_us": 17308
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "false",
+            "problem": "none",
+            "count": 3215,
+            "median_us": 136,
+            "p95_us": 370,
+            "maximum_us": 15609
+          },
+          {
+            "publishing": "true",
+            "receiving": "false",
+            "owned_file_custody": "false",
+            "problem": "authority-busy",
+            "count": 546,
+            "median_us": 10678.5,
+            "p95_us": 13577,
+            "maximum_us": 16216
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "false",
+            "problem": "authority-busy",
+            "count": 23,
+            "median_us": 11892,
+            "p95_us": 17732,
+            "maximum_us": 18264
+          }
+        ],
+        "guarded_media_refusals": [
+          {
+            "stage": "source-egress",
+            "problem": "NotReady",
+            "count": 899
+          },
+          {
+            "stage": "target-egress",
+            "problem": "NotReady",
+            "count": 180
+          },
+          {
+            "stage": "source-egress",
+            "problem": "Deadline",
+            "count": 4
+          }
+        ],
+        "queued_media_age": {
+          "mixer_queued": {
+            "count": 2121,
+            "median_us": 44976,
+            "p95_us": 69515,
+            "maximum_us": 180267
+          },
+          "entering_io": {
+            "count": 5203,
+            "median_us": 16867,
+            "p95_us": 71247,
+            "maximum_us": 199904
+          }
+        },
+        "limits": "Shared audio_path label includes video. Refusals count admission attempts; bounded retries may repeat one original packet. These are neither final frame-drop counts nor a decoded quality result.",
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "quality_pass_claim": false,
+      "specific_statement_or_packet_loss_cause_proven": false
+    }
   }
 }
