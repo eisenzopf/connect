@@ -1,0 +1,125 @@
+{
+  "format": "connect/gate-6/movement-preparation-refusals/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Two fresh isolated native four-participant/six-AV-route/two-Session scenes attempting20original device moves with separate control helpers, unchanged62second programme and current normal8c31runtime. Both stop on a recorded pre-media-IO video-control refusal; no complete programme or decoded movement quality claim.",
+  "runs": [
+    {
+      "scene": "movement-programme-joins-current",
+      "execution_passed": false,
+      "pipeline_sha256": "6725b74663828e6c853bc4ef77e7bdcf0be4d94ed8de746c74428a4db0d55248",
+      "probe_sha256": "d81d0e6018a9799a4b0c1b396b3f81a494dbe9070b20fcb9e46802a834b9b44a",
+      "movement_failure_sha256": "c0dfbb2c41585189fb0e2de0dc4c905978e5248c6960eadec5dd3c08ff2c9dab",
+      "runtime_binary_sha256": "8c31a4f1082f73d4130d52ca8b07884ae0162368418969010b438be62a683108",
+      "peer_binary_sha256": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99",
+      "shared_module_sha256": {
+        "scripts/lib/transport_av.mjs": "e4b9c45fc121a01daac82b6df100b849aded6e44935cd8f5cadcc55ed0b4eff7",
+        "scripts/lib/transport_programme_lifetime.mjs": "441ceb188d4b1ea6cb3cd9282e9ee68c17b88efac6966f754ace1fdae16e232b",
+        "scripts/lib/transport_media_owner.mjs": "6c06e5e0ef4ff11d7b373d9e89ccadf633421f72373b4c9ca3c9e0ba938f80fc",
+        "scripts/lib/transport_media_reader.mjs": "6cdfd1b16dd9e12f049721f982c71415d5fdef1f5b6be42c8302afae53ea3c01",
+        "scripts/lib/transport_movement_workload.mjs": "cdcaa0c49fbf0cd76547abba73e5397761d57b2701402bc7aed17bf959805244"
+      },
+      "source_and_module_guards_unchanged": true,
+      "original_packet_tasks_joined": true,
+      "original_packet_tasks_started": 24,
+      "elapsed_ms": 8201.904,
+      "movement_owners_completed": 1,
+      "movement_target_joins_failed": 0,
+      "all_sdk_helpers_joined": true,
+      "server_joined_without_force": true,
+      "journal_original_operations": [
+        {
+          "command": "connection.replace",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.replace",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.update",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "stream.subscribe",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.replace",
+          "state": "failed",
+          "problem_code": "native-target-stopped"
+        },
+        {
+          "command": "connection.update",
+          "state": "failed",
+          "problem_code": "forbidden"
+        }
+      ],
+      "video_quality_decoded": false
+    },
+    {
+      "scene": "movement-programme-control-diagnostic",
+      "execution_passed": false,
+      "pipeline_sha256": "84c6541a008fa85963dad20a1caedc699a99112dbf1744873b750950ed65b20f",
+      "probe_sha256": "ee7db08f5fbc59ea3c8546d7a08d2bc1c206c0df6653e4b0bf0b4465be1c5214",
+      "movement_failure_sha256": "6bd5724005238d66d27f1d774eacdc608e970b686e66e86b8ba133337fa7dfb5",
+      "runtime_binary_sha256": "8c31a4f1082f73d4130d52ca8b07884ae0162368418969010b438be62a683108",
+      "peer_binary_sha256": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99",
+      "shared_module_sha256": {
+        "scripts/lib/transport_av.mjs": "e4b9c45fc121a01daac82b6df100b849aded6e44935cd8f5cadcc55ed0b4eff7",
+        "scripts/lib/transport_programme_lifetime.mjs": "441ceb188d4b1ea6cb3cd9282e9ee68c17b88efac6966f754ace1fdae16e232b",
+        "scripts/lib/transport_media_owner.mjs": "6c06e5e0ef4ff11d7b373d9e89ccadf633421f72373b4c9ca3c9e0ba938f80fc",
+        "scripts/lib/transport_media_reader.mjs": "6cdfd1b16dd9e12f049721f982c71415d5fdef1f5b6be42c8302afae53ea3c01",
+        "scripts/lib/transport_movement_workload.mjs": "cdcaa0c49fbf0cd76547abba73e5397761d57b2701402bc7aed17bf959805244"
+      },
+      "source_and_module_guards_unchanged": true,
+      "original_packet_tasks_joined": true,
+      "original_packet_tasks_started": 24,
+      "elapsed_ms": 8225.825583,
+      "movement_owners_completed": 1,
+      "movement_target_joins_failed": 0,
+      "all_sdk_helpers_joined": true,
+      "server_joined_without_force": true,
+      "journal_original_operations": [
+        {
+          "command": "connection.replace",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.replace",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.update",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "stream.subscribe",
+          "state": "completed",
+          "problem_code": null
+        },
+        {
+          "command": "connection.update",
+          "state": "failed",
+          "problem_code": "forbidden"
+        }
+      ],
+      "video_quality_decoded": false
+    }
+  ],
+  "findings": [
+    "Both first replacement roots complete durably. One physical replacement reaches its video controls; the other original video-unmute operation is recorded failed/forbidden.",
+    "The diagnostic scene identifies invocation preparation before media IO as the refusal boundary. Transient metadata contention also appears and is already mapped to the existing bounded preflight retry; it does not establish the cause of the forbidden result.",
+    "All original packet tasks, SDK helpers, target workers and service process join. Original failed operations are not resubmitted.",
+    "A subsequent narrowly instrumented runtime is being built to distinguish scene-read, original-attempt, physical-source, lifetime and invocation-current checks. No authorization or quality limits changed."
+  ],
+  "transport_cells_qualified": 0
+}
