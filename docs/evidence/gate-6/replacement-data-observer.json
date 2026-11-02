@@ -33,11 +33,22 @@
     "waiting_workload_started": false
   },
   "corrected_verification": {
-    "stage": "running",
+    "stage": "component checks passed; production runtime building",
+    "source_revision": "088dd54e18a6922d897fe0fccba2d761b7ae4187",
+    "source_inputs_unchanged_after_commit": true,
+    "guarded_implementation_inputs": 3951,
+    "verification_input_manifest_sha256": "3113a4ec48c3db1cb29e73225733e16fb3875cea53420049eb7e98ba7f15dc0e",
     "writer_tests_passed": 10,
-    "service_tests": "pending",
-    "runtime": "pending",
-    "actual_movement_fixture": "waiting for the same original corrected build"
+    "service_tests_passed": 17,
+    "failed": 0,
+    "ignored": 0,
+    "new_pending_observer_cases": [
+      "Provisional observer refuses all dispositions before adoption.",
+      "Adopted observer preserves original operation IDs/dispositions and refuses foreign scope/target.",
+      "Observer rejects another scope or a second writer."
+    ],
+    "runtime": "in progress",
+    "actual_movement_fixture": "same original fresh waiter; not started until runtime build completes successfully"
   },
   "unresolved": [
     "Actual successful signed negotiation, precommit Data quarantine, postcommit reliable Data IO and twenty physical moves remain unqualified.",
