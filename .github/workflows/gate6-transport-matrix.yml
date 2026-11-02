@@ -129,6 +129,7 @@ jobs:
             scripts/tests/transport_live_upgrade.test.mjs \
             scripts/tests/transport_media_owner.test.mjs \
             scripts/tests/transport_media_reader.test.mjs \
+            scripts/tests/transport_capture_inspection.test.mjs \
             scripts/tests/transport_movement_workload.test.mjs \
             scripts/tests/transport_replacement_target.test.mjs \
             scripts/tests/transport_replacement_owner.test.mjs \

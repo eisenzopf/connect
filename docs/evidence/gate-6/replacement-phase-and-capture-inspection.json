@@ -1,0 +1,452 @@
+{
+  "format": "connect/replacement-phase-and-capture-inspection/1",
+  "build": {
+    "passed": true,
+    "elapsed_seconds": 920.9879537923262,
+    "source_inputs_unchanged": true,
+    "cli_sha256": "cea1230d2d6cca67f65e98bbe63767bfca3bc110f1882a2cb0e2cb2b16b56dac",
+    "peer_sha256": "acacad6082d2d70a7011e703949fd0ea242505e4b28c016680c409e17e838ff9",
+    "profile_overrides": {
+      "connect-service": 1,
+      "connect-server": 1,
+      "connect-mcp": 1
+    },
+    "scope": "Three root-package opt-level=1 diagnostic overrides; not normal release performance or media quality qualification."
+  },
+  "component_checks": {
+    "node": "22.16.0",
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "workflow_yaml_valid": true
+  },
+  "scenes": [
+    {
+      "scene": "movement-phase-correlated-diagnostic",
+      "passed": false,
+      "original_moves_completed": 2,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "stage": "physical-target"
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "source_guards_unchanged": true,
+      "phase_audit_sha256": "f04fe15a4436b15b9e01ce92ec6e73583df492d23752614388e9731729573813",
+      "originals": [
+        {
+          "source_slot": "0-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "0-1",
+          "root_state": "failed",
+          "captured_generation": null,
+          "phases": []
+        },
+        {
+          "source_slot": "4-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-1",
+          "root_state": "failed",
+          "captured_generation": null,
+          "phases": []
+        }
+      ]
+    },
+    {
+      "scene": "movement-phase-followup",
+      "passed": false,
+      "original_moves_completed": 1,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "observation": {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 1,
+          "stage": "physical-target-readiness"
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "source_guards_unchanged": true,
+      "phase_audit_sha256": "a863c34a9a5b9ff51c531ad5706922d60a5c0a55c2b6df6e4d572c93bc225c38",
+      "originals": [
+        {
+          "source_slot": "0-0",
+          "root_state": "unknown",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-1",
+          "root_state": "completed",
+          "captured_generation": 3,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "movement-post-commit-control-trace",
+      "passed": false,
+      "original_moves_completed": 4,
+      "failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 2,
+          "stage": "physical-target"
+        },
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 12,
+          "problem_code_unrecognized": true
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "source_guards_unchanged": true,
+      "phase_audit_sha256": "40f415ddf056254737941c84bb08d339066eef5dc76ec4897b5b56ca03c52fd4",
+      "originals": [
+        {
+          "source_slot": "0-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "0-1",
+          "root_state": "completed",
+          "captured_generation": 3,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "0-2",
+          "root_state": "failed",
+          "captured_generation": 4,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "unknown",
+              "observation_recorded": false
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-1",
+          "root_state": "completed",
+          "captured_generation": 3,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "movement-capture-worker",
+      "passed": false,
+      "original_moves_completed": 1,
+      "failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "refused",
+        "observation": {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 0,
+          "stage": "physical-target"
+        },
+        "protocol_problem_code": 503
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "source_guards_unchanged": true,
+      "phase_audit_sha256": "92a09c98830fc961b7299bd7b3ca3ca35172c3610de4d08c093fcb88cef1af8d",
+      "originals": [
+        {
+          "source_slot": "0-0",
+          "root_state": "completed",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        },
+        {
+          "source_slot": "4-0",
+          "root_state": "preparing",
+          "captured_generation": 2,
+          "phases": [
+            {
+              "phase": "activate",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "attach",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            },
+            {
+              "phase": "readiness",
+              "started": true,
+              "effect_state": "confirmed",
+              "observation_recorded": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "actual_joined_capture_workers": [
+    {
+      "source_slot": "0-0",
+      "owner_passed": true,
+      "capture_worker_joined": true,
+      "observation_sha256": "40eea2f593638b560d56ddbd0c1d757365ffbab41e7f2a4aaa3a1266f9d0645e",
+      "received_datagrams": 121
+    }
+  ],
+  "change": "Private physical captures are parsed and hashed in bounded, separately joined worker threads; only metadata and original-root boundary flags return to the media loop. Both physical finish and movement collection preserve their validation and byte-custody checks.",
+  "findings": [
+    "Both generation-three chains can reach confirmed attach, activation and actual duplex readiness. The earlier readiness stall is not a universal generation-three prohibition.",
+    "A subsequent generation-four activation returned Media(NotReady), recorded unknown without retry. A separate original commit returned Model(Conflict) and stayed unknown.",
+    "A completed generation-three root was followed by an original video-unmute operation recorded failed forbidden; its exact cause remains unresolved.",
+    "The changed capture-worker scene still fails: first movement failure preserves signed original status-read protocol 503. This establishes a concrete read-only SDK wait case for targeted regression coverage."
+  ],
+  "limits": [
+    "Four fresh isolated scenes remain negative. Their differing first failures do not establish one common cause.",
+    "No threshold, clock, operation ID, mutation replay, authorization or source bound was changed.",
+    "No full twenty-move success, independent whole-window decode, full transport cell, remote/provider/model execution or Gate 6 task completion is claimed."
+  ],
+  "task_complete": false,
+  "full_transport_cells_qualified": 0
+}

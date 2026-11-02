@@ -55,7 +55,7 @@ async function scenario(mode) {
         await writeFile(join(options.directory, "target-observation.json"), JSON.stringify({
             program_start_unix_us: workload.programStartUnixUs,
             received: [{ original_root_completed_observed: false }, { original_root_completed_observed: true }],
-        }));
+        }), { mode: 0o600 });
         const stage = { passed: true };
         let result;
         admitted.push(options.operationId);

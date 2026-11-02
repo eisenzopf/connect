@@ -388,6 +388,14 @@ empties. A signed `operation.get` storage-unavailable response leaves that same
 root pending and returns to the existing media/poll loop. It grants no readiness,
 retries no mutation and renews no deadline; other refusals still fail.
 
+Retired physical captures are read, parsed and hashed in a separately joined
+worker thread. Only bounded metadata and original-root boundary flags return to
+the live media coordinator; packet bodies remain in the original private file.
+The existing file, packet, programme and owner checks still apply. A worker
+failure or inspection timeout fails the original call after the worker joins.
+This avoids synchronous capture parsing on the shared six-route event loop; it
+does not establish media quality or remove any independent decoder checks.
+
 The reserve Device's initial SDK helper is explicitly closed before the long
 media phase. Its unchanged documented configuration is opened after the source
 owner closes, and the same original Create reference is restored under current

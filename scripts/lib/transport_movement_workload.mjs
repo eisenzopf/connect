@@ -1,12 +1,12 @@
 // Twenty original physical replacements while the six-route AV owner is live.
 import assert from "node:assert/strict";
-import { randomUUID, createHash } from "node:crypto";
-import { mkdir, open, readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, open } from "node:fs/promises";
 import { join } from "node:path";
 import { startPhysicalReplacementTarget } from "./transport_replacement_target.mjs";
 import { operationFailure } from "./transport_failure.mjs";
+import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 
-const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 async function save(path, value) {
     const file = await open(path, "wx", 0o600);
     try { await file.writeFile(JSON.stringify(value, null, 2) + "\n"); await file.sync(); }
@@ -62,12 +62,12 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.equal(stage.passed, true);
         owners.delete(owner);
         const observation = join(moveDirectory, "target-observation.json");
-        const bytes = await readFile(observation);
-        const captured = JSON.parse(bytes);
+        const inspected = await inspectReplacementCapture(observation, 80 * 1024 * 1024, 16000);
+        const captured = inspected.observation;
         assert.equal(captured.program_start_unix_us, workload.programStartUnixUs);
         assert.ok(captured.received.every(row => typeof row.original_root_completed_observed === "boolean"),
             "each physical packet must retain its actual original-root observation boundary");
-        segments.push({ sourceIndex, observation, sha256: hash(bytes) });
+        segments.push({ sourceIndex, observation, sha256: inspected.sha256 });
         return stage;
     };
     async function chain(sourceIndex) {

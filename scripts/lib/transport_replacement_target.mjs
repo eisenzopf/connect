@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { operationFailure } from "./transport_failure.mjs";
+import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -170,7 +171,9 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.equal(exit.code, 0); assert.equal(exit.signal, null); assert.equal(exit.error, undefined);
             const info = await stat(output); assert.ok(info.size > 0 && info.size <= (intent.source.video ? 80 : 24) * 1024 * 1024);
             assert.equal(info.mode & 0o077, 0);
-            const observed = JSON.parse(await readFile(output, "utf8"));
+            const inspected = await inspectReplacementCapture(output,
+                (intent.source.video ? 80 : 24) * 1024 * 1024, intent.source.video ? 16000 : 4000);
+            const observed = inspected.observation;
             assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
             assert.equal(observed.passed, true); assert.equal(observed.original_client_joined, true);
             assert.equal(observed.operation_completed_inferred, false); assert.equal(observed.decoded_media_verified, false);
@@ -204,7 +207,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 }
                 report.target_sent_video_packets = observed.sent_video_packets;
             }
-            report.target_observation_sha256 = hash(await readFile(output));
+            report.target_observation_sha256 = inspected.sha256;
+            report.capture_inspection_worker_joined = inspected.worker_joined;
             report.target_sent_packets = observed.sent_audio_packets;
             report.target_skipped_frames = observed.skipped_original_frames;
             report.target_received_datagrams = observed.received.length;
