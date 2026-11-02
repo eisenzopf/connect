@@ -13,9 +13,12 @@
   "verification": {
     "dependencies_verified": true,
     "format_passed": true,
-    "service_tests": "running original build50568",
-    "normal_release_runtime": "pending same build",
-    "fresh_scene": "reserved once after original build with same source; original11271"
+    "service_tests": "passed",
+    "normal_release_runtime": "running original50568",
+    "fresh_scene": "Original11271 stopped before any workload after finding ownership check omitted Data. Reviewed private correction passed8checks; original26420 queues actualmodule tests, source revalidation and one fresh scene after50568joins.",
+    "service_tests_passed": 18,
+    "service_tests_failed": 0,
+    "service_tests_ignored": 0
   },
   "root_cause_runtime_confirmation": "pending; preserved before scene has a forbidden invocation-preparation failure but lacks its finer stage diagnostics",
   "passed": false,
