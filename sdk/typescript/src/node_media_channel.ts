@@ -622,7 +622,7 @@ export async function openMediaChannel(
         }),
     );
     const server = createServer(
-        { highWaterMark: MEDIA_METADATA + MEDIA_PAYLOAD + 17 },
+        { noDelay: true, highWaterMark: MEDIA_METADATA + MEDIA_PAYLOAD + 17 },
         (socket) => {
             if (!accepting || sockets.size >= 2) {
                 socket.destroy();

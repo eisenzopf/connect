@@ -448,7 +448,7 @@ export async function openMediaChannel(helper, observe) {
     const accepted = owned(new Promise((resolve) => {
         resolveAccepted = resolve;
     }));
-    const server = createServer({ highWaterMark: MEDIA_METADATA + MEDIA_PAYLOAD + 17 }, (socket) => {
+    const server = createServer({ noDelay: true, highWaterMark: MEDIA_METADATA + MEDIA_PAYLOAD + 17 }, (socket) => {
         if (!accepting || sockets.size >= 2) {
             socket.destroy();
             return;
