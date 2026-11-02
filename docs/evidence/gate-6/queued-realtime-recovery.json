@@ -94,8 +94,1036 @@
   },
   "transport_cells_qualified": 0,
   "native_runtime_verification": {
-    "stage": "optimized production CLI build active after passing Core prerequisites; peer build and fresh same native baseline queued",
-    "actual_new_quality_result": false,
+    "stage": "complete; optimized production build passed, fresh unchanged six-route execution passed, all six decoded quality results failed",
+    "normal_production_build": true,
+    "test_support": false,
+    "pipeline_elapsed_seconds_including_original_Core_prerequisite_wait": 1805.5296995001845,
+    "cargo_cli_compile_seconds": 1296,
+    "cargo_peer_compile_seconds": 137,
+    "guarded_source_input_count": 5670,
+    "source_inputs_unchanged": true,
+    "binaries": {
+      "connect": {
+        "sha256": "06cc40415a3b63b59b50c7be5d5f748f72ea560ba967e11ba303e752ccc5c90d",
+        "preserved": true
+      },
+      "connect-external-rust-journey": {
+        "sha256": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99",
+        "preserved": true
+      }
+    },
+    "cli_system_dynamic_libraries_only": true,
+    "actual_new_quality_result": true,
+    "quality_passed": false,
     "full_cell_qualified": false
-  }
+  },
+  "native_baseline": {
+    "source_program_seconds": 62,
+    "observation_seconds": 60,
+    "connections": 6,
+    "participants": 4,
+    "sessions": 2,
+    "movement_operations": 0,
+    "original_packet_tasks_joined": true,
+    "original_packet_tasks": 24,
+    "elapsed_ms": 62409.335625,
+    "server_joined_without_force": true,
+    "helpers_joined": true,
+    "source_and_script_inputs_unchanged": true,
+    "all_six_routes_independently_decoded": true,
+    "all_six_quality_failed": true,
+    "every_source_submitted_audio_packets": 3100,
+    "submitted_video_packets": [
+      4382,
+      4369,
+      4373,
+      4373,
+      4373,
+      4379
+    ],
+    "late_source_frames": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "gap_packets": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "routes": [
+      {
+        "index": 0,
+        "peer_index": 3,
+        "passed": false,
+        "received_audio_packets": 2325,
+        "received_complete_video_frames": 1598,
+        "complete_keyframes": 59,
+        "received_window_audio_packets": 2287,
+        "decoded_audio_seconds": 45.74,
+        "bad_audio_identity_blocks": 4,
+        "maximum_audio_arrival_gap_ms": 460.73220800000126,
+        "decoded_window_video_frames": 1561,
+        "changing_frames_per_second": 26.0,
+        "minimum_frames_in_one_second": 23,
+        "source_marker_classification": {
+          "expected_source_index": 3,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            526,
+            0,
+            0
+          ],
+          "expected_source_frames": 526,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 1035,
+          "wrong_source_pixel_frames": 1035
+        },
+        "paired_markers": 0,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 2287,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2287,
+              "minimum_ms": 0.37170847456673073,
+              "median_ms": 10.346833386334765,
+              "p95_ms": 61.73295875394251,
+              "maximum_ms": 205.45762547856066
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 1561,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1561,
+              "minimum_ms": -2.5442774112234474,
+              "median_ms": 10.47004181198281,
+              "p95_ms": 54.07625029076098,
+              "maximum_ms": 183.4930138207783
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.06875000000218279,
+              "median_ms": 0.20766699999876437,
+              "p95_ms": 0.4737920000006852,
+              "maximum_ms": 2.0841249999975844
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.3581670000003214,
+              "median_ms": 0.10829200000080164,
+              "p95_ms": 1.8540420000008453,
+              "maximum_ms": 4.103625000000193
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "9103ccce976d34b325472770d4ffbf8ca66b9cea642790241fa7970a818a66a7",
+        "ivf_sha256": "a30db255c7d38be7e0184164fe8d547bef4b1dccbfcb9d29d05fed746d9130a3",
+        "framemd5_sha256": "42f81d615889da7fefcadbed1059bcb24c431adf7065ebd067b6edb1412317fd",
+        "decoded_pulse_pixels_sha256": "2faaef31d06c88acf0a9be8e902d2149feb2e53e601656b269504ab032740d6f"
+      },
+      {
+        "index": 1,
+        "peer_index": 0,
+        "passed": false,
+        "received_audio_packets": 2312,
+        "received_complete_video_frames": 1691,
+        "complete_keyframes": 58,
+        "received_window_audio_packets": 2276,
+        "decoded_audio_seconds": 45.52,
+        "bad_audio_identity_blocks": 0,
+        "maximum_audio_arrival_gap_ms": 388.25995799999873,
+        "decoded_window_video_frames": 1660,
+        "changing_frames_per_second": 27.65,
+        "minimum_frames_in_one_second": 24,
+        "source_marker_classification": {
+          "expected_source_index": 0,
+          "source_marker_counts": [
+            650,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 650,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 1010,
+          "wrong_source_pixel_frames": 1010
+        },
+        "paired_markers": 0,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 2276,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2276,
+              "minimum_ms": 6.157499792294402,
+              "median_ms": 49.34854206696764,
+              "p95_ms": 108.48429204886088,
+              "maximum_ms": 244.28112465747108
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 1660,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1660,
+              "minimum_ms": 0.24231950412649894,
+              "median_ms": 15.825139208944165,
+              "p95_ms": 127.24594411149883,
+              "maximum_ms": 283.0774302071586
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.07095799999660812,
+              "median_ms": 0.21704099999624304,
+              "p95_ms": 0.4804999999996653,
+              "maximum_ms": 2.0395839999982854
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.3017079999990528,
+              "median_ms": 0.08654200000091805,
+              "p95_ms": 1.829542000001311,
+              "maximum_ms": 4.551375000000007
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "ed56853bd57487e2b54b2332ca88966a7d6ac06450c9937efa73bb4961e2d8e0",
+        "ivf_sha256": "8b6127b8d324101d1ec81c221be1b2e01bb4feb38cacf89d76b67c015ae8dfb0",
+        "framemd5_sha256": "f5a6973da75f3ea708a9bed30b7bdef65da3f39ef59a29c94668904364d3a18e",
+        "decoded_pulse_pixels_sha256": "ab26fcb93d661933159befa585a14d6ed9a61ac3c0c3c52b9efbd52d72325c12"
+      },
+      {
+        "index": 2,
+        "peer_index": 1,
+        "passed": false,
+        "received_audio_packets": 2321,
+        "received_complete_video_frames": 1696,
+        "complete_keyframes": 59,
+        "received_window_audio_packets": 2285,
+        "decoded_audio_seconds": 45.7,
+        "bad_audio_identity_blocks": 0,
+        "maximum_audio_arrival_gap_ms": 447.18629100000544,
+        "decoded_window_video_frames": 1662,
+        "changing_frames_per_second": 27.683333333333334,
+        "minimum_frames_in_one_second": 26,
+        "source_marker_classification": {
+          "expected_source_index": 1,
+          "source_marker_counts": [
+            0,
+            981,
+            0,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 981,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 681,
+          "wrong_source_pixel_frames": 681
+        },
+        "paired_markers": 0,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 2285,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2285,
+              "minimum_ms": 4.366208810180069,
+              "median_ms": 49.51837460136994,
+              "p95_ms": 96.69204207729126,
+              "maximum_ms": 238.11495809569897
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 1662,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1662,
+              "minimum_ms": -0.5586114387406269,
+              "median_ms": 17.228403253820943,
+              "p95_ms": 122.38112481438293,
+              "maximum_ms": 249.59431973817118
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.0647499999977299,
+              "median_ms": 0.1976669999985461,
+              "p95_ms": 0.5243330000012065,
+              "maximum_ms": 1.9841670000023441
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.3409170000013546,
+              "median_ms": 0.13083300000107556,
+              "p95_ms": 1.8650420000012673,
+              "maximum_ms": 4.794958000000179
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "5e02d703d1172fb78bb3bcccd1730922b3dc4b06f69e59dd374d34e4066a15fa",
+        "ivf_sha256": "22036c943db3a6df069f6d7cd4dcf6ed5ac70bf54b8702112610a251cc77beda",
+        "framemd5_sha256": "711acad89375002c5609ab3b30455fcd1c6815bf57912bed1a9548bb45533f13",
+        "decoded_pulse_pixels_sha256": "acb7d971211c5063e0a458ee323e1c2d777c83459f75400c81be5a5620dc2188"
+      },
+      {
+        "index": 3,
+        "peer_index": 2,
+        "passed": false,
+        "received_audio_packets": 2335,
+        "received_complete_video_frames": 1591,
+        "complete_keyframes": 58,
+        "received_window_audio_packets": 2298,
+        "decoded_audio_seconds": 45.96,
+        "bad_audio_identity_blocks": 1,
+        "maximum_audio_arrival_gap_ms": 448.25774999999703,
+        "decoded_window_video_frames": 1562,
+        "changing_frames_per_second": 26.016666666666666,
+        "minimum_frames_in_one_second": 23,
+        "source_marker_classification": {
+          "expected_source_index": 2,
+          "source_marker_counts": [
+            0,
+            0,
+            576,
+            0,
+            0,
+            0
+          ],
+          "expected_source_frames": 576,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 986,
+          "wrong_source_pixel_frames": 986
+        },
+        "paired_markers": 0,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 2298,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2298,
+              "minimum_ms": 0.49704171198118274,
+              "median_ms": 15.405624996186816,
+              "p95_ms": 72.89270842156475,
+              "maximum_ms": 186.50050044846284
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 60,
+            "same_ssrc_recent_anchor_packets_or_frames": 1562,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1562,
+              "minimum_ms": 0.7016115227488626,
+              "median_ms": 17.523805594348232,
+              "p95_ms": 82.72318034944783,
+              "maximum_ms": 196.9273615348211
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.06949999999778811,
+              "median_ms": 0.1978750000052969,
+              "p95_ms": 0.5207090000003518,
+              "maximum_ms": 2.0157909999979893
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.368957999999111,
+              "median_ms": 0.1117500000000291,
+              "p95_ms": 1.849792000000889,
+              "maximum_ms": 5.05558300000007
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "317542ec36c209c587e4fd95c640eb1adafce9887cbda7b937b833979a44993f",
+        "ivf_sha256": "b567727bb7743ad2ced6782b0dbaa9c1d4050fe493fa3e2b47be084b9ed7f09b",
+        "framemd5_sha256": "e588cc0034c998153c12d0c597ad49061ed9455d24b7afb377a47cd4a02fd2c2",
+        "decoded_pulse_pixels_sha256": "5cfc0d1df66666d39dd689b57c97d43999c870c08843dc85096e24f5a5a0947a"
+      },
+      {
+        "index": 4,
+        "peer_index": 5,
+        "passed": false,
+        "received_audio_packets": 2542,
+        "received_complete_video_frames": 1705,
+        "complete_keyframes": 60,
+        "received_window_audio_packets": 2496,
+        "decoded_audio_seconds": 49.92,
+        "bad_audio_identity_blocks": 0,
+        "maximum_audio_arrival_gap_ms": 327.03495799999655,
+        "decoded_window_video_frames": 1662,
+        "changing_frames_per_second": 27.683333333333334,
+        "minimum_frames_in_one_second": 25,
+        "source_marker_classification": {
+          "expected_source_index": 5,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            877
+          ],
+          "expected_source_frames": 877,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 785,
+          "wrong_source_pixel_frames": 785
+        },
+        "paired_markers": 11,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": 30.72674999999947,
+        "p95_abs_skew_ms": 102.19345799999945,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 2496,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2496,
+              "minimum_ms": -53.388208380572905,
+              "median_ms": -0.4173332383579691,
+              "p95_ms": 53.00133337803709,
+              "maximum_ms": 183.98166631180356
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 1662,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1662,
+              "minimum_ms": -66.04048631027399,
+              "median_ms": -49.03022182040149,
+              "p95_ms": 42.113416419073474,
+              "maximum_ms": 160.49587499837799
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.06870800000069721,
+              "median_ms": 0.2097079999948619,
+              "p95_ms": 0.4587500000000091,
+              "maximum_ms": 2.1644169999999576
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.340041999999812,
+              "median_ms": 0.10745799999858718,
+              "p95_ms": 1.840375000000222,
+              "maximum_ms": 5.732875000000149
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "73063593b6962aa1fdccee116428dd5082e99a61ab279fb55c72fa164cb74253",
+        "ivf_sha256": "6153d202fb4b81f4e8467fc20ae0f92d77b0fef0fc440257e8f88932ebaed85f",
+        "framemd5_sha256": "31179b24d8a644e8360c35dc8ac066d4b290e71512654f028b4484d4f47e734d",
+        "decoded_pulse_pixels_sha256": "eab5f14a53af6fd8f894133b301e38ae839ec44772d9bffb9e3bc7113fd72605"
+      },
+      {
+        "index": 5,
+        "peer_index": 4,
+        "passed": false,
+        "received_audio_packets": 2545,
+        "received_complete_video_frames": 1697,
+        "complete_keyframes": 60,
+        "received_window_audio_packets": 2501,
+        "decoded_audio_seconds": 50.02,
+        "bad_audio_identity_blocks": 1,
+        "maximum_audio_arrival_gap_ms": 348.1710410000014,
+        "decoded_window_video_frames": 1659,
+        "changing_frames_per_second": 27.633333333333333,
+        "minimum_frames_in_one_second": 25,
+        "source_marker_classification": {
+          "expected_source_index": 4,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            748,
+            0
+          ],
+          "expected_source_frames": 748,
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 911,
+          "wrong_source_pixel_frames": 911
+        },
+        "paired_markers": 0,
+        "paired_sync_status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "clock_and_submission_observations": {
+          "audio_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 2501,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 2501,
+              "minimum_ms": 5.35170842356456,
+              "median_ms": 60.24916693306295,
+              "p95_ms": 112.57554135576356,
+              "maximum_ms": 229.631374705481
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "video_clock": {
+            "reports": 61,
+            "same_ssrc_recent_anchor_packets_or_frames": 1659,
+            "no_preceding_same_ssrc_anchor": 0,
+            "stale_anchor_or_rtp_distance": 0,
+            "packet_arrival_minus_reported_source_time": {
+              "count": 1659,
+              "minimum_ms": -3.4538884353023604,
+              "median_ms": 12.949277706371504,
+              "p95_ms": 115.02219437218855,
+              "maximum_ms": 238.09941661078847
+            },
+            "scope": "Same fixture clock, preceding same-SSRC report within 2 seconds, signed RTP wrap. Arrival age only; no device presentation, paired AV-sync or causal loss claim."
+          },
+          "own_source_audio_submission": {
+            "completed_original_queue_submissions": 3100,
+            "original_queue_submission_duration": {
+              "count": 3100,
+              "minimum_ms": 0.07145899999886751,
+              "median_ms": 0.21562499999708962,
+              "p95_ms": 0.48670899999888206,
+              "maximum_ms": 2.002958999997645
+            },
+            "original_source_age_at_queue_receipt": {
+              "count": 3100,
+              "minimum_ms": -1.3132919999989099,
+              "median_ms": 0.08445800000117742,
+              "p95_ms": 1.8300420000014128,
+              "maximum_ms": 6.226875000000064
+            },
+            "scope": "Public SDK local-media-queue receipts only. No server admission or remote delivery is inferred."
+          }
+        },
+        "observation_sha256": "453823d535da031d4ea0350e522bd928c4af2dcb91e6a352bc0d91dceeca70da",
+        "ivf_sha256": "b265fc5097c057b5ae898de8c1fee1385c5723d4bb5be1b232e498fcb1223295",
+        "framemd5_sha256": "2c7355264815ff78382e4deba7256dce5c05e0fdc519772f6db9bfd8737de076",
+        "decoded_pulse_pixels_sha256": "ae6cc6b6c2930a2a8dd7420100431491c7771ad8ed89f46133e92ca65f558bc3"
+      }
+    ],
+    "source_manifest_sha256": "4179a0a2498ee498d740cad310c6f47efcd58510e5943711e004ffad01babf47",
+    "decoded_report_sha256": "b235c698a9570e323f144c7802400f27340de6df223744d291f12d31536f5771",
+    "privacy_observation": "Every wrong-source-pixel count here is unclassified, with zero pixels identified as another source. This remains a failed classification/quality result, not proof of cross-audience exposure.",
+    "comparison_limits": "One observation per runtime is not a statistical performance benchmark. Previous38058cd4 baseline decoded only through route1 missing keyframe. New06cc4041 completes all six decodes with58-60 keyframes each, but its audio capture is worse in this observation and no overall media fix is claimed."
+  },
+  "bounded_diagnostic": {
+    "expected_negative_stop": true,
+    "diagnostic_complete": true,
+    "seconds_requested": 8,
+    "raw_sample_independently_recomputed": true,
+    "original_observer_server_and_helpers_joined_without_force": true,
+    "source_and_script_inputs_unchanged": true,
+    "sample": {
+      "observed": true,
+      "observer_joined": true,
+      "forced": false,
+      "seconds_requested": 8,
+      "interval_ms": 10,
+      "elapsed_ms": 8321,
+      "available_parallelism": 14,
+      "server_cpu_delta_ms": 26380,
+      "resident_bytes_before": 81395712,
+      "resident_bytes_after": 90013696,
+      "rust_symbols_demangled": 393,
+      "format": "connect/native-server-stack-sample/1",
+      "raw_sample_sha256": "6ccfffffc1fc2652521cc34e898fcb011098ae5a2cf7c05199893350d9491c4f",
+      "symbols_observed": 349,
+      "top_stacks": [
+        {
+          "symbol": "<std::sys::thread::unix::Thread>::new::thread_start",
+          "stack_samples": 13437
+        },
+        {
+          "symbol": "<std::thread::lifecycle::spawn_unchecked<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}",
+          "stack_samples": 13437
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<<tokio::runtime::blocking::pool::Spawner>::spawn_thread::{closure#0}, ()>",
+          "stack_samples": 13437
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::pool::Inner>::run",
+          "stack_samples": 13437
+        },
+        {
+          "symbol": "<parking_lot::condvar::Condvar>::wait_until_internal",
+          "stack_samples": 11149
+        },
+        {
+          "symbol": "__psynch_cvwait",
+          "stack_samples": 11148
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run",
+          "stack_samples": 8962
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "<tokio::runtime::task::core::Core<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}>, tokio::runtime::blocking::schedule::BlockingSchedule>>::poll",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "<tokio::runtime::blocking::task::BlockingTask<<tokio::runtime::scheduler::multi_thread::worker::Launch>::launch::{closure#0}> as core::future::future::Future>::poll",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "tokio::runtime::scheduler::multi_thread::worker::run",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}, ()>",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "<tokio::runtime::context::scoped::Scoped<tokio::runtime::scheduler::Context>>::set::<tokio::runtime::scheduler::multi_thread::worker::run::{closure#0}::{closure#0}, ()>",
+          "stack_samples": 8960
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::park_internal",
+          "stack_samples": 6600
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::park::Inner>::park_condvar",
+          "stack_samples": 6053
+        },
+        {
+          "symbol": "<tokio::runtime::scheduler::multi_thread::worker::Context>::run_task",
+          "stack_samples": 2358
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_deadline",
+          "stack_samples": 2270
+        },
+        {
+          "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+          "stack_samples": 2195
+        },
+        {
+          "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+          "stack_samples": 2167
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at",
+          "stack_samples": 2163
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+          "stack_samples": 2017
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+          "stack_samples": 1384
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+          "stack_samples": 1262
+        },
+        {
+          "symbol": "rustix::fs::at::accessat::<&std::path::PathBuf, std::os::fd::owned::BorrowedFd>",
+          "stack_samples": 995
+        },
+        {
+          "symbol": "rustix::path::arg::with_c_str_slow_path::<(), rustix::fs::at::accessat<&std::path::PathBuf, std::os::fd::owned::BorrowedFd>::{closure#0}>",
+          "stack_samples": 995
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<core::pin::Pin<alloc::boxed::Box<<rvoip_uctp::v2::server::ProfileServer>::spawn<quinn::connection::Connection, rvoip_quic::canonical::start::{closure#0}, rvoip_quic::canonical::start::{closure#0}::{closure#0}, rvoip_quic::canonical::start::{closure#1}>::{closure#0}::{closure#3}>>, alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+          "stack_samples": 985
+        },
+        {
+          "symbol": "<core::pin::Pin<alloc::boxed::Box<<rvoip_uctp::v2::server::ProfileServer>::spawn<quinn::connection::Connection, rvoip_quic::canonical::start::{closure#0}, rvoip_quic::canonical::start::{closure#0}::{closure#0}, rvoip_quic::canonical::start::{closure#1}>::{closure#0}::{closure#3}>> as core::future::future::Future>::poll",
+          "stack_samples": 985
+        },
+        {
+          "symbol": "<core::future::poll_fn::PollFn<rvoip_quic::canonical::start::{closure#0}::{closure#0}::{closure#6}> as core::future::future::Future>::poll",
+          "stack_samples": 985
+        },
+        {
+          "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+          "stack_samples": 966
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+          "stack_samples": 946
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+          "stack_samples": 946
+        },
+        {
+          "symbol": "<tokio::runtime::task::harness::Harness<<rvoip_core::conference::Conference>::start_inner::{closure#0}, alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle>>>::poll",
+          "stack_samples": 769
+        },
+        {
+          "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+          "stack_samples": 769
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+          "stack_samples": 769
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source_with_deadline",
+          "stack_samples": 730
+        },
+        {
+          "symbol": "std::rt::lang_start_internal",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "std::rt::lang_start::<core::result::Result<(), anyhow::Error>>::{closure#0}",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "std::sys::backtrace::__rust_begin_short_backtrace::<fn() -> core::result::Result<(), anyhow::Error>, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "<tokio::runtime::runtime::Runtime>::block_on::<connect::main::{closure#0}>",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "tokio::runtime::context::runtime::enter_runtime::<<tokio::runtime::scheduler::multi_thread::MultiThread>::block_on<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>::{closure#0}, core::result::Result<(), anyhow::Error>>",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "<tokio::runtime::park::CachedParkThread>::block_on::<core::pin::Pin<alloc::boxed::Box<connect::main::{closure#0}>>>",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "<tokio::runtime::park::Inner>::park",
+          "stack_samples": 640
+        },
+        {
+          "symbol": "<tokio::runtime::time::Driver>::park_internal",
+          "stack_samples": 546
+        },
+        {
+          "symbol": "<tokio::runtime::io::driver::Driver>::turn",
+          "stack_samples": 546
+        },
+        {
+          "symbol": "kevent",
+          "stack_samples": 545
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media_with_deadline",
+          "stack_samples": 545
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at::{closure#0}",
+          "stack_samples": 524
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::views_for",
+          "stack_samples": 523
+        }
+      ],
+      "component_stacks": [
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_deadline",
+          "stack_samples": 2270
+        },
+        {
+          "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+          "stack_samples": 2195
+        },
+        {
+          "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+          "stack_samples": 2167
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at",
+          "stack_samples": 2163
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+          "stack_samples": 2017
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+          "stack_samples": 1384
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+          "stack_samples": 1262
+        },
+        {
+          "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+          "stack_samples": 966
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+          "stack_samples": 946
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+          "stack_samples": 946
+        },
+        {
+          "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+          "stack_samples": 769
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+          "stack_samples": 769
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source_with_deadline",
+          "stack_samples": 730
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media_with_deadline",
+          "stack_samples": 545
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at::{closure#0}",
+          "stack_samples": 524
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::views_for",
+          "stack_samples": 523
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::facts_for",
+          "stack_samples": 505
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::MediaPacket>::try_forward_to",
+          "stack_samples": 495
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 474
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::StagedRtpMedia as rvoip_core::staged_streams::StagedMediaAdapter>::prepare::{closure#0}::{closure#7}",
+          "stack_samples": 310
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::guarded_audio::GuardedAudioMixer>::tick",
+          "stack_samples": 273
+        },
+        {
+          "symbol": "connect_store::connection_control::private_consultation::for_connection",
+          "stack_samples": 261
+        },
+        {
+          "symbol": "<connect_store::installation_ownership::InstallationOwnership>::check",
+          "stack_samples": 244
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::ready_audio::epoch::EpochQueue<rvoip_uctp::staged_media::ready_audio::Job>>::enqueue::{closure#2}",
+          "stack_samples": 236
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready",
+          "stack_samples": 236
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::deliver_ready_audio_batch::<<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready::{closure#2}>",
+          "stack_samples": 236
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media",
+          "stack_samples": 236
+        },
+        {
+          "symbol": "connect_store::installation_ownership::fingerprint",
+          "stack_samples": 200
+        },
+        {
+          "symbol": "<connect_store::installation_ownership::Binding>::permit",
+          "stack_samples": 185
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::file",
+          "stack_samples": 160
+        },
+        {
+          "symbol": "<connect_store::Store>::try_packet_connection",
+          "stack_samples": 136
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_projection::current_projection",
+          "stack_samples": 108
+        }
+      ],
+      "scope": "Inclusive sampled stack counts across server threads; not CPU seconds or a transport/quality pass. Only fixed runtime waits and known Rust/SQLite symbols; PIDs, paths and raw stacks excluded."
+    },
+    "packet_trace": {
+      "log_sha256": "23f960b11d022e02d47e194a7750e9d260993b23a5dd521404f8624f9bb44198",
+      "log_bytes": 8777574,
+      "policy": [
+        {
+          "publishing": "true",
+          "receiving": "false",
+          "owned_file_custody": "false",
+          "problem": "none",
+          "count": 18741,
+          "median_us": 534,
+          "p95_us": 2985,
+          "maximum_us": 356121
+        },
+        {
+          "publishing": "false",
+          "receiving": "true",
+          "owned_file_custody": "true",
+          "problem": "none",
+          "count": 6416,
+          "median_us": 48.0,
+          "p95_us": 100,
+          "maximum_us": 14799
+        },
+        {
+          "publishing": "true",
+          "receiving": "false",
+          "owned_file_custody": "false",
+          "problem": "authority-busy",
+          "count": 687,
+          "median_us": 10633,
+          "p95_us": 13331,
+          "maximum_us": 353395
+        },
+        {
+          "publishing": "false",
+          "receiving": "true",
+          "owned_file_custody": "false",
+          "problem": "none",
+          "count": 3103,
+          "median_us": 359,
+          "p95_us": 1942,
+          "maximum_us": 14550
+        },
+        {
+          "publishing": "false",
+          "receiving": "true",
+          "owned_file_custody": "false",
+          "problem": "authority-busy",
+          "count": 24,
+          "median_us": 10976.5,
+          "p95_us": 17726,
+          "maximum_us": 362155
+        }
+      ],
+      "guarded_media_refusals": [
+        {
+          "stage": "source-egress",
+          "problem": "NotReady",
+          "count": 908
+        },
+        {
+          "stage": "target-egress",
+          "problem": "NotReady",
+          "count": 299
+        },
+        {
+          "stage": "source-egress",
+          "problem": "Deadline",
+          "count": 6
+        },
+        {
+          "stage": "target-egress",
+          "problem": "Deadline",
+          "count": 3
+        }
+      ],
+      "queued_media_age": {
+        "mixer_queued": {
+          "count": 1721,
+          "median_us": 19177,
+          "p95_us": 76979,
+          "maximum_us": 218374
+        },
+        "entering_io": {
+          "count": 4676,
+          "median_us": 23865.0,
+          "p95_us": 90169,
+          "maximum_us": 198772
+        }
+      },
+      "limits": "Shared audio_path label includes video. Refusals count admission attempts; bounded retries may repeat one original packet. These are neither final frame-drop counts nor a decoded quality result.",
+      "task_complete": false,
+      "whole_gate_qualified": false
+    },
+    "limits": "Tracing and sampling perturb timing. Shared audio_path labels include video; refusal counters count attempts, including retries. Inclusive stack counts are not CPU-time shares or a causal bottleneck proof."
+  },
+  "next": "Investigate current policy/read-path and scheduling costs with controlled before/after evidence; preserve the verified authorization/expiry correction, original200ms packet budget and every full-profile quality requirement. Twenty movements, independent complete transport cells and all downstream qualification remain open."
 }
