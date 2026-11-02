@@ -359,3 +359,12 @@ every reader; original revocation, expiry, generation and scope checks remain.
 The before/after contention and recovery cases are recorded in
 [the SQL isolation evidence](../evidence/gate-6/replacement-current-sql-isolation.json).
 These Store components do not qualify the full media programme.
+
+Compound replacement projections rederive pure metadata when the policy clock
+advances during final construction. They retain the same complete authority
+interval, cap expiry at the first derivation, and allow at most three
+construction attempts. A queued writer never causes reader reentry. Changes
+to SQL, schema or observer identity still refuse, discarding all partial reads.
+The frequent private-partner view query reuses only its compiled statement; it
+executes current rows on every call within the unchanged32-entry cache. See
+[the statement and clock evidence](../evidence/gate-6/packet-sql-statement-reuse.json).

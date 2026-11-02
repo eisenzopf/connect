@@ -398,9 +398,9 @@ impl Store {
         self.try_current_packet_projection(
             |c| {
                 let (member, saved, scopes, expires) = media_facts(self, c, origin)?;
-                Ok(((member, saved, expires), scopes))
+                Ok(((member, saved), scopes, expires))
             },
-            |c, (member, saved, expires), held| {
+            |c, (member, saved), held, expires| {
                 let source = origin
                     .started
                     .attempt
@@ -408,7 +408,7 @@ impl Store {
                     .attempt
                     .prepared
                     .selection
-                    .read_with_connection(self, c, held.clone(), *expires)?;
+                    .read_with_connection(self, c, held.clone(), expires)?;
                 let target = projection(&source, member.clone(), saved, &descriptor)?;
                 Ok(NativeReplacementMediaRead {
                     source,
@@ -688,16 +688,17 @@ impl Store {
                 )?;
                 scopes.extend(scene_scopes);
                 Ok((
-                    (context, member, saved, expiry.min(scene_expiry), facts),
+                    (context, member, saved, facts),
                     AuthorityScope::merged(&scopes)?,
+                    expiry.min(scene_expiry),
                 ))
             },
-            |c, (context, member, saved, expiry, facts), held| {
+            |c, (context, member, saved, facts), held, expiry| {
                 let mut facts = facts.clone();
                 let source =
                     prepared
                         .selection
-                        .read_with_connection(self, c, held.clone(), *expiry)?;
+                        .read_with_connection(self, c, held.clone(), expiry)?;
                 let target = projection(&source, member.clone(), saved, &descriptor)?;
                 self.native_replacement_scene_pairs(
                     c,
@@ -757,7 +758,7 @@ impl Store {
                         ),
                     );
                 }
-                let reads = self.native_scene_reads(facts, held.clone(), *expiry)?;
+                let reads = self.native_scene_reads(facts, held.clone(), expiry)?;
                 Ok(NativeReplacementSceneRead {
                     media: Arc::new(NativeReplacementMediaRead {
                         source,

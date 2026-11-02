@@ -465,13 +465,69 @@ impl Fixture {
 }
 
 #[test]
+fn compound_packet_projection_clock_edge_revalidates_under_original_interval_and_expiry() {
+    let f = Fixture::new();
+    let calls = std::cell::Cell::new(0);
+    let mut writer = None;
+    let mut original_interval = None;
+    let expiries = std::cell::RefCell::new(Vec::new());
+    let result = f.store.try_current_packet_projection(
+        |c| {
+            let (facts, scopes) = f.derive(c)?;
+            let expiry = crate::now() + 5;
+            expiries.borrow_mut().push(expiry);
+            Ok((facts, scopes, expiry))
+        },
+        |_, facts, held, expiry| {
+            calls.set(calls.get() + 1);
+            if calls.get() == 1 {
+                original_interval = Some(held.clone());
+                let store = f.store.clone();
+                let scope = f.write.clone();
+                writer = Some(std::thread::spawn(move || {
+                    store.acquire_authority(
+                        &[scope],
+                        &crate::AuthorityWait::new(Duration::from_secs(2)),
+                    )
+                }));
+                let until = Instant::now() + Duration::from_millis(500);
+                while f.store.try_acquire_authority(&[f.read.clone()]).is_ok() {
+                    assert!(Instant::now() < until, "writer never queued");
+                    std::thread::yield_now();
+                }
+                let second = crate::now();
+                while crate::now() == second {
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+            }
+            assert!(Arc::ptr_eq(original_interval.as_ref().unwrap(), &held));
+            assert_eq!(expiry, expiries.borrow()[0], "original expiry cannot renew");
+            Ok((*facts, held, expiry))
+        },
+    );
+    // Release the extra test reference even when the old helper refuses, so
+    // the negative test cannot strand its independently queued writer.
+    drop(original_interval);
+    let (value, held, expiry) = result.unwrap();
+    assert_eq!(value, 1);
+    assert!(calls.get() >= 2 && calls.get() <= 3);
+    assert!(expiries.borrow().iter().any(|later| *later > expiry));
+    assert!(!writer.as_ref().unwrap().is_finished());
+    drop(held);
+    drop(writer.unwrap().join().unwrap().unwrap());
+}
+
+#[test]
 fn compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit() {
     for refused in [false, true] {
         let f = Fixture::new();
         let external = Connection::open(f.store.path()).unwrap();
         let result = f.store.try_current_packet_projection(
-            |c| f.derive(c),
-            |_, facts, held| {
+            |c| {
+                f.derive(c)
+                    .map(|(facts, scopes)| (facts, scopes, crate::now() + 5))
+            },
+            |_, facts, held, _expiry| {
                 assert_eq!(*facts, 1);
                 assert!(f.store.authority_covers(&held, &[f.read.clone()]));
                 external
@@ -489,7 +545,13 @@ fn compound_packet_projection_releases_every_reader_when_final_construction_cros
         let command_sql = f.store.connection().unwrap();
         let (value, held) = f
             .store
-            .try_current_packet_projection(|c| f.derive(c), |_, value, held| Ok((*value, held)))
+            .try_current_packet_projection(
+                |c| {
+                    f.derive(c)
+                        .map(|(facts, scopes)| (facts, scopes, crate::now() + 5))
+                },
+                |_, value, held, _expiry| Ok((*value, held)),
+            )
             .unwrap();
         assert_eq!(value, 2);
         assert!(f.store.try_acquire_authority(&[f.write.clone()]).is_err());

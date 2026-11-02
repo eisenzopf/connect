@@ -1,0 +1,117 @@
+{
+  "format": "connect/packet-sql-statement-reuse/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "applied": true,
+  "passed": true,
+  "scope": "SQL compilation and current Store authority/privacy/failure/recovery components only. Current production Opus programme, ordinary installed App37 and durable cleanup remain unqualified.",
+  "implementation_parent_revision": "02b68e897df58b87c5cb0275dc97b6f4576ac243",
+  "statement_reuse": {
+    "function": "connection_control::private_consultation::private_partner",
+    "exact_query_and_parameters_unchanged": true,
+    "executes_current_rows_on_every_call": true,
+    "compiled_cache_capacity_unchanged": 32,
+    "rows_or_authority_grants_cached": false,
+    "owned_original_packet_stack_samples": 2,
+    "each_sample_seconds": 1,
+    "profile_scope": "Original owned samples show this function repeatedly compiling SQLite views under current packet policy. Inclusive sample counts are neither CPU seconds nor causal proof."
+  },
+  "isolated_sql_component": {
+    "format": "connect/sql-prepare-cost-component/1",
+    "passed": true,
+    "query_sha256": "91a2542c18db04b1de4e38d85a76628fb0fc4b9d11a1d3b6f7def8d68408c3b8",
+    "source_sha256": "ba3921bc9c0dc21ad7bd2211801afaaf6c6afe0266f3f5440a08d5a8de9d6d3e",
+    "probe_source_sha256": "6129fa9ea6f5016a9fce2485e3ebf1bf451feb37d99164feed30f8ec16bd6309",
+    "probe_binary_sha256": "9274a006e79d03be8f2b5fd9e7bc96fe60108322981d148bf7029ef2441fbd7e",
+    "rusqlite_rlib_sha256": "04426a0c4667d9bd04d415b6bfe508878a06de55aa60ffc8c2ee849ceac6925d",
+    "original_db_wal_unchanged": true,
+    "results": [
+      {
+        "cached": false,
+        "threads": 4,
+        "queries": 8192,
+        "all_results_none": true,
+        "capped": false,
+        "elapsed_us": 1617419,
+        "p50_ns": 779792,
+        "p95_ns": 946625,
+        "max_ns": 1481125
+      },
+      {
+        "cached": true,
+        "threads": 4,
+        "queries": 8192,
+        "all_results_none": true,
+        "capped": false,
+        "elapsed_us": 19602,
+        "p50_ns": 4792,
+        "p95_ns": 13541,
+        "max_ns": 165875
+      }
+    ],
+    "uncached_over_cached_elapsed": 82.513,
+    "scope": "Isolated unchanged exact SQL read over a stopped journal COPY with four independent read-only SQLite connections. Existing debug Rust rusqlite library; optimized standalone caller. Compiled-statement reuse only; query executes on every read and no service or authority grant is constructed. Concurrent original production build can affect durations; this is not live packet/CPU causality, native latency or media qualification.",
+    "task_complete": false
+  },
+  "clock_edge_correction": {
+    "before_actual_test_failed": true,
+    "before_error": "authority-busy: Current packet state changed during projection",
+    "before_log_sha256": "17048e59d98705910bd158fe2505e08298dbfbaac3481e715d1304a5115a5e5d",
+    "first_broad_after_negative": "8private+185native pass;148replacement pass/2clock-edge refusals; snapshot not run. Negative retained.",
+    "after_exact_regression_passed": true,
+    "same_original_authority_interval_behind_queued_writer": true,
+    "first_expiry_upper_bound_preserved": true,
+    "maximum_pure_construction_attempts": 3,
+    "database_schema_or_observer_change_refuses_without_replay": true,
+    "no_engine_or_service_effect_repeated": true
+  },
+  "after": {
+    "suites": [
+      {
+        "name": "private-consultation",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "native-authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "replacement-sources",
+        "passed": 150,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "packet-snapshot",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_cases_passed": 373,
+    "failures": 0,
+    "ignored": 0,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "b80e0e904ef774cf1c3782098476c5b3f8baa92c654d20983de7933ea791d692"
+  },
+  "source_files_sha256": {
+    "crates/connect-store/src/connection_control/private_consultation.rs": "70c76b46e6e598e74f71d90ee34c9201b3cdb7dac115b0b093b63c5a1c43d74b",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "e2af1fb9b23e1f781e25c43fff05cc9b25128c8e6ed900552eb547ce579fb569",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "df190faea9b37153cb10ec74208080d99a2b14653a221d1de5f898073deeefad",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "fe74ad25e0fccf8de265db80afb237498d171ea9974aa9aa7844c7d5be173d95"
+  },
+  "normal_production_runtime_pending": true,
+  "full_programme_pending": true,
+  "ordinary_installed_app37_pending": true,
+  "prior_normal_programme_negative": "moving-main-current-native-negative.json#after_current_sql_isolation_normal_run",
+  "prior_cleanup_unretired_native_lifetimes": 3,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

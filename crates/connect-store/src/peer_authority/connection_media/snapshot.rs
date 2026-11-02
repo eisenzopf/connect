@@ -19,6 +19,14 @@ struct Version {
     changes: u64,
     second: i64,
 }
+impl Version {
+    fn same_database(self, other: Self) -> bool {
+        Self {
+            second: self.second,
+            ..other
+        } == self
+    }
+}
 fn version(c: &Connection) -> Result<Version> {
     let external = c
         .query_row("PRAGMA data_version", [], |row| row.get(0))
@@ -291,36 +299,82 @@ impl Store {
     /// Command SQL is never acquired. The same observer's SQL/schema/clock
     /// stamp is sealed around both derivation and the final read construction;
     /// no metadata, partial reader or permission survives a refused capture.
+    /// Pure final construction can run again at a clock edge, under that SAME
+    /// interval and the first derivation's upper expiry, never another reader.
     pub(crate) fn try_current_packet_projection<T, U>(
         &self,
-        mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
-        finish: impl FnOnce(&Connection, &T, Arc<AuthorityGuardSet>) -> Result<U>,
+        derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
+        mut finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
     ) -> Result<U> {
+        let derive = std::cell::RefCell::new(derive);
+        let expires = std::cell::Cell::new(i64::MAX);
+        let capture = |c: &Connection, stamp| {
+            let (facts, scopes, until) = derive.borrow_mut()(c)?;
+            expires.set(expires.get().min(until));
+            if crate::now() >= expires.get() {
+                return Err(Error::forbidden());
+            }
+            Ok(((facts, stamp), scopes))
+        };
         let interval = std::cell::RefCell::new(None::<Arc<AuthorityGuardSet>>);
         let mut projection = None;
         acquire_with_facts(
             self,
-            |c, stamp| {
-                let (facts, scopes) = derive(c)?;
-                Ok(((facts, stamp), scopes))
-            },
+            capture,
             |c, (facts, stamp)| {
-                if version(c)? != *stamp {
-                    return Err(Error::new(
-                        "authority-busy",
-                        "Current packet state changed before projection",
-                    ));
-                }
                 let held = interval.borrow().clone().ok_or_else(Error::storage)?;
-                let value = current_refusal(c, *stamp, finish(c, facts, held))?;
-                if version(c)? != *stamp {
-                    return Err(Error::new(
-                        "authority-busy",
-                        "Current packet state changed during projection",
-                    ));
+                let mut stamp = *stamp;
+                let mut fresh = None;
+                let mut refresh = false;
+                // Bound pure metadata reconstruction. A second clock edge can
+                // revalidate once more; no SQL/schema change can be retried.
+                for _ in 0..3 {
+                    let before = version(c)?;
+                    if !stamp.same_database(before) {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "Current packet state changed before projection",
+                        ));
+                    }
+                    if refresh || before.second != stamp.second {
+                        let ((current, seen), scopes) =
+                            current_refusal(c, before, capture(c, before))?;
+                        if !self.authority_covers(&held, &scopes) {
+                            return Err(Error::forbidden());
+                        }
+                        fresh = Some(current);
+                        stamp = seen;
+                    }
+                    if version(c)? != stamp {
+                        refresh = true;
+                        continue;
+                    }
+                    let value = finish(
+                        c,
+                        fresh.as_ref().unwrap_or(facts),
+                        held.clone(),
+                        expires.get(),
+                    );
+                    let after = version(c)?;
+                    if after == stamp {
+                        projection = Some(value?);
+                        return Ok(());
+                    }
+                    // Even a completed compound read is discarded before any
+                    // fresh clock derivation. Its guards lend no new admission.
+                    drop(value);
+                    if !stamp.same_database(after) {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "Current packet state changed during projection",
+                        ));
+                    }
+                    refresh = true;
                 }
-                projection = Some(value);
-                Ok(())
+                Err(Error::new(
+                    "authority-busy",
+                    "Current packet clock kept changing during projection",
+                ))
             },
             |scopes| {
                 let held = self.try_acquire_authority(scopes)?;

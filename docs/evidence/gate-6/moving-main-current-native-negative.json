@@ -78,5 +78,31 @@
     "task_complete": false,
     "cell_qualified": false,
     "whole_gate_qualified": false
+  },
+  "after_current_sql_isolation_normal_run": {
+    "source_revision": "02b68e897df58b87c5cb0275dc97b6f4576ac243",
+    "normal_cli_sha256": "4adfe372f4f553632795af6c034282b1efbffba4af2c9a5e111af4908d3228e9",
+    "independent_peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+    "passed": false,
+    "report_sha256": "f33c54cd9bf493aa1b2adc4a0a24558fc52ac9517ed2162ac47886ae5b6d282a",
+    "source_and_executable_guards_unchanged": true,
+    "ordinary_no_extra_phase_trace_or_stack_sampling": true,
+    "public_original_moves_observed_completed": 1,
+    "journal_completed_roots": 1,
+    "successful_physical_segments": 0,
+    "first_session_original_read_only_completion_deadline": true,
+    "first_session_attach_activate_recorded_readiness_absent": true,
+    "completed_other_session_video_and_data_not_verified": true,
+    "both_servers_joined_unforced": true,
+    "both_physical_workers_joined_unforced": true,
+    "unretired_native_lifetimes": 3,
+    "unretired_original_connections_still_ready": true,
+    "cleanup_not_qualified": true,
+    "original_db_wal_unchanged": true,
+    "stopped_phase_audit_sha256": "812da4ea772e7403a4015683728fa2099164efbbb551523f8ec84bbfd7bd8a1c",
+    "full_helper_resource_audit_pending": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false
   }
 }

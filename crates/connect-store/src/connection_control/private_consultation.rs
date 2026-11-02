@@ -488,11 +488,12 @@ pub(crate) fn observation_source_current(
 }
 
 pub(crate) fn private_partner(c: &Connection, connection: &str) -> Result<Option<String>> {
-    c.query_row(
+    // Reuse the compiled view query, never its rows or a prior authority grant.
+    // Every packet still executes against this current connection/snapshot.
+    c.prepare_cached(
         "SELECT partner_connection_id FROM native_private_content_floors WHERE connection_id=?1",
-        [connection],
-        |r| r.get(0),
     )
+    .and_then(|mut statement| statement.query_row([connection], |r| r.get(0)))
     .optional()
     .map_err(|_| Error::storage())
 }
