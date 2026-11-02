@@ -1,0 +1,232 @@
+{
+  "format": "connect/native-retirement-settlement/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "passed": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Local macOS arm64 debug test-support signed native PCMU/VP8 and RTC lifecycle components and current Store authority/privacy/recovery components. Normal production Opus/full programme, browser/remote/provider/matrix and whole Gate 6 qualification remain open.",
+  "implementation_parent_revision": "201309214280b34c98d335e8a69265fe18f6da04",
+  "implementation": {
+    "immediate_metadata_attempts": true,
+    "original_opaque_lease_and_authority_revalidation_preserved": true,
+    "async_drain_reports_incomplete": true,
+    "shared_service_worker_join_budget_seconds": 3,
+    "stopped_custodian_cleanup_budget_seconds": 3,
+    "owner_teardown_acceptance_seconds": 5,
+    "no_mutation_replay": true,
+    "no_upstream_patch_changes": true
+  },
+  "before": {
+    "actual_signed_failures": [
+      "canonical_native_connections::cleanup::production_native_shutdown_reports_unsettled_custody_instead_of_success",
+      "canonical_native_connections::cleanup::production_native_shutdown_settles_exact_lifetimes_after_a_refused_authority_attempt"
+    ],
+    "shutdown_observations": [
+      "original native shutdown result=Ok(()) lifetimes=(2, 0) elapsed_ms=2120",
+      "original native shutdown result=Ok(()) lifetimes=(2, 0) elapsed_ms=2423"
+    ],
+    "source_inputs_unchanged": true,
+    "component_binary_sha256": "03ece01d8c1a47c06784b9bad26879bb059ddd72b2d38c28432859c50f7d3334"
+  },
+  "graceful_candidate": {
+    "signed_cases_passed": 5,
+    "store_cases_passed": 448,
+    "component_binary_sha256": "3b90c7968ae9909ddf7d98504e196805cf1ca3b3c15c456bf53e933608d79bb3",
+    "source_inputs_unchanged": true
+  },
+  "additional_drop_counterexample": {
+    "actual_case_executed": true,
+    "retained_store_observations": [
+      {
+        "handles": 4,
+        "elapsed_ms": 5009
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "component_binary_sha256": "77c74a6d6a6a8b996230d4beaf728d148cff37b8677b87a0125f4db3e66424ac"
+  },
+  "after": {
+    "signed_cases": [
+      {
+        "name": "canonical_native_connections::cleanup::production_native_server_drop_releases_custodians_before_successor_metadata_recovery",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": [
+          "dropped native runtime retained_store_handles=0 elapsed_ms=3145"
+        ]
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_shutdown_settles_exact_lifetimes_after_a_refused_authority_attempt",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": [
+          "original native shutdown result=Ok(()) lifetimes=(2, 2) elapsed_ms=2583"
+        ]
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_shutdown_reports_unsettled_custody_instead_of_success",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": [
+          "original native shutdown result=Err(Canonical shutdown failed: canonical runtime retirement; public Session failure: None) lifetimes=(2, 0) elapsed_ms=3022"
+        ]
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_cleanup_wait_keeps_unrelated_signed_commands_running_and_retains_unsettled_custody",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      },
+      {
+        "name": "canonical_native_connections::consultation::groups::replacement::av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      },
+      {
+        "name": "canonical_native_connections::consultation::groups::replacement::production_replacement_known_commit_metadata_failure_and_target_loss_retire_without_replay",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      }
+    ],
+    "store_suites": [
+      {
+        "name": "audience",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "peer-authority",
+        "passed": 38,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "session-control",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "handoff-lifetimes",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "private-consultation",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "native-authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "replacement-sources",
+        "passed": 150,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "packet-snapshot",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_cases_passed": 457,
+    "failed": 0,
+    "ignored": 0,
+    "component_binary_sha256": "0fe2cc99422d8921cb978ede63c71a6f00c6e7731a413e85879e2f2474d76af0",
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "721d8392e305370ac9e282d8fe4c219764a2e87ad4929498e4e0ed2faf32bbda"
+  },
+  "rtc_after": {
+    "signed_cases": [
+      {
+        "name": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::admission::original_rtc_primary_media_admits_once_and_joins_core_after_remote_close",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "shutdown_observations": []
+      }
+    ],
+    "component_binary_sha256": "497ba84b6f509823ecba5c384f1d37d2b4e936b1536b940500d7747a67f05995",
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "721d8392e305370ac9e282d8fe4c219764a2e87ad4929498e4e0ed2faf32bbda"
+  },
+  "source_files_sha256": {
+    "crates/connect-server/src/canonical.rs": "2b54bbba45ed1ecc8b382df2a51ef3bd5a9992a59eefb1e29dcba39ee386f9e1",
+    "crates/connect-server/src/canonical_telephone.rs": "30687342813b686a211a33404e74d77469f3761e6853898d538e133851ca6afe",
+    "crates/connect-server/tests/support/canonical_native_connections/cleanup.rs": "62b3f2c99272398f58ed67130316cf1dd2d04d9be99be0099777ed0740c47217",
+    "crates/connect-service/src/canonical_native.rs": "5b40c5a4d257a343ffae3d9071da109f36945dd3b98d2176742fe17c09f97f81",
+    "crates/connect-service/src/canonical_runtime.rs": "78ed3ae9ab1f79c979308d930c06c88dbbad71433df64fa8776ccf448fc4df1b",
+    "crates/connect-service/src/canonical_sessions.rs": "1dec85d493c1ba661bb8c2289add6400372caeda100207b28a820a50c5e2f06c",
+    "crates/connect-service/src/canonical_webrtc.rs": "2ab09af40d6bb4ca892973b8a76cb3bec678fd75c3dd1a82462c5630c2484f45",
+    "crates/connect-service/src/lib.rs": "b338b7f3ceb3ddf8602c66b5ea1686daac82d81a33e9c0e114ccee1753abd45b",
+    "crates/connect-service/src/session_init.rs": "6b119f40d82ba7dab91b003cb697c1b497d3bfe6d62c08537bce64f018917617",
+    "crates/connect-store/src/transitions/native_offers/observations.rs": "3f072e9cb1ed248b72717fe7fb99c3e86bf3188f5259e0dff4a7955b3ae94b3d"
+  },
+  "private_log_sha256": {
+    "audience.log": "807e66b5f469e42b80c9c6560be1716e69b04345ceba39f6f9a89f091c096b26",
+    "dependencies.log": "78e0e8e5912d607d7a143d6876bc1af702e721ed7c97ebda2e820560b0188686",
+    "format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "handoff-lifetimes.log": "6395b047d049bf8127b410ee2060a452f0d8c484ce82a15b3d6dbec58ee27c85",
+    "native-authority.log": "6e9f4fb53e1315b33aa31fa861fc70715612eae137eb6502e1786a634d9deda7",
+    "packet-snapshot.log": "75deeecf2710eab9c61bbdb6adecbaa32e7f22daa909f4cdd67f232ef2a9852d",
+    "peer-authority.log": "258da3fdb7c3de56fea6035dabb52c6c732e5f70eb08dafca086644892efed58",
+    "private-consultation.log": "388bf60edfa58ac9ac713c932f5ccba2ea783d0c47d16f53cdade3a6309ed56e",
+    "replacement-sources.log": "9d6d0d45c5fe5f91987700555779ab900fb90086303489dd87a9f7c36556bc6a",
+    "session-control.log": "0e06aa25486cf646284adf9206ac8d05e55d4b4b094f254f13268bad6945d0cd",
+    "signed-build.log": "761f5fc32826487b1b215738a9281b53fd4778f8447b788ab6f04742aa0bc0de",
+    "signed-case-0.log": "4aa524030a97b1ebbea0dae8f7939a4fda9ccc3ca1067220f26d0db38a1afb0a",
+    "signed-case-1.log": "771afe08b2eb73c2d197e620abbaf96365550ae1e568c96d5a0879198fde5e90",
+    "signed-case-2.log": "fd96752d831c8aeeaee75b19d922fdf1d883c2ececcedf0fe0d9d5eb9f73f185",
+    "signed-case-3.log": "8857168e4ab3fd89dac26b3e47de483ce2b158580da8c9d934275cda7e911d67",
+    "signed-case-4.log": "958ac67a078d249d045dfccaee8c430497f9f0aee736f65647759a4617a85769",
+    "signed-case-5.log": "08652d2cf3fd88686586845d5bbcc883507680fd1dc1df3a829ec55e3f09e0df"
+  },
+  "limits": [
+    "Component checks do not qualify a full transport cell. All32 cells remain unqualified.",
+    "Persistent contention must report failure; successor ownership recovers exact absent original lifetimes after dropped runtime releases its handles.",
+    "The budget applies to stopped metadata retries and tracked Service worker joins; this evidence does not independently qualify every Core/browser/provider close path."
+  ],
+  "rtc_private_log_sha256": {
+    "dependencies.log": "78e0e8e5912d607d7a143d6876bc1af702e721ed7c97ebda2e820560b0188686",
+    "format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "signed-build.log": "27e8d48b23a04a0b796a4e74f1472be204c6ca7f9b3b77a75509d7954303ad57",
+    "signed-case-0.log": "065e1dc778ae2a5bba0a290f2e427a007ecffa8e2e36176b2cecdc4406ff4d25",
+    "signed-case-1.log": "fe9a0d1ece67283b665ee4667a903c9a18ec19a4cdf5c0008caf0624d09f49cf",
+    "signed-case-2.log": "4768abbfb023122e8ab3b58e903c1261b190f3ce5faa77c8ea9a8f3d93bb0110"
+  }
+}

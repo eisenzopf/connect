@@ -286,7 +286,11 @@ impl Drop for TelephoneTransport {
             if let Ok(runtime) = tokio::runtime::Handle::try_current() {
                 runtime.spawn(async move {
                     if let Some(service) = service {
-                        service.drain_canonical_runtime().await;
+                        if service.drain_canonical_runtime().await.is_err() {
+                            tracing::debug!(
+                                "Canonical runtime drain remains incomplete during telephone drop"
+                            );
+                        }
                     }
                     let _ = coordinator
                         .shutdown_gracefully(Some(Duration::from_secs(5)))

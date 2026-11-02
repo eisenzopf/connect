@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(a.drains.load(Ordering::SeqCst), 1);
         assert_eq!(b.drains.load(Ordering::SeqCst), 1);
         assert!(a.cancels.load(Ordering::SeqCst) > 0 && b.cancels.load(Ordering::SeqCst) > 0);
-        service.drain_canonical_runtime().await;
+        service.drain_canonical_runtime().await.unwrap();
     }
     #[tokio::test]
     async fn host_registry_refuses_duplicate_names_capacity_and_retired_runtime() {
@@ -533,7 +533,7 @@ mod tests {
                 .code,
             "forbidden"
         );
-        service.drain_canonical_runtime().await;
+        service.drain_canonical_runtime().await.unwrap();
     }
     #[tokio::test]
     async fn queued_snapshot_cannot_add_work_after_host_closure() {
@@ -573,6 +573,6 @@ mod tests {
             0
         );
         assert!(host.calls.lock().expect("calls").is_empty());
-        service.drain_canonical_runtime().await;
+        service.drain_canonical_runtime().await.unwrap();
     }
 }

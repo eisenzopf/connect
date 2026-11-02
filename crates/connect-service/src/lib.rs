@@ -272,73 +272,126 @@ impl Service {
             .with_native_binding_for_test(connection_id, hold)
     }
     /// Drain the registered adapter's owned work after physical intake stops.
-    pub async fn drain_canonical_runtime(&self) {
-        let _ = self.drain_session_initialization().await;
-        let _ = self.drain_consultation_initialization().await;
+    /// Use one bounded deadline across worker groups and report any
+    /// refused or unjoined retirement; physical closure alone is not completion.
+    pub async fn drain_canonical_runtime(&self) -> Result<()> {
+        let mut incomplete = self.drain_session_initialization().await.is_err();
+        incomplete |= self.drain_consultation_initialization().await.is_err();
         if let Some(runtime) = self.canonical_runtime.get() {
             runtime.stop.cancel();
+            let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
             self.store.uninstall_session_codec_coordinator();
             let worker = runtime
                 .session_codec_worker
                 .lock()
-                .ok()
-                .and_then(|mut w| w.take());
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .take();
             if let Some(mut worker) = worker {
-                if tokio::time::timeout(std::time::Duration::from_secs(3), &mut worker)
-                    .await
-                    .is_err()
-                {
-                    worker.abort();
-                    let _ = worker.await;
+                match tokio::time::timeout_at(deadline, &mut worker).await {
+                    Ok(Ok(())) => (),
+                    Ok(Err(_)) => incomplete = true,
+                    Err(_) => {
+                        incomplete = true;
+                        worker.abort();
+                        let _ = worker.await;
+                    }
                 }
             }
             let worker = {
                 runtime
                     .session_lifecycle_worker
                     .lock()
-                    .ok()
-                    .and_then(|mut w| w.take())
+                    .unwrap_or_else(|poison| {
+                        incomplete = true;
+                        poison.into_inner()
+                    })
+                    .take()
             };
             if let Some(mut worker) = worker {
-                if tokio::time::timeout(std::time::Duration::from_secs(3), &mut worker)
-                    .await
-                    .is_err()
-                {
-                    worker.abort();
-                    let _ = worker.await;
+                match tokio::time::timeout_at(deadline, &mut worker).await {
+                    Ok(Ok(())) => (),
+                    Ok(Err(_)) => incomplete = true,
+                    Err(_) => {
+                        incomplete = true;
+                        worker.abort();
+                        let _ = worker.await;
+                    }
                 }
             }
             let worker = {
                 runtime
                     .session_reconnect_worker
                     .lock()
-                    .ok()
-                    .and_then(|mut w| w.take())
+                    .unwrap_or_else(|poison| {
+                        incomplete = true;
+                        poison.into_inner()
+                    })
+                    .take()
             };
             if let Some(mut worker) = worker {
-                if tokio::time::timeout(std::time::Duration::from_secs(3), &mut worker)
-                    .await
-                    .is_err()
-                {
-                    worker.abort();
-                    let _ = worker.await;
+                match tokio::time::timeout_at(deadline, &mut worker).await {
+                    Ok(Ok(())) => (),
+                    Ok(Err(_)) => incomplete = true,
+                    Err(_) => {
+                        incomplete = true;
+                        worker.abort();
+                        let _ = worker.await;
+                    }
                 }
             }
 
             runtime.core.drain_prepared_outbound_connections().await;
             runtime.core.drain_connection_lifecycle_tasks().await;
-            let mut work =
-                { std::mem::take(&mut *runtime.work.lock().unwrap_or_else(|p| p.into_inner())) };
-            let _ = tokio::time::timeout(std::time::Duration::from_secs(3), async {
-                while work.join_next().await.is_some() {}
+            let mut work = {
+                std::mem::take(&mut *runtime.work.lock().unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                }))
+            };
+            let settled = tokio::time::timeout_at(deadline, async {
+                let mut joined = true;
+                while let Some(result) = work.join_next().await {
+                    joined &= result.is_ok();
+                }
+                joined
             })
             .await;
-            let telephone = runtime.telephone.lock().ok().and_then(|t| t.clone());
+            if !matches!(settled, Ok(true)) {
+                incomplete = true;
+                work.abort_all();
+                while work.join_next().await.is_some() {}
+            }
+            incomplete |= runtime
+                .retirement_failed
+                .load(std::sync::atomic::Ordering::Acquire);
+            let telephone = runtime
+                .telephone
+                .lock()
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .clone();
             if let Some(telephone) = telephone {
-                if telephone.adapter.drain().await.is_err() {
+                if !matches!(
+                    tokio::time::timeout_at(deadline, telephone.adapter.drain()).await,
+                    Ok(Ok(()))
+                ) {
+                    incomplete = true;
                     tracing::debug!(target:"connect_service::telephone_replacement", "Telephone adapter drain remains incomplete");
                 }
             }
+        }
+        if incomplete {
+            Err(Error::new(
+                "shutdown-incomplete",
+                "Canonical runtime did not fully retire its owned work",
+            ))
+        } else {
+            Ok(())
         }
     }
     /// Register the wake hint before journal catch-up. Only a committed journal

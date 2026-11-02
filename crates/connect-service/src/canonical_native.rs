@@ -276,8 +276,11 @@ impl Runtime {
             };
             work.spawn(async move {
                 let cancellation = registration.as_ref().map(|guard| guard.cancellation());
-                Box::pin(runtime.native_worker(a, physical, credential, tx, cancellation)).await;
-                if let Some(guard) = registration {
+                let retired = Box::pin(runtime.clone().native_worker(a, physical, credential, tx, cancellation)).await;
+                if let Err(error) = retired {
+                    runtime.retirement_failed.store(true, std::sync::atomic::Ordering::Release);
+                    tracing::debug!(code=%error.code,"Original native custodian retirement remains incomplete");
+                } else if let Some(guard) = registration {
                     guard.complete();
                 }
             });
@@ -291,16 +294,15 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
         cancellation: Option<tokio_util::sync::CancellationToken>,
-    ) {
+    ) -> Result<()> {
         if physical.binding.transport() == rvoip_core::Transport::WebSocket {
-            Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
-            return;
+            return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
         }
         let native = match self.native_adapter(physical.binding.transport()) {
             Ok(native) => native,
             Err(error) => {
                 let _ = tx.send(Err(error));
-                return;
+                return Ok(());
             }
         };
         let mut lease = None;
@@ -331,9 +333,10 @@ impl Runtime {
         let _ = tx.send(outcome);
         // No idle original command/reader survives negotiation or durable commit.
         drop(a);
-        let Some(lease) = lease else { return };
+        let Some(lease) = lease else { return Ok(()) };
         let lease = Arc::new(lease);
         let id = ConnectionId::from_string(lease.runtime_connection_id().to_owned());
+        let mut cleanup_cutoff = None;
         if succeeded {
             loop {
                 tokio::time::sleep(Duration::from_millis(100)).await;
@@ -344,6 +347,7 @@ impl Runtime {
                 let physical_closed = physical.lifetime.is_cancelled();
                 let route_live = native.is_connection_live(&id);
                 if stopped || cancelled || physical_closed || !route_live {
+                    self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
                     tracing::debug!(connection = %id, stopped, physical_closed, route_live,
                         "Native custodian observed terminal lifetime");
                     break;
@@ -375,6 +379,7 @@ impl Runtime {
         // Actual end is scoped to this Core route. An unconfirmed drain keeps
         // custody/quota; no other Connection or the physical peer is closed.
         loop {
+            self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
             if native.is_connection_live(&id) {
                 let _ = self
                     .core
@@ -396,7 +401,7 @@ impl Runtime {
                     id: retired,
                     generation: attempt.generation(),
                 };
-                store.settle_native_offer_cleanup(&attempt, &absent)
+                store.try_settle_native_offer_cleanup(&attempt, &absent)
             })
             .await;
             match settled {
@@ -418,12 +423,12 @@ impl Runtime {
                     );
                 }
             }
-            if self.stop.is_cancelled() {
-                break;
-            }
+            // Runtime shutdown still owes this original durable retirement.
+            // Its tracked drain bounds and joins the custodian, or reports failure.
             tokio::time::sleep(Duration::from_millis(200)).await;
         }
         self.media.remove(&id);
+        Ok(())
     }
     /// Retry only synchronous metadata preflight. Callers must not put Core or
     /// transport effects in this closure: a lost effect result is never retried.

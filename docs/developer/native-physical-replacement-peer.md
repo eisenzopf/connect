@@ -368,3 +368,5 @@ to SQL, schema or observer identity still refuse, discarding all partial reads.
 The frequent private-partner view query reuses only its compiled statement; it
 executes current rows on every call within the unchanged32-entry cache. See
 [the statement and clock evidence](../evidence/gate-6/packet-sql-statement-reuse.json).
+
+Native retirement keeps the original opaque cleanup lease across immediate SQL and authority attempts. Graceful shutdown now reports incomplete retirement instead of claiming success when metadata cannot settle. A stopped custodian has one three-second metadata retry budget, including when server Drop retires installation ownership without an async drain. An exclusive successor recovers the original absent lifetimes; cleanup does not replay the original mutation. The local signed failure/recovery checks and Store checks are recorded in `../evidence/gate-6/native-retirement-settlement.json`. Full programme and transport-cell qualification remain open.

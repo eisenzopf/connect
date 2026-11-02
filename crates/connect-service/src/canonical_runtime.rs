@@ -59,6 +59,7 @@ pub(crate) struct Runtime {
         >,
     >,
     pub(crate) stop: tokio_util::sync::CancellationToken,
+    pub(crate) retirement_failed: std::sync::atomic::AtomicBool,
     _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
     pub(crate) core: Arc<Orchestrator>,
     // Retain both registered instances. Media negotiation selects the actual
@@ -97,6 +98,25 @@ impl connect_store::RuntimeRetirementSignal for Retirement {
     }
 }
 impl Runtime {
+    /// A stopped custodian gets one metadata-cleanup budget even when no caller
+    /// invokes Service::drain_canonical_runtime (for example, server Drop).
+    /// Metadata-only retries retain this cutoff instead of renewing it.
+    pub(crate) fn check_custodian_stop_deadline(
+        &self,
+        cutoff: &mut Option<tokio::time::Instant>,
+    ) -> Result<()> {
+        if self.stop.is_cancelled() {
+            let now = tokio::time::Instant::now();
+            let deadline = cutoff.get_or_insert(now + std::time::Duration::from_secs(3));
+            if now >= *deadline {
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Stopped native retirement metadata remains unsettled",
+                ));
+            }
+        }
+        Ok(())
+    }
     #[cfg(feature = "test-support")]
     pub(crate) fn suppress_reconciliation_hints_for_test(
         &self,
@@ -260,6 +280,7 @@ impl Runtime {
             native_workers: Default::default(),
             credential_refresh_receipts: Mutex::new(Default::default()),
             stop,
+            retirement_failed: std::sync::atomic::AtomicBool::new(false),
             _retirement: retirement,
             core,
             quic_native: native,

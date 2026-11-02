@@ -848,7 +848,9 @@ impl RunningCanonicalServer {
                 failures.push("provider telephone");
             }
         }
-        self.service.drain_canonical_runtime().await;
+        if self.service.drain_canonical_runtime().await.is_err() {
+            failures.push("canonical runtime retirement");
+        }
         if let Some(mut telephone) = self.telephone.take() {
             if telephone.shutdown().await.is_err() {
                 failures.push("telephone");

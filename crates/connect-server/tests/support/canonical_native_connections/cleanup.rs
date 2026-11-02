@@ -71,3 +71,121 @@ async fn production_native_cleanup_wait_keeps_unrelated_signed_commands_running_
     probe.shutdown().await.unwrap();
     scene.f.server.shutdown().await.unwrap();
 }
+
+// Actual shutdown must settle original custody or report the failure.
+#[tokio::test]
+async fn production_native_shutdown_settles_exact_lifetimes_after_a_refused_authority_attempt() {
+    shutdown_with_cleanup_contention(true).await;
+}
+
+#[tokio::test]
+async fn production_native_shutdown_reports_unsettled_custody_instead_of_success() {
+    shutdown_with_cleanup_contention(false).await;
+}
+
+async fn shutdown_with_cleanup_contention(release_after_first_attempt: bool) {
+    let scene = codecs::setup().await;
+    let database = scene.f.config.database.clone();
+    let state = || {
+        let c = rusqlite::Connection::open(&database).unwrap();
+        c.query_row(
+            "SELECT COUNT(*),SUM(CASE WHEN l.retired=1 AND c.state='retired' THEN 1 ELSE 0 END) FROM native_connection_lifetimes l JOIN connections c ON c.id=l.connection_id WHERE c.id IN ('codec-source','codec-target')",
+            [], |r| Ok((r.get::<_,u64>(0)?,r.get::<_,u64>(1)?)),
+        ).unwrap()
+    };
+    assert_eq!(state(), (2, 0));
+    let hold = scene
+        .f
+        .server
+        .store
+        .acquire_authority(
+            &[AuthorityScope::conversation(&scene.cid, AuthorityMode::Write).unwrap()],
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    let started = tokio::time::Instant::now();
+    let shutdown = scene.f.server.shutdown();
+    let result = if release_after_first_attempt {
+        let release = async {
+            // Store's existing two-second authority attempt must first refuse.
+            // The release then leaves time inside the original runtime drain.
+            tokio::time::sleep(Duration::from_millis(2400)).await;
+            drop(hold);
+        };
+        tokio::join!(
+            tokio::time::timeout(Duration::from_secs(5), shutdown),
+            release
+        )
+        .0
+        .unwrap()
+    } else {
+        let result = tokio::time::timeout(Duration::from_secs(5), shutdown)
+            .await
+            .unwrap();
+        drop(hold);
+        result
+    };
+    for client in scene.clients {
+        client.shutdown().await.unwrap();
+    }
+    let observed = state();
+    eprintln!(
+        "original native shutdown result={result:?} lifetimes={observed:?} elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
+    if release_after_first_attempt {
+        result.unwrap();
+        assert_eq!(
+            observed,
+            (2, 2),
+            "successful shutdown abandoned the original native retirement records"
+        );
+    } else {
+        assert!(
+            result.is_err(),
+            "shutdown reported success while original native custody was unsettled"
+        );
+    }
+}
+
+#[tokio::test]
+async fn production_native_server_drop_releases_custodians_before_successor_metadata_recovery() {
+    let scene = codecs::setup().await;
+    let original_store = std::sync::Arc::downgrade(&scene.f.server.store);
+    let config = scene.f.config.clone();
+    let database = config.database.clone();
+    let started = tokio::time::Instant::now();
+    // Drop retires installation ownership before any explicit Service drain.
+    // A native metadata retry must not retain the retired runtime indefinitely.
+    drop(scene.f.server);
+    for client in scene.clients {
+        client.shutdown().await.unwrap();
+    }
+    let until = started + Duration::from_secs(5);
+    while original_store.strong_count() != 0 && tokio::time::Instant::now() < until {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let remaining = original_store.strong_count();
+    eprintln!(
+        "dropped native runtime retained_store_handles={remaining} elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
+    assert_eq!(
+        remaining, 0,
+        "stopped native custodians retained their retired runtime beyond the owner teardown budget"
+    );
+    let successor = connect_server::canonical::RunningCanonicalServer::start(config)
+        .await
+        .unwrap();
+    let snapshot = successor.service.canonical_runtime_snapshot().unwrap();
+    assert_eq!(snapshot.connections, 0);
+    assert_eq!(snapshot.physical_peers, 0);
+    let retired = rusqlite::Connection::open(&database).unwrap().query_row(
+        "SELECT COUNT(*) FROM native_connection_lifetimes l JOIN connections c ON c.id=l.connection_id WHERE c.id IN ('codec-source','codec-target') AND l.retired=1 AND c.state='retired'",[],|r|r.get::<_,u64>(0),
+    ).unwrap();
+    successor.shutdown().await.unwrap();
+    assert_eq!(
+        retired, 2,
+        "exclusive successor did not settle the original absent native lifetimes"
+    );
+}

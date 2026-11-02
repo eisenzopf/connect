@@ -212,11 +212,39 @@ impl Store {
         }
         self.settle_native_offer_cleanup_at(lease, observation)
     }
+    /// One immediate metadata settlement attempt for an owned runtime custodian.
+    /// No command SQL or file-authority wait can outlive the runtime's drain.
+    /// Refusal retains the same opaque lease for the next metadata-only attempt.
+    pub fn try_settle_native_offer_cleanup(
+        &self,
+        lease: &NativeOfferLease,
+        observation: &dyn NativeOfferRuntimeObservation,
+    ) -> Result<()> {
+        if lease.runtime != self.runtime_epoch() {
+            return Err(Error::forbidden());
+        }
+        self.settle_native_offer_cleanup_with(lease, observation, true)
+    }
     pub(super) fn settle_native_offer_cleanup_at(
         &self,
         lease: &NativeOfferLease,
         observation: &dyn NativeOfferRuntimeObservation,
     ) -> Result<()> {
+        self.settle_native_offer_cleanup_with(lease, observation, false)
+    }
+    fn settle_native_offer_cleanup_with(
+        &self,
+        lease: &NativeOfferLease,
+        observation: &dyn NativeOfferRuntimeObservation,
+        immediate: bool,
+    ) -> Result<()> {
+        let connection = || {
+            if immediate {
+                self.try_connection()
+            } else {
+                self.connection()
+            }
+        };
         let owner = self.require_runtime_owner()?;
         let expected = NativeOfferObservation::Retired {
             runtime_connection_id: lease.core_connection.clone(),
@@ -246,14 +274,18 @@ impl Store {
             }
         }
         let scopes = {
-            let c = self.connection()?;
+            let c = connection()?;
             admission::row_scopes(&bound(&c, lease)?)?
         };
-        let held = self.acquire_authority(
-            &scopes,
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-        )?;
-        let mut c = self.connection()?;
+        let held = if immediate {
+            self.try_acquire_authority(&scopes)?
+        } else {
+            self.acquire_authority(
+                &scopes,
+                &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            )?
+        };
+        let mut c = connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

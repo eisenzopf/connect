@@ -315,6 +315,6 @@ mod http_projection_tests {
                 .expect("same coordinator"),
             1
         );
-        service.drain_canonical_runtime().await;
+        service.drain_canonical_runtime().await.unwrap();
     }
 }

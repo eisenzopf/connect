@@ -151,7 +151,7 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
-    ) {
+    ) -> Result<()> {
         let mut owned = Owned::default();
         let outcome = Box::pin(self.webrtc_start(&a, &physical, &credential, &mut owned)).await;
         let handler_finished = a.invocation_cancellation();
@@ -206,17 +206,26 @@ impl Runtime {
             // The original owner confirms actual RTC close. A missing confirmation
             // cannot produce a durable retirement fact or release its owned capacity.
             if attempt.shutdown().await.is_err() {
-                return;
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Original RTC retirement is not confirmed",
+                ));
             }
         }
         if let Some(binding) = &owned.binding {
             if binding.shutdown().await.is_err() {
-                return;
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Original RTC retirement is not confirmed",
+                ));
             }
         }
         if let Some(id) = &owned.id {
             let Some(host) = self.webrtc.get() else {
-                return;
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Original RTC retirement is not confirmed",
+                ));
             };
             if owned.reserved
                 && host
@@ -225,29 +234,38 @@ impl Runtime {
                     .await
                     .is_err()
             {
-                return;
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Original RTC retirement is not confirmed",
+                ));
             }
             if owned.reserved && host.adapter().is_connection_live(id) {
-                return;
+                return Err(Error::new(
+                    "shutdown-incomplete",
+                    "Original RTC retirement is not confirmed",
+                ));
             }
             self.media.remove(id);
         }
         if owned.lease().is_err() {
-            return;
+            return Ok(());
         }
         let owned = Arc::new(owned);
+        let mut cleanup_cutoff = None;
         loop {
+            self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
             let store = self.media.store.clone();
             let owner = owned.clone();
             let settled = tokio::task::spawn_blocking(move || {
-                store.settle_native_offer_cleanup(owner.lease()?, &Closed(&owner))
+                store.try_settle_native_offer_cleanup(owner.lease()?, &Closed(&owner))
             })
             .await;
-            if matches!(settled, Ok(Ok(()))) || self.stop.is_cancelled() {
+            if matches!(settled, Ok(Ok(()))) {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
+        Ok(())
     }
     async fn webrtc_start(
         &self,
