@@ -1,0 +1,130 @@
+{
+  "format": "connect/installed-reference-app-current-macos/1",
+  "task": "G6-072",
+  "source_revision": "e65e774b43a6d5f38151f3b6ac6770edd94817c0",
+  "runtime_source_revision": "70014a9f6a03d9499cd4b9f9ce67bce0b3b864b4",
+  "target": "aarch64-apple-darwin",
+  "node": "v22.16.0",
+  "browser": "156.0.8078.48",
+  "browser_archive_evidence": "docs/evidence/gate-6/frozen-chrome-macos-acquisition.json",
+  "browser_strict_code_signature_passed": false,
+  "signatures_or_gatekeeper_modified": false,
+  "binary_sha256": "62952d1f476c7bbbccc3a302a5f2a33ff4efd27ec567ea5242fd25a6bf733c88",
+  "archive_sha256": "ff453335708b5530cb8af6eda8de2f4a485abf366956b60a8ce53849a744688b",
+  "manifest_sha256": "687dabb18c0bbe349d065e8ff8a0b7c952a48fbf196a724921a75a9e7b3fbfd5",
+  "opus_native_build": {
+    "mode": "bundled-static",
+    "native_archive_sha256": "61ef40a0bfb0e9202b58501014a95ba972127af9fafcb883f6fddf008f5e222f"
+  },
+  "production_release": true,
+  "test_support": false,
+  "source_inputs_unchanged": true,
+  "commands": [
+    {
+      "name": "dependencies",
+      "exit_code": 0
+    },
+    {
+      "name": "package-node",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "rehearse",
+      "exit_code": 0
+    }
+  ],
+  "verified_runtime_reused": true,
+  "earlier_failed_node_attempt_preserved": true,
+  "temporary_consumer_outside_worktree": true,
+  "forced_cleanup": false,
+  "owned_processes_remaining": 0,
+  "checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected",
+    "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+    "keyboard-participant-selection-and-conversation-creation",
+    "actual-authorized-text-safe-timeline",
+    "keyboard-incoming-invitation-and-actual-acceptance",
+    "actual-browser-microphone-and-camera-refusal",
+    "320px-no-horizontal-overflow",
+    "actual-accepted-original-survives-lost-response-and-offline",
+    "keyboard-original-status-recovery-one-visible-message",
+    "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+    "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+    "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+    "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+    "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+    "current-active-session-snapshots-preserve-original-browser-media-capture",
+    "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+    "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+    "additional-owned-synthetic-media-browser-owners-close",
+    "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+    "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+    "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions",
+    "both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window",
+    "keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video",
+    "keyboard-cancellation-stops-a-late-actual-browser-device-result-before-publication",
+    "actual-microphone-permission-revocation-ends-tracks-and-joins-media",
+    "keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work",
+    "actual-browser-offline-transition-stops-capture-render-and-packet-work",
+    "keyboard-explicit-offline-reconnect-observes-original-av-end-without-resuming-capture",
+    "both-original-av-connections-and-additional-owned-browsers-join",
+    "original-app-server-and-all-native-helper-processes-joined",
+    "same-command-restart-preserves-original-setup-and-conversation",
+    "original-owned-browser-joined",
+    "restarted-app-server-and-all-native-helper-processes-joined"
+  ],
+  "check_count": 37,
+  "independent_artifact_audit": {
+    "format": "connect/installed-local-app-artifacts-audited/1",
+    "source_revision": "70014a9f6a03d9499cd4b9f9ce67bce0b3b864b4",
+    "sources_verified": {
+      "git": 4959,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "runtime_files_verified": 755,
+    "app_files_verified": 30,
+    "node_archive_files_verified": 195,
+    "archive_sha256": "ff453335708b5530cb8af6eda8de2f4a485abf366956b60a8ce53849a744688b",
+    "binary_sha256": "62952d1f476c7bbbccc3a302a5f2a33ff4efd27ec567ea5242fd25a6bf733c88",
+    "summary_sha256": "15b6eb26ebadb643f597ced86631e62adf3159cf10e944e1158b51d8a0c8f2b9",
+    "source_archive_installation_hashes_match": true,
+    "native_codec_provenance_qualified": true,
+    "native_codec_refusal": null,
+    "actual_app_behavior_passed": true,
+    "actual_app_checks": 37,
+    "browser": "156.0.8078.48",
+    "passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "screenshot_review": {
+    "count": 8,
+    "desktop_and_320px": true,
+    "visually_reviewed": true,
+    "clipped_content_or_horizontal_overflow_observed": false,
+    "scope": "Retained original full-document captures, including local synthetic camera preview and incoming identified green video. Screenshots do not establish transport quality."
+  },
+  "retained_private_digests": {
+    "summary": "15b6eb26ebadb643f597ced86631e62adf3159cf10e944e1158b51d8a0c8f2b9",
+    "controller": "03b302945bd927b22cc3a56ef0b5f081a1dd956afd03e40d33b485c378b8d9bf",
+    "artifact_audit": "bb8520481d5adc741a5a74c9084319cdfc30c330adaa2886a52a26e86567c80a"
+  },
+  "scope": "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified. Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open.",
+  "remaining": [
+    "Earlier Linux and macOS CI negative outcomes remain failures; new local pass does not qualify those hosts.",
+    "Frozen browser strict signing, complete SDK candidate, full lifecycle/failure, model/provider and WAN qualification remain open."
+  ],
+  "passed": true,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
