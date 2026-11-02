@@ -38,5 +38,18 @@
   "limits": "No Linux/browser Opus delay cause established. Logged timing overhead is separate from ordinary media qualification. Raw private log lines, Connection IDs and paths are excluded; no media/source clock, packet, deadline, authority or mutation predicate changed.",
   "full_installed_observer_run_pending": true,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "current_ci": {
+    "run_id": 41518233789,
+    "source_revision": "3dbc72e9f880cc752f9b0a33a87a8ae48efcf34e",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41518233789",
+    "dispatch_attempts": 1,
+    "status_at_dispatch": "in_progress",
+    "native_audio_trace": true,
+    "original_http_clock_trace": true,
+    "node_cpu_profile": false,
+    "native_server_sample": false,
+    "result_pending": true,
+    "ordinary_latency_qualification": false
+  }
 }
