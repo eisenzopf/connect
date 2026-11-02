@@ -54,5 +54,29 @@
     "fixture_fix_evidence": "capture-data-control-summary.json",
     "native_catalog_contention_cause_unproven": true,
     "ordinary_quality_qualification": false
+  },
+  "later_normal_metadata_fixed_run": {
+    "source_revision": "183e04a514f2290edf0409cee9c8788d5560d4bd",
+    "passed": false,
+    "report_sha256": "a80a5542b5445236be93942a3386cb6684c41c47d84bf11d88fc10c164a000af",
+    "same_production_cli_and_independent_peer": true,
+    "source_and_executable_guards_unchanged": true,
+    "public_original_moves_observed_completed": 3,
+    "journal_original_roots_completed": 3,
+    "distinct_new_data_originals_completed": 6,
+    "each_message_bytes": 65536,
+    "exact_payloads_original_audiences_and_single_effect_write_verified": true,
+    "repeat_movement_generation3_completed": true,
+    "metadata_limit_failure_gone": true,
+    "primary_failure": "Session0 ordinal1 original-completion read-only deadline; attach and activation recorded, no readiness before original parent deadline. Target stop marker precedes recorded native-target-stopped failure. Session1 ordinal2 stops during cleanup.",
+    "both_servers_and_five_physical_workers_joined_unforced": true,
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true,
+    "stopped_copy_audit_sha256": "6c4b23d4b67aab0c76773c44f8c628da5ee2438ed9221f9d89dcdd10ac1ae7b5",
+    "full_helper_task_resource_audit_pending": true,
+    "host_capture_executed": false,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false
   }
 }
