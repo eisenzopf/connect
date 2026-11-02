@@ -165,7 +165,14 @@ export class AppMediaBridge {
                 if (remaining <= 0) {
                     submissions.push({ boundary: "expired", datagramSequence: packet.sequence }); continue;
                 }
-                submissions.push(await packet.send(stream, { ...options, timeoutMs: remaining }));
+                try { submissions.push(await packet.send(stream, { ...options, timeoutMs: remaining })); }
+                catch (error) {
+                    // A definite pre-IO deadline drops this original packet.
+                    // Unknown writes and all authority/transport failures retain
+                    // their original errors; no bytes or deadline are replayed.
+                    if (error?.kind !== "deadline" || error?.certainty !== "not-submitted") throw error;
+                    submissions.push({ boundary: "expired", datagramSequence: packet.sequence });
+                }
             }
             return { submissions };
         });

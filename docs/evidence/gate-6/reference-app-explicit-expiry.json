@@ -1,7 +1,7 @@
 {
   "format": "connect/reference-app-explicit-expiry/1",
   "task": "G6-072",
-  "implementation_applied": false,
+  "implementation_applied": true,
   "component_preview_verified": true,
   "source_revision_before_adoption": "86a5a18d721eab17d6688c8211b2b4cf405974db",
   "preview_node": "v26.7.0",
@@ -52,9 +52,28 @@
     "after_report_sha256": "a00317962c7d73dcea6b1adbd26482f2de61aee7915c4ffd6998e13ccb607735",
     "earlier_version_refusal": "Default installed Chrome156.0.8078.4 refused before capture against frozen Mac156.0.8078.48; both original owners joined. No browser/signature/Gatekeeper policy was changed."
   },
-  "scope": "Exact candidate preview only, pending safe adoption after the original guarded build. Browser Media implementation/public SDK codecs capture actual synthetic-device audio, but HTTP media admission receipts are simulated. No installed candidate/native helper/Core/decoded media/transport qualification or resolution of previous CI negatives.",
-  "passed": false,
+  "scope": "Actual adopted App expiry handling,100 Node22.16.0 component tests and exact-byte binding to frozenChrome156.0.8078.48 real fake-device BrowserAppMedia recovery preview. Browser admission receipts are synthetic and SDK is worktree code. No installed candidate/native helper/Core/decoded media/transport qualification or resolution of previous CI negatives.",
+  "passed": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_source_verification": {
+    "node": "v22.16.0",
+    "tests": {
+      "tests": 100,
+      "pass": 100,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "source_files": {
+      "examples/parley-on-connect/app/media.mjs": "9c5d592a4a9e47a0d55193d0c76dc8d0e0a9e48d1de5c6601b3055457d29034d",
+      "examples/parley-on-connect/app/media.test.mjs": "4cb9fd15f0ab87572f202840927d485df999395703ced1a5b9ae898f2810dd7c",
+      "examples/parley-on-connect/app/ui/media.mjs": "a4a3c965ac7fe4e9f5e915ab586aa39df37f294979b2e8265b67b13339b0d97d"
+    },
+    "adoption_state_sha256": "c930c700133c0a582084029fc4de5f2daaaf57fe203c2363a272f33c3e88a9b9",
+    "full_app_tests_sha256": "8659f59d6cf556a2aa8f6777be977089ddba4612c1419f985d356876f6fddf97",
+    "browser_candidate_bytes_equal_adopted_source": true,
+    "earlier_adoption_negative": "First15s runner bound cancelled the existing server test that deliberately waits15.1s;90other tests passed. Full rerun with60s observation bound passes100,0cancelled/ignored; product15s transport-age and5s idle bounds are unchanged."
+  }
 }

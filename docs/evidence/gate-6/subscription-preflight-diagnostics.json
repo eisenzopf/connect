@@ -4,7 +4,7 @@
   "patch": "patches/rvoip/gate6-subscription-preflight-diagnostics.patch",
   "patch_sha256": "b3623bf81c6a1e6e2bf030d379203440cc88a1ad1e4686a8403dcb1202229c85",
   "patches": 271,
-  "scope": "Diagnostic distinctions only: receiver installation, exact flow confirmation, catalog error and missing explicit logical source. Original v4 subscription source cause remains unproven; no outcome/retry/authorization/deadline/resource/quality changes.",
+  "scope": "Diagnostic distinctions only: receiver installation, exact flow confirmation, catalog error and missing explicit logical source. Original v4 subscription source cause remains unproven; no outcome/retry/authorization/deadline/resource/quality changes. Normal release build and selected component checks passed; no fresh full media or complete-cell proof.",
   "source_preparation": {
     "passed": true,
     "changed_prepared_files": 2,
@@ -19,9 +19,50 @@
   },
   "normal_release_verification": {
     "started": true,
-    "complete": false,
-    "passed": false,
-    "scope": "Original19 service media tests, production CLI,47 physical-peer tests and normal peer build, with source and dependency guards."
+    "complete": true,
+    "passed": true,
+    "scope": "Original19 service media tests, production CLI,47 physical-peer tests and normal peer build, with source and dependency guards.",
+    "service_tests_passed": 19,
+    "service_tests_filtered": 52,
+    "service_tests_ignored": 0,
+    "peer_tests_passed": 47,
+    "peer_tests_filtered": 0,
+    "peer_tests_ignored": 0,
+    "binary_sha256": "ab52de3f79ced30e50d347bdb6d77b7703d03d6294df1afa04d89c1c0daec818",
+    "peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 2255.5651705842465,
+    "build_state_sha256": "2ed17b4dc6e072dccb9c8dee7234f065a89b607a836b495ef863a63e633d1d05",
+    "commands": [
+      {
+        "name": "dependencies",
+        "exit_code": 0
+      },
+      {
+        "name": "format",
+        "exit_code": 0
+      },
+      {
+        "name": "service-tests",
+        "exit_code": 0
+      },
+      {
+        "name": "runtime",
+        "exit_code": 0
+      },
+      {
+        "name": "peer-tests",
+        "exit_code": 0
+      },
+      {
+        "name": "peer",
+        "exit_code": 0
+      },
+      {
+        "name": "dependencies-final",
+        "exit_code": 0
+      }
+    ]
   },
   "original_negative_timing": {
     "journal_roots_completed": 2,
@@ -31,7 +72,7 @@
     "source_cause_proven": false,
     "note": "Generic NotReady can arise before Core catalog access, including missing receiver installation or unconfirmed exact flow. Do not infer a missing publisher solely from this error."
   },
-  "passed": false,
+  "passed": true,
   "task_complete": false,
   "cell_qualified": false,
   "whole_gate_qualified": false

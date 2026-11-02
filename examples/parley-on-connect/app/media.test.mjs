@@ -240,3 +240,45 @@ test("normal media retirement drains its original signed watcher without cancell
     const replacement = await f.bridge.open("owner", a, binding);
     assert.notEqual(replacement.leaseId, lease.leaseId);
 });
+
+for (const kind of ["rtp", "clock"]) test(`an explicit not-submitted ${kind} deadline drops only that original packet`, async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding), writes = [];
+    const expired = Object.assign(Error("original deadline"), { kind: "deadline", certainty: "not-submitted" });
+    const original = kind === "rtp" ? entry() : entry({ packet: { kind: "clock", report: {
+        ssrc: 7, ntp: "1", rtp: 960, packets: 1, octets: 1, cname: "synthetic" } } });
+    const method = kind === "rtp" ? "sendRtp" : "sendClock";
+    f.stream[method] = async (...args) => {
+        const seq = kind === "rtp" ? args[0].sequence : args[0];
+        writes.push(seq);
+        if (writes.length === 1) throw expired;
+        return { boundary: "local-media-queue", datagramSequence: seq };
+    };
+    const result = await f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [original] });
+    assert.deepEqual(result.submissions, [{ boundary: "expired", datagramSequence: 1 }]);
+    const next = await f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [{ ...original, sequence: 2 }] });
+    assert.deepEqual(next.submissions, [{ boundary: "local-media-queue", datagramSequence: 2 }]);
+    assert.deepEqual(writes, [1, 2]);
+    assert.equal(f.calls.some(c => c.kind === "close-control-owner"), false);
+});
+
+test("a deadline after possible IO, or a refusal, never becomes an expired packet receipt", async t => {
+    for (const [kind, certainty] of [["deadline", "uncertain"], ["deadline", "read-only"],
+        ["authentication", "not-submitted"], ["cancelled", "not-submitted"], ["protocol", "not-submitted"]]) {
+        const error = Object.assign(Error("original refusal"), { kind, certainty });
+        let writes = 0;
+        const f = fixture(t, { stream: { sendRtp: async () => { writes++; throw error; } } });
+        const a = owner(), lease = await f.bridge.open("owner", a, binding);
+        await assert.rejects(f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [entry(), entry({ sequence: 2 })] }),
+            e => e === error);
+        assert.equal(writes, 1);
+    }
+});
+
+test("an expired original never lets the next packet cross a changed current binding", async t => {
+    const f = fixture(t), a = owner(), lease = await f.bridge.open("owner", a, binding); let writes = 0;
+    f.stream.sendRtp = async () => { writes++; f.state.handle++;
+        throw Object.assign(Error("original deadline"), { kind: "deadline", certainty: "not-submitted" }); };
+    await assert.rejects(f.bridge.send("owner", a, { ...input(lease.leaseId), packets: [entry(), entry({ sequence: 2 })] }),
+        { code: "app-media-stopped" });
+    assert.equal(writes, 1);
+});

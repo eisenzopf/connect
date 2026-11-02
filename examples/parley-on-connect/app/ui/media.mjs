@@ -22,7 +22,7 @@ export class BrowserAppMedia {
         decodedAudioFrames: 0, playedAudioFrames: 0, decodedVideoFrames: 0, paintedVideoFrames: 0,
         droppedFrames: 0, synchronizedPackets: 0, unsynchronizedPackets: 0,
         audioLateDrops: 0, audioHorizonDrops: 0, audioCapacityDrops: 0,
-        videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0, videoCapacityDrops: 0,
+        videoLateDrops: 0, videoHorizonDrops: 0, videoTimerDrops: 0, videoCapacityDrops: 0, droppedClockReports: 0,
         lastAudioOffsetMs: null, lastVideoOffsetMs: null, receiveClockCorrections: 0,
         lastAudioCaptureOffsetMs: null, lastVideoCaptureOffsetMs: null,
         receiveStartedMs: null, deviceSetupMs: null, captureGraphMs: null, cameraSetupMs: null };
@@ -285,11 +285,15 @@ export class BrowserAppMedia {
                     if (!report) fail("app-media-clock");
                     const clock = await this.#call("send", { leaseId: this.#lease.leaseId, streamId: route.binding.streamId,
                         packets: [{ sequence, remainingMs: 200, packet: { kind: "clock", report } }] });
-                    if (clock.submissions?.length !== 1 || clock.submissions[0].boundary !== "local-media-queue" ||
-                        clock.submissions[0].datagramSequence !== sequence) fail("app-media-packet");
-                    this.#counts.clockReportsSent++;
-                    if (route.binding.kind === "video") this.#counts.videoClockReportsSent++;
-                    route.lastReport = performance.now();
+                    if (clock.submissions?.length !== 1 || clock.submissions[0].datagramSequence !== sequence)
+                        fail("app-media-packet");
+                    if (clock.submissions[0].boundary === "expired") this.#counts.droppedClockReports++;
+                    else {
+                        if (clock.submissions[0].boundary !== "local-media-queue") fail("app-media-packet");
+                        this.#counts.clockReportsSent++;
+                        if (route.binding.kind === "video") this.#counts.videoClockReportsSent++;
+                        route.lastReport = performance.now();
+                    }
                 }
             }
         } finally { route.sending = false; }
