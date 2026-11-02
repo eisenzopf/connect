@@ -1,0 +1,37 @@
+{
+  "format": "connect/reference-app-current-platform-ci/1",
+  "task": "G6-072",
+  "source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+  "run_id": 41416492584,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41416492584",
+  "dispatch_count": 1,
+  "lane": "reference-app-components",
+  "targets": [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin"
+  ],
+  "expected_browsers": [
+    "156.0.8078.4",
+    "156.0.8078.48"
+  ],
+  "checks_per_platform": 37,
+  "app_cpu_profile": true,
+  "native_server_sample": true,
+  "app_clock_trace": true,
+  "changes_since_previous_ci": [
+    "Node media TCP listener noDelay:true with21 actual focused tests passed.",
+    "Quarantined Data resource preparation with64Core+17service cases passed.",
+    "Bounded stream metadata adoption wait; normal local build pending."
+  ],
+  "status": "queued",
+  "prior_ci_runs_preserved": [
+    41392072614,
+    41369927293,
+    41358129138
+  ],
+  "earlier_ci_failures_resolved": false,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One new source-bound default synthetic CI run. No model, provider, PSTN, SMS, named-host or publication action."
+}
