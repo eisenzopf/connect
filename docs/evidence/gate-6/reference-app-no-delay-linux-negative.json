@@ -1,0 +1,48 @@
+{
+  "format": "connect/reference-app-no-delay-linux-negative/1",
+  "task": "G6-072",
+  "run_id": 41416492584,
+  "job_id": 125181669418,
+  "source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+  "runtime_source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "binary_sha256": "19da5ed6dc87a1586c174480190e6ab3489d4720c05bfe829ba1f88570708d2c",
+  "checks_completed": 25,
+  "required_checks": 37,
+  "failed_stage": "sustained-combined-browser-audio-video",
+  "first_sustained_window": [
+    {
+      "role": "owner",
+      "elapsed_ms": 2006.5,
+      "completed_audio_frames": 43,
+      "painted_video_frames": 57,
+      "audio_late_drops": 51,
+      "active_tracks": 2
+    },
+    {
+      "role": "organizer",
+      "elapsed_ms": 2013.6000000000931,
+      "completed_audio_frames": 76,
+      "painted_video_frames": 58,
+      "audio_late_drops": 15,
+      "active_tracks": 2
+    }
+  ],
+  "minimum_completed_audio_frames_each": 50,
+  "minimum_painted_video_frames_each": 48,
+  "owned_native_build_and_install_steps_passed": true,
+  "component_zip_sha256": "b0774ee61c5ac9f22aadc97a2c7037798834f2297d17959f902ba7553f30fd51",
+  "component_zip_crc_verified": true,
+  "component_zip_members": 8,
+  "all_source_and_package_artifacts_independently_audited": false,
+  "raw_cpu_profiles_available_in_component_zip": false,
+  "screenshots_visually_reviewed": false,
+  "no_delay_fix_present": true,
+  "no_causality_claim": true,
+  "earlier_ci_failures_preserved": true,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Original new-source Linux CI result only. Native package/install passed reported CI steps; current browser failed unchanged first combined AV window. Component ZIP digest/CRC and exact result inspected; full source/package inventories and visual audit remain pending."
+}

@@ -23,7 +23,7 @@
     "Quarantined Data resource preparation with64Core+17service cases passed.",
     "Bounded stream metadata adoption wait; normal local build pending."
   ],
-  "status": "queued",
+  "status": "running; Linux terminal negative, macOS still building",
   "prior_ci_runs_preserved": [
     41392072614,
     41369927293,
@@ -33,5 +33,10 @@
   "passed": false,
   "task_complete": false,
   "whole_gate_qualified": false,
-  "scope": "One new source-bound default synthetic CI run. No model, provider, PSTN, SMS, named-host or publication action."
+  "scope": "One new source-bound default synthetic CI run. No model, provider, PSTN, SMS, named-host or publication action.",
+  "linux_job_id": 125181669418,
+  "linux_conclusion": "failure",
+  "linux_evidence": "docs/evidence/gate-6/reference-app-no-delay-linux-negative.json",
+  "macos_job_id": 125181669733,
+  "macos_status": "in_progress"
 }
