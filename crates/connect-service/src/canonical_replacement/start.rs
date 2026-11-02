@@ -144,6 +144,20 @@ impl Runtime {
             + Duration::from_secs(
                 (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
             );
+        let id = saved.handle.intent().replacement.clone();
+        let scope = StagedRtpScope {
+            session: SessionId::from_string(intent.session_id.clone()),
+            connection: id.clone(),
+            owner: a.principal().ownership_key(),
+            wire_conversation: Some(intent.conversation_id.clone()),
+            wire_session: intent.session_id.clone(),
+            wire_connection: intent.connection_id.clone(),
+        };
+        let data_observer = profile.supports_data().then(|| {
+            Arc::new(crate::canonical_media::data_writes::PendingObserver::new(
+                scope.clone(),
+            ))
+        });
         let policy = Arc::new(TargetPolicy {
             base: self.media.clone(),
             pending: saved.handle.prepared_binding(),
@@ -154,6 +168,7 @@ impl Runtime {
             activation: OnceLock::new(),
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
+            data_observer,
         });
         let invocation = Arc::new(StartInvocation {
             policy: policy.clone(),
@@ -161,19 +176,10 @@ impl Runtime {
             read,
             deadline,
         });
-        let id = saved.handle.intent().replacement.clone();
-        let scope = StagedRtpScope {
-            session: SessionId::from_string(intent.session_id.clone()),
-            connection: id.clone(),
-            owner: a.principal().ownership_key(),
-            wire_conversation: Some(intent.conversation_id.clone()),
-            wire_session: intent.session_id.clone(),
-            wire_connection: intent.connection_id.clone(),
-        };
         let result=async {
             self.media.register_replacement_target(&policy).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="configure","Replacement resource start");
-            let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),None,8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
+            let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),policy.data_observer.clone().map(|observer| observer as Arc<dyn rvoip_uctp::v2::native_negotiation::NativeDataObserver>),8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
             let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
             policy.activation.set(activation.clone()).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");

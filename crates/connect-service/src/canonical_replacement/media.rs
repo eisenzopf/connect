@@ -30,6 +30,7 @@ pub(crate) struct TargetPolicy {
     pub activation: OnceLock<Arc<NativeMediaActivation>>,
     pub origin: OnceLock<Arc<NativeReplacementMediaOrigin>>,
     pub preparation_operation: OnceLock<String>,
+    pub data_observer: Option<Arc<crate::canonical_media::data_writes::PendingObserver>>,
 }
 #[derive(Clone)]
 pub(super) struct StartInvocation {

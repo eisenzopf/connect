@@ -244,6 +244,7 @@ impl super::Policy {
         origin: Arc<connect_store::NativeMediaOrigin>,
         binding: rvoip_core::relationships::ConnectionBinding,
         read: &connect_store::NativeMediaRead,
+        data_writer: Option<super::data_writes::Observer>,
     ) -> ControlResult<Arc<super::Connection>> {
         if !std::ptr::eq(self.as_ref(), Arc::as_ptr(&target.base))
             || target
@@ -296,6 +297,11 @@ impl super::Policy {
             .is_none_or(|p| !Arc::ptr_eq(&p, target))
         {
             return Err(StreamControlError::Authority);
+        }
+        match (&target.data_observer, data_writer) {
+            (Some(observer), Some(writer)) => observer.activate(writer)?,
+            (None, None) => {}
+            _ => return Err(StreamControlError::Authority),
         }
         entries.insert(ConnectionId::from_string(id), entry.clone());
         provisional.remove(target.pending.binding().connection());

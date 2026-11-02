@@ -1,0 +1,46 @@
+{
+  "format": "connect/gate6-replacement-data-observer/1",
+  "task": "G6-058",
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "source_parent_revision": "95b0e06589768274b636c5ddea3244a5335951aa",
+  "source_sha256": {
+    "crates/connect-service/src/canonical_media/data_writes.rs": "2a7260392f517a03285454d67f17c3aaa56ee83da757bd90c0552001a8ae420f",
+    "crates/connect-service/src/canonical_media/data_writes/pending.rs": "7491fa89ee2deb9749a1f60c3153120f59cd661500373e69168be5e2570d2c54",
+    "crates/connect-service/src/canonical_media/data_writes/pending/tests.rs": "1a2a2076f59d0789a0abb2c5033a03f92c6dcb4136703652d77a29cc3e246209",
+    "crates/connect-service/src/canonical_media/replacement.rs": "bb09c8c9708563fd07aaeb7241293925462da3de3afae0830c1edd6de6a13cd1",
+    "crates/connect-service/src/canonical_replacement/media.rs": "59709dd157a918672db20564beb3fd0a04f6bab028dca64dd22d6675fd732395",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "a5a67fe915012fd8daf4e6235f4768313891e664b1b94defc2274167969bfb49",
+    "crates/connect-service/src/canonical_replacement/start.rs": "185cc468cdd09b38f44a2550b15ba420a6367bad5fae3b28d81414e9f5146b92"
+  },
+  "implementation": [
+    "Native configure receives a pending observer whenever the profile supports Data, including Data not initially selected.",
+    "The pending observer refuses outcomes before activation and binds one writer to the original complete scope; wrong scope, target or second writer is refused.",
+    "Known movement is persisted before adoption. Historical writer custody is created through metadata reads before the adoption reader and activated before ordinary route insertion. Failure retires the known moved route without repeating an effect.",
+    "TargetPolicy precommit non-Control refusal and ordinary Policy entry/current Data authorization fences remain mandatory. An observer grants no IO permission."
+  ],
+  "prior_component_verification": {
+    "writer_tests": 10,
+    "service_tests": 17,
+    "failed": 0,
+    "ignored": 0,
+    "source_inputs_unchanged": true,
+    "scope": "Before profile predicate review correction; includes three new pending observer custody tests.",
+    "runtime_completed": false,
+    "intentional_stop_reason": "Review found observer presence must follow profile.supports_data rather than initially selected streams. Runtime compile stopped and joined before correction.",
+    "waiting_workload_started": false
+  },
+  "corrected_verification": {
+    "stage": "running",
+    "writer_tests_passed": 10,
+    "service_tests": "pending",
+    "runtime": "pending",
+    "actual_movement_fixture": "waiting for the same original corrected build"
+  },
+  "unresolved": [
+    "Actual successful signed negotiation, precommit Data quarantine, postcommit reliable Data IO and twenty physical moves remain unqualified.",
+    "Independent full programme decode and all 32 transport matrix cells remain required."
+  ]
+}

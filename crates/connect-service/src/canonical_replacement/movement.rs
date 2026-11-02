@@ -159,6 +159,31 @@ impl Runtime {
                 "Known movement lost native confirmation",
             ));
         }
+        // Create historical write custody before acquiring the adoption reader
+        // and before making the ordinary Data route visible. This is metadata
+        // only; no publication, delivery, or original effect is repeated.
+        let data_writer = if let Some(observer) = &started.policy.data_observer {
+            let scope = observer.scope().clone();
+            let result = retry_metadata(&self.stop, || {
+                let store = self.media.store.clone();
+                let origin = origin.clone();
+                let scope = scope.clone();
+                store_call(move || {
+                    crate::canonical_media::data_writes::Observer::new(store, &origin, scope)
+                })
+            })
+            .await;
+            match result {
+                Ok(writer) => Some(writer),
+                Err(error) => {
+                    drop(_roles);
+                    self.retire_moved_replacement(origin).await;
+                    return Err(error);
+                }
+            }
+        } else {
+            None
+        };
         let read = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let origin = origin.clone();
@@ -173,9 +198,13 @@ impl Runtime {
                 return Err(error);
             }
         };
-        let adopted =
-            self.media
-                .adopt_replacement(&started.policy, origin.clone(), owner.connection, &read);
+        let adopted = self.media.adopt_replacement(
+            &started.policy,
+            origin.clone(),
+            owner.connection,
+            &read,
+            data_writer,
+        );
         drop(read);
         if adopted.is_err() {
             drop(_roles);

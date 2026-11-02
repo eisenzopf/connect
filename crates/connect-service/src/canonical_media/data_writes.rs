@@ -5,6 +5,9 @@ use rvoip_uctp::{
     staged_media::StagedRtpScope,
     v2::native_negotiation::NativeDataObserver,
 };
+mod pending;
+pub(crate) use pending::PendingObserver;
+
 pub(crate) struct Observer {
     store: Arc<Store>,
     writer: connect_store::NativeDataWriter,
