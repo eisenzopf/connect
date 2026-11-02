@@ -108,6 +108,18 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}) }, output };
 }
 
+// Both admission and joined captures retain every original negotiated resource.
+// Data is a reliable stream identity, never an RTP payload handle.
+export function verifyReplacementStreamIdentities(streams, intent) {
+    assert.ok(Array.isArray(streams) && streams.every(stream => id(stream?.strm_id)));
+    const expected = [intent.streamId,
+        ...(intent.dataStreamId === undefined ? [] : [intent.dataStreamId]),
+        ...(intent.source.video ? [intent.source.video.streamId, intent.source.video.receiveVideoStreamId,
+            ...(intent.source.video.receiveDataStreamId === undefined ? [] : [intent.source.video.receiveDataStreamId])] : [])];
+    assert.ok(expected.every(id) && new Set(expected).size === expected.length);
+    assert.deepEqual(streams.map(stream => stream.strm_id).sort(), expected.sort());
+}
+
 export const physicalReplacementTarget = options => physicalTarget(options, false);
 // Admission returns a live physical owner. Its report is final only after join.
 export const startPhysicalReplacementTarget = options => physicalTarget(options, true);
@@ -211,10 +223,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 assert.equal(observed.video_controls_completed, true);
                 const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
                 assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
-                assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
-                    [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId,
-                        ...(intent.dataStreamId === undefined ? [] : [intent.dataStreamId]),
-                        ...(intent.source.video.receiveDataStreamId === undefined ? [] : [intent.source.video.receiveDataStreamId])].sort());
+                verifyReplacementStreamIdentities(observed.negotiated_streams, intent);
                 report.video_control_files = {};
                 for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
                     const path = output.replace(/\.json$/, "." + suffix + ".json");
@@ -340,9 +349,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.equal(ready.video_enabled, Boolean(intent.source.video));
             assert.equal(ready.operation_completed_inferred, false);
             assert.equal(ready.decoded_media_verified, false);
-            const expected = [intent.streamId, ...(intent.source.video ?
-                [intent.source.video.streamId, intent.source.video.receiveVideoStreamId] : [])];
-            assert.deepEqual(ready.negotiated_streams.map(s => s.strm_id).sort(), expected.sort());
+            verifyReplacementStreamIdentities(ready.negotiated_streams, intent);
             report.target_owner_ready_sha256 = hash(await readFile(readyPath));
             await save(join(directory, "admission.json"), { ...report, movement: movementFacts(moved) });
             assert.equal(exited, undefined, "physical target exited during ownership transfer");

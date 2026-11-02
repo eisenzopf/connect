@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { replacementInput, physicalReplacementTarget } from "../lib/transport_replacement_target.mjs";
+import { replacementInput, physicalReplacementTarget, verifyReplacementStreamIdentities } from "../lib/transport_replacement_target.mjs";
 
 const intent = () => ({ operationId: "original-operation", conversationId: "original-conversation",
     sessionId: "original-session", connectionId: "original-source", retainedConnectionId: "original-retained",
@@ -149,4 +149,23 @@ test("replacement inputs carry one immutable AV program origin without shifting 
         value.source.programStartUnixUs = origin;
         assert.throws(() => replacementInput(value));
     }
+});
+
+
+test("live and joined replacement resource identities require both exact Data bindings", () => {
+    const value = avIntent(); value.dataStreamId = "own-data";
+    value.source.video.receiveDataStreamId = "retained-data";
+    const av = [value.streamId, value.source.video.streamId, value.source.video.receiveVideoStreamId];
+    const complete = [...av, value.dataStreamId, value.source.video.receiveDataStreamId];
+    const streams = ids => ids.map(strm_id => ({ strm_id }));
+    verifyReplacementStreamIdentities(streams(complete.reverse()), value);
+    for (const ids of [av, [...av, value.dataStreamId], [...av, value.source.video.receiveDataStreamId],
+        [...complete, "foreign-data"], complete.map(id => id === value.dataStreamId ? "foreign-data" : id),
+        [...complete, value.dataStreamId]]) {
+        assert.throws(() => verifyReplacementStreamIdentities(streams(ids), value));
+    }
+    const withoutData = avIntent();
+    verifyReplacementStreamIdentities(streams(av), withoutData);
+    assert.throws(() => verifyReplacementStreamIdentities(streams(complete), withoutData));
+    assert.throws(() => verifyReplacementStreamIdentities([{ strm_id: "bad:id" }], value));
 });
