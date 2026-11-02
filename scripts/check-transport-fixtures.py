@@ -84,6 +84,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
+    if target == "aarch64-apple-darwin":
+        env.update(MACOSX_DEPLOYMENT_TARGET="15.0", OPUS_STATIC="1",
+            LIBOPUS_NO_PKG="1", CMAKE_POLICY_VERSION_MINIMUM="3.5")
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,

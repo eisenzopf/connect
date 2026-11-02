@@ -1,0 +1,85 @@
+{
+  "format": "connect/native-replacement-reservation-sql/1",
+  "task": "G6-058",
+  "scope": "Controlled Store metadata reservation and fixture build configuration only. No Core IO, callback, full native movement or complete transport-cell qualification.",
+  "native_original": {
+    "directory": ".local/gate-6/role-network-wait-after-v1",
+    "failed_case_index": 2,
+    "untouched_original_second_state": "accepted",
+    "original_second_effects": 0,
+    "original_second_steps": 0
+  },
+  "diagnostics": [
+    {
+      "directory": ".local/gate-6/replacement-preparation-observer-diagnostic-v1",
+      "fresh_isolated_state": true,
+      "original_journal_untouched": true,
+      "exit_code": 101,
+      "reservation_sql_busy_observations": 265
+    },
+    {
+      "directory": ".local/gate-6/replacement-preparation-observer-diagnostic-v2",
+      "fresh_isolated_state": true,
+      "sql_custody_trace": true,
+      "exit_code": 0,
+      "controlled_scenarios_passed": 3,
+      "limitation": "Instrumentation changes timing; this pass does not resolve the original negative."
+    }
+  ],
+  "matched_regression": {
+    "name": "replacement_reservation_keeps_writer_admission_until_original_sql_is_available",
+    "same_test_source_before_and_after": true,
+    "before": "0 passed; 1 failed; 0 ignored",
+    "expected_before_error": "reservation abandoned admitted authority when SQL was briefly busy",
+    "after": "1 passed; 0 failed; 0 ignored",
+    "controlled_sql_hold_ms": 20,
+    "original_wait_budget_ms": 250,
+    "after_seconds": 0.42,
+    "once_only_prepare_steps": 1,
+    "once_only_unstarted_effects": 1
+  },
+  "implementation": {
+    "file": "crates/connect-store/src/transitions/native_replacements.rs",
+    "sha256": "e34a9048bb1dbd1f94ac05bf755a9873cf6d795903a112ea1dfbd09ae421b2a3",
+    "behavior": "Retain the original admitted writer while SQL becomes available, sharing its original250ms AuthorityWait across file admission and SQL acquisition. Re-resolve current authority and original intent in the transaction before the once-only reservation. No deadline renewal or Core/allocation IO replay.",
+    "regression_source_sha256": "a29aba8a3e154239f64aa37f64cc5cde09218c2f5da37ae1ec2b747804cc81cf"
+  },
+  "verification": {
+    "replacement_source_tests": 150,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 1176,
+    "seconds": 132.42,
+    "source_inputs_unchanged": true
+  },
+  "fixture_build_alignment": {
+    "target": "aarch64-apple-darwin",
+    "settings": {
+      "MACOSX_DEPLOYMENT_TARGET": "15.0",
+      "OPUS_STATIC": "1",
+      "LIBOPUS_NO_PKG": "1",
+      "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+    },
+    "checks": {
+      "namespace": 5,
+      "fixture": 11
+    },
+    "passed": true,
+    "source_sha256": "8512b97fe9b2820f54d2fe47856ec6c867f87dbf866a84de036521c2cd8ee57f"
+  },
+  "evidence_sha256": {
+    ".local/gate-6/replacement-reservation-sql-before-v1/state.json": "f658967aaa31525d8190cd4e508d6f72729fb4ea0f4f7acd2ed928155783a2b7",
+    ".local/gate-6/replacement-reservation-sql-before-v1/original-test.log": "bb26c320aca6bcc340c631fd12107dab89be30dc11afa724eeaecc6e8248270f",
+    ".local/gate-6/replacement-reservation-sql-after-v1/state.json": "8b28b4b3225a9300d8a27a024e27e17541a34fa5c468075c149308ca0c0bec69",
+    ".local/gate-6/replacement-reservation-sql-after-v1/matched-test.log": "4e3277ed7ff6633c7e21f2f556cf4ddd1d235452f5f2f48ab93235d05fed2669",
+    ".local/gate-6/replacement-reservation-sql-after-v1/replacement-source-tests.log": "7eab802840f76ae34fcab624c139755cc2a2875e683bf2f0886a80e2f7ae4534",
+    ".local/gate-6/native-fixture-codec-alignment-v1/checks.json": "93431e43467c6cde8b106398c379314171c057ee6fbf259b66f155c7c47e4284"
+  },
+  "component_passed": true,
+  "native_failure_resolved": false,
+  "native_reverification_pending": true,
+  "production_release_built": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "cell_qualified": false
+}

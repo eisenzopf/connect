@@ -901,3 +901,62 @@ fn replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and
     assert_eq!(f.count("connections"), 2);
     assert_eq!(f.count("native_replacements"), 1);
 }
+
+#[test]
+fn replacement_reservation_keeps_writer_admission_until_original_sql_is_available() {
+    let (f, key, _, origin, sources) = setup();
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let scope = crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Read).unwrap();
+    let blocker = f
+        .store
+        .try_acquire_authority(std::slice::from_ref(&scope))
+        .unwrap();
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    std::thread::scope(|threads| {
+        let store = &f.store;
+        let reservation = threads.spawn(move || store.prepare_native_replacement(read, request()));
+        let until = std::time::Instant::now() + std::time::Duration::from_millis(200);
+        loop {
+            assert!(
+                std::time::Instant::now() < until,
+                "original reservation never requested writer admission"
+            );
+            match f.store.try_acquire_authority(std::slice::from_ref(&scope)) {
+                Ok(reader) => drop(reader),
+                Err(error) => {
+                    assert_eq!(error.code, "authority-busy");
+                    break;
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        // Let this original acquire its writer interval while another metadata
+        // unit briefly owns SQL. Releasing that interval and restarting the
+        // whole preflight would let continuous source readers overtake it.
+        let sql = f.store.connection().unwrap();
+        drop(blocker);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        drop(sql);
+        let _lease = reservation
+            .join()
+            .unwrap()
+            .expect("reservation abandoned admitted authority when SQL was briefly busy")
+            .expect("original reservation was not created");
+    });
+    let c = f.store.connection().unwrap();
+    let (steps, effects): (u64, u64) = c
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='prepare' AND started=0),(SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='native-replacement-prepare' AND attempt=0)",
+            [origin.record_id()],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((steps, effects), (1, 1));
+}

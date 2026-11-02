@@ -224,21 +224,29 @@ impl Store {
             let c = self.try_connection()?;
             selection.scopes(self, &c, true)?
         };
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
         let held = self
-            .acquire_authority(
-                &scopes,
-                &crate::AuthorityWait::new(std::time::Duration::from_millis(250)),
-            )
+            .acquire_authority(&scopes, &wait)
             .map_err(|error| {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
                 error
             })?;
         // Reacquire SQL only after file admission, then resolve every current
         // scope/fact again before the once-only durable reservation below.
-        let mut c = self.try_connection().map_err(|error| {
-            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
-            error
-        })?;
+        // Retain this admitted writer while a short metadata unit releases SQL.
+        // Dropping it on an immediate mutex miss lets fresh source readers
+        // repeatedly overtake the same unstarted reservation. Both admission
+        // and SQL use the original bounded wait; no deadline or IO is renewed.
+        let mut c = loop {
+            wait.check()?;
+            match self.try_connection() {
+                Ok(connection) => break connection,
+                Err(error) if error.code == "authority-busy" => {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+                Err(error) => return Err(error),
+            }
+        };
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| {
