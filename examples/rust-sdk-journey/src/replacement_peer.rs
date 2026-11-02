@@ -56,6 +56,25 @@ fn scope_matches(frame: &Envelope, scope: &CommandScope) -> bool {
     .all(|(key, expected)| expected.is_some() && frame.scope(*key) == *expected)
 }
 
+// Static shape and bounded public error codes only. Never log a signed scope,
+// payload, signature, arbitrary reason, or remote extension on rejection.
+fn negotiation_refusal(
+    frame: &Envelope,
+    scope: &CommandScope,
+    expected: &str,
+    reply: Option<&str>,
+) -> Value {
+    let code = (frame.kind() == "error")
+        .then(|| frame.original()["payload"]["code"].as_u64())
+        .flatten()
+        .filter(|code| (100..=599).contains(code));
+    json!({"phase":"target-negotiation-refused","expected_kind":expected,
+        "received_kind":frame.kind(),"scope_matches":scope_matches(frame,scope),
+        "has_reply":frame.scope(Scope::Reply).is_some(),
+        "reply_matches_expected":frame.scope(Scope::Reply)==reply,
+        "error_code":code})
+}
+
 async fn negotiation(
     client: &mut CanonicalClient,
     scope: &CommandScope,
@@ -68,6 +87,7 @@ async fn negotiation(
             let frame = client.receive().await?;
             if frame.kind() == kind {
                 if !scope_matches(&frame, scope) || frame.scope(Scope::Reply) != reply {
+                    emit(negotiation_refusal(&frame, scope, kind, reply)).await?;
                     return Err("replacement negotiation changed the original root".into());
                 }
                 return Ok(frame);
@@ -89,6 +109,7 @@ async fn negotiation(
                         | "recording.vcon-ready"
                 )
             {
+                emit(negotiation_refusal(&frame, scope, kind, reply)).await?;
                 return Err("unexpected replacement negotiation response".into());
             }
         }

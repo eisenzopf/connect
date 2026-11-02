@@ -1,0 +1,45 @@
+{
+  "format": "connect/replacement-negotiation-refusal/1",
+  "task": "G6-058",
+  "runtime_sha256": "0aec1b8645e7e25dab7f7b8838cf9250bcae254193575e64eabfab2e67326f77",
+  "peer_sha256": "945b69649f90081227c4f68b46b9b984c49ae49669a46d7f8632dd3bfd6048c2",
+  "rust_consumer_checks_passed": 19,
+  "diagnostics": [
+    {
+      "source_index": 0,
+      "diagnostic": {
+        "error_code": 403,
+        "expected_kind": "connection.answer",
+        "has_reply": true,
+        "phase": "target-negotiation-refused",
+        "received_kind": "error",
+        "reply_matches_expected": true,
+        "scope_matches": true
+      },
+      "private_log_sha256": "3339b3482e700c78485b1407b2188fe1f83f3e567c63ce8187db669c22e6643d"
+    },
+    {
+      "source_index": 4,
+      "diagnostic": {
+        "error_code": 403,
+        "expected_kind": "connection.answer",
+        "has_reply": true,
+        "phase": "target-negotiation-refused",
+        "received_kind": "error",
+        "reply_matches_expected": true,
+        "scope_matches": true
+      },
+      "private_log_sha256": "3339b3482e700c78485b1407b2188fe1f83f3e567c63ce8187db669c22e6643d"
+    }
+  ],
+  "original_inputs_unchanged": true,
+  "all_original_packet_tasks_and_helpers_and_server_joined": true,
+  "forced_cleanup": false,
+  "new_mutation_response_kinds_accepted": false,
+  "unexpected_responses_still_refused": true,
+  "finding": "Both original media-start requests receive a signed 403 error with matching scope and reply correlation. The native adapter requires an observer whenever its profile supports Data; the replacement configure call supplies None, so it necessarily fails that preflight. A custody observer is required without opening precommit Data IO.",
+  "remaining": "Verify the proposed observer activation against original committed writer custody, current IO authorization, historical outcomes, and the actual physical workload.",
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
