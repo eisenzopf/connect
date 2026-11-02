@@ -3,7 +3,7 @@
   "task": "G6-058",
   "task_complete": false,
   "whole_gate_qualified": false,
-  "scope": "Actual nativeAv coordinator with test-double packet IO plus55affected owner/control/movement/capture tests. No physical transport, codec or decoded quality qualification.",
+  "scope": "Actual nativeAv coordinator:55affected owner/control/movement/capture tests plus one four-participant/six-route/two-Session native62second Opus/VP8 programme with original final read-only Session controls. No full transport-cell qualification.",
   "problem": "The normal62.2second packet-read timer aborted the same signal used by in-window control work, cancelling final capture/control joining even when it would complete within the frozen teardown bound.",
   "before": {
     "production_logic_changed": false,
@@ -74,9 +74,125 @@
   },
   "remaining": [
     "Main Data+AV/movement/current-Connection-end integration and full timeline decode remain required.",
-    "Latest actual8c31media observation predates this harness change: all6audio/marker/rate checks pass,1of6fullcomponent routes pass,5retain video-integrity failures.",
+    "Actual new-coordinator8c31programme joins final control reads and all24packet tasks: all6audio/marker/rate checks pass; all6routes remain negative on video integrity. No claim of backend quality improvement from owner-lifetime correction.",
     "Full20movements/impairment/browser/remote/resource/recovery/32cell qualification remains outstanding."
   ],
   "transport_cells_qualified": 0,
-  "full_media_quality_claim": false
+  "full_media_quality_claim": false,
+  "actual_native_programme": {
+    "execution_passed": true,
+    "quality_passed": false,
+    "normal_runtime_binary_sha256": "8c31a4f1082f73d4130d52ca8b07884ae0162368418969010b438be62a683108",
+    "source_and_shared_module_guards": true,
+    "shared_module_sha256": {
+      "scripts/lib/transport_av.mjs": "e4b9c45fc121a01daac82b6df100b849aded6e44935cd8f5cadcc55ed0b4eff7",
+      "scripts/lib/transport_programme_lifetime.mjs": "441ceb188d4b1ea6cb3cd9282e9ee68c17b88efac6966f754ace1fdae16e232b",
+      "scripts/lib/transport_media_owner.mjs": "6c06e5e0ef4ff11d7b373d9e89ccadf633421f72373b4c9ca3c9e0ba938f80fc",
+      "scripts/lib/transport_media_reader.mjs": "6cdfd1b16dd9e12f049721f982c71415d5fdef1f5b6be42c8302afae53ea3c01",
+      "scripts/lib/transport_movement_workload.mjs": "cdcaa0c49fbf0cd76547abba73e5397761d57b2701402bc7aed17bf959805244"
+    },
+    "original_packet_tasks_started": 24,
+    "original_packet_tasks_joined": true,
+    "elapsed_ms": 62635.637958,
+    "control_workload": {
+      "final_control_reads_joined": true,
+      "sessions_observed": 2,
+      "shared_sdk_closed": false,
+      "after_original_packet_cutoff": true
+    },
+    "helpers_joined": true,
+    "session_end": [
+      {
+        "elapsed_ms": 324.5282920000027
+      },
+      {
+        "elapsed_ms": 55.43554099999892
+      }
+    ],
+    "routes": [
+      {
+        "index": 0,
+        "passed": false,
+        "audio_seconds": 59.96,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.833333333333332,
+        "minimum_frames_per_second": 29,
+        "unclassified_pixels": 127,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 77,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 53.09016700000029
+      },
+      {
+        "index": 1,
+        "passed": false,
+        "audio_seconds": 59.92,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.916666666666668,
+        "minimum_frames_per_second": 29,
+        "unclassified_pixels": 71,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 81,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 48.48400000000038
+      },
+      {
+        "index": 2,
+        "passed": false,
+        "audio_seconds": 59.98,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.75,
+        "minimum_frames_per_second": 28,
+        "unclassified_pixels": 98,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 77,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 46.66595799999959
+      },
+      {
+        "index": 3,
+        "passed": false,
+        "audio_seconds": 59.94,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.9,
+        "minimum_frames_per_second": 29,
+        "unclassified_pixels": 34,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 85,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 47.52970800000003
+      },
+      {
+        "index": 4,
+        "passed": false,
+        "audio_seconds": 59.96,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.95,
+        "minimum_frames_per_second": 29,
+        "unclassified_pixels": 11,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 84,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 56.58849999999984
+      },
+      {
+        "index": 5,
+        "passed": false,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "changing_fps": 29.766666666666666,
+        "minimum_frames_per_second": 28,
+        "unclassified_pixels": 106,
+        "identified_other_source_pixels": 0,
+        "paired_markers": 75,
+        "sync_status": "passed",
+        "maximum_audio_arrival_gap_ms": 50.26058300000295
+      }
+    ],
+    "baseline_audit_sha256": "a2cdf751428de5e24923708410fe875106d73701b68d0ea0d448e81298dc5889",
+    "video_byte_custody_audit_sha256": "268c6b4f07381807f5dea8c15f045ceec9d7c51b9e72553d1603b96438c9997f",
+    "limits_changed": false,
+    "movements_exercised": 0,
+    "physical_peer_exercised": false
+  }
 }
