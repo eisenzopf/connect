@@ -138,5 +138,56 @@
     "source_inputs_unchanged": true,
     "source_inputs_sha256": "73bde5045095563b0359eceee2fa7c37128a677cc9f4aefde56655c40929c1d6",
     "producer_state_sha256": "2680b177f00d84dee9aad09f8497ff3fdeada96cf8438af1b13679ce96c9299e"
+  },
+  "current_normal_programme_negative": {
+    "source_revision": "46152749987a55f617d5ef0b1c52e6988c1445df",
+    "passed": false,
+    "binary_sha256": "2fd18cfbcb90c2e5c13c31521ef098533b047d551337e2d1d4a82586297e97df",
+    "peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "elapsed_seconds": 95.95358612528071,
+    "ordinary_profile": true,
+    "host_capture_executed": false,
+    "stack_sampling": false,
+    "phase_logging": false,
+    "original_move_roots": 2,
+    "completed_roots": 0,
+    "root_states": [
+      {
+        "slot": "0-0",
+        "state": "preparing",
+        "revision": 14,
+        "media_steps": [
+          "activate",
+          "attach",
+          "readiness"
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "preparing",
+        "revision": 13,
+        "media_steps": [
+          "activate",
+          "attach",
+          "readiness"
+        ]
+      }
+    ],
+    "original_completion_deadlines_exceeded": 2,
+    "original_servers_joined": true,
+    "server_forced": false,
+    "server_exit_code": 0,
+    "original_db_wal_unchanged": true,
+    "unretired_native_lifetimes": 2,
+    "cleanup_qualified": false,
+    "whole_window_decode_reached": false,
+    "task_complete": false,
+    "cell_qualified": false,
+    "producer_state_sha256": "a14fdc00172deae1570a6548d73fd469f5f5c5084228d52d7153ce70d0bbc2b6",
+    "stopped_journal_audit_sha256": "eb4c9b063ad3bdd02224a28b1229b61eb7f12c53885cd62576aaf567d4d85b1d",
+    "interpretation": "Both roots record readiness but remain preparing when the original completion observations expire. Isolated SQL speedup does not establish live workload improvement or cause. Original state preserved; resource and full programme qualification remain open."
   }
 }
