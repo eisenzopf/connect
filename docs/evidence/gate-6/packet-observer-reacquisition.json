@@ -658,6 +658,110 @@
       "A single before/after workload observation is not a statistical performance benchmark or causal queue proof.",
       "Sample stack counts are inclusive observations, not CPU shares. NotReady counts are admission attempts including retries, not final frame drops.",
       "No movement, impairment, browser presentation, remote profile or full transport cell was qualified. All original thresholds remain unchanged."
-    ]
+    ],
+    "independent_video_payload_custody": {
+      "audit_sha256": "e433afcbad6e20594af96a9e3a527a8a5fef3b2618f5cb4874397a0cf3b8de5e",
+      "source_and_capture_guards_unchanged": true,
+      "method": "Hash every complete received VP8 encoded frame and locate the exact bytes in the original intended source programme. Bind independently decoded pixels to original received frame order from its first complete keyframe. Mark sequence continuity by exact source ordinal, resetting at every complete received keyframe.",
+      "routes": [
+        {
+          "index": 0,
+          "expected_source_index": 3,
+          "complete_frames": 1677,
+          "exact_original_frame_bytes": 1677,
+          "complete_keyframes": 36,
+          "missing_source_ordinals_inside_received_span": 168,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 379,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1273,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1200,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "f210e116dfc3e5a1842d16f27393e612f9498855e2a58514ab7c4fef35925f8c",
+          "source_sha256": "ee8799a37971633319054c5ea453f4298e9a6fb29a3bd136fa184dd6cb106b93",
+          "decoded_source_pixels_sha256": "1c543c2c56e632f9409e00e39d37f4f1251f8195860977ca78a0af7be2a6247d"
+        },
+        {
+          "index": 1,
+          "expected_source_index": 0,
+          "complete_frames": 1747,
+          "exact_original_frame_bytes": 1747,
+          "complete_keyframes": 31,
+          "missing_source_ordinals_inside_received_span": 112,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 546,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1084,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1051,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "6964a7550f23afe1b8cefe8a1a5ebfc6267c1e99067e7337f87d671f128e872c",
+          "source_sha256": "b380774c557bab247f3515fc74d47b7db00f7fbc37e9f5804ca5fa8d2e855722",
+          "decoded_source_pixels_sha256": "52b780e8ec48c7e87c008460562c24f81aebc24828f939b4bcb84fbeaed33c21"
+        },
+        {
+          "index": 2,
+          "expected_source_index": 1,
+          "complete_frames": 1745,
+          "exact_original_frame_bytes": 1745,
+          "complete_keyframes": 39,
+          "missing_source_ordinals_inside_received_span": 112,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 697,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1021,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1018,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "1051cf8ce8656ab4ff7f7125369a28601411baa7f68e281ee6cb612389148f04",
+          "source_sha256": "2700330cff47c95277a4964f752af65b2065821a5f44ad5e974f21cf97a93f0b",
+          "decoded_source_pixels_sha256": "30da87fbc825d6c9886c89a296ba31102038f11b5da89f8f56fedbf4b8833ec2"
+        },
+        {
+          "index": 3,
+          "expected_source_index": 2,
+          "complete_frames": 1685,
+          "exact_original_frame_bytes": 1685,
+          "complete_keyframes": 39,
+          "missing_source_ordinals_inside_received_span": 171,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 560,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1096,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1081,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "a4bcb3bc0a80d9f6c03d3b499f9938873aa4d10ac6240f9564c00b5c5fb4acc0",
+          "source_sha256": "3efd41b0823aa8c228fcbcd425ed235e65291804585323425b09e188ecdaaf38",
+          "decoded_source_pixels_sha256": "28812394501bf80c226d7a822d14640799632b76e99e7d28c8c01d6f1335dce0"
+        },
+        {
+          "index": 4,
+          "expected_source_index": 5,
+          "complete_frames": 1738,
+          "exact_original_frame_bytes": 1738,
+          "complete_keyframes": 34,
+          "missing_source_ordinals_inside_received_span": 120,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 504,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1209,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1189,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "b195900d35635eeb914f6c38780fb60eeb126be3f2c9528079e0971fb3268e7d",
+          "source_sha256": "009497a2043f4d956bf2ecb1ea19826a7b9724c78303d6045f7e0895520683bb",
+          "decoded_source_pixels_sha256": "454e3ed02fa3d9746ca704b1d5b775770f574f6040059e3b380bc40dbcdfbd01"
+        },
+        {
+          "index": 5,
+          "expected_source_index": 4,
+          "complete_frames": 1753,
+          "exact_original_frame_bytes": 1753,
+          "complete_keyframes": 32,
+          "missing_source_ordinals_inside_received_span": 106,
+          "decoded_frames_with_uninterrupted_source_sequence_since_keyframe": 528,
+          "decoded_frames_after_a_source_sequence_gap_since_keyframe": 1218,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "unclassified_pixels_after_source_sequence_gap": 1193,
+          "identified_other_source_pixels": 0,
+          "capture_sha256": "dcbc1aafee28443ae0021b131852424b207ee6295e031307da3f2574d2a32a9b",
+          "source_sha256": "e8f72306bb1dad656502e67fa9677dcda3b98f66a25b52d27c8f56d94d05942d",
+          "decoded_source_pixels_sha256": "aad0ca70c51e59ceaff80d51c3becc0e1a82637da5d8709d0f08d15cacf91455"
+        }
+      ],
+      "scope": "Every complete received frame matches an exact intended-source original. All retained unclassified pixels follow at least one missing source frame since the last received keyframe. Sequence gaps do not establish which skipped frames were codec references, a specific queue/loss cause, a cross-audience leak, repaired media or full qualification."
+    }
   }
 }
