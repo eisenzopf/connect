@@ -1,0 +1,432 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -243,7 +243,7 @@
+                 || state.active.values().any(|p| {
+                     !matches!(
+                         p.binding.negotiated.requested.medium,
+-                        Medium::Audio | Medium::Video
++                        Medium::Audio | Medium::Video | Medium::Data
+                     )
+                 })
+                 || !state.model.streams().values().any(|s| {
+@@ -262,7 +262,7 @@
+             {
+                 return Err(StreamControlError::Unsupported);
+             }
+-            super::endpoint_preparation::check_quarantined_video(&state)?;
++            super::endpoint_preparation::check_quarantined_auxiliary(&state)?;
+             Some(super::audience::PreparedPrivateAudience::reserve(
+                 &self.audiences,
+                 &controller,
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -188,7 +188,7 @@
+             .get(connection)
+             .map(|target| target.gates.as_slice())
+     }
+-    pub(super) fn quarantined_video_ports(
++    pub(super) fn quarantined_auxiliary_ports(
+         &self,
+         controller: &Arc<StreamController>,
+         state: &State,
+@@ -210,11 +210,16 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
+-        super::endpoint_preparation::check_quarantined_video(state)?;
++        super::endpoint_preparation::check_quarantined_auxiliary(state)?;
+         Ok(state
+             .active
+             .values()
+-            .filter(|p| p.binding.negotiated.requested.medium == Medium::Video)
++            .filter(|p| {
++                matches!(
++                    p.binding.negotiated.requested.medium,
++                    Medium::Video | Medium::Data
++                )
++            })
+             .map(Arc::downgrade)
+             .collect())
+     }
+@@ -480,7 +485,7 @@
+         if state.closed || controller.shutdown.is_cancelled() {
+             return Err(StreamControlError::NotReady);
+         }
+-        super::endpoint_preparation::check_quarantined_video(&state)?;
++        super::endpoint_preparation::check_quarantined_auxiliary(&state)?;
+         let mut audio = state
+             .active
+             .iter()
+@@ -560,10 +565,15 @@
+         let probe = Arc::new(super::endpoint_preparation::Probe {
+             controller: Arc::downgrade(controller),
+             port: Arc::downgrade(port),
+-            video_ports: state
++            auxiliary_ports: state
+                 .active
+                 .values()
+-                .filter(|p| p.binding.negotiated.requested.medium == Medium::Video)
++                .filter(|p| {
++                    matches!(
++                        p.binding.negotiated.requested.medium,
++                        Medium::Video | Medium::Data
++                    )
++                })
+                 .map(Arc::downgrade)
+                 .collect(),
+             group: group.clone(),
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -1,15 +1,15 @@
+ //! Decoder-only endpoint preparation. No sample or packet enters the mixer.
+ use super::{audience::*, guarded_audio::Codecs, *};
+ 
+-// Extra negotiated video resources are dormant, not proof of video IO or a
+-// public route. Every readiness observation must still find them active/muted.
+-pub(super) fn check_quarantined_video(state: &State) -> ControlResult<()> {
++// Extra negotiated video and reliable Data resources are dormant, not proof
++// of their IO or a public route. Readiness pins each original active/muted port.
++pub(super) fn check_quarantined_auxiliary(state: &State) -> ControlResult<()> {
+     for (logical, port) in &state.active {
+         let medium = port.binding.negotiated.requested.medium;
+         if medium == Medium::Audio {
+             continue;
+         }
+-        if medium != Medium::Video {
++        if !matches!(medium, Medium::Video | Medium::Data) {
+             return Err(StreamControlError::Unsupported);
+         }
+         let stream = state
+@@ -34,8 +34,8 @@
+     Ok(())
+ }
+ 
+-pub(super) fn check_expected_video(state: &State, ports: &[Weak<Port>]) -> ControlResult<()> {
+-    check_quarantined_video(state)?;
++pub(super) fn check_expected_auxiliary(state: &State, ports: &[Weak<Port>]) -> ControlResult<()> {
++    check_quarantined_auxiliary(state)?;
+     for original in ports {
+         let port = original.upgrade().ok_or(StreamControlError::NotReady)?;
+         if !state
+@@ -69,7 +69,7 @@
+             return false;
+         };
+         !self.probe.cancel.is_cancelled()
+-            && check_expected_video(&state, &self.probe.video_ports).is_ok()
++            && check_expected_auxiliary(&state, &self.probe.auxiliary_ports).is_ok()
+             && self
+                 .probe
+                 .consumer
+@@ -85,7 +85,7 @@
+ pub(super) struct Probe {
+     pub(super) controller: Weak<StreamController>,
+     pub(super) port: Weak<Port>,
+-    pub(super) video_ports: Vec<Weak<Port>>,
++    pub(super) auxiliary_ports: Vec<Weak<Port>>,
+     pub(super) group: Arc<ClosedAudience>,
+     pub(super) registry: Arc<Mutex<AudienceState>>,
+     pub(super) consumer: Arc<audio_consumer::AudioConsumer>,
+@@ -159,7 +159,7 @@
+             .state
+             .try_lock()
+             .map_err(|_| MediaTransitionError::Conflict)?;
+-        check_expected_video(&state, &self.video_ports)?;
++        check_expected_auxiliary(&state, &self.auxiliary_ports)?;
+         let stream = state
+             .model
+             .streams()
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -139,7 +139,7 @@
+     controller: Weak<StreamController>,
+     revision: u64,
+     duplex: AudioDuplexStamp,
+-    video_ports: Vec<Weak<Port>>,
++    auxiliary_ports: Vec<Weak<Port>>,
+ }
+ impl ReplacementReadinessStamp {
+     pub(crate) fn check(&self) -> ControlResult<()> {
+@@ -157,7 +157,7 @@
+         if state.model.revision() != self.revision {
+             return Err(StreamControlError::NotReady);
+         }
+-        super::endpoint_preparation::check_expected_video(state, &self.video_ports)?;
++        super::endpoint_preparation::check_expected_auxiliary(state, &self.auxiliary_ports)?;
+         self.duplex
+             .current(controller, state)
+             .map_err(|error| match error {
+@@ -213,9 +213,9 @@
+             .state
+             .try_lock()
+             .map_err(|_| MediaTransitionError::Conflict)?;
+-        let video_ports = context
++        let auxiliary_ports = context
+             .commit()
+-            .quarantined_video_ports(&member.controller, &state)?;
++            .quarantined_auxiliary_ports(&member.controller, &state)?;
+         let duplex =
+             member
+                 .audio_consumer
+@@ -224,7 +224,7 @@
+             controller: Arc::downgrade(&member.controller),
+             revision: state.model.revision(),
+             duplex,
+-            video_ports,
++            auxiliary_ports,
+         })
+     }
+     pub(crate) fn plan_audio_device_replacement(
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -164,7 +164,7 @@
+             ready_audio: crate::staged_media::ReadyAudioEgress::new(),
+         }))
+     }
+-    /// Mute an original, confirmed native audio/video batch before managed private
++    /// Mute an original, confirmed native audio/video/data batch before managed private
+     /// admission. The actual held media policy must separately approve the
+     /// exact Gate intent. This does not admit a participant or activate speech.
+     pub async fn mute_native_media_for_private_admission(
+@@ -188,7 +188,10 @@
+             if audio.len() != 1
+                 || audio[0].negotiated.requested.direction != StreamDirection::Both
+                 || bindings.iter().any(|b| {
+-                    !matches!(b.negotiated.requested.medium, Medium::Audio | Medium::Video)
++                    !matches!(
++                        b.negotiated.requested.medium,
++                        Medium::Audio | Medium::Video | Medium::Data
++                    )
+                 })
+             {
+                 return Err(NativeOfferError::Unsupported);
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+@@ -520,3 +520,162 @@
+         );
+     }
+ }
++
++#[tokio::test]
++async fn endpoint_preparation_allows_quarantined_data_with_video_and_preserves_its_gate() {
++    let mut room = Room::new().await;
++    room.add_owned_with_media(
++        "fresh",
++        "fresh",
++        owner("fresh"),
++        true,
++        None,
++        vec![
++            desired(Medium::Audio),
++            desired(Medium::Video),
++            desired(Medium::Data),
++        ],
++    )
++    .await;
++    let id = ConnectionId::from_string("fresh");
++    room.domain
++        .local_preparations
++        .lock()
++        .unwrap()
++        .insert(id.clone(), "prepare-fresh".into());
++    let video = room.nodes["fresh"].adapter.port(Medium::Video);
++    assert!(
++        video.try_publish(&frame(&video, 1)).is_err(),
++        "muted preparation published video"
++    );
++    let preparation = room
++        .scene
++        .prepare_audio_endpoint(&id, "prepare-fresh")
++        .expect(
++            "one duplex audio port plus separately muted video must permit decoder-only readiness",
++        );
++    assert!(!preparation.has_duplex_io());
++    {
++        let controller = &room.nodes["fresh"].controller;
++        let state = controller.state.lock().unwrap();
++        assert_eq!(state.active.len(), 3);
++        let data = &state.model.streams()[&desired(Medium::Data).logical_id];
++        assert!(data.source_muted);
++        assert_eq!(data.state, LogicalStreamState::Active);
++        assert!(data.hold_direction.is_none());
++    }
++    room.publish("fresh", 12000).unwrap();
++    room.tick();
++    room.silent(&["alice", "bob", "public", "hold", "fresh"]);
++    assert!(
++        video.try_publish(&frame(&video, 2)).is_err(),
++        "audio proof opened a video route"
++    );
++    drop(preparation);
++    assert!(
++        video.try_publish(&frame(&video, 3)).is_err(),
++        "dropping preparation opened video"
++    );
++    {
++        let state = room.nodes["fresh"].controller.state.lock().unwrap();
++        assert!(state.model.streams()[&desired(Medium::Data).logical_id].source_muted);
++    }
++}
++
++#[tokio::test]
++async fn endpoint_preparation_data_unmute_hold_retire_or_removed_port_invalidates_audio_readiness()
++{
++    for change in ["unmute", "hold", "retire", "remove"] {
++        let mut room = Room::new().await;
++        room.add_owned_with_media(
++            "fresh",
++            "fresh",
++            owner("fresh"),
++            true,
++            None,
++            vec![
++                desired(Medium::Audio),
++                desired(Medium::Video),
++                desired(Medium::Data),
++            ],
++        )
++        .await;
++        let id = ConnectionId::from_string("fresh");
++        room.domain
++            .local_preparations
++            .lock()
++            .unwrap()
++            .insert(id.clone(), "prepare-fresh".into());
++        let preparation = room
++            .scene
++            .prepare_audio_endpoint(&id, "prepare-fresh")
++            .unwrap();
++        let mut target = Target {
++            room,
++            preparation,
++            operation: "prepare-fresh".into(),
++        };
++        target.room.publish("fresh", 12000).unwrap();
++        target.queue();
++        target.room.heard("fresh", 0).await;
++        assert!(target.preparation.has_duplex_io());
++        let controller = &target.room.nodes["fresh"].controller;
++        let before = target
++            .room
++            .scene
++            .replacement_endpoint_stamp(target.preparation.audience())
++            .unwrap();
++        let removed = if change == "remove" {
++            Some(
++                controller
++                    .state
++                    .lock()
++                    .unwrap()
++                    .active
++                    .remove(&desired(Medium::Data).logical_id)
++                    .unwrap(),
++            )
++        } else {
++            None
++        };
++        if change == "remove" {
++            assert!(removed.is_some());
++        } else if change == "retire" {
++            target.room.nodes["fresh"]
++                .adapter
++                .port(Medium::Data)
++                .report_terminal()
++                .unwrap();
++        } else {
++            controller
++                .set_media_gate(
++                    controller.revision(),
++                    &BTreeSet::from([desired(Medium::Data).logical_id]),
++                    if change == "hold" {
++                        StreamGateAction::Hold {
++                            direction: StreamDirection::Receive,
++                        }
++                    } else {
++                        StreamGateAction::Unmute
++                    },
++                    deadline(),
++                )
++                .await
++                .unwrap();
++        }
++        assert!(!target.preparation.has_duplex_io());
++        assert!(target
++            .room
++            .scene
++            .replacement_endpoint_stamp(target.preparation.audience())
++            .is_err());
++        assert!(
++            before.check().is_err(),
++            "stale Data resource permitted a replacement readiness stamp"
++        );
++        assert!(
++            target.room.publish("fresh", 12000).is_err(),
++            "invalid Data quarantine accepted fresh preparation audio"
++        );
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -774,3 +774,63 @@
+         assert!(video.try_publish(&frame(&video, 3)).is_err());
+     }
+ }
++
++#[tokio::test]
++async fn replacement_scene_with_quarantined_data_and_video_commits_only_audio() {
++    for closed in [false, true] {
++        let mut f = Move::with_media(
++            closed,
++            "alice",
++            false,
++            vec![
++                desired(Medium::Audio),
++                desired(Medium::Video),
++                desired(Medium::Data),
++            ],
++        )
++        .await;
++        let video = f.room.nodes["device"].adapter.port(Medium::Video);
++        let remote = f.room.nodes["bob"].controller.active_bindings();
++        assert!(video.try_publish(&frame(&video, 1)).is_err());
++        f.io().await;
++        f.confirm().await;
++        let plan = f.plan().unwrap();
++        let (_, handle) = f.commit(plan).await.unwrap();
++        assert!(
++            video.try_publish(&frame(&video, 2)).is_err(),
++            "audio replacement opened video"
++        );
++        let state = f.room.nodes["device"].controller.state.lock().unwrap();
++        let stream = &state.model.streams()[&desired(Medium::Video).logical_id];
++        assert!(stream.source_muted);
++        assert_eq!(stream.state, LogicalStreamState::Active);
++        assert!(stream.hold_direction.is_none());
++        let data = &state.model.streams()[&desired(Medium::Data).logical_id];
++        assert!(
++            data.source_muted,
++            "audio commit opened reliable Data publication"
++        );
++        assert_eq!(data.state, LogicalStreamState::Active);
++        assert!(data.hold_direction.is_none());
++        assert!(state.active.contains_key(&desired(Medium::Data).logical_id));
++        drop(state);
++        assert!(f.room.publish("alice", 800).is_err());
++        f.room.publish("device", 5200).unwrap();
++        f.room.tick();
++        f.room.heard("bob", 5200).await;
++        if closed {
++            f.room.silent(&["public"]);
++        } else {
++            f.room.heard("public", 5200).await;
++        }
++        assert_eq!(
++            f.room.nodes["bob"].controller.active_bindings()[0].transport_id,
++            remote[0].transport_id
++        );
++        assert_eq!(
++            handle.finish_local_media_cleanup(deadline()).await,
++            ReplacementCleanupOutcome::LocalMediaClosed
++        );
++        assert!(video.try_publish(&frame(&video, 3)).is_err());
++    }
++}

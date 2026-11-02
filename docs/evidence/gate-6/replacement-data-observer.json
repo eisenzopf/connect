@@ -33,7 +33,7 @@
     "waiting_workload_started": false
   },
   "corrected_verification": {
-    "stage": "component checks passed; production runtime building",
+    "stage": "complete",
     "source_revision": "088dd54e18a6922d897fe0fccba2d761b7ae4187",
     "source_inputs_unchanged_after_commit": true,
     "guarded_implementation_inputs": 3951,
@@ -47,11 +47,150 @@
       "Adopted observer preserves original operation IDs/dispositions and refuses foreign scope/target.",
       "Observer rejects another scope or a second writer."
     ],
-    "runtime": "in progress",
-    "actual_movement_fixture": "same original fresh waiter; not started until runtime build completes successfully"
+    "runtime": "normal production release build passed",
+    "actual_movement_fixture": "complete negative; both targets negotiated, zero movements, all owners joined",
+    "runtime_sha256": "6a452691321dce2b72ed6aefd62b324cd483e3f05695dff601053ebba3e1d45a",
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 1715.0003232499585
   },
   "unresolved": [
     "Actual successful signed negotiation, precommit Data quarantine, postcommit reliable Data IO and twenty physical moves remain unqualified.",
     "Independent full programme decode and all 32 transport matrix cells remain required."
-  ]
+  ],
+  "actual_scene": {
+    "format": "connect/replacement-data-observer-scene-audit/1",
+    "runtime_sha256": "6a452691321dce2b72ed6aefd62b324cd483e3f05695dff601053ebba3e1d45a",
+    "original_messages": [
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+        "original_completed_result_and_exact_audience": true
+      }
+    ],
+    "root_states": [
+      {
+        "state": "failed",
+        "revision": 8,
+        "problem_code": "native-target-stopped"
+      },
+      {
+        "state": "failed",
+        "revision": 8,
+        "problem_code": "native-target-stopped"
+      }
+    ],
+    "effect_phases": [
+      {
+        "phase": "prepare",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "prepare",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "allocate",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "allocate",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "start",
+        "started": 1,
+        "state": "unknown"
+      },
+      {
+        "phase": "start",
+        "started": 1,
+        "state": "unknown"
+      }
+    ],
+    "media_phase_records": 0,
+    "physical_targets": [
+      {
+        "source_index": 0,
+        "target_allocated_once": true,
+        "target_negotiated_once": true,
+        "negotiated_media": [
+          "audio",
+          "data",
+          "video"
+        ],
+        "local_audio_datagrams_submitted": 0,
+        "failure_stage": "original-completion-observation",
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "private_observation_sha256": "7f70d08677b75245d1de1165c2cb0e2d543fdee0546c627e39b8f2f2070b894a",
+        "private_stage_sha256": "0f138ddc94f4d28db76b353932744754789e4d3255c71f8c37827f6e5ba050e0",
+        "private_log_sha256": "f0f8e9cb0b8cc2d9b92f63e7fedc295070144b1d76383adb15d871f1daf79505"
+      },
+      {
+        "source_index": 4,
+        "target_allocated_once": true,
+        "target_negotiated_once": true,
+        "negotiated_media": [
+          "audio",
+          "data",
+          "video"
+        ],
+        "local_audio_datagrams_submitted": 0,
+        "failure_stage": "original-completion-observation",
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "private_observation_sha256": "444f6abc342ae24d69b62d34b518aba9146022b046ea5e97b0cbeabf500dd290",
+        "private_stage_sha256": "3e72d2bf6fbbee278e7bc7b09d9149406266379573b667b8ae8ebfa07e76b0fe",
+        "private_log_sha256": "f0f8e9cb0b8cc2d9b92f63e7fedc295070144b1d76383adb15d871f1daf79505"
+      }
+    ],
+    "original_packet_tasks_joined": true,
+    "helpers_and_server_joined": true,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "full_data_baseline_passed": true,
+    "actual_target_allocation_confirmed": 2,
+    "actual_replacement_data_io_qualified": false,
+    "movements_completed": 0,
+    "scene_passed": false,
+    "audit_passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "independent_scene_audit_sha256": "5b0cab46133271bbacc11b529084129ed45c5e90d384cebed2221c881f2e739e",
+  "next_observed_restriction": {
+    "observed_stage": "initial mute after signed negotiation",
+    "native_return_variant_observed": false,
+    "source_rule": "CanonicalNativeAdapter::mute_native_media_for_private_admission rejects every medium outside Audio/Video; both confirmed targets include Audio, Video and Data. Core endpoint preparation and resource stamps likewise originally accept only Video as auxiliary resources.",
+    "fix": "Recorded patch270 adds dormant Data resources to the exact mute/quarantine/port-custody checks; new verification pending."
+  }
 }

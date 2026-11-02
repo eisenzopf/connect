@@ -1463,6 +1463,11 @@
       "path": "patches/rvoip/gate6-queued-realtime-recovery.patch",
       "sha256": "e77d957adcdfe66146cd5e97a3628465bf7b28681ceec19a0b6ab52b894c0999",
       "source": "G6-058: recover queued realtime Audio/Video transient pre-IO metadata refusal with no idle authority readers. Preserve original packet age and earliest observed source/target policy expiry across attempts; original tickets/generations/current authorization/shutdown checks and once-only IO retained. Data and source-clock/quality thresholds unchanged. Six controlled before failures reproduced; after Core and actual media verification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-quarantined-data-preparation.patch",
+      "sha256": "662e4d4eee3cdfc5df8488af8007b6e3600558b7e1dbdf0d539a5f0b47b3f074",
+      "source": "G6-058: include the exact negotiated reliable Data resources in the confirmed initial mute batch and decoder-only audio preparation. Pin each dormant Video/Data port in current readiness and replacement stamps; require active/ready/muted/no-hold state and retain all original port identities. Audio commit must not unmute Data/video. New controlled Core cases cover Data+video quarantine, unmute/hold/physical retirement/removal invalidation, and audio-only commit gates. No public Data grant, writer replay, deadline, source clock, media quality or publication change. Actual signed negotiation passed before this patch but both original roots failed at the AV-only mute check; fresh Core/adapter/service/runtime verification remains required."
     }
   ]
 }

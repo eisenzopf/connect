@@ -1,0 +1,46 @@
+{
+  "format": "connect/gate6-quarantined-data-preparation/1",
+  "task": "G6-058",
+  "patch": "patches/rvoip/gate6-quarantined-data-preparation.patch",
+  "patch_sha256": "662e4d4eee3cdfc5df8488af8007b6e3600558b7e1dbdf0d539a5f0b47b3f074",
+  "source_lock_sha256": "62eaa79ae1698481357cdbfcd055d1238e3259eea719d6790f725a3273ec9369",
+  "patch_count": 270,
+  "old_dependency_snapshot_preserved": true,
+  "new_preparation_verified": true,
+  "changes": [
+    "Include confirmed Data resources in the exact initial mute batch while retaining the one duplex Audio requirement and current held Gate authorization.",
+    "Require every auxiliary Video/Data resource to remain active, ready, muted, without a hold direction.",
+    "Pin original auxiliary port identities in audio preparation and replacement readiness stamps; removed or replaced Data cannot leave a usable stale audio proof.",
+    "Audio replacement commit opens Audio only; Data/video stay muted until their separately authorized postcommit controls."
+  ],
+  "regressions_added": [
+    "Audio preparation retains dormant Data and video while granting no public media route.",
+    "Data unmute, hold, physical retirement or removal invalidates existing and fresh audio readiness stamps.",
+    "Open/closed audio replacement scenarios retain muted active Data and video resources."
+  ],
+  "verification": {
+    "stage": "running",
+    "core_private_consultation_tests": "pending",
+    "service_media_tests": "pending",
+    "production_runtime": "pending",
+    "fresh_synthetic_scene": "reserved once for the same original build"
+  },
+  "no_new_data_publication_permission": true,
+  "thresholds_changed": false,
+  "unknown_effects_replayed": false,
+  "source_clocks_changed": false,
+  "actual_earlier_scene": {
+    "runtime_sha256": "6a452691321dce2b72ed6aefd62b324cd483e3f05695dff601053ebba3e1d45a",
+    "original_data_payloads": 6,
+    "payload_bytes_each": 65536,
+    "targets_negotiated": 2,
+    "moves_completed": 0,
+    "owner_joins": true,
+    "forced_cleanup": false,
+    "audit_sha256": "5b0cab46133271bbacc11b529084129ed45c5e90d384cebed2221c881f2e739e"
+  },
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
