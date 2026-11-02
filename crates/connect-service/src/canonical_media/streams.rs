@@ -142,7 +142,7 @@ impl Policy {
             .and_then(|h| h.peer_guard())
             .ok_or_else(connect_protocol::Error::forbidden)?;
         let connection = self
-            .entry(&ConnectionId::from_string(
+            .stream_entry(&ConnectionId::from_string(
                 lease.runtime_connection_id().to_owned(),
             ))
             .map_err(|error| match error {

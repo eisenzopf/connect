@@ -103,6 +103,49 @@ fn native_packet_poisoned_registry_is_authority_failure_rather_than_retry() {
         Err(StreamControlError::Authority)
     ));
 }
+#[test]
+fn stream_adoption_lookup_does_not_turn_missing_or_expired_targets_into_waits() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let id = ConnectionId::from_string("missing-target".to_owned());
+    assert!(matches!(
+        policy.stream_entry(&id),
+        Err(StreamControlError::Authority)
+    ));
+    policy
+        .replacement_targets
+        .lock()
+        .unwrap()
+        .insert(id.clone(), Weak::new());
+    assert!(matches!(
+        policy.stream_entry(&id),
+        Err(StreamControlError::Authority)
+    ));
+    // Registry contention is a bounded metadata wait, with no returned entry.
+    let entries = policy.entries.lock().unwrap();
+    assert!(matches!(
+        policy.stream_entry(&id),
+        Err(StreamControlError::NotReady)
+    ));
+    drop(entries);
+    let targets = policy.replacement_targets.lock().unwrap();
+    assert!(matches!(
+        policy.stream_entry(&id),
+        Err(StreamControlError::NotReady)
+    ));
+    drop(targets);
+    assert!(matches!(
+        policy.stream_entry(&id),
+        Err(StreamControlError::Authority)
+    ));
+}
 fn audio(name: &str, rate: u32) -> MediaFormat {
     MediaFormat::Encoded {
         name: name.into(),

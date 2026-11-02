@@ -326,3 +326,5 @@ excluded from RTP/RTCP decoder inputs, and negotiation never proves Data IO.
 The current19 Rust and30 Node checks pass, with a built release peer. Actual targets now pass allocation, but the measured run stops at media-answer
 before resources or Data IO. The complete physical workload remains open; see
 [the subscription evidence](../evidence/gate-6/replacement-data-subscriptions.json).
+
+A completed replacement journal can be observed before its ordinary service media policy is adopted. Stream-control metadata preparation now distinguishes that exact active committed provisional target from a missing or cancelled route and waits within the original accepted operation deadline. The wait returns no provisional authority and never repeats an engine effect. Packet policy lookup remains fail-closed. Current candidate verification is recorded in [the adoption metadata evidence](../evidence/gate-6/replacement-adoption-metadata-wait.json).

@@ -1,0 +1,25 @@
+{
+  "format": "connect/replacement-adoption-metadata-wait/1",
+  "task": "G6-058",
+  "before_scene_evidence": "docs/evidence/gate-6/quarantined-data-preparation.json",
+  "source_finding": "project_native_replacement_committed publishes completed journal state before Data writer construction, current reader capture and policy adoption. Ordinary stream invocation used entry(), which denied an absent entry even when the exact committed provisional candidate was still registered.",
+  "change": "Stream invocation uses a separate atomic registry lookup. An exact active committed, uncancelled provisional replacement produces metadata NotReady mapped to authority-busy. The existing original-attempt preflight retries that read under its original authorization and absolute deadline. Packet entry() remains unchanged.",
+  "safety": [
+    "No provisional control or packet grant is returned.",
+    "Missing, expired, uncommitted or cancelled candidates remain refused.",
+    "Registry lock order matches adoption: entries then provisional targets.",
+    "No media effect replay, original operation ID replacement or deadline renewal."
+  ],
+  "verification": {
+    "dependencies_verified": true,
+    "format_passed": true,
+    "service_tests": "running original build50568",
+    "normal_release_runtime": "pending same build",
+    "fresh_scene": "reserved once after original build with same source; original11271"
+  },
+  "root_cause_runtime_confirmation": "pending; preserved before scene has a forbidden invocation-preparation failure but lacks its finer stage diagnostics",
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

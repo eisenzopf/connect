@@ -706,6 +706,38 @@ impl Policy {
             .cloned()
             .ok_or(StreamControlError::Authority)
     }
+    /// A known replacement can be journaled before its ordinary media policy
+    /// is adopted. Defer metadata preparation for that exact committed target;
+    /// the caller retains its original attempt, authorization and deadline.
+    /// This lookup never lends provisional packet or control authority.
+    fn stream_entry(&self, id: &ConnectionId) -> ControlResult<Arc<Connection>> {
+        // Adoption takes these registries in the same order. Keep both views
+        // stable so removal of the provisional entry cannot hide an adoption.
+        let entries = self.entries.try_lock().map_err(metadata_contention)?;
+        if let Some(entry) = entries.get(id) {
+            return Ok(entry.clone());
+        }
+        let targets = self
+            .replacement_targets
+            .try_lock()
+            .map_err(metadata_contention)?;
+        let adopting = targets
+            .get(id)
+            .and_then(Weak::upgrade)
+            .is_some_and(|target| {
+                target.pending.binding().connection() == id
+                    && target.pending.binding().state()
+                        == rvoip_core::relationships::BindingState::Active
+                    && target.root.upgrade().is_some_and(|root| {
+                        root.handle.is_committed() && !root.handle.cancellation().is_cancelled()
+                    })
+            });
+        if adopting {
+            Err(StreamControlError::NotReady)
+        } else {
+            Err(StreamControlError::Authority)
+        }
+    }
     fn scope(&self, scope: &MediaScope<'_>, entry: &Connection) -> ControlResult<()> {
         if !entry
             .domain
