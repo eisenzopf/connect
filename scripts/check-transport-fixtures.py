@@ -215,7 +215,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             path = PRIVATE / (name + ".log")
             stream = path.open("wb")
             streams.append(stream)
-            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug") if data_workload else env
+            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug") if data_workload else env
             command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,

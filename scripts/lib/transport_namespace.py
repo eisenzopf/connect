@@ -114,7 +114,7 @@ class NativeNamespace:
         assert self.created and self.active_pid is None and self.owner is None
         selected = fixture_environment(env)
         if "RUST_LOG" in env:
-            assert env["RUST_LOG"] == "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug"
+            assert env["RUST_LOG"] == "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
             selected["RUST_LOG"] = env["RUST_LOG"]
         return ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--wait", "--pipe",
             "--unit=" + self.unit, "--uid=" + str(os.getuid()), "--gid=" + str(os.getgid()),

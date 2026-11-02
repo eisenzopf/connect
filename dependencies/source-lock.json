@@ -1468,6 +1468,11 @@
       "path": "patches/rvoip/gate6-quarantined-data-preparation.patch",
       "sha256": "662e4d4eee3cdfc5df8488af8007b6e3600558b7e1dbdf0d539a5f0b47b3f074",
       "source": "G6-058: include the exact negotiated reliable Data resources in the confirmed initial mute batch and decoder-only audio preparation. Pin each dormant Video/Data port in current readiness and replacement stamps; require active/ready/muted/no-hold state and retain all original port identities. Audio commit must not unmute Data/video. New controlled Core cases cover Data+video quarantine, unmute/hold/physical retirement/removal invalidation, and audio-only commit gates. No public Data grant, writer replay, deadline, source clock, media quality or publication change. Actual signed negotiation passed before this patch but both original roots failed at the AV-only mute check; fresh Core/adapter/service/runtime verification remains required."
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-preflight-diagnostics.patch",
+      "sha256": "b3623bf81c6a1e6e2bf030d379203440cc88a1ad1e4686a8403dcb1202229c85",
+      "source": "G6-058 diagnostic-only: distinguish missing receiver installation, exact receiver flow confirmation, and Core source-catalog refusal during the original signed subscription preflight. Missing explicit logical source is logged only to private debug output. No outcome, authorization, mutation, retry, deadline, stream binding or quality threshold changes. Original v4 NotReady cause remains unproven; current release verification and fresh actual runtime evidence required."
     }
   ]
 }

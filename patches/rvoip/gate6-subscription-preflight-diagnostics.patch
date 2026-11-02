@@ -1,0 +1,43 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1067,7 +1067,10 @@
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+         let route = self.data_route(id, a)?;
+         let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+-        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let installed = installed.as_ref().ok_or_else(|| {
++            tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-installation", "Native subscription preflight is not ready");
++            NativeOfferError::NotReady
++        })?;
+         let broker = installed
+             .backend
+             .negotiation
+@@ -1095,13 +1098,17 @@
+             return Err(NativeOfferError::Conflict);
+         }
+         if !installed.backend.flow.confirmed_at(expected) {
++            tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-confirmation", expected_revision = expected, flow_current = installed.backend.flow.current(), "Native subscription preflight is not ready");
+             return Err(NativeOfferError::NotReady);
+         }
+         let defaults = broker.subscription_media()?;
+         let input = parse(a.envelope(), route.member.participant(), &defaults)?;
+         let selection = core
+             .plan_staged_media_selection(&route.session, id, expected, &input)
+-            .map_err(catalog_error)?;
++            .map_err(|error| {
++                tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "source-catalog", ?error, "Native subscription catalog planning refused");
++                catalog_error(error)
++            })?;
+         if selection.requires_reconciliation()
+             && route
+                 .subscriptions
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -293,6 +293,7 @@
+                             .collect::<Vec<_>>();
+                         if found.len() != 1 {
+                             return Err(if found.is_empty() {
++                                tracing::debug!(target: "rvoip_core::native_catalog", stage = "logical-source", requested = %id, catalog_sources = catalog.len(), "Native subscription source is absent");
+                                 StreamControlError::NotReady
+                             } else {
+                                 MediaTransitionError::Invalid.into()

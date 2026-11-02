@@ -1,0 +1,38 @@
+{
+  "format": "connect/subscription-preflight-diagnostics/1",
+  "task": "G6-058",
+  "patch": "patches/rvoip/gate6-subscription-preflight-diagnostics.patch",
+  "patch_sha256": "b3623bf81c6a1e6e2bf030d379203440cc88a1ad1e4686a8403dcb1202229c85",
+  "patches": 271,
+  "scope": "Diagnostic distinctions only: receiver installation, exact flow confirmation, catalog error and missing explicit logical source. Original v4 subscription source cause remains unproven; no outcome/retry/authorization/deadline/resource/quality changes.",
+  "source_preparation": {
+    "passed": true,
+    "changed_prepared_files": 2,
+    "identical_file_bytes_and_modes_checked_before_preserving_mtimes": 4096,
+    "old_snapshot_preserved": true
+  },
+  "checks": {
+    "namespace_tests_passed": 5,
+    "fixture_tests_passed": 11,
+    "skipped": 0,
+    "format_passed": true
+  },
+  "normal_release_verification": {
+    "started": true,
+    "complete": false,
+    "passed": false,
+    "scope": "Original19 service media tests, production CLI,47 physical-peer tests and normal peer build, with source and dependency guards."
+  },
+  "original_negative_timing": {
+    "journal_roots_completed": 2,
+    "parent_roots_observed": 1,
+    "other_parent_root_read_deadline": true,
+    "receiver_selector_failed_not_ready": true,
+    "source_cause_proven": false,
+    "note": "Generic NotReady can arise before Core catalog access, including missing receiver installation or unconfirmed exact flow. Do not infer a missing publisher solely from this error."
+  },
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
