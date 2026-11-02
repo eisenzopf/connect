@@ -23,9 +23,64 @@
     "Preserve exact current authority scopes, policy clock and source/credential checks, with no partial or idle reader on refusal."
   ],
   "after": {
-    "implemented": false,
-    "verified": false
+    "implemented": true,
+    "verified": true,
+    "scope": "Affected Store snapshot, ownership, fence and native-stream cases only. Not the full Store suite or decoded runtime quality.",
+    "change": "Fresh file admission releases SQL as before. Reacquisition immediately selects the original captured observer, preserving connection-local counter comparisons. Other free observers cannot validate it; a busy original observer, current ownership refusal or changed SQL/schema/clock still refuses.",
+    "cohorts": [
+      {
+        "name": "after-focused",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "snapshot",
+        "passed": 26,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "installation_ownership",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "name": "authority_fences",
+        "passed": 45,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "name": "native_stream_authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_passing_cases": 262,
+    "case_invocations_passed": 265,
+    "focused_cases_also_in_snapshot_cohort": 3,
+    "failed": 0,
+    "intentional_parent_invoked_workers_ignored": 2,
+    "test_binary_sha256": "c22fb229994bf5800793f102fd3e2414c4d843924258f7e13628e894c1acaded",
+    "binary_preserved": true,
+    "elapsed_seconds": 161.37287558289245,
+    "source_inputs_unchanged": true,
+    "official_dependency_preparation_passed": true,
+    "format_check_passed": true,
+    "SQL_or_authority_lock_retained_during_file_admission": false,
+    "SQL_statements_or_result_cache_changed": false,
+    "fresh_file_scope_and_current_runtime_ownership_checks_retained": true,
+    "packet_budget_or_earliest_expiry_changed": false
   },
   "full_media_quality_claim": false,
-  "transport_cells_qualified": 0
+  "transport_cells_qualified": 0,
+  "runtime_verification": {
+    "status": "Original normal optimized build active after successful Store prerequisites; same native quality comparison queued.",
+    "actual_new_quality_result": false,
+    "native_cause_proven": false,
+    "cell_qualified": false
+  }
 }

@@ -336,7 +336,10 @@ fn acquire_with_facts<T>(
     // File opens, hashing and try-locks over a large scene must not monopolize
     // SQL. This remains immediate fresh admission, with every original scope.
     let held = admit(&scopes)?;
-    let c = store.try_packet_connection()?;
+    // Releasing SQL does not discard the original observer's identity. A free
+    // earlier slot has unrelated counters and cannot validate this capture.
+    // A busy original slot still refuses immediately and releases the reader.
+    let c = store.try_packet_connection_for(before.connection)?;
     seal(store, &c, before, facts, scopes, held, &mut derive, finish)
 }
 

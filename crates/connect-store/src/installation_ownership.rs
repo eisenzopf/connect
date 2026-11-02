@@ -300,6 +300,17 @@ impl Store {
     /// The caller must still acquire and seal its complete authority interval.
     #[track_caller]
     pub(crate) fn try_packet_connection(&self) -> Result<ConnectionGuard<'_>> {
+        self.packet_connection(None)
+    }
+    /// Reacquire the exact observer used by an earlier capture after releasing
+    /// SQL for file admission. Its counters are connection-local; availability
+    /// of another observer cannot make that connection interchangeable.
+    #[track_caller]
+    pub(crate) fn try_packet_connection_for(&self, original: usize) -> Result<ConnectionGuard<'_>> {
+        self.packet_connection(Some(original))
+    }
+    #[track_caller]
+    fn packet_connection(&self, original: Option<usize>) -> Result<ConnectionGuard<'_>> {
         let owner = self.runtime_ownership.permit(&self.path)?;
         for observer in &self.packet_connections {
             let connection = match observer.try_lock() {
@@ -307,6 +318,11 @@ impl Store {
                 Err(std::sync::TryLockError::WouldBlock) => continue,
                 Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
             };
+            if original.is_some_and(|original| {
+                original != &*connection as *const rusqlite::Connection as usize
+            }) {
+                continue;
+            }
             if let Some(owner) = &owner {
                 owner.check(&self.path)?;
             }
