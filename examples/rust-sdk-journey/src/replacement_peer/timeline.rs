@@ -1,6 +1,22 @@
 //! Every physical destination joins the same immutable source program.
 use super::*;
 
+// Source sends and original status polls must not wait for an input queue to empty.
+// The public native datagram read is atomic and cancellation-safe at this boundary.
+pub(super) async fn receive_before_tick<T>(
+    next: tokio::time::Instant,
+    receive: impl std::future::Future<Output = T>,
+) -> Option<T> {
+    if tokio::time::Instant::now() >= next {
+        return None;
+    }
+    tokio::select! {
+        biased;
+        _ = tokio::time::sleep_until(next) => None,
+        value = receive => Some(value),
+    }
+}
+
 pub(super) struct Program {
     pub unix: u128,
     pub elapsed: Duration,
@@ -30,6 +46,24 @@ impl Program {
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn due_tick_wins_over_continuously_ready_input() {
+        let due = tokio::time::Instant::now() - Duration::from_secs(1);
+        assert_eq!(receive_before_tick(due, std::future::ready(42)).await, None);
+    }
+    #[tokio::test]
+    async fn input_before_future_tick_and_empty_input_at_due_tick_keep_original_bound() {
+        let future = tokio::time::Instant::now() + Duration::from_secs(3600);
+        assert_eq!(
+            receive_before_tick(future, std::future::ready(42)).await,
+            Some(42)
+        );
+        let due = tokio::time::Instant::now() - Duration::from_secs(1);
+        assert_eq!(
+            receive_before_tick(due, std::future::pending::<u32>()).await,
+            None
+        );
+    }
     #[test]
     fn successive_destinations_keep_original_frame_indices_and_shared_av_clock() {
         let original = 1_793_600_000_000_000;

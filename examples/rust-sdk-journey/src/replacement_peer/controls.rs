@@ -1,5 +1,6 @@
 //! Original journal observations and distinct, durable, current-authorized video controls.
 use super::*;
+use connect_client::{canonical::ReplyBatch, ClientError};
 #[derive(Clone)]
 pub(super) struct Admission {
     pub revision: u64,
@@ -27,7 +28,13 @@ pub(super) async fn completion(
             },
         )
         .await?;
-    batch.ack()?;
+    if completion_read_pending(&batch)? {
+        // Only this completed, signed read was refused. Keep the physical
+        // owner and original root; the caller's existing programme/poll bound
+        // governs the next observation. No mutation or control is retried.
+        emit(json!({"phase":"original-completion-read-deferred"})).await?;
+        return Ok(None);
+    }
     let updates = batch
         .frames
         .iter()
@@ -48,6 +55,13 @@ pub(super) async fn completion(
         own,
         minimum_revision,
     )
+}
+fn completion_read_pending(batch: &ReplyBatch) -> Result<bool> {
+    match batch.ack() {
+        Ok(_) => Ok(false),
+        Err(ClientError::Application(problem)) if problem.code == "storage-unavailable" => Ok(true),
+        Err(error) => Err(error.into()),
+    }
 }
 fn observed(
     value: &Value,
@@ -313,6 +327,44 @@ pub(super) async fn open(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn reply(kind: &str, payload: Value) -> ReplyBatch {
+        ReplyBatch {
+            request_id: "original-status-read".into(),
+            frames: vec![Envelope::from_value(json!({"v":2,"id":"status-response",
+                "ts":"2026-11-02T00:00:00Z","type":kind,
+                "in_reply_to":"original-status-read","payload":payload}))
+            .unwrap()],
+        }
+    }
+    #[test]
+    fn temporary_original_status_read_is_pending_and_never_admission() {
+        let unavailable = reply(
+            "error",
+            json!({"code":503,"category":"storage",
+            "reason":"storage_unavailable"}),
+        );
+        assert!(completion_read_pending(&unavailable).unwrap());
+        let observed = reply("ack", json!({"details":{"reply_complete":true}}));
+        assert!(!completion_read_pending(&observed).unwrap());
+        // An ACK only permits inspection of the correlated original journal
+        // fields; existing identity/resource checks still decide admission.
+    }
+    #[test]
+    fn authority_resource_capacity_and_protocol_refusals_are_not_read_deferrals() {
+        for code in [400, 401, 403, 404, 409, 429, 488, 500, 501] {
+            let refused = reply(
+                "error",
+                json!({"code":code,"category":"server",
+                "reason":"original_read_refused"}),
+            );
+            assert!(completion_read_pending(&refused).is_err(), "{code}");
+        }
+        let empty = ReplyBatch {
+            request_id: "original-status-read".into(),
+            frames: vec![],
+        };
+        assert!(completion_read_pending(&empty).is_err());
+    }
     fn fixture() -> (
         TransitionCommand,
         payloads::OperationUpdated,

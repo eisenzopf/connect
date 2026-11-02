@@ -280,8 +280,8 @@ pub(super) async fn run(
             let poll = if source.video.is_some() && !video_open {next_poll} else {until};
             let owner = if source.owner_control { next_owner } else { until };
             let next=next_audio.min(next_video).min(poll).min(owner).min(until);
-            match tokio::time::timeout_at(next, client.receive_native_media_datagram()).await {
-                Ok(packet) => {
+            match timeline::receive_before_tick(next, client.receive_native_media_datagram()).await {
+                Some(packet) => {
                     let packet=packet?;captured_bytes+=packet.len();
                     let maximum_rows=if source.video.is_some() {16000} else {4000};
                     if rows.len()>=maximum_rows || captured_bytes>16*1024*1024 {
@@ -290,7 +290,7 @@ pub(super) async fn run(
                     rows.push(json!({"elapsed_us":start.elapsed().as_micros(),"datagram":packet,
                         "original_root_completed_observed":root_observed}));
                 }
-                Err(_) => {
+                None => {
                     if let Some(video)=&source.video {
                         if !video_open && tokio::time::Instant::now()>=next_poll {
                             phase="original-completion-observation";

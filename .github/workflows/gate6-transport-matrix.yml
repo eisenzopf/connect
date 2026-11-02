@@ -121,6 +121,7 @@ jobs:
       - name: Check native media ownership capture custody and failure joins
         if: inputs.component == 'media'
         run: |
+          cargo test --release --locked --manifest-path examples/rust-sdk-journey/Cargo.toml replacement_peer:: -- --test-threads=1
           node --test --test-concurrency=1 \
             scripts/tests/transport_av.test.mjs \
             scripts/tests/transport_programme_lifetime.test.mjs \

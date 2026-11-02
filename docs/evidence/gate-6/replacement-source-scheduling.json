@@ -1,0 +1,95 @@
+{
+  "format": "connect/gate-6/replacement-source-scheduling/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Physical replacement example source scheduling and original-status read recovery. Actual public client only; no service/SDK authorization bypass, clock reset, deadline renewal or quality-limit change. Full20movement integration and decoded qualification remain required.",
+  "before": {
+    "timer_starvation_counterexample_verified": true,
+    "original_timeout_semantics_regression_passed": 0,
+    "original_timeout_semantics_regression_failed": 1,
+    "before_log_sha256": "6c8bcb657ee9a92d7d3e846640bbd54582d4fea6a02cf9db199db44d7100ee73",
+    "first_select_only_candidate_passed": 15,
+    "first_select_only_candidate_failed": 1,
+    "first_candidate_log_sha256": "e7ecf3fa235ebbe527f9986c5c25f1589301a0c5922924a57fd5af9967ad0f2c",
+    "reason_for_explicit_clock_check": "A due timer must win even before its first driver poll, while the native datagram read is immediately ready."
+  },
+  "change": {
+    "explicit_original_clock_due_check": true,
+    "biased_due_tick_before_ready_native_datagram": true,
+    "native_datagram_read_remains_atomic_and_cancellation_safe": true,
+    "signed_original_operation_get_503_returns_pending_to_original_media_loop": true,
+    "non503_read_refusals_propagate": true,
+    "temporary_read_grants_admission": false,
+    "mutations_replayed": false,
+    "source_clocks_rebased": false,
+    "original_frame_age_or_quality_limits_changed": false,
+    "overall_bounds_renewed": false
+  },
+  "normal_root_verification": {
+    "passed": true,
+    "tests_passed": 16,
+    "tests_failed": 0,
+    "tests_ignored": 0,
+    "command": "cargo test --release --locked --offline --jobs 2 --manifest-path examples/rust-sdk-journey/Cargo.toml -- --test-threads=1",
+    "test_log_sha256": "3bb8167d3acd4493213463dfcba059d1dc656844ed755d833a1f09fe25eaa582",
+    "source_inputs_unchanged": true,
+    "source_inventory_sha256": "f09859cf1be0902e8e08d504c8aa7189c229bff52e194de7f5e4e594bf649563",
+    "source_sha256": {
+      "examples/rust-sdk-journey/src/replacement_peer.rs": "3e36e344182fa2864b17966578403f0d9b5a7b17e6bb391e922d181944e9f5e1",
+      "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "fd562f3ec5766c560b98e1ee25594d93f9e9520f9d1bc8dcb797d2577819cfb0",
+      "examples/rust-sdk-journey/src/replacement_peer/timeline.rs": "b097883aec1d59f50ead62a062c2909b9cd94f30c24add9d380d1a190e7d4798"
+    },
+    "normal_runtime_binary_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+    "normal_peer_binary_sha256": "acacad6082d2d70a7011e703949fd0ea242505e4b28c016680c409e17e838ff9",
+    "normal_release_build_passed": true,
+    "repository_format_check_passed": true,
+    "workflow_yaml_parse_passed": true,
+    "CI_replacement_peer_regressions_added": true
+  },
+  "actual_native_scene": {
+    "execution_passed": false,
+    "pipeline_sha256": "1834a9c4100a44fa6fb974dd1a60488dd1208d1f2757f7d88c5141298cff1d58",
+    "probe_sha256": "83aeccc717b5745030051fa5cbcb9d759ec6de1283f89a75f0b3fca05d305539",
+    "input_guards_unchanged": true,
+    "physical_owners_completed": 2,
+    "first_movement_failure": {
+      "name": "NodeSdkError",
+      "kind": "application",
+      "certainty": "refused",
+      "observation": {
+        "source_index": 0,
+        "session_index": 0,
+        "ordinal": 1,
+        "stage": "physical-target"
+      }
+    },
+    "overall_native_failure": {
+      "kind": "deadline",
+      "certainty": "uncertain"
+    },
+    "original_packet_workers_joined": true,
+    "original_packet_workers_started": 24,
+    "target_joins_failed": 0,
+    "all_SDK_helpers_joined": true,
+    "decoded_quality_verified": false,
+    "original_read_503_deferral_observed": false,
+    "qualification_claim": false,
+    "server_joined_without_force": true,
+    "physical_target_workers_joined_without_force": 3
+  },
+  "separate_incomplete_service_check": {
+    "normal_release_cli_build_passed": true,
+    "service_media_test_command": "cargo test --locked --offline --jobs 2 -p connect-service canonical_media::tests:: -- --test-threads=1",
+    "outcome": "Compilation did not finish within original1200second command bound; no service-media test pass claimed.",
+    "failure_class": "TimeoutExpired",
+    "source_inputs_unchanged": true,
+    "log_sha256": "afc0c984c2537b8d39b4e37f1f9483c37870cba7ee4dddc344ba9100504e34e9"
+  },
+  "remaining": [
+    "Original twenty movements still do not complete; actual latest scene stops after2physicalowners with later original-completion refusal and an overall uncertain deadline. Preserve those original operations; no resubmission.",
+    "The latest actual scene did not encounter503status deferral, so that branch has focused unit verification and an earlier real signed503negative, not a claimed positive runtime fault rehearsal.",
+    "Earlier forbidden video-unmute, control waits inside media work, mainData+AV/currentConnectionend/fulltimeline decoding, resource/recovery/browser/remote/32cell qualifications remain unresolved."
+  ],
+  "transport_cells_qualified": 0
+}

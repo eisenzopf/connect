@@ -381,6 +381,13 @@ when twenty control roots have already completed. A deadline failure retains
 ownership until original control and physical owners join; it cannot abandon or
 replay an uncertain mutation. These joins add no packets to the measured window.
 
+The physical Rust replacement owner checks its original clock before awaiting
+another datagram. Due source frames and original-status polls take priority over
+already queued input, so receive pressure cannot postpone them until a queue
+empties. A signed `operation.get` storage-unavailable response leaves that same
+root pending and returns to the existing media/poll loop. It grants no readiness,
+retries no mutation and renews no deadline; other refusals still fail.
+
 The reserve Device's initial SDK helper is explicitly closed before the long
 media phase. Its unchanged documented configuration is opened after the source
 owner closes, and the same original Create reference is restored under current

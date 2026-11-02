@@ -248,7 +248,7 @@
     "server_changes": "Debug-only scene/preparation-stage and current-proof/target/lifetime/scope boolean observations; no authority predicate, budget or media-quality change.",
     "release_build_passed": true,
     "dependency_and_format_checks_passed": true,
-    "existing_service_media_tests": "original exec41450stillcompiling; outcome pending",
+    "existing_service_media_tests": "Originalexec41450terminalTimeoutExpiredduringcompilationwithin1200s; no test pass claimed. NormalreleaseCLIcompiled and exactsourceguardpassed.",
     "movement_stage_tracking": "Keeps the first failed Session/source/ordinal/stage through sibling cancellation and all joins. No operation ID or packet recorded in redacted observation.",
     "movement_owner_regression_command": "node --test scripts/tests/transport_movement_workload.test.mjs",
     "movement_owner_regressions_passed": 5,
@@ -259,7 +259,8 @@
   "remaining_findings": [
     "Neither new scene reproduced the earlier post-commit forbidden video-unmute. Those earlier recorded negatives remain unresolved.",
     "The stage-tracked scene stopped at source0Session0ordinal1 physical-target/original-completion. Its target log records signed original operation.get503storage-unavailable, then the physical target exits and the controller times out reading the same original root.",
-    "Prepare a narrow original-status read deferral for503only: retain physical owner and original operation identity, return to existing media/poll loop, preserve all existing overall bounds, never replay mutations or treat a deferral as admission. Patch is prepared privately but not yet applied or verified.",
+    "RootphysicalRustconsumer nowkeepssignedoriginal-status503readpendingandprioritizesdueoriginalclockticksbeforeimmediatelyreadynativedatagrams. Normalroot16unitcasespass; live20movementscene remainsnegative, nofullqualityclaim. See replacement-source-scheduling.json.",
     "Control waits inside the physical media loop also remain a source-scheduling issue to address; no claim this explains authorization failure."
-  ]
+  ],
+  "read_recovery_and_timer_fix": "docs/evidence/gate-6/replacement-source-scheduling.json"
 }
