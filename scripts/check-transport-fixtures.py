@@ -16,7 +16,7 @@ import traceback
 
 from lib.package_environment import fixture_environment
 from lib.sealed_executable import seal_executable
-from lib.transport_actors import enroll_actors, exact
+from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors, exact
 from lib.transport_capture import NativeCapture
 from lib.transport_av import prepare as prepare_av, decode_completed as decode_completed_av
 from lib.transport_namespace import NativeNamespace
@@ -91,6 +91,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     streams = []
     phase = "dependencies"
     binary = None
+    peer = None
     sdk_before = None
     capture = None
     namespace = None
@@ -127,6 +128,28 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         report["binary_sha256"] = digest(targets[0])
         binary = PRIVATE / "connect"
         seal_executable(targets[0], binary, report["binary_sha256"], pool=PRIVATE / "sealed")
+        if media_workload:
+            phase = "compile-independent-physical-media-peer"
+            peer_log = PRIVATE / "peer-compile.log"
+            code = bounded(["cargo", "build", "--release", "--locked", "--message-format=json",
+                "--manifest-path", "examples/rust-sdk-journey/Cargo.toml"], peer_log, env, 3600)
+            report["peer_compile_exit_code"] = code
+            assert code == 0
+            peers = []
+            for line in peer_log.read_text().splitlines():
+                try:
+                    value = json.loads(line)
+                except ValueError:
+                    continue
+                if (value.get("reason") == "compiler-artifact" and value.get("executable")
+                        and value["target"]["name"] == "connect-external-rust-journey"):
+                    assert not value["profile"]["test"] and value["profile"]["opt_level"] == "3"
+                    assert "test-support" not in value["features"]
+                    peers.append(Path(value["executable"]))
+            assert len(peers) == 1
+            report["peer_binary_sha256"] = digest(peers[0])
+            peer = PRIVATE / "physical-media-peer"
+            seal_executable(peers[0], peer, report["peer_binary_sha256"], pool=PRIVATE / "sealed")
 
         if network_profile == "remote":
             phase = "owned-remote-network-setup"
@@ -317,20 +340,22 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         if actors:
             phase = "actor-enrollment"
             directory = output / "actors"
-            enrolled = enroll_actors(ROOT, output, state / "operator.application.toml", binary, directory, run)
+            enrolled = enroll_actors(ROOT, output, state / "operator.application.toml", binary, directory, run,
+                movement_controllers=media_workload)
             report["actor_enrollment"] = enrolled
-            report["checks"].append("four-identities-five-independent-scoped-devices-enrolled-through-production-cli")
+            report["checks"].append("four-identities-" + ("seven" if media_workload else "five") + "-independent-scoped-devices-enrolled-through-production-cli")
             installed = files(directory)
             phase = "actor-original-resume"
             resumed = enroll_actors(ROOT, output, state / "operator.application.toml", binary, directory,
-                lambda name, args, data=None: run("resume-" + name, args, data), resume=True)
+                lambda name, args, data=None: run("resume-" + name, args, data), resume=True,
+                movement_controllers=media_workload)
             assert resumed == enrolled and files(directory) == installed
             report["checks"].append("explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry")
             records = json.loads((directory / "actors.json").read_text())
-            assert len(records) == 5
+            assert set(records) == set(DEVICES + CONTROLLERS if media_workload else DEVICES)
             for name, actor in records.items():
                 assert rooms(name + "-scoped-native-read", Path(actor["config"])) == []
-            report["checks"].append("all-five-enrolled-devices-perform-signed-native-read-under-their-own-authority")
+            report["checks"].append("all-enrolled-devices-perform-signed-native-read-under-their-own-authority")
             forbidden = json.loads(run("actor-cannot-provision", ["provision", "--config", directory / "participant-1/application.toml"],
                 dict(type="identity", operation_id="transport-actor-forbidden-identity", alias="transport-forbidden", kind="human"), success=False))
             assert forbidden["result"]["Err"]["code"] == "forbidden"
@@ -341,7 +366,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             def must_not_execute(*args):
                 raise AssertionError("Changed bound issuer made a public call")
             try:
-                enroll_actors(ROOT, output, changed, binary, directory, must_not_execute, resume=True)
+                enroll_actors(ROOT, output, changed, binary, directory, must_not_execute, resume=True,
+                    movement_controllers=media_workload)
             except FixtureError as error:
                 assert str(error) == "fixture-actor-plan"
             else:
@@ -369,7 +395,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     # Verify the separate full-capability receipts. The original
                     # data-only issuance receipts stay unverified, as in app setup.
                     verification = []
+                    media_endpoints = {}
                     for name, actor in records.items():
+                        if name in CONTROLLERS:
+                            continue
                         issued = tomllib.loads(Path(actor["config"]).read_text())
                         command = dict(type="endpoint", operation_id="transport-media-endpoint-" + name + "-1",
                             identity_id=actor["identity_id"], device=dict(id=actor["device_id"],
@@ -379,6 +408,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         result = json.loads(run("media-endpoint-" + name, ["provision", "--config", state / "operator.application.toml"], command))["result"]["Ok"]
                         assert result["device_id"] == actor["device_id"] and result["capabilities"] == command["capabilities"]
                         assert result["verification_state"] == "unverified" and result["transport"] == "quic"
+                        media_endpoints[name] = result["endpoint_id"]
                         replay = json.loads(run("media-endpoint-original-" + name, ["provision", "--config", state / "operator.application.toml"], command))["result"]["Ok"]
                         assert replay == result
                         verification.append(dict(type="verify_endpoint", operation_id="transport-media-verify-" + name + "-1",
@@ -403,10 +433,11 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     assert resumed_output["endpoint"]["verification_state"] == ("unverified" if media_workload else "verified")
                     assert resumed_output["endpoint"]["device_id"] == actor["device_id"]
                 assert files(directory) == installed
-                report["endpoint_verification"] = dict(initial_unverified=len(verification), signed_control_proofs=5,
+                report["endpoint_verification"] = dict(initial_unverified=len(verification), signed_control_proofs=len(records),
                     endpoints_verified=len(verification), original_verification_replays=len(verification), verified_endpoint_issuance_resumes=0 if media_workload else 5,
-                    unchanged_unverified_issuance_resumes=5 if media_workload else 0,
+                    unchanged_unverified_issuance_resumes=len(records) if media_workload else 0,
                     full_media_endpoints_verified=5 if media_workload else 0,
+                    control_only_unverified_devices=len(CONTROLLERS) if media_workload else 0,
                     participant_self_verification_refused=True,
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
@@ -431,9 +462,14 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     sdk_config = config_directory / (name + ".toml")
                     publish(sdk_config, toml_bytes(dict(tenant_id="tnt_default", control=native_config, application=application_config)))
                     configured_actors[name] = dict(identity_id=actor["identity_id"], config=str(sdk_config))
+                    if media_workload:
+                        configured_actors[name].update(device_id=actor["device_id"], native_config=str(native_path),
+                            media_endpoint_id=media_endpoints.get(name))
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
                     executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
+                    physical_peer_executable=str(peer) if media_workload else None,
+                    physical_peer_sha256=report.get("peer_binary_sha256"),
                     server_pid=server_pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm,
                     server_platform=server_platform, network_profile=network_profile,
                     client_ip=None if namespace is None else namespace.client_ip,
@@ -591,7 +627,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 for stage in ("durable-retirement-recorded", "durable-retirement-retry", "durable-retirement-join")}
             report["native_custodian_terminal_observations"] = custodians[:32]
         report["source_inputs_unchanged"] = before is not None and source() == before
-        report["executables_unchanged"] = binary is not None and digest(binary) == report["binary_sha256"]
+        report["executables_unchanged"] = (binary is not None and digest(binary) == report["binary_sha256"]
+            and (not media_workload or peer is not None and digest(peer) == report["peer_binary_sha256"]))
         if sdk_before is not None:
             report["sdk_dist_inputs_unchanged"] = sdk_inputs() == sdk_before
             report["passed"] = bool(report["passed"] and report["sdk_dist_inputs_unchanged"])

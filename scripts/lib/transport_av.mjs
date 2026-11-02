@@ -176,10 +176,10 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         }
         if (during) {
             controlTask = Promise.resolve().then(() => during(Object.freeze({
-                signal: controller.signal, programStartUnixUs: unixStart * 1000,
+                signal: controller.signal, programStartUnixUs: unixStart * 1000, startedAt: start,
                 routes: Object.freeze(routes.map(route => Object.freeze({ index: route.index,
                     peerIndex: route.peerIndex, connection: route.item.connection,
-                    sessionIndex: route.item.sid, role: route.item.role,
+                    sessionIndex: route.item.sid, role: route.item.role, generation: route.generation,
                     // Retire only this Connection's four packet tasks. A second
                     // Session may still belong to the same live SDK/helper.
                     stopAndJoin: () => route.owner.stopAndJoin(),

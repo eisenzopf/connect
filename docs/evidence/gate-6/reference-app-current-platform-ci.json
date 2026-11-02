@@ -23,7 +23,7 @@
     "Quarantined Data resource preparation with64Core+17service cases passed.",
     "Bounded stream metadata adoption wait; normal local build pending."
   ],
-  "status": "running; Linux terminal negative, macOS still building",
+  "status": "completed; Linux and macOS terminal negative",
   "prior_ci_runs_preserved": [
     41392072614,
     41369927293,
@@ -38,5 +38,10 @@
   "linux_conclusion": "failure",
   "linux_evidence": "docs/evidence/gate-6/reference-app-no-delay-linux-negative.json",
   "macos_job_id": 125181669733,
-  "macos_status": "in_progress"
+  "macos_status": "completed",
+  "macos_conclusion": "failure",
+  "macos_checks_passed": 17,
+  "macos_failure_stage": "synthetic-browser-audio-capture-playback",
+  "macos_artifact_audit_complete": false,
+  "macos_job_log_sha256": "6671ae61513ffa6512951e20054d58f8b0ade3f2a17f777011afbf454222d302"
 }

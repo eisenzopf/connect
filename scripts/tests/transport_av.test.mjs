@@ -68,6 +68,8 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 assert.equal(waiting, 12);
                 assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
                 assert.equal(workload.routes[0].role, workload.routes[4].role);
+                assert.ok(Number.isFinite(workload.startedAt) && workload.startedAt >= 0);
+                assert.ok(workload.routes.every(route => route.generation === 1));
                 assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
                 const joined = await workload.routes[0].stopAndJoin();
                 assert.equal(joined.original_packet_tasks_joined, 4);

@@ -1,0 +1,134 @@
+{
+  "format": "connect/movement-main-integration/1",
+  "task": "G6-058",
+  "base_revision": "528e12ad2261fd695d570c7ad3fb33eb3ca15863",
+  "implementation_applied": true,
+  "source_sha256": {
+    ".github/workflows/gate6-transport-matrix.yml": "930ba33935c54fe8eee455af8a177ca6f4ae0c25e4f2b78255dcaa152fdfdf85",
+    "scripts/check-transport-conversation.mjs": "f6f94ac0806cb5efdc2eaae200e0567a254dde9eebb9be7e25ffc3d92f2e65f0",
+    "scripts/check-transport-fixtures.py": "345c7416da8290dc4d44f476f706a9d8fb877732da25f167d454d2d045d6a6cb",
+    "scripts/lib/transport_av.mjs": "115fa00f05f7c1d86f66da52ebcbb9dd3b1f6cbe1bb186fac2468bcf2206bd97",
+    "scripts/lib/transport_movement_workload.mjs": "92426dcf32a972cb9a9829b2f817feb2d1a033dcb1efdae635926785da03f439",
+    "scripts/lib/transport_movement_sessions.mjs": "dd631647ccfa78eabed3866481760e69b47fa51de62d55dc7f76fd5c53149755",
+    "scripts/tests/transport_av.test.mjs": "579dea212861d7b4b8aeb46bffa594acf7e7c29d74fd5aed1a15d18e894fa9cc",
+    "scripts/tests/transport_movement_workload.test.mjs": "318726cdaedf02cc505d20912e0ff791fe9e4186c51363e539ff482bb6f744a3",
+    "scripts/tests/transport_movement_sessions.test.mjs": "d76d979c9f5de942801a936c561b2c6e86f2bbcdfb7b33b5f24bd04bbd577ce3"
+  },
+  "enrollment": {
+    "identities": 4,
+    "devices": 7,
+    "control_only_devices": 2,
+    "full_capability_media_endpoints": 5,
+    "original_resume_mode_preserved": true,
+    "main_producer_execution_verified": false
+  },
+  "orchestration": {
+    "production_peer_release_build_and_seal_wired": true,
+    "lazy_independent_controllers": 2,
+    "original_primary_sdk_preserved": true,
+    "current_authorized_session_observers": 3,
+    "original_moves": 20,
+    "original_source_programme_seconds": 62,
+    "unchanged_measurement_seconds": 60,
+    "movements_after_original_two_second_warmup": true,
+    "current_owner_ends": {
+      "physical": 2,
+      "retained_sdk": 4
+    },
+    "original_teardown_cutoff_seconds": 67,
+    "old_moved_connections_never_ended_again": true
+  },
+  "verification": {
+    "node_focused_tests_passed": 37,
+    "enrollment_tests_passed": 8,
+    "syntax_checks_passed": true,
+    "repository_format_check_passed": true,
+    "real_62_second_coordinator_test_passed": true,
+    "lifetime_test_packet_io": "controlled test doubles; no codec or transport qualification",
+    "commands": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/tests/transport_av.test.mjs",
+          "scripts/tests/transport_programme_lifetime.test.mjs",
+          "scripts/tests/transport_movement_workload.test.mjs",
+          "scripts/tests/transport_current_end.test.mjs",
+          "scripts/tests/transport_movement_sessions.test.mjs"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.913,
+        "log_sha256": "22b42d41cd76a63110935af388ab0002520c739fd1eec8f29dff5f43147b3abb"
+      },
+      {
+        "command": [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_transport_actors.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.055,
+        "log_sha256": "75ff54e727b57e4bd7b88956ed0c92c4b9a416e6f0976707e8fb54aa385ac0bd"
+      },
+      {
+        "command": [
+          "node",
+          "--check",
+          "scripts/check-transport-conversation.mjs"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.031,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "python3",
+          "-m",
+          "py_compile",
+          "scripts/check-transport-fixtures.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.037,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 3.223,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.02,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "remaining": [
+    "replacement Data publication and exact receive bytes through each physical owner",
+    "exact replacement Data history audiences",
+    "full original programme decode across original and replacement captures",
+    "production normal release build and full integrated rehearsal",
+    "all32 frozen transport cells"
+  ],
+  "production_main_execution_verified": false,
+  "replacement_data_io_verified": false,
+  "full_timeline_decoded": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

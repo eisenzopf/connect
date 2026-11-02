@@ -4,12 +4,15 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir, stat, realpath, open } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { setTimeout as sleep } from "node:timers/promises";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
 import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
 import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
 import { nativeAv } from "./lib/transport_av.mjs";
 import { operationFailure } from "./lib/transport_failure.mjs";
 import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
+import { deviceMovementWorkload } from "./lib/transport_movement_workload.mjs";
+import { observeMovementSessions } from "./lib/transport_movement_sessions.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -26,8 +29,16 @@ assert.equal(input.format, "connect/transport-conversation-input/1");
 assert.ok(["EdDSA", "ES256"].includes(input.signing_algorithm));
 assert.equal(input.server_platform, nativeHost().platform);
 assert.ok(["local", "remote"].includes(input.network_profile));
-assert.deepEqual(Object.keys(input.actors).sort(), ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"]);
+const mediaRoles = ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"];
+const controllerRoles = ["controller-1", "controller-2"];
+assert.deepEqual(Object.keys(input.actors).sort(), [...mediaRoles, ...(mediaWorkload ? controllerRoles : [])].sort());
 assert.equal(hash(await readFile(input.executable)), input.binary_sha256);
+if (mediaWorkload) {
+    assert.ok((await realpath(input.physical_peer_executable)).startsWith(privateRoot + "/"));
+    assert.equal(hash(await readFile(input.physical_peer_executable)), input.physical_peer_sha256);
+    assert.equal(new Set(Object.values(input.actors).map(actor => actor.device_id)).size, 7);
+    assert.ok([...controllerRoles, "replacement-1"].every(role => input.actors[role].identity_id === input.actors["participant-1"].identity_id));
+}
 const privateDirectory = join(dirname(inputPath), "conversation-control");
 await mkdir(privateDirectory, { mode: 0o700 });
 const plan = Object.fromEntries([
@@ -56,6 +67,7 @@ const dataFailures = new WeakMap();
 const ownerNativeMessageIds = [];
 const report = { format: mediaWorkload ? "connect/transport-conversation-control/2" : "connect/transport-conversation-control/1", passed: false, checks: [],
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
+    physical_peer_sha256: mediaWorkload ? input.physical_peer_sha256 : null,
     node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
     maximum_active_members_observed: 0, concurrent_session_intents_observed: 0,
@@ -94,6 +106,9 @@ try {
         assert.ok((await realpath(actor.config)).startsWith(privateRoot + "/"));
         assert.equal((await stat(actor.config)).mode & 0o077, 0);
         report.sdk_config_hashes[role] = hash(await readFile(actor.config));
+        // Enrolled controllers start only at the movement boundary. Their
+        // otherwise unused QUIC transports would hit the fixed idle deadline.
+        if (controllerRoles.includes(role)) continue;
         const client = new NodeClient({ config: actor.config, executable: input.executable });
         clients.set(role, client);
         assert.equal((await client.capabilities.refresh(options)).selectedTransport, "quic");
@@ -354,40 +369,62 @@ try {
                 original_create_reference_preserved: false, mutation_replayed: false };
             check("reserved-device-initial-helper-joins-before-sixty-second-workload");
             phase = "six-native-opus-vp8-sixty-second-workload";
+            const controllers = [];
+            for (const role of controllerRoles) {
+                const client = new NodeClient({ config: input.actors[role].config, executable: input.executable });
+                clients.set(role, client); controllers.push(client);
+                assert.equal((await client.capabilities.refresh(options)).selectedTransport, "quic");
+            }
+            await helpers(); assert.equal(observedHelpers.size, 7);
+            const sourceManifest = JSON.parse(await readFile(join(input.media_source_directory, "manifest.json"), "utf8"));
+            const sourcePrograms = {};
+            for (const index of [0, 4]) {
+                const bytes = await readFile(join(input.media_source_directory, "source-" + index + ".json"));
+                assert.equal(hash(bytes), sourceManifest.sources[index].input_sha256);
+                const source = JSON.parse(bytes);
+                sourcePrograms[index] = { audioPackets: source.audio.map(packet => [...Buffer.from(packet, "base64")]),
+                    videoFrames: source.video.map(frame => [...Buffer.from(frame.payload, "base64")]) };
+            }
             report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
-                observation => { report.native_av_observation = observation; });
-            check("six-original-native-connections-exchange-opus-vp8-and-original-source-clocks-for-sixty-two-seconds");
+                observation => { report.native_av_observation = observation; }, async workload => {
+                    const observed = await observeMovementSessions({ workload, primarySessions: sessions,
+                        controllerSessions: controllers.map((client, index) => client.conversations.byId(cid).sessions.byId(sessions[index].id)),
+                        run: async current => {
+                            await sleep(Math.max(0, current.startedAt + 2000 - performance.now()), undefined, { signal: current.signal });
+                            return deviceMovementWorkload({ workload: current, controllers, conversationId: cid, sessions,
+                            connections, streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"],
+                                video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),
+                            participantIds: connections.map(item => member(view, item.role).id),
+                            targets: ["participant-1", "replacement-1"].map(role => ({
+                                endpointId: input.actors[role].media_endpoint_id, deviceId: input.actors[role].device_id,
+                                nativeConfig: input.actors[role].native_config })), sourcePrograms, privateRoot,
+                            directory: join(privateDirectory, "movement"), executable: input.physical_peer_executable,
+                            executableSha256: input.physical_peer_sha256,
+                            currentEnds: connections.map((item, index) => ({ index, operationId: plan[item.prefix + "-end"] })),
+                            });
+                        } });
+                    report.current_control_session_observation = observed.observation;
+                    report.device_movement = observed.value.observation;
+                    return observed.value.observation;
+                });
+            report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === 20;
+            report.data_workload.current_owner_end = report.device_movement.current_owner_end;
+            for (const role of controllerRoles) {
+                await clients.get(role).close({ timeoutMs: 5000 }); clients.delete(role);
+            }
+            check("six-native-routes-twenty-original-moves-and-six-current-owner-ends-with-original-programme-clock");
         }
         phase = "six-native-connections-original-end";
-        if (mediaWorkload) report.data_workload.media_end_timings = [];
-        for (const [index, item] of connections.entries()) {
-            const began = performance.now();
+        // Media ends already belong to four retained SDKs and two final peers.
+        // Never submit another end against the moved originals or foreign peers.
+        for (const item of mediaWorkload ? [] : connections) {
             const originalEnd = await item.connection.end({ reasonCode: 200, reason: "Synthetic workload complete" },
-                { ...mutation(item.prefix + "-end"), ...(mediaWorkload ? { timeoutMs: 5000 } : {}) });
-            if (mediaWorkload) {
-                const remaining = Math.floor(5000 - (performance.now() - began));
-                assert.ok(remaining > 0, "original-native-end-completion-within-five-seconds");
-                const result = await originalEnd.wait({ timeoutMs: remaining });
-                assert.equal(result.snapshot.state, "completed");
-            } else await complete(originalEnd);
-            const receiptElapsed = performance.now() - began;
-            if (mediaWorkload) {
-                for (;;) {
-                    const remaining = Math.floor(5000 - (performance.now() - began));
-                    assert.ok(remaining > 0, "original-native-connection-retirement-within-five-seconds");
-                    const current = await connectionSnapshots(owner, cid, [{ id: item.connection.id,
-                        sessionId: plan["session" + item.sid] }], { timeoutMs: remaining });
-                    const [original] = current.connections;
-                    if (original.state === "retired" && original.generation > before[index].generation) break;
-                    await new Promise(done => setTimeout(done, Math.min(50, Math.max(0, remaining))));
-                }
-                const retiredElapsed = performance.now() - began;
-                assert.ok(retiredElapsed <= 5000);
-                report.data_workload.media_end_timings.push({ index, end_receipt_ms: receiptElapsed,
-                    original_retirement_observed_ms: retiredElapsed, limit_ms: 5000 });
-            }
+                mutation(item.prefix + "-end"));
+            await complete(originalEnd);
         }
-        report.data_workload.original_end_operations_completed = connections.length;
+        report.data_workload.original_end_operations_completed = mediaWorkload ? 4 : connections.length;
+        report.data_workload.physical_owner_end_operations_completed = mediaWorkload ? 2 : 0;
+        report.data_workload.original_retired_by_replacement = mediaWorkload ? 2 : 0;
         // End completion proves local engine termination. Its separate durable
         // retirement snapshot may follow later (the public end contract). Read
         // only the original IDs under one ordinary SDK observation deadline.
@@ -432,7 +469,7 @@ try {
         replacement = new NodeClient({ config: actor.config, executable: input.executable });
         clients.set("replacement-1", replacement);
         assert.equal((await replacement.capabilities.refresh(options)).selectedTransport, "quic");
-        await helpers(); assert.equal(observedHelpers.size, 6);
+        await helpers(); assert.equal(observedHelpers.size, 8);
         report.replacement_activation.new_helper_created = true;
         check("independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins");
     }
@@ -488,6 +525,7 @@ try {
     for (const [role, actor] of Object.entries(input.actors))
         if (hash(await readFile(actor.config)) !== report.sdk_config_hashes[role]) report.passed = false;
     if (hash(await readFile(input.executable)) !== input.binary_sha256) report.passed = false;
+    if (mediaWorkload && hash(await readFile(input.physical_peer_executable)) !== input.physical_peer_sha256) report.passed = false;
     await writeFile(output, encode(report), { flag: "wx", mode: 0o600 });
 }
 process.stdout.write(JSON.stringify({ conversation_control_passed: report.passed, checks: report.checks.length, cell_qualified: false }) + "\n");

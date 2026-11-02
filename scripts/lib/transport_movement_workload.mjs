@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { startPhysicalReplacementTarget } from "./transport_replacement_target.mjs";
 import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
+import { endRetainedConnections } from "./transport_current_end.mjs";
 
 async function save(path, value) {
     const file = await open(path, "wx", 0o600);
@@ -15,7 +16,8 @@ async function save(path, value) {
 
 export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
-    executable, executableSha256, startTarget = startPhysicalReplacementTarget }) {
+    executable, executableSha256, currentEnds, startTarget = startPhysicalReplacementTarget,
+    endRetained = endRetainedConnections }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
@@ -36,6 +38,11 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     assert.equal(workload.routes[0].role, workload.routes[4].role);
     assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
     assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
+    assert.ok(Number.isFinite(workload.startedAt) && workload.startedAt >= 0);
+    assert.equal(currentEnds.length, 6);
+    assert.deepEqual(currentEnds.map(end => end.index).sort((a, b) => a - b), [0, 1, 2, 3, 4, 5]);
+    assert.ok(currentEnds.every(end => /^[A-Za-z0-9._~-]{1,128}$/.test(end.operationId)));
+    assert.equal(new Set(currentEnds.map(end => end.operationId)).size, 6);
     const sources = [0, 4];
     assert.deepEqual(sources.map(index => workload.routes[index].sessionIndex), [0, 1]);
     for (const index of sources) {
@@ -50,7 +57,13 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         ...(dataWorkload ? { dataId: "data_" + randomUUID() } : {}),
     })));
     await save(join(directory, "plan.json"), plan);
-    const owners = new Set(), completed = [], segments = [], earlyJoins = new Map();
+    await save(join(directory, "current-end-plan.json"), {
+        conversation_id: conversationId, session_ids: sessions.map(session => session.id), ends: currentEnds,
+        original_program_start_unix_us: workload.programStartUnixUs,
+        programme_end_monotonic_ms: workload.startedAt + 62000,
+        original_cutoff_monotonic_ms: workload.startedAt + 67000,
+    });
+    const owners = new Set(), completed = [], segments = [], physicalEnds = [], earlyJoins = new Map();
     const stopOwners = () => {
         for (const owner of owners) if (!earlyJoins.has(owner)) {
             const joining = Promise.resolve().then(() => owner.stopAndJoin());
@@ -77,6 +90,15 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.ok(captured.received.every(row => typeof row.original_root_completed_observed === "boolean"),
             "each physical packet must retain its actual original-root observation boundary");
         segments.push({ sourceIndex, observation, sha256: inspected.sha256 });
+        if (natural) {
+            const end = stage.final_current_owner_end;
+            assert.equal(end?.operation_id, currentEnds.find(end => end.index === sourceIndex).operationId);
+            assert.equal(end.connection_id, owner.connection.id);
+            assert.equal(end.mutation_submissions, 1);
+            assert.equal(end.original_cutoff_ms, 67000);
+            assert.ok(end.elapsed_since_programme_end_ms >= 0 && end.elapsed_since_programme_end_ms < 5000);
+            physicalEnds.push({ index: sourceIndex, ...end });
+        }
         return stage;
     };
     async function chain(sourceIndex) {
@@ -112,6 +134,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 ...(dataWorkload ? { dataStreamId: step.dataId } : {}),
                 source: { seconds: 62, ssrc: 0x47000001 + sourceIndex * 256 + step.ordinal * 2,
                     audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
+                    ...(step.ordinal === 9 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
                     video: { streamId: step.videoId, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
                         ...(dataWorkload ? { receiveDataStreamId: streamIds[incoming].data } : {}),
@@ -148,16 +171,22 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             observedMove.camera_subscription_completed = true;
             observedMove.elapsed_ms = performance.now() - began;
         }
-        // The final physical owners keep their original program clock and
-        // natural62second fail-safe. The caller still owns Session end/drain.
+        // The actual final peer ends its own admitted Connection at the
+        // original62s boundary. Its joined receipt proves the current owner.
         stages.set(sourceIndex, { source_index: sourceIndex, session_index: sid, ordinal: 9,
             stage: "final-natural-owner-join" });
         await collect(previous, sourceIndex, previousDirectory, true);
         return { sourceIndex, connection: current };
     }
     try {
-        const results = await Promise.allSettled(sources.map(index => chain(index).catch(failure => {
-            if (!firstFailure) { firstFailure = failure; firstFailureStage = stages.get(index); }
+        const retained = () => endRetained({ routes: workload.routes,
+            ends: currentEnds.filter(end => !sources.includes(end.index)), conversationId, sessions,
+            startedAt: workload.startedAt, signal: stop.signal,
+            persist: (index, kind, value) => save(join(directory, "retained-" + index + "-" + kind + ".json"), value),
+        });
+        const tasks = [...sources.map(index => () => chain(index)), retained];
+        const results = await Promise.allSettled(tasks.map((task, index) => Promise.resolve().then(task).catch(failure => {
+            if (!firstFailure) { firstFailure = failure; firstFailureStage = stages.get(sources[index]) ?? { stage: "retained-current-end" }; }
             abort(); throw failure;
         })));
         if (firstFailure) throw firstFailure;
@@ -165,16 +194,21 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.ok(results.every(v => v.status === "fulfilled"));
         assert.equal(completed.length, 20);
         assert.equal(segments.length, 20);
+        assert.equal(physicalEnds.length, 2);
+        assert.equal(results[2].value.retained_connections_retired, 4);
         assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_subscription_completed));
         const observation = { original_moves_completed: 20, concurrent_session_chains: 2,
             data_resource_contract_requested: dataWorkload,
+            replacement_data_io_verified: false,
             moves_per_source: [10, 10], active_av_routes: 6, maximum_pending_candidates: 2,
             planned_peak_connection_slots: 8, shared_sdk_closed_during_replacement: false,
             original_program_start_unix_us: workload.programStartUnixUs,
+            current_owner_end: { physical: physicalEnds, retained: results[2].value,
+                current_connections_ended: 6, original_cutoff_monotonic_ms: workload.startedAt + 67000 },
             moves: completed, physical_segments: segments,
             full_timeline_decoded: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
         await save(join(directory, "movement.json"), observation);
-        return { observation, currentConnections: results.map(v => v.value) };
+        return { observation, currentConnections: results.slice(0, 2).map(v => v.value) };
     } catch (failure) { firstFailure ??= failure; throw failure; }
     finally {
         workload.signal.removeEventListener("abort", abort);

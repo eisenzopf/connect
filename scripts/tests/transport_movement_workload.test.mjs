@@ -35,7 +35,18 @@ async function scenario(mode) {
     const sessions = [0, 1].map(i => ({ id: "session-" + i,
         async refresh() { return { state: "accepted", topologyRevision: revisions[i] }; } }));
     const original = Object.assign(Error("original unknown move"), { kind: "deadline", certainty: "uncertain" });
-    const workload = { routes, signal: signal.signal, programStartUnixUs: 1793600000000000 };
+    const workload = { routes, signal: signal.signal, programStartUnixUs: 1793600000000000, startedAt: 0 };
+    const currentEnds = roles.map((_, index) => ({ index, operationId: "end-" + index }));
+    let retainedJoined = false;
+    const endRetained = async args => {
+        const saved = JSON.parse(await readFile(join(directory, "run/current-end-plan.json"), "utf8"));
+        assert.deepEqual(saved.ends, currentEnds);
+        assert.deepEqual(args.ends.map(end => end.index), [1, 2, 3, 5]);
+        assert.equal(args.startedAt, 0);
+        retainedJoined = true;
+        if (mode === "retained-failure") throw original;
+        return { retained_connections_retired: 4, original_end_mutations: 4 };
+    };
     if (mode === "cancelled") signal.abort();
     const startTarget = async options => {
         const sid = Number(options.sessionId.at(-1)), ordinal = starts.filter(v => v.sessionId === options.sessionId).length;
@@ -66,6 +77,13 @@ async function scenario(mode) {
             received: [{ original_root_completed_observed: false }, { original_root_completed_observed: true }],
         }), { mode: 0o600 });
         const stage = { passed: true };
+        if (ordinal === 9) {
+            assert.equal(options.source.terminalEndOperationId, "end-" + (sid === 0 ? 0 : 4));
+            stage.final_current_owner_end = { operation_id: options.source.terminalEndOperationId,
+                connection_id: "candidate-" + sid + "-" + ordinal, mutation_submissions: 1,
+                original_cutoff_ms: 67000, elapsed_since_programme_end_ms: 200 };
+            if (mode === "foreign-final-end" && sid === 0) stage.final_current_owner_end.connection_id = "foreign";
+        } else assert.equal(options.source.terminalEndOperationId, undefined);
         let result;
         admitted.push(options.operationId);
         return { reference, movement: moved, connection: connection("candidate-" + sid + "-" + ordinal, options.originalGeneration + 1),
@@ -89,22 +107,24 @@ async function scenario(mode) {
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
-            executableSha256: "0".repeat(64), startTarget });
+            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained });
         if (mode === "partial-data") {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
         }
         if (mode !== "normal" && mode !== "data") {
-            await assert.rejects(run, error => mode === "unknown" ? error === original : error.kind === "cancelled");
+            await assert.rejects(run, error => ["unknown", "retained-failure"].includes(mode) ? error === original :
+                mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : error.kind === "cancelled");
+            assert.equal(retainedJoined, true);
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
-            assert.equal(joined.length, mode === "cancel-after20" ? 2 : 0);
-            assert.equal(stopped.length, admitted.length);
+            assert.equal(joined.length, ["cancel-after20", "foreign-final-end"].includes(mode) ? 2 : 0);
+            assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
             assert.ok(subscriptions.length <= admitted.length);
             const failure = JSON.parse(await readFile(join(directory, "run/movement-failure.json"), "utf8"));
             assert.equal(failure.passed, false); assert.equal(failure.target_joins_failed, 0);
             if (mode === "cancelled") assert.equal(starts.length, 0);
             else if (mode === "unknown") assert.equal(failure.failure.certainty, "uncertain");
-            else { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); assert.equal(stopped.length, 20); }
+            else if (mode !== "retained-failure") { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); }
             return;
         }
         const { observation, currentConnections } = await run;
@@ -126,6 +146,9 @@ async function scenario(mode) {
         assert.equal(observation.shared_sdk_closed_during_replacement, false);
         assert.equal(observation.full_timeline_decoded, false);
         assert.equal(observation.task_complete, false);
+        assert.equal(retainedJoined, true);
+        assert.equal(observation.current_owner_end.current_connections_ended, 6);
+        assert.deepEqual(observation.current_owner_end.physical.map(end => end.index).sort(), [0, 4]);
         assert.ok(currentConnections.every(v => [0, 4].includes(v.sourceIndex) && v.connection.id.endsWith("-9")));
     } finally { await rm(directory, { recursive: true, force: true }); }
 }
@@ -136,6 +159,8 @@ test("a partly declared six-Connection Data workload refuses before any movement
 test("an unknown original prevents further moves and joins every already admitted physical owner", () => scenario("unknown"));
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));
+test("a failed retained end cancels movement and joins every already admitted physical owner", () => scenario("retained-failure"));
+test("a final end receipt for a foreign Connection cannot pass twenty successful roots", () => scenario("foreign-final-end"));
 test("two Session chains cannot silently share one serialized ordinary control helper", async () => {
     const shared = {};
     await assert.rejects(deviceMovementWorkload({ workload: { routes: Array(6) }, connections: Array(6),
