@@ -69,5 +69,81 @@
   "passed": false,
   "task_complete": false,
   "whole_gate_qualified": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "current_full_native_sequence": {
+    "source_revision": "2724ee0c015606e15e3ecacec1a03a433e9b221f",
+    "profile": "standard-debug-test-support component",
+    "native_cases": [
+      {
+        "case": "production_replacement_prepares_actual_core_once_preserves_audio_and_cancels_without_allocating",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 46.04,
+        "log_sha256": "b086f1d60a2d874a70ce347282a85c9edd97a8ac21197a26573b0162dc44d592"
+      },
+      {
+        "case": "production_replacement_negotiates_generation_two_resources_with_signed_target_confirmation_and_initial_mute",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 65.95,
+        "log_sha256": "c2ce217213d3d837fb3c2b849a770b57cc7fc27fe16c90700d7fbba1b1e3d442"
+      },
+      {
+        "case": "production_replacement_bad_signed_parameters_retire_uncertain_native_start_without_retry",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 20.91,
+        "log_sha256": "32b357713958ba72ae392f85315f4ec84ab092c09872e0808431861e2208784e"
+      },
+      {
+        "case": "production_replacement_allocates_exact_core_reservation_from_signed_target_without_media_or_duplicate_io",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 63.25,
+        "log_sha256": "11e8b8b295b18eb51164dbc7d2e6941c76903f7bdaab071a104372674ae9d63a"
+      },
+      {
+        "case": "production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 113.43,
+        "log_sha256": "b5a48bd4d42de49118ed961677d252f5fe954c41711828e95e0d3dc1d8a626af"
+      },
+      {
+        "case": "production_replacement_known_commit_metadata_failure_and_target_loss_retire_without_replay",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 13.95,
+        "log_sha256": "51504837406d3445bac6478e3461dde94ddd5ff026b22566e3d0e7359b61244f"
+      },
+      {
+        "case": "av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 428,
+        "seconds": 28.88,
+        "log_sha256": "8d86da3ce55570ac5816a814abfffe09e24c65c73f6dc6bb7ca59d3ee405e366"
+      }
+    ],
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "source_inputs_unchanged_at_component_result": true,
+    "binary_sha256": "620cfb0798ec0b8de059dbcd04b13ec74c2938529258ee3113ff02bf0a3f6c5c",
+    "production_release_build_pending": true,
+    "full_transport_programme_unqualified": true
+  }
 }

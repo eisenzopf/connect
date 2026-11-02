@@ -1,0 +1,103 @@
+{
+  "format": "connect/reference-app-expiry-current-linux/1",
+  "task": "G6-072",
+  "run_id": 41499071156,
+  "job_id": 125461565609,
+  "source_revision": "b88a5f5b923ce04961a4d9729aae97e717183585",
+  "passed": false,
+  "checks_passed": 25,
+  "checks_expected": 37,
+  "browser": "156.0.8078.4",
+  "node": "v22.23.4",
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 750,
+        "column": 20
+      }
+    ]
+  },
+  "observed_windows": [
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2003.9000000003725,
+        "completed_audio_frames": 51,
+        "painted_video_frames": 58
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2004.3999999999069,
+        "completed_audio_frames": 96,
+        "painted_video_frames": 59
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2002.6999999997206,
+        "completed_audio_frames": 49,
+        "painted_video_frames": 58
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2003.7000000001863,
+        "completed_audio_frames": 79,
+        "painted_video_frames": 58
+      }
+    ]
+  ],
+  "unchanged_audio_minimum_per_window": 50,
+  "unchanged_component_video_minimum_per_window": 6,
+  "whole_programme_video_qualification_separate": true,
+  "source_inputs_unchanged": true,
+  "runtime_unchanged": true,
+  "application_runtime_matches": true,
+  "http_observation_failures": 866,
+  "http_observations_skipped": 159,
+  "raw_cpu_profiles_present": false,
+  "archives": [
+    {
+      "artifact_id": 13169729076,
+      "file_name": "components.zip",
+      "bytes": 849444,
+      "sha256": "57335b4bd452594c46bf86b77ba30b6a49cee27255eeee26d6e99474e4d12c00",
+      "all_zip_crc_verified": true,
+      "members": [
+        "capture-controls-narrow.png",
+        "browser.json",
+        "capture-controls.png",
+        "installation.json",
+        "native-controls-narrow.png",
+        "native-controls.png",
+        "node-producer.json",
+        "node-source-inputs.json"
+      ]
+    },
+    {
+      "artifact_id": 13169314797,
+      "file_name": "runtime-evidence.zip",
+      "bytes": 447241,
+      "sha256": "e3cf551cb0ca9232ffe2f279f0b51eaa631f40abec8f41b71b4da7c010628092",
+      "all_zip_crc_verified": true,
+      "members": [
+        "x86_64-unknown-linux-gnu/runtime.json",
+        "x86_64-unknown-linux-gnu/source-inputs.json"
+      ]
+    }
+  ],
+  "evidence_sha256": {
+    ".local/gate-6/reference-app-expiry-ci-linux/job.log": "b71916eb449fe47f29b976445d2306bfcfa2b7f5f671066f93e40cbd2f265339",
+    ".local/gate-6/reference-app-expiry-ci-linux/browser.json": "38654a3de5071cce622e12e475209b1ed0fe1d5ae7c91eb7f786d79d8f09fddc",
+    ".local/gate-6/reference-app-expiry-ci-linux/runtime.json": "b0340fd1954fc3f622606f10bfb13270100c8c11db1ba71705c9c14d17194b1b",
+    ".local/gate-6/reference-app-expiry-ci-linux/source-inputs.json": "c97102cf763a938438d59e7d424a9644cbf62962ca2ea03267e48c815f72b0de"
+  },
+  "root_cause": "unresolved; audio late-drop counters alone do not establish timing causality",
+  "source_runtime_node_full_archive_audit_pending": true,
+  "macos_job_pending": true,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
