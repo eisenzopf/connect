@@ -93,11 +93,22 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             earlyJoins.set(owner, joining);
         }
     };
-    const stop = new AbortController(), abort = () => { stop.abort(); stopOwners(); };
-    workload.signal.addEventListener("abort", abort, { once: true });
-    if (workload.signal.aborted) abort();
     let firstFailure, firstFailureStage;
     const stages = new Map();
+    const stop = new AbortController(), abort = reason => { stop.abort(reason); stopOwners(); };
+    const parentAbort = () => {
+        const reason = workload.signal.reason;
+        // A packet reader may observe the original control refusal before its
+        // movement chain settles. Preserve that cause before cancelling the
+        // retained-end wait or a sibling can report derivative cancellation.
+        if (reason && reason.name !== "AbortError" && !firstFailure) {
+            firstFailure = reason;
+            firstFailureStage = { stage: "media-workload" };
+        }
+        abort(reason);
+    };
+    workload.signal.addEventListener("abort", parentAbort, { once: true });
+    if (workload.signal.aborted) parentAbort();
     const assertCurrent = () => {
         if (stop.signal.aborted) throw firstFailure ?? Object.assign(Error("original movement workload cancelled"), { kind: "cancelled", certainty: "read-only" });
     };
@@ -242,7 +253,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         const tasks = [...sources.map(index => () => chain(index)), retained];
         const results = await Promise.allSettled(tasks.map((task, index) => Promise.resolve().then(task).catch(failure => {
             if (!firstFailure) { firstFailure = failure; firstFailureStage = stages.get(sources[index]) ?? { stage: "retained-current-end" }; }
-            abort(); throw failure;
+            abort(failure); throw failure;
         })));
         if (firstFailure) throw firstFailure;
         assertCurrent();
@@ -271,7 +282,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         return { observation, currentConnections: results.slice(0, 2).map(v => v.value) };
     } catch (failure) { firstFailure ??= failure; throw failure; }
     finally {
-        workload.signal.removeEventListener("abort", abort);
+        workload.signal.removeEventListener("abort", parentAbort);
         stopOwners();
         const joins = await Promise.allSettled([...earlyJoins.values()]);
         const failure = joins.find(v => v.status === "rejected");

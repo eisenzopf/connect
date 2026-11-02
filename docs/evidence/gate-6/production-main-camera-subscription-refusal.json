@@ -1,0 +1,159 @@
+{
+  "format": "connect/original-camera-subscription-refusal/1",
+  "task": "G6-058",
+  "source_revision": "617bb88e527967c67ab52a1ca4ae68b9871b8296",
+  "binary_sha256": "c62f89972bd8d0957eac72e3e8f18976ec8f2129a917eeda36fdeeab65086a1d",
+  "peer_binary_sha256": "92ae42226f5f72ea77b763d1457f8f0081c0de6b4b8b6590a86a83fa27ffbfcd",
+  "passed": false,
+  "original_roots": [
+    {
+      "source_index": 0,
+      "ordinal": 0,
+      "original_root_state": "completed"
+    },
+    {
+      "source_index": 4,
+      "ordinal": 0,
+      "original_root_state": "completed"
+    }
+  ],
+  "failed_original_camera_selection": {
+    "source_index": 0,
+    "state": "failed",
+    "journal_problem_code": "not-found",
+    "native_engine_plan_error": "NotReady",
+    "original_mutation_count": 1,
+    "journal_effect_count": 0,
+    "retry_performed": false
+  },
+  "other_original_camera_selection_absent": true,
+  "packet_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "original_tasks_started": 24,
+    "control_task_started": true,
+    "elapsed_ms": 11671.224375000002,
+    "failure": {
+      "route_index": 1,
+      "medium": "video",
+      "direction": "receive",
+      "stage": "packet"
+    },
+    "routes": [
+      {
+        "index": 0,
+        "received_audio": 239,
+        "received_video": 150,
+        "submitted_packets": {
+          "audio": 419,
+          "video": 587
+        },
+        "received_clocks": {
+          "audio": 6,
+          "video": 6
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 1,
+        "received_audio": 255,
+        "received_video": 160,
+        "submitted_packets": {
+          "audio": 572,
+          "video": 801
+        },
+        "received_clocks": {
+          "audio": 7,
+          "video": 6
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 2,
+        "received_audio": 267,
+        "received_video": 204,
+        "submitted_packets": {
+          "audio": 572,
+          "video": 802
+        },
+        "received_clocks": {
+          "audio": 8,
+          "video": 8
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 3,
+        "received_audio": 263,
+        "received_video": 209,
+        "submitted_packets": {
+          "audio": 572,
+          "video": 802
+        },
+        "received_clocks": {
+          "audio": 8,
+          "video": 8
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 4,
+        "received_audio": 254,
+        "received_video": 191,
+        "submitted_packets": {
+          "audio": 572,
+          "video": 807
+        },
+        "received_clocks": {
+          "audio": 7,
+          "video": 7
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      },
+      {
+        "index": 5,
+        "received_audio": 259,
+        "received_video": 180,
+        "submitted_packets": {
+          "audio": 572,
+          "video": 806
+        },
+        "received_clocks": {
+          "audio": 7,
+          "video": 7
+        },
+        "gap_packets": 0,
+        "late_send_frames": 0
+      }
+    ],
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "all_original_helpers_joined": true,
+  "observed_helper_count": 7,
+  "servers_joined": 2,
+  "forced_cleanup": false,
+  "source_guards_passed": true,
+  "report_sha256": "78e6b72c22bf3632b9a1765140d94ec6d4b890036e61a0c07cc9e5002483126b",
+  "conversation_sha256": "20c2f54d558653d89c7b2ede0e75426e053dbb05753db565dd40e7e7161859bb",
+  "capture_observed": false,
+  "complete_media_quality_verified": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "diagnostic_correction": {
+    "bug": "Movement cancellation lost the external media error and could report a derivative retained-end AbortError.",
+    "fix": "Preserve the parent media error before notifying cancelled siblings; propagate its exact cause and join original owners.",
+    "before_regression": "Corrected fixture regression fails before code change; first test fixture had a late abort-listener hang and was terminated, not counted as a verification pass.",
+    "after_tests": {
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0
+    },
+    "scope": "Failure attribution only. The original missing subscription source remains unresolved; no root-cause or complete-cell claim."
+  }
+}

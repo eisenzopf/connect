@@ -47,6 +47,10 @@ async function scenario(mode) {
         assert.deepEqual(args.ends.map(end => end.index), [1, 2, 3, 5]);
         assert.equal(args.startedAt, 0);
         retainedJoined = true;
+        if (mode === "external-failure") return new Promise((_, reject) => {
+            if (args.signal.aborted) reject(args.signal.reason);
+            else args.signal.addEventListener("abort", () => reject(args.signal.reason), { once: true });
+        });
         if (mode === "retained-failure") throw original;
         return { retained_connections_retired: 4, original_end_mutations: 4 };
     };
@@ -55,6 +59,11 @@ async function scenario(mode) {
         const sid = Number(options.sessionId.at(-1)), ordinal = starts.filter(v => v.sessionId === options.sessionId).length;
         assert.equal(options.controller, controllers[sid]);
         starts.push(options);
+        if (mode === "external-failure" && sid === 0) {
+            signal.abort(original);
+            await new Promise(setImmediate);
+            throw original;
+        }
         const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
         assert.equal(saved.length, 20);
         assert.equal(saved.filter(v => v.operationId === options.operationId).length, 1);
@@ -130,7 +139,7 @@ async function scenario(mode) {
             assert.equal(starts.length, 0); return;
         }
         if (mode !== "normal" && mode !== "data") {
-            await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure"].includes(mode) ? error === original :
+            await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
                 mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
@@ -145,6 +154,10 @@ async function scenario(mode) {
             else if (mode === "data-failure") {
                 assert.ok(starts.length >= 1 && starts.length <= 2);
                 assert.equal(failure.failure.observation.stage, "original-physical-data-exchange");
+            } else if (mode === "external-failure") {
+                assert.equal(failure.failure.kind, original.kind);
+                assert.equal(failure.failure.certainty, original.certainty);
+                assert.equal(failure.failure.observation.stage, "media-workload");
             } else if (mode === "retirement-refusal") {
                 assert.ok(starts.length >= 10 && starts.length <= 20);
                 assert.equal(failure.failure.certainty, "read-only");
@@ -187,6 +200,7 @@ test("an unknown original prevents further moves and joins every already admitte
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));
 test("a failed retained end cancels movement and joins every already admitted physical owner", () => scenario("retained-failure"));
+test("an original external media error survives an earlier settling retained-end cancellation", () => scenario("external-failure"));
 test("a final end receipt for a foreign Connection cannot pass twenty successful roots", () => scenario("foreign-final-end"));
 test("a completed final end cannot replace current-authorized retirement metadata for that same owner", () => scenario("retirement-refusal"));
 test("two Session chains cannot silently share one serialized ordinary control helper", async () => {
