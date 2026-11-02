@@ -106,7 +106,7 @@
     "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "df190faea9b37153cb10ec74208080d99a2b14653a221d1de5f898073deeefad",
     "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "fe74ad25e0fccf8de265db80afb237498d171ea9974aa9aa7844c7d5be173d95"
   },
-  "normal_production_runtime_pending": true,
+  "normal_production_runtime_pending": false,
   "full_programme_pending": true,
   "ordinary_installed_app37_pending": true,
   "prior_normal_programme_negative": "moving-main-current-native-negative.json#after_current_sql_isolation_normal_run",
@@ -126,5 +126,17 @@
     "node_cpu_profile": false,
     "native_server_sample": false,
     "scope": "Ordinary two native platform installed App37checks on the current packet SQL and clock-edge candidate. All optional profiling/trace flags false; unchanged workloads/browsers/deadlines/quality. Default synthetic CI only, no model/provider/named-host/publication. Each existing job timeout170minutes."
+  },
+  "normal_production_cli_build": {
+    "passed": true,
+    "source_revision": "43fb5e91cd60c94eef80f39b07e47af36402ea6c",
+    "binary_sha256": "2fd18cfbcb90c2e5c13c31521ef098533b047d551337e2d1d4a82586297e97df",
+    "independent_peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+    "opt_level": "3",
+    "test_support": false,
+    "unit_verified_rust_and_prepared_sources_matched": true,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "73bde5045095563b0359eceee2fa7c37128a677cc9f4aefde56655c40929c1d6",
+    "producer_state_sha256": "2680b177f00d84dee9aad09f8497ff3fdeada96cf8438af1b13679ce96c9299e"
   }
 }
