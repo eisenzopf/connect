@@ -538,22 +538,38 @@ impl<T> Operation<T> {
                     timeout: remaining,
                     signal: options.signal.clone(),
                 })
-                .await?;
-            match observed.snapshot.state {
-                OperationState::Completed => return Ok(observed),
-                OperationState::Ready | OperationState::Committing if ready => return Ok(observed),
-                OperationState::Cancelled | OperationState::Failed => {
-                    let mut error =
-                        self.wait_error(if observed.snapshot.state == OperationState::Cancelled {
-                            ErrorKind::Cancelled
-                        } else {
-                            ErrorKind::Application
-                        });
-                    error.certainty = Certainty::Recorded;
-                    error.observation = Some(observed.snapshot);
-                    return Err(error);
-                }
-                _ => {} // Unknown/interrupted remain observations, never a new command.
+                .await;
+            match observed {
+                // A signed refusal of this status read leaves the original
+                // mutation untouched. Poll it again within the same cutoff;
+                // never retry a mutation, transport uncertainty or auth refusal.
+                Err(error)
+                    if error.kind == ErrorKind::Application
+                        && error.certainty == Certainty::Refused
+                        && error
+                            .problem
+                            .as_ref()
+                            .is_some_and(|problem| problem.code == 503) => {}
+                Err(error) => return Err(error),
+                Ok(observed) => match observed.snapshot.state {
+                    OperationState::Completed => return Ok(observed),
+                    OperationState::Ready | OperationState::Committing if ready => {
+                        return Ok(observed)
+                    }
+                    OperationState::Cancelled | OperationState::Failed => {
+                        let mut error = self.wait_error(
+                            if observed.snapshot.state == OperationState::Cancelled {
+                                ErrorKind::Cancelled
+                            } else {
+                                ErrorKind::Application
+                            },
+                        );
+                        error.certainty = Certainty::Recorded;
+                        error.observation = Some(observed.snapshot);
+                        return Err(error);
+                    }
+                    _ => {} // Unknown/interrupted remain observations, never a new command.
+                },
             }
             tokio::select! {biased;_=options.signal.cancelled()=>return Err(self.wait_error(ErrorKind::Cancelled)),_=tokio::time::sleep_until((tokio::time::Instant::now()+Duration::from_millis(125)).min(deadline))=>{}}
         }

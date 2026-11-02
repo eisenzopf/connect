@@ -18,6 +18,12 @@ bounded waiting returns its typed completion; receipt completion does not prove
 recipient consumption or media readiness. The compiled starting example is in
 `crates/connect-client/src/sdk.rs`.
 
+`Operation::wait` and `wait_until_ready` continue reading the same original
+operation after a signed 503 status-read refusal, within the existing absolute
+deadline and cancellation signal. A single `status` call still returns that
+refusal. Other errors, including current authorization refusals and transport
+uncertainty, propagate to the caller; mutations are never resubmitted by waiting.
+
 | Public control | Required precondition |
 | --- | --- |
 | `Client::create_conversation` | Configured tenant, explicit identity list and policy |

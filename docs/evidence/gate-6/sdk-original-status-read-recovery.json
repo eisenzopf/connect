@@ -1,0 +1,72 @@
+{
+  "format": "connect/sdk-original-status-read-recovery/1",
+  "task": "G6-058",
+  "trigger": {
+    "evidence": "docs/evidence/gate-6/replacement-phase-and-capture-inspection.json",
+    "scene": "movement-capture-worker",
+    "first_failure_stage": "original-completion",
+    "protocol_problem_code": 503,
+    "certainty": "refused"
+  },
+  "change": "Operation.wait/wait_until_ready continue current-authorized operation.get polling after a signed Application/Refused503. The immutable original key, existing125ms cadence, absolute wait deadline and cancellation owner are retained. status() and mutation submission are unchanged; other errors propagate.",
+  "source_sha256": {
+    "crates/connect-client/src/sdk/operation.rs": "b75254e054bee6fecd91626c3835a12478bff6f68c650bc8112682b8057b6de7",
+    "crates/connect-client/src/canonical/tests/sdk_decisions.rs": "76c14ae17b0cea841e50b6dcf235cc8ddbe592302bca4394de3170b20b6d1ee8",
+    "crates/connect-client/src/canonical/tests/sdk_consultations.rs": "efded5f56f2bf540117956a19d8d3b2d97e1518d8fd3d389ffb01ffdd747fcaf"
+  },
+  "before": {
+    "test_result_lines": [
+      "test result: FAILED. 3 passed; 5 failed; 0 ignored; 0 measured; 253 filtered out; finished in 0.35s"
+    ],
+    "log_sha256": "3e782ff5ad94bf2d310a8ff3fdc20006ac2405386b32300752d7b1ebc8b6516d",
+    "binary_sha256": "57d8e44af76d3ae89571ff80827156b7c581418fdf8921ad04a1ba2f4882eb9c",
+    "source_inputs_unchanged": true,
+    "observed_failure": "Five controlled waits stop at the first signed503 with Application/Refused instead of reaching recovery, readiness, current403, deadline or cancellation. This baseline precedes a correction to the readiness fixture future frame; its initial503 is unchanged."
+  },
+  "after": {
+    "focused_result": [
+      "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 1.69s"
+    ],
+    "focused_log_sha256": "ace5a7662f796509584c05a4e0fd89b877e39fda68b3ea24f1843020019701fa",
+    "sdk_cohort": [
+      "test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 127 filtered out; finished in 40.63s"
+    ],
+    "sdk_cohort_log_sha256": "87aa67264e01186b9a16c2448b8f9621223ae087ab82af39896f12bd71367ead",
+    "full_library": [
+      "test result: ok. 261 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.81s"
+    ],
+    "full_library_log_sha256": "c12118b53f5544df7dbab29fbd16cde7e90fd389e615d163c408042a698c1396",
+    "full_library_binary_sha256": "ad03e936e869ccdaaa63252c920deb0d9abc67557bb7eca38e2426b6fe09603b",
+    "full_library_distinct_passed": 261,
+    "failed": 0,
+    "ignored": 0,
+    "all_source_guards_unchanged": true,
+    "counts_overlap": true
+  },
+  "properties": {
+    "signed_503_then_completion": "status_wait_recovers_signed_503_by_reading_only_the_original_decision",
+    "signed_503_then_ready": "status_wait_until_ready_retains_its_original_after_signed_503",
+    "current_403_propagates": "status_wait_preserves_current_forbidden_after_a_temporary_read_refusal",
+    "fixed_original_deadline": "status_wait_does_not_renew_its_deadline_during_repeated_signed_503_reads",
+    "local_cancellation_no_resubmission": "status_wait_cancellation_interrupts_temporary_refusals_without_resubmission"
+  },
+  "fixture_repairs": [
+    "Initial harness compile failed because Completion lacks Debug; negative assertions now extract the error without changing public types. No test pass was claimed.",
+    "An initial cancellation fixture supplied an invalid accepted decision receipt and failed before the intended read. It was excluded as a counterexample; the corrected fixture uses a valid typed completed decision.",
+    "The first fixed cohort passed7/8; the remaining fixture emitted a ready observation with a forbidden null result field. The corrected ready frame omits result; final8/8pass.",
+    "The first full library run passed260/261. Its existing MissingRecord consultation fixture panicked before sending its malformed frame. The unchanged SDK binary reproduces the same failure. The fixture now explicitly signs/sends that invalid payload and checks that the client preserves Protocol/Uncertain. Final full261/261pass."
+  ],
+  "preexisting_malformed_fixture_baseline": {
+    "log_sha256": "8a264a6c17d6b2c87d5d0158e506255f5f21f1f88cc2f783929e8e2bd0e44b13",
+    "unchanged_sdk_binary_reproduces_same_failure": true
+  },
+  "verification_scope": "Signed controlled native streams and all direct client library tests on local macOS arm64; no production server/media/remote/provider/model qualification.",
+  "workflow": "Media CI now runs all client library tests as well as existing external Rust consumer and media ownership checks.",
+  "runtime_validation": {
+    "normal_release_build_directory": ".local/gate-6/sdk-status-recovery-runtime-verified",
+    "status": "pending",
+    "package_optimization_overrides": {}
+  },
+  "task_complete": false,
+  "full_transport_cells_qualified": 0
+}

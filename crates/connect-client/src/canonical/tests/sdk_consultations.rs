@@ -73,6 +73,7 @@ async fn write(
     request: &Envelope,
     payload: Value,
     kind: &str,
+    valid_payload: bool,
 ) {
     let mut frame = envelope(kind, payload);
     for field in ["cid", "sid", "connid", "operation_id"] {
@@ -82,7 +83,14 @@ async fn write(
     }
     frame["in_reply_to"] = json!(request.id());
     let frame = signer.sign(&frame).unwrap();
-    Envelope::from_value(frame.clone()).unwrap();
+    let parsed = Envelope::from_value(frame.clone());
+    if valid_payload {
+        parsed.unwrap();
+    } else {
+        // This negative case must reach the client as a signed malformed
+        // frame; a fixture-side panic would test only a disconnected peer.
+        assert!(parsed.is_err());
+    }
     let raw = serde_json::to_vec(&frame).unwrap();
     writer
         .write_all(&(raw.len() as u32).to_be_bytes())
@@ -133,7 +141,7 @@ pub(super) async fn emit(
             );
         }
         if matches!(case, Case::ParentRefused) && query && !returned {
-            write(writer,signer,&request,json!({"code":401,"category":"authentication","reason":"Parent execution read unavailable"}),"error").await;
+            write(writer,signer,&request,json!({"code":401,"category":"authentication","reason":"Parent execution read unavailable"}),"error",true).await;
             frame = read(reader).await;
             continue;
         }
@@ -189,8 +197,16 @@ pub(super) async fn emit(
         if matches!(case, Case::MissingRecord) {
             value.as_object_mut().unwrap().remove("record_id");
         }
-        write(writer, signer, &request, value, "operation.updated").await;
-        write(writer, signer, &request, json!({}), "ack").await;
+        write(
+            writer,
+            signer,
+            &request,
+            value,
+            "operation.updated",
+            !matches!(case, Case::MissingRecord),
+        )
+        .await;
+        write(writer, signer, &request, json!({}), "ack", true).await;
         frame = read(reader).await;
     }
 }

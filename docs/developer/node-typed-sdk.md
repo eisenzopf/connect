@@ -95,12 +95,17 @@ decision. `operation.cancel()` and `operation.reconcile()` require their own
 mutation IDs and return separately recoverable decision operations. Reconciliation
 supplies an evidence ID which the host independently verifies.
 
+`wait()` and `waitUntilReady()` continue reading the same original operation
+after a signed 503 status-read refusal, using the existing caller deadline and
+cancellation signal. A single `status()` call returns that refusal. Other errors,
+including current authorization refusals and transport uncertainty, propagate.
+
 Every call captures intent before queuing and has an absolute deadline covering
 local capture, queue, write and response. The remaining budget reaches the Rust
 SDK. At most sixteen exchanges are owned, with one submitted at a time. Unsent
 cancellation removes that queued request; submitted cancellation, expiry or
 corrupt output fences and stops the original helper. There is no automatic
-restart, credential reload or retry. Reopen explicitly and query the saved
+restart, credential reload or mutation retry. Reopen explicitly and query the saved
 reference before choosing recovery. Fixed loaded configuration survives file
 edits. Idle close sends EOF and joins; incomplete cleanup is reported explicitly.
 
