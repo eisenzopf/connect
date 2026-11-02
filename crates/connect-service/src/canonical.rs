@@ -579,7 +579,7 @@ impl AuthenticatedHandler for CanonicalHandler {
                     } else {
                         None
                     };
-                    let mut payload = json!({"operation_id":value.record.operation_id,"record_id":value.record.record_id,"state":value.record.state,"revision":value.record.revision});
+                    let mut payload = json!({"operation_id":value.record.operation_id,"record_id":value.record.record_id,"command_type":value.record.command_type,"expected_revision":value.record.expected_revision,"state":value.record.state,"revision":value.record.revision});
                     if let Some(result) = value.record.result {
                         payload["result"] = result;
                     }

@@ -65,6 +65,13 @@ async fn publish_state(
     source.send_value("message.send",json!({"msg_id":message,"label":"application","to":[to],"content_type":"application/json","body":body,"reliability":{"mode":"reliable_ordered"}}),CommandScope{conversation_id:Some(cid.into()),session_id:Some("native-session".into()),connection_id:Some("data-source".into()),operation_id:Some(operation.into()),expected_revision:None}).await.unwrap();
     let reply = source.receive_control().await.unwrap();
     assert_eq!(reply.kind(), "operation.updated", "{:?}", reply.original());
+    let payload = &reply.original()["payload"];
+    // The physical consumer must be able to prove the same original command
+    // from the initial signed reply and a later read-only journal observation.
+    assert_eq!(payload["operation_id"], operation);
+    assert_eq!(payload["command_type"], "message.send");
+    assert_eq!(payload.get("expected_revision"), Some(&Value::Null));
+    assert!(payload["record_id"].as_str().is_some());
     assert_eq!(
         reply.original()["payload"]["state"],
         state,
