@@ -1,0 +1,60 @@
+{
+  "format": "connect/reference-app-explicit-expiry/1",
+  "task": "G6-072",
+  "implementation_applied": false,
+  "component_preview_verified": true,
+  "source_revision_before_adoption": "86a5a18d721eab17d6688c8211b2b4cf405974db",
+  "preview_node": "v26.7.0",
+  "candidate_patch_sha256": "75550f4acd64a356f92901e5449c5e466a37257754ad79a27e77bf65df4501d2",
+  "change": "Drop only original real-time packets whose SDK deadline explicitly says not-submitted. Preserve uncertain writes, cancellation, protocol and authorization errors. An expired source-clock report does not stop capture or count as a sent report; a later report uses its own fresh sequence.",
+  "backend_regressions": {
+    "before": {
+      "passed": 18,
+      "failed": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "log_sha256": "e7aaf00ff6bb1699fbbd24343ba2477637fc9011cf2b3fc32d7829b135b488c4"
+    },
+    "after": {
+      "passed": 21,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "log_sha256": "5c7f92cd1e5aa94991f5e7f3351977722a1383b32668840b7d2ac2f77dc0fd3b"
+    },
+    "earlier_harness_refusal": "First5s test-runner bound cancelled the existing5s idle-lease case; preserved as cancelled, not passed. Corrected harness10s leaves actual5s lease semantics unchanged."
+  },
+  "browser": {
+    "version": "156.0.8078.48",
+    "executable_sha256": "ace438d6d7a00aedc0f983b4b02bdbf88cf25e204812affac0b39a7391ed7fe6",
+    "fake_devices_only": true,
+    "synthetic_http_receipts": true,
+    "public_browser_sdk_from_worktree": true,
+    "before_expected_counterexample_observed": true,
+    "before_capture_behavior_correct": false,
+    "after": {
+      "capturedAudioFrames": 20,
+      "sentRtp": 20,
+      "clockReportsSent": 1,
+      "droppedClockReports": 1,
+      "activeTracks": 1,
+      "stopped": false
+    },
+    "after_original_sequences_unique": 22,
+    "cleanup": {
+      "activeTracks": 0,
+      "activeContexts": 0,
+      "pendingRequests": 0
+    },
+    "both_browser_and_http_owners_joined": true,
+    "source_and_browser_unchanged": true,
+    "before_report_sha256": "aa963f59a116ec87840bea827d5f40893873054959cd6a5e8fe4b770f9d20cca",
+    "after_report_sha256": "a00317962c7d73dcea6b1adbd26482f2de61aee7915c4ffd6998e13ccb607735",
+    "earlier_version_refusal": "Default installed Chrome156.0.8078.4 refused before capture against frozen Mac156.0.8078.48; both original owners joined. No browser/signature/Gatekeeper policy was changed."
+  },
+  "scope": "Exact candidate preview only, pending safe adoption after the original guarded build. Browser Media implementation/public SDK codecs capture actual synthetic-device audio, but HTTP media admission receipts are simulated. No installed candidate/native helper/Core/decoded media/transport qualification or resolution of previous CI negatives.",
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
