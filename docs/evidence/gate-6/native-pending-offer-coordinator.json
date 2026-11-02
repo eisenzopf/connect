@@ -22,11 +22,19 @@
     "reservation_guard": "The existing Store start transaction records the once-only attempt before coordinator release and refuses another start attempt."
   },
   "after": {
-    "stage": "compile-component",
+    "stage": "native-case-2",
     "component_verified": false,
     "production_release_built": false,
     "planned_exact_native_cases": 7,
-    "verification_pending": true
+    "verification_pending": true,
+    "matched_counterexample_passed": true,
+    "matched_case_result": "1 passed; 0 failed; 0 ignored; 428 filtered out",
+    "matched_case_seconds": 72.13,
+    "matched_case_controlled_scenarios": 4,
+    "component_binary_sha256": "08fa22b0ee223edf6eab57af2d1f2d10267e5fd682f2bc3e76459bd01867544e",
+    "matched_case_log_sha256": "d90f62a69201cc9869312e92fc9a3b95c214fbbe7852c78869003e78916584fe",
+    "source_inputs_unchanged_at_matched_case": true,
+    "remaining_native_cases_and_production_build_pending": true
   },
   "unresolved": [
     "Earlier main camera subscription NotReady root cause is unproven.",
