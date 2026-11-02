@@ -36,6 +36,15 @@ use std::{
     time::Duration,
 };
 
+fn adoption_pending(
+    id: &ConnectionId,
+    prepared: &ConnectionBinding,
+    committed: bool,
+    cancelled: bool,
+) -> bool {
+    prepared.connection() == id && committed && !cancelled
+}
+
 pub(crate) struct Connection {
     domain: Weak<Policy>,
     pub origin: Arc<NativeMediaOrigin>,
@@ -725,12 +734,14 @@ impl Policy {
             .get(id)
             .and_then(Weak::upgrade)
             .is_some_and(|target| {
-                target.pending.binding().connection() == id
-                    && target.pending.binding().state()
-                        == rvoip_core::relationships::BindingState::Active
-                    && target.root.upgrade().is_some_and(|root| {
-                        root.handle.is_committed() && !root.handle.cancellation().is_cancelled()
-                    })
+                target.root.upgrade().is_some_and(|root| {
+                    adoption_pending(
+                        id,
+                        target.pending.binding(),
+                        root.handle.is_committed(),
+                        root.handle.cancellation().is_cancelled(),
+                    )
+                })
             });
         if adopting {
             Err(StreamControlError::NotReady)

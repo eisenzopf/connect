@@ -146,6 +146,95 @@ fn stream_adoption_lookup_does_not_turn_missing_or_expired_targets_into_waits() 
         Err(StreamControlError::Authority)
     ));
 }
+#[test]
+fn committed_adoption_wait_uses_the_original_immutable_preparation_binding() {
+    use rvoip_core::{
+        ids::{ConversationId, ParticipantId},
+        participant::{ParticipantKind, ParticipantRole},
+        relationships::{BindingState, Membership},
+    };
+    let now = chrono::Utc::now();
+    let identity =
+        IdentityBinding::from_authenticated(&actor(), IdentityId::from_string("identity"), now)
+            .unwrap();
+    let member = Membership::admit(
+        identity.clone(),
+        ConversationId::from_string("conversation"),
+        ParticipantId::from_string("participant"),
+        ParticipantKind::Human,
+        ParticipantRole::Agent,
+    )
+    .unwrap();
+    let appearance =
+        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
+    let endpoint = |name: &str| {
+        let mut endpoint = EndpointBinding::provision(
+            identity.clone(),
+            EndpointId::from_string(name),
+            DeviceId::from_string(format!("device-{name}")),
+            Transport::Quic,
+            "quic://localhost:4440".into(),
+        )
+        .unwrap();
+        endpoint
+            .verify(&identity, "controlled-current-proof".into(), now)
+            .unwrap();
+        endpoint
+    };
+    let old_endpoint = endpoint("old");
+    let new_endpoint = endpoint("new");
+    let mut old = ConnectionBinding::prepare(
+        &member,
+        &appearance,
+        &old_endpoint,
+        ConnectionId::from_string("old"),
+    )
+    .unwrap();
+    old.observe_ready(&member, &appearance, &old_endpoint, 1)
+        .unwrap();
+    old.activate(&member, &appearance, &old_endpoint).unwrap();
+    let mut current = old
+        .replacement(
+            &member,
+            &appearance,
+            &new_endpoint,
+            ConnectionId::from_string("candidate"),
+        )
+        .unwrap();
+    let prepared = current.clone();
+    assert!(!adoption_pending(
+        current.connection(),
+        &prepared,
+        false,
+        false
+    ));
+    current
+        .observe_ready(&member, &appearance, &new_endpoint, 2)
+        .unwrap();
+    old.commit_replacement(&mut current, &member, &appearance, &new_endpoint)
+        .unwrap();
+    assert!(prepared.same_incarnation(&current));
+    assert_eq!(prepared.state(), BindingState::Preparing);
+    assert_eq!(current.state(), BindingState::Active);
+    assert!(adoption_pending(
+        current.connection(),
+        &prepared,
+        true,
+        false
+    ));
+    assert!(!adoption_pending(
+        current.connection(),
+        &prepared,
+        true,
+        true
+    ));
+    assert!(!adoption_pending(
+        &ConnectionId::from_string("foreign"),
+        &prepared,
+        true,
+        false
+    ));
+}
 fn audio(name: &str, rate: u32) -> MediaFormat {
     MediaFormat::Encoded {
         name: name.into(),
