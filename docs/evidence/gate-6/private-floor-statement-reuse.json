@@ -3,7 +3,7 @@
   "task": "G6-058",
   "task_complete": false,
   "whole_gate_qualified": false,
-  "scope": "One constant private-floor SQL statement reuses existing bounded compiled-statement storage. Read-only query microprobe and affected Store authority/private/consultation tests only; actual new media outcome pending.",
+  "scope": "One constant private-floor compiled-statement reuse, read-only microprobe,354affected Store tests, one normal-runtime six-route no-movement observation and separate bounded SQL/packet/sample diagnostic. Complete transport cells remain unqualified.",
   "motivation": "Current sealed4e00 runtime reports slow snapshot fact-capture custody and repeated preparation in sampled private-floor lookup stacks. Isolated pinned SQLite measurement identifies meaningful preparation cost in that constant lookup; it does not prove the remaining packet-loss cause.",
   "prior_runtime_evidence": "docs/evidence/gate-6/packet-observer-cache-selection.json",
   "before_measurement": {
@@ -148,10 +148,807 @@
     "format_check_passed": true
   },
   "runtime_verification": {
-    "status": "Normal optimized build queued behind the successful Store prerequisites, followed by the unchanged62s/60s six-route comparison and conditional8s SQL/packet/sample diagnostic.",
-    "actual_new_quality_result": false,
-    "quality_pass_claim": false,
-    "cell_qualified": false
+    "status": "Normal optimized build and actual six-route observation complete unchanged. All6audio retention, receive-marker alignment and video-rate checks pass. One route passes full component quality; five remain video-integrity negative.",
+    "actual_new_quality_result": true,
+    "quality_passed": false,
+    "full_component_quality_passing_routes": [
+      4
+    ],
+    "all6_audio_retention_passed": true,
+    "all6_receive_marker_alignment_passed": true,
+    "all6_video_rate_passed": true,
+    "cell_qualified": false,
+    "build": {
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "guarded_source_files": 5672,
+      "pipeline_elapsed_seconds_including_store_prerequisite_wait": 1349.0885167913511,
+      "commands": [
+        {
+          "name": "dependencies",
+          "exit_code": 0
+        },
+        {
+          "name": "format",
+          "exit_code": 0
+        },
+        {
+          "name": "release-cli",
+          "exit_code": 0
+        },
+        {
+          "name": "release-peer",
+          "exit_code": 0
+        }
+      ],
+      "binary_sha256": {
+        "connect": "8c31a4f1082f73d4130d52ca8b07884ae0162368418969010b438be62a683108",
+        "connect-external-rust-journey": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99"
+      },
+      "physical_peer_exercised": false
+    },
+    "actual_workload": {
+      "participants": 4,
+      "sessions": 2,
+      "active_av_routes": 6,
+      "program_seconds": 62,
+      "observation_seconds": 60,
+      "movement_count": 0,
+      "elapsed_ms": 62461.936208,
+      "original_packet_tasks_started": 24,
+      "original_packet_tasks_joined": true,
+      "helpers_joined": true,
+      "server_joined": true,
+      "server_forced": false,
+      "source_inputs_unchanged": true,
+      "routes": [
+        {
+          "index": 0,
+          "received_audio": 3079,
+          "received_video": 1837,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4382
+          },
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 1,
+          "received_audio": 3079,
+          "received_video": 1848,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4369
+          },
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 2,
+          "received_audio": 3085,
+          "received_video": 1838,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 3,
+          "received_audio": 3078,
+          "received_video": 1850,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 62,
+            "video": 62
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 4,
+          "received_audio": 3083,
+          "received_video": 1848,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4373
+          },
+          "received_clocks": {
+            "audio": 62,
+            "video": 61
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        },
+        {
+          "index": 5,
+          "received_audio": 3083,
+          "received_video": 1850,
+          "submitted_packets": {
+            "audio": 3100,
+            "video": 4379
+          },
+          "received_clocks": {
+            "audio": 61,
+            "video": 61
+          },
+          "gap_packets": 0,
+          "late_send_frames": 0
+        }
+      ],
+      "native_av_harness_sha256": "fd2405f6b4fcd52b3050e83602aed8314d7562c41d2352b33c7504e787ce2075"
+    },
+    "independent_audit": {
+      "passed": true,
+      "full_decoded_report": true,
+      "pipeline_scripts_sealed_binary_captures_decoder_outputs_verified": true,
+      "audit_sha256": "164b8921a1a418cb6911a69bbf5cd41a1ff620d2d61edeef06ffd36d455637af",
+      "decoded_report_sha256": "f2ef01d1b90c2c2280a5fe3611e73de6e7b27123b492fb466939a3d11782bc0d",
+      "captures": [
+        {
+          "index": 0,
+          "audio_packets": 3079,
+          "complete_video_frames": 1837,
+          "complete_keyframes": 60,
+          "window_audio_packets": 2997,
+          "observation_sha256": "089d0362905260ff9ea329ce5d866392cf2cc02d9756eabecd28e6425997d28e"
+        },
+        {
+          "index": 1,
+          "audio_packets": 3079,
+          "complete_video_frames": 1848,
+          "complete_keyframes": 62,
+          "window_audio_packets": 2996,
+          "observation_sha256": "78c4c589cd6e35dd01a32a32e0217b9875abaccd40ad8effffd9c8fb59c685fe"
+        },
+        {
+          "index": 2,
+          "audio_packets": 3085,
+          "complete_video_frames": 1838,
+          "complete_keyframes": 61,
+          "window_audio_packets": 2999,
+          "observation_sha256": "67e5ce8c1cee6ebac29e208c0d2a6814ca2348ebe3bc92f017316ead2e55ca6d"
+        },
+        {
+          "index": 3,
+          "audio_packets": 3078,
+          "complete_video_frames": 1850,
+          "complete_keyframes": 62,
+          "window_audio_packets": 2997,
+          "observation_sha256": "bd46a9ab20fd49a3a6a37950b56994eb0e6ad17d886463d411a77a8327fcd886"
+        },
+        {
+          "index": 4,
+          "audio_packets": 3083,
+          "complete_video_frames": 1848,
+          "complete_keyframes": 61,
+          "window_audio_packets": 2996,
+          "observation_sha256": "e1332542f89595dd5b8d99ed3bc2d3ea49e25f8927af6449cf6e5b6411f18b6d"
+        },
+        {
+          "index": 5,
+          "audio_packets": 3083,
+          "complete_video_frames": 1850,
+          "complete_keyframes": 61,
+          "window_audio_packets": 2998,
+          "observation_sha256": "b19c363b8b44812f8d1c971ca10da4c8081db25bb31309b0d8edadb10deea30b"
+        }
+      ],
+      "routes": [
+        {
+          "index": 0,
+          "passed": false,
+          "audio_seconds": 59.94,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.766666666666666,
+          "minimum_frames_per_second": 28,
+          "unclassified_pixels": 132,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 76,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 56.28845900000306,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 76,
+            "median_abs_skew_ms": 1.7264170000004242,
+            "p95_abs_skew_ms": 7.823792000003493
+          },
+          "video_ivf_sha256": "06ac5cd6b7ea27b7ab1eb07ef3b7f6251a3b53326d4633038c542a82499d08f4",
+          "audio_pcm_sha256": "7e90c3792e1f2213ba3805109f532ad0f415789a23360d62bb42cba33b538dd5"
+        },
+        {
+          "index": 1,
+          "passed": false,
+          "audio_seconds": 59.92,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.883333333333333,
+          "minimum_frames_per_second": 28,
+          "unclassified_pixels": 88,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 80,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 54.409458000001905,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 80,
+            "median_abs_skew_ms": 37.91516650000304,
+            "p95_abs_skew_ms": 99.73012499999979
+          },
+          "video_ivf_sha256": "3552a74f073eb73b857be452459bf9cb3e5614b1403a832989ccbd78fe909ab7",
+          "audio_pcm_sha256": "13cafe581e4cab4aed65f1c62c0eedfc2612c0f79b4bf87af7266bd930262385"
+        },
+        {
+          "index": 2,
+          "passed": false,
+          "audio_seconds": 59.98,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.783333333333335,
+          "minimum_frames_per_second": 29,
+          "unclassified_pixels": 73,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 77,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 49.03637499999604,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 77,
+            "median_abs_skew_ms": 39.33291700001007,
+            "p95_abs_skew_ms": 52.49545799999922
+          },
+          "video_ivf_sha256": "af1676d2aaf6f38b78892d0cbe889a07ce4b66919df2723b3c1bd47e08ec9f12",
+          "audio_pcm_sha256": "d7bb57546e58c88e606ad8825a9faac84063df38a218037db2829fb0447fc3fa"
+        },
+        {
+          "index": 3,
+          "passed": false,
+          "audio_seconds": 59.94,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.966666666666665,
+          "minimum_frames_per_second": 29,
+          "unclassified_pixels": 40,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 84,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 44.82974999999897,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 1.2222499999996472,
+            "p95_abs_skew_ms": 7.128791999996054
+          },
+          "video_ivf_sha256": "2bf5240f8296dff5878f78c105ff70047acc40336dd34b88cd04ea13016c92df",
+          "audio_pcm_sha256": "14efeba6432be1719bddb60c140eefc126d167a974ce6681f566c49e7c827ee4"
+        },
+        {
+          "index": 4,
+          "passed": true,
+          "audio_seconds": 59.92,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.966666666666665,
+          "minimum_frames_per_second": 29,
+          "unclassified_pixels": 0,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 85,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 52.51987499999814,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 85,
+            "median_abs_skew_ms": 78.08795900000831,
+            "p95_abs_skew_ms": 98.85212500000051
+          },
+          "video_ivf_sha256": "6d325e6d31398c3195a8489ec0311926b7c2dbbb212c630328ef710e66ce7641",
+          "audio_pcm_sha256": "8478dbf996b9868c7694aa1dcf76fa3b2e4c45d3e070edfa7b1dcc4084fd589b"
+        },
+        {
+          "index": 5,
+          "passed": false,
+          "audio_seconds": 59.96,
+          "bad_audio_identity_blocks": 0,
+          "changing_fps": 29.95,
+          "minimum_frames_per_second": 29,
+          "unclassified_pixels": 21,
+          "identified_other_source_pixels": 0,
+          "paired_markers": 82,
+          "sync_status": "passed",
+          "maximum_audio_arrival_gap_ms": 49.06383300000016,
+          "marker_alignment": {
+            "status": "passed",
+            "paired": 82,
+            "median_abs_skew_ms": 79.7350209999994,
+            "p95_abs_skew_ms": 82.17066600000322
+          },
+          "video_ivf_sha256": "a2a029e862537a51ae404457ebc42d95b4843e13f6318527f67c5674b39dee9c",
+          "audio_pcm_sha256": "0360e81fee690f7cb3850f5cc1ecb139d6771fb8d47dd0d0c5975fbb0bb95b2c"
+        }
+      ]
+    },
+    "independent_video_byte_custody": {
+      "audit_sha256": "6bef06bd236380d3412bba1863447ee3835c332cba5ea330c768710502fcd742",
+      "source_and_capture_guards_unchanged": true,
+      "routes": [
+        {
+          "index": 0,
+          "complete_frames": 1837,
+          "exact_original_frames": 1837,
+          "missing_source_ordinals_inside_received_span": 22,
+          "unclassified_pixels_after_source_sequence_gap": 132,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "77ff7ce321e458bce376efb76098265a1c4e4b27cc1df41191c384e019c08989"
+        },
+        {
+          "index": 1,
+          "complete_frames": 1848,
+          "exact_original_frames": 1848,
+          "missing_source_ordinals_inside_received_span": 12,
+          "unclassified_pixels_after_source_sequence_gap": 88,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "15b310d79f167536e5d5790dd9d37d60733ba8925743d51bfad15ba4cda58e9c"
+        },
+        {
+          "index": 2,
+          "complete_frames": 1838,
+          "exact_original_frames": 1838,
+          "missing_source_ordinals_inside_received_span": 21,
+          "unclassified_pixels_after_source_sequence_gap": 73,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "50a0c146fc0e680e41bc8bd296b065d6afdeddcad28175935f6fe3edc5e0386a"
+        },
+        {
+          "index": 3,
+          "complete_frames": 1850,
+          "exact_original_frames": 1850,
+          "missing_source_ordinals_inside_received_span": 10,
+          "unclassified_pixels_after_source_sequence_gap": 40,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "2ba22008fe9a35575e1c74a088c8cee2992453addc1d4a297844d9f6d48c23ea"
+        },
+        {
+          "index": 4,
+          "complete_frames": 1848,
+          "exact_original_frames": 1848,
+          "missing_source_ordinals_inside_received_span": 1,
+          "unclassified_pixels_after_source_sequence_gap": 0,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "708aa4bd2dec9f44e1adb3a700c3b6334d58e61ee9efd27a5b0980159aaac80d"
+        },
+        {
+          "index": 5,
+          "complete_frames": 1850,
+          "exact_original_frames": 1850,
+          "missing_source_ordinals_inside_received_span": 6,
+          "unclassified_pixels_after_source_sequence_gap": 21,
+          "unclassified_pixels_with_uninterrupted_source_sequence": 0,
+          "decoded_source_pixels_sha256": "f7409c1015d8c6ebcce8c4219af4b07d77f29d795b7b21d7e893bbb5d6851842"
+        }
+      ],
+      "scope": "Exact original complete-frame bytes and source-sequence continuity since keyframes; actual per-frame codec references and specific queue/loss cause unproven."
+    },
+    "bounded_diagnostic": {
+      "diagnostic_complete": true,
+      "expected_negative_stop": true,
+      "all_script_guards_unchanged": true,
+      "sample_audit": {
+        "summary_recomputed_exactly": true,
+        "raw_sha256": "71e46e83ead4bb9c03b3aa7257743405ce8afca854e737f40440faecdbea8609",
+        "observer_joined": true,
+        "observer_forced": false,
+        "server_joined": true,
+        "server_forced": false,
+        "source_inputs_unchanged": true
+      },
+      "sample": {
+        "seconds_requested": 8,
+        "interval_ms": 10,
+        "elapsed_ms": 8271,
+        "available_parallelism": 14,
+        "server_cpu_delta_ms": 12570,
+        "resident_bytes_before": 83460096,
+        "resident_bytes_after": 92127232,
+        "raw_sample_sha256": "71e46e83ead4bb9c03b3aa7257743405ce8afca854e737f40440faecdbea8609"
+      },
+      "component_stacks": [
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_deadline",
+          "stack_samples": 1035
+        },
+        {
+          "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+          "stack_samples": 1001
+        },
+        {
+          "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+          "stack_samples": 969
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at",
+          "stack_samples": 967
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+          "stack_samples": 866
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+          "stack_samples": 613
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+          "stack_samples": 553
+        },
+        {
+          "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+          "stack_samples": 393
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+          "stack_samples": 385
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+          "stack_samples": 385
+        },
+        {
+          "symbol": "<rvoip_core::conference::Conference>::start_inner::{closure#0}",
+          "stack_samples": 370
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::media_scene::GuardedMediaScene>::tick",
+          "stack_samples": 369
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source_with_deadline",
+          "stack_samples": 342
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media_with_deadline",
+          "stack_samples": 288
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::MediaPacket>::try_forward_to",
+          "stack_samples": 235
+        },
+        {
+          "symbol": "<connect_store::Store>::native_media_read_at::{closure#0}",
+          "stack_samples": 212
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::views_for",
+          "stack_samples": 211
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::facts_for",
+          "stack_samples": 196
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::StagedRtpMedia as rvoip_core::staged_streams::StagedMediaAdapter>::prepare::{closure#0}::{closure#7}",
+          "stack_samples": 182
+        },
+        {
+          "symbol": "<rusqlite::inner_connection::InnerConnection>::prepare",
+          "stack_samples": 163
+        },
+        {
+          "symbol": "<connect_store::installation_ownership::InstallationOwnership>::check",
+          "stack_samples": 139
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::guarded_audio::GuardedAudioMixer>::tick",
+          "stack_samples": 130
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::ready_audio::epoch::EpochQueue<rvoip_uctp::staged_media::ready_audio::Job>>::enqueue::{closure#2}",
+          "stack_samples": 113
+        },
+        {
+          "symbol": "<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready",
+          "stack_samples": 113
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::deliver_ready_audio_batch::<<rvoip_uctp::staged_media::ready_audio::ReadyAudioEgress>::submit_ready::{closure#2}>",
+          "stack_samples": 113
+        },
+        {
+          "symbol": "<rvoip_core::staged_streams::QueuedMedia>::admit_queued_media",
+          "stack_samples": 113
+        },
+        {
+          "symbol": "<connect_store::installation_ownership::Binding>::permit",
+          "stack_samples": 110
+        },
+        {
+          "symbol": "connect_store::installation_ownership::fingerprint",
+          "stack_samples": 110
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_projection::current_projection",
+          "stack_samples": 87
+        },
+        {
+          "symbol": "connect_store::connection_control::private_consultation::private_partner",
+          "stack_samples": 70
+        },
+        {
+          "symbol": "connect_store::peer_authority::connection_media::current_owner",
+          "stack_samples": 68
+        },
+        {
+          "symbol": "<connect_store::authority_fences::Manager>::file",
+          "stack_samples": 68
+        }
+      ],
+      "packet_trace": {
+        "log_sha256": "7e29cf4cbce9622f362077dac7a3befec27ebb932285dec84174e909c3d173d8",
+        "log_bytes": 10174574,
+        "policy": [
+          {
+            "publishing": "true",
+            "receiving": "false",
+            "owned_file_custody": "false",
+            "problem": "none",
+            "count": 20633,
+            "median_us": 233,
+            "p95_us": 934,
+            "maximum_us": 322951
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "true",
+            "problem": "none",
+            "count": 7763,
+            "median_us": 47,
+            "p95_us": 99,
+            "maximum_us": 13211
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "false",
+            "problem": "none",
+            "count": 3356,
+            "median_us": 186.5,
+            "p95_us": 618,
+            "maximum_us": 13629
+          },
+          {
+            "publishing": "true",
+            "receiving": "false",
+            "owned_file_custody": "false",
+            "problem": "authority-busy",
+            "count": 299,
+            "median_us": 10390,
+            "p95_us": 12590,
+            "maximum_us": 332259
+          },
+          {
+            "publishing": "false",
+            "receiving": "true",
+            "owned_file_custody": "false",
+            "problem": "authority-busy",
+            "count": 8,
+            "median_us": 12576.5,
+            "p95_us": 14568,
+            "maximum_us": 14568
+          },
+          {
+            "publishing": "true",
+            "receiving": "false",
+            "owned_file_custody": "true",
+            "problem": "none",
+            "count": 1,
+            "median_us": 69,
+            "p95_us": 69,
+            "maximum_us": 69
+          }
+        ],
+        "guarded_media_refusals": [
+          {
+            "stage": "target-egress",
+            "problem": "NotReady",
+            "count": 204
+          },
+          {
+            "stage": "source-egress",
+            "problem": "NotReady",
+            "count": 897
+          },
+          {
+            "stage": "source-egress",
+            "problem": "Deadline",
+            "count": 3
+          },
+          {
+            "stage": "target-egress",
+            "problem": "Deadline",
+            "count": 1
+          }
+        ],
+        "queued_media_age": {
+          "mixer_queued": {
+            "count": 2201,
+            "median_us": 19460,
+            "p95_us": 61346,
+            "maximum_us": 164270
+          },
+          "entering_io": {
+            "count": 5519,
+            "median_us": 21366,
+            "p95_us": 64887,
+            "maximum_us": 199432
+          }
+        },
+        "limits": "Shared audio_path label includes video. Refusals count admission attempts; bounded retries may repeat one original packet. These are neither final frame-drop counts nor a decoded quality result.",
+        "task_complete": false,
+        "whole_gate_qualified": false
+      },
+      "sql_custody": {
+        "format": "connect/private-media-slow-sql-custody/1",
+        "log_sha256": "7e29cf4cbce9622f362077dac7a3befec27ebb932285dec84174e909c3d173d8",
+        "log_bytes": 10174574,
+        "reported_threshold_us": 500,
+        "publication_trace_window_seconds": 8.44048,
+        "reported_slow_units": 2244,
+        "rows": [
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 347,
+            "count": 2019,
+            "minimum_us": 500,
+            "median_us": 1258,
+            "p95_us": 2429,
+            "maximum_us": 324415,
+            "summed_elapsed_us": 3957219
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 381,
+            "count": 163,
+            "minimum_us": 662,
+            "median_us": 1957,
+            "p95_us": 5762,
+            "maximum_us": 12094,
+            "summed_elapsed_us": 413725
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/flow_facts.rs",
+            "line": 62,
+            "count": 6,
+            "minimum_us": 2464,
+            "median_us": 7706.5,
+            "p95_us": 337544,
+            "maximum_us": 337544,
+            "summed_elapsed_us": 394226
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 775,
+            "count": 15,
+            "minimum_us": 508,
+            "median_us": 728,
+            "p95_us": 1793,
+            "maximum_us": 1793,
+            "summed_elapsed_us": 12549
+          },
+          {
+            "file": "crates/connect-store/src/session_participant_lifecycle.rs",
+            "line": 341,
+            "count": 11,
+            "minimum_us": 700,
+            "median_us": 905,
+            "p95_us": 1197,
+            "maximum_us": 1197,
+            "summed_elapsed_us": 10411
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 777,
+            "count": 10,
+            "minimum_us": 573,
+            "median_us": 651.5,
+            "p95_us": 828,
+            "maximum_us": 828,
+            "summed_elapsed_us": 6646
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 184,
+            "count": 7,
+            "minimum_us": 503,
+            "median_us": 555,
+            "p95_us": 1658,
+            "maximum_us": 1658,
+            "summed_elapsed_us": 6009
+          },
+          {
+            "file": "crates/connect-store/src/session_reconnect.rs",
+            "line": 176,
+            "count": 7,
+            "minimum_us": 509,
+            "median_us": 691,
+            "p95_us": 1013,
+            "maximum_us": 1013,
+            "summed_elapsed_us": 5235
+          },
+          {
+            "file": "crates/connect-store/src/session_invitations/cancellations.rs",
+            "line": 63,
+            "count": 1,
+            "minimum_us": 1258,
+            "median_us": 1258,
+            "p95_us": 1258,
+            "maximum_us": 1258,
+            "summed_elapsed_us": 1258
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+            "line": 109,
+            "count": 2,
+            "minimum_us": 505,
+            "median_us": 555.5,
+            "p95_us": 606,
+            "maximum_us": 606,
+            "summed_elapsed_us": 1111
+          },
+          {
+            "file": "crates/connect-store/src/peer_authority.rs",
+            "line": 762,
+            "count": 1,
+            "minimum_us": 1000,
+            "median_us": 1000,
+            "p95_us": 1000,
+            "maximum_us": 1000,
+            "summed_elapsed_us": 1000
+          },
+          {
+            "file": "crates/connect-store/src/peer_credentials.rs",
+            "line": 49,
+            "count": 1,
+            "minimum_us": 588,
+            "median_us": 588,
+            "p95_us": 588,
+            "maximum_us": 588,
+            "summed_elapsed_us": 588
+          },
+          {
+            "file": "crates/connect-store/src/transitions/session_codecs.rs",
+            "line": 266,
+            "count": 1,
+            "minimum_us": 544,
+            "median_us": 544,
+            "p95_us": 544,
+            "maximum_us": 544,
+            "summed_elapsed_us": 544
+          }
+        ],
+        "scope": "Existing actual SQL-custody diagnostics at or above500us, within first/last publication authority trace completions. Shorter units and partial boundaries are omitted. Durations include scheduling/descheduling; overlapping summed intervals are neither wall time nor CPU time, and do not establish a specific SQL statement or packet-loss cause.",
+        "task_complete": false,
+        "whole_gate_qualified": false
+      }
+    },
+    "limits": [
+      "Overall component quality remains failed: five routes retain354unclassified video pixels after source sequence gaps, with0identified-other-source pixels. All11071complete frames match exact intended-source original bytes.",
+      "All6audio retention is59.92\u201359.98seconds, above59.9; marker pairs76\u201385 pass original80msmedian/120msp95 limits; video per-second minima28\u201329pass24. No live decoder completion or physical presentation measured.",
+      "One before/after observation is not a statistical benchmark. Thresholded SQL durations include scheduling and overlap, not all-call CPUtime or specific cause.",
+      "No movements, impairment, browser/remote profile or complete transport cell qualified."
+    ]
   },
   "limits": [
     "The microprobe uses one read-only copied fixture connection per arm, six recorded negative-probe contexts and interleaved rounds. It does not execute the full Store authority path, model contention, prove positive private context behavior or measure media quality.",
