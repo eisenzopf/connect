@@ -43,5 +43,9 @@
   "macos_checks_passed": 17,
   "macos_failure_stage": "synthetic-browser-audio-capture-playback",
   "macos_artifact_audit_complete": false,
-  "macos_job_log_sha256": "6671ae61513ffa6512951e20054d58f8b0ade3f2a17f777011afbf454222d302"
+  "macos_job_log_sha256": "6671ae61513ffa6512951e20054d58f8b0ade3f2a17f777011afbf454222d302",
+  "macos_evidence": "docs/evidence/gate-6/reference-app-no-delay-macos-negative.json",
+  "macos_component_digest_crc_verified": true,
+  "macos_original_control_screenshots_reviewed": 2,
+  "macos_runtime_source_full_audit_pending": true
 }

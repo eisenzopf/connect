@@ -1,0 +1,248 @@
+{
+  "format": "connect/reference-app-no-delay-macos-negative/1",
+  "task": "G6-072",
+  "source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+  "runtime_source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+  "run_id": 41416492584,
+  "job_id": 125181669733,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41416492584",
+  "conclusion": "failure",
+  "checks_passed": 17,
+  "required_checks": 37,
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 592,
+        "column": 16
+      }
+    ]
+  },
+  "artifact": {
+    "id": 13131129173,
+    "sha256": "f8f45e6614c43015976b956d82d84510e89975a33e9108bbbb20b5f0c83ca78c",
+    "size_bytes": 430210,
+    "all_zip_crc_verified": true,
+    "members": 6,
+    "browser_report_sha256": "13b2f5342b53522b7d3d4b57c14c97e913f36dc3167bae1a6d455bb1f0c47094",
+    "full_source_package_audit_complete": false
+  },
+  "exact_versions": {
+    "browser": "156.0.8078.48",
+    "node": "v22.23.4",
+    "binary_sha256": "5a9b9b2d48fa63475a41e7bfb67c017d7a5021688c5fb3eb2ab64f2bc994b93d",
+    "node_archive_sha256": "f714b966120f3977bd9ec7e4c1887f2f7ed545d68d1191257c50e4cf0fe278b9"
+  },
+  "audio": [
+    {
+      "role": "owner",
+      "state": "app-media-network",
+      "metrics": {
+        "capturedAudioFrames": 79,
+        "encodedFrames": 74,
+        "sentRtp": 64,
+        "receivedRtp": 2,
+        "decodedAudioFrames": 2,
+        "playedAudioFrames": 1,
+        "audioLateDrops": 1,
+        "audioHorizonDrops": 0,
+        "activeTracks": 0,
+        "activeContexts": 0,
+        "queuedAudioSources": 0,
+        "pendingRequests": 0,
+        "stopped": true,
+        "stopReason": "app-media-network"
+      },
+      "output": {
+        "frames": 1,
+        "energy": 4.101899858633123e-68,
+        "tone440": 2.553967464101094e-71,
+        "tone880": 1.116668095842352e-71
+      }
+    },
+    {
+      "role": "organizer",
+      "state": "app-media-network",
+      "metrics": {
+        "capturedAudioFrames": 19,
+        "encodedFrames": 14,
+        "sentRtp": 6,
+        "receivedRtp": 5,
+        "decodedAudioFrames": 5,
+        "playedAudioFrames": 1,
+        "audioLateDrops": 0,
+        "audioHorizonDrops": 4,
+        "activeTracks": 0,
+        "activeContexts": 0,
+        "queuedAudioSources": 0,
+        "pendingRequests": 0,
+        "stopped": true,
+        "stopReason": "app-media-network"
+      },
+      "output": {
+        "frames": 0,
+        "energy": 0,
+        "tone440": 0,
+        "tone880": 0
+      }
+    }
+  ],
+  "app_failures": [
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": {
+        "file": "media.mjs",
+        "line": 168,
+        "column": 34
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": null,
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "phase": "packet-native-negotiation",
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "phase": "packet-native-negotiation",
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 212,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": null,
+      "location": null,
+      "sdk_location": {
+        "file": "sdk_helper.js",
+        "line": 378,
+        "column": 24
+      }
+    }
+  ],
+  "reported_process_cleanup_failed": true,
+  "observer_summary": {
+    "node_samples": 5357,
+    "node_total_sampled_ms": 33755,
+    "node_top_self": [
+      {
+        "module": "v8",
+        "function": "(idle)",
+        "line": 0,
+        "self_sampled_ms": 31647,
+        "inclusive_sampled_ms": 31647
+      },
+      {
+        "module": "node-native",
+        "function": "writev",
+        "line": 0,
+        "self_sampled_ms": 305,
+        "inclusive_sampled_ms": 305
+      },
+      {
+        "module": "v8",
+        "function": "(program)",
+        "line": 0,
+        "self_sampled_ms": 294,
+        "inclusive_sampled_ms": 294
+      }
+    ],
+    "native_sample_observed": true,
+    "native_observer_joined": true,
+    "native_observer_forced": false,
+    "native_sample_elapsed_ms": 10105,
+    "native_server_cpu_delta_ms": 1470,
+    "raw_profiles_present_in_component_zip": false,
+    "independent_raw_profile_audit_complete": false
+  },
+  "screenshots": {
+    "visually_reviewed": true,
+    "files": [
+      {
+        "name": "native-controls.png",
+        "sha256": "f6fede0a73d393b68992b6d0a0b979c7eab18e055744cb3d88835c702ae0a138"
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "sha256": "740799c053ed5181e969143c67c5b62be5ef71f8a67024a82ba4a53bbbadf0e6"
+      }
+    ],
+    "scope": "Original pre-audio native-control views on desktop and320px; controls remain contained and malicious text is escaped. These images provide no playback or combined AV proof."
+  },
+  "causal_root_cause_proven": false,
+  "socket_change_resolves_ci": false,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One original terminal CI attempt on its exact49f source. Component ZIP digest/CRC and two screenshots verified; full source/runtime/Node package and raw observer audits remain pending. Two native-channel deadline errors precede both stopped audio owners. No rerun, new model/provider/communications execution, threshold change or latest-source inference."
+}
