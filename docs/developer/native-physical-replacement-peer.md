@@ -334,6 +334,17 @@ The live physical owner accepts a separately planned `source.terminalEndOperatio
 
 The current main media producer wires seven enrolled Devices, two independent movement controllers, forty distinct original64KiB Data messages, and all six current-owner ends. The final two physical owners also require current-authorized retired-generation observations within the original programme's62..67s cutoff. Full runtime qualification is pending. See [the applied Data integration](../evidence/gate-6/replacement-data-integration.json).
 
+Joined capture inspection keeps the full Data receipt in its original private
+capture and receipt files. The worker transfers a digest of every flat receipt
+field instead of duplicating its64KiB body in the control summary. The existing
+64KiB metadata limit remains unchanged. The parent reads the private receipt
+through the existing256KiB, no-follow, immutable-file checks, binds it to the
+worker's digest, and still verifies exact payload bytes, original scope, command
+IDs and cutoff. Independent whole-window inspection retains its original raw
+receipt comparison. Before/after verification reads the same stopped production
+captures without resubmitting any original mutation; it cannot turn the earlier
+failed runtime workload into a pass. See [the scoped inspector fix](../evidence/gate-6/capture-data-control-summary.json).
+
 Each physical peer now records `root_completed_observed_programme_us` at its verified original-root read boundary. This is its application observation time, not an invented backend commit or kernel arrival time. Packet interpretation retains pre-observation rows separately. The main producer binds the original six recordings and twenty physical captures; separate Opus/VP8 histories never share compressed decoder state across physical receiver, stream or SSRC boundaries. Ownership intervals exclude old-owner rows after the next recorded root observation. The whole-window decoder keeps original timestamps, refuses duplicate frame coverage, and resets marker onset detection per history.
 
 The controlled encoded-source calibration passes all six full60s receiver windows across92 decoder histories, while preserving the frozen quality/marker limits. Its custody input is synthetic and proves no live service, Data, journal, device presentation or transport behavior. Normal production verification and the actual full main rehearsal remain required. See [capture integration and calibration evidence](../evidence/gate-6/moving-capture-integration.json).

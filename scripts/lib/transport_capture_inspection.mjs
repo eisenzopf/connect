@@ -4,6 +4,21 @@ import { createHash } from "node:crypto";
 import { open } from "node:fs/promises";
 import { isMainThread, parentPort, Worker, workerData } from "node:worker_threads";
 
+// The existing Data receipt is flat JSON. Hash every field in stable key order;
+// never transfer its duplicate64KiB payload into bounded control metadata.
+function dataReceiptDigest(receipt) {
+    assert.ok(receipt && typeof receipt === "object" && !Array.isArray(receipt));
+    assert.ok(Object.values(receipt).every(value => value === null || ["string", "boolean"].includes(typeof value) || Number.isSafeInteger(value)));
+    const bytes = Buffer.from(JSON.stringify(Object.fromEntries(Object.keys(receipt).sort().map(key => [key, receipt[key]]))));
+    assert.ok(bytes.length <= 256 * 1024);
+    return createHash("sha256").update(bytes).digest("hex");
+}
+export function verifyInspectedDataReceipt(observation, receipt) {
+    assert.equal(observation.data_exchange_receipt, undefined);
+    assert.match(observation.data_exchange_receipt_sha256, /^[0-9a-f]{64}$/);
+    assert.equal(observation.data_exchange_receipt_sha256, dataReceiptDigest(receipt));
+}
+
 if (!isMainThread) {
     const { path, maximumBytes, maximumPackets } = workerData;
     const file = await open(path, "r");
@@ -26,6 +41,11 @@ if (!isMainThread) {
             ? row.original_root_completed_observed : null,
     }));
     delete observation.received;
+    assert.ok(!Object.hasOwn(observation, "data_exchange_receipt_sha256"));
+    if (observation.data_exchange_receipt !== undefined && observation.data_exchange_receipt !== null) {
+        observation.data_exchange_receipt_sha256 = dataReceiptDigest(observation.data_exchange_receipt);
+        delete observation.data_exchange_receipt;
+    }
     // Transfer bounded metadata only; payload bytes stay in their original file.
     assert.ok(Buffer.byteLength(JSON.stringify(observation)) <= 65536);
     parentPort.postMessage({ observation: { ...observation, received },

@@ -40,5 +40,19 @@
   "host_capture_executed": false,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "later_stack_sampled_diagnostic": {
+    "source_revision": "4df2fe5ea291f410ff77fa6ad9fc13133ccb2684",
+    "passed": false,
+    "report_sha256": "02c6e5e415bc6cdf325a29a60dc61fbd4cb80fa0d8c2b3251291e83d7409c2a6",
+    "same_production_cli_and_independent_peer": true,
+    "source_and_executable_guards_unchanged": true,
+    "owned_stack_samples": 2,
+    "each_stack_sample_seconds": 1,
+    "observer_joined": true,
+    "primary_failure": "Successful joined peers hit duplicate64KiB Data receipt in control summary, failing unchanged64KiB inspector bound during next ownership handoff.",
+    "fixture_fix_evidence": "capture-data-control-summary.json",
+    "native_catalog_contention_cause_unproven": true,
+    "ordinary_quality_qualification": false
+  }
 }

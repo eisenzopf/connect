@@ -43,6 +43,9 @@ async function privateJson(path) {
         return { value: JSON.parse(bytes), sha256: hash(bytes) };
     } finally { await file.close(); }
 }
+export async function readPhysicalDataReceipt(path) {
+    return (await privateJson(path)).value;
+}
 export function verifyPhysicalDataReceipt(receipt, { contract, conversationId, sessionId, connectionId, rootOperationId, cutoff }) {
     validatePhysicalData(contract);
     assert.equal(receipt.format, "connect/physical-data-exchange/1");

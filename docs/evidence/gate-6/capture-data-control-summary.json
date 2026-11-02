@@ -1,0 +1,93 @@
+{
+  "format": "connect/capture-data-control-summary/1",
+  "task": "G6-058",
+  "passed": true,
+  "source_files": {
+    "scripts/lib/transport_capture_inspection.mjs": "2fb632742769fda8715c5319dcaa4747788a992659c4479375b3e99ab88a4aba",
+    "scripts/lib/transport_movement_data.mjs": "9aa1662f7c8293f68e129b08567c13fc535cbac85ed2377bcb6a0da2643911f4",
+    "scripts/lib/transport_replacement_target.mjs": "e0880487e941f9faa5e812cd0a50b5b657c6e609b2c7b90f4ec2a4aea3a48c47",
+    "scripts/tests/transport_capture_inspection.test.mjs": "2eaf58a38a6dabceb6927135eaba6facba6ca863de8e692b7687275e9c983964"
+  },
+  "problem": "A successful physical peer embeds an original64KiB Data receipt in its raw capture. The inspector removed packet bodies but transferred the duplicate receipt body into control metadata, exceeding the unchanged64KiB metadata bound and failing previous-owner join.",
+  "implementation": "Worker computes a stable digest of every flat receipt field and removes the duplicate receipt from transferred metadata. Parent reads the existing original private receipt, verifies its digest against the worker-inspected capture, then preserves the existing exact payload/scope/operation/deadline checks. Raw captures and independent whole-window raw receipt comparison remain unchanged.",
+  "bounds": {
+    "control_metadata_bytes": 65536,
+    "private_receipt_bytes": 262144,
+    "maximum_capture_bytes": 83886080,
+    "maximum_capture_packets": 16000
+  },
+  "regression": {
+    "before_result": "0 passed;1failed;0skipped",
+    "before_failure": "unchanged64KiB control metadata assertion",
+    "before_log_sha256": "75cfc168fdc49b9f94e06efb4d8eb39fecd2fecdbc80e73b1a246111dd34f9cb",
+    "after_node": "v22.16.0",
+    "after_tests": 61,
+    "after_passed": 61,
+    "after_failed": 0,
+    "after_cancelled": 0,
+    "after_skipped": 0,
+    "after_log_sha256": "ffc0b26bd77b7c1d32cc1308734dec08c235c48655c0d1c3a6800c0d6730317a"
+  },
+  "original_production_captures": {
+    "before": {
+      "phase": "before",
+      "passed": true,
+      "inspector_sha256": "3857b488a3bccf01445d82ca9363428de48e2e279e0524cd4fb516c7cb025830",
+      "results": [
+        {
+          "capture_slot": 0,
+          "original_sha256": "35315a51cce020f30777981821349da7a51e18a6c724bb1202b84e594852d0e0",
+          "original_bytes": 1311397,
+          "original_unchanged": true,
+          "worker_joined_after": false,
+          "original_parent_failure_reproduced": true,
+          "exact_original_Data_receipt_verified": false
+        },
+        {
+          "capture_slot": 1,
+          "original_sha256": "7cb49398d581889d4fcdd09bdc0e09552e1ba2b3a6485b8ce363cb760d266543",
+          "original_bytes": 1914366,
+          "original_unchanged": true,
+          "worker_joined_after": false,
+          "original_parent_failure_reproduced": true,
+          "exact_original_Data_receipt_verified": false
+        }
+      ],
+      "original_mutations_replayed": false,
+      "scope": "Read-only inspection of two stopped original production captures. No server, media, SDK mutation or new operation was run. Full moving media remains unqualified."
+    },
+    "after": {
+      "phase": "after",
+      "passed": true,
+      "inspector_sha256": "2fb632742769fda8715c5319dcaa4747788a992659c4479375b3e99ab88a4aba",
+      "results": [
+        {
+          "capture_slot": 0,
+          "original_sha256": "35315a51cce020f30777981821349da7a51e18a6c724bb1202b84e594852d0e0",
+          "original_bytes": 1311397,
+          "original_unchanged": true,
+          "worker_joined_after": true,
+          "original_parent_failure_reproduced": false,
+          "exact_original_Data_receipt_verified": true
+        },
+        {
+          "capture_slot": 1,
+          "original_sha256": "7cb49398d581889d4fcdd09bdc0e09552e1ba2b3a6485b8ce363cb760d266543",
+          "original_bytes": 1914366,
+          "original_unchanged": true,
+          "worker_joined_after": true,
+          "original_parent_failure_reproduced": false,
+          "exact_original_Data_receipt_verified": true
+        }
+      ],
+      "original_mutations_replayed": false,
+      "scope": "Read-only inspection of two stopped original production captures. No server, media, SDK mutation or new operation was run. Full moving media remains unqualified."
+    },
+    "original_bytes_unchanged": true,
+    "original_mutations_replayed": false
+  },
+  "unresolved": "Fresh normal full20move/62s production workload and whole-window independent decode remain required. This read-only inspector verification does not repair or promote an earlier runtime result.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

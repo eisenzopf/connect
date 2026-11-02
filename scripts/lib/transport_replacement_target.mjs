@@ -6,8 +6,8 @@ import { spawn } from "node:child_process";
 import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { operationFailure } from "./transport_failure.mjs";
-import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
-import { validatePhysicalData, verifyPhysicalDataReceipt } from "./transport_movement_data.mjs";
+import { inspectReplacementCapture, verifyInspectedDataReceipt } from "./transport_capture_inspection.mjs";
+import { validatePhysicalData, verifyPhysicalDataReceipt, readPhysicalDataReceipt } from "./transport_movement_data.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -290,7 +290,9 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 }
             }
             if (intent.source.data !== undefined) {
-                verifyPhysicalDataReceipt(observed.data_exchange_receipt, { contract: intent.source.data,
+                const receipt = await readPhysicalDataReceipt(output.replace(/\.json$/, ".data-receipt.json"));
+                verifyInspectedDataReceipt(observed, receipt);
+                verifyPhysicalDataReceipt(receipt, { contract: intent.source.data,
                     conversationId: intent.conversationId, sessionId: intent.sessionId,
                     connectionId: admittedConnectionId, rootOperationId: intent.operationId });
                 report.physical_data_exchange_verified = true;
