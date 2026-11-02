@@ -1,0 +1,90 @@
+{
+  "format": "connect/stopped-original-movement-journal/1",
+  "passed": true,
+  "original_scene_passed": false,
+  "roots": [
+    {
+      "source_index": 0,
+      "ordinal": 0,
+      "original_terminal_root_matches": true,
+      "old_retired": true,
+      "new_generation": 3,
+      "original_worker_joined": true,
+      "forced": false
+    },
+    {
+      "source_index": 4,
+      "ordinal": 0,
+      "original_terminal_root_matches": true,
+      "old_retired": true,
+      "new_generation": 3,
+      "original_worker_joined": true,
+      "forced": false
+    }
+  ],
+  "original_data_admissions": [
+    {
+      "source_index": 0,
+      "direction": "incoming",
+      "exact_payload_bytes": 65536,
+      "body_sha256": "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+      "original_operation_and_native_effect_bound": true,
+      "exact_sender_recipient_audience": true,
+      "core_queue_admission": true,
+      "downstream_delivery_inferred": false
+    },
+    {
+      "source_index": 0,
+      "direction": "outgoing",
+      "exact_payload_bytes": 65536,
+      "body_sha256": "a5132632d544ebea961d81c7aae4772ccb696d4c0bb9cb08ade546e252579984",
+      "original_operation_and_native_effect_bound": true,
+      "exact_sender_recipient_audience": true,
+      "core_queue_admission": true,
+      "downstream_delivery_inferred": false
+    },
+    {
+      "source_index": 4,
+      "direction": "incoming",
+      "exact_payload_bytes": 65536,
+      "body_sha256": "a21deb796ef8a35157dd9b8e2d6001545de9ed18fdf981aebc21fe7ad5f8beec",
+      "original_operation_and_native_effect_bound": true,
+      "exact_sender_recipient_audience": true,
+      "core_queue_admission": true,
+      "downstream_delivery_inferred": false
+    },
+    {
+      "source_index": 4,
+      "direction": "outgoing",
+      "exact_payload_bytes": 65536,
+      "body_sha256": "a7695a5245aadb0670875dacbef8537f0a25eee8e04efcfe164acb0eae319d85",
+      "original_operation_and_native_effect_bound": true,
+      "exact_sender_recipient_audience": true,
+      "core_queue_admission": true,
+      "downstream_delivery_inferred": false
+    }
+  ],
+  "unsubmitted_planned_data_operations": 36,
+  "all_original_files_unchanged": true,
+  "read_only": true,
+  "full_data_roundtrips_verified": 0,
+  "whole_programme_decode_verified": false,
+  "scope": "Stopped original v2 journal: two original completed replacement roots and four exact original64KiB journal/native Core admissions. Parent failed on JSON prototype equality before full downstream receipts; no uncertain mutation or Data send was replayed.",
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "task": "G6-058",
+  "independent_audit_sha256": "fb9e551af05c1f108296caa2aa7ff52b2e6b0b83e79e146b430380d9cffff16e",
+  "source_revision": "e588f30c3e2cc7c8f7e7173ee02d878869b99f04",
+  "earlier_audit_failure": {
+    "preserved": true,
+    "reason": "Auditor interpreted native resources as stream IDs. Resources name identities; corrected audit instead verifies the native parent lifetime/generation, original effect attempt1 and exact recipient snapshot."
+  },
+  "manual_capture_startup": {
+    "stage": "complete",
+    "failure": "capture startup window expired; no fixture started",
+    "fixture_started": false,
+    "capture_observed": false,
+    "device_ownership_changed": false
+  }
+}

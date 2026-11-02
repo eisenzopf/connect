@@ -1,0 +1,149 @@
+{
+  "format": "connect/reference-app-original-artifact-audit/1",
+  "run_id": 41416492584,
+  "passed": true,
+  "platforms": [
+    {
+      "platform": "macos",
+      "target": "aarch64-apple-darwin",
+      "source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+      "git_source_files_verified": 4961,
+      "prepared_source_files_verified": 4098,
+      "runtime_files_verified": 755,
+      "all_runtime_bytes_modes_and_manifest_bound": true,
+      "node_files_verified": 195,
+      "node_dependency_archives_and_license_text_verified": 2,
+      "runtime_sha256": "5a9b9b2d48fa63475a41e7bfb67c017d7a5021688c5fb3eb2ab64f2bc994b93d",
+      "native": {
+        "integer_sample_codec_source_verified": true,
+        "bundled_static_opus_symbols": [
+          "_opus_encoder_create",
+          "_opus_encode",
+          "_opus_decoder_create",
+          "_opus_decode"
+        ],
+        "no_external_homebrew_opus_dependency": true
+      },
+      "producer_reported_regular_offline_install": true,
+      "independently_executed_install": false,
+      "original_browser_checks_passed": 17,
+      "original_app_passed": false,
+      "cell_qualified": false,
+      "task_complete": false
+    },
+    {
+      "platform": "linux",
+      "target": "x86_64-unknown-linux-gnu",
+      "source_revision": "49f862727e22167100c9d3b12abf6a52c6e5511d",
+      "git_source_files_verified": 4961,
+      "prepared_source_files_verified": 4098,
+      "runtime_files_verified": 753,
+      "all_runtime_bytes_modes_and_manifest_bound": true,
+      "node_files_verified": 195,
+      "node_dependency_archives_and_license_text_verified": 2,
+      "runtime_sha256": "19da5ed6dc87a1586c174480190e6ab3489d4720c05bfe829ba1f88570708d2c",
+      "native": {
+        "elf_header_verified": true,
+        "system_opus_license_present": true
+      },
+      "producer_reported_regular_offline_install": true,
+      "independently_executed_install": false,
+      "original_browser_checks_passed": 25,
+      "original_app_passed": false,
+      "cell_qualified": false,
+      "task_complete": false
+    }
+  ],
+  "elapsed_seconds": 2.732568457722664,
+  "all8_artifact_zip_digests_and_crc_previously_verified": true,
+  "scope": "Read-only original archive/source/inventory/byte/mode/license and existing install-proof binding audit. No executable or installer was run and no live quality failure is resolved. Raw observer profile audit remains separate.",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "task": "G6-072",
+  "independent_audit_sha256": "8318b2ead39b3b1d4aa05f4f184a9ff3bda26fb8d4473bd0d12c1fdfc7dec152",
+  "retained_clock_audit": {
+    "format": "connect/original-ci-retained-clock-audit/1",
+    "passed": true,
+    "reports": [
+      {
+        "platform": "macos",
+        "originalBrowserSha256": "13b2f5342b53522b7d3d4b57c14c97e913f36dc3167bae1a6d455bb1f0c47094",
+        "retainedClockReplayMatches": true,
+        "originalReadsPending": 0,
+        "observedPages": 2,
+        "retainedReceiveRtp": 5,
+        "observationFailures": 11,
+        "rawCpuProfilesAvailable": false,
+        "originalBrowserPassed": false
+      },
+      {
+        "platform": "linux",
+        "originalBrowserSha256": "ab84c1bb9f90678075f3fb3ce7832729948002cc5edc98f56f0597b62d2f042c",
+        "retainedClockReplayMatches": true,
+        "originalReadsPending": 0,
+        "observedPages": 4,
+        "retainedReceiveRtp": 313,
+        "observationFailures": 602,
+        "rawCpuProfilesAvailable": false,
+        "originalBrowserPassed": false
+      }
+    ],
+    "scope": "Independent replay of retained original HTTP observations with unchanged application mapper. HTTP event time is not browser decode/presentation time; raw CPU samples absent. No causal delay diagnosis or quality qualification.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "linux_screenshot_audit": {
+    "format": "connect/original-ci-linux-screenshot-audit/1",
+    "passed": true,
+    "images": [
+      {
+        "name": "native-controls.png",
+        "sha256": "82e6a456ffd38c935dc2df2784d7d153b8a597e348d0b5d5ac751d4e9ed40681",
+        "width": 1440,
+        "height": 2559,
+        "all_chunk_crcs_verified": true,
+        "deflate_dimensions_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "sha256": "dbd420c84dd73dddf6764f1106dbc9e117c1865d9e1826d1e41864ba7a243a0d",
+        "width": 320,
+        "height": 4012,
+        "all_chunk_crcs_verified": true,
+        "deflate_dimensions_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "capture-controls.png",
+        "sha256": "cef463bc613650c4ed63d62bbb29d15c669f499a5f6eb13ededa85d8ab771fba",
+        "width": 1440,
+        "height": 2389,
+        "all_chunk_crcs_verified": true,
+        "deflate_dimensions_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "sha256": "320ac190fb8cca91df4aa509eac53ace2de1255f5d83380bf57abe2c2bbbf5cc",
+        "width": 320,
+        "height": 3921,
+        "all_chunk_crcs_verified": true,
+        "deflate_dimensions_verified": true,
+        "visually_reviewed": true
+      }
+    ],
+    "visual_findings": [
+      "Desktop and320px controls remain contained and readable.",
+      "Keyboard focus outline is visible; malicious text is displayed literally.",
+      "Audio capture views show the contemporaneous sharing state; still images do not prove temporal playback or AV quality."
+    ],
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "earlier_audit_failure": {
+    "preserved": true,
+    "stage": "macos runtime archive",
+    "reason": "Auditor incorrectly required unused floating-point Opus functions. Codec uses i16 encode/decode; corrected strict symbol audit verifies those exact linked functions and source."
+  }
+}
