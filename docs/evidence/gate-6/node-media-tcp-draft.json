@@ -1,0 +1,56 @@
+{
+  "format": "connect/gate6-node-media-tcp-draft/1",
+  "task": "G6-072",
+  "source_parent_revision": "b31180f08307c41bee5faea57d75bb0064a4c740",
+  "source_file": "sdk/typescript/src/node_media_channel.ts",
+  "original_source_sha256": "1c29094e7def1f88b12801dce4943a3cf35e6c83e47c5b484e9170059b03384a",
+  "draft_source_sha256": "cfcf3689a53ecb421e7f1e919275b7c902843f07b52aaabda0625a1dbc6143b9",
+  "applied": false,
+  "patch_sha256": "50b7c799b84f0e5716bd004ed8a8a53636e9cde02484fe37cacf0d2a79af650a",
+  "finding": "Node media IPC listener specifies highWaterMark but neither noDelay:true nor socket.setNoDelay; Rust peer explicitly sets TCP_NODELAY. Node 22 defaults accepted TCP sockets to noDelay:false.",
+  "documentation": "https://nodejs.org/docs/latest-v22.x/api/net.html#netcreateserveroptions-connectionlistener",
+  "draft": "Set noDelay:true on this local authenticated media listener. Current framing, authorization, capacity, deadlines, cancellation and cleanup remain unchanged.",
+  "verification": {
+    "node": "22.16.0",
+    "typescript_check_passed": true,
+    "existing_node_media_tests_passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "source_draft_only": true,
+    "original_repository_source_unchanged": true
+  },
+  "local_socket_observation": {
+    "scope": "Two bounded local synthetic TCP sockets. Timing includes this original macOS host scheduling while a release compiler is active; no SDK/app transport or prior CI causation claim.",
+    "node": "v22.16.0",
+    "platform": "darwin",
+    "results": [
+      {
+        "server_no_delay": false,
+        "original_writes": 100,
+        "received_original_frames": 100,
+        "median_ms": 0.038291000000015174,
+        "p95_ms": 0.09141699999999986,
+        "maximum_ms": 0.3039580000000015,
+        "all_socket_owners_joined": true
+      },
+      {
+        "server_no_delay": true,
+        "original_writes": 100,
+        "received_original_frames": 100,
+        "median_ms": 0.0366670000000795,
+        "p95_ms": 0.05475000000001273,
+        "maximum_ms": 0.09004099999992832,
+        "all_socket_owners_joined": true
+      }
+    ],
+    "interpretation": "Both original bounded local sockets remained sub-millisecond. This does not reproduce or establish the cause of the earlier Linux audio delay or macOS native timer stall.",
+    "raw_observation_sha256": "5789b65a8d7dbecad3bf2e748a61f92dab492509b5320fe65e99e476271691c1"
+  },
+  "pending": [
+    "Apply and verify against production source after active original build and fresh movement fixture release their guards.",
+    "Actual installed-app behavior on the frozen platform/browser profiles remains unqualified."
+  ],
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "prior_ci_failures_remain_failures": true
+}
