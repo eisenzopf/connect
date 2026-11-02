@@ -22,7 +22,7 @@
     "reservation_guard": "The existing Store start transaction records the once-only attempt before coordinator release and refuses another start attempt."
   },
   "after": {
-    "stage": "native-case-2",
+    "stage": "complete-negative",
     "component_verified": false,
     "production_release_built": false,
     "planned_exact_native_cases": 7,
@@ -34,9 +34,35 @@
     "component_binary_sha256": "08fa22b0ee223edf6eab57af2d1f2d10267e5fd682f2bc3e76459bd01867544e",
     "matched_case_log_sha256": "d90f62a69201cc9869312e92fc9a3b95c214fbbe7852c78869003e78916584fe",
     "source_inputs_unchanged_at_matched_case": true,
-    "remaining_native_cases_and_production_build_pending": true
+    "remaining_native_cases_and_production_build_pending": true,
+    "followup_checks": [
+      {
+        "case_index": 0,
+        "result": "passed",
+        "seconds": 72.13
+      },
+      {
+        "case_index": 1,
+        "result": "passed",
+        "seconds": 20.93
+      },
+      {
+        "case_index": 2,
+        "result": "failed",
+        "seconds": 40.57,
+        "scope": "preparation without target allocation/media",
+        "failure": "second original preparation stayed Accepted without effects for the unchanged10s wait; observer scenario after controller credential revocation/reissue"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "stopped_journal_audit_sha256": "aa43cda35abf4501e95a99ba083fe75f52855d7f08ddc7d0aa27a18948576c95",
+    "original_state_sha256": "c1e09840ea5c426120ff3e3b7bfc3682ce377b9a76388afbdf1afe6b2066012f",
+    "original_failure_log_sha256": "59f55b9daf668354f421610eee6d9f17a55d25f7f7c4eead2df3b1c59d562170",
+    "capacity_reuse_failure_cause": "unresolved",
+    "queued_main_fixture_started": false
   },
   "unresolved": [
+    "Native cancellation/capacity-reuse case failed at a second accepted original in the observer/key-reissue scenario; no allocation/media start in that case, causality to the coordinator change unproven. All remaining native cases, production build and actual main remain unrun.",
     "Earlier main camera subscription NotReady root cause is unproven.",
     "20 actual moves, full 62-second programme, original Data roundtrips, host capture and whole-window independent media decode remain open."
   ],
