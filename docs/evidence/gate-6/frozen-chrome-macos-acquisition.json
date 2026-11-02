@@ -1,0 +1,23 @@
+{
+  "format": "connect/frozen-browser-archive-custody/1",
+  "version": "156.0.8078.48",
+  "platform": "mac-arm64",
+  "download_url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.48/mac-arm64/chrome-mac-arm64.zip",
+  "archive_sha256": "fdd24b0cb5c2841c9b21d4fff3b66f0f255e25b5c4109af68516e01f11c8de6c",
+  "archive_bytes": 194924436,
+  "member_count": 673,
+  "verified_files_and_symlinks": 349,
+  "all_extracted_bytes_match_original_archive": true,
+  "executable_sha256": "ace438d6d7a00aedc0f983b4b02bdbf88cf25e204812affac0b39a7391ed7fe6",
+  "observed_version": "Google Chrome for Testing 156.0.8078.48",
+  "strict_code_signature_check_passed": false,
+  "strict_code_signature_log_sha256": "63afd02669237fb388215e1075d2d7419c4a6afa0e37c810b16194923903c550",
+  "strict_code_signature_result": "code has no resources but signature indicates they must be present",
+  "isolated_fixture_launcher_available": true,
+  "code_signature_or_gatekeeper_modified": false,
+  "browser_behavior_qualified": false,
+  "task_complete": false,
+  "scope": "Acquisition and exact archive/file/version custody only. Strict Apple code-signature validation failed as recorded; signatures and Gatekeeper settings were not changed. No browser behavior, transport cell or app task pass.",
+  "metadata_index_entry_present": false,
+  "direct_official_archive_http_status": 200
+}

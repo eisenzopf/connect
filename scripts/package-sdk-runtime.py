@@ -55,7 +55,7 @@ def main():
     revision = git('rev-parse', 'HEAD')
     version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
     evidence.mkdir(parents=True, exist_ok=False)
-    private = ROOT / '.local/gate6-runtime-candidate/private' / args.target
+    private = evidence / 'private'
     private.mkdir(parents=True, exist_ok=False)
     source = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']
     before = source()
