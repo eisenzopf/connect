@@ -41,9 +41,71 @@
     "Do not add positive authority caching, retain SQL during file admission, expand pools, renew packet deadlines or retry uncertain IO."
   ],
   "after": {
-    "implemented": false,
-    "verified": false
+    "implemented": true,
+    "verified": true,
+    "scope": "Affected Store tests only. Not the full Store suite or actual new decoded media.",
+    "change": "After fresh old-scope file admission and current SQL acquisition, choose metadata matching that actual observer, complete current Version and original source. The fresh reader must cover the selected complete scope set before unchanged seal and finish. Otherwise ordinary fresh derivation/admission or refusal applies.",
+    "cohorts": [
+      {
+        "name": "after-focused",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "snapshot",
+        "passed": 28,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "installation_ownership",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "name": "authority_fences",
+        "passed": 45,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "name": "native_stream_authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_passing_cases": 264,
+    "case_invocations_passed": 266,
+    "focused_cases_also_in_snapshot_cohort": 2,
+    "failed": 0,
+    "intentional_parent_invoked_workers_ignored": 2,
+    "test_binary_sha256": "45783995f4a6d9c2c8e299f5bd9f44f5469bc2cf7d0e46a477fa5c876e9dc0a7",
+    "binary_preserved": true,
+    "elapsed_seconds": 153.38903449987993,
+    "source_inputs_unchanged": true,
+    "actual_admission_attempts_for_each_warm_observer": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "unary_and_original_source_paired_cases_exercised": true,
+    "old_scope_does_not_cover_new_metadata_negative_passed": true,
+    "official_dependency_preparation_passed": true,
+    "format_check_passed": true,
+    "SQL_retained_during_file_admission": false,
+    "positive_authority_or_SQL_result_cache_added": false,
+    "pool_capacity_packet_budget_or_expiry_changed": false
   },
   "transport_cells_qualified": 0,
-  "full_media_quality_claim": false
+  "full_media_quality_claim": false,
+  "runtime_verification": {
+    "status": "Normal optimized build active after successful Store prerequisite; same six-route workload and conditional bounded diagnostic queued.",
+    "actual_new_quality_result": false,
+    "native_cause_proven": false,
+    "cell_qualified": false
+  }
 }

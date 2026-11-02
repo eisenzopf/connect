@@ -183,13 +183,29 @@ fn cached_with<T: Clone>(
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
                 let c = store.try_packet_connection()?;
                 let before = version(&c)?;
-                if previous.matches(before, source) {
+                // The available observer need not be the first memo entry's
+                // observer. Reuse only this actual connection's exact current
+                // metadata, and only when the freshly admitted old scope names
+                // cover its complete current scope set. Otherwise drop the
+                // disposable reader before ordinary fresh derivation/admission.
+                let selected = if previous.matches(before, source) {
+                    Some(previous)
+                } else {
+                    memo.0.try_lock().ok().and_then(|slot| {
+                        slot.iter()
+                            .find(|entry| entry.matches(before, source))
+                            .cloned()
+                    })
+                };
+                if let Some(selected) =
+                    selected.filter(|entry| store.authority_covers(&reader, &entry.scopes))
+                {
                     optimistic = Some(seal(
                         store,
                         &c,
                         before,
-                        previous.facts,
-                        previous.scopes,
+                        selected.facts,
+                        selected.scopes,
                         reader,
                         &mut capture,
                         finish.take().ok_or_else(Error::storage)?,
