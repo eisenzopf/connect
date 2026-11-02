@@ -1,0 +1,243 @@
+{
+  "format": "connect/replacement-readiness-observation/1",
+  "scope": "Original local synthetic fixtures only; recorded phase evidence and owned stack sample, no decoded quality or whole transport qualification.",
+  "component_checks": {
+    "command": "node --test scripts/tests/transport_failure.test.mjs scripts/tests/transport_replacement_target.test.mjs scripts/tests/transport_replacement_owner.test.mjs scripts/tests/transport_movement_workload.test.mjs",
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0
+  },
+  "failure_custody": "Physical owner and first movement failure retain existing curated numeric protocol status and original recorded state/revision/allowlisted problem code. No status calls or mutation resubmission added.",
+  "scenes": [
+    {
+      "scene": "movement-original-status-code",
+      "passed": false,
+      "runtime_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+      "original_moves_completed": 2,
+      "first_failure": {
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "stage": "physical-target"
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "inputs_unchanged": true
+    },
+    {
+      "scene": "movement-next-generation-readiness",
+      "passed": false,
+      "runtime_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+      "original_moves_completed": 2,
+      "first_failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "stage": "physical-target"
+        },
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 12,
+          "problem_code_unrecognized": true
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "inputs_unchanged": true
+    },
+    {
+      "scene": "movement-readiness-owned-sample",
+      "passed": false,
+      "runtime_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+      "original_moves_completed": 0,
+      "first_failure": {
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only",
+        "observation": {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 0,
+          "stage": "physical-target"
+        }
+      },
+      "all_24_packet_workers_joined": true,
+      "helpers_joined": true,
+      "server_joined_without_force": true,
+      "inputs_unchanged": true
+    }
+  ],
+  "original_ledger_audit": {
+    "sha256": "1c82a47609002006dc78df6be549503efc3ad364093db4f30e73685208a8c715",
+    "format": "connect/private-replacement-readiness-ledger-audit/1",
+    "original_reference_rows_unique": true,
+    "rows": [
+      {
+        "source_slot": "0-0",
+        "original_reference_sha256": "450e6e735ff007305cdc6d8718be27ed3ad060d55d0b7eceda054ce7e57a00fd",
+        "root_state": "completed",
+        "problem_code": null,
+        "captured_generation": 2,
+        "phases": [
+          {
+            "phase": "activate",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          },
+          {
+            "phase": "attach",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          },
+          {
+            "phase": "readiness",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          }
+        ]
+      },
+      {
+        "source_slot": "0-1",
+        "original_reference_sha256": "0cf2545170be83226e5eb649c68d8ba7013b671ea407cb42a3f3d1027e962d41",
+        "root_state": "failed",
+        "problem_code": "native-target-stopped",
+        "captured_generation": 3,
+        "phases": [
+          {
+            "phase": "activate",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          },
+          {
+            "phase": "attach",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          }
+        ]
+      },
+      {
+        "source_slot": "4-0",
+        "original_reference_sha256": "76d98d9f91983087bc0653a53539b85a5106b48b1300496102d44374dc3469cd",
+        "root_state": "completed",
+        "problem_code": null,
+        "captured_generation": 2,
+        "phases": [
+          {
+            "phase": "activate",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          },
+          {
+            "phase": "attach",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          },
+          {
+            "phase": "readiness",
+            "started": true,
+            "effect_state": "confirmed",
+            "observation_recorded": true
+          }
+        ]
+      },
+      {
+        "source_slot": "4-1",
+        "original_reference_sha256": "2a99a4d85a6cb257e57579d00849767ddac10d13f02f88d3916854d5110d1b0f",
+        "root_state": "failed",
+        "problem_code": "native-target-stopped",
+        "captured_generation": null,
+        "phases": [
+          {
+            "phase": "attach",
+            "started": true,
+            "effect_state": "unknown",
+            "observation_recorded": false
+          }
+        ]
+      }
+    ],
+    "scope": "Stopped original fixture journal, exact original-reference identities and confirmed expected/observed phase payload equality only. No new IO or replay; no decoded readiness or root-failure causality claim."
+  },
+  "owned_sample": {
+    "exact_summary_replay": true,
+    "raw_sha256": "3bb6f1f9cea6784b194de835d921cb61abda30714a887fec8fa2fe0412b53a07",
+    "sampler_source_sha256": "be191fbc27dd5429d44da9b70f6ee8b6863eab8fdb18bd12267a11d500d17e6f",
+    "elapsed_ms": 8339,
+    "server_cpu_delta_ms": 36900,
+    "available_parallelism": 14,
+    "observer_joined": true,
+    "forced": false,
+    "component_stacks": [
+      {
+        "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_deadline",
+        "stack_samples": 3013
+      },
+      {
+        "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+        "stack_samples": 2994
+      },
+      {
+        "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+        "stack_samples": 2988
+      },
+      {
+        "symbol": "<connect_store::Store>::native_media_read_at",
+        "stack_samples": 2957
+      },
+      {
+        "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+        "stack_samples": 2748
+      },
+      {
+        "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+        "stack_samples": 2745
+      },
+      {
+        "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+        "stack_samples": 1705
+      },
+      {
+        "symbol": "<rvoip_uctp::staged_media::PortIngress as rvoip_uctp::substrate::peer_media_router::CheckedMediaIngress>::try_send_rtp_source",
+        "stack_samples": 1649
+      },
+      {
+        "symbol": "<rvoip_core::staged_streams::AdapterMediaPort>::publish_data_frame",
+        "stack_samples": 1649
+      },
+      {
+        "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+        "stack_samples": 1465
+      },
+      {
+        "symbol": "connect_store::authority_fences::lock_with",
+        "stack_samples": 1021
+      },
+      {
+        "symbol": "<rvoip_core::staged_streams::StreamController>::admit_retained_source_with_deadline",
+        "stack_samples": 951
+      }
+    ],
+    "scope": "Inclusive stack counts are not CPU shares or proof of cause. This sampled scene completed zero original moves; it does not localize the separate generation-three readiness failure."
+  },
+  "next_action": "Await original operation-correlated begin/record/decoder/duplex diagnostic. Its three package opt-level=1 overrides are diagnostic only; thresholds and deadlines remain unchanged.",
+  "task_complete": false,
+  "full_transport_cells_qualified": 0
+}

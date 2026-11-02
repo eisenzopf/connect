@@ -4,6 +4,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { mkdir, open, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { startPhysicalReplacementTarget } from "./transport_replacement_target.mjs";
+import { operationFailure } from "./transport_failure.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 async function save(path, value) {
@@ -172,7 +173,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             passed: false, original_moves_completed: completed.length, moves: completed,
             physical_segments: segments, failure: { name: firstFailure.name,
                 kind: firstFailure.kind ?? null, certainty: firstFailure.certainty ?? null,
-                observation: firstFailureStage ?? null },
+                observation: firstFailureStage ?? null, ...operationFailure(firstFailure) },
             target_joins_failed: joins.filter(v => v.status === "rejected").length,
             task_complete: false, whole_gate_qualified: false,
         });

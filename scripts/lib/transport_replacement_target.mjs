@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { operationFailure } from "./transport_failure.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -131,7 +132,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
     const readyPath = output.replace(/\.json$/, ".owner-ready.json");
     const recordFailure = error => {
         report.passed = false;
-        report.failure ??= { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null };
+        report.failure ??= { phase, name: error.name, kind: error.kind ?? null,
+            certainty: error.certainty ?? null, ...operationFailure(error) };
         const at = error.stack?.match(/transport_replacement_target\.mjs:(\d+):(\d+)/);
         if (at) report.failure.source ??= { line: Number(at[1]), column: Number(at[2]) };
     };
