@@ -2,6 +2,7 @@
 use super::*;
 use std::time::{Duration, Instant};
 mod hints;
+mod observer_custody;
 mod owned;
 
 #[test]

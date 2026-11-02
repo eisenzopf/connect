@@ -1,0 +1,31 @@
+{
+  "format": "connect/gate-6/packet-observer-reacquisition/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Controlled local Store snapshot/SQL-observer admission only. No decoded media or transport-cell qualification.",
+  "problem": "A capture can select a later SQL observer while earlier ones are busy, release SQL for file admission, then choose a now-free earlier observer. The current seal correctly rejects connection-local counters from that different observer, producing an avoidable authority-busy refusal despite an unchanged original observer being available.",
+  "before": {
+    "implementation_changed": false,
+    "passed": 2,
+    "failed": 1,
+    "ignored": 0,
+    "elapsed_seconds": 21.175351541955024,
+    "source_inputs_unchanged": true,
+    "test_binary_sha256": "6da7ee480937b866d6618cf9f8f2a2975c9b7ff189077eaf32ee5ddcce55754c",
+    "binary_preserved": true,
+    "counterexample_verified": true
+  },
+  "required_behavior": [
+    "Release SQL completely during the original full file admission.",
+    "Immediately reacquire only the original SQL observer; do not substitute another connection or compare its counters.",
+    "Refuse if that observer is busy, runtime ownership changed, or the original data/schema/version changed.",
+    "Preserve exact current authority scopes, policy clock and source/credential checks, with no partial or idle reader on refusal."
+  ],
+  "after": {
+    "implemented": false,
+    "verified": false
+  },
+  "full_media_quality_claim": false,
+  "transport_cells_qualified": 0
+}
