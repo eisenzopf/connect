@@ -1,0 +1,215 @@
+{
+  "format": "connect/reference-app-local-installed-expiry/1",
+  "task": "G6-072",
+  "source_revision": "0933b26c94f715c482690bc9cfb1632510c7703d",
+  "profile": "local-macos-arm64-component-install",
+  "browser": "156.0.8078.48",
+  "browser_sha256": "ace438d6d7a00aedc0f983b4b02bdbf88cf25e204812affac0b39a7391ed7fe6",
+  "node": "v22.16.0",
+  "production_release": true,
+  "test_support": false,
+  "binary_sha256": "ab52de3f79ced30e50d347bdb6d77b7703d03d6294df1afa04d89c1c0daec818",
+  "runtime_archive_sha256": "ccb832010e5b83e3ec2d7257a60ebe62244bdc0bf4613b9c702249c259c03ee9",
+  "node_archive_sha256": "f714b966120f3977bd9ec7e4c1887f2f7ed545d68d1191257c50e4cf0fe278b9",
+  "commands": [
+    {
+      "name": "dependencies",
+      "exit_code": 0
+    },
+    {
+      "name": "package-runtime",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "browser",
+      "exit_code": 0
+    }
+  ],
+  "actual_app_checks": 37,
+  "passed": true,
+  "elapsed_seconds": 63.57930824998766,
+  "audit": {
+    "source_files_verified": 9090,
+    "runtime_files_verified": 755,
+    "installed_sdk_files_verified": 195,
+    "actual_app_checks": 37,
+    "combined_av_two_second_windows": [
+      [
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.6000003814697,
+          "completed_audio_frames": 89,
+          "painted_video_frames": 58
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001.5,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 58
+        }
+      ],
+      [
+        {
+          "role": "owner",
+          "elapsed_ms": 2002.1999998092651,
+          "completed_audio_frames": 73,
+          "painted_video_frames": 59
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2002.2999997138977,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 57
+        }
+      ],
+      [
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.0999999046326,
+          "completed_audio_frames": 80,
+          "painted_video_frames": 58
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001.0999999046326,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 58
+        }
+      ],
+      [
+        {
+          "role": "owner",
+          "elapsed_ms": 2000.8000001907349,
+          "completed_audio_frames": 73,
+          "painted_video_frames": 58
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2000.7000002861023,
+          "completed_audio_frames": 98,
+          "painted_video_frames": 59
+        }
+      ],
+      [
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.9000000953674,
+          "completed_audio_frames": 79,
+          "painted_video_frames": 59
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2002,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 58
+        }
+      ]
+    ],
+    "lifecycle_cases_joined": 5,
+    "screenshots": [
+      {
+        "name": "desktop.png",
+        "sha256": "15ceafbee68006acfe7c3745587a052b53150d430c9139bcc24374f2688b28bb",
+        "width": 1440,
+        "height": 1906,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      },
+      {
+        "name": "native-controls.png",
+        "sha256": "81f4459813eb4cdac79a8bb37c5bba2fdf0694dd1ab238247d5da9512f0174d7",
+        "width": 1440,
+        "height": 2559,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "sha256": "1496d07353cb7b8e39d0a1df2e393fc53b76d5f1ed7df5b5ee08d64c67f176bc",
+        "width": 320,
+        "height": 3900,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      },
+      {
+        "name": "capture-controls.png",
+        "sha256": "bde35bcc33c5fa4f68ae0ec5d461aa3a8df1585872cecfc1feae5a34491028af",
+        "width": 1440,
+        "height": 2389,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "sha256": "87a3649f68e145b702473375c15fb5001b759b55b6e6edc67f47e1c9ab81f1c0",
+        "width": 320,
+        "height": 3753,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      },
+      {
+        "name": "video-controls.png",
+        "sha256": "dd9d6c7d6edb70674fbdb746ed691073c6f9cbe799a91aa687f54a800a208063",
+        "width": 1440,
+        "height": 3587,
+        "crc_deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "video-controls-narrow.png",
+        "sha256": "093c8e850c37bc8473d86d2f8bd3c32e403aab4620b94f1314b664e2e4731fb9",
+        "width": 320,
+        "height": 4696,
+        "crc_deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "narrow.png",
+        "sha256": "0304e34627961b6da79c61e7ed0e309982fe8ee7e6d8a10d12424b0dd3a89444",
+        "width": 320,
+        "height": 4491,
+        "crc_deflate_verified": true,
+        "visually_reviewed": false
+      }
+    ],
+    "retained_http_observation_failures": 77,
+    "raw_cpu_profiles_available": false,
+    "native_sampler_joined_unforced": true,
+    "original_browser_sha256": "8868111d29ef348bfc248eea5dc27d6880f6ae843289003caeca7ac37b22da10",
+    "elapsed_seconds": 2.1965288748033345
+  },
+  "clock_audit": {
+    "original_browser_sha256": "8868111d29ef348bfc248eea5dc27d6880f6ae843289003caeca7ac37b22da10",
+    "retained_clock_replay_matches": true,
+    "pending_reads_at_finish": 0,
+    "observed_pages": 4,
+    "observation_failures": 77,
+    "skipped_packet_observations": 2,
+    "retained_receive_rtp": 334
+  },
+  "evidence_sha256": {
+    ".local/gate-6/app-explicit-expiry-installed-v1/state.json": "4eeb29ff8f13f7f3b2a8d32c7f2f4471558206be9c61676550fa708226db35b3",
+    ".local/gate-6/app-explicit-expiry-installed-v1/browser/summary.json": "8868111d29ef348bfc248eea5dc27d6880f6ae843289003caeca7ac37b22da10",
+    ".local/gate-6/app-explicit-expiry-installed-v1/runtime-proof/runtime.json": "85c478b8f8c04330635f91914f3c3a46e4cc202b19dbbf9565412cf80d0eb4b9",
+    ".local/gate-6/app-explicit-expiry-installed-v1/installation/installation.json": "551f21c20e3196ce0c71ee1b124593e89668eb1ce6c899bcac4cf8c6b9c03e4d",
+    ".local/gate-6/app-explicit-expiry-installed-audit-v2/audit.json": "9afbbdef60cecbe1f17868b6d6d1e7d5b0e3e0125fa247c759b1d4653ea7e1ae",
+    ".local/gate-6/app-explicit-expiry-installed-audit-v2/clock-audit.json": "44b4e7c78b508be731c7bf942d8ba2c05fd924abd3d86bfd6ec93078d59bad54"
+  },
+  "limitations": [
+    "Ordinary offline component installation; complete installed SDK candidate remains unqualified.",
+    "One original local macOS run; original Linux/macOS CI failures remain preserved and current Linux verification remains open.",
+    "All five unchanged two-second AV windows pass; this is not the 62-second transport programme or a complete matrix cell.",
+    "77 retained HTTP observation reads failed and two were skipped; retained clock replay matches, pending reads at finish zero. HTTP timings do not measure presentation.",
+    "Raw V8 profiles are absent; aggregate profiles and joined native sampler do not prove timeout causation.",
+    "First independent auditor compared incompatible snapshot shapes and failed before the archive check; corrected byte/mode and prepared-source audit passes."
+  ],
+  "implementation_applied": true,
+  "complete_sdk_candidate_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
