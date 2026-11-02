@@ -270,11 +270,24 @@ pub(super) async fn open(
     )
     .await?;
     let gate = child_scope(scope, root, "video_unmute", admission.revision)?;
+    // Every publication was muted during resource preparation. Preserve Data
+    // as a distinct reliable stream and open it only after the original root's
+    // completed resource identities have been checked by completion().
+    let publication = own
+        .iter()
+        .filter(|binding| binding.id == video.stream_id || binding.raw["kind"] == "data")
+        .collect::<Vec<_>>();
+    if !publication
+        .iter()
+        .any(|binding| binding.id == video.stream_id)
+    {
+        return Err("original video binding missing".into());
+    }
     let (opened, none) = control(
         client,
         &gate,
         "connection.update",
-        json!({"action":"unmute","streams":[video.stream_id]}),
+        json!({"action":"unmute","streams":publication.iter().map(|binding| &binding.id).collect::<Vec<_>>()}),
         capabilities,
         own,
         None,
@@ -282,25 +295,10 @@ pub(super) async fn open(
         "video-unmute",
     )
     .await?;
-    let result = &opened["result"];
-    let expected = own
-        .iter()
-        .find(|b| b.id == video.stream_id)
-        .ok_or("original video binding missing")?;
-    let gates = result["gate_streams"]
-        .as_array()
-        .filter(|v| v.len() == 1)
-        .ok_or("video gate observation missing")?;
-    if none.is_some()
-        || result["resources_changed"] != false
-        || result["connection_generation"] != admission.generation
-        || result["stream_revision"] != opened_revision
-        || gates[0]["source_muted"] != false
-        || gates[0]["binding"]["stream_id"] != video.stream_id
-        || gates[0]["binding"]["stream_local_id"] != expected.handle
-    {
-        return Err("completed video gate changed original resources".into());
+    if none.is_some() {
+        return Err("publication gate returned unexpected subscription resources".into());
     }
+    publication_gate(&opened["result"], admission, opened_revision, &publication)?;
     save(&output.with_extension("video-unmute-receipt.json"), &opened).await?;
     let subscription = child_scope(scope, root, "video_subscribe", opened_revision)?;
     let (subscribed, incoming) = control(
@@ -324,9 +322,103 @@ pub(super) async fn open(
     incoming.ok_or_else(|| "actual incoming video binding missing".into())
 }
 
+fn publication_gate(
+    result: &Value,
+    admission: &Admission,
+    revision: u64,
+    expected: &[&selected::Binding],
+) -> Result<()> {
+    let gates = result["gate_streams"]
+        .as_array()
+        .filter(|gates| gates.len() == expected.len())
+        .ok_or("publication gate omitted an original resource")?;
+    if result["resources_changed"] != false
+        || result["connection_generation"] != admission.generation
+        || result["stream_revision"] != revision
+    {
+        return Err("publication gate changed original resource generation or revision".into());
+    }
+    for binding in expected {
+        let found = gates
+            .iter()
+            .filter(|gate| gate["binding"]["stream_id"] == binding.id)
+            .collect::<Vec<_>>();
+        if found.len() != 1
+            || found[0]["source_muted"] != false
+            || found[0]["binding"]["stream_local_id"] != binding.handle
+        {
+            return Err("publication gate changed an original Data or video binding".into());
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn completed_root_and_publication_gate_cannot_drop_or_rebind_data() {
+        let (command, root, mut own, pending) = fixture();
+        own.push(selected::Binding {
+            id: "data".into(),
+            handle: 10,
+            pt: None,
+            raw: json!({"kind":"data"}),
+        });
+        let mut receipt = completed(pending.clone());
+        assert!(observed(
+            &receipt,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut 3
+        )
+        .is_err());
+        receipt["result"]["readiness"]["streams"] = json!(["data", "camera", "audio"]);
+        let admission = observed(
+            &receipt,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut 3,
+        )
+        .unwrap()
+        .unwrap();
+        let publication = vec![&own[1], &own[2]];
+        let result = json!({"resources_changed":false,"connection_generation":2,"stream_revision":6,
+            "gate_streams":[{"source_muted":false,"binding":{"stream_id":"data","stream_local_id":10}},
+                {"source_muted":false,"binding":{"stream_id":"camera","stream_local_id":8}}]});
+        publication_gate(&result, &admission, 6, &publication).unwrap();
+        for change in 0..6 {
+            let mut wrong = result.clone();
+            match change {
+                0 => {
+                    wrong["gate_streams"].as_array_mut().unwrap().remove(0);
+                }
+                1 => wrong["gate_streams"][0]["binding"]["stream_id"] = json!("camera"),
+                2 => wrong["gate_streams"][0]["binding"]["stream_local_id"] = json!(11),
+                3 => wrong["gate_streams"][0]["source_muted"] = json!(true),
+                4 => wrong["connection_generation"] = json!(3),
+                _ => wrong["stream_revision"] = json!(7),
+            }
+            assert!(publication_gate(&wrong, &admission, 6, &publication).is_err());
+        }
+        assert!(observed(
+            &pending,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut 3
+        )
+        .unwrap()
+        .is_none());
+    }
     fn reply(kind: &str, payload: Value) -> ReplyBatch {
         ReplyBatch {
             request_id: "original-status-read".into(),
@@ -387,7 +479,7 @@ mod tests {
             .map(|(i, id)| selected::Binding {
                 id: (*id).into(),
                 handle: i as u16 + 7,
-                pt: 96,
+                pt: Some(96),
                 raw: json!({}),
             })
             .collect();

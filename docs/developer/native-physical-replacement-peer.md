@@ -296,3 +296,17 @@ are bounded and reject substituted symlink paths or non-private evidence files.
 The result retains each physical capture separately and records both final
 Connection IDs. The original six captures and whole-window decoder still need
 to be connected by the main producer; this reader creates no quality result.
+
+
+The target constructor also accepts an explicit `dataStreamId` alongside its AV
+source. It offers reliable ordered binary Data with a distinct logical identity.
+The Rust peer matches that negotiated resource and hop handle without assigning
+Data an RTP payload type or sample clock. The original completed-root resource
+set must include Data; the AV profile's subsequent unmute checks both Data and
+video gate results against the original handles, generation and revision.
+Resource negotiation and gate-result tests pass19 Rust cases; the target,
+owner-lifetime and capture-boundary Node cohort passes15. The release peer builds
+with unchanged inputs. These are component checks: the server's provisional
+replacement media policy still excludes Data, and real replacement Data IO,
+recipient subscriptions and the complete main producer remain open. See
+[the Data resource evidence](../evidence/gate-6/replacement-data-resources.json).

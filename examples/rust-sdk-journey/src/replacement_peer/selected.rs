@@ -4,13 +4,14 @@ use super::*;
 pub(super) struct Binding {
     pub id: String,
     pub handle: u16,
-    pub pt: u8,
+    pub pt: Option<u8>,
     pub raw: Value,
 }
 pub(super) fn binding(raw: &Value, id: &str, kind: &str, direction: &str) -> Result<Binding> {
-    let (codec, rate, channels) = match kind {
-        "audio" => ("opus", 48000, 1),
-        "video" => ("vp8", 90000, 0),
+    let (codec, clock) = match kind {
+        "audio" => ("opus", Some((48000, 1))),
+        "video" => ("vp8", Some((90000, 0))),
+        "data" => ("binary", None),
         _ => return Err("unsupported replacement medium".into()),
     };
     let handle = raw["stream_local_id"]
@@ -18,17 +19,28 @@ pub(super) fn binding(raw: &Value, id: &str, kind: &str, direction: &str) -> Res
         .and_then(|v| u16::try_from(v).ok())
         .filter(|v| *v > 0)
         .ok_or("invalid replacement hop handle")?;
-    let pt = raw["codec"]["params"]["payload_type"]
-        .as_u64()
-        .and_then(|v| u8::try_from(v).ok())
-        .filter(|v| *v < 128)
-        .ok_or("invalid replacement payload type")?;
+    let parameters = &raw["codec"]["params"];
+    let pt = if let Some((rate, channels)) = clock {
+        if parameters["sample_rate"] != rate || parameters["channels"] != channels {
+            return Err("replacement media clock differs from the original profile".into());
+        }
+        Some(
+            parameters["payload_type"]
+                .as_u64()
+                .and_then(|v| u8::try_from(v).ok())
+                .filter(|v| *v < 128)
+                .ok_or("invalid replacement payload type")?,
+        )
+    } else {
+        if parameters != &json!({"reliability":"reliable_ordered"}) {
+            return Err("replacement Data must retain its reliable ordered binary format".into());
+        }
+        None
+    };
     if raw["strm_id"] != id
         || raw["kind"] != kind
         || raw["direction"] != direction
         || raw["codec"]["name"] != codec
-        || raw["codec"]["params"]["sample_rate"] != rate
-        || raw["codec"]["params"]["channels"] != channels
     {
         return Err("replacement negotiated resources differ from the original profile".into());
     }
@@ -46,11 +58,12 @@ pub(super) fn own(payload: &Value, offered: &Value) -> Result<Vec<Binding>> {
     let actual = payload["substrate_setup"]["streams"]
         .as_array()
         .ok_or("replacement negotiation omitted resources")?;
-    if actual.len() != expected.len() || !(1..=2).contains(&actual.len()) {
+    if actual.len() != expected.len() || !(1..=3).contains(&actual.len()) {
         return Err("replacement resource count changed".into());
     }
     let mut ids = std::collections::BTreeSet::new();
     let mut handles = std::collections::BTreeSet::new();
+    let mut kinds = std::collections::BTreeSet::new();
     let mut result = vec![];
     for stream in expected {
         let id = stream["id"]
@@ -66,12 +79,11 @@ pub(super) fn own(payload: &Value, offered: &Value) -> Result<Vec<Binding>> {
         if found.len() != 1 {
             return Err("replacement negotiation changed original stream identity".into());
         }
-        let item = binding(
-            found[0],
-            id,
-            stream["kind"].as_str().ok_or("missing original medium")?,
-            "sendrecv",
-        )?;
+        let kind = stream["kind"].as_str().ok_or("missing original medium")?;
+        if !kinds.insert(kind) {
+            return Err("replacement offered more than one stream of the same medium".into());
+        }
+        let item = binding(found[0], id, kind, "sendrecv")?;
         if !handles.insert(item.handle) {
             return Err("replacement hop handle reused across streams".into());
         }
@@ -119,6 +131,64 @@ pub(super) fn answer(payload: &Value, capabilities: &Value) -> Result<payloads::
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn reliable_data_is_preserved_without_inventing_rtp_fields_or_rebinding_its_handle() {
+        let data = json!({"strm_id":"original-data","kind":"data","direction":"sendrecv",
+            "stream_local_id":10,"codec":{"name":"binary","params":{"reliability":"reliable_ordered"}}});
+        let audio = json!({"strm_id":"audio","kind":"audio","direction":"sendrecv","stream_local_id":7,
+            "codec":{"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}}});
+        let camera = json!({"strm_id":"camera","kind":"video","direction":"sendrecv","stream_local_id":8,
+            "codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}});
+        let offer = json!({"streams_offered":[{"id":"audio","kind":"audio"},
+            {"id":"camera","kind":"video"},{"id":"original-data","kind":"data"}]});
+        let good =
+            json!({"substrate_setup":{"streams":[data.clone(),camera.clone(),audio.clone()]}});
+        let own = own(&good, &offer).unwrap();
+        assert_eq!(own[2].id, "original-data");
+        assert_eq!(own[2].handle, 10);
+        assert_eq!(own[2].pt, None);
+        for field in ["payload_type", "sample_rate", "channels"] {
+            let mut wrong = good.clone();
+            wrong["substrate_setup"]["streams"][0]["codec"]["params"][field] = json!(1);
+            assert!(super::own(&wrong, &offer).is_err());
+        }
+        for (field, value) in [
+            ("stream_local_id", json!(7)),
+            ("strm_id", json!("other-data")),
+            ("direction", json!("recvonly")),
+            (
+                "codec",
+                json!({"name":"binary","params":{"reliability":"unordered"}}),
+            ),
+        ] {
+            let mut wrong = good.clone();
+            wrong["substrate_setup"]["streams"][0][field] = value;
+            assert!(super::own(&wrong, &offer).is_err());
+        }
+        let mut missing = good.clone();
+        missing["substrate_setup"]["streams"]
+            .as_array_mut()
+            .unwrap()
+            .remove(0);
+        assert!(super::own(&missing, &offer).is_err());
+        let mut incoming = camera;
+        incoming["strm_id"] = json!("remote-camera");
+        incoming["direction"] = json!("sendonly");
+        incoming["stream_local_id"] = json!(11);
+        let mut subscribed = good;
+        subscribed["substrate_setup"]["streams"]
+            .as_array_mut()
+            .unwrap()
+            .push(incoming);
+        assert_eq!(
+            subscription(&subscribed, &own, "remote-camera")
+                .unwrap()
+                .handle,
+            11
+        );
+        subscribed["substrate_setup"]["streams"][0]["stream_local_id"] = json!(12);
+        assert!(subscription(&subscribed, &own, "remote-camera").is_err());
+    }
     #[test]
     fn signed_av_resources_are_matched_by_original_ids_not_array_position_or_payload_type_guessing()
     {

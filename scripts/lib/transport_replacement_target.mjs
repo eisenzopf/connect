@@ -37,7 +37,7 @@ async function bounded(promise, milliseconds) {
 }
 
 export function replacementInput({ operationId, conversationId, sessionId, connectionId,
-    retainedConnectionId, expectedTopologyRevision, originalGeneration, retainedGeneration, target, streamId, source, output }) {
+    retainedConnectionId, expectedTopologyRevision, originalGeneration, retainedGeneration, target, streamId, dataStreamId, source, output }) {
     assert.ok([operationId, conversationId, sessionId, connectionId, retainedConnectionId,
         target?.endpointId, target?.deviceId, streamId].every(id));
     assert.notEqual(connectionId, retainedConnectionId);
@@ -48,6 +48,11 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         assert.ok(Number.isSafeInteger(source.programStartUnixUs) && source.programStartUnixUs > 0);
     assert.ok(Number.isInteger(source.ssrc) && source.ssrc > 0 && source.ssrc <= 0xffffffff);
     assert.ok(Array.isArray(source.audioPackets) && source.audioPackets.length === source.seconds * 50);
+    if (dataStreamId !== undefined) {
+        assert.ok(id(dataStreamId));
+        assert.ok(![streamId, source.video?.streamId, source.video?.receiveAudioStreamId,
+            source.video?.receiveVideoStreamId].includes(dataStreamId));
+    }
     const audio = source.audioPackets.map(bytes => {
         assert.ok(Array.isArray(bytes) && bytes.length >= 1 && bytes.length <= 1168 &&
             bytes.every(value => Number.isInteger(value) && value >= 0 && value <= 255));
@@ -86,10 +91,12 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         offer: { substrate: "quic", capabilities: {
             audio_codecs: [{ name: "opus", params: { sample_rate: 48000, channels: 1 } }],
             video_codecs: video ? [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }] : [],
-            data_protocols: [], max_streams_per_connection: video ? 8 : 1,
+            data_protocols: dataStreamId === undefined ? [] : ["binary"],
+            max_streams_per_connection: video ? 8 : dataStreamId === undefined ? 1 : 2,
             identity_assurance_offered: "identified", source_clock: "rtcp-sr-sdes/1",
         }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] },
-            ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : [])] },
+            ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : []),
+            ...(dataStreamId === undefined ? [] : [{ id: dataStreamId, kind: "data", direction: "sendrecv", codec_preferences: ["binary"] }])] },
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
             ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}) }, output };
 }
@@ -198,7 +205,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
                 assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
                 assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
-                    [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId].sort());
+                    [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId,
+                        ...(intent.dataStreamId === undefined ? [] : [intent.dataStreamId])].sort());
                 report.video_control_files = {};
                 for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
                     const path = output.replace(/\.json$/, "." + suffix + ".json");

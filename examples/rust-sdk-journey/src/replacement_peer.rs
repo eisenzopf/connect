@@ -121,22 +121,7 @@ fn ntp(unix_micros: u128) -> u64 {
     ((seconds as u64) << 32) | (((unix_micros % 1_000_000) << 32) / 1_000_000) as u64
 }
 
-pub(super) async fn run(
-    path: PathBuf,
-    command: TransitionCommand,
-    root: payloads::OperationUpdated,
-    offer: payloads::ConnectionOffer,
-    source: Source,
-    output: PathBuf,
-) -> Result<()> {
-    source.validate()?;
-    // Refuse an expired original program before allocation or any network IO.
-    timeline::Program::at(
-        source.program_start_unix_us,
-        SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(),
-        source.seconds,
-    )?;
-    let offer_json = serde_json::to_value(&offer)?;
+fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
     let offered = offer_json["streams_offered"]
         .as_array()
         .ok_or("replacement offer streams missing")?;
@@ -144,7 +129,49 @@ pub(super) async fn run(
         .iter()
         .filter(|s| s["kind"] == "audio")
         .collect::<Vec<_>>();
-    let maximum = if source.video.is_some() { 2 } else { 1 };
+    let data = offered
+        .iter()
+        .filter(|stream| stream["kind"] == "data")
+        .collect::<Vec<_>>();
+    if data.len() > 1 {
+        return Err("replacement target offers more than one Data stream".into());
+    }
+    let protocols = if data.is_empty() {
+        json!([])
+    } else {
+        json!(["binary"])
+    };
+    if offer_json["capabilities"]["data_protocols"] != protocols {
+        return Err("replacement Data protocols differ from the original offer".into());
+    }
+    if let Some(stream) = data.first() {
+        let id = stream["id"]
+            .as_str()
+            .filter(|id| video::id(id))
+            .ok_or("invalid replacement Data identity")?;
+        if stream["direction"] != "sendrecv"
+            || stream["codec_preferences"] != json!(["binary"])
+            || audio.iter().any(|audio| audio["id"] == id)
+            || source.video.as_ref().is_some_and(|video| {
+                [
+                    video.stream_id.as_str(),
+                    video.receive_audio_stream_id.as_str(),
+                    video.receive_video_stream_id.as_str(),
+                ]
+                .contains(&id)
+            })
+        {
+            return Err("replacement Data format or identity changed".into());
+        }
+    }
+    let maximum = (if source.video.is_some() { 2 } else { 1 }) + data.len();
+    let minimum_slots = maximum + usize::from(source.video.is_some());
+    if !offer_json["capabilities"]["max_streams_per_connection"]
+        .as_u64()
+        .is_some_and(|slots| (minimum_slots as u64..=8).contains(&slots))
+    {
+        return Err("replacement stream capacity cannot hold all original resources".into());
+    }
     if offered.len() != maximum
         || audio.len() != 1
         || audio[0]["direction"] != "sendrecv"
@@ -171,13 +198,30 @@ pub(super) async fn run(
             || audio[0]["id"] == video.receive_video_stream_id
             || offer_json["capabilities"]["video_codecs"]
                 != json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}])
-            || !offer_json["capabilities"]["max_streams_per_connection"]
-                .as_u64()
-                .is_some_and(|v| (3..=8).contains(&v))
         {
             return Err("replacement video differs from the declared bounded AV profile".into());
         }
     }
+    Ok(())
+}
+
+pub(super) async fn run(
+    path: PathBuf,
+    command: TransitionCommand,
+    root: payloads::OperationUpdated,
+    offer: payloads::ConnectionOffer,
+    source: Source,
+    output: PathBuf,
+) -> Result<()> {
+    source.validate()?;
+    // Refuse an expired original program before allocation or any network IO.
+    timeline::Program::at(
+        source.program_start_unix_us,
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(),
+        source.seconds,
+    )?;
+    let offer_json = serde_json::to_value(&offer)?;
+    validate_offer(&offer_json, &source)?;
     let parent = output
         .parent()
         .ok_or("private output directory required")?
@@ -224,7 +268,7 @@ pub(super) async fn run(
         let answer = negotiation(&mut client, &scope, "connection.answer", Some(&request)).await?;
         let selected = selected::own(&answer.original()["payload"], &offer_json)?;
         let audio = selected.iter().find(|s|s.raw["kind"]=="audio").ok_or("original audio binding missing")?.clone();
-        let handle=audio.handle;let pt=audio.pt;
+        let handle=audio.handle;let pt=audio.pt.ok_or("original audio RTP payload type missing")?;
         let video_binding=selected.iter().find(|s|s.raw["kind"]=="video").cloned();
         phase = "parameter-callback";
         let callback = negotiation(&mut client, &scope, "connection.offer", None).await?;
@@ -380,6 +424,53 @@ pub(super) async fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn data_offer_profile_preserves_binary_identity_capacity_and_av_source_clocks() {
+        let mut source = Source {
+            seconds: 1,
+            ssrc: 7,
+            audio_packets: vec![vec![1]; 50],
+            video: None,
+            owner_control: false,
+            program_start_unix_us: None,
+        };
+        let offer = json!({"capabilities":{"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
+            "video_codecs":[],"data_protocols":["binary"],"max_streams_per_connection":2,"source_clock":"rtcp-sr-sdes/1"},
+            "streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},
+                {"id":"data","kind":"data","direction":"sendrecv","codec_preferences":["binary"]}]});
+        source.validate().unwrap();
+        validate_offer(&offer, &source).unwrap();
+        for change in 0..5 {
+            let mut wrong = offer.clone();
+            match change {
+                0 => wrong["capabilities"]["data_protocols"] = json!([]),
+                1 => wrong["capabilities"]["max_streams_per_connection"] = json!(1),
+                2 => wrong["streams_offered"][1]["id"] = json!("audio"),
+                3 => wrong["streams_offered"][1]["codec_preferences"] = json!(["json"]),
+                _ => wrong["streams_offered"][1]["direction"] = json!("sendonly"),
+            }
+            assert!(validate_offer(&wrong, &source).is_err());
+        }
+        source.video = Some(video::Video {
+            stream_id: "camera".into(),
+            receive_audio_stream_id: "remote-audio".into(),
+            receive_video_stream_id: "remote-camera".into(),
+            ssrc: 8,
+            frames: vec![vec![4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01]; 30],
+        });
+        source.validate().unwrap();
+        let mut av = offer;
+        av["capabilities"]["video_codecs"] =
+            json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}]);
+        av["capabilities"]["max_streams_per_connection"] = json!(4);
+        av["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
+        validate_offer(&av, &source).unwrap();
+        av["capabilities"]["max_streams_per_connection"] = json!(3);
+        assert!(validate_offer(&av, &source).is_err());
+        av["capabilities"]["max_streams_per_connection"] = json!(4);
+        av["streams_offered"][1]["id"] = json!("remote-camera");
+        assert!(validate_offer(&av, &source).is_err());
+    }
 
     #[test]
     fn invalid_original_source_bounds_refuse_before_a_physical_peer_is_opened() {

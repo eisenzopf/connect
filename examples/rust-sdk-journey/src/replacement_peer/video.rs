@@ -107,7 +107,9 @@ pub(super) fn packets(
                 *sequence,
                 timestamp,
                 ssrc,
-                binding.pt,
+                binding
+                    .pt
+                    .expect("validated VP8 binding has an RTP payload type"),
                 &payload,
             );
             if index + 1 == chunks.len() {
@@ -150,7 +152,7 @@ mod tests {
         let binding = selected::Binding {
             id: "camera".into(),
             handle: 7,
-            pt: 96,
+            pt: Some(96),
             raw: json!({}),
         };
         let mut frame = vec![4u8; 5000];

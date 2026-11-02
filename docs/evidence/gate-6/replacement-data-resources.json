@@ -1,0 +1,47 @@
+{
+  "format": "connect/physical-replacement-data-resources/1",
+  "task": "G6-058",
+  "changes": [
+    "The controller accepts an explicit distinct Data stream identity and preserves reliable binary capabilities alongside its original AV program. Invalid or reused identities refuse before target IO.",
+    "The physical peer matches every negotiated Data/Audio/Video identity and hop handle against the original offer. Reliable ordered binary Data has no invented RTP payload type or media clock. Dropped/remapped resources or protocol substitutions refuse.",
+    "Original completed-root readiness must include all original resources. For the AV profile, the original post-commit unmute includes the declared Data and video publications and verifies every original gate handle, generation and revision. Preparation does not grant completion.",
+    "Stream capacity includes the complete offered resource set and the received VP8 binding."
+  ],
+  "source_sha256": {
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "c0f3ac185ae27ae3823e205d07a1ada03e5dcd6caf4ea853e6bc7b5b29dde3c0",
+    "examples/rust-sdk-journey/src/replacement_peer/selected.rs": "8d501bbac40e428dfbf97372902b8b3525095d51d845fca0da41cc681a4622fa",
+    "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "7ddbd94da6c46ac31fd98a5f16e4a98eb4bd8dcdcab69751ab88631371da5799",
+    "examples/rust-sdk-journey/src/replacement_peer/video.rs": "d3faa6d55a45486923db0de930b9ebed9f79c3ea85b7e1e68e6da69082f5b4ff",
+    "scripts/lib/transport_replacement_target.mjs": "acf2ae5d39b93e256e63b0ca18487319e1c08909e226e68ad72a704317df7259",
+    "scripts/tests/transport_replacement_target.test.mjs": "53c47ae2e4b31bcbef3b8420e90e5255c871485acf93664e10789bbf0c8b4517"
+  },
+  "verification": {
+    "rust_replacement_consumer_test_results": [
+      "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s"
+    ],
+    "rust_unit_binary_sha256": "d14fc70716e4b4d6eea80f334c0e4affb879bfe8038d186c85e6ebcd7f7975ee",
+    "rust_test_log_sha256": "82823575a9f4862d69c1cc111267ed5859f4ed35c7a093f97f0423d16e100239",
+    "release_peer_sha256": "055455dd7cd99865f88d640ed1ef2f45d3140e4876d158c8987640d59f322362",
+    "release_peer_build_log_sha256": "44015485fe0a93ebff42e10c963be082958a96871293e88a3c1a56f611961ebc",
+    "source_inputs_unchanged": true,
+    "node_checks": 15,
+    "node_failed": 0,
+    "node_command": "node --test scripts/tests/transport_replacement_target.test.mjs scripts/tests/transport_replacement_owner.test.mjs scripts/tests/transport_replacement_observation.test.mjs",
+    "node_version": "22.16.0",
+    "dependencies_prepared": true,
+    "format": "scripts/format.sh passed",
+    "scope": "Independent public-client consumer and controlled constructor/resource/gate tests. A real Data replacement or whole media cell has not been exercised."
+  },
+  "remaining": [
+    "The server replacement TargetPolicy currently permits Audio/Video only. Admit Data resource negotiation without granting provisional public Data IO, preserving the initial mute and current-authorized adoption.",
+    "Carry Data identities through main-workload replacement plans and actual recipient subscriptions; execute original reliable Data IO and exact audience/history/recovery behavior.",
+    "Integrate all20 physical movements, current final Connection end/retirement and independent full-window decode in the complete six Data+AV Connection producer.",
+    "Retain all frozen32cell, programme, quality, resource, privacy and teardown requirements."
+  ],
+  "component_checks_passed": true,
+  "actual_replacement_data_io_qualified": false,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
