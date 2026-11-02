@@ -51,5 +51,34 @@
     "task_complete": false,
     "cell_qualified": false,
     "whole_gate_qualified": false
+  },
+  "node_parent_candidate": {
+    "format": "connect/physical-owner-end-node-preview/1",
+    "tests_passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "applied": false,
+    "actual_owner_end_io_run": false,
+    "patch_apply_check_passed": true,
+    "patch_sha256": "ca2a4a891d060a0dc1c3070c5e541c26def2b8d6aae043d209cca523ef53b919",
+    "module_sha256": "ab59509407a2618c4b81b3c555a8a62e2333f76e625fa4cba0855a36d3b89ff1",
+    "scope": "Private parent bridge candidate: original62second terminal input and exact admitted-owner end receipt, original operation key, one mutation and original five-second cutoff. No current runtime qualification.",
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false
+  },
+  "retained_end_candidate": {
+    "format": "connect/retained-current-end-preview/1",
+    "source_sha256": "a25a55fb2a1ae3ab46e4bb6477c09612111ee980def1a8c955614a3069237350",
+    "tests_sha256": "9c269b327e2621cc21309deb9f09e3d7163a03a337f9ac822b823692e1f9743f",
+    "tests_passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "applied": false,
+    "actual_public_sdk_io_run": false,
+    "scope": "Private controlled SDK doubles only. Four retained actual route handles, distinct original end keys saved before IO, original62..67second deadline, perConnection packet joins, all sibling outcomes joined on failure, original-only uncertain custody and read503 recovery. Unit clock injection only; no actual media/teardown qualification.",
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false
   }
 }
