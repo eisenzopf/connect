@@ -113,5 +113,18 @@
   "prior_cleanup_unretired_native_lifetimes": 3,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "current_ordinary_app_ci": {
+    "run_id": 41531103024,
+    "source_revision": "e9b65713943928b9a1fd01596396b217e56f95a6",
+    "url": "https://github.com/eisenzopf/connect/actions/runs/41531103024",
+    "dispatch_attempts": 1,
+    "status_at_dispatch": "in_progress",
+    "result_pending": true,
+    "native_audio_trace": false,
+    "original_http_clock_trace": false,
+    "node_cpu_profile": false,
+    "native_server_sample": false,
+    "scope": "Ordinary two native platform installed App37checks on the current packet SQL and clock-edge candidate. All optional profiling/trace flags false; unchanged workloads/browsers/deadlines/quality. Default synthetic CI only, no model/provider/named-host/publication. Each existing job timeout170minutes."
+  }
 }
