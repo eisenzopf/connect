@@ -1,0 +1,63 @@
+{
+  "format": "connect/reference-app-control-visual-review/1",
+  "source_revision": "d492bace53fdd1f8fe5ef4817e5fa66fa188eaf1",
+  "run": 41369927293,
+  "images": [
+    {
+      "platform": "linux",
+      "name": "native-controls.png",
+      "sha256": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+      "width": 1440,
+      "height": 2559,
+      "visually_reviewed": true
+    },
+    {
+      "platform": "linux",
+      "name": "native-controls-narrow.png",
+      "sha256": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+      "width": 320,
+      "height": 4012,
+      "visually_reviewed": true
+    },
+    {
+      "platform": "linux",
+      "name": "capture-controls.png",
+      "sha256": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc",
+      "width": 1440,
+      "height": 2389,
+      "visually_reviewed": true
+    },
+    {
+      "platform": "linux",
+      "name": "capture-controls-narrow.png",
+      "sha256": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+      "width": 320,
+      "height": 3921,
+      "visually_reviewed": true
+    },
+    {
+      "platform": "mac",
+      "name": "native-controls.png",
+      "sha256": "2e6e01a556fe2283f9325118aae6e4bf5bb08bd9e50f0876f08c13154bdbe4b8",
+      "width": 1440,
+      "height": 2559,
+      "visually_reviewed": true
+    },
+    {
+      "platform": "mac",
+      "name": "native-controls-narrow.png",
+      "sha256": "311ac3d7ecae545a7d8e8f9f90442f1a2ad6c103c4385ffb328503d53e7e08f6",
+      "width": 320,
+      "height": 3900,
+      "visually_reviewed": true
+    }
+  ],
+  "findings": [
+    "Desktop cards, conversation text, invitation controls, media controls and operation outcomes are readable and contained in their panels.",
+    "At 320px width the panels form one column; labels and action buttons wrap within panel bounds.",
+    "The injected HTML test string appears as literal conversation text.",
+    "Visible focus outline identifies the selected conversation."
+  ],
+  "scope": "Visual inspection of six retained control screenshots only. No keyboard interaction, audio/video output, failure screen, current-source rendering or complete app qualification proved. Media preview is intentionally blank in these control captures.",
+  "task_complete": false
+}
