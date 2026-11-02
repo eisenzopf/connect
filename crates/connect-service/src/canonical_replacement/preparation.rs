@@ -75,6 +75,8 @@ impl Runtime {
         i: &Invocation,
         phase: Step,
     ) -> Result<connect_store::NativeReplacementMediaAttempt> {
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %i.root.origin.request().operation_id, ?phase, "Replacement phase begin requested");
         let store = self.media.store.clone();
         let origin = started
             .policy
@@ -83,11 +85,19 @@ impl Runtime {
             .cloned()
             .ok_or_else(Error::forbidden)?;
         let read = i.read.media().clone();
-        store_call(move || store.begin_native_replacement_media_phase(origin, phase, &read)).await
+        let result =
+            store_call(move || store.begin_native_replacement_media_phase(origin, phase, &read))
+                .await;
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %i.root.origin.request().operation_id, ?phase,
+            code = ?result.as_ref().err().map(|error| error.code.as_str()), "Replacement phase begin returned");
+        result
     }
     async fn save_continuation(
         &self,
+        root: &PreparedReplacement,
         started: &StartedReplacement,
+        phase: Step,
         capture: NativeReplacementMediaCapture,
     ) -> Result<()> {
         let capture = Arc::new(capture);
@@ -96,12 +106,18 @@ impl Runtime {
             .lock()
             .map_err(|_| Error::storage())?
             .push(capture.clone());
-        retry_metadata(&self.stop, || {
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %root.origin.request().operation_id, ?phase, "Replacement phase recording requested");
+        let result = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let capture = capture.clone();
             store_call(move || store.record_native_replacement_media_phase(&capture))
         })
-        .await?;
+        .await;
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %root.origin.request().operation_id, ?phase,
+            code = ?result.as_ref().err().map(|error| error.code.as_str()), "Replacement phase recording returned");
+        result?;
         Ok(())
     }
     async fn prepare_replacement_media(
@@ -128,7 +144,8 @@ impl Runtime {
             } else {
                 attempt.uncertain()
             };
-            self.save_continuation(started, capture).await?;
+            self.save_continuation(root, started, Step::Attach, capture)
+                .await?;
             result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement attach refused");Error::forbidden()})?;
         }
         let (context, source_phone) = {
@@ -187,7 +204,8 @@ impl Runtime {
             } else {
                 attempt.uncertain()
             };
-            self.save_continuation(started, capture).await?;
+            self.save_continuation(root, started, Step::Activate, capture)
+                .await?;
             let context=result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement private activation refused");Error::forbidden()})?;
             (context, source_phone)
         };
@@ -209,6 +227,8 @@ impl Runtime {
             .preparation_operation
             .set(context.operation_id().to_owned())
             .map_err(|_| Error::forbidden())?;
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %root.origin.request().operation_id, "Replacement decoder preparation requested");
         let preparation = retry_metadata(&self.stop, || async {
             self.core
                 .prepare_staged_audio_endpoint(
@@ -222,6 +242,8 @@ impl Runtime {
                 })
         })
         .await?;
+        tracing::debug!(target: "connect_service::replacement_phase_trace",
+            operation = %root.origin.request().operation_id, "Replacement decoder preparation returned");
         let preparation = Arc::new(preparation);
         started
             .preparation
@@ -242,9 +264,16 @@ impl Runtime {
         let start = tokio::time::Instant::now();
 
         let cancellation = root.handle.cancellation();
+        let mut waiting_reported = false;
+        let mut duplex_reported = false;
         loop {
             tokio::select! {biased;_=self.stop.cancelled()=>return Ok(()),_=cancellation.cancelled()=>return Ok(()),_=tokio::time::sleep(Duration::from_millis(50))=>{}}
             if !preparation.has_duplex_io() {
+                if !waiting_reported {
+                    waiting_reported = true;
+                    tracing::debug!(target: "connect_service::replacement_phase_trace",
+                        operation = %root.origin.request().operation_id, "Replacement endpoint waiting for duplex activity");
+                }
                 let _ = started.controller.try_queue_local_silence(
                     &binding.negotiated.requested.logical_id,
                     LocalAudioPurpose::EndpointPreparation {
@@ -253,6 +282,11 @@ impl Runtime {
                     (start.elapsed().as_micros() * u128::from(rate) / 1_000_000) as u32,
                 );
                 continue;
+            }
+            if !duplex_reported {
+                duplex_reported = true;
+                tracing::debug!(target: "connect_service::replacement_phase_trace",
+                    operation = %root.origin.request().operation_id, "Replacement endpoint duplex activity observed");
             }
             let i = self
                 .continuation_read(
@@ -305,7 +339,8 @@ impl Runtime {
             let expected = attempt.expected()?;
             let capture = attempt.applied(expected)?;
             drop(i);
-            self.save_continuation(started, capture).await?;
+            self.save_continuation(root, started, Step::Readiness, capture)
+                .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",?observed,"Replacement actual private duplex readiness captured");
             return self.move_native_replacement(root, started).await;
         }
