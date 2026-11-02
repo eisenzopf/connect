@@ -278,6 +278,8 @@ pub(crate) struct Manager {
     names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: Mutex<BTreeMap<String, Weak<LockFile>>>,
     idle_files: Mutex<IdleLockFiles>,
+    #[cfg(test)]
+    admission_attempts: std::sync::atomic::AtomicU64,
 }
 impl Manager {
     pub(crate) fn open(path: &Path, secret: &str) -> Result<Arc<Self>> {
@@ -328,9 +330,15 @@ impl Manager {
             names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
             idle_files: Mutex::new(IdleLockFiles::default()),
+            #[cfg(test)]
+            admission_attempts: std::sync::atomic::AtomicU64::new(0),
         });
         managers.insert(name, Arc::downgrade(&manager));
         Ok(manager)
+    }
+    #[cfg(test)]
+    pub(crate) fn test_admission_attempts(&self) -> u64 {
+        self.admission_attempts.load(Ordering::Relaxed)
     }
     pub(crate) fn state_identity(&self) -> &str {
         &self.state_identity
@@ -356,6 +364,8 @@ impl Manager {
         scopes: &[AuthorityScope],
         wait: Option<&AuthorityWait>,
     ) -> Result<Arc<AuthorityGuardSet>> {
+        #[cfg(test)]
+        self.admission_attempts.fetch_add(1, Ordering::Relaxed);
         if let Some(wait) = wait {
             wait.check()?;
         }

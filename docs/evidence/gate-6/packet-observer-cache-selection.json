@@ -1,0 +1,49 @@
+{
+  "format": "connect/gate-6/packet-observer-cache-selection/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Controlled Store cache and actual fresh authority-admission calls only; no runtime media quality or transport-cell claim.",
+  "problem": "The optimistic path admits old scope names then compares only the first same-source memo entry against an arbitrary available SQL observer. A different observer can already have exact current cached metadata, yet the path discards its fresh file reader and repeats admission before using that metadata.",
+  "before": {
+    "production_logic_changed": false,
+    "counterexample_verified": true,
+    "passed": 1,
+    "failed": 1,
+    "ignored": 0,
+    "binary_sha256": "28b43728ca3f1aaad616543273049c88314986a5860c31fa45fdcdb1e4e5460a",
+    "binary_preserved": true,
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 7.348925624974072,
+    "actual_admission_attempts_for_warm_observers": [
+      1,
+      2,
+      2,
+      2
+    ],
+    "expected_admission_attempts": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "old_scope_does_not_cover_new_metadata_negative_passed": true,
+    "counter_is_test_only_and_per_real_manager": true
+  },
+  "discarded_initial_run": {
+    "reason": "Formatting overlapped source inventory; source guard false, excluded from proof. Retained privately.",
+    "counterexample_claim": false
+  },
+  "required_behavior": [
+    "Use only a memo entry matching the actual currently owned SQL observer, exact complete Version and original source identity.",
+    "The newly admitted file reader must cover that selected entry complete scopes before seal and finish.",
+    "Changed data/schema/policy clock, changed scope/source, contention, ownership, file privacy or queued writers still require original fresh checks or refusal.",
+    "Do not add positive authority caching, retain SQL during file admission, expand pools, renew packet deadlines or retry uncertain IO."
+  ],
+  "after": {
+    "implemented": false,
+    "verified": false
+  },
+  "transport_cells_qualified": 0,
+  "full_media_quality_claim": false
+}
