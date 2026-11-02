@@ -31,6 +31,7 @@ class ComponentRefusals(unittest.TestCase):
         self.native = dict(format='connect/sdk-native-runtime-candidate/1', passed=True,
             production_release=True, test_support=False, source_inputs_unchanged=True,
             target='aarch64-apple-darwin', source_revision='a'*40, version='0.1.0',
+            opus_native_build=dict(mode='bundled-static', native_archive_sha256='b'*64),
             archive_name=self.runtime.name, archive_sha256=module.digest(self.runtime))
         self.package = dict(format='connect/installed-node-sdk-candidate/1', passed=True,
             source_inputs_unchanged=True, consumer_outside_repository=True, empty_cache=True,
@@ -67,6 +68,13 @@ class ComponentRefusals(unittest.TestCase):
                 package = dict(self.package, **{key:value})
                 with self.assertRaises(ValueError): self.attempt(package=package)
                 self.assertFalse(self.output.exists())
+
+    def test_requested_flags_without_actual_bundled_library_proof_refuse_before_output(self):
+        native = dict(self.native, build_settings={'OPUS_STATIC': '1', 'LIBOPUS_NO_PKG': '1'})
+        del native['opus_native_build']
+        with self.assertRaisesRegex(ValueError, 'bundled Opus provenance'):
+            self.attempt(native=native)
+        self.assertFalse(self.output.exists())
 
     def test_linked_component_or_private_proof_refuses_without_overwriting_original(self):
         for original, parent in [(self.runtime,self.dist),(self.node_proof,self.private)]:

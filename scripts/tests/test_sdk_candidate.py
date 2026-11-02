@@ -68,6 +68,17 @@ class NativeCandidate(unittest.TestCase):
         self.assertEqual((destination / 'bin/connect').stat().st_mode & 0o777, 0o755)
         self.assertEqual((destination / 'LICENSE').read_bytes(), b'original license')
 
+    def test_macos_native_archive_provenance_must_match_the_archived_manifest(self):
+        self.proof.update(target='aarch64-apple-darwin',
+            opus_native_build={'mode': 'bundled-static', 'native_archive_sha256': 'b'*64})
+        self.identity = 'connect-runtime-0.1.0-aarch64-apple-darwin-' + 'a'*12
+        self.pack()
+        installed = install_runtime(self.archive, self.proof, self.root / 'matching')
+        self.assertEqual(installed['opus_native_build'], self.proof['opus_native_build'])
+        self.proof['opus_native_build']['native_archive_sha256'] = 'c'*64
+        with self.assertRaisesRegex(ValueError, 'payload differs'):
+            install_runtime(self.archive, self.proof, self.root / 'mismatching')
+
     def test_self_consistently_repacked_corrupt_binary_still_refused(self):
         self.pack(binary=b'altered executable')
         with self.assertRaisesRegex(ValueError, 'payload differs'):

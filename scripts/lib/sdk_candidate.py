@@ -6,6 +6,8 @@ import re
 import shutil
 import tarfile
 
+from lib.sdk_runtime_build import require_bundled_opus
+
 
 def digest(path):
     with path.open('rb') as stream:
@@ -25,6 +27,7 @@ def runtime_inventory(runtime):
 
 
 def install_runtime(archive, proof, destination):
+    require_bundled_opus(proof)
     if not (proof['passed'] and proof['source_inputs_unchanged'] and proof['production_release']
             and not proof['test_support'] and re.fullmatch('[0-9a-f]{40}', proof['source_revision'])
             and digest(archive) == proof['archive_sha256']):
@@ -62,6 +65,7 @@ def install_runtime(archive, proof, destination):
                 actual[name] = {'sha256': digest(target), 'mode': expected_mode}
     if (manifest is None or actual != manifest['files'] or actual != proof['files']
             or manifest['source_revision'] != proof['source_revision'] or manifest['target'] != proof['target']
+            or manifest.get('opus_native_build') != proof.get('opus_native_build')
             or actual['bin/connect']['sha256'] != proof['binary_sha256']):
         raise ValueError('Actual runtime payload differs from source-bound manifest')
     return manifest

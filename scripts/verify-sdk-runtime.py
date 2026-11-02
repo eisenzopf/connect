@@ -12,6 +12,8 @@ import sys
 import tarfile
 import zipfile
 
+from lib.sdk_runtime_build import require_bundled_opus
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -41,6 +43,7 @@ def main():
             and proof['production_release'] and not proof['test_support'] and proof['source_revision'] == args.revision
             and hashlib.sha256(source_bytes).hexdigest() == proof['source_inputs_sha256']):
         raise ValueError('Native build proof is incomplete or mismatched')
+    require_bundled_opus(proof)
     counts, _ = verifier['verify_sources'](json.loads(source_bytes), args.revision, args.prepared, args.archives)
     profiles = {}
     for name in ('helper.rs', 'helper/administrative.rs', 'helper/media.rs'):
@@ -105,6 +108,7 @@ def main():
         raise ValueError('Native payload manifest differs: ' + str(len(content)) + ' content, ' + str(len(modes)) + ' mode mismatches')
     if (manifest is None or files != proof['files'] or files != manifest['files']
             or manifest['source_revision'] != args.revision or manifest['target'] != proof['target']
+            or manifest.get('opus_native_build') != proof.get('opus_native_build')
             or manifest['helper_profiles'] != profiles or not manifest['production_build_verified']
             or len({files['bin/connect']['sha256'], proof['binary_sha256'], proof['completed_build_artifact_sha256'], manifest['binary_sha256']}) != 1):
         raise ValueError('Native file payload or identity differs')
@@ -125,6 +129,8 @@ def main():
               'passed': True, 'production_build_verified': True, 'sdk_installation_qualified': False,
               'package_input': 'bounded-stdin' if args.package_stdin else 'retained-file',
               'task_complete': False, 'whole_gate_qualified': False, 'publication_authorized': False}
+    if proof['target'] == 'aarch64-apple-darwin':
+        report['opus_native_build'] = proof['opus_native_build']
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({key: report[key] for key in ('passed', 'target', 'sources_verified', 'files_verified', 'binary_sha256')}))
 

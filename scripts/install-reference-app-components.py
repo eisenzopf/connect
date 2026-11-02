@@ -17,6 +17,7 @@ import subprocess
 
 from lib.package_environment import fixture_environment
 from lib.sdk_candidate import digest, install_runtime
+from lib.sdk_runtime_build import require_bundled_opus
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,6 +53,7 @@ def install(runtime_path, runtime_proof_path, node_path, node_proof_path, output
             or runtime.get('test_support') is not False or runtime.get('source_inputs_unchanged') is not True
             or runtime['archive_name'] != runtime_path.name or digest(runtime_path) != runtime['archive_sha256']):
         raise ValueError('Native producer, host or archive identity differs')
+    require_bundled_opus(runtime)
     if (node.get('format') != 'connect/installed-node-sdk-candidate/1'
             or node.get('passed') is not True or node.get('source_inputs_unchanged') is not True
             or node.get('consumer_outside_repository') is not True or node.get('empty_cache') is not True

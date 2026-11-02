@@ -61,6 +61,14 @@ jobs:
           command -v clang
           command -v cmake || brew install cmake
           command -v pkg-config || brew install pkgconf
+          # All earlier test builds sharing this target must select the same
+          # native codec as the production producer, including on cache hits.
+          cat >> "$GITHUB_ENV" <<'ENV'
+          MACOSX_DEPLOYMENT_TARGET=15.0
+          OPUS_STATIC=1
+          LIBOPUS_NO_PKG=1
+          CMAKE_POLICY_VERSION_MINIMUM=3.5
+          ENV
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:
@@ -69,9 +77,9 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-sdk-runtime-v1-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: g6-sdk-runtime-${{ runner.os == 'macOS' && 'bundled-opus-v2' || 'v1' }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
-            g6-sdk-runtime-v1-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            g6-sdk-runtime-${{ runner.os == 'macOS' && 'bundled-opus-v2' || 'v1' }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
             ${{ runner.os == 'Linux' && 'g6-linux-installation-v1-' || 'g6-macos-sdk-runtime-unused-' }}
       - name: Prepare original locked sources
         run: |
@@ -91,6 +99,10 @@ jobs:
           cargo test --release --locked -p connect-store --lib transitions::tests::peer_operations -- --nocapture
           cargo test --release --locked -p connect-store --lib native_stream_authority::data_reads -- --nocapture
           cargo test --release --locked -p connect-store --lib native_stream_authority::flow_facts -- --test-threads=2
+      - name: Check native build provenance and archive installation boundaries
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_sdk_runtime_build.py -v
+          python3 -m unittest discover -s scripts/tests -p test_sdk_candidate.py -v
       - name: Build and package production platform assets
         id: package
         run: python3 scripts/package-sdk-runtime.py --target ${{ matrix.target }} --output dist/sdk/runtime --evidence .local/gate6-runtime-candidate/evidence/${{ matrix.target }}
@@ -272,4 +284,4 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: g6-sdk-runtime-v1-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: g6-sdk-runtime-${{ runner.os == 'macOS' && 'bundled-opus-v2' || 'v1' }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

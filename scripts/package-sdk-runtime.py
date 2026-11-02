@@ -20,6 +20,7 @@ from lib.package_environment import fixture_environment
 from lib.package_inventory import copy_prepared_crate_notices
 from lib.registry_licenses import copy_registry_notices, selected_dependency_ids
 from lib.sdk_candidate import runtime_inventory
+from lib.sdk_runtime_build import bundled_opus
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -82,6 +83,10 @@ def main():
     try:
         if status:
             raise ValueError('Native runtime compilation failed; private compiler log retained')
+        if args.target == 'aarch64-apple-darwin':
+            # Requested flags do not prove that a restored native build obeyed
+            # them. Cargo can reuse a prior pkg-config result from Homebrew.
+            record['opus_native_build'] = bundled_opus(log)
         matches = []
         for line in log.read_text().splitlines():
             try:
