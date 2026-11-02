@@ -17,8 +17,10 @@ export function physicalAvSegment(observed, expected) {
     assert.ok(uint(expected.programStartUnixUs, Number.MAX_SAFE_INTEGER) && expected.programStartUnixUs > 0);
     assert.equal(observed.program_start_unix_us, expected.programStartUnixUs);
     const ids = [expected.audioStreamId, expected.sendVideoStreamId, expected.receiveVideoStreamId];
-    assert.ok(ids.every(id) && new Set(ids).size === 3);
-    assert.equal(observed.negotiated_streams.length, 3);
+    const hasData = expected.sendDataStreamId !== undefined || expected.receiveDataStreamId !== undefined;
+    const dataIds = hasData ? [expected.sendDataStreamId, expected.receiveDataStreamId] : [];
+    assert.ok([...ids, ...dataIds].every(id) && new Set([...ids, ...dataIds]).size === 3 + dataIds.length);
+    assert.equal(observed.negotiated_streams.length, 3 + dataIds.length);
     const streams = new Map(), handles = new Set();
     for (const [index, streamId] of ids.entries()) {
         const matches = observed.negotiated_streams.filter(s => s.strm_id === streamId);
@@ -35,6 +37,19 @@ export function physicalAvSegment(observed, expected) {
         handles.add(stream.stream_local_id);
         if (index !== 1) streams.set(stream.stream_local_id, { streamId, medium, pt: stream.codec.params.payload_type });
     }
+    const dataResources = dataIds.map((streamId, index) => {
+        const matches = observed.negotiated_streams.filter(stream => stream.strm_id === streamId);
+        assert.equal(matches.length, 1, "Data binding must retain its declared identity");
+        const stream = matches[0], direction = index === 0 ? "sendrecv" : "sendonly";
+        assert.equal(stream.kind, "data"); assert.equal(stream.direction, direction);
+        assert.equal(stream.codec.name, "binary");
+        assert.deepEqual(stream.codec.params, { reliability: "reliable_ordered" });
+        assert.ok(uint(stream.stream_local_id, 65535) && stream.stream_local_id > 0 && !handles.has(stream.stream_local_id));
+        handles.add(stream.stream_local_id);
+        // Reliable Data uses its canonical message path. These handles must
+        // never become RTP/RTCP decoder inputs merely because they negotiated.
+        return { stream_id: streamId, direction, stream_local_id: stream.stream_local_id };
+    });
     assert.ok(Array.isArray(observed.received) && observed.received.length <= 16000);
     const audio = new Map(), video = new Map(), clocks = { audio: [], video: [] }, assembler = new Vp8Assembler();
     const quarantine = [];
@@ -96,6 +111,7 @@ export function physicalAvSegment(observed, expected) {
     return { format: "connect/physical-av-segment/1", program_start_unix_us: observed.program_start_unix_us,
         audio: histories(audio), video: histories(video), clock_reports: clocks,
         quarantined_precompletion_rows: quarantine, original_datagram_count: observed.received.length,
+        negotiated_data_resources: dataResources, reliable_data_io_verified: false,
         original_datagram_bytes: bytes, pending_video_fragments: assembler.queuedFragments,
         decoded_media_verified: false, full_timeline_decoded: false, cell_qualified: false,
         scope: "Original receive times and codec bytes only, split by physical SSRC. Pre-completion rows excluded from codec state. No PLC, gap filling, retiming or media quality inference." };

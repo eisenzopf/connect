@@ -170,10 +170,10 @@ async fn control(
     input: Value,
     capabilities: &Value,
     own: &[selected::Binding],
-    incoming: Option<&str>,
+    incoming: Option<&video::Video>,
     output: &PathBuf,
     label: &str,
-) -> Result<(Value, Option<selected::Binding>)> {
+) -> Result<(Value, Option<Vec<selected::Binding>>)> {
     // Save the complete original mutation before any possible submission. An
     // unknown result propagates; it is never resubmitted with a fresh ID.
     save(
@@ -212,7 +212,13 @@ async fn control(
             match frame.kind() {
                 "connection.offer" if incoming.is_some() && received.is_none() => {
                     let payload = &frame.original()["payload"];
-                    let binding = selected::subscription(payload, own, incoming.unwrap())?;
+                    let expected = incoming.unwrap();
+                    let bindings = selected::subscription(
+                        payload,
+                        own,
+                        &expected.receive_video_stream_id,
+                        expected.receive_data_stream_id.as_deref(),
+                    )?;
                     client
                         .answer_connection_offer(
                             &frame,
@@ -220,7 +226,7 @@ async fn control(
                             scope,
                         )
                         .await?;
-                    received = Some(binding);
+                    received = Some(bindings);
                 }
                 "operation.updated"
                     if frame.scope(Scope::Reply) == Some(request.as_str()) && result.is_none() =>
@@ -259,7 +265,7 @@ pub(super) async fn open(
     own: &[selected::Binding],
     capabilities: &Value,
     output: &PathBuf,
-) -> Result<selected::Binding> {
+) -> Result<Vec<selected::Binding>> {
     let opened_revision = admission
         .revision
         .checked_add(1)
@@ -301,15 +307,21 @@ pub(super) async fn open(
     publication_gate(&opened["result"], admission, opened_revision, &publication)?;
     save(&output.with_extension("video-unmute-receipt.json"), &opened).await?;
     let subscription = child_scope(scope, root, "video_subscribe", opened_revision)?;
+    let mut subscriptions = vec![
+        json!({"strm_id":video.receive_audio_stream_id}),
+        json!({"strm_id":video.receive_video_stream_id}),
+    ];
+    if let Some(data) = &video.receive_data_stream_id {
+        subscriptions.push(json!({"strm_id":data}));
+    }
     let (subscribed, incoming) = control(
         client,
         &subscription,
         "stream.subscribe",
-        json!({"subscriptions":[
-        {"strm_id":video.receive_audio_stream_id},{"strm_id":video.receive_video_stream_id}]}),
+        json!({"subscriptions":subscriptions}),
         capabilities,
         own,
-        Some(&video.receive_video_stream_id),
+        Some(video),
         output,
         "video-subscribe",
     )

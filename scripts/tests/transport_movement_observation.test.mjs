@@ -7,11 +7,12 @@ import { physicalMovementSegments } from "../lib/transport_movement_observation.
 
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const save = (path, value) => writeFile(path, JSON.stringify(value) + "\n", { mode: 0o600 });
-async function fixture() {
+async function fixture(dataProfile = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "movement-observation-"));
     const connectionIds = Array.from({ length: 6 }, (_, i) => "original-" + i);
-    const streamIds = connectionIds.map(id => ({ audio: id + "-audio", video: id + "-video" }));
+    const streamIds = connectionIds.map(id => ({ audio: id + "-audio", video: id + "-video",
+        ...(dataProfile ? { data: id + "-data" } : {}) }));
     const program = 1_800_000_000_000_000, executableSha256 = "a".repeat(64);
     const movement = { original_moves_completed: 20, concurrent_session_chains: 2, moves_per_source: [10, 10],
         active_av_routes: 6, maximum_pending_candidates: 2, shared_sdk_closed_during_replacement: false,
@@ -24,7 +25,8 @@ async function fixture() {
             const key = sourceIndex + "-" + ordinal, folder = join(directory, key);
             await mkdir(folder, { mode: 0o700 });
             const step = { sourceIndex, ordinal, operationId: "move-" + key,
-                subscriptionId: "camera-" + key, audioId: "audio-" + key, videoId: "video-" + key };
+                subscriptionId: "camera-" + key, audioId: "audio-" + key, videoId: "video-" + key,
+                ...(dataProfile ? { dataId: "data-" + key } : {}) };
             plan.push(step);
             const binding = (strm_id, kind, direction, stream_local_id) => ({ strm_id, kind, direction, stream_local_id,
                 codec: { name: kind === "audio" ? "opus" : "vp8", params: {
@@ -32,6 +34,10 @@ async function fixture() {
                     payload_type: kind === "audio" ? 111 : 96 } } });
             const streams = [binding(step.audioId, "audio", "sendrecv", 7),
                 binding(step.videoId, "video", "sendrecv", 8), binding(streamIds[peer].video, "video", "sendonly", 9)];
+            if (dataProfile) for (const [strm_id, direction, stream_local_id] of [
+                [step.dataId, "sendrecv", 10], [streamIds[peer].data, "sendonly", 11]])
+                streams.push({ strm_id, kind: "data", direction, stream_local_id,
+                    codec: { name: "binary", params: { reliability: "reliable_ordered" } } });
             const datagram = [1, 0, 0, 7, 0, 0, 0, 0, 0x80, 111, 0, 1, 0, 0, 3, 192, 0, 0, 0, 12, 1, 2];
             const observed = { format: "connect/native-replacement-peer-observation/1", passed: true,
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
@@ -64,8 +70,8 @@ async function fixture() {
     return { directory, options: { directory, movement, plan, packetWorkersJoined: true,
         conversationId: "room", sessionIds, connectionIds, streamIds, executableSha256 } };
 }
-async function run(change, check) {
-    const { directory, options } = await fixture();
+async function run(change, check, dataProfile = false) {
+    const { directory, options } = await fixture(dataProfile);
     try { if (change) await change(options); await check(options); }
     finally { await rm(directory, { recursive: true, force: true }); }
 }
@@ -85,6 +91,21 @@ test("twenty capture records bind two exact original chains without claiming dec
     assert.equal(result.segments[0].capture.video.length, 0, "fixture has no decoded or assembled video");
     assert.equal(result.full_timeline_decoded, false); assert.equal(result.cell_qualified, false);
 }));
+
+test("twenty Data captures retain both original reliable bindings without claiming Data IO", () => run(undefined, async options => {
+    const result = await physicalMovementSegments(options);
+    assert.equal(result.segments.length, 20);
+    for (const segment of result.segments) {
+        assert.equal(segment.capture.negotiated_data_resources.length, 2);
+        assert.equal(segment.capture.reliable_data_io_verified, false);
+    }
+    delete options.plan[0].dataId;
+    await assert.rejects(physicalMovementSegments(options), /every replacement must retain its Data contract/);
+    options.plan[0].dataId = "other-data";
+    await assert.rejects(physicalMovementSegments(options));
+    options.plan[0].dataId = options.plan[1].dataId;
+    await assert.rejects(physicalMovementSegments(options), /movement identities must be unique/);
+}, true));
 
 test("live packet owners and incomplete movement sets refuse before reading a directory", async () => {
     await assert.rejects(physicalMovementSegments({ packetWorkersJoined: false }), /packet workers must join/);

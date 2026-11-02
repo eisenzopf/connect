@@ -159,13 +159,21 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
                     video.receive_video_stream_id.as_str(),
                 ]
                 .contains(&id)
+                    || video.receive_data_stream_id.as_deref() == Some(id)
             })
         {
             return Err("replacement Data format or identity changed".into());
         }
     }
     let maximum = (if source.video.is_some() { 2 } else { 1 }) + data.len();
-    let minimum_slots = maximum + usize::from(source.video.is_some());
+    let receives_data = source
+        .video
+        .as_ref()
+        .is_some_and(|video| video.receive_data_stream_id.is_some());
+    if receives_data && data.is_empty() {
+        return Err("replacement incoming Data requires its declared binary capability".into());
+    }
+    let minimum_slots = maximum + usize::from(source.video.is_some()) + usize::from(receives_data);
     if !offer_json["capabilities"]["max_streams_per_connection"]
         .as_u64()
         .is_some_and(|slots| (minimum_slots as u64..=8).contains(&slots))
@@ -342,7 +350,7 @@ pub(super) async fn run(
                                 scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,&device,&selected,&mut root_revision).await? {
                                 root_observed=true;phase="original-post-commit-video-controls";
                                 let incoming=controls::open(&mut client,&scope,&root,&admission,video,&selected,&offer_json["capabilities"],&output).await?;
-                                negotiated.push(incoming.raw);video_open=true;
+                                negotiated.extend(incoming.into_iter().map(|binding| binding.raw));video_open=true;
                                 emit(json!({"phase":"target-video-controls-completed","original_root_observed":true,"decoded_media_inferred":false})).await?;
                             }
                             next_poll=tokio::time::Instant::now()+Duration::from_millis(50);phase="physical-media";
@@ -455,6 +463,7 @@ mod tests {
             stream_id: "camera".into(),
             receive_audio_stream_id: "remote-audio".into(),
             receive_video_stream_id: "remote-camera".into(),
+            receive_data_stream_id: None,
             ssrc: 8,
             frames: vec![vec![4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01]; 30],
         });
@@ -470,6 +479,14 @@ mod tests {
         av["capabilities"]["max_streams_per_connection"] = json!(4);
         av["streams_offered"][1]["id"] = json!("remote-camera");
         assert!(validate_offer(&av, &source).is_err());
+        av["streams_offered"][1]["id"] = json!("data");
+        source.video.as_mut().unwrap().receive_data_stream_id = Some("remote-data".into());
+        source.validate().unwrap();
+        assert!(validate_offer(&av, &source).is_err());
+        av["capabilities"]["max_streams_per_connection"] = json!(5);
+        validate_offer(&av, &source).unwrap();
+        source.video.as_mut().unwrap().receive_data_stream_id = Some("camera".into());
+        assert!(source.validate().is_err());
     }
 
     #[test]

@@ -1,0 +1,67 @@
+{
+  "format": "connect/physical-replacement-data-subscriptions/1",
+  "task": "G6-058",
+  "predecessor": "docs/evidence/gate-6/replacement-data-resources.json",
+  "changes": [
+    "Explicit incoming Data identities travel with the original physical AV source. They must differ from all original AV and own Data identities; the resource budget includes both incoming video and Data.",
+    "Native subscription negotiation preserves every original own binding and validates both incoming resources, including unique hop handles, reliable ordered binary Data and exact directions. Captures retain the complete negotiated resource set.",
+    "The two-chain movement planner requires all six original Data identities when Data is present, saves a fresh target Data identity for each original move, carries the retained Data identity and updates receiver Data/video selectors together.",
+    "Stopped-capture custody requires Data in all20 planned replacements and validates all five negotiated bindings. Data handles never become RTP/RTCP decoder inputs or actual Data-IO evidence."
+  ],
+  "source_sha256": {
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "b58dbd6c4de5dfcd2d1e8037c84256d3cd800b7d47460235b2b2238c8b508afb",
+    "examples/rust-sdk-journey/src/replacement_peer/video.rs": "fd57a9f35cba5c8b3408efbe7fdb84521f9ec08662470cc8c2eb76c7aa97685f",
+    "examples/rust-sdk-journey/src/replacement_peer/selected.rs": "d58639af1887b756cf795d180e068514d57eca63029019dbab4256a8c4f810fb",
+    "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "0dd7114215883ac71cf40594140a5132048b8343995909a17ad492dce6569feb",
+    "scripts/lib/transport_replacement_target.mjs": "5ff367cf7dc05cfa4a9415ece72d08d3046602f5cf9cfba50fb0f67e3dc1d52b",
+    "scripts/lib/transport_movement_workload.mjs": "ccc76330997f023f9f52296c7c02c9cf8f8b8d3cf374e0e092d1045758e6738c",
+    "scripts/lib/transport_movement_observation.mjs": "aa3fb80dac5abd1010b1c79cd49ec0e3c2cc407a61c2a91e56a2af73ad34de64",
+    "scripts/lib/transport_replacement_observation.mjs": "476834236cb3f6bc1f856070008ac64ac28796a10868d7a205d4b72442a73541",
+    "scripts/tests/transport_replacement_target.test.mjs": "044df0fc31bde893ff6984b79a261cc442e2f8b5035e80d818a92147f0b726e6",
+    "scripts/tests/transport_movement_workload.test.mjs": "c595fd8d6cc343abbc052f94a0a4a3c6829072ed00d7381b64f5ec82489fd47a",
+    "scripts/tests/transport_movement_observation.test.mjs": "0d350a94ea916f841e720d7196f8df77e88d802f9aa304f80f5da6f7a56a5188",
+    "scripts/tests/transport_replacement_observation.test.mjs": "445e122b8be137be9e766e0d046c446740a9b162fcc8ece50b478529f4026aa3"
+  },
+  "verification": {
+    "rust_test_results": [
+      "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s"
+    ],
+    "rust_test_log_sha256": "58caffaf38312cd035bc3b783b2d268e1b95dfdc2dc735c47efdebb790e406c4",
+    "unit_binary_sha256": "bed1fa067e36898ae50b648a4f9c4ba37af5151d125df32070562183d86056ad",
+    "release_peer_sha256": "fe4a73918437c7c926075b72f02b37ccbe01352b417fb715bcb135aa355e213d",
+    "release_build_log_sha256": "f0963a0c784e9f5fa38203d3269d404a9410b5d586cf8731125e20bb07f4a22a",
+    "rust_source_inputs_unchanged": true,
+    "node_checks_passed": 30,
+    "node_failed": 0,
+    "node_version": "22.16.0",
+    "node_log_sha256": "302329306e07391cd7ae7355f82fa18454990b7b31962221cf043df6944d6c6b",
+    "source_preparation": "scripts/prepare-dependencies.sh passed",
+    "format": "scripts/format.sh and --check passed",
+    "scope": "Controlled public-consumer resource, movement, capture and custody checks only. Twenty-move test doubles are not physical media or reliable Data execution."
+  },
+  "retained_initial_nonproduct_failures": [
+    {
+      "phase": "Node test assertion",
+      "passed": 28,
+      "failed": 1,
+      "finding": "The new test compared concurrent Session arrays by position. It now matches the original video/Data identities instead; independent chain ordering remains unconstrained.",
+      "evidence_sha256": "35ab26f75ed1f7ed2d0bd92506b0eca20be3b85b8826e1da3c7dfe0c89bfe396"
+    },
+    {
+      "phase": "Rust fixture compilation",
+      "finding": "One existing Video initializer omitted the new optional incoming Data field. The fixture was corrected without weakening validation.",
+      "private_log_sha256": "8acdfb261632e7255896e9e0002eb2973a400efb4d7e8f96eec7ff87bb5053d2"
+    }
+  ],
+  "remaining": [
+    "Server provisional replacement media policy still excludes Data. Preserve exact current capability intersection, initial mute, no public Data IO before adoption and current authorization after commit.",
+    "Integrate physical movements and actual reliable Data/history/recovery behavior into the six Data+AV main producer; continue independent whole-window decoding.",
+    "Complete all32 frozen transport cells and their unchanged quality/resource/teardown criteria."
+  ],
+  "component_checks_passed": true,
+  "actual_replacement_data_io_qualified": false,
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}

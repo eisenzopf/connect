@@ -7,6 +7,8 @@ pub(super) struct Video {
     pub stream_id: String,
     pub receive_audio_stream_id: String,
     pub receive_video_stream_id: String,
+    #[serde(default)]
+    pub receive_data_stream_id: Option<String>,
     pub ssrc: u32,
     #[serde(deserialize_with = "frames")]
     pub frames: Vec<Vec<u8>>,
@@ -52,11 +54,14 @@ impl Video {
             &self.stream_id,
             &self.receive_audio_stream_id,
             &self.receive_video_stream_id,
-        ];
+        ]
+        .into_iter()
+        .chain(self.receive_data_stream_id.iter())
+        .collect::<Vec<_>>();
         if self.ssrc == 0
             || self.ssrc == audio_ssrc
             || ids.iter().any(|v| !id(v))
-            || ids.iter().collect::<std::collections::BTreeSet<_>>().len() != 3
+            || ids.iter().collect::<std::collections::BTreeSet<_>>().len() != ids.len()
             || self.frames.len() != usize::from(seconds) * 30
             || self.frames.iter().map(Vec::len).sum::<usize>() > 16 * 1024 * 1024
         {
@@ -191,6 +196,7 @@ mod tests {
             stream_id: "camera".into(),
             receive_audio_stream_id: "remote-audio".into(),
             receive_video_stream_id: "remote-video".into(),
+            receive_data_stream_id: None,
             ssrc: 2,
             frames: vec![frame.clone(); 30],
         };

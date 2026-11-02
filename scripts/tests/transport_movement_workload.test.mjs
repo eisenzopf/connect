@@ -17,6 +17,9 @@ async function scenario(mode) {
             return { async wait() { return { snapshot: { state: "completed" } }; } };
         } } });
     const connections = roles.map((role, i) => ({ connection: connection("original-" + i, 1) }));
+    const dataProfile = ["data", "partial-data"].includes(mode);
+    const streamIds = roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i,
+        ...(dataProfile && !(mode === "partial-data" && i === 5) ? { data: "data-" + i } : {}) }));
     const routes = roles.map((role, i) => ({ index: i, peerIndex: peers[i], sessionIndex: Number(i >= 4), role,
         connection: connections[i].connection,
         expectRetirement(operationId) { return proof => {
@@ -43,6 +46,12 @@ async function scenario(mode) {
         assert.equal(saved.filter(v => v.operationId === options.operationId).length, 1);
         assert.equal(options.expectedTopologyRevision, revisions[sid]);
         assert.equal(options.source.programStartUnixUs, workload.programStartUnixUs);
+        if (dataProfile) {
+            assert.ok(options.dataStreamId.startsWith("data_"));
+            const sourceIndex = sid === 0 ? 0 : 4;
+            assert.equal(options.source.video.receiveDataStreamId, streamIds[peers[sourceIndex]].data);
+            assert.equal(saved.find(step => step.operationId === options.operationId).dataId, options.dataStreamId);
+        }
         assert.equal(options.target.deviceId, ordinal % 2 ? "original-device" : "replacement-device");
         if (mode === "unknown" && sid === 0 && ordinal === 2) throw original;
         revisions[sid]++;
@@ -75,13 +84,17 @@ async function scenario(mode) {
     };
     try {
         const run = deviceMovementWorkload({ workload, controllers, conversationId: "original-room", sessions,
-            connections, streamIds: roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i })),
+            connections, streamIds,
             participantIds: roles.map(v => "participant-" + v),
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
             executableSha256: "0".repeat(64), startTarget });
-        if (mode !== "normal") {
+        if (mode === "partial-data") {
+            await assert.rejects(run, { code: "ERR_ASSERTION" });
+            assert.equal(starts.length, 0); return;
+        }
+        if (mode !== "normal" && mode !== "data") {
             await assert.rejects(run, error => mode === "unknown" ? error === original : error.kind === "cancelled");
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
             assert.equal(joined.length, mode === "cancel-after20" ? 2 : 0);
@@ -101,6 +114,13 @@ async function scenario(mode) {
         assert.equal(stopped.length, 18); assert.equal(joined.length, 2);
         assert.deepEqual(retired.sort(), [0, 4]);
         assert.equal(observation.original_moves_completed, 20);
+        assert.equal(observation.data_resource_contract_requested, dataProfile);
+        if (dataProfile) for (const selected of subscriptions) {
+            assert.equal(selected.intent.selectors.rest.length, 2);
+            const original = starts.find(start => start.source.video.streamId === selected.intent.selectors.rest[0].stream);
+            assert.ok(original);
+            assert.equal(selected.intent.selectors.rest[1].stream, original.dataStreamId);
+        }
         assert.equal(observation.physical_segments.length, 20);
         assert.equal(observation.planned_peak_connection_slots, 8);
         assert.equal(observation.shared_sdk_closed_during_replacement, false);
@@ -111,6 +131,8 @@ async function scenario(mode) {
 }
 
 test("twenty distinct original moves retain one source clock across two ten-move Session chains", () => scenario("normal"));
+test("the Data workload carries all original incoming and new target Data identities through twenty moves", () => scenario("data"));
+test("a partly declared six-Connection Data workload refuses before any movement", () => scenario("partial-data"));
 test("an unknown original prevents further moves and joins every already admitted physical owner", () => scenario("unknown"));
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));

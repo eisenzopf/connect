@@ -59,6 +59,7 @@ test("AV target retains independent stream identities and copies originals for t
 
 test("replacement carries its distinct reliable Data offer alongside the original AV program", () => {
     const value = avIntent(); value.dataStreamId = "original-target-data";
+    value.source.video.receiveDataStreamId = "retained-data";
     const captured = replacementInput(value);
     assert.deepEqual(captured.offer.capabilities.data_protocols, ["binary"]);
     assert.deepEqual(captured.offer.streams_offered.map(s => [s.id, s.kind, s.direction]),
@@ -67,10 +68,17 @@ test("replacement carries its distinct reliable Data offer alongside the origina
     assert.deepEqual(captured.offer.streams_offered[2].codec_preferences, ["binary"]);
     assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
     assert.equal(captured.offer.capabilities.max_streams_per_connection, 8);
+    assert.equal(captured.media.video.receive_data_stream_id, "retained-data");
     for (const wrong of [value.streamId, value.source.video.streamId,
-        value.source.video.receiveAudioStreamId, value.source.video.receiveVideoStreamId, "", null, "invalid:id"]) {
+        value.source.video.receiveAudioStreamId, value.source.video.receiveVideoStreamId, "retained-data", "", null, "invalid:id"]) {
         assert.throws(() => replacementInput({ ...value, dataStreamId: wrong }));
     }
+    for (const wrong of [value.dataStreamId, value.streamId, value.source.video.streamId,
+        value.source.video.receiveAudioStreamId, value.source.video.receiveVideoStreamId, "invalid:id"]) {
+        assert.throws(() => replacementInput({ ...value, source: { ...value.source,
+            video: { ...value.source.video, receiveDataStreamId: wrong } } }));
+    }
+    assert.throws(() => replacementInput({ ...value, dataStreamId: undefined }));
 });
 
 test("AV source collision, dimensions, missing originals and keyframe starvation refuse before target IO", () => {

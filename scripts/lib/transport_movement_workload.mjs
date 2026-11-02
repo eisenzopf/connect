@@ -23,6 +23,14 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     // wait in one Session must not queue the other Session's original mutation.
     assert.equal(controllers.length, 2);
     assert.notEqual(controllers[0], controllers[1]);
+    assert.ok(Array.isArray(streamIds));
+    assert.equal(streamIds.length, 6);
+    const dataWorkload = streamIds.some(streams => streams.data !== undefined);
+    if (dataWorkload) {
+        assert.ok(streamIds.every(streams => typeof streams.data === "string" &&
+            /^[A-Za-z0-9._~-]{1,128}$/.test(streams.data)), "all six original Data resources are required");
+        assert.equal(new Set(streamIds.flatMap(streams => [streams.audio, streams.video, streams.data])).size, 18);
+    }
     assert.equal(targets.length, 2);
     assert.notEqual(targets[0].deviceId, targets[1].deviceId);
     assert.equal(workload.routes[0].role, workload.routes[4].role);
@@ -39,6 +47,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         sourceIndex, ordinal, targetIndex: (ordinal + 1) % 2,
         operationId: "move_" + randomUUID(), subscriptionId: "camera_" + randomUUID(),
         audioId: "audio_" + randomUUID(), videoId: "video_" + randomUUID(),
+        ...(dataWorkload ? { dataId: "data_" + randomUUID() } : {}),
     })));
     await save(join(directory, "plan.json"), plan);
     const owners = new Set(), completed = [], segments = [], earlyJoins = new Map();
@@ -100,10 +109,12 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 expectedTopologyRevision: session.topologyRevision,
                 originalGeneration: original.generation, retainedGeneration: retained.generation,
                 target: targets[step.targetIndex], streamId: step.audioId,
+                ...(dataWorkload ? { dataStreamId: step.dataId } : {}),
                 source: { seconds: 62, ssrc: 0x47000001 + sourceIndex * 256 + step.ordinal * 2,
                     audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
                     video: { streamId: step.videoId, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
+                        ...(dataWorkload ? { receiveDataStreamId: streamIds[incoming].data } : {}),
                         ssrc: 0x47000002 + sourceIndex * 256 + step.ordinal * 2, frames: source.videoFrames } },
                 retireOriginal: async proof => {
                     stage("previous-owner-join");
@@ -127,7 +138,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 const currentReceiver = await receiver.connection.refresh({ timeoutMs: 8000 });
                 return receiver.connection.streams.subscribe({ selectors: {
                     first: { participant: participantIds[sourceIndex], kinds: { first: "audio", rest: [] } },
-                    rest: [{ stream: step.videoId }],
+                    rest: [{ stream: step.videoId }, ...(dataWorkload ? [{ stream: step.dataId }] : [])],
                 }, expectedStreamRevision: currentReceiver.streamRevision },
                 { operationId: step.subscriptionId, timeoutMs: 8000 });
             });
@@ -156,6 +167,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.equal(segments.length, 20);
         assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_subscription_completed));
         const observation = { original_moves_completed: 20, concurrent_session_chains: 2,
+            data_resource_contract_requested: dataWorkload,
             moves_per_source: [10, 10], active_av_routes: 6, maximum_pending_candidates: 2,
             planned_peak_connection_slots: 8, shared_sdk_closed_during_replacement: false,
             original_program_start_unix_us: workload.programStartUnixUs,

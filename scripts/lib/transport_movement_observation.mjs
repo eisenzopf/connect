@@ -46,6 +46,11 @@ export async function physicalMovementSegments({ directory, movement, plan,
     assert.ok(streamIds.every(v => id(v.audio) && id(v.video)));
     assert.match(executableSha256, /^[0-9a-f]{64}$/);
     assert.equal(plan.length, 20); assert.equal(movement.moves.length, 20);
+    const dataExpected = streamIds.some(streams => streams.data !== undefined);
+    if (dataExpected) {
+        assert.ok(streamIds.every(streams => id(streams.data)), "every original Data identity is required");
+        assert.ok(plan.every(step => id(step.dataId)), "every replacement must retain its Data contract");
+    } else assert.ok(plan.every(step => step.dataId === undefined), "Data captures need the original Data profile");
     assert.equal(movement.physical_segments.length, 20);
     const keys = new Set(), operations = new Set(), streamNames = new Set();
     for (const step of plan) {
@@ -53,8 +58,9 @@ export async function physicalMovementSegments({ directory, movement, plan,
         const key = step.sourceIndex + "-" + step.ordinal;
         assert.ok(!keys.has(key)); keys.add(key);
         assert.ok(id(step.operationId) && !operations.has(step.operationId)); operations.add(step.operationId);
-        for (const name of [step.subscriptionId, step.audioId, step.videoId]) {
-            assert.ok(id(name) && !streamNames.has(name)); streamNames.add(name);
+        for (const name of [step.subscriptionId, step.audioId, step.videoId, ...(dataExpected ? [step.dataId] : [])]) {
+            assert.ok(id(name) && !streamNames.has(name), "movement identities must be unique across the original plan");
+            streamNames.add(name);
         }
     }
     const root = resolve(directory);
@@ -113,6 +119,8 @@ export async function physicalMovementSegments({ directory, movement, plan,
             programStartUnixUs: movement.original_program_start_unix_us,
             audioStreamId: step.audioId, sendVideoStreamId: step.videoId,
             receiveVideoStreamId: streamIds[peer].video,
+            ...(step.dataId === undefined ? {} : { sendDataStreamId: step.dataId,
+                receiveDataStreamId: streamIds[peer].data }),
         });
         segments.push({ source_index: sourceIndex, ordinal, operation_id: step.operationId,
             connection_id: moved.connection, original_capture_sha256: observed.digest,

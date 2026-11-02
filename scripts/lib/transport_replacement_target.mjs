@@ -51,7 +51,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     if (dataStreamId !== undefined) {
         assert.ok(id(dataStreamId));
         assert.ok(![streamId, source.video?.streamId, source.video?.receiveAudioStreamId,
-            source.video?.receiveVideoStreamId].includes(dataStreamId));
+            source.video?.receiveVideoStreamId, source.video?.receiveDataStreamId].includes(dataStreamId));
     }
     const audio = source.audioPackets.map(bytes => {
         assert.ok(Array.isArray(bytes) && bytes.length >= 1 && bytes.length <= 1168 &&
@@ -63,6 +63,11 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         const v = source.video;
         assert.ok([v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId].every(id));
         assert.equal(new Set([streamId, v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId]).size, 4);
+        if (v.receiveDataStreamId !== undefined) {
+            assert.ok(id(dataStreamId) && id(v.receiveDataStreamId));
+            assert.ok(![streamId, v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId,
+                dataStreamId].includes(v.receiveDataStreamId));
+        }
         assert.ok(Number.isInteger(v.ssrc) && v.ssrc > 0 && v.ssrc <= 0xffffffff && v.ssrc !== source.ssrc);
         assert.ok(Array.isArray(v.frames) && v.frames.length === source.seconds * 30);
         let bytes = 0, lastKey;
@@ -81,7 +86,9 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             return Buffer.from(frame).toString("base64");
         });
         video = { stream_id: v.streamId, receive_audio_stream_id: v.receiveAudioStreamId,
-            receive_video_stream_id: v.receiveVideoStreamId, ssrc: v.ssrc, frames };
+            receive_video_stream_id: v.receiveVideoStreamId,
+            ...(v.receiveDataStreamId === undefined ? {} : { receive_data_stream_id: v.receiveDataStreamId }),
+            ssrc: v.ssrc, frames };
     }
     const command = { operation_id: operationId, conversation_id: conversationId,
         session_id: sessionId, connection_id: connectionId, expected_revision: expectedTopologyRevision,
@@ -206,7 +213,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
                 assert.deepEqual(observed.negotiated_streams.map(s => s.strm_id).sort(),
                     [intent.streamId, intent.source.video.streamId, intent.source.video.receiveVideoStreamId,
-                        ...(intent.dataStreamId === undefined ? [] : [intent.dataStreamId])].sort());
+                        ...(intent.dataStreamId === undefined ? [] : [intent.dataStreamId]),
+                        ...(intent.source.video.receiveDataStreamId === undefined ? [] : [intent.source.video.receiveDataStreamId])].sort());
                 report.video_control_files = {};
                 for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
                     const path = output.replace(/\.json$/, "." + suffix + ".json");

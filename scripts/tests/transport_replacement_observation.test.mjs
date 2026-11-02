@@ -34,6 +34,27 @@ function clock() {
     return [...b];
 }
 
+test("declared reliable Data resources stay in custody without becoming RTP decoder inputs", () => {
+    const scope = { ...expected, sendDataStreamId: "own-data", receiveDataStreamId: "remote-data" };
+    const capture = fixture([row(100, rtp())]);
+    const binding = (strm_id, direction, stream_local_id) => ({ strm_id, kind: "data", direction,
+        stream_local_id, codec: { name: "binary", params: { reliability: "reliable_ordered" } } });
+    capture.negotiated_streams.push(binding("own-data", "sendrecv", 10), binding("remote-data", "sendonly", 11));
+    const segment = physicalAvSegment(capture, scope);
+    assert.equal(segment.negotiated_data_resources.length, 2);
+    assert.equal(segment.reliable_data_io_verified, false);
+    assert.equal(segment.audio[0].rows.length, 1);
+    assert.throws(() => physicalAvSegment(capture, expected));
+    assert.throws(() => physicalAvSegment(capture, { ...scope, receiveDataStreamId: undefined }));
+    for (const mutate of [s => { s.stream_local_id = 7; }, s => { s.strm_id = "other-data"; },
+        s => { s.codec.params.payload_type = 111; }, s => { s.codec.params.reliability = "unordered"; }]) {
+        const changed = structuredClone(capture); mutate(changed.negotiated_streams[4]);
+        assert.throws(() => physicalAvSegment(changed, scope));
+    }
+    const wrongPacket = structuredClone(capture); wrongPacket.received.push(row(200, rtp({ handle: 11 })));
+    assert.throws(() => physicalAvSegment(wrongPacket, scope));
+});
+
 test("pre-completion packets cannot initialize later audio, clock or VP8 state", () => {
     const capture = fixture([
         row(100, rtp(), false), row(200, clock(), false),
