@@ -1,0 +1,51 @@
+{
+  "format": "connect/production-main-initial-run/1",
+  "task": "G6-058",
+  "normal_release_build": {
+    "passed": true,
+    "source_guard_passed": true,
+    "release_service_tests": 19,
+    "release_peer_tests": 47,
+    "cli_sha256": "c62f89972bd8d0957eac72e3e8f18976ec8f2129a917eeda36fdeeab65086a1d",
+    "peer_sha256": "92ae42226f5f72ea77b763d1457f8f0081c0de6b4b8b6590a86a83fa27ffbfcd",
+    "elapsed_seconds": 1713.905223667156,
+    "build_state_sha256": "25ec44f745106fd90413d45b19b491615814554264adf356a3adb578dc5f70ec"
+  },
+  "main_rehearsal": {
+    "source_revision": "9c10eeb5494c034d32ce5a4dc0a85b4026e8b704",
+    "report_sha256": "02e8acc35314ab788c62effcb8c6ca1437b7ea9f7bac8b42a6d41e4332961606",
+    "passed": false,
+    "signing_algorithm": "EdDSA",
+    "identities_enrolled": 4,
+    "devices_enrolled": 7,
+    "independent_controllers": 2,
+    "original_enrollment_resume_verified": true,
+    "signed_native_reads": 7,
+    "verified_media_endpoints": 5,
+    "unchanged_unverified_issuance_resumes": 7,
+    "control_only_unverified_devices": 2,
+    "servers_joined": 2,
+    "capture_process_joined": true,
+    "capture_forced": false,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "media_workload_started": false,
+    "journal_independently_audited": false
+  },
+  "failure": {
+    "phase": "owned-native-packet-capture-start",
+    "cause": "tcpdump could not open root-owned macOS BPF device; ordinary native transport traffic does not require this privilege",
+    "packet_capture_observed": false
+  },
+  "continuation": {
+    "owner_instruction": "Run traffic without changing BPF access",
+    "explicit_local_media_component_without_host_capture": true,
+    "all_original_media_data_movement_and_decoder_requirements_retained": true,
+    "host_capture_required_for_complete_cell": true,
+    "default_capture_requirement_unchanged": true,
+    "no_complete_cell_qualification": true
+  },
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

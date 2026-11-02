@@ -40,8 +40,9 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True):
     global PRIVATE, OUTPUT
+    assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
     if media_workload:
         data_workload = actors = conversation = True
         PRIVATE, OUTPUT = BASE / "private/media", BASE / "evidence/media"
@@ -86,6 +87,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
         scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+    report["host_capture_requested"] = host_capture
+    report["host_capture_required_for_complete_cell"] = True
+    if not host_capture:
+        report["packet_capture"] = dict(format="connect/native-private-packet-capture/1", observed=False,
+            executed=False, skipped=True, reason="explicit-local-media-component-without-host-capture",
+            scope="Full local media workload with public SDK packet/clock recordings; privileged host capture unavailable. No complete transport-cell qualification.")
     before = None
     server = None
     streams = []
@@ -441,13 +448,14 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     participant_self_verification_refused=True,
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
-                phase = "owned-native-packet-capture-start"
-                capture = NativeCapture(PRIVATE / "packet-capture", native, env,
-                    interface=None if namespace is None else namespace.interface,
-                    server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
-                    peer_ip="127.0.0.1" if namespace is None else namespace.client_ip,
-                    media_workload=media_workload)
-                capture.start()
+                if host_capture:
+                    phase = "owned-native-packet-capture-start"
+                    capture = NativeCapture(PRIVATE / "packet-capture", native, env,
+                        interface=None if namespace is None else namespace.interface,
+                        server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
+                        peer_ip="127.0.0.1" if namespace is None else namespace.client_ip,
+                        media_workload=media_workload)
+                    capture.start()
             if conversation:
                 phase = "public-sdk-conversation-control"
                 config_directory = PRIVATE / "sdk-configs"
@@ -648,7 +656,10 @@ if __name__ == "__main__":
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
     parser.add_argument("--media-workload", action="store_true", help="Include six native Opus/VP8/data Connections with independent decoded 60-second observations; not complete matrix qualification")
+    parser.add_argument("--without-host-capture", action="store_true", help="Run the same local media workload while explicitly recording privileged host capture unavailable; never complete cell qualification")
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload))
+    if args.without_host_capture and (not args.media_workload or args.network_profile != "local"):
+        parser.error("--without-host-capture requires the explicit local --media-workload component")
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture))
