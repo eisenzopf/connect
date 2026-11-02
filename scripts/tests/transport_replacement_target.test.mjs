@@ -3,7 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { replacementInput, physicalReplacementTarget, verifyReplacementStreamIdentities } from "../lib/transport_replacement_target.mjs";
+import { replacementInput, physicalReplacementTarget, verifyReplacementStreamIdentities, verifyPhysicalOwnerEndReceipt } from "../lib/transport_replacement_target.mjs";
 
 const intent = () => ({ operationId: "original-operation", conversationId: "original-conversation",
     sessionId: "original-session", connectionId: "original-source", retainedConnectionId: "original-retained",
@@ -168,4 +168,47 @@ test("live and joined replacement resource identities require both exact Data bi
     verifyReplacementStreamIdentities(streams(av), withoutData);
     assert.throws(() => verifyReplacementStreamIdentities(streams(complete), withoutData));
     assert.throws(() => verifyReplacementStreamIdentities([{ strm_id: "bad:id" }], value));
+});
+
+
+test("terminal owner input preserves its original62second programme and separate end key", () => {
+    const value = avIntent(); value.source.seconds = 62;
+    value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
+    value.source.video.frames = Array.from({ length: 1860 }, () => [...value.source.video.frames[0]]);
+    value.source.programStartUnixUs = 1793600000000000;
+    value.source.terminalEndOperationId = "original-final-end";
+    const captured = replacementInput(value);
+    assert.equal(captured.media.terminal_end_operation, "original-final-end");
+    assert.equal(captured.media.program_start_unix_us, value.source.programStartUnixUs);
+    assert.equal(captured.media.seconds, 62);
+    assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
+    for (const change of [v => { delete v.source.video; }, v => { v.source.seconds = 61; },
+        v => { delete v.source.programStartUnixUs; }, v => { v.source.terminalEndOperationId = v.operationId; },
+        v => { v.source.terminalEndOperationId = "invalid:id"; }]) {
+        const wrong = structuredClone(value); change(wrong);
+        assert.throws(() => replacementInput(wrong));
+    }
+});
+
+test("final end receipt belongs to the current physical owner, one original mutation and original cutoff", () => {
+    const value = avIntent(); value.source.terminalEndOperationId = "original-final-end";
+    const receipt = { format: "connect/physical-owner-end-receipt/1", completed: true,
+        original_operation_id_preserved: true, mutation_submissions: 1,
+        control_only_after_programme: true, media_programme_extended: false,
+        elapsed_since_programme_end_ms: 400,
+        original: { format: "connect/physical-owner-original-end/1", type: "connection.end",
+            scope: { conversation_id: value.conversationId, session_id: value.sessionId,
+                connection_id: "actual-current-owner", operation_id: "original-final-end" },
+            payload: { reason_code: 200, reason: "Synthetic workload complete" },
+            programme_end_monotonic_ms: 62000, original_cutoff_monotonic_ms: 67000 } };
+    verifyPhysicalOwnerEndReceipt(receipt, value, "actual-current-owner");
+    for (const change of [v => { v.completed = false; }, v => { v.mutation_submissions = 2; },
+        v => { v.original_operation_id_preserved = false; }, v => { v.control_only_after_programme = false; },
+        v => { v.media_programme_extended = true; }, v => { v.elapsed_since_programme_end_ms = 5000; },
+        v => { v.original.scope.connection_id = value.connectionId; },
+        v => { v.original.scope.operation_id = value.operationId; },
+        v => { v.original.original_cutoff_monotonic_ms = 68000; }]) {
+        const wrong = structuredClone(receipt); change(wrong);
+        assert.throws(() => verifyPhysicalOwnerEndReceipt(wrong, value, "actual-current-owner"));
+    }
 });

@@ -8,7 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.transport_actors import DEVICES, OPERATIONS, ROLES, encoded, exact, new_plan, validate_plan
+from lib.transport_actors import CONTROLLERS, DEVICES, OPERATIONS, ROLES, encoded, exact, new_plan, validate_plan
 from lib.transport_fixture import FixtureError
 
 
@@ -46,6 +46,37 @@ class ActorPlanBoundary(unittest.TestCase):
             mutate(plan)
             with self.assertRaises(FixtureError):
                 validate_plan(plan, self.binding, 2000, 1000)
+
+
+    def test_media_controller_mode_preserves_four_identities_and_seven_original_device_commands(self):
+        plan = new_plan(self.binding, 2000, movement_controllers=True)
+        saved = json.loads(encoded(plan))
+        validate_plan(saved, self.binding, 2000, 1000, movement_controllers=True)
+        self.assertEqual(saved, plan)
+        self.assertEqual([v["name"] for v in saved["devices"]], list(DEVICES + CONTROLLERS))
+        self.assertEqual(len(saved["identities"]), 4)
+        self.assertEqual([v["role"] for v in saved["devices"][-2:]], ["participant-1"] * 2)
+        originals = [v["operation_id"] for v in saved["identities"] + saved["devices"]]
+        self.assertEqual(len(set(originals)), 11)
+
+    def test_saved_mode_cannot_expand_or_drop_controller_devices_on_resume(self):
+        media = new_plan(self.binding, 2000, movement_controllers=True)
+        with self.assertRaises(FixtureError):
+            validate_plan(self.plan, self.binding, 2000, 1000, movement_controllers=True)
+        with self.assertRaises(FixtureError):
+            validate_plan(media, self.binding, 2000, 1000)
+        for mutate in [lambda p:p["devices"][-1].update(role="participant-2"),
+                lambda p:p["devices"][-1].update(operation_id=p["devices"][-2]["operation_id"]),
+                lambda p:p["devices"].reverse(), lambda p:p["devices"].pop()]:
+            plan = copy.deepcopy(media)
+            mutate(plan)
+            with self.assertRaises(FixtureError):
+                validate_plan(plan, self.binding, 2000, 1000, movement_controllers=True)
+
+    def test_controller_mode_is_an_explicit_boolean(self):
+        for mode in [None, 0, 1, "true"]:
+            with self.assertRaises(FixtureError):
+                new_plan(self.binding, 2000, movement_controllers=mode)
 
     def test_exact_publication_never_replaces_existing_intent_or_symlink(self):
         with tempfile.TemporaryDirectory() as temp:

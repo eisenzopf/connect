@@ -53,6 +53,11 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         assert.ok(![streamId, source.video?.streamId, source.video?.receiveAudioStreamId,
             source.video?.receiveVideoStreamId, source.video?.receiveDataStreamId].includes(dataStreamId));
     }
+    if (source.terminalEndOperationId !== undefined) {
+        assert.ok(source.video && source.seconds === 62 && source.programStartUnixUs !== undefined);
+        assert.ok(id(source.terminalEndOperationId));
+        assert.notEqual(source.terminalEndOperationId, operationId);
+    }
     const audio = source.audioPackets.map(bytes => {
         assert.ok(Array.isArray(bytes) && bytes.length >= 1 && bytes.length <= 1168 &&
             bytes.every(value => Number.isInteger(value) && value >= 0 && value <= 255));
@@ -105,7 +110,8 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : []),
             ...(dataStreamId === undefined ? [] : [{ id: dataStreamId, kind: "data", direction: "sendrecv", codec_preferences: ["binary"] }])] },
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
-            ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}) }, output };
+            ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}),
+            ...(source.terminalEndOperationId !== undefined ? { terminal_end_operation: source.terminalEndOperationId } : {}) }, output };
 }
 
 // Both admission and joined captures retain every original negotiated resource.
@@ -120,6 +126,27 @@ export function verifyReplacementStreamIdentities(streams, intent) {
     assert.deepEqual(streams.map(stream => stream.strm_id).sort(), expected.sort());
 }
 
+// This binds a trusted peer's verified-response observation to the actual
+// admitted connection. Independent stopped-journal audit still proves effects.
+export function verifyPhysicalOwnerEndReceipt(receipt, intent, admittedConnectionId) {
+    assert.ok(id(admittedConnectionId) && id(intent.source.terminalEndOperationId));
+    assert.equal(receipt?.format, "connect/physical-owner-end-receipt/1");
+    assert.equal(receipt.completed, true);
+    assert.equal(receipt.original_operation_id_preserved, true);
+    assert.equal(receipt.mutation_submissions, 1);
+    assert.equal(receipt.control_only_after_programme, true);
+    assert.equal(receipt.media_programme_extended, false);
+    assert.ok(Number.isFinite(receipt.elapsed_since_programme_end_ms) &&
+        receipt.elapsed_since_programme_end_ms >= 0 && receipt.elapsed_since_programme_end_ms < 5000);
+    assert.deepEqual(receipt.original, {
+        format: "connect/physical-owner-original-end/1", type: "connection.end",
+        scope: { conversation_id: intent.conversationId, session_id: intent.sessionId,
+            connection_id: admittedConnectionId, operation_id: intent.source.terminalEndOperationId },
+        payload: { reason_code: 200, reason: "Synthetic workload complete" },
+        programme_end_monotonic_ms: 62000, original_cutoff_monotonic_ms: 67000,
+    });
+}
+
 export const physicalReplacementTarget = options => physicalTarget(options, false);
 // Admission returns a live physical owner. Its report is final only after join.
 export const startPhysicalReplacementTarget = options => physicalTarget(options, true);
@@ -127,6 +154,7 @@ export const startPhysicalReplacementTarget = options => physicalTarget(options,
 async function physicalTarget({ controller, retireOriginal, privateRoot,
     directory, executable, executableSha256, ...intent }, live) {
     assert.equal(typeof retireOriginal, "function");
+    assert.ok(live || intent.source.terminalEndOperationId === undefined, "final end requires live ownership transfer");
     const root = await realpath(privateRoot), parent = await realpath(dirname(resolve(directory)));
     assert.ok(parent === root || parent.startsWith(root + "/"));
     assert.equal(await realpath(executable), resolve(executable));
@@ -153,7 +181,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         target_config_unchanged: false, target_executable_unchanged: false,
         source_input_sha256: hash(Buffer.from(JSON.stringify(input.media))), video_enabled: Boolean(intent.source.video),
         decoded_media_verified: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
-    let phase = "original-submission", worker, completed, log, exited;
+    let phase = "original-submission", worker, completed, log, exited, admittedConnectionId;
     let transferred = false, finishPromise, stopPromise;
     const stopPath = output.replace(/\.json$/, ".owner-stop.json");
     const readyPath = output.replace(/\.json$/, ".owner-ready.json");
@@ -232,6 +260,22 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 }
                 report.target_sent_video_packets = observed.sent_video_packets;
             }
+            if (intent.source.terminalEndOperationId !== undefined) {
+                assert.equal(observed.terminal_end_requested, true);
+                verifyPhysicalOwnerEndReceipt(observed.terminal_end_receipt, intent, admittedConnectionId);
+                report.final_current_owner_end = {
+                    operation_id: intent.source.terminalEndOperationId, connection_id: admittedConnectionId,
+                    elapsed_since_programme_end_ms: observed.terminal_end_receipt.elapsed_since_programme_end_ms,
+                    original_cutoff_ms: 67000, mutation_submissions: 1,
+                };
+                report.final_owner_end_files = {};
+                for (const suffix of ["owner-end-intent", "owner-end-receipt"]) {
+                    const path = output.replace(/\.json$/, "." + suffix + ".json");
+                    const info = await stat(path); assert.equal(info.mode & 0o077, 0);
+                    assert.ok(info.size > 0 && info.size <= 65536);
+                    report.final_owner_end_files[suffix] = hash(await readFile(path));
+                }
+            }
             report.target_observation_sha256 = inspected.sha256;
             report.capture_inspection_worker_joined = inspected.worker_joined;
             report.target_sent_packets = observed.sent_audio_packets;
@@ -298,6 +342,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         const done = await operation.wait({ timeoutMs: remaining() });
         assert.equal(done.snapshot.state, "completed");
         const moved = done.value;
+        admittedConnectionId = moved.connection.id;
         assert.deepEqual(moved.retired, [intent.connectionId]);
         assert.deepEqual(moved.retained.map(v => v.id), [intent.retainedConnectionId]);
         const retained = await moved.retained[0].refresh({ timeoutMs: 5000 });

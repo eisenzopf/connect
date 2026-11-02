@@ -45,10 +45,11 @@
     }
   ],
   "independent_stopped_audit_sha256": "c09cfd74c9be0cad5e36a6f7b94f74524a6b8e92d4287e44df4017e7bed54e69",
-  "controller_enrollment_draft_applied": false,
+  "controller_enrollment_draft_applied": true,
   "materializer_integration_complete": false,
   "passed": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_actor_plan_tests_passed": 8
 }

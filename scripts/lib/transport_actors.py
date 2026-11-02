@@ -22,6 +22,13 @@ OPERATIONS = sorted({
 })
 ROLES = tuple(f"participant-{n}" for n in range(1, 5))
 DEVICES = (*ROLES, "replacement-1")
+CONTROLLERS = ("controller-1", "controller-2")
+
+
+def devices(movement_controllers):
+    if type(movement_controllers) is not bool:
+        raise FixtureError("fixture-actor-controller-mode")
+    return DEVICES + CONTROLLERS if movement_controllers else DEVICES
 
 
 def encoded(value):
@@ -41,20 +48,22 @@ def exact(path, content):
             os.close(directory)
 
 
-def new_plan(binding, expires_at):
+def new_plan(binding, expires_at, *, movement_controllers=False):
+    names = devices(movement_controllers)
     prefix = "g6-058-" + uuid.uuid4().hex
     return dict(format="connect/transport-actor-plan/1", binding=binding, expires_at=expires_at,
         identities=[dict(role=role, alias=prefix + "-" + role, operation_id="identity_" + str(uuid.uuid4())) for role in ROLES],
-        devices=[dict(name=name, role="participant-1" if name == "replacement-1" else name,
-            operation_id="credential_" + str(uuid.uuid4())) for name in DEVICES])
+        devices=[dict(name=name, role=name if name in ROLES else "participant-1",
+            operation_id="credential_" + str(uuid.uuid4())) for name in names])
 
 
-def validate_plan(plan, binding, ceiling, now):
+def validate_plan(plan, binding, ceiling, now, *, movement_controllers=False):
+    names = devices(movement_controllers)
     if (not isinstance(plan, dict) or set(plan) != {"format", "binding", "expires_at", "identities", "devices"}
             or plan["format"] != "connect/transport-actor-plan/1" or plan["binding"] != binding
             or type(plan["expires_at"]) is not int or not now < plan["expires_at"] <= ceiling
             or not isinstance(plan["identities"], list) or len(plan["identities"]) != 4
-            or not isinstance(plan["devices"], list) or len(plan["devices"]) != 5):
+            or not isinstance(plan["devices"], list) or len(plan["devices"]) != len(names)):
         raise FixtureError("fixture-actor-plan")
     seen = set()
     prefix = None
@@ -72,9 +81,9 @@ def validate_plan(plan, binding, ceiling, now):
         prefix = actual if prefix is None else prefix
         if prefix != actual:
             raise FixtureError("fixture-actor-alias")
-    for name, item in zip(DEVICES, plan["devices"]):
+    for name, item in zip(names, plan["devices"]):
         if (not isinstance(item, dict) or set(item) != {"name", "role", "operation_id"}
-                or item["name"] != name or item["role"] != ("participant-1" if name == "replacement-1" else name)):
+                or item["name"] != name or item["role"] != (name if name in ROLES else "participant-1")):
             raise FixtureError("fixture-actor-devices")
     for kind, items in (("identity", plan["identities"]), ("credential", plan["devices"])):
         for item in items:
@@ -98,12 +107,13 @@ def installation_files(path):
     return result
 
 
-def enroll_actors(root, instance, admin_path, binary, output, execute, *, resume=False):
+def enroll_actors(root, instance, admin_path, binary, output, execute, *, resume=False, movement_controllers=False):
     """Caller owns the running instance. execute invokes only the named public CLI.
 
     Enrollment itself does not create Conversation participants, sessions, media
     owners or a workload. Those observations belong to the full cell executor.
     """
+    names = devices(movement_controllers)
     instance, admin_path, output = (owned_path(root, p) for p in (instance, admin_path, output))
     binary = Path(binary)
     if binary.is_symlink() or not binary.is_file() or not binary.stat().st_mode & 0o111:
@@ -143,8 +153,8 @@ def enroll_actors(root, instance, admin_path, binary, output, execute, *, resume
     with lock.open("rb") as held:
         fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
         path = output / "plan.json"
-        plan = json.loads(private_file(path)) if resume else new_plan(binding, min(now + 3600, ceiling))
-        validate_plan(plan, binding, ceiling, now)
+        plan = json.loads(private_file(path)) if resume else new_plan(binding, min(now + 3600, ceiling), movement_controllers=movement_controllers)
+        validate_plan(plan, binding, ceiling, now, movement_controllers=movement_controllers)
         exact(path, encoded(plan))  # Durable original IDs precede every mutation.
         identities = {}
         for item in plan["identities"]:
@@ -195,14 +205,15 @@ def enroll_actors(root, instance, admin_path, binary, output, execute, *, resume
                 credential_id=issued["credential_id"], signing_key_id=native["signing_key_id"], signer_sha256=signer,
                 config=str(destination / "client.toml"), assets=assets)
         for field in ("device_id", "credential_id", "signing_key_id", "signer_sha256"):
-            if len({item[field] for item in installed.values()}) != 5:
+            if len({item[field] for item in installed.values()}) != len(names):
                 raise FixtureError("fixture-actor-distinct-devices")
         exact(output / "actors.json", encoded(installed))
         if digest(binary) != binding["binary_sha256"] or digest(admin_path) != binding["admin_config_sha256"]:
             raise FixtureError("fixture-actor-input-changed")
         result = dict(format="connect/transport-actor-enrollment/1", **binding,
             plan_sha256=digest(path), actors_sha256=digest(output / "actors.json"),
-            identities_enrolled=4, devices_enrolled=5, independent_replacement_device=True,
+            identities_enrolled=4, devices_enrolled=len(names), independent_replacement_device=True,
+            independent_controller_devices=2 if movement_controllers else 0,
             signing_algorithm=algorithm, scope_operations=OPERATIONS, recipient_ceiling=3,
             expires_at=plan["expires_at"], public_cli_enrollment_complete=True,
             conversation_participants_observed=False, concurrent_workload_observed=False,

@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
 mod owner;
 mod selected;
+mod terminal;
 mod timeline;
 mod video;
 
@@ -24,9 +25,27 @@ pub(super) struct Source {
     owner_control: bool,
     #[serde(default)]
     program_start_unix_us: Option<u64>,
+    #[serde(default)]
+    terminal_end_operation: Option<String>,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
+        if self
+            .terminal_end_operation
+            .as_ref()
+            .is_some_and(|operation| {
+                !video::id(operation)
+                    || !self.owner_control
+                    || self.video.is_none()
+                    || self.seconds != 62
+                    || self.program_start_unix_us.is_none()
+            })
+        {
+            return Err(
+                "final owner requires the original bounded AV programme and distinct end key"
+                    .into(),
+            );
+        }
         let maximum = if self.video.is_some() { 62 } else { 30 };
         if !(1..=maximum).contains(&self.seconds)
             || self.ssrc == 0
@@ -243,6 +262,9 @@ pub(super) async fn run(
     output: PathBuf,
 ) -> Result<()> {
     source.validate()?;
+    if source.terminal_end_operation.as_deref() == Some(command.operation_id.as_str()) {
+        return Err("final physical end reused the replacement operation key".into());
+    }
     // Refuse an expired original program before allocation or any network IO.
     timeline::Program::at(
         source.program_start_unix_us,
@@ -284,6 +306,7 @@ pub(super) async fn run(
     let mut program_origin = None;
     let mut source_start_audio_index = 0;
     let mut source_start_video_index = 0;
+    let mut terminal_end_receipt = None;
     let work = async {
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
@@ -419,6 +442,16 @@ pub(super) async fn run(
             }
         }
         if source.video.is_some() && (!video_open || sent_video==0) {return Err("replacement AV source ended without original completed video controls and original video packets".into());}
+        if let Some(operation) = &source.terminal_end_operation {
+            phase = "original-final-owner-end";
+            if stop_requested {
+                return Err("final physical owner stopped before its original end; no teardown pass".into());
+            }
+            // No media send/receive occurs after the loop's original boundary.
+            // Keep only control ownership under that same programme's5s cutoff.
+            terminal_end_receipt = Some(terminal::io::run(
+                &mut client, &scope, operation, start, &output).await?);
+        }
         Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     }
     .await;
@@ -440,6 +473,8 @@ pub(super) async fn run(
         "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
         "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
+        "terminal_end_requested":source.terminal_end_operation.is_some(),
+        "terminal_end_receipt":terminal_end_receipt,
         "negotiated_streams":negotiated});
     file.write_all(&serde_json::to_vec(&result)?).await?;
     file.sync_all().await?;
@@ -454,6 +489,38 @@ pub(super) async fn run(
 mod tests {
     use super::*;
     #[test]
+    fn final_end_is_only_for_the_full_original_live_av_owner() {
+        let make = || Source {
+            seconds: 62,
+            ssrc: 7,
+            audio_packets: vec![vec![1]; 3100],
+            owner_control: true,
+            program_start_unix_us: Some(1),
+            terminal_end_operation: Some("original-final-end".into()),
+            video: Some(video::Video {
+                stream_id: "camera".into(),
+                receive_audio_stream_id: "remote-audio".into(),
+                receive_video_stream_id: "remote-camera".into(),
+                receive_data_stream_id: None,
+                ssrc: 8,
+                frames: vec![vec![4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01]; 1860],
+            }),
+        };
+        make().validate().unwrap();
+        for change in 0..6 {
+            let mut source = make();
+            match change {
+                0 => source.owner_control = false,
+                1 => source.video = None,
+                2 => source.seconds = 61,
+                3 => source.program_start_unix_us = None,
+                4 => source.terminal_end_operation = Some("foreign:id".into()),
+                _ => source.terminal_end_operation = Some(String::new()),
+            }
+            assert!(source.validate().is_err());
+        }
+    }
+    #[test]
     fn data_offer_profile_preserves_binary_identity_capacity_and_av_source_clocks() {
         let mut source = Source {
             seconds: 1,
@@ -462,6 +529,7 @@ mod tests {
             video: None,
             owner_control: false,
             program_start_unix_us: None,
+            terminal_end_operation: None,
         };
         let offer = json!({"capabilities":{"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
             "video_codecs":[],"data_protocols":["binary"],"max_streams_per_connection":2,"source_clock":"rtcp-sr-sdes/1"},
@@ -520,6 +588,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                terminal_end_operation: None,
             },
             Source {
                 seconds: 31,
@@ -528,6 +597,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                terminal_end_operation: None,
             },
             Source {
                 seconds: 1,
@@ -536,6 +606,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                terminal_end_operation: None,
             },
             Source {
                 seconds: 1,
@@ -544,6 +615,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                terminal_end_operation: None,
             },
             Source {
                 seconds: 1,
@@ -552,6 +624,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                terminal_end_operation: None,
             },
         ] {
             assert!(source.validate().is_err());

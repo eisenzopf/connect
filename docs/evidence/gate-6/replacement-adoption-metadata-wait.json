@@ -47,5 +47,18 @@
     "finding": "ConnectionBinding is a cloned value. The retained preparation snapshot remains Preparing while commit activates a separate value of the same protected incarnation. The first adoption-wait predicate incorrectly requires Active on the immutable snapshot.",
     "stage": "Real Core relationship counterexample running against the current predicate before correction",
     "quality_or_deadline_changes": false
+  },
+  "immutable_binding_correction": {
+    "applied": true,
+    "source_revision": "291e33135d83e5e5f5e13e637320a83d4ff0e72a",
+    "before_actual_tests_passed": 0,
+    "before_actual_tests_failed": 1,
+    "expected_failure_verified": true,
+    "after_actual_service_tests_passed": 19,
+    "after_failed": 0,
+    "after_ignored": 0,
+    "source_inputs_unchanged": true,
+    "normal_release_current_runtime": "pending after integration",
+    "fresh_scene": "not run on corrected predicate"
   }
 }
