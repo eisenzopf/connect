@@ -1,0 +1,372 @@
+{
+  "format": "connect/replacement-source-admission-observed/1",
+  "task": "G6-058",
+  "audit_passed": true,
+  "scene_passed": false,
+  "source_admission_audit_sha256": "91a4a7b5e3a3659088805c118793a2c431b48e892c59afbfd31c8d33b7a44b03",
+  "runtime_source_revision": "21b4de99e8afbfeb4ff74eec52f4b841cf0e6628",
+  "runtime_sha256": "08e8f75e3e8ede8b12357e4330f9fead00c71d497ff61922fca3ac6b86fc8ab3",
+  "original_admission_receipts": 3126,
+  "original_source_recording_sha256": {
+    "received-0.json": "6a18f2d5c4bf6b25c84e7a92d436da25cc83e7810cb19aa863fc772e6df183f6",
+    "received-1.json": "18064881a6952b724aebc59d3671a99c48700cbe7dc7a1f39fca3589c7fab803",
+    "received-2.json": "d631734611a48273aee7218e0bff0b67adc201e4a9059db6ea5a24607262e74c",
+    "received-3.json": "e86e21434a0a43bcdd9dd33c38a45feda6112bf9a9e820ff077b2a4c64562939",
+    "received-4.json": "a4939a8d4ecaf5125c97986da1635f9591af2eef2e5e1f558b0890005a19ccab",
+    "received-5.json": "20289b2cbde9d17f2b2865450d6857257306a58fd5e15cfeff0f4657357c7d35"
+  },
+  "all_six_original_capture_files_unchanged": true,
+  "routes": [
+    {
+      "index": 0,
+      "peer_index": 3,
+      "observed_seconds": 10.433678541,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.733,
+            "p50_ms": 0.234,
+            "p95_ms": 1.37,
+            "maximum_ms": 2.549
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.084,
+            "p50_ms": 0.331,
+            "p95_ms": 0.974,
+            "maximum_ms": 2.072
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.552,
+            "p50_ms": 0.574,
+            "p95_ms": 1.861,
+            "maximum_ms": 4.622
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.776,
+            "p50_ms": -0.01,
+            "p95_ms": 1.678,
+            "maximum_ms": 49.755
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.08,
+            "p50_ms": 0.268,
+            "p95_ms": 0.778,
+            "maximum_ms": 30.172
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.664,
+            "p50_ms": 0.347,
+            "p95_ms": 2.12,
+            "maximum_ms": 51.93
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "peer_index": 0,
+      "observed_seconds": 10.436215291,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.516,
+            "p50_ms": 0.219,
+            "p95_ms": 1.401,
+            "maximum_ms": 3.265
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.114,
+            "p50_ms": 0.36,
+            "p95_ms": 0.921,
+            "maximum_ms": 1.886
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.192,
+            "p50_ms": 0.61,
+            "p95_ms": 1.845,
+            "maximum_ms": 5.151
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.632,
+            "p50_ms": 0.042,
+            "p95_ms": 1.69,
+            "maximum_ms": 49.617
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.087,
+            "p50_ms": 0.275,
+            "p95_ms": 0.794,
+            "maximum_ms": 30.05
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.5,
+            "p50_ms": 0.343,
+            "p95_ms": 2.139,
+            "maximum_ms": 50.753
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "peer_index": 1,
+      "observed_seconds": 10.442408458000001,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.3,
+            "p50_ms": 0.219,
+            "p95_ms": 1.473,
+            "maximum_ms": 3.53
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.087,
+            "p50_ms": 0.29,
+            "p95_ms": 0.854,
+            "maximum_ms": 2.074
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.154,
+            "p50_ms": 0.592,
+            "p95_ms": 2.19,
+            "maximum_ms": 5.604
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.764,
+            "p50_ms": 0.097,
+            "p95_ms": 1.745,
+            "maximum_ms": 49.535
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.085,
+            "p50_ms": 0.264,
+            "p95_ms": 0.846,
+            "maximum_ms": 30.508
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.543,
+            "p50_ms": 0.429,
+            "p95_ms": 2.323,
+            "maximum_ms": 50.585
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "peer_index": 2,
+      "observed_seconds": 10.443765333,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.363,
+            "p50_ms": 0.336,
+            "p95_ms": 1.486,
+            "maximum_ms": 3.721
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.119,
+            "p50_ms": 0.311,
+            "p95_ms": 0.785,
+            "maximum_ms": 2.102
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.172,
+            "p50_ms": 0.632,
+            "p95_ms": 2.198,
+            "maximum_ms": 5.823
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.74,
+            "p50_ms": 0.087,
+            "p95_ms": 1.705,
+            "maximum_ms": 49.653
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.087,
+            "p50_ms": 0.266,
+            "p95_ms": 0.854,
+            "maximum_ms": 30.099
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.507,
+            "p50_ms": 0.423,
+            "p95_ms": 2.189,
+            "maximum_ms": 50.417
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "peer_index": 5,
+      "observed_seconds": 10.456741957999999,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.686,
+            "p50_ms": 0.257,
+            "p95_ms": 1.402,
+            "maximum_ms": 3.945
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.104,
+            "p50_ms": 0.306,
+            "p95_ms": 0.901,
+            "maximum_ms": 1.283
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.579,
+            "p50_ms": 0.526,
+            "p95_ms": 1.86,
+            "maximum_ms": 4.774
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.729,
+            "p50_ms": 0.002,
+            "p95_ms": 1.669,
+            "maximum_ms": 49.691
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.083,
+            "p50_ms": 0.261,
+            "p95_ms": 0.755,
+            "maximum_ms": 30.114
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.536,
+            "p50_ms": 0.343,
+            "p95_ms": 2.124,
+            "maximum_ms": 50.061
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "peer_index": 4,
+      "observed_seconds": 10.458197250000001,
+      "audio_admission_receipts": 521,
+      "late_send_frames": 0,
+      "windows": [
+        {
+          "name": "original_warmup",
+          "source_schedule_to_submit": {
+            "samples": 100,
+            "minimum_ms": -1.414,
+            "p50_ms": 0.228,
+            "p95_ms": 1.477,
+            "maximum_ms": 4.215
+          },
+          "public_sdk_queue_admission": {
+            "samples": 100,
+            "minimum_ms": 0.13,
+            "p50_ms": 0.327,
+            "p95_ms": 0.823,
+            "maximum_ms": 1.1
+          },
+          "source_schedule_to_admission": {
+            "samples": 100,
+            "minimum_ms": -1.19,
+            "p50_ms": 0.614,
+            "p95_ms": 1.917,
+            "maximum_ms": 5.234
+          }
+        },
+        {
+          "name": "post_warmup_nominal_control_phase",
+          "source_schedule_to_submit": {
+            "samples": 421,
+            "minimum_ms": -1.692,
+            "p50_ms": 0.032,
+            "p95_ms": 1.641,
+            "maximum_ms": 49.579
+          },
+          "public_sdk_queue_admission": {
+            "samples": 421,
+            "minimum_ms": 0.075,
+            "p50_ms": 0.296,
+            "p95_ms": 0.783,
+            "maximum_ms": 30.088
+          },
+          "source_schedule_to_admission": {
+            "samples": 421,
+            "minimum_ms": -1.546,
+            "p50_ms": 0.341,
+            "p95_ms": 2.163,
+            "maximum_ms": 50.752
+          }
+        }
+      ]
+    }
+  ],
+  "source_operation_replayed": false,
+  "replacement_moves_completed": 0,
+  "decoded_quality_verified": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Read-only audit of the original Data+AV scene, which ended after 10.4 seconds before the Data policy fix. Numeric source schedules and local public-SDK queue-admission receipts only; no actual network write, remote reception, decoding, or presentation is proven. The two-second cutoff marks the planned warmup boundary rather than a measured first replacement submission. No replay, new workload, packet retiming, or full 60-second qualification.",
+  "finding": "All six sources record zero late-send discards. After warmup, local public-SDK queue-admission p95 ranges from 0.755 to 0.854 ms; schedule-to-admission p95 ranges from 2.120 to 2.323 ms. These are local admission observations. The separate original target allocation refuses the Data profile and no movement completes.",
+  "packet_timestamps_changed": false
+}

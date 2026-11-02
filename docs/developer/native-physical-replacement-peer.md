@@ -306,9 +306,11 @@ set must include Data; the AV profile's subsequent unmute checks both Data and
 video gate results against the original handles, generation and revision.
 Resource negotiation and gate-result tests pass19 Rust cases; the target,
 owner-lifetime and capture-boundary Node cohort passes15. The release peer builds
-with unchanged inputs. These are component checks: the server's provisional
-replacement media policy still excludes Data, and real replacement Data IO,
-recipient subscriptions and the complete main producer remain open. See
+with unchanged inputs. These are component checks. Server allocation, suspended target projection and
+provisional format intersection now preserve provisioned Data; see the later
+[server policy evidence](../evidence/gate-6/replacement-data-policy.json). Real
+replacement Data IO, recipient subscriptions and the complete main producer
+remain open. See
 [the Data resource evidence](../evidence/gate-6/replacement-data-resources.json).
 
 
@@ -321,6 +323,6 @@ Data/video selectors together for every planned replacement. Stopped-capture
 custody validates both Data bindings in each of the twenty original records and
 rejects undeclared, omitted or reused identities. Reliable Data handles are
 excluded from RTP/RTCP decoder inputs, and negotiation never proves Data IO.
-The current19 Rust and30 Node checks pass, with a built release peer. Actual
-server Data admission and the complete physical workload remain open; see
+The current19 Rust and30 Node checks pass, with a built release peer. Actual targets now pass allocation, but the measured run stops at media-answer
+before resources or Data IO. The complete physical workload remains open; see
 [the subscription evidence](../evidence/gate-6/replacement-data-subscriptions.json).

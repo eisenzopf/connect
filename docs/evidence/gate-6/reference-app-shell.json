@@ -201,5 +201,20 @@
     }
   ],
   "requirement_audit_scope": "Completion remains unproven. Historical positive and negative results retain their exact source/runtime/OS/Node scope; no later source change inherits a whole-candidate pass.",
-  "current_bundled_mac_verification": "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
+  "current_bundled_mac_verification": "docs/evidence/gate-6/reference-app-bundled-macos-verified.json",
+  "current_ci_results": {
+    "run_id": 41392072614,
+    "source_revision": "6bb8cd035675ecb24a0cfe5098802976daae7561",
+    "linux": {
+      "checks_passed": 25,
+      "passed": false,
+      "evidence": "docs/evidence/gate-6/reference-app-bundled-linux-negative.json"
+    },
+    "macos": {
+      "checks_passed": 5,
+      "passed": false,
+      "evidence": "docs/evidence/gate-6/reference-app-bundled-macos-ci-negative.json"
+    },
+    "no_task_promotion": true
+  }
 }

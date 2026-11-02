@@ -1,0 +1,133 @@
+{
+  "format": "connect/reference-app-bundled-macos-ci-negative/1",
+  "task": "G6-072",
+  "workflow_run_url": "https://github.com/eisenzopf/connect/actions/runs/41392072614",
+  "job_url": "https://github.com/eisenzopf/connect/actions/runs/41392072614/job/125105440339",
+  "source_revision": "6bb8cd035675ecb24a0cfe5098802976daae7561",
+  "target": "aarch64-apple-darwin",
+  "binary_sha256": "c453135ad8ffe026b5a03014890e8467f228620295851adc3af680cd0e74fdad",
+  "browser": "156.0.8078.48",
+  "node": "v22.23.4",
+  "check_count": 5,
+  "checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected"
+  ],
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "failure": {
+    "stage": "native-browser-video-playout-component",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 300,
+        "column": 12
+      }
+    ]
+  },
+  "native_video_playout_component": {
+    "painted": 0,
+    "dropped": 3,
+    "queued": 0,
+    "pixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "frame_construction_ms": 2,
+    "enqueue_ms": 1,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {
+      "late": 3
+    },
+    "timer_samples": [
+      {
+        "requested_at_ms": 1529.4000000003725,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 2277.7000000001863,
+        "wake_lateness_ms": 668.2999999998137,
+        "callback_duration_ms": 0.20000000018626451
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [],
+    "observation_ms": 830
+  },
+  "opus_native_build": {
+    "mode": "bundled-static",
+    "native_archive_sha256": "4d5fee3cb3a8a92ce915bc7518009481dd3e01795f2dcb1760d322661674bb1c"
+  },
+  "independent_artifact_audit": {
+    "format": "connect/ci-component-artifacts-audited/1",
+    "run_id": 41392072614,
+    "job_id": 125105440339,
+    "source_revision": "6bb8cd035675ecb24a0cfe5098802976daae7561",
+    "target": "aarch64-apple-darwin",
+    "artifact_zip_digests": {
+      "app.zip": "66b8b6d285a951ee9102dbd58787555b6ecf8a794006e70296e1c0c666299670",
+      "13120825007.zip": "1a3bff7b78cfeb8baffd2d9ae72105415d90158100cb503024808befb4b72a36",
+      "13119684921.zip": "84c9cf7d3c83c7ba43558cae36f814e7ae0683bebb8c065c9df8e3712533899b",
+      "13119844067.zip": "179fee324285eba4c6969d118bbbaa5b1de58273668e30b03d57e45ad4db3a7c"
+    },
+    "zip_crc_and_paths_valid": true,
+    "private_build_logs_excluded": true,
+    "sources_verified": {
+      "git": 4946,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "runtime_files_verified": 755,
+    "app_files_verified": 30,
+    "node_files_verified": 195,
+    "retained_source_and_archive_digests_and_report_inventory_fields_match": true,
+    "original_installation_proof_hash_recomputed": false,
+    "original_installation_proof_not_retained_reason": "Workflow removes local executable and consumer paths before serializing the curated installation report.",
+    "binary_sha256": "c453135ad8ffe026b5a03014890e8467f228620295851adc3af680cd0e74fdad",
+    "browser": "156.0.8078.48",
+    "node": "v22.23.4",
+    "app_checks": 5,
+    "actual_app_behavior_passed": false,
+    "failure": {
+      "stage": "native-browser-video-playout-component",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION",
+      "source_stack": [
+        {
+          "line": 300,
+          "column": 12
+        }
+      ]
+    },
+    "screenshots": [],
+    "screenshots_visually_reviewed": false,
+    "raw_v8_or_native_profile_inputs_retained": false,
+    "observer_clock_replay_matches": null,
+    "native_bundled_build_proof_matches_manifest": true,
+    "native_archive_digest_independently_recomputed": false,
+    "native_archive_not_retained": true,
+    "artifact_audit_passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "scope": "Exact CI source, runtime/native and Node archive inventories and report linkage; installed identities are the retained checker reports, not independent access to the now-retired runner. App behavior failed. No raw V8/native profile recomputation or full transport-cell qualification."
+  },
+  "independent_artifact_audit_sha256": "97e253642df226d4cf997ddbdf3a51365d9ed9061277378bce7b42a0ad4898ca",
+  "source_and_runtime_guards_held": true,
+  "cleanup_failure_recorded": false,
+  "screenshots_retained": 0,
+  "raw_v8_profiles_recomputed": false,
+  "raw_native_profiles_recomputed": false,
+  "native_clock_workload_started": false,
+  "native_timer_thresholds_changed": false,
+  "fixture_retried": false,
+  "scope": "Current production bundled-Opus macOS package and regular offline Node installation reach five actual app checks in exact frozen full Chrome. The native VideoPlayout component records an80ms timer waking668.3ms late; its three original frames all expire under the unchanged50ms paint freshness bound. The page is visible and focused, construction2ms/enqueue1ms. This establishes observed timer delay, not its cause. No full app or transport-cell qualification.",
+  "next_required": "Investigate browser startup/scheduling and preserve this original failed observation; retain unchanged presentation freshness and full actual app checks. The earlier local37/37 result remains scoped to its own measured host/run."
+}

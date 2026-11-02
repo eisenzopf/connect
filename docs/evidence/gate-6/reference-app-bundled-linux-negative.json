@@ -1,0 +1,274 @@
+{
+  "format": "connect/reference-app-bundled-linux-negative/1",
+  "task": "G6-072",
+  "workflow_run_url": "https://github.com/eisenzopf/connect/actions/runs/41392072614",
+  "job_url": "https://github.com/eisenzopf/connect/actions/runs/41392072614/job/125105440672",
+  "source_revision": "6bb8cd035675ecb24a0cfe5098802976daae7561",
+  "target": "x86_64-unknown-linux-gnu",
+  "binary_sha256": "fcf730d323adc61923b1ead536c8d5abd6d95a215d95328bb3f0b3493e1938dd",
+  "browser": "156.0.8078.4",
+  "node": "v22.23.4",
+  "check_count": 25,
+  "checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected",
+    "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+    "keyboard-participant-selection-and-conversation-creation",
+    "actual-authorized-text-safe-timeline",
+    "keyboard-incoming-invitation-and-actual-acceptance",
+    "actual-browser-microphone-and-camera-refusal",
+    "320px-no-horizontal-overflow",
+    "actual-accepted-original-survives-lost-response-and-offline",
+    "keyboard-original-status-recovery-one-visible-message",
+    "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+    "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+    "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+    "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+    "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+    "current-active-session-snapshots-preserve-original-browser-media-capture",
+    "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+    "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+    "additional-owned-synthetic-media-browser-owners-close",
+    "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+    "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+    "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions"
+  ],
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 750,
+        "column": 20
+      }
+    ]
+  },
+  "sustained_browser_av": [
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2005.5999999998603,
+        "completed_audio_frames": 27,
+        "painted_video_frames": 56,
+        "audio_energy": 0.04448540364122314,
+        "desired_tone": 0.021778274912654196,
+        "excluded_tone": 1.1659165669626317e-05,
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 238,
+          "sentRtp": 238,
+          "receivedRtp": 241,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 147,
+          "playedAudioFrames": 50,
+          "decodedVideoFrames": 74,
+          "paintedVideoFrames": 70,
+          "droppedFrames": 118,
+          "synchronizedPackets": 237,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 97,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -13.144,
+          "lastVideoOffsetMs": 35.644,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": 2,
+          "lastVideoCaptureOffsetMs": -4,
+          "receiveStartedMs": 334,
+          "deviceSetupMs": 49,
+          "captureGraphMs": 14,
+          "cameraSetupMs": 15,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 1,
+          "queuedVideoFrames": 1,
+          "pendingRequests": 4,
+          "stopped": false
+        }
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2006.4000000001397,
+        "completed_audio_frames": 0,
+        "painted_video_frames": 57,
+        "audio_energy": 0,
+        "desired_tone": 0,
+        "excluded_tone": 0,
+        "metrics": {
+          "capturedAudioFrames": 151,
+          "capturedVideoFrames": 89,
+          "encodedFrames": 237,
+          "sentRtp": 238,
+          "receivedRtp": 208,
+          "clockReportsSent": 6,
+          "clockReportsReceived": 6,
+          "videoClockReportsSent": 3,
+          "videoClockReportsReceived": 3,
+          "decodedAudioFrames": 124,
+          "playedAudioFrames": 13,
+          "decodedVideoFrames": 83,
+          "paintedVideoFrames": 81,
+          "droppedFrames": 120,
+          "synchronizedPackets": 204,
+          "unsynchronizedPackets": 4,
+          "audioLateDrops": 111,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "lastAudioOffsetMs": -164.206,
+          "lastVideoOffsetMs": 53.696,
+          "receiveClockCorrections": 1,
+          "lastAudioCaptureOffsetMs": 5,
+          "lastVideoCaptureOffsetMs": -12,
+          "receiveStartedMs": 223,
+          "deviceSetupMs": 38,
+          "captureGraphMs": 8,
+          "cameraSetupMs": 24,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 3,
+          "stopped": false
+        }
+      }
+    ]
+  ],
+  "independent_artifact_audit": {
+    "format": "connect/ci-component-artifacts-audited/1",
+    "run_id": 41392072614,
+    "job_id": 125105440672,
+    "source_revision": "6bb8cd035675ecb24a0cfe5098802976daae7561",
+    "target": "x86_64-unknown-linux-gnu",
+    "artifact_zip_digests": {
+      "app.zip": "2d6160ef44d87b020731ec6e3bea33d11aaab53ee4fe9449f2c35083087b369c",
+      "13118906900.zip": "61971d4de875b56696ca25372adeab69fcfaa94add75f7c62180447d2ca469c1",
+      "13118712490.zip": "0d7aaf2b1213f9bca872415864efd9dcc30ce78138f55586d2b35fa138325d3d",
+      "13119230973.zip": "19ebf23b8c126858e2f4a82c6c18eea925182dc158d42334314295107dd977f4"
+    },
+    "zip_crc_and_paths_valid": true,
+    "private_build_logs_excluded": true,
+    "sources_verified": {
+      "git": 4946,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "runtime_files_verified": 753,
+    "app_files_verified": 30,
+    "node_files_verified": 195,
+    "retained_source_and_archive_digests_and_report_inventory_fields_match": true,
+    "original_installation_proof_hash_recomputed": false,
+    "original_installation_proof_not_retained_reason": "Workflow removes local executable and consumer paths before serializing the curated installation report.",
+    "binary_sha256": "fcf730d323adc61923b1ead536c8d5abd6d95a215d95328bb3f0b3493e1938dd",
+    "browser": "156.0.8078.4",
+    "node": "v22.23.4",
+    "app_checks": 25,
+    "actual_app_behavior_passed": false,
+    "failure": {
+      "stage": "sustained-combined-browser-audio-video",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION",
+      "source_stack": [
+        {
+          "line": 750,
+          "column": 20
+        }
+      ]
+    },
+    "screenshots": [
+      "capture-controls-narrow.png",
+      "capture-controls.png",
+      "native-controls-narrow.png",
+      "native-controls.png"
+    ],
+    "screenshots_visually_reviewed": false,
+    "raw_v8_or_native_profile_inputs_retained": false,
+    "observer_clock_replay_matches": null,
+    "artifact_audit_passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "scope": "Exact CI source, runtime/native and Node archive inventories and report linkage; installed identities are the retained checker reports, not independent access to the now-retired runner. App behavior failed. No raw V8/native profile recomputation or full transport-cell qualification."
+  },
+  "independent_clock_replay": {
+    "passed": true,
+    "pending_reads_at_finish": 0,
+    "scope": "Retained original HTTP observations replay through unchanged application mapper. Observation body/open failures remain explicit; this is not the actual decoder/presentation timeline."
+  },
+  "independent_screenshot_review": {
+    "images": [
+      {
+        "name": "capture-controls-narrow.png",
+        "sha256": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+        "width": 320,
+        "height": 3921,
+        "png_chunks_and_deflate_valid": true
+      },
+      {
+        "name": "capture-controls.png",
+        "sha256": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc",
+        "width": 1440,
+        "height": 2389,
+        "png_chunks_and_deflate_valid": true
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "sha256": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+        "width": 320,
+        "height": 4012,
+        "png_chunks_and_deflate_valid": true
+      },
+      {
+        "name": "native-controls.png",
+        "sha256": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+        "width": 1440,
+        "height": 2559,
+        "png_chunks_and_deflate_valid": true
+      }
+    ],
+    "all_four_visually_reviewed": true,
+    "observations": [
+      "Desktop and 320px controls remain within the viewport and readable, with visible keyboard focus and wrapping buttons.",
+      "Injected HTML is shown as literal text; original recovered message appears once.",
+      "Captured states precede the sustained combined AV failure; static screenshots prove no audio continuity or temporal media quality."
+    ],
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "private_source_audits_sha256": {
+    "independent-artifact-audit.json": "bf9eb50ead7d3e419c064b0aa59eb3c14c3714fcf03de8bca79499117dcb3688",
+    "independent-clock-replay.json": "233d357a132a73daea65464b47e5d9778b0413b91bc4b7a309780f3fc56d3a87",
+    "independent-screenshot-review.json": "5034bf596a60e88f48054e8e979135b33fcdfc0cb1d8818a3b446811bcc3f6d4"
+  },
+  "source_and_runtime_guards_held": true,
+  "cleanup_failure_recorded": false,
+  "raw_v8_profiles_recomputed": false,
+  "raw_native_profiles_recomputed": false,
+  "scope": "Current installed production Linux runtime and Node component app in the exact frozen full Chromium profile. Twenty-five checks pass; first sustained two-second combined AV observation fails unchanged >=50 completed-audio-frame requirement with 27/0 observed while video paints 56/57. Retained response-clock replay is partial and differs from actual browser presentation. No timeout-causation, whole transport cell or whole app qualification claimed.",
+  "next_required": "Reduce measured audio lateness in the original pipeline without weakening the audio, browser, source-clock or cleanup acceptance criteria. macOS CI remains a separately observed original job."
+}

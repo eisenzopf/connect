@@ -1,0 +1,160 @@
+{
+  "format": "connect/replacement-data-policy/1",
+  "task": "G6-058",
+  "source_revision": "769973321ef0dd4d83c8a420434d0cab13821db4",
+  "changes": [
+    "Require provisioned Data capability in the signed replacement allocation alongside audio/video.",
+    "Retain Data in the suspended target capability projection.",
+    "Include exact Data formats in the provisional media capability intersection; existing non-Control and ordinary adopted-Data authority fences remain."
+  ],
+  "verification": {
+    "store_replacement_tests_passed": 149,
+    "manifest_tests_passed": 2,
+    "service_media_tests_passed": 8,
+    "ignored_tests": 0,
+    "production_runtime_build_passed": true,
+    "source_inputs_unchanged": true,
+    "runtime_sha256": "0aec1b8645e7e25dab7f7b8838cf9250bcae254193575e64eabfab2e67326f77",
+    "private_runtime_log_sha256": "555fc85dddd9a221c238aede3c1bcd137d44f313fc593c27dcb61762f261b108",
+    "private_source_inputs_sha256": "6324cbda8d36317e42f80a44d7c50d8739c51a323d00a6d02a687856726a1e82",
+    "independent_scene_audit_sha256": "5d00b4f1359dda2bbc821fcc877bb22a6f5a89d226e9c3ac0440317a2586f698"
+  },
+  "actual_scene": {
+    "format": "connect/replacement-data-allocation-audit/1",
+    "runtime_sha256": "0aec1b8645e7e25dab7f7b8838cf9250bcae254193575e64eabfab2e67326f77",
+    "original_messages": [
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "ef8e658fd8b98c096ddfdad7aca166bb33a2f4dd91f16d5681e395113105d42e",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "70cfe843843453c8b0a2362ddb1ccf5daef231374e9bac96f812e87470087644",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "ed81c0daf5c02311f771d8eef772c6d5cf3017d0b6cbe533c2b8551ce4011de5",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "6833774b6bfd4c25fb2effa816defa324ba51c061e2e71e2e752f812006ff081",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "94a06b889406e2a882c1a5033c11635ed1ae40adcdf7ec96f6430b8b90c4ea62",
+        "original_completed_result_and_exact_audience": true
+      },
+      {
+        "payload_bytes": 65536,
+        "payload_sha256": "00801eeaaf600dd59b573088afdaea7f6a1c0794b64ef54247d3f333addb2672",
+        "original_completed_result_and_exact_audience": true
+      }
+    ],
+    "root_states": [
+      {
+        "state": "failed",
+        "revision": 8,
+        "problem_code": "native-target-stopped"
+      },
+      {
+        "state": "failed",
+        "revision": 8,
+        "problem_code": "native-target-stopped"
+      }
+    ],
+    "effect_phases": [
+      {
+        "phase": "prepare",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "prepare",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "allocate",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "start",
+        "started": 1,
+        "state": "unknown"
+      },
+      {
+        "phase": "allocate",
+        "started": 1,
+        "state": "confirmed"
+      },
+      {
+        "phase": "start",
+        "started": 1,
+        "state": "unknown"
+      }
+    ],
+    "media_phase_records": 0,
+    "physical_targets": [
+      {
+        "source_index": 0,
+        "target_allocated_once": true,
+        "failure_stage": "media-answer",
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "private_observation_sha256": "55407d4325795b94d676520024f735b7eea013126dc4d96b6f6d2569744ea9be",
+        "private_stage_sha256": "c70e2eca4effbae1f83680bdaf01c81d5d21e1c460b0eb8327479e1c24aaf00f",
+        "private_log_sha256": "c71c5c837ca57f5cb986e5f5aaec6f4427f9af3b685bc098720ad0bde57be173"
+      },
+      {
+        "source_index": 4,
+        "target_allocated_once": true,
+        "failure_stage": "media-answer",
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "private_observation_sha256": "55407d4325795b94d676520024f735b7eea013126dc4d96b6f6d2569744ea9be",
+        "private_stage_sha256": "336df1105e4aae4c0003a4ee753c0a1323b05b36fe3feb26a20f966ff7693640",
+        "private_log_sha256": "c71c5c837ca57f5cb986e5f5aaec6f4427f9af3b685bc098720ad0bde57be173"
+      }
+    ],
+    "original_packet_tasks_joined": true,
+    "helpers_and_server_joined": true,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "full_data_baseline_passed": true,
+    "actual_target_allocation_confirmed": 2,
+    "actual_replacement_data_io_qualified": false,
+    "movements_completed": 0,
+    "scene_passed": false,
+    "audit_passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "retained_prior_failures": [
+    {
+      "phase": "Initial build",
+      "failure": "Unrelated integration test used removed Manifest.video field; fixture now declares incompatible typed media.",
+      "log_sha256": "579191a3624e3543afb6aa3070505325fb5e0db637b2960f7c529fb92756fbe4"
+    },
+    {
+      "phase": "Regression before target projection fix",
+      "passed": 148,
+      "failed": 1,
+      "failure": "Target start projection removed provisioned Data while allocation had accepted it.",
+      "log_sha256": "db4048b66d3bd41039bd705b65341d63835a2c7dcb57fe70a7175adcc9fa488f"
+    }
+  ],
+  "remaining": [
+    "Inspect the unexpected signed negotiation response before any retry; original started effects remain unknown and are not replayed.",
+    "Prove actual precommit Data quarantine and postcommit reliable Data IO, and complete20physical moves with independent full-window decoding.",
+    "Integrate controller enrollment/current final Connection ownership into the main producer and qualify all32frozen transport cells."
+  ],
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}
