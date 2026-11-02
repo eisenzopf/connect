@@ -54,9 +54,9 @@
     "scope": "76Node26 application component cases pass. Separately31RustSDK and45Node/Python adapter cases verify live queue/result expiration. These local checks do not qualify new installed production packages."
   },
   "remaining_requirements": [
-    "Qualify and independently audit the newly built production runtime and Node/Python packages containing both Rust inbox and retained adapter result expiration.",
-    "Run the current37check installed shell rehearsal on its minimum Linux/Node22 and supported macOS profiles, including original Connection restart with no queued old audio and resumption of current peer audio.",
-    "Resolve the Linux combined AV audio lateness/signed-supervisor deadline seen in the31ec candidate without widening timing criteria; complete the current candidate requirement audit."
+    "Qualify current37check installed app on Ubuntu24.04/x86_64/Node22 and macOS CI with exact frozen browser profiles.",
+    "Independently audit current CI source/native/Node package identities and all behavior results.",
+    "Installed SDK/facade parity beyond the public Node app remains in G6-070; no Python or whole-transport result is inferred from this app run."
   ],
   "task_complete": false,
   "whole_gate_qualified": false,
@@ -153,47 +153,53 @@
   "requirements_audit": [
     {
       "requirement": "One-command local setup and scoped enrollment",
-      "result": "verified in recorded installed scopes; current package qualification pending",
+      "result": "verified in current bundled macOS installed scope; current Linux qualification pending",
       "evidence": [
-        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
+        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+        "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
       ],
-      "observations": "Cold install, four actor-scoped identities/devices, verified media Endpoints with original decisions, same-command restart and joined shutdown."
+      "observations": "Cold install, four actor-scoped identities/devices, verified media Endpoints with original decisions, same-command restart and joined shutdown. Current21b4 bundled macOS/Node22.16/frozenChrome.48 run passes37/37 with independent source/archive/installation,observer and eight-screenshot audits."
     },
     {
       "requirement": "Participant selection, timeline, incoming invitations and operation progress",
-      "result": "verified in recorded installed scopes",
+      "result": "verified in current bundled macOS installed scope; current Linux qualification pending",
       "evidence": [
-        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json"
+        "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
+        "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
       ],
-      "observations": "Real keyboard controls, authorized text rendering, invitation acceptance and original status recovery after a lost response."
+      "observations": "Real keyboard controls, authorized text rendering, invitation acceptance and original status recovery after a lost response. Current21b4 bundled macOS/Node22.16/frozenChrome.48 run passes37/37 with independent source/archive/installation,observer and eight-screenshot audits."
     },
     {
       "requirement": "Desktop and narrow-width keyboard flow, denied microphone/camera and offline recovery",
-      "result": "verified in recorded scopes; current candidate rerun pending",
+      "result": "verified in current bundled macOS installed scope; current Linux qualification pending",
       "evidence": [
         "docs/evidence/gate-6/reference-app-installed-lifecycle-728.json",
-        "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json"
+        "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json",
+        "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
       ],
-      "observations": "LinuxNode22 all34checks at728; localMacNode26 all36at31ec. Actual track revocation, delayed device result, actor/offline retirement and original-operation explicit reconnect; desktop/320px images reviewed in the lifecycle proof."
+      "observations": "LinuxNode22 all34checks at728; localMacNode26 all36at31ec. Actual track revocation, delayed device result, actor/offline retirement and original-operation explicit reconnect; desktop/320px images reviewed in the lifecycle proof. Current21b4 bundled macOS/Node22.16/frozenChrome.48 run passes37/37 with independent source/archive/installation,observer and eight-screenshot audits."
     },
     {
       "requirement": "Functional negotiated-media controls and capture through installed public SDKs",
-      "result": "partial; current full candidate not qualified",
+      "result": "verified in current bundled macOS installed scope; current Linux qualification pending",
       "evidence": [
         "docs/evidence/gate-6/reference-app-sustained-av-local-verified.json",
         "docs/evidence/gate-6/reference-app-browser-media-negative-31ec.json",
-        "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json"
+        "docs/evidence/gate-6/reference-app-connection-restart-freshness-regression.json",
+        "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
       ],
-      "observations": "Local ten-second combined audio/video liveness passed. CI Linux late audio/supervisor failure and original32packet stale restart were reproduced. Both SDK freshness corrections have local component evidence; new installed runtime/profile verification remains required."
+      "observations": "Local ten-second combined audio/video liveness passed. CI Linux late audio/supervisor failure and original32packet stale restart were reproduced. Both SDK freshness corrections have local component evidence; new installed runtime/profile verification remains required. Current21b4 bundled macOS/Node22.16/frozenChrome.48 run passes37/37 with independent source/archive/installation,observer and eight-screenshot audits."
     },
     {
       "requirement": "Backend secrets and public communication boundary",
-      "result": "implemented with source and HTTP/component evidence; final source-bound audit remains required",
+      "result": "verified in current bundled macOS installed scope; current Linux qualification pending",
       "evidence": [
-        "docs/evidence/gate-6/reference-app-browser-media.json"
+        "docs/evidence/gate-6/reference-app-browser-media.json",
+        "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
       ],
-      "observations": "Private operator/participant configuration stays on backend. Host/Origin/cookie/actor ownership guards, closed error projection and public SDK routing are exercised; final current-candidate source map is retained below."
+      "observations": "Private operator/participant configuration stays on backend. Host/Origin/cookie/actor ownership guards, closed error projection and public SDK routing are exercised; final current-candidate source map is retained below. Current21b4 bundled macOS/Node22.16/frozenChrome.48 run passes37/37 with independent source/archive/installation,observer and eight-screenshot audits."
     }
   ],
-  "requirement_audit_scope": "Completion remains unproven. Historical positive and negative results retain their exact source/runtime/OS/Node scope; no later source change inherits a whole-candidate pass."
+  "requirement_audit_scope": "Completion remains unproven. Historical positive and negative results retain their exact source/runtime/OS/Node scope; no later source change inherits a whole-candidate pass.",
+  "current_bundled_mac_verification": "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
 }

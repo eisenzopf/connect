@@ -206,6 +206,27 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npx --no-install playwright install --with-deps chromium
+      - name: Select the exact frozen macOS full browser
+        if: ${{ inputs.reference_app && runner.os == 'macOS' }}
+        run: |
+          python3 - <<'BROWSER'
+          from pathlib import Path
+          import hashlib,json,os,subprocess
+          root=Path.cwd();base=root/'.local/gate6-reference-app/frozen-chrome'
+          base.mkdir(parents=True,exist_ok=False)
+          version=json.loads((root/'contracts/gate6-transport-matrix.json').read_text())['expected_browsers_by_client_platform']['macos-arm64']['chrome']
+          assert version=='156.0.8078.48'
+          archive=base/'chrome-mac-arm64.zip'
+          url='https://storage.googleapis.com/chrome-for-testing-public/'+version+'/mac-arm64/chrome-mac-arm64.zip'
+          subprocess.run(['curl','--fail','--location','--proto','=https','--max-time','180','--output',str(archive),url],check=True,timeout=185)
+          with archive.open('rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
+          assert archive.stat().st_size==194924436
+          assert digest=='fdd24b0cb5c2841c9b21d4fff3b66f0f255e25b5c4109af68516e01f11c8de6c'
+          subprocess.run(['ditto','-x','-k',str(archive),str(base/'extracted')],check=True,timeout=90)
+          executable=base/'extracted/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
+          assert subprocess.check_output([str(executable),'--version'],text=True,timeout=20).strip()=='Google Chrome for Testing '+version
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream: stream.write('CONNECT_GATE6_CHROME='+str(executable)+'\n')
+          BROWSER
       - name: Rehearse all current installed app checks with original owners
         if: ${{ inputs.reference_app }}
         run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser ${{ inputs.app_cpu_profile && '--profile-app-cpu' || '' }} ${{ inputs.native_server_sample && runner.os == 'macOS' && '--sample-native-server' || '' }} ${{ inputs.app_clock_trace && '--trace-media-clock' || '' }}
@@ -251,7 +272,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gate6-runtime-candidate-evidence-${{ matrix.target }}
-          path: .local/gate6-runtime-candidate/evidence/
+          path: |
+            .local/gate6-runtime-candidate/evidence/
+            !.local/gate6-runtime-candidate/evidence/**/private/**
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error

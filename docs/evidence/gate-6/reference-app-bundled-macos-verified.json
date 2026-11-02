@@ -1,0 +1,228 @@
+{
+  "format": "connect/installed-reference-app-bundled-macos/1",
+  "task": "G6-072",
+  "source_revision": "21b4de99e8afbfeb4ff74eec52f4b841cf0e6628",
+  "runtime_source_revision": "21b4de99e8afbfeb4ff74eec52f4b841cf0e6628",
+  "target": "aarch64-apple-darwin",
+  "node": "v22.16.0",
+  "browser": "156.0.8078.48",
+  "browser_archive_evidence": "docs/evidence/gate-6/frozen-chrome-macos-acquisition.json",
+  "browser_strict_code_signature_passed": false,
+  "signatures_or_gatekeeper_modified": false,
+  "binary_sha256": "08e8f75e3e8ede8b12357e4330f9fead00c71d497ff61922fca3ac6b86fc8ab3",
+  "archive_sha256": "3ac71ee724cca06ab582c8772d06d8e735e09ad2b77c2740bebe2c0bcd96808e",
+  "manifest_sha256": "8f2e3e05b6ee9641b3869826d79a6e67c89d5808775462b1df1858bff3087c58",
+  "opus_native_build": {
+    "mode": "bundled-static",
+    "native_archive_sha256": "61ef40a0bfb0e9202b58501014a95ba972127af9fafcb883f6fddf008f5e222f"
+  },
+  "production_release": true,
+  "test_support": false,
+  "source_inputs_unchanged": true,
+  "commands": [
+    {
+      "name": "dependencies",
+      "exit_code": 0
+    },
+    {
+      "name": "clean-native-cache",
+      "exit_code": 0
+    },
+    {
+      "name": "package-runtime",
+      "exit_code": 0
+    },
+    {
+      "name": "install",
+      "exit_code": 0
+    },
+    {
+      "name": "rehearse",
+      "exit_code": 0
+    }
+  ],
+  "forced_cleanup": false,
+  "owned_processes_remaining": 0,
+  "checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected",
+    "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+    "keyboard-participant-selection-and-conversation-creation",
+    "actual-authorized-text-safe-timeline",
+    "keyboard-incoming-invitation-and-actual-acceptance",
+    "actual-browser-microphone-and-camera-refusal",
+    "320px-no-horizontal-overflow",
+    "actual-accepted-original-survives-lost-response-and-offline",
+    "keyboard-original-status-recovery-one-visible-message",
+    "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+    "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+    "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+    "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+    "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+    "current-active-session-snapshots-preserve-original-browser-media-capture",
+    "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+    "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+    "additional-owned-synthetic-media-browser-owners-close",
+    "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+    "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+    "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions",
+    "both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window",
+    "keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video",
+    "keyboard-cancellation-stops-a-late-actual-browser-device-result-before-publication",
+    "actual-microphone-permission-revocation-ends-tracks-and-joins-media",
+    "keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work",
+    "actual-browser-offline-transition-stops-capture-render-and-packet-work",
+    "keyboard-explicit-offline-reconnect-observes-original-av-end-without-resuming-capture",
+    "both-original-av-connections-and-additional-owned-browsers-join",
+    "original-app-server-and-all-native-helper-processes-joined",
+    "same-command-restart-preserves-original-setup-and-conversation",
+    "original-owned-browser-joined",
+    "restarted-app-server-and-all-native-helper-processes-joined"
+  ],
+  "check_count": 37,
+  "independent_artifact_audit": {
+    "format": "connect/installed-local-app-artifacts-audited/1",
+    "source_revision": "21b4de99e8afbfeb4ff74eec52f4b841cf0e6628",
+    "sources_verified": {
+      "git": 4945,
+      "prepared": 4094,
+      "pinned_archives": 4
+    },
+    "runtime_files_verified": 755,
+    "app_files_verified": 30,
+    "node_archive_files_verified": 195,
+    "archive_sha256": "3ac71ee724cca06ab582c8772d06d8e735e09ad2b77c2740bebe2c0bcd96808e",
+    "binary_sha256": "08e8f75e3e8ede8b12357e4330f9fead00c71d497ff61922fca3ac6b86fc8ab3",
+    "summary_sha256": "92b0b2d0605e2fc8dd84f9bebc689829222c7aee953af210fa275d902dcc3d9b",
+    "source_archive_installation_hashes_match": true,
+    "native_codec_provenance_qualified": true,
+    "native_codec_refusal": null,
+    "actual_app_behavior_passed": true,
+    "actual_app_checks": 37,
+    "browser": "156.0.8078.48",
+    "passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "independent_observer_audit": {
+    "format": "connect/retained-app-observers-replayed/1",
+    "summary_sha256": "92b0b2d0605e2fc8dd84f9bebc689829222c7aee953af210fa275d902dcc3d9b",
+    "cpu_profiles_replayed": 2,
+    "native_sample_sha256": "95036d48ace3238157fd8ca6f988f06f553e419fdfbc1f4ce749f00ef3a048be",
+    "native_symbol_counts_match": true,
+    "observer_clock_replay_matches": true,
+    "pending_reads_at_finish": 0,
+    "passed": true,
+    "scope": "Exact retained raw V8/native summaries and original HTTP response clock replay. No new workload, CPU causality, actual presentation-clock measurement or transport qualification."
+  },
+  "screenshot_review": {
+    "format": "connect/installed-app-screenshot-review/1",
+    "source_revision": "21b4de99e8afbfeb4ff74eec52f4b841cf0e6628",
+    "browser": "156.0.8078.48",
+    "screenshots": [
+      {
+        "name": "desktop.png",
+        "sha256": "614958677cc701f9a4a4bf1ddd41dfda1873d82afc0eb93ab45456f834cdb11b",
+        "width": 1440,
+        "height": 1906,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "native-controls.png",
+        "sha256": "1077178469e6b11f7fa6bef9334cb847ec469f32381e38205ca337ece0e73f7a",
+        "width": 1440,
+        "height": 2559,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "native-controls-narrow.png",
+        "sha256": "809519e406b62519a36bdefcfbe194814b6fd959e7736e96ffcd166567333e49",
+        "width": 320,
+        "height": 3900,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "capture-controls.png",
+        "sha256": "6c7b0ffd7c89a6e960981d32192aed0a5def4ca7250514712addaa134acd506d",
+        "width": 1440,
+        "height": 2389,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "capture-controls-narrow.png",
+        "sha256": "5f142f765967f4e42aaa1b394c2552566c8ef1d26cc371f7cf9a8e014678475e",
+        "width": 320,
+        "height": 3753,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "video-controls.png",
+        "sha256": "48e686381489f20ecf6fc7de5f77deeaefa4d47a196d71f602b4997183bfd8ec",
+        "width": 1440,
+        "height": 3587,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "video-controls-narrow.png",
+        "sha256": "db745d2e1a3c57cd1c81574685ec5432e36d2ad83630e3875be6c811fcb197c6",
+        "width": 320,
+        "height": 4696,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      },
+      {
+        "name": "narrow.png",
+        "sha256": "3cc9446ec37d18f2136908928968b85b3b1ba7331f5ec3e4986febdd754e92c3",
+        "width": 320,
+        "height": 4602,
+        "crc_verified": true,
+        "deflate_verified": true,
+        "visually_reviewed": true
+      }
+    ],
+    "observations": [
+      "All eight desktop/320px captures visually inspected: legible wrapping controls and panels remain within their layouts.",
+      "Script-like test text stays literal and the focused conversation outline is visible.",
+      "AV screenshots show synthetic red preview, green remote test pattern and controls. These still images do not prove temporal AV quality."
+    ],
+    "passed": true,
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "retained_private_digests": {
+    "controller.json": "cce56d971c9d4871abab766e8de29fd1d8aff7fcca7a335e1586abcddd2bfaef",
+    "runtime-proof/runtime.json": "cc69635da258b4968999acead1eedc797f506266ecc22256a4ca0eb99ed645cf",
+    "runtime-proof/source-inputs.json": "683a0930daa435ef2943826355593008c445f90658322c86f4dc479f6e37eee8",
+    "runtime-proof/private/build.log": "2ea2846889d10df5641eef28ce5d01500960ed3bfc617bc31ac74b72a64332a6",
+    "browser/summary.json": "92b0b2d0605e2fc8dd84f9bebc689829222c7aee953af210fa275d902dcc3d9b",
+    "independent-artifact-audit.json": "e2d84caf208be353bfb495651012f39a465e1ca826918296913e61348f74838e",
+    "independent-observer-audit.json": "857cbd3924c0d1822145bc8a6fb7edd00eeec53d3cfe05860053bab140fd04e5",
+    "independent-screenshot-review.json": "88e3188654e4039fa44be34dc318bd2b741ec6fe128875fb5f196aa5dac71f42"
+  },
+  "scope": "Actual production bundled-Opus macOS runtime and unchanged public Node archive, ordinarily installed offline. All37 local synthetic app checks pass. The earlier cached Homebrew package remains historically unqualified. Exact original inputs and owners are retained. No model, provider or named external host was used.",
+  "remaining": [
+    "Run current source on Ubuntu24.04/x86_64/Node22 and macOS CI, with each frozen browser profile.",
+    "Independently verify those CI source/runtime/Node archives and behavior results before closing G6-072.",
+    "G6-058 full sixty-second transport/movement matrix remains open; this application run qualifies no full transport cell."
+  ],
+  "passed": true,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false
+}

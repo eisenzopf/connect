@@ -1,41 +1,31 @@
 # Parley reference scenario
 
-The G6-072 application shell is in progress under app/. Its private intent
-journal, public Node SDK gateway, local HTTP boundary and responsive UI are
-implemented. Run npm run test:app here for the application component checks.
-Those checks use simulated SDK-shaped clients and do not qualify installed
-SDK execution.
+The G6-072 application shell in `app/` provides one-command scoped setup,
+participant selection, conversation history, invitations, original-operation
+recovery and native media controls through the installed public Node SDK.
+Run `npm run test:app` here for component checks with simulated SDK clients;
+installed execution has separate evidence.
 
-The local browser component uses the installed browser SDK with a simulated
-application backend. Its 15 checks cover keyboard participant selection and
-focus, conversation/text/invitations, actual microphone/camera denial, 320px
-layout and original-action offline/reload recovery. See
-[the keyboard component evidence](../../docs/evidence/gate-6/reference-app-keyboard-component.json).
+The production package at `21b4de99` uses verified bundled static Opus. A fresh
+offline installation on macOS arm64, Node22.16 and the frozen full Chrome
+156.0.8078.48 passes all37 installed app checks. They cover desktop and320px
+keyboard flows, denied microphone/camera, message recovery, native audio/video
+capture and identified playback, original Connection restart, media cancellation,
+permission revocation, offline retirement, same-command restart and owned shutdown.
+Source, archive and installed-file hashes, raw observer replays and all eight
+screenshots were independently audited. See
+[the bundled macOS result](../../docs/evidence/gate-6/reference-app-bundled-macos-verified.json).
+Current Linux and CI qualification remain open; G6-072 is still in progress.
 
-The independently verified installed app at a2e9b511 passes all 15 control checks
-on Node 22/Ubuntu x86_64 and macOS arm64, including native keyboard participant
-selection, cold scoped setup, original-ID recovery, restart and owned shutdown.
-See [the installed keyboard evidence](../../docs/evidence/gate-6/reference-app-installed-keyboard.json).
-That result predates the media Endpoint setup below.
-
-The current setup also provisions one application-owned native media Endpoint
-per installed Device through the public administrative SDK. It reads only public
-CLI client configuration, checks signed native access and media capability, and
-saves original provisioning and verification commands before submission.
-Verification binds the Device, Identity, local contact, configuration and runtime.
-It represents an attributed local setup decision. The independently audited
-installed application at abeea973 passes all 24 checks on Node 22.23.4/macOS arm64
-and Ubuntu x86_64, using Chrome 156.0.8078.4. Both browsers capture distinct
-synthetic microphones, send Opus and source clocks through genuine installed
-native handles, and play the other source's identified tone. Explicit stop joins
-capture, rendering and packet work; original Connection end, application restart
-and every owned browser/server/helper join also pass.
-See [the installed audio evidence](../../docs/evidence/gate-6/reference-app-installed-browser-audio.json).
-At source91bdfc90 both installed platforms also identify both remote camera
-markers at decoded/painted VP8 output, with video source clocks. The full runs
-still fail later control/recovery steps; this is component evidence only. See
-[the installed AV component evidence](../../docs/evidence/gate-6/reference-app-installed-browser-av.json).
-Full failure/restart freshness qualification remains open.
+The earlier `cc45db42` app run also passed37 behavior checks, but its producer
+reused Homebrew static Opus despite the requested bundled build flags. Its native
+package provenance remains unqualified. The producer and consumers now reject
+that cache state; the retained result is explained in
+[the codec provenance evidence](../../docs/evidence/gate-6/native-runtime-codec-provenance.json).
+Earlier platform results retain their original source and behavior scopes in
+the [installed keyboard](../../docs/evidence/gate-6/reference-app-installed-keyboard.json),
+[audio](../../docs/evidence/gate-6/reference-app-installed-browser-audio.json) and
+[AV component](../../docs/evidence/gate-6/reference-app-installed-browser-av.json) evidence.
 
 The app keeps its private setup manifest, administrator configuration and
 credentials on the backend. Application recovery state remains separate from
@@ -79,8 +69,8 @@ IDs are saved before SDK submission. “Listen to” selects a present peer's au
 the local camera publication. Consented Sessions remain live as they progress
 from accepted through ready and active; a view refresh retains their original
 capture binding. Ending, closed, absent or changed scopes still stop media.
-These video additions are component-tested;
-installed VP8 capture/render verification is still pending.
+The current bundled macOS installed run verifies these controls and identified
+VP8 capture/render. Current Linux verification remains pending.
 
 Joining negotiates native resources. Explicit “Start microphone” or “Start
 microphone and camera” begins browser permission, capture, encoding and playback.
@@ -120,8 +110,8 @@ The installed rehearsal additionally checks actual tracks after explicit stop,
 a controlled late device result after cancellation, real microphone permission
 revocation, offline retirement and participant switching. The delayed result
 uses a real owned synthetic browser stream; it models promise delivery rather
-than claiming an OS permission dialog was exercised. These new lifecycle checks
-require installed verification with actual ended-event/stop-cause checks. The
+than claiming an OS permission dialog was exercised. The current macOS installed
+run passes actual ended-event and stop-cause checks; current Linux remains open. The
 old fake permission-UI bypass is removed; explicit browser permission grants
 remain limited to owned synthetic devices.
 The rehearsal explicitly launches the installed full Chromium browser in headless
@@ -140,7 +130,8 @@ command preserves the original ports, identities, issuance IDs, absolute expiry
 and application state. Interrupted child installations use `connect issue-resume`;
 changed assets, a different runtime, expiry or an unsealed initial bootstrap
 refuse and retain the original state for inspection. This is the local synthetic
-profile; video and full lifecycle/failure qualification remain unfinished.
+profile. Its current macOS video and lifecycle checks pass; current Linux
+qualification and the later full Parley scenario remain unfinished.
 
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
 seventeen stages, explicit audiences, business gates, observable outcomes and

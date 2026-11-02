@@ -50,6 +50,7 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     installed_sdk: await tree(join(consumer, "node_modules/@rudeless/connect")),
     runtime: await digest(installation.executable),
     checker: sha(await readFile(fileURLToPath(import.meta.url))),
+    frozen_browser_contract: sha(await readFile(join(root, "contracts/gate6-transport-matrix.json"))),
     cpu_summary: sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))),
     native_sampler: sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))),
     clock_trace: sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))),
@@ -222,6 +223,12 @@ try {
         executablePath: chrome,
         viewport: { width: 1440, height: 1100 }, args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions"] });
     browser = context.browser(); report.browser = browser.version(); page = context.pages()[0];
+    const browserPlatform = process.platform === "darwin" ? "macos-arm64" : "ubuntu24-x86_64";
+    const frozenBrowsers = JSON.parse(await readFile(join(root, "contracts/gate6-transport-matrix.json"), "utf8"));
+    assert.equal(report.browser, frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome,
+        "exact-frozen-client-browser-required");
+    report.frozen_browser_profile_verified = browserPlatform;
+    report.expected_browser_version = frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome;
     await context.grantPermissions([], { origin });
     const errors = []; page.on("pageerror", error => errors.push(error.name));
     report.api_observations = [];
@@ -911,6 +918,7 @@ try {
         JSON.stringify(await tree(join(consumer, "app"))) === JSON.stringify(sourceInputs.app) &&
         JSON.stringify(await tree(join(consumer, "node_modules/@rudeless/connect"))) === JSON.stringify(sourceInputs.installed_sdk) &&
         sha(await readFile(fileURLToPath(import.meta.url))) === sourceInputs.checker &&
+        sha(await readFile(join(root, "contracts/gate6-transport-matrix.json"))) === sourceInputs.frozen_browser_contract &&
         sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))) === sourceInputs.cpu_summary &&
         sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))) === sourceInputs.native_sampler &&
         sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))) === sourceInputs.clock_trace &&

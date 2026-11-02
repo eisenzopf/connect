@@ -99,7 +99,7 @@
     "actual_bad_build_audit_sha256": "516f8eabf4a17293db8b34566629207202f570a199bd1295355ae2b8d3ae1181",
     "python_compile": "passed",
     "workflow_yaml": "parsed",
-    "correct_bundled_producer_rebuild": "pending"
+    "correct_bundled_producer_rebuild": "passed"
   },
   "limitations": [
     "The observed app behavior pass does not correct the original native producer claim. Retained historical proof and archives are unchanged.",
@@ -109,5 +109,6 @@
   "passed": false,
   "task_complete": false,
   "whole_gate_qualified": false,
-  "publication_authorized": false
+  "publication_authorized": false,
+  "corrected_mac_result": "docs/evidence/gate-6/reference-app-bundled-macos-verified.json"
 }
