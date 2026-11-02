@@ -1,0 +1,163 @@
+{
+  "format": "connect/gate-6/private-floor-statement-reuse/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "One constant private-floor SQL statement reuses existing bounded compiled-statement storage. Read-only query microprobe and affected Store authority/private/consultation tests only; actual new media outcome pending.",
+  "motivation": "Current sealed4e00 runtime reports slow snapshot fact-capture custody and repeated preparation in sampled private-floor lookup stacks. Isolated pinned SQLite measurement identifies meaningful preparation cost in that constant lookup; it does not prove the remaining packet-loss cause.",
+  "prior_runtime_evidence": "docs/evidence/gate-6/packet-observer-cache-selection.json",
+  "before_measurement": {
+    "sqlite_crate": "0.32.1",
+    "sqlite_version": "3.46.0",
+    "release_probe_binary_sha256": "8181c0d32a18fccd6e7981eded7107b113f69da0e7c2d826b505f43b33aaec64",
+    "sealed_probe_sha256": "8181c0d32a18fccd6e7981eded7107b113f69da0e7c2d826b505f43b33aaec64",
+    "result_sha256": "2e2ba5bc3b329d04b2c56abe140707bed5ede3f5deee86c9d7f8c85fcf0a11ba",
+    "read_only_fixture_copy": true,
+    "original_inputs_unchanged": true,
+    "probe_inputs_unchanged": true,
+    "rows": [
+      {
+        "label": "credential-0",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 2.5118058333333333,
+        "cached_median_us": 0.8509725,
+        "results_equal": true,
+        "query_sql_sha256": "2568f2530993b2569311b2738dc846daacdb70668f6f40e608af45cc03b78be2"
+      },
+      {
+        "label": "credential-1",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 3.2718749999999996,
+        "cached_median_us": 0.8201033333333333,
+        "results_equal": true,
+        "query_sql_sha256": "ed945dd5dff30ebe4e386cb67593d63000ce3ecd7c3c14e2e4446ca831276960"
+      },
+      {
+        "label": "credential-2",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 2.768055,
+        "cached_median_us": 0.8431599999999999,
+        "results_equal": true,
+        "query_sql_sha256": "2d5468908d67cf075ff2673138116442754d61dbf7b9eafdc0fa0ffc28137ca2"
+      },
+      {
+        "label": "handoff-0",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 16.295069166666664,
+        "cached_median_us": 1.7859383333333332,
+        "results_equal": true,
+        "query_sql_sha256": "a8a6514e7ee849af6677313791e89f96343ff63ce27ae4a43d0580f7c284bad3"
+      },
+      {
+        "label": "floor-0",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 113.65836833333333,
+        "cached_median_us": 3.583855,
+        "results_equal": true,
+        "query_sql_sha256": "793e0cd031ae65d04d5cf58b81ff53402c46989937f8d698ea5a3f202b8b4b6f"
+      },
+      {
+        "label": "data_version",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 0.8491666666666666,
+        "cached_median_us": 0.7374308333333333,
+        "results_equal": true,
+        "query_sql_sha256": "8415d69bd6c6d1c0eb3de4f9bc8133784c71337f16892424a35c67110058ea46"
+      },
+      {
+        "label": "schema_version",
+        "queries_per_round": 600,
+        "rounds": 6,
+        "uncached_median_us": 0.8214925,
+        "cached_median_us": 0.7492016666666667,
+        "results_equal": true,
+        "query_sql_sha256": "62474d48bd0fac3ed0bc356287d4b6b87db1e4f514de0b5d42633a174ae751aa"
+      }
+    ],
+    "candidate_query_SQL_unchanged": true,
+    "scope": "Pinned SQLite read-only constant-statement preparation microprobe only. Six recorded negative-probe contexts, six interleaved rounds; no full Store authority, concurrency, media or transport qualification."
+  },
+  "after": {
+    "implemented": true,
+    "verified": true,
+    "change": "for_connection uses prepare_cached for its unchanged floor/candidate join. Every invocation binds the current Connection ID, executes current rows and then performs the original registered-current checks. The temporary statement is dropped after its owned record result is copied.",
+    "SQL_predicate_or_parameters_changed": false,
+    "data_or_permission_result_cache_added": false,
+    "existing_statement_cache_capacity_changed": false,
+    "SQL_file_custody_or_snapshot_sealing_changed": false,
+    "packet_deadline_expiry_pool_or_quality_limits_changed": false,
+    "cohorts": [
+      {
+        "name": "after-focused",
+        "passed": 28,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "native_stream_authority",
+        "passed": 185,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "private_consultation",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "consultation_attempts",
+        "passed": 17,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "consultation_audiences",
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "consultation_returns",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "sip_consultation",
+        "passed": 95,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_passing_cases": 354,
+    "case_invocations_passed": 354,
+    "failed": 0,
+    "ignored": 0,
+    "test_binary_sha256": "d3c778c2c0bcf8a5029cffa96dbffd18fd938a16c9b125b4be58b1153f1b4562",
+    "binary_preserved": true,
+    "elapsed_seconds": 359.3011516672559,
+    "source_inputs_unchanged": true,
+    "official_dependency_preparation_passed": true,
+    "format_check_passed": true
+  },
+  "runtime_verification": {
+    "status": "Normal optimized build queued behind the successful Store prerequisites, followed by the unchanged62s/60s six-route comparison and conditional8s SQL/packet/sample diagnostic.",
+    "actual_new_quality_result": false,
+    "quality_pass_claim": false,
+    "cell_qualified": false
+  },
+  "limits": [
+    "The microprobe uses one read-only copied fixture connection per arm, six recorded negative-probe contexts and interleaved rounds. It does not execute the full Store authority path, model contention, prove positive private context behavior or measure media quality.",
+    "The354existing Store cases cover current native/private/consultation/SIP planning behavior without communications-provider calls. They are not the full1324test Store suite.",
+    "The last actual six-route normal runtime passes receive-marker alignment and video rate, but remains overall quality-negative on missingaudio and unclassified video. Full20movements/impairment/browser/remote/32cells remain outstanding."
+  ],
+  "transport_cells_qualified": 0,
+  "full_media_quality_claim": false
+}

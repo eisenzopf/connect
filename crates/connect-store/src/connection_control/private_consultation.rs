@@ -294,12 +294,13 @@ pub(crate) fn for_connection(
     connection: &str,
     purpose: Purpose,
 ) -> Result<Option<Context>> {
+    // Keep only compiled SQL in the existing bounded connection cache. Every
+    // lookup binds this current Connection and executes for current floor rows.
     let record: Option<String> = c
-        .query_row(
+        .prepare_cached(
             "SELECT f.operation_record_id FROM native_private_content_floors f JOIN consultation_candidate_bindings b ON b.operation_record_id=f.operation_record_id WHERE f.connection_id=?1 AND (b.candidate_kind='sip' OR b.connection_id=f.connection_id)",
-            [connection],
-            |r| r.get(0),
         )
+        .and_then(|mut statement| statement.query_row([connection], |r| r.get(0)))
         .optional()
         .map_err(|_| Error::storage())?;
     record
