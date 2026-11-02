@@ -189,5 +189,200 @@
     "producer_state_sha256": "a14fdc00172deae1570a6548d73fd469f5f5c5084228d52d7153ce70d0bbc2b6",
     "stopped_journal_audit_sha256": "eb4c9b063ad3bdd02224a28b1229b61eb7f12c53885cd62576aaf567d4d85b1d",
     "interpretation": "Both roots record readiness but remain preparing when the original completion observations expire. Isolated SQL speedup does not establish live workload improvement or cause. Original state preserved; resource and full programme qualification remain open."
+  },
+  "hot_query_followup": {
+    "applied": true,
+    "passed": true,
+    "scope": "Current-state SQL compilation reuse only. No row, authorization, result, reader, operation, expiry or snapshot cached. Existing32-entry capacity and all quality/deadline limits unchanged. Normal production build and actual whole-programme remain pending.",
+    "implementation_parent_revision": "536c55dc5a6450f8e8b4cd0c63a89cb94f9444c1",
+    "queries": [
+      {
+        "file": "crates/connect-store/src/audience.rs",
+        "function": "pub(crate) fn member(",
+        "sql_sha256": "340ffdf748a7425e04ad3f6c421dc2ba27e629ce08e4830bd39c8ab5a5391dc8",
+        "source_before_sha256": "dde2dfe024a47de60e3e77f889ba87b01efafd1f3c36db211f3971aadf1b4f56"
+      },
+      {
+        "file": "crates/connect-store/src/peer_credentials.rs",
+        "function": "pub(crate) fn peer_signing_key(",
+        "sql_sha256": "b243bcfec6816f2ab43948c046dfa8e080e97ed7af627d0e822f977ba5a620ba",
+        "source_before_sha256": "ff814996c130c00aa7851d0d222dab5ff02b0219807fac5f32f1578757b7dec9"
+      },
+      {
+        "file": "crates/connect-store/src/peer_credentials.rs",
+        "function": "pub(crate) fn peer_signing_key(",
+        "sql_sha256": "4f7b2dd282c8f65a44167562b07d4d0184d78719c29009524036c83757e42343",
+        "source_before_sha256": "ff814996c130c00aa7851d0d222dab5ff02b0219807fac5f32f1578757b7dec9"
+      },
+      {
+        "file": "crates/connect-store/src/session_control.rs",
+        "function": "pub(crate) fn view(",
+        "sql_sha256": "63877ca8ce4721ed72887810fa9769fe1f24b4e46bbf1763e745c3b2e4907783",
+        "source_before_sha256": "691cc8963271437d9589071c9f5edaa99c2c185a3474bd06f96215e8a97f43de"
+      },
+      {
+        "file": "crates/connect-store/src/peer_authority/connection_media/handoff_lifetime.rs",
+        "function": "pub(super) fn current(",
+        "sql_sha256": "a8a6514e7ee849af6677313791e89f96343ff63ce27ae4a43d0580f7c284bad3",
+        "source_before_sha256": "7e7c241b307ebfe22acc4d001c4798ebeda524395328f4a1a86f4a3754a94c0e"
+      },
+      {
+        "file": "crates/connect-store/src/transitions/authority.rs",
+        "function": "pub(super) fn retained_ready(",
+        "sql_sha256": "f0b073ebfc61125ef1c5c2ab69449a3990391614baaee91fe9147bc4a47f4681",
+        "source_before_sha256": "cdba3fcee7cca3e4c9a4108d18a8585dd5dd0996571d1dad596466992b214e5c"
+      },
+      {
+        "file": "crates/connect-store/src/transitions/replacement_source.rs",
+        "function": "fn source(",
+        "sql_sha256": "6ae76062b8dedcb08423292decdb1f4180ec946e0bd4f10ea7a2928f41d55751",
+        "source_before_sha256": "58fbe65771f76b0ee3f324342c4cc23e82f7e7592b9605d60d318e3cb91245fa"
+      }
+    ],
+    "source_files_sha256": {
+      "crates/connect-store/src/audience.rs": "dad3636132d7613aa5d3cc9e48aa925fe9c031e1737e84ed0136f859823be38f",
+      "crates/connect-store/src/peer_credentials.rs": "9dc45a7b67de15f807a311417dcbc82bc1d6458f935b4854a24571aab9c39698",
+      "crates/connect-store/src/session_control.rs": "66119be59da7a66b98b57fea78851a298780e0fa0dbd6f998ec83e8dd33babba",
+      "crates/connect-store/src/peer_authority/connection_media/handoff_lifetime.rs": "48f393a3e0d32c33d7337a5dee5c8eb3a2d03561bf623b7ca36e2da7837f4c3d",
+      "crates/connect-store/src/transitions/authority.rs": "7a01b0b47e16da2ddffc8ad1056d88b805e0571a47e5393c5b5289bfffa350af",
+      "crates/connect-store/src/transitions/replacement_source.rs": "acf42aacb444f0f2d78e7813035926f96c310eba337a132aa2245acb79f68464"
+    },
+    "sample_observation": {
+      "source_revision": "536c55dc5a6450f8e8b4cd0c63a89cb94f9444c1",
+      "binary_sha256": "2fd18cfbcb90c2e5c13c31521ef098533b047d551337e2d1d4a82586297e97df",
+      "sample_count": 1,
+      "sample_seconds": 1,
+      "original_owned_before_and_after": true,
+      "observer_joined": true,
+      "raw_sample_sha256": "5252cb81e880a292cad058a51bc90f9e1d2fe6b1216e570c2dc1f80993382a8b",
+      "curated_summary_sha256": "deae5586e6eed9e7ad55dbcee60272b634055b6ad473ae75a88d077469f40254",
+      "query_callers_sha256": "aee2c08a63b8ca052388ba51b5c124b75c68d86d26ad3d2ada79d03c60501092",
+      "prepared_private_partner_observed": false,
+      "scope": "Inclusive sampled stacks show repeated SQLite preparation in current audience membership, retained readiness, handoff lifetime, peer signing key, replacement source and Session view reads. Counts are neither CPU seconds nor causal proof. The first private parser missed sample tree punctuation and its invalid output is retained."
+    },
+    "isolated_compilation_cost": {
+      "passed": true,
+      "results": [
+        {
+          "cached": false,
+          "threads": 4,
+          "all_result_shapes_match": true,
+          "capped": false,
+          "elapsed_us": 2776478,
+          "p50_ns": 5528208,
+          "p95_ns": 6159542,
+          "max_ns": 6709666,
+          "query_cycles": 2048,
+          "sql_reads": 14336
+        },
+        {
+          "cached": true,
+          "threads": 4,
+          "all_result_shapes_match": true,
+          "capped": false,
+          "elapsed_us": 35353,
+          "p50_ns": 55209,
+          "p95_ns": 81667,
+          "max_ns": 204584,
+          "query_cycles": 2048,
+          "sql_reads": 14336
+        }
+      ],
+      "uncached_over_cached_elapsed": 78.536,
+      "query_count": 7,
+      "query_bindings": "NULL bindings; fixed no-match/EXISTS result-shape vector equal on every read",
+      "original_db_wal_unchanged": true,
+      "probe_source_sha256": "c87721833b8a3f7cdbbe903b78f6661b620d2ccf9ffddea178030f5ea39c6a25",
+      "probe_binary_sha256": "0a3d493abd2e4b034ad6b247bad249414046b3ecc84f6ffb99552843fd42d4b9",
+      "query_manifest_sha256": "ba17bd00e91e20eb73e2355356dac51b1ea424b87591be2c715aa82542b19979",
+      "scope": "Isolated compilation-cost comparison on stopped journal COPY, four read-only observers, existing32-entry cache anddebugrusqlite/optimizedcaller. Concurrent Store test process may affect timings; no media/latency/authority/cause qualification."
+    },
+    "after": {
+      "passed": true,
+      "distinct_cases": 448,
+      "cases": [
+        {
+          "name": "audience",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "peer-authority",
+          "passed": 38,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "session-control",
+          "passed": 30,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "handoff-lifetimes",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "private-consultation",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "native-authority",
+          "passed": 185,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "replacement-sources",
+          "passed": 150,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "name": "packet-snapshot",
+          "passed": 30,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "exact_clock_regression_passed": true,
+      "clock_case_already_in_snapshot30": true,
+      "source_inputs_unchanged": true,
+      "producer_state_sha256": "f6a6903d80fd82e06087063a9fc6bb5463c8c886f3c67b22bf7875cd18b28680",
+      "source_inputs_sha256": "7ec8899a2a8f1be98a30d74856c5529377aea362bf62b911b975ffe826f5a536",
+      "elapsed_seconds": 273.9358000829816
+    },
+    "first_runner_negative": {
+      "product_case_exercised": false,
+      "reason": "TMPDIR named a directory not yet created; exact clock test failed at fixture initialization before an authority read. Retained failure; corrected private temporary directory only.",
+      "state_sha256": "aad32d4f012f37b7c381e2707db3b494194314a22183f716a27107d3b11e4482"
+    },
+    "prior_phase_diagnostics": {
+      "v14": {
+        "completed_roots": 1,
+        "unretired_native_lifetimes": 0,
+        "stack_samples": 0,
+        "source_inputs_unchanged": true,
+        "whole_window_decode": false
+      },
+      "v15": {
+        "completed_roots": 1,
+        "failed_roots": 1,
+        "unretired_native_lifetimes": 0,
+        "stack_samples": 1,
+        "source_inputs_unchanged": true,
+        "whole_window_decode": false
+      },
+      "scope": "Separate phase-logged runs, with at most two one-second samples in v15 (one triggered). No full Data segment, original servers and target workers joined unforced. Counts do not establish full resource/cleanup qualification. Prior ordinary v12 two-root deadline negative remains unchanged."
+    },
+    "normal_production_runtime_pending": true,
+    "full_programme_pending": true,
+    "task_complete": false,
+    "cell_qualified": false
   }
 }

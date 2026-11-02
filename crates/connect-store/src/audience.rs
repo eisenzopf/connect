@@ -30,9 +30,7 @@ pub(crate) fn member(
     conversation: &str,
     active: bool,
 ) -> Result<MemberView> {
-    let row:Option<(String,String,String,u64,bool,Option<String>)>=c.query_row(
-        "SELECT p.participant_id,p.kind,p.role,p.membership_epoch,p.active,p.removal_reason FROM participants p JOIN identities i ON i.id=p.identity_id AND i.tenant_id=p.tenant_id JOIN conversations v ON v.id=p.conversation_id AND v.tenant_id=p.tenant_id WHERE p.identity_id=?1 AND p.conversation_id=?2 AND i.revoked=0 AND (?3=0 OR p.active=1)",
-        params![identity,conversation,active],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional().map_err(|_|Error::storage())?;
+    let row:Option<(String,String,String,u64,bool,Option<String>)>=c.prepare_cached("SELECT p.participant_id,p.kind,p.role,p.membership_epoch,p.active,p.removal_reason FROM participants p JOIN identities i ON i.id=p.identity_id AND i.tenant_id=p.tenant_id JOIN conversations v ON v.id=p.conversation_id AND v.tenant_id=p.tenant_id WHERE p.identity_id=?1 AND p.conversation_id=?2 AND i.revoked=0 AND (?3=0 OR p.active=1)").and_then(|mut statement| statement.query_row(params![identity,conversation,active], |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?)))).optional().map_err(|_|Error::storage())?;
     let (id, kind, role, epoch, active, removal_reason) = row.ok_or_else(Error::forbidden)?;
     Ok(MemberView {
         participant_id: id,

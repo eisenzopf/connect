@@ -229,10 +229,10 @@ fn media_json(c: &Connection, sid: &str) -> Result<Vec<String>> {
     serde_json::from_str(&raw).map_err(|_| Error::storage())
 }
 pub(crate) fn view(c: &Connection, cid: &str, sid: &str) -> Result<SessionView> {
-    c.query_row("SELECT s.id,s.conversation_id,s.state,s.media,sc.intent,EXISTS(SELECT 1 FROM main_sessions m WHERE m.conversation_id=s.conversation_id AND m.session_id=s.id),s.state_revision,s.topology_revision,s.created_at,s.updated_at,s.ended_reason,sc.capabilities_json,sc.codec_preferences_json FROM sessions s LEFT JOIN session_control sc ON sc.session_id=s.id AND sc.conversation_id=s.conversation_id WHERE s.id=?1 AND s.conversation_id=?2",params![sid,cid],|row| {
+    c.prepare_cached("SELECT s.id,s.conversation_id,s.state,s.media,sc.intent,EXISTS(SELECT 1 FROM main_sessions m WHERE m.conversation_id=s.conversation_id AND m.session_id=s.id),s.state_revision,s.topology_revision,s.created_at,s.updated_at,s.ended_reason,sc.capabilities_json,sc.codec_preferences_json FROM sessions s LEFT JOIN session_control sc ON sc.session_id=s.id AND sc.conversation_id=s.conversation_id WHERE s.id=?1 AND s.conversation_id=?2").and_then(|mut statement| statement.query_row(params![sid,cid], |row| {
         let media:String=row.get(3)?;
         Ok(SessionView{id:row.get(0)?,conversation_id:row.get(1)?,state:row.get(2)?,media:serde_json::from_str(&media).map_err(|_|rusqlite::Error::InvalidQuery)?,intent:row.get(4)?,is_main:row.get(5)?,revision:row.get(6)?,topology_revision:row.get(7)?,created_at:row.get(8)?,updated_at:row.get(9)?,ended_reason:row.get(10)?,capabilities_offer:row.get::<_,Option<String>>(11)?.map(|raw|serde_json::from_str(&raw).map_err(|_|rusqlite::Error::InvalidQuery)).transpose()?,codec_preferences:row.get::<_,Option<String>>(12)?.map(|raw|serde_json::from_str(&raw).map_err(|_|rusqlite::Error::InvalidQuery)).transpose()?.unwrap_or_default()})
-    }).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)
+    })).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)
 }
 fn set_caps(c: &Connection, r: &Request, pid: &str, epoch: u64, value: &Value) -> Result<()> {
     c.execute("INSERT INTO session_presence_capabilities VALUES(?1,?2,?3,?4) ON CONFLICT(session_id,participant_id,membership_epoch) DO UPDATE SET capabilities_json=excluded.capabilities_json",params![r.session_id,pid,epoch,crate::provisioning::canonical_json(value)?]).map_err(|_|Error::storage())?;
