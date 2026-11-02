@@ -179,7 +179,7 @@ fn target_facts_for_profile(
     if audio.len() != 1
         || audio[0]["direction"] != "sendrecv"
         || streams.iter().any(|s| {
-            !matches!(s["kind"].as_str(), Some("audio" | "video"))
+            !matches!(s["kind"].as_str(), Some("audio" | "video" | "data"))
                 || !context
                     .target_capabilities
                     .iter()
@@ -188,7 +188,7 @@ fn target_facts_for_profile(
     {
         return Err(Error::new(
             "unsupported-media-profile",
-            "Replacement target requires one isolated duplex audio stream and provisioned optional video",
+            "Replacement target requires one isolated duplex audio stream and provisioned optional video or Data",
         ));
     }
     // Reuse this exact admitted fence. Never acquire a nested original-source

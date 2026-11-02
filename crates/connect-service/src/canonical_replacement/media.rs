@@ -110,7 +110,7 @@ impl TargetPolicy {
                 local
                     .iter()
                     .filter(|a| {
-                        matches!(a.medium, Medium::Audio | Medium::Video)
+                        matches!(a.medium, Medium::Audio | Medium::Video | Medium::Data)
                             && remote.iter().any(|b| {
                                 b.medium == a.medium
                                     && a.formats.iter().any(|f| b.formats.contains(f))

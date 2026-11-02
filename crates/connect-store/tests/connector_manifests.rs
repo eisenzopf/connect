@@ -30,7 +30,14 @@ fn persisted_manifest_restart_rejects_drift_and_incompatible_capability() {
         "conflict"
     );
     let mut invalid = manifest;
-    invalid.video = true;
+    invalid.media = MediaSupport::LifecycleFixture {
+        audio: AudioFormat {
+            codec: "pcm-s16le".into(),
+            sample_rate: 48000,
+            channels: 1,
+            frame_ms: 20,
+        },
+    };
     assert_eq!(
         store
             .register_connector_manifest(descriptor, &invalid)

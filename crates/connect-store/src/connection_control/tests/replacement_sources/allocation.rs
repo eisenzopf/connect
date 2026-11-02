@@ -462,13 +462,80 @@ fn replacement_av_target_preserves_video_resources_without_asserting_media_readi
 }
 
 #[test]
+fn replacement_av_data_target_preserves_resources_under_the_suspended_original_authority() {
+    let (f, _, _, prepared, mut request, _) =
+        prepared_target_with_capabilities(&[], vec!["audio".into(), "data".into(), "video".into()]);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+        panic!()
+    };
+    intent.offer["streams_offered"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+        "id":"camera", "kind":"video", "direction":"sendrecv", "codec_preferences":["vp8"]}));
+    intent.offer["capabilities"]["data_protocols"] = json!(["binary"]);
+    intent.offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"reliable-data", "kind":"data", "direction":"sendrecv", "codec_preferences":["binary"]}));
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    let expected = attempt.expected_allocation().clone();
+    let allocated = std::sync::Arc::new(attempt.allocated(expected).unwrap());
+    drop(read);
+    drop(proof);
+    f.store
+        .record_native_replacement_allocated(&allocated)
+        .unwrap();
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+        panic!()
+    };
+    intent.offer["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    assert_eq!(
+        read.target().endpoint_capabilities,
+        vec!["audio", "data", "video"]
+    );
+    assert_eq!(
+        read.target().offer["streams_offered"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    assert!(read.target().publication_suspended);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
+        .unwrap();
+    let expected = attempt.expected_resources();
+    assert_eq!(expected["prepared_muted"], true);
+    assert_eq!(expected["media_ready"], false);
+    assert_eq!(
+        expected["streams"],
+        json!(["audio", "camera", "reliable-data"])
+    );
+    drop(read);
+    drop(proof);
+    assert_eq!(
+        f.count("connections"),
+        2,
+        "resource preparation invented a ready target"
+    );
+}
+
+#[test]
 fn replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovisioned_video_without_effects(
 ) {
     for change in [
         "missing-audio",
         "two-audio",
         "one-way",
-        "data",
+        "unprovisioned-data",
         "screen",
         "unprovisioned-video",
     ] {
@@ -486,6 +553,7 @@ fn replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovision
             "missing-audio" => streams[0] = json!({"id":"camera", "kind":"video", "direction":"sendrecv", "codec_preferences":["vp8"]}),
             "two-audio" => {let mut extra=streams[0].clone();extra["id"]=json!("other-audio");streams.push(extra);},
             "one-way" => streams[0]["direction"] = json!("sendonly"),
+            "unprovisioned-data" => streams.push(json!({"id":"reliable-data", "kind":"data", "direction":"sendrecv", "codec_preferences":["binary"]})),
             "unprovisioned-video" => streams.push(json!({"id":"camera", "kind":"video", "direction":"sendrecv", "codec_preferences":["vp8"]})),
             kind => streams.push(json!({"id":"extra", "kind":kind, "direction":"sendrecv", "codec_preferences":["binary"]})),
         }
