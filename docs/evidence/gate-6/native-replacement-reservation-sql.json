@@ -76,10 +76,30 @@
     ".local/gate-6/native-fixture-codec-alignment-v1/checks.json": "93431e43467c6cde8b106398c379314171c057ee6fbf259b66f155c7c47e4284"
   },
   "component_passed": true,
-  "native_failure_resolved": false,
+  "native_failure_resolved": true,
   "native_reverification_pending": true,
   "production_release_built": false,
   "task_complete": false,
   "whole_gate_qualified": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "native_resolution_scope": "The exact original preparation/capacity-reuse case now passes in one fresh standard debug run with its original logging and unchanged10s wait; full native sequence, production build and main remain pending.",
+  "native_capacity_reuse_after": {
+    "source_revision": "2724ee0c015606e15e3ecacec1a03a433e9b221f",
+    "case": "production_replacement_prepares_actual_core_once_preserves_audio_and_cancels_without_allocating",
+    "result": "1 passed; 0 failed; 0 ignored; 428 filtered out",
+    "seconds": 46.04,
+    "controlled_scenarios": 3,
+    "component_binary_sha256": "620cfb0798ec0b8de059dbcd04b13ec74c2938529258ee3113ff02bf0a3f6c5c",
+    "source_inputs_unchanged_at_result": true,
+    "stopped_journal_audit_sha256": "92808fee5e7aa10d59a20e9d9baf602747a4f3b524d4ef714c2dfbb9c3104f81",
+    "test_log_sha256": "b086f1d60a2d874a70ce347282a85c9edd97a8ac21197a26573b0162dc44d592",
+    "settled_original_preparations": 5,
+    "distinct_later_preparations": 2,
+    "each_original_prepare_steps": 1,
+    "each_original_confirmed_effects": 2,
+    "each_effect_attempts": 1,
+    "all_distinct_later_originals_cancelled": true,
+    "original_journals_replayed": false,
+    "db_and_wal_unchanged": true
+  }
 }
