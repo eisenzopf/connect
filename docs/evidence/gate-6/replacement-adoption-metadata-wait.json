@@ -14,15 +14,38 @@
     "dependencies_verified": true,
     "format_passed": true,
     "service_tests": "passed",
-    "normal_release_runtime": "running original50568",
-    "fresh_scene": "Original11271 stopped before any workload after finding ownership check omitted Data. Reviewed private correction passed8checks; original26420 queues actualmodule tests, source revalidation and one fresh scene after50568joins.",
+    "normal_release_runtime": "passed",
+    "fresh_scene": "terminal negative; all original owners joined without force",
     "service_tests_passed": 18,
     "service_tests_failed": 0,
-    "service_tests_ignored": 0
+    "service_tests_ignored": 0,
+    "normal_release_runtime_sha256": "996dd10e24b9a25f18080a05c56b174b9948f07279dcc83801fa2ff1253c333a",
+    "peer_sha256": "945b69649f90081227c4f68b46b9b984c49ae49669a46d7f8632dd3bfd6048c2",
+    "source_inputs_unchanged": true,
+    "actual_harness_tests_passed": 22
   },
   "root_cause_runtime_confirmation": "pending; preserved before scene has a forbidden invocation-preparation failure but lacks its finer stage diagnostics",
   "passed": false,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_scene": {
+    "audit_sha256": "719282b12ae513f92a95f2289b75b226f4af59b95aaccb5da7fbfb4fa167dc9b",
+    "original_full_data_payloads": 6,
+    "payload_bytes_each": 65536,
+    "root_operations_completed": 2,
+    "all_original_replacement_steps_confirmed": true,
+    "all_private_media_steps_confirmed": true,
+    "physical_owner_handoffs": 1,
+    "complete_moves_with_receiver_subscription": 0,
+    "postcommit_updates_completed": 1,
+    "postcommit_updates_failed_forbidden": 1,
+    "all_owners_joined": true,
+    "forced_cleanup": false
+  },
+  "new_counterexample": {
+    "finding": "ConnectionBinding is a cloned value. The retained preparation snapshot remains Preparing while commit activates a separate value of the same protected incarnation. The first adoption-wait predicate incorrectly requires Active on the immutable snapshot.",
+    "stage": "Real Core relationship counterexample running against the current predicate before correction",
+    "quality_or_deadline_changes": false
+  }
 }
