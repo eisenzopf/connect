@@ -1,0 +1,70 @@
+{
+  "format": "connect/replacement-data-integration/1",
+  "task": "G6-058",
+  "base_revision": "7ea05369986a41b65a6d5f92a764d0deca4a30b5",
+  "implementation_applied": true,
+  "source_sha256": {
+    ".github/workflows/gate6-transport-matrix.yml": "76b2b39cda646c6c36442b1389d41339e63226a9ae279a8866f76b9c85104068",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "c57f384832316cffc39a8a4c86c30085f02fe4b0dc3c0cad66dd13ef18509f0b",
+    "examples/rust-sdk-journey/src/replacement_peer/data/io.rs": "53834007c319cbb145e6fcc87ad1f90221ee97744f80d8a8a8cd94db2b8d6456",
+    "examples/rust-sdk-journey/src/replacement_peer/data/outgoing.rs": "6eae9b18cc9aef0bf9d8292363406f7374b814232e7d0f185f0d5983753ed9ef",
+    "examples/rust-sdk-journey/src/replacement_peer/data/mod.rs": "79af223d7bafd323bf22d6ed27c2dbcbf72fbb3a4c74e66e3a99920d94e4e2d4",
+    "scripts/check-transport-conversation.mjs": "8036f772bfb92b9fda489293d7540b599c9b48049ff0bf8e4b188b9450dd31cd",
+    "scripts/lib/transport_movement_workload.mjs": "7a67519b1581c81050f2361310241c3fc5cb4faced00efc746b5e03aa0b71390",
+    "scripts/lib/transport_movement_data.mjs": "0a291d211cdef4da7dcfda000776425563d9dd11f562e91fdae087f40fd245f9",
+    "scripts/lib/transport_replacement_target.mjs": "9bee54e6125d7d3166707651643b82016bcb2054fbeb1f59c3c80a02125fdfdb",
+    "scripts/tests/transport_movement_data.test.mjs": "8712bc4fda1da8b2c07bcaadd558c0926ed5c6cc8d6914f38d7cd3da8492b004",
+    "scripts/tests/transport_movement_workload.test.mjs": "c1215921204c046b3f090840ffa2ca6409ba16a2e480f92d7d0e56f0857519f9",
+    "scripts/tests/transport_replacement_target.test.mjs": "984cd3bc6022e43cbe802899e7d511f71803a93059ca8ae974fb5031d72990a6"
+  },
+  "implementation": {
+    "original_movement_roots": 20,
+    "original_data_operations": 40,
+    "bytes_per_message": 65536,
+    "distinct_messages_and_payloads_predeclared": true,
+    "incoming": "retained upstream original Data stream to actual admitted physical Connection",
+    "outgoing": "new physical Data stream to retained downstream SDK",
+    "one_mutation_per_original": true,
+    "unknown_send_recovery": "read-only operation.get or public SDK operation restore under saved original key",
+    "fixed_exchange_window_ms": 8000,
+    "programme_end_cutoff_ms": 62000,
+    "owned_signaling_reader": true,
+    "original_media_timers_preserved": true,
+    "exact_history_audiences_wired": true,
+    "receipt_and_wire_files_published_atomically": true,
+    "preparation_expected_revision_never_copied": true
+  },
+  "verification": {
+    "rust_peer_tests_passed": 47,
+    "node_tests_passed": 60,
+    "normal_release_build": false,
+    "dependencies_prepared": true,
+    "repository_format_passed": true,
+    "syntax_checks_passed": true,
+    "peer_source_unchanged": true,
+    "compile_command_sha256": "85a5245cc557c93de4bf83f4ecd59b2c3aaa90c9efbc1988ae2a735e830b1510",
+    "compile_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rust_test_log_sha256": "0ffc7a4e2cad2f35c03dbb148886899eef929e1871e572f06c5d1239fc356bb9",
+    "node_test_log_sha256": "fac66e24f8f372fcfda1e839869190f2cc32bf4db4641b5c50a4456398a5e1c0",
+    "scope": "Actual applied peer unit consumer linked to the existing Cargo-selected public client artifacts; parent tests use controlled SDK/physical-peer fixtures. No running production transport, full source build, codec quality, full transport cell or platform inference."
+  },
+  "retained_negative": {
+    "original_node_unit_run_cancelled": true,
+    "observed_tests_passed_before_cancellation": 7,
+    "cancelled": 1,
+    "production_io": false,
+    "reason": "The negative full-buffer deep assertion spent35seconds formatting its difference. The owned test process was explicitly interrupted and joined. Exact Buffer.equals checking now rejects the altered payload without rendering private payload contents.",
+    "new_complete_node_suite_passed": true
+  },
+  "remaining": [
+    "Independent whole-window decode across original and twenty physical captures with preserved SSRC/hop boundaries",
+    "Normal release CLI and independent peer build on the integrated source",
+    "Real main materializer/controller/Data/current-owner-end rehearsal and stopped-journal audit",
+    "All32 required transport cells and remaining platform app negatives"
+  ],
+  "production_data_exchange_verified": false,
+  "full_timeline_decoded": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

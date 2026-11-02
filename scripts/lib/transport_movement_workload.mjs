@@ -7,6 +7,7 @@ import { startPhysicalReplacementTarget } from "./transport_replacement_target.m
 import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 import { endRetainedConnections } from "./transport_current_end.mjs";
+import { exchangeMovementData } from "./transport_movement_data.mjs";
 
 async function save(path, value) {
     const file = await open(path, "wx", 0o600);
@@ -16,8 +17,8 @@ async function save(path, value) {
 
 export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
-    executable, executableSha256, currentEnds, startTarget = startPhysicalReplacementTarget,
-    endRetained = endRetainedConnections }) {
+    executable, executableSha256, currentEnds, dataClients, startTarget = startPhysicalReplacementTarget,
+    endRetained = endRetainedConnections, exchangeData = exchangeMovementData }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
@@ -29,6 +30,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     assert.equal(streamIds.length, 6);
     const dataWorkload = streamIds.some(streams => streams.data !== undefined);
     if (dataWorkload) {
+        assert.ok(Array.isArray(dataClients) && dataClients.length === 6, "six original Data SDK owners are required");
         assert.ok(streamIds.every(streams => typeof streams.data === "string" &&
             /^[A-Za-z0-9._~-]{1,128}$/.test(streams.data)), "all six original Data resources are required");
         assert.equal(new Set(streamIds.flatMap(streams => [streams.audio, streams.video, streams.data])).size, 18);
@@ -56,6 +58,26 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         audioId: "audio_" + randomUUID(), videoId: "video_" + randomUUID(),
         ...(dataWorkload ? { dataId: "data_" + randomUUID() } : {}),
     })));
+    if (dataWorkload) for (const step of plan) {
+        const route = workload.routes[step.sourceIndex], receiver = workload.routes.find(route => route.peerIndex === step.sourceIndex);
+        const original = (direction, stream, from, to) => {
+            const seed = (step.sourceIndex === 0 ? 0 : 20) + step.ordinal * 2 + direction;
+            return { operation_id: "data_send_" + randomUUID(), message_id: "data_message_" + randomUUID(),
+                stream_id: stream, from_participant: participantIds[from], to_participant: participantIds[to],
+                body_base64: Buffer.from(Array.from({ length: 65536 }, (_, offset) => (offset * 13 + seed * 5) % 256)).toString("base64") };
+        };
+        step.data = { incoming: original(0, streamIds[route.peerIndex].data, route.peerIndex, step.sourceIndex),
+            outgoing: original(1, step.dataId, step.sourceIndex, receiver.index) };
+    }
+    const originals = plan.flatMap(step => [step.operationId, step.subscriptionId,
+        ...(step.data ? Object.values(step.data).map(original => original.operation_id) : [])]);
+    originals.push(...currentEnds.map(end => end.operationId));
+    assert.equal(new Set(originals).size, originals.length);
+    if (dataWorkload) {
+        const messages = plan.flatMap(step => Object.values(step.data));
+        assert.equal(new Set(messages.map(original => original.message_id)).size, 40);
+        assert.equal(new Set(messages.map(original => original.body_base64)).size, 40);
+    }
     await save(join(directory, "plan.json"), plan);
     await save(join(directory, "current-end-plan.json"), {
         conversation_id: conversationId, session_ids: sessions.map(session => session.id), ends: currentEnds,
@@ -63,7 +85,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         programme_end_monotonic_ms: workload.startedAt + 62000,
         original_cutoff_monotonic_ms: workload.startedAt + 67000,
     });
-    const owners = new Set(), completed = [], segments = [], physicalEnds = [], earlyJoins = new Map();
+    const owners = new Set(), completed = [], segments = [], physicalEnds = [], dataExchanges = [], earlyJoins = new Map();
     const stopOwners = () => {
         for (const owner of owners) if (!earlyJoins.has(owner)) {
             const joining = Promise.resolve().then(() => owner.stopAndJoin());
@@ -82,6 +104,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     const collect = async (owner, sourceIndex, moveDirectory, natural = false) => {
         const stage = await (natural ? owner.join() : owner.stopAndJoin());
         assert.equal(stage.passed, true);
+        if (dataWorkload) assert.equal(stage.physical_data_exchange_verified, true);
         owners.delete(owner);
         const observation = join(moveDirectory, "target-observation.json");
         const inspected = await inspectReplacementCapture(observation, 80 * 1024 * 1024, 16000);
@@ -135,6 +158,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 source: { seconds: 62, ssrc: 0x47000001 + sourceIndex * 256 + step.ordinal * 2,
                     audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
                     ...(step.ordinal === 9 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
+                    ...(dataWorkload ? { data: step.data } : {}),
                     video: { streamId: step.videoId, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
                         ...(dataWorkload ? { receiveDataStreamId: streamIds[incoming].data } : {}),
@@ -153,6 +177,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 original_reference_preserved: owner.reference.operation_id === step.operationId,
                 original_retired: owner.movement.retired.includes(original.id),
                 camera_subscription_completed: false, elapsed_ms: performance.now() - began,
+                data_exchange_verified: false,
                 stage_directory: moveDirectory };
             completed.push(observedMove);
             assertCurrent();
@@ -169,6 +194,14 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             const live = await sessions[sid].refresh({ timeoutMs: 8000 });
             assert.ok(!["ended", "failed", "cancelled"].includes(live.state));
             observedMove.camera_subscription_completed = true;
+            if (dataWorkload) {
+                stage("original-physical-data-exchange");
+                const exchange = await exchangeData({ workload, owner, rootOperationId: step.operationId,
+                    contract: step.data, directory: moveDirectory, conversationId, sessionId: sessions[sid].id,
+                    upstream: connections[incoming].connection, upstreamClient: dataClients[incoming],
+                    downstream: receiver.connection, signal: stop.signal });
+                dataExchanges.push(exchange); observedMove.data_exchange_verified = true;
+            }
             observedMove.elapsed_ms = performance.now() - began;
         }
         // The actual final peer ends its own admitted Connection at the
@@ -196,10 +229,15 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.equal(segments.length, 20);
         assert.equal(physicalEnds.length, 2);
         assert.equal(results[2].value.retained_connections_retired, 4);
+        if (dataWorkload) {
+            assert.equal(dataExchanges.length, 20);
+            assert.ok(completed.every(move => move.data_exchange_verified));
+        }
         assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_subscription_completed));
         const observation = { original_moves_completed: 20, concurrent_session_chains: 2,
             data_resource_contract_requested: dataWorkload,
-            replacement_data_io_verified: false,
+            replacement_data_io_verified: dataWorkload,
+            replacement_data_exchanges: dataExchanges,
             moves_per_source: [10, 10], active_av_routes: 6, maximum_pending_candidates: 2,
             planned_peak_connection_slots: 8, shared_sdk_closed_during_replacement: false,
             original_program_start_unix_us: workload.programStartUnixUs,

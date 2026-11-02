@@ -7,6 +7,7 @@ import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/pro
 import { dirname, join, resolve } from "node:path";
 import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
+import { validatePhysicalData, verifyPhysicalDataReceipt } from "./transport_movement_data.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -57,6 +58,16 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
         assert.ok(source.video && source.seconds === 62 && source.programStartUnixUs !== undefined);
         assert.ok(id(source.terminalEndOperationId));
         assert.notEqual(source.terminalEndOperationId, operationId);
+    }
+    if (source.data !== undefined) {
+        validatePhysicalData(source.data);
+        assert.ok(source.video && source.seconds === 62 && source.programStartUnixUs !== undefined);
+        assert.equal(source.data.outgoing.stream_id, dataStreamId);
+        assert.equal(source.data.incoming.stream_id, source.video.receiveDataStreamId);
+        for (const original of Object.values(source.data)) {
+            assert.notEqual(original.operation_id, operationId);
+            assert.notEqual(original.operation_id, source.terminalEndOperationId);
+        }
     }
     const audio = source.audioPackets.map(bytes => {
         assert.ok(Array.isArray(bytes) && bytes.length >= 1 && bytes.length <= 1168 &&
@@ -110,6 +121,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : []),
             ...(dataStreamId === undefined ? [] : [{ id: dataStreamId, kind: "data", direction: "sendrecv", codec_preferences: ["binary"] }])] },
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
+            ...(source.data === undefined ? {} : { data: structuredClone(source.data) }),
             ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}),
             ...(source.terminalEndOperationId !== undefined ? { terminal_end_operation: source.terminalEndOperationId } : {}) }, output };
 }
@@ -155,6 +167,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
     directory, executable, executableSha256, ...intent }, live) {
     assert.equal(typeof retireOriginal, "function");
     assert.ok(live || intent.source.terminalEndOperationId === undefined, "final end requires live ownership transfer");
+    assert.ok(live || intent.source.data === undefined, "Data exchange requires live ownership transfer");
     const root = await realpath(privateRoot), parent = await realpath(dirname(resolve(directory)));
     assert.ok(parent === root || parent.startsWith(root + "/"));
     assert.equal(await realpath(executable), resolve(executable));
@@ -274,6 +287,19 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                     const info = await stat(path); assert.equal(info.mode & 0o077, 0);
                     assert.ok(info.size > 0 && info.size <= 65536);
                     report.final_owner_end_files[suffix] = hash(await readFile(path));
+                }
+            }
+            if (intent.source.data !== undefined) {
+                verifyPhysicalDataReceipt(observed.data_exchange_receipt, { contract: intent.source.data,
+                    conversationId: intent.conversationId, sessionId: intent.sessionId,
+                    connectionId: admittedConnectionId, rootOperationId: intent.operationId });
+                report.physical_data_exchange_verified = true;
+                report.physical_data_files = {};
+                for (const suffix of ["data-original-send", "data-start", "data-wire", "data-receipt", "data-exchange"]) {
+                    const path = suffix === "data-exchange" ? join(directory, "data-exchange.json") : output.replace(/\.json$/, "." + suffix + ".json");
+                    const info = await stat(path); assert.equal(info.mode & 0o077, 0);
+                    assert.ok(info.size > 0 && info.size <= 2 * 1024 * 1024);
+                    report.physical_data_files[suffix] = hash(await readFile(path));
                 }
             }
             report.target_observation_sha256 = inspected.sha256;

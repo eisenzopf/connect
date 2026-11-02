@@ -17,7 +17,7 @@ async function scenario(mode) {
             return { async wait() { return { snapshot: { state: "completed" } }; } };
         } } });
     const connections = roles.map((role, i) => ({ connection: connection("original-" + i, 1) }));
-    const dataProfile = ["data", "partial-data"].includes(mode);
+    const dataProfile = ["data", "partial-data", "data-failure"].includes(mode);
     const streamIds = roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i,
         ...(dataProfile && !(mode === "partial-data" && i === 5) ? { data: "data-" + i } : {}) }));
     const routes = roles.map((role, i) => ({ index: i, peerIndex: peers[i], sessionIndex: Number(i >= 4), role,
@@ -77,6 +77,7 @@ async function scenario(mode) {
             received: [{ original_root_completed_observed: false }, { original_root_completed_observed: true }],
         }), { mode: 0o600 });
         const stage = { passed: true };
+        if (dataProfile) stage.physical_data_exchange_verified = true;
         if (ordinal === 9) {
             assert.equal(options.source.terminalEndOperationId, "end-" + (sid === 0 ? 0 : 4));
             stage.final_current_owner_end = { operation_id: options.source.terminalEndOperationId,
@@ -107,13 +108,25 @@ async function scenario(mode) {
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
-            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained });
+            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained,
+            dataClients: connections.map(() => ({})),
+            exchangeData: async args => {
+                const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
+                const step = saved.find(step => step.operationId === args.rootOperationId);
+                assert.ok(subscriptions.some(subscription => subscription.options.operationId === step.subscriptionId));
+                assert.equal(args.contract.incoming.stream_id, streamIds[args.upstream.id === "original-3" ? 3 : 5].data);
+                assert.ok(["original-1", "original-5"].includes(args.downstream.id));
+                assert.equal(Buffer.from(args.contract.incoming.body_base64, "base64").length, 65536);
+                assert.notEqual(args.contract.incoming.body_base64, args.contract.outgoing.body_base64);
+                if (mode === "data-failure") throw original;
+                return { messages: Object.values(args.contract).map(message => ({ message_id: message.message_id })) };
+            } });
         if (mode === "partial-data") {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
         }
         if (mode !== "normal" && mode !== "data") {
-            await assert.rejects(run, error => ["unknown", "retained-failure"].includes(mode) ? error === original :
+            await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure"].includes(mode) ? error === original :
                 mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
@@ -124,7 +137,10 @@ async function scenario(mode) {
             assert.equal(failure.passed, false); assert.equal(failure.target_joins_failed, 0);
             if (mode === "cancelled") assert.equal(starts.length, 0);
             else if (mode === "unknown") assert.equal(failure.failure.certainty, "uncertain");
-            else if (mode !== "retained-failure") { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); }
+            else if (mode === "data-failure") {
+                assert.ok(starts.length >= 1 && starts.length <= 2);
+                assert.equal(failure.failure.observation.stage, "original-physical-data-exchange");
+            } else if (mode !== "retained-failure") { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); }
             return;
         }
         const { observation, currentConnections } = await run;
@@ -135,6 +151,8 @@ async function scenario(mode) {
         assert.deepEqual(retired.sort(), [0, 4]);
         assert.equal(observation.original_moves_completed, 20);
         assert.equal(observation.data_resource_contract_requested, dataProfile);
+        assert.equal(observation.replacement_data_io_verified, dataProfile);
+        assert.equal(observation.replacement_data_exchanges.length, dataProfile ? 20 : 0);
         if (dataProfile) for (const selected of subscriptions) {
             assert.equal(selected.intent.selectors.rest.length, 2);
             const original = starts.find(start => start.source.video.streamId === selected.intent.selectors.rest[0].stream);
@@ -156,6 +174,7 @@ async function scenario(mode) {
 test("twenty distinct original moves retain one source clock across two ten-move Session chains", () => scenario("normal"));
 test("the Data workload carries all original incoming and new target Data identities through twenty moves", () => scenario("data"));
 test("a partly declared six-Connection Data workload refuses before any movement", () => scenario("partial-data"));
+test("a failed original Data exchange stops both movement chains and joins admitted owners without new roots", () => scenario("data-failure"));
 test("an unknown original prevents further moves and joins every already admitted physical owner", () => scenario("unknown"));
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));

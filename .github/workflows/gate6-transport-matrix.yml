@@ -132,6 +132,7 @@ jobs:
             scripts/tests/transport_media_reader.test.mjs \
             scripts/tests/transport_capture_inspection.test.mjs \
             scripts/tests/transport_movement_workload.test.mjs \
+            scripts/tests/transport_movement_data.test.mjs \
             scripts/tests/transport_current_end.test.mjs \
             scripts/tests/transport_movement_sessions.test.mjs \
             scripts/tests/transport_replacement_target.test.mjs \

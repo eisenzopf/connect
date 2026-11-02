@@ -40,6 +40,24 @@ const avIntent = () => {
     return value;
 };
 
+test("physical Data originals bind both streams and stay distinct from replacement and terminal mutation keys", () => {
+    const value = avIntent();
+    value.source.seconds = 62; value.source.programStartUnixUs = 1793600000000000;
+    value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
+    value.source.video.frames = Array.from({ length: 1860 }, () => [...value.source.video.frames[0]]);
+    value.source.video.receiveDataStreamId = "incoming-data"; value.dataStreamId = "outgoing-data";
+    value.source.data = { incoming: { operation_id: "incoming-original", message_id: "incoming-message", stream_id: "incoming-data",
+        from_participant: "upstream", to_participant: "local", body_base64: Buffer.alloc(65536, 7).toString("base64") },
+        outgoing: { operation_id: "outgoing-original", message_id: "outgoing-message", stream_id: "outgoing-data",
+            from_participant: "local", to_participant: "downstream", body_base64: Buffer.alloc(65536, 8).toString("base64") } };
+    assert.deepEqual(replacementInput(value).media.data, value.source.data);
+    for (const change of [v => { v.source.data.outgoing.stream_id = "foreign"; },
+        v => { v.source.data.incoming.stream_id = "foreign"; }, v => { v.source.data.outgoing.operation_id = v.operationId; },
+        v => { v.source.terminalEndOperationId = v.source.data.incoming.operation_id; }, v => { v.source.programStartUnixUs = undefined; }]) {
+        const bad = structuredClone(value); change(bad); assert.throws(() => replacementInput(bad));
+    }
+});
+
 test("AV target retains independent stream identities and copies originals for the full 62-second source", () => {
     const value = avIntent();
     value.source.seconds = 62;

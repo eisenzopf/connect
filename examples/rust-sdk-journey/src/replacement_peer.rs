@@ -7,6 +7,7 @@ use connect_client::canonical::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
+mod data;
 mod owner;
 mod selected;
 mod terminal;
@@ -27,9 +28,28 @@ pub(super) struct Source {
     program_start_unix_us: Option<u64>,
     #[serde(default)]
     terminal_end_operation: Option<String>,
+    #[serde(default)]
+    data: Option<data::io::Contract>,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
+        if let Some(data) = &self.data {
+            data.validate()?;
+            if !self.owner_control
+                || self.seconds != 62
+                || self.program_start_unix_us.is_none()
+                || self
+                    .video
+                    .as_ref()
+                    .and_then(|video| video.receive_data_stream_id.as_deref())
+                    != Some(data.incoming.stream_id.as_str())
+                || self.terminal_end_operation.as_ref().is_some_and(|end| {
+                    [&data.incoming.operation_id, &data.outgoing.operation_id].contains(&end)
+                })
+            {
+                return Err("physical Data requires the original bounded owner programme and distinct operation keys".into());
+            }
+        }
         if self
             .terminal_end_operation
             .as_ref()
@@ -205,6 +225,13 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
             return Err("replacement Data format or identity changed".into());
         }
     }
+    if source
+        .data
+        .as_ref()
+        .is_some_and(|contract| data.len() != 1 || data[0]["id"] != contract.outgoing.stream_id)
+    {
+        return Err("physical Data publication differs from the actual offered resource".into());
+    }
     let maximum = (if source.video.is_some() { 2 } else { 1 }) + data.len();
     let receives_data = source
         .video
@@ -265,6 +292,13 @@ pub(super) async fn run(
     if source.terminal_end_operation.as_deref() == Some(command.operation_id.as_str()) {
         return Err("final physical end reused the replacement operation key".into());
     }
+    if source.data.as_ref().is_some_and(|data| {
+        [&data.incoming.operation_id, &data.outgoing.operation_id]
+            .iter()
+            .any(|operation| operation.as_str() == command.operation_id)
+    }) {
+        return Err("physical Data reused the replacement root key".into());
+    }
     // Refuse an expired original program before allocation or any network IO.
     timeline::Program::at(
         source.program_start_unix_us,
@@ -307,6 +341,7 @@ pub(super) async fn run(
     let mut source_start_audio_index = 0;
     let mut source_start_video_index = 0;
     let mut terminal_end_receipt = None;
+    let mut data_exchange = None;
     let work = async {
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
@@ -331,6 +366,11 @@ pub(super) async fn run(
         }
         client.answer_connection_offer(&callback, selected::answer(payload,&offer_json["capabilities"])?, &scope).await?;
         negotiated=selected.iter().map(|s|s.raw.clone()).collect();
+        if let Some(contract) = &source.data {
+            data_exchange = Some(data::io::Exchange::new(contract.clone(), &scope, &command.operation_id,
+                answer.original()["payload"]["by_participant"].as_str().ok_or("physical Data admitted participant missing")?)?);
+            client.start_signaling_reader()?;
+        }
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
         let anchor = tokio::time::Instant::now();
@@ -360,6 +400,11 @@ pub(super) async fn run(
                 if owner::stop(&output, &command.operation_id).await? {
                     stop_requested = true;
                     break;
+                }
+                if let Some(data) = &mut data_exchange {
+                    phase = "physical-data-exchange";
+                    data.tick(&mut client, root_observed, start, &output).await?;
+                    phase = "physical-owner-control";
                 }
                 if !owner_ready && sent > 0 && (source.video.is_none() || (video_open && sent_video > 0)) {
                     owner::ready(&output, &command.operation_id,
@@ -442,6 +487,9 @@ pub(super) async fn run(
             }
         }
         if source.video.is_some() && (!video_open || sent_video==0) {return Err("replacement AV source ended without original completed video controls and original video packets".into());}
+        if data_exchange.as_ref().is_some_and(|data| !data.completed()) {
+            return Err("physical owner ended without its original exact Data exchange".into());
+        }
         if let Some(operation) = &source.terminal_end_operation {
             phase = "original-final-owner-end";
             if stop_requested {
@@ -475,6 +523,7 @@ pub(super) async fn run(
         "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
         "terminal_end_requested":source.terminal_end_operation.is_some(),
         "terminal_end_receipt":terminal_end_receipt,
+        "data_exchange_receipt":data_exchange.as_ref().and_then(|data| data.receipt()),
         "negotiated_streams":negotiated});
     file.write_all(&serde_json::to_vec(&result)?).await?;
     file.sync_all().await?;
@@ -497,6 +546,7 @@ mod tests {
             owner_control: true,
             program_start_unix_us: Some(1),
             terminal_end_operation: Some("original-final-end".into()),
+            data: None,
             video: Some(video::Video {
                 stream_id: "camera".into(),
                 receive_audio_stream_id: "remote-audio".into(),
@@ -530,6 +580,7 @@ mod tests {
             owner_control: false,
             program_start_unix_us: None,
             terminal_end_operation: None,
+            data: None,
         };
         let offer = json!({"capabilities":{"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
             "video_codecs":[],"data_protocols":["binary"],"max_streams_per_connection":2,"source_clock":"rtcp-sr-sdes/1"},
@@ -589,6 +640,7 @@ mod tests {
                 owner_control: false,
                 program_start_unix_us: None,
                 terminal_end_operation: None,
+                data: None,
             },
             Source {
                 seconds: 31,
@@ -598,6 +650,7 @@ mod tests {
                 owner_control: false,
                 program_start_unix_us: None,
                 terminal_end_operation: None,
+                data: None,
             },
             Source {
                 seconds: 1,
@@ -607,6 +660,7 @@ mod tests {
                 owner_control: false,
                 program_start_unix_us: None,
                 terminal_end_operation: None,
+                data: None,
             },
             Source {
                 seconds: 1,
@@ -616,6 +670,7 @@ mod tests {
                 owner_control: false,
                 program_start_unix_us: None,
                 terminal_end_operation: None,
+                data: None,
             },
             Source {
                 seconds: 1,
@@ -625,6 +680,7 @@ mod tests {
                 owner_control: false,
                 program_start_unix_us: None,
                 terminal_end_operation: None,
+                data: None,
             },
         ] {
             assert!(source.validate().is_err());

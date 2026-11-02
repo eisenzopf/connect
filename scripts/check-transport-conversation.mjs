@@ -394,6 +394,7 @@ try {
                             return deviceMovementWorkload({ workload: current, controllers, conversationId: cid, sessions,
                             connections, streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"],
                                 video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),
+                            dataClients: connections.map(item => clients.get(item.role)),
                             participantIds: connections.map(item => member(view, item.role).id),
                             targets: ["participant-1", "replacement-1"].map(role => ({
                                 endpointId: input.actors[role].media_endpoint_id, deviceId: input.actors[role].device_id,
@@ -409,6 +410,19 @@ try {
                 });
             report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === 20;
             report.data_workload.current_owner_end = report.device_movement.current_owner_end;
+            assert.equal(report.device_movement.replacement_data_io_verified, true);
+            const movementMessages = report.device_movement.replacement_data_exchanges.flatMap(exchange => exchange.messages);
+            assert.equal(movementMessages.length, 40);
+            assert.equal(new Set(movementMessages.map(message => message.message_id)).size, 40);
+            for (const [role, previous] of priorHistory) {
+                const participant = member(view, role).id;
+                const additional = movementMessages.filter(message => [message.from_participant, message.to_participant].includes(participant))
+                    .map(message => message.message_id);
+                const baseline = flows.filter(flow => flow.source.role === role || flow.target.role === role).map(flow => flow.intent.messageId);
+                assert.deepEqual(await history(clients.get(role)), [...previous, ...baseline, ...additional].sort());
+                if (role === "participant-1") ownerNativeMessageIds.push(...additional);
+            }
+            report.data_workload.replacement_data_history_audiences_verified = true;
             for (const role of controllerRoles) {
                 await clients.get(role).close({ timeoutMs: 5000 }); clients.delete(role);
             }
