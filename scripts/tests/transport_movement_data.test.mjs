@@ -25,10 +25,17 @@ async function scenario(mode) {
     const uncertainty = Object.assign(Error("original send uncertain"), { certainty: "uncertain" });
     const reference = { schema: "connect-operation-reference/1", operation_id: original.incoming.operation_id, command: "message.send",
         scope: { conversation_id: "room", session_id: "session", connection_id: "upstream" } };
-    const operation = { referenceJson: () => reference, async wait(options) {
+    const sdkJson = value => JSON.parse(JSON.stringify(value), (_, value) => value && typeof value === "object" && !Array.isArray(value) ? Object.assign(Object.create(null), value) : value);
+    const operation = { referenceJson: () => {
+        const captured = structuredClone(reference);
+        if (mode === "foreign-reference") captured.scope.connection_id = "foreign";
+        if (mode === "changed-reference-key") captured.operation_id = "different-original";
+        if (mode === "extra-reference-field") captured.extra = true;
+        return sdkJson(captured);
+    }, async wait(options) {
         waits++; assert.ok(options.timeoutMs <= 8000);
-        return { snapshot: { state: "completed" }, value: { messageId: original.incoming.message_id,
-            connectionId: mode === "foreign-acceptance" ? "foreign" : "upstream", boundary: "core-queue-admission" } };
+        return { snapshot: { state: "completed" }, value: sdkJson({ messageId: original.incoming.message_id,
+            connectionId: mode === "foreign-acceptance" ? "foreign" : "upstream", boundary: "core-queue-admission" }) };
     } };
     const upstream = { id: "upstream", streams: { byId(id) {
         assert.equal(id, original.incoming.stream_id);
@@ -91,6 +98,9 @@ test("one original exchange uses the retained upstream stream and exact new down
 test("an uncertain SDK send recovers the saved original operation by read only and never resubmits", () => scenario("unknown"));
 test("a refused original joins both receive observers without mutation retry", () => scenario("refused"));
 test("foreign upstream acceptance cannot pass a replacement Data exchange", () => scenario("foreign-acceptance"));
+test("null-prototype SDK references still reject changed scope, original key and additional JSON fields", async () => {
+    for (const mode of ["foreign-reference", "changed-reference-key", "extra-reference-field"]) await scenario(mode);
+});
 test("a physical receipt for another Connection cannot pass native acceptance and exact downstream bytes", () => scenario("foreign-physical"));
 test("a late physical receipt cannot renew the original eight-second exchange cutoff", () => scenario("late-physical"));
 test("missing physical bytes are bounded by the original cutoff rather than inferred from SDK admission", () => scenario("missing-physical"));

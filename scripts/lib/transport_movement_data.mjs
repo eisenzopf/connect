@@ -101,10 +101,12 @@ export async function exchangeMovementData({ workload, owner, rootOperationId, c
                 // Read the saved original key; an unknown send never resubmits.
                 operation = upstreamClient.operations.restore(reference, upstreamClient.operationKinds.data_send);
             }
-            assert.deepEqual(operation.referenceJson(), reference);
+            // Public SDK JSON dictionaries intentionally have null prototypes.
+            // Compare every serialized key/value, not their JS prototypes.
+            assert.deepEqual(JSON.parse(JSON.stringify(operation.referenceJson())), reference);
             const completed = await operation.wait({ timeoutMs: remaining(), signal });
             assert.equal(completed.snapshot.state, "completed");
-            assert.deepEqual(completed.value, { messageId: contract.incoming.message_id,
+            assert.deepEqual(JSON.parse(JSON.stringify(completed.value)), { messageId: contract.incoming.message_id,
                 connectionId: upstream.id, boundary: "core-queue-admission" });
             return completed.value;
         }),

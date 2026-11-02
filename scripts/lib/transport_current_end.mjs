@@ -53,7 +53,7 @@ export async function endRetainedConnections({ routes, ends, conversationId, ses
         const reference = operation.referenceJson();
         assert.equal(reference.operation_id, end.operationId);
         assert.equal(reference.command, "connection.end");
-        assert.deepEqual(reference.scope, { conversation_id: conversationId,
+        assert.deepEqual(JSON.parse(JSON.stringify(reference.scope)), { conversation_id: conversationId,
             session_id: sessions[route.sessionIndex].id, connection_id: route.connection.id });
         await persist(end.index, "reference", reference);
         const completed = await operation.wait({ timeoutMs: remaining() });

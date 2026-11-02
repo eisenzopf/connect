@@ -15,7 +15,7 @@ function scenario(mode = "normal") {
                 assert.equal(saved.filter(v => v.kind === "intent").length, 4);
                 if (mode === "unknown" && index === 1) throw uncertain;
                 return { referenceJson: () => ({ operation_id: options.operationId, command: "connection.end",
-                    scope: { conversation_id: "room", session_id: "session-" + (index < 4 ? 0 : 1), connection_id: "connection-" + index } }),
+                    scope: Object.assign(Object.create(null), { conversation_id: "room", session_id: "session-" + (index < 4 ? 0 : 1), connection_id: "connection-" + index }) }),
                     async wait(options) { waits.push(index); assert.ok(options.timeoutMs <= 5000);
                         if (mode === "late-result") clock = 67000;
                         return { snapshot: { state: "completed" }, value: { id: mode === "foreign-result" && index === 1 ? "foreign" : "connection-" + index } };

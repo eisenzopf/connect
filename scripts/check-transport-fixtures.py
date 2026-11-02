@@ -40,9 +40,10 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None):
     global PRIVATE, OUTPUT
     assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
+    assert native_port is None or (type(native_port) is int and 1024 <= native_port <= 65535 and media_workload and network_profile == "local")
     if media_workload:
         data_workload = actors = conversation = True
         PRIVATE, OUTPUT = BASE / "private/media", BASE / "evidence/media"
@@ -88,6 +89,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
         scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     report["host_capture_requested"] = host_capture
+    report["requested_native_port"] = native_port
     report["host_capture_required_for_complete_cell"] = True
     if not host_capture:
         report["packet_capture"] = dict(format="connect/native-private-packet-capture/1", observed=False,
@@ -247,7 +249,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             server = None
 
         state, seed, output = PRIVATE / "initial", PRIVATE / "seed", PRIVATE / "materialized"
-        native, http = port(socket.SOCK_DGRAM), port(socket.SOCK_STREAM)
+        native, http = native_port or port(socket.SOCK_DGRAM), port(socket.SOCK_STREAM)
         run("initialize", ["init", "--directory", state, "--bind", f"127.0.0.1:{native}", "--http-bind", f"127.0.0.1:{http}", "--signing-algorithm", signing_algorithm])
         initialized = files(state)
         run("unsupported-init-signing", ["init", "--directory", PRIVATE / "unsupported-signing",
@@ -657,9 +659,12 @@ if __name__ == "__main__":
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
     parser.add_argument("--media-workload", action="store_true", help="Include six native Opus/VP8/data Connections with independent decoded 60-second observations; not complete matrix qualification")
     parser.add_argument("--without-host-capture", action="store_true", help="Run the same local media workload while explicitly recording privileged host capture unavailable; never complete cell qualification")
+    parser.add_argument("--native-port", type=int, help="Explicit local media fixture UDP port for separately owned packet capture")
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
     if args.without_host_capture and (not args.media_workload or args.network_profile != "local"):
         parser.error("--without-host-capture requires the explicit local --media-workload component")
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture))
+    if args.native_port is not None and (not args.media_workload or args.network_profile != "local" or not 1024 <= args.native_port <= 65535):
+        parser.error("--native-port requires an explicit local media fixture port in1024..65535")
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port))

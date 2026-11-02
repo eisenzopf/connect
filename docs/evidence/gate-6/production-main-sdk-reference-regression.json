@@ -1,0 +1,66 @@
+{
+  "format": "connect/production-main-sdk-reference-regression/1",
+  "task": "G6-058",
+  "source_revision": "e588f30c3e2cc7c8f7e7173ee02d878869b99f04",
+  "producer_report_sha256": "cb43fe0f28c2fde1c3ee7e1e4b8bed0db470e80813457eb9973532ecd1f386f5",
+  "conversation_report_sha256": "a9607a0a53c603d957cd6a552e0d3db677161baf2b7f3116d832a5a3a8c0859c",
+  "production_rehearsal_passed": false,
+  "observed": {
+    "six_baseline_data_payloads_verified": true,
+    "payload_bytes_each": 65536,
+    "exact_baseline_history_audiences": true,
+    "original_data_upgrade_verified": true,
+    "first_completed_replacement_roots": 2,
+    "both_cameras_subscribed": true,
+    "original_packet_tasks_joined": 24,
+    "sdk_helpers_observed": 7,
+    "sdk_helpers_joined": true,
+    "physical_stages": [
+      {
+        "passed": false,
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "target_config_unchanged": true,
+        "target_executable_unchanged": true,
+        "original_root_completed": true
+      },
+      {
+        "passed": false,
+        "target_worker_joined": true,
+        "target_worker_forced": false,
+        "target_config_unchanged": true,
+        "target_executable_unchanged": true,
+        "original_root_completed": true
+      }
+    ],
+    "servers_joined": 2,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true
+  },
+  "failure": {
+    "stage": "original-physical-data-exchange",
+    "cause": "deepStrictEqual compared null-prototype public SDK JSON dictionaries against ordinary-object fixture references; all actual reference JSON fields matched",
+    "root_or_data_mutation_retried": false
+  },
+  "correction": {
+    "compare_complete_json_values": true,
+    "original_scope_and_operation_keys_still_required": true,
+    "unexpected_fields_still_rejected": true,
+    "retained_end_scope_check_corrected": true,
+    "regression_tests_passed": 21,
+    "tests_use_null_prototype_sdk_dictionaries": true
+  },
+  "manual_capture": {
+    "planned": true,
+    "device_ownership_unchanged": true,
+    "explicit_native_port_selection": true,
+    "filter": "udp and host127.0.0.1 and exact owned fixture port",
+    "privilege_drop": "tcpdump -Z current user after capture device opens; no device permission changes",
+    "bounded_packets": 200000,
+    "rotation_seconds": 300
+  },
+  "full_timeline_decoded": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
