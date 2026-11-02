@@ -1,0 +1,409 @@
+{
+  "format": "connect/reference-app-native-audio-macos-negative/1",
+  "run_id": 41518233789,
+  "job_id": 125527214080,
+  "source_revision": "3dbc72e9f880cc752f9b0a33a87a8ae48efcf34e",
+  "runtime_sha256": "1b72b11474d3d343126f8637706e4f4d26bf7925016fc60ad161e77479c48e22",
+  "passed": false,
+  "checks_passed": 17,
+  "checks_expected": 37,
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 596,
+        "column": 16
+      }
+    ]
+  },
+  "synthetic_audio": [
+    {
+      "role": "owner",
+      "expected_received_hz": 880,
+      "metrics": {
+        "capturedAudioFrames": 33,
+        "capturedVideoFrames": 0,
+        "encodedFrames": 23,
+        "sentRtp": 5,
+        "receivedRtp": 1,
+        "clockReportsSent": 1,
+        "clockReportsReceived": 0,
+        "videoClockReportsSent": 0,
+        "videoClockReportsReceived": 0,
+        "decodedAudioFrames": 1,
+        "playedAudioFrames": 1,
+        "decodedVideoFrames": 0,
+        "paintedVideoFrames": 0,
+        "droppedFrames": 19,
+        "synchronizedPackets": 0,
+        "unsynchronizedPackets": 1,
+        "audioLateDrops": 0,
+        "audioHorizonDrops": 0,
+        "audioCapacityDrops": 0,
+        "videoLateDrops": 0,
+        "videoHorizonDrops": 0,
+        "videoTimerDrops": 0,
+        "videoCapacityDrops": 0,
+        "droppedClockReports": 0,
+        "lastAudioOffsetMs": 67,
+        "lastVideoOffsetMs": null,
+        "receiveClockCorrections": 0,
+        "lastAudioCaptureOffsetMs": -621,
+        "lastVideoCaptureOffsetMs": null,
+        "receiveStartedMs": 2020,
+        "deviceSetupMs": 114,
+        "captureGraphMs": 155,
+        "cameraSetupMs": null,
+        "phase": "stopped",
+        "stoppedAt": "active",
+        "stopReason": "app-media-network",
+        "activeTracks": 0,
+        "activeContexts": 0,
+        "queuedAudioSources": 0,
+        "queuedSendFrames": 0,
+        "queuedVideoFrames": 0,
+        "pendingRequests": 0,
+        "stopped": true
+      },
+      "output": {
+        "frames": 0,
+        "energy": 0,
+        "tone440": 0,
+        "tone880": 0
+      },
+      "state": "app-media-network",
+      "status": "Media connection unavailable. Reconnect before starting media again."
+    }
+  ],
+  "failure_media_pages": [
+    {
+      "role": "owner",
+      "observation": {
+        "session_state": null,
+        "current_actor": "owner",
+        "state": "app-media-network",
+        "status": "Media connection unavailable. Reconnect before starting media again.",
+        "metrics": {
+          "capturedAudioFrames": 33,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 23,
+          "sentRtp": 5,
+          "receivedRtp": 1,
+          "clockReportsSent": 1,
+          "clockReportsReceived": 0,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 1,
+          "playedAudioFrames": 1,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 19,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 1,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "droppedClockReports": 0,
+          "lastAudioOffsetMs": 67,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -621,
+          "lastVideoCaptureOffsetMs": null,
+          "receiveStartedMs": 2020,
+          "deviceSetupMs": 114,
+          "captureGraphMs": 155,
+          "cameraSetupMs": null,
+          "phase": "stopped",
+          "stoppedAt": "active",
+          "stopReason": "app-media-network",
+          "activeTracks": 0,
+          "activeContexts": 0,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 0,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 0,
+          "stopped": true
+        },
+        "output": {
+          "frames": 0,
+          "energy": 0,
+          "tone440": 0,
+          "tone880": 0
+        }
+      }
+    },
+    {
+      "role": "organizer",
+      "observation": {
+        "session_state": null,
+        "current_actor": "organizer",
+        "state": "active",
+        "status": "Microphone shared. Incoming audio playing.",
+        "metrics": {
+          "capturedAudioFrames": 23,
+          "capturedVideoFrames": 0,
+          "encodedFrames": 11,
+          "sentRtp": 1,
+          "receivedRtp": 2,
+          "clockReportsSent": 0,
+          "clockReportsReceived": 1,
+          "videoClockReportsSent": 0,
+          "videoClockReportsReceived": 0,
+          "decodedAudioFrames": 2,
+          "playedAudioFrames": 2,
+          "decodedVideoFrames": 0,
+          "paintedVideoFrames": 0,
+          "droppedFrames": 12,
+          "synchronizedPackets": 0,
+          "unsynchronizedPackets": 2,
+          "audioLateDrops": 0,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 0,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "droppedClockReports": 0,
+          "lastAudioOffsetMs": 33.1,
+          "lastVideoOffsetMs": null,
+          "receiveClockCorrections": 0,
+          "lastAudioCaptureOffsetMs": -588,
+          "lastVideoCaptureOffsetMs": null,
+          "receiveStartedMs": 2134,
+          "deviceSetupMs": 43,
+          "captureGraphMs": 215,
+          "cameraSetupMs": null,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 1,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 10,
+          "queuedVideoFrames": 0,
+          "pendingRequests": 2,
+          "stopped": false
+        },
+        "output": {
+          "frames": 2,
+          "energy": 0.0011544738449238206,
+          "tone440": 0.00014184334230926885,
+          "tone880": 2.430108502482933e-06
+        }
+      }
+    }
+  ],
+  "app_failures": [
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": null,
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 219,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    }
+  ],
+  "native_video_playout_component": {
+    "painted": 1,
+    "dropped": 2,
+    "queued": 0,
+    "pixel": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "frame_construction_ms": 7,
+    "enqueue_ms": 1,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {
+      "late": 2
+    },
+    "timer_samples": [
+      {
+        "requested_at_ms": 3481.7000000001863,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 3575.100000000093,
+        "wake_lateness_ms": 13.399999999906868,
+        "callback_duration_ms": 4.899999999906868
+      },
+      {
+        "requested_at_ms": 3580,
+        "requested_delay_ms": 15,
+        "fired_at_ms": 3706.4000000003725,
+        "wake_lateness_ms": 111.40000000037253,
+        "callback_duration_ms": 0.09999999962747097
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [
+      {
+        "began_ms": 3575.3000000002794,
+        "duration_ms": 4.699999999720603
+      }
+    ],
+    "observation_ms": 673
+  },
+  "native_audio_trace": {
+    "observed": true,
+    "files": [
+      {
+        "server_slot": 0,
+        "private_log_sha256": "7923de325fbb1a8dfdf7546492da1adab2438bc29cd32ab9398247acf6218f82",
+        "format": "connect/private-native-audio-trace-summary/1",
+        "observed": true,
+        "mixer_queued_age": {
+          "samples": 39,
+          "p50_us": 54385,
+          "p95_us": 103426,
+          "max_us": 106833
+        },
+        "entering_io_age": {
+          "samples": 39,
+          "p50_us": 57369,
+          "p95_us": 107047,
+          "max_us": 109827
+        },
+        "targets": [
+          {
+            "target_slot": 0,
+            "mixer_queued_age": {
+              "samples": 6,
+              "p50_us": 5549,
+              "p95_us": 65650,
+              "max_us": 65650
+            },
+            "entering_io_age": {
+              "samples": 6,
+              "p50_us": 9910,
+              "p95_us": 77546,
+              "max_us": 77546
+            }
+          },
+          {
+            "target_slot": 1,
+            "mixer_queued_age": {
+              "samples": 33,
+              "p50_us": 58883,
+              "p95_us": 103426,
+              "max_us": 106833
+            },
+            "entering_io_age": {
+              "samples": 33,
+              "p50_us": 62686,
+              "p95_us": 107047,
+              "max_us": 109827
+            }
+          }
+        ],
+        "refused_events": 0,
+        "discarded_chunks": 4,
+        "malformed_events": 0,
+        "omitted_target_events": 0,
+        "input_bytes": 17426,
+        "raw_logs_published": false,
+        "scope": "Existing Core trace ages from original source admission to mixer queue and guarded local IO. Samples are independent distributions, not paired packet transit, remote receive/decode/presentation, network loss, or latency qualification. Logging changes observation overhead; ordinary media verification remains separate."
+      }
+    ],
+    "raw_logs_published": false,
+    "scope": "Post-join numeric summaries of this fixture's private server logs. No identifiers, absolute paths or raw log lines. Diagnostic logging affects overhead and does not qualify ordinary media latency."
+  },
+  "source_and_runtime_guards": true,
+  "artifact_inventory": {
+    "platform": "macos",
+    "target": "aarch64-apple-darwin",
+    "source_revision": "3dbc72e9f880cc752f9b0a33a87a8ae48efcf34e",
+    "git_source_files_verified": 5003,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 755,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "1b72b11474d3d343126f8637706e4f4d26bf7925016fc60ad161e77479c48e22",
+    "native": {
+      "integer_sample_codec_source_verified": true,
+      "bundled_static_opus_symbols": [
+        "_opus_encoder_create",
+        "_opus_encode",
+        "_opus_decoder_create",
+        "_opus_decode"
+      ],
+      "no_external_homebrew_opus_dependency": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 17,
+    "original_app_passed": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifact_audit_sha256": "052b536f47ff893b7948a4fe5c861a422586cbcd31fadb9591a7a8fd4b6c0ac8",
+  "browser_report_sha256": "49351ac07c0ae5d92ec6fa5eea5baee20c8ef7bffed502634305cb5b7addf17a",
+  "artifacts": [
+    {
+      "id": 13180261344,
+      "name": "gate6-runtime-candidate-evidence-aarch64-apple-darwin",
+      "bytes": 448280,
+      "digest": "sha256:131a70952ad481de3ce63fb074a7c1cca6d5d6563a75335cab2a4258c9a4cdb8"
+    },
+    {
+      "id": 13179158894,
+      "name": "gate6-reference-app-node-package-aarch64-apple-darwin",
+      "bytes": 737274,
+      "digest": "sha256:97f0d1fd8a686fb8a252a2ef182e77a7ed2b0af7bf1a90903169a200428bf93b"
+    },
+    {
+      "id": 13179108996,
+      "name": "gate6-runtime-candidate-package-aarch64-apple-darwin",
+      "bytes": 57267439,
+      "digest": "sha256:1630d28711eeb96d12a9c0715f303ef1ee1257599aaa74e00c7ad5cd704d64a8"
+    },
+    {
+      "id": 13178633895,
+      "name": "gate6-reference-app-components-aarch64-apple-darwin",
+      "bytes": 426581,
+      "digest": "sha256:c1f58a54fb7346fd30fcd205ffc61788ba5e5bd04d55fa7a870fd44ffc5ef2f8"
+    }
+  ],
+  "clock_replay": {
+    "passed": true,
+    "matches": true,
+    "pending": 0,
+    "observation_failures": 12,
+    "skipped": 0,
+    "all_route_observations_absent": true,
+    "scope": "Retained original response-event observations only. Unchanged mapper and80ms allowance; not packet transit, decoder completion, presentation or latency qualification."
+  },
+  "scope": "Explicit native-Core-audio trace and HTTP-clock diagnostic after original production package install. Tracing affects overhead. Native age distributions cover all retained original server events and are independent, not paired with browser windows/packet transit. HTTP route observations are absent, so the trace cannot establish audio clock timing or root cause. Known browser capture lag, SDK deadline and subsequent owner cancellation remain failures. No ordinary media quality/task qualification.",
+  "ordinary_quality_qualified": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

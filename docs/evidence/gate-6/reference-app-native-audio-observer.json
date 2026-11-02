@@ -49,7 +49,28 @@
     "original_http_clock_trace": true,
     "node_cpu_profile": false,
     "native_server_sample": false,
-    "result_pending": true,
-    "ordinary_latency_qualification": false
+    "result_pending": false,
+    "ordinary_latency_qualification": false,
+    "status": "completed",
+    "conclusion": "failure",
+    "platforms": {
+      "linux": {
+        "checks_passed": 25,
+        "checks_expected": 37,
+        "passed": false,
+        "evidence": "reference-app-native-audio-current-linux.json",
+        "artifact_audit_passed": true
+      },
+      "mac": {
+        "checks_passed": 17,
+        "checks_expected": 37,
+        "passed": false,
+        "evidence": "reference-app-native-audio-current-mac.json",
+        "artifact_audit_passed": true
+      }
+    },
+    "original_all8_artifact_zip_size_sha_crc_verified": true,
+    "observer_numeric_summaries_emitted_on_both_platforms": true,
+    "all37_checks_passed": false
   }
 }

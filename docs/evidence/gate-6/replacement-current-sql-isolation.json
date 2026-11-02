@@ -63,10 +63,37 @@
     "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "df94ab99b6f002b61429359fb4bb4ac4438b63b1eff7711a8d22c0313bb45fbc",
     "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs": "73cab781be92b9c8cd62b5df2b7eaf7625743c52c0c3a5693efc9e757b3dcdd4"
   },
-  "actual_signed_runtime_pending": true,
+  "actual_signed_runtime_pending": false,
   "normal_production_rehearsal_pending": true,
   "host_capture_executed": false,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "signed_runtime": {
+    "scope": "Signed local PCMU/VP8 replacement and known-commit failure components; full Opus/VP8 programme and independent whole-window quality remain separate.",
+    "source_revision": "2de67b9e724942ae50633504c4e3455f34ad2222",
+    "component_binary_sha256": "91f94fd2291d5ad24b268d400b0c1dcaa5e9020f8a597aa686bd732aa43f0984",
+    "cases": [
+      {
+        "case": "av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+        "passed": true,
+        "log_sha256": "b13de82838fdd532c6407eda19bc1e50ebb6d1a1ca074717e5d4770eef159827"
+      },
+      {
+        "case": "production_replacement_known_commit_metadata_failure_and_target_loss_retire_without_replay",
+        "passed": true,
+        "log_sha256": "69540d4eb0aab2268131605960e483f6e5862e4ca1c9ebf6e492536626b172b6"
+      }
+    ],
+    "source_inputs_unchanged": true
+  },
+  "normal_production_cli_build": {
+    "passed": true,
+    "source_revision": "2de67b9e724942ae50633504c4e3455f34ad2222",
+    "binary_sha256": "4adfe372f4f553632795af6c034282b1efbffba4af2c9a5e111af4908d3228e9",
+    "opt_level": "3",
+    "test_support": false,
+    "source_inputs_sha256": "c1f073684dca2272d56023a65dab078799fe25af00928575a2a4ac7499821d90",
+    "source_inputs_unchanged": true
+  }
 }

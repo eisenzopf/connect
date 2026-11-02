@@ -1,0 +1,292 @@
+{
+  "format": "connect/reference-app-native-audio-linux-negative/1",
+  "run_id": 41518233789,
+  "job_id": 125527214440,
+  "source_revision": "3dbc72e9f880cc752f9b0a33a87a8ae48efcf34e",
+  "runtime_sha256": "ca811ec1fdecb9d86ed92abdcb17ad77ade0672e577c72ea5ae768c7270ccecd",
+  "passed": false,
+  "checks_passed": 25,
+  "checks_expected": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 754,
+        "column": 20
+      }
+    ]
+  },
+  "native_audio_trace": {
+    "observed": true,
+    "files": [
+      {
+        "server_slot": 0,
+        "private_log_sha256": "5a0c84fc4cd31939e1592d65ee90c33f4f446bc1c0cfab3980e05a1fa1c767c2",
+        "format": "connect/private-native-audio-trace-summary/1",
+        "observed": true,
+        "mixer_queued_age": {
+          "samples": 1225,
+          "p50_us": 37896,
+          "p95_us": 91918,
+          "max_us": 102709
+        },
+        "entering_io_age": {
+          "samples": 1491,
+          "p50_us": 36741,
+          "p95_us": 95362,
+          "max_us": 119489
+        },
+        "targets": [
+          {
+            "target_slot": 0,
+            "mixer_queued_age": {
+              "samples": 411,
+              "p50_us": 29242,
+              "p95_us": 83594,
+              "max_us": 88983
+            },
+            "entering_io_age": {
+              "samples": 411,
+              "p50_us": 31938,
+              "p95_us": 86517,
+              "max_us": 97710
+            }
+          },
+          {
+            "target_slot": 1,
+            "mixer_queued_age": {
+              "samples": 352,
+              "p50_us": 35565,
+              "p95_us": 94035,
+              "max_us": 101400
+            },
+            "entering_io_age": {
+              "samples": 352,
+              "p50_us": 38395,
+              "p95_us": 98008,
+              "max_us": 119489
+            }
+          },
+          {
+            "target_slot": 2,
+            "mixer_queued_age": {
+              "samples": 234,
+              "p50_us": 54583,
+              "p95_us": 78232,
+              "max_us": 102709
+            },
+            "entering_io_age": {
+              "samples": 369,
+              "p50_us": 45945,
+              "p95_us": 82312,
+              "max_us": 109660
+            }
+          },
+          {
+            "target_slot": 3,
+            "mixer_queued_age": {
+              "samples": 228,
+              "p50_us": 45027,
+              "p95_us": 77164,
+              "max_us": 97678
+            },
+            "entering_io_age": {
+              "samples": 359,
+              "p50_us": 36357,
+              "p95_us": 85141,
+              "max_us": 105672
+            }
+          }
+        ],
+        "refused_events": 38,
+        "discarded_chunks": 0,
+        "malformed_events": 0,
+        "omitted_target_events": 0,
+        "input_bytes": 603505,
+        "raw_logs_published": false,
+        "scope": "Existing Core trace ages from original source admission to mixer queue and guarded local IO. Samples are independent distributions, not paired packet transit, remote receive/decode/presentation, network loss, or latency qualification. Logging changes observation overhead; ordinary media verification remains separate."
+      }
+    ],
+    "raw_logs_published": false,
+    "scope": "Post-join numeric summaries of this fixture's private server logs. No identifiers, absolute paths or raw log lines. Diagnostic logging affects overhead and does not qualify ordinary media latency."
+  },
+  "combined_av_windows": [
+    [
+      {
+        "role": "owner",
+        "elapsed_ms": 2020.5,
+        "completed_audio_frames": 0,
+        "painted_video_frames": 54,
+        "audio_energy": 0,
+        "desired_tone": 0,
+        "excluded_tone": 0,
+        "metrics": {
+          "capturedAudioFrames": 175,
+          "capturedVideoFrames": 103,
+          "encodedFrames": 275,
+          "sentRtp": 273,
+          "receivedRtp": 124,
+          "clockReportsSent": 8,
+          "clockReportsReceived": 5,
+          "videoClockReportsSent": 4,
+          "videoClockReportsReceived": 4,
+          "decodedAudioFrames": 21,
+          "playedAudioFrames": 3,
+          "decodedVideoFrames": 88,
+          "paintedVideoFrames": 81,
+          "droppedFrames": 129,
+          "synchronizedPackets": 118,
+          "unsynchronizedPackets": 6,
+          "audioLateDrops": 18,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 5,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "droppedClockReports": 0,
+          "lastAudioOffsetMs": -135,
+          "lastVideoOffsetMs": 63.814,
+          "receiveClockCorrections": 4,
+          "lastAudioCaptureOffsetMs": -6,
+          "lastVideoCaptureOffsetMs": -2,
+          "receiveStartedMs": 634,
+          "deviceSetupMs": 91,
+          "captureGraphMs": 28,
+          "cameraSetupMs": 31,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 2,
+          "pendingRequests": 4,
+          "stopped": false
+        }
+      },
+      {
+        "role": "organizer",
+        "elapsed_ms": 2039.8999999999069,
+        "completed_audio_frames": 0,
+        "painted_video_frames": 46,
+        "audio_energy": 0,
+        "desired_tone": 0,
+        "excluded_tone": 0,
+        "metrics": {
+          "capturedAudioFrames": 201,
+          "capturedVideoFrames": 119,
+          "encodedFrames": 315,
+          "sentRtp": 315,
+          "receivedRtp": 131,
+          "clockReportsSent": 8,
+          "clockReportsReceived": 5,
+          "videoClockReportsSent": 4,
+          "videoClockReportsReceived": 4,
+          "decodedAudioFrames": 21,
+          "playedAudioFrames": 2,
+          "decodedVideoFrames": 97,
+          "paintedVideoFrames": 50,
+          "droppedFrames": 177,
+          "synchronizedPackets": 125,
+          "unsynchronizedPackets": 6,
+          "audioLateDrops": 19,
+          "audioHorizonDrops": 0,
+          "audioCapacityDrops": 0,
+          "videoLateDrops": 43,
+          "videoHorizonDrops": 0,
+          "videoTimerDrops": 0,
+          "videoCapacityDrops": 0,
+          "droppedClockReports": 0,
+          "lastAudioOffsetMs": -129.9,
+          "lastVideoOffsetMs": 95.031,
+          "receiveClockCorrections": 2,
+          "lastAudioCaptureOffsetMs": -2,
+          "lastVideoCaptureOffsetMs": -9,
+          "receiveStartedMs": 528,
+          "deviceSetupMs": 65,
+          "captureGraphMs": 14,
+          "cameraSetupMs": 20,
+          "phase": "active",
+          "stoppedAt": null,
+          "stopReason": null,
+          "activeTracks": 2,
+          "activeContexts": 1,
+          "queuedAudioSources": 0,
+          "queuedSendFrames": 2,
+          "queuedVideoFrames": 3,
+          "pendingRequests": 5,
+          "stopped": false
+        }
+      }
+    ]
+  ],
+  "source_and_runtime_guards": true,
+  "artifact_inventory": {
+    "platform": "linux",
+    "target": "x86_64-unknown-linux-gnu",
+    "source_revision": "3dbc72e9f880cc752f9b0a33a87a8ae48efcf34e",
+    "git_source_files_verified": 5003,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 753,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "ca811ec1fdecb9d86ed92abdcb17ad77ade0672e577c72ea5ae768c7270ccecd",
+    "native": {
+      "elf_header_verified": true,
+      "system_opus_license_present": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 25,
+    "original_app_passed": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifact_audit_sha256": "1b472ffd3c6f6dc35bc1870961768e89de81409132bea5968beed3a2a136e236",
+  "browser_report_sha256": "ccac7328a70d181eff74ee70110c4361631c42246a22a6f86e0a539fefb33c4f",
+  "artifacts": [
+    {
+      "id": 13178457876,
+      "name": "gate6-reference-app-node-package-x86_64-unknown-linux-gnu",
+      "bytes": 737274,
+      "digest": "sha256:f861b0d450bc7823b3e92e06eff5c6ebecd0a978726751d80f07353002bcc51a"
+    },
+    {
+      "id": 13178378338,
+      "name": "gate6-runtime-candidate-package-x86_64-unknown-linux-gnu",
+      "bytes": 61892456,
+      "digest": "sha256:a3723ae3e1fd3cd84c507a76f59316f415db09692d2653060c7eee8fcdc20b42"
+    },
+    {
+      "id": 13178348341,
+      "name": "gate6-runtime-candidate-evidence-x86_64-unknown-linux-gnu",
+      "bytes": 447726,
+      "digest": "sha256:5d1840431601b87ba3f98e0e48628d89e142b2c00c28f8dc541e9c5af820ab0f"
+    },
+    {
+      "id": 13177944664,
+      "name": "gate6-reference-app-components-x86_64-unknown-linux-gnu",
+      "bytes": 847488,
+      "digest": "sha256:aa6b3afa0313f213c138ee97f71c57b51cea1558b2d9271f50df62c5af4176ad"
+    }
+  ],
+  "clock_replay": {
+    "passed": true,
+    "matches": true,
+    "pending": 0,
+    "observation_failures": 743,
+    "skipped": 295,
+    "av_audio_has_no_synchronized_retained_samples": true,
+    "scope": "Retained original response-event observations only. Unchanged mapper and80ms allowance; not packet transit, decoder completion, presentation or latency qualification."
+  },
+  "scope": "Explicit Core-audio trace and HTTP-clock diagnostic after original production package install. Tracing affects overhead. Native age distributions cover all retained original server events, are independent, and cannot be paired with browser windows/packet transit. Sparse HTTP trace does not establish audio timing or root cause. No ordinary media quality or task qualification.",
+  "ordinary_quality_qualified": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
