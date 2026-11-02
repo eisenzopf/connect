@@ -19,10 +19,10 @@
     "Open/closed audio replacement scenarios retain muted active Data and video resources."
   ],
   "verification": {
-    "stage": "Core component checks passed; service/release verification running",
-    "service_media_tests": "pending",
-    "production_runtime": "pending",
-    "fresh_synthetic_scene": "reserved once for the same original build",
+    "stage": "81 focused checks and normal production/peer builds passed; full scene failed at postcommit control",
+    "service_media_tests": 17,
+    "production_runtime": "passed",
+    "fresh_synthetic_scene": "terminal negative, original owners joined",
     "core_private_consultation_tests_passed": 64,
     "core_failed": 0,
     "core_ignored": 0,
@@ -31,7 +31,9 @@
       "endpoint_preparation_data_unmute_hold_retire_or_removed_port_invalidates_audio_readiness",
       "replacement_scene_with_quarantined_data_and_video_commits_only_audio"
     ],
-    "core_test_log_sha256": "8a38e1b62fd5732615797855d10f06aeef38f6e023d34c16dec0d3f5bb69453b"
+    "core_test_log_sha256": "8a38e1b62fd5732615797855d10f06aeef38f6e023d34c16dec0d3f5bb69453b",
+    "production_runtime_sha256": "62952d1f476c7bbbccc3a302a5f2a33ff4efd27ec567ea5242fd25a6bf733c88",
+    "physical_peer_sha256": "945b69649f90081227c4f68b46b9b984c49ae49669a46d7f8632dd3bfd6048c2"
   },
   "no_new_data_publication_permission": true,
   "thresholds_changed": false,
@@ -50,5 +52,29 @@
   "passed": false,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_current_scene": {
+    "original_data_payloads": 6,
+    "payload_bytes_each": 65536,
+    "targets_negotiated": 2,
+    "completed_root_operations": 1,
+    "other_root_state": "unknown",
+    "moves_completed": 0,
+    "video_packets_sent": 0,
+    "postcommit_control_state": "failed",
+    "postcommit_control_problem": "forbidden",
+    "all_owners_joined": true,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "audit_sha256": "db561d03ff270cd08183c1534bec8290f859e3e2c650ab052e2daeb34d8f7c0c"
+  },
+  "installed_app_attempt": {
+    "runtime_packaging_passed": true,
+    "node_packaging_passed": false,
+    "failure": "External-consumer assertion rejected TMPDIR inside repository before install or browser behavior.",
+    "browser_checks_run": 0,
+    "all_owners_joined": true,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true
+  }
 }
