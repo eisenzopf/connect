@@ -228,6 +228,9 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         await Promise.all(routes.map(route => route.owner.stopAndJoin().catch(() => {})));
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
+            connection_id: route.item.connection.id, generation: route.generation, session_index: route.item.sid,
+            original_audio_stream_id: plan[route.item.prefix + "-audio"],
+            initial_video_stream_id: plan[connections[route.peerIndex].prefix + "-video"],
             captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
             clock_reports: route.clockReports, submitted_audio: route.submittedAudio,
             video_reader: route.videoReader.observation,

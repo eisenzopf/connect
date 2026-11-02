@@ -1,0 +1,218 @@
+{
+  "format": "connect/moving-capture-integration/1",
+  "task": "G6-058",
+  "base_revision": "be5ab6f1e35bbf00f781c0484f108265f3b557fe",
+  "implementation_applied": true,
+  "source_sha256": {
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "f0bedcb9dcf044f94d1e71b9c70318ce5fa755d042dba2619a109491f48a879a",
+    "scripts/check-transport-conversation.mjs": "d4d4b59f0d73f490109aabe513492297c345cb039caf7ed25b4f06c41734248d",
+    "scripts/lib/transport_av.mjs": "25dede911307bfeb09a8db26f334e31cc192eab9094424ea781a328f1f8816ac",
+    "scripts/lib/transport_av.py": "566281caeac196ebb9771e181cf4850717d1f24860b8b8d7b36220769b01800a",
+    "scripts/lib/transport_movement_observation.mjs": "a4bdfcc6de85fe60a7322b5794f874dde0e0b4a46eed89e5be6846a9cf7b0b43",
+    "scripts/lib/transport_movement_workload.mjs": "831753456bf12543f9a25657976644fd593bbd2b2fa59fac210d0f2656208d30",
+    "scripts/lib/transport_replacement_observation.mjs": "e1160abff057b8b16758fe1afd7d0fe89ba70df70c5ab28df3b18d5a365571cd",
+    "scripts/lib/transport_replacement_target.mjs": "5af725a72d2e670f535e2fdfcee8ac79f360d621a13330663c2e46ba19895cc6",
+    "scripts/lib/transport_moving_av.py": "07ad112a7ee45422f620220354ca50d5bf63ee5d0f879c85c2f8f21103130205",
+    "scripts/lib/transport_movement_data_observation.mjs": "8ed34824da5e06a5c47aba3ee50dd84faaf464bd09552af08745b889c00feb57",
+    "scripts/tests/transport_movement_observation.test.mjs": "526e9094ac60f257a46384ca11bf178e08486e240ce1f980439671d7a47cc0c2",
+    "scripts/tests/transport_movement_workload.test.mjs": "476f8c464b8da110322483b3597485c9657776487b0c59bfbb5e95c6e5531271",
+    "scripts/tests/transport_replacement_observation.test.mjs": "2bcbe8f633e8589d0a2cab6a71f15f555ba9f7d2a770c13a0acff3f1d72d147e",
+    "scripts/tests/test_transport_moving_av.py": "7ab2d93b81d494b0f41364bb319fa26f6126dd181670b238c397e45caf82bb02"
+  },
+  "implementation": {
+    "original_captures": 6,
+    "physical_replacement_captures": 20,
+    "root_completed_observation_recorded": true,
+    "disjoint_logical_receiver_owner_intervals": true,
+    "codec_histories_separate_by": [
+      "physical receiver",
+      "stream ID",
+      "SSRC"
+    ],
+    "no_precompletion_codec_initialization": true,
+    "no_invented_samples_or_frames": true,
+    "no_retiming": true,
+    "no_cross_history_marker_rearm": true,
+    "no_duplicate_frame_coverage": true,
+    "exact_original_pts_verified": true,
+    "all20_data_original_and_received_artifacts_bound": true,
+    "physical_owner_retirement_checked_with_current_authorization": true,
+    "original_teardown_cutoff_seconds": 67,
+    "original_control_calls_clipped_to_media_programme": true
+  },
+  "verification": {
+    "rust_peer_tests_passed": 47,
+    "node_tests_passed": 76,
+    "python_tests_passed": 26,
+    "dependencies_prepared": true,
+    "repository_format_passed": true,
+    "syntax_passed": true,
+    "commands": [
+      {
+        "command": [
+          "bash",
+          "scripts/format.sh"
+        ],
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "log_sha256": "78e0e8e5912d607d7a143d6876bc1af702e721ed7c97ebda2e820560b0188686"
+      },
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/tests/transport_movement_data.test.mjs",
+          "scripts/tests/transport_movement_workload.test.mjs",
+          "scripts/tests/transport_replacement_target.test.mjs",
+          "scripts/tests/transport_current_end.test.mjs",
+          "scripts/tests/transport_movement_sessions.test.mjs",
+          "scripts/tests/transport_av.test.mjs",
+          "scripts/tests/transport_programme_lifetime.test.mjs",
+          "scripts/tests/transport_movement_observation.test.mjs",
+          "scripts/tests/transport_replacement_observation.test.mjs"
+        ],
+        "exit_code": 0,
+        "log_sha256": "2cf0fb79c6d3109a43397bcbcef63dcd37356258ca39effbef27588f4643a3df"
+      },
+      {
+        "command": [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_transport_*av.py",
+          "-v"
+        ],
+        "exit_code": 0,
+        "log_sha256": "de80b52cea0be79b7b5bfafe939333a5c8316141ba7d19cdb7ef2b28052bba69"
+      },
+      {
+        "command": [
+          "node",
+          "--check",
+          "scripts/check-transport-conversation.mjs"
+        ],
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "unit_consumer_scope": "Applied exact source linked to existing Cargo-selected public-client release rlibs, default unit-consumer optimization; no normal build or production rehearsal."
+  },
+  "codec_calibration": {
+    "passed": true,
+    "elapsed_seconds": 12.116525166202337,
+    "codec_histories": 92,
+    "full_timeline_decoded": true,
+    "routes": [
+      {
+        "index": 0,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      },
+      {
+        "index": 1,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      },
+      {
+        "index": 2,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      },
+      {
+        "index": 3,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      },
+      {
+        "index": 4,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      },
+      {
+        "index": 5,
+        "passed": true,
+        "audio_seconds": 60.0,
+        "bad_audio_identity_blocks": 0,
+        "frames": 1800,
+        "wrong_pixels": 0,
+        "min_frames_per_second": 30,
+        "changing": 1799,
+        "markers": 85,
+        "sync_status": "passed"
+      }
+    ],
+    "sources_unchanged": true,
+    "implementation_unchanged": true,
+    "transport_qualified": false,
+    "task_complete": false,
+    "whole_gate_qualified": false,
+    "input_manifest_sha256": "81fbed62c82ed2b1e8648d39d22537dc705e6e776e88b61ab8f1f0030f4009a2",
+    "output_report_sha256": "5d5a26df126e970509bc0e686d77274264b1625fa61a45ea286a04d7342802d0",
+    "scope": "Controlled encoded-source codec calibration only; synthetic20-owner custody schema and scheduled receive times. No service, actual Data transport, journal, capture authority or live movement was exercised. This cannot qualify a transport cell."
+  },
+  "remaining": [
+    "Normal release service/CLI/independent peer verification on integrated source",
+    "Actual main media materializer, control, replacement Data, end/retirement, capture and whole-window decode rehearsal",
+    "Stopped-journal and capture audits",
+    "All32 frozen transport cells and current app CI negatives"
+  ],
+  "production_media_qualified": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

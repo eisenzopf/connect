@@ -456,4 +456,7 @@ def decode_completed(observed, directory, manifest):
     """A late control failure does not erase a completed media observation."""
     if observed.get('native_av', {}).get('original_receive_tasks_joined') is not True:
         return None
+    if 'device_movement' in observed:
+        from .transport_moving_av import verify as moving_verify
+        return moving_verify(directory, manifest, observed['native_movement_capture'])
     return verify(directory, manifest)

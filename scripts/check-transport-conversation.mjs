@@ -13,6 +13,7 @@ import { operationFailure } from "./lib/transport_failure.mjs";
 import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
 import { deviceMovementWorkload } from "./lib/transport_movement_workload.mjs";
 import { observeMovementSessions } from "./lib/transport_movement_sessions.mjs";
+import { physicalMovementSegments } from "./lib/transport_movement_observation.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -410,6 +411,22 @@ try {
                 });
             report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === 20;
             report.data_workload.current_owner_end = report.device_movement.current_owner_end;
+            phase = "original-and-physical-capture-custody";
+            const normalized = await physicalMovementSegments({ directory: join(privateDirectory, "movement"),
+                movement: report.device_movement,
+                plan: JSON.parse(await readFile(join(privateDirectory, "movement/plan.json"), "utf8")),
+                packetWorkersJoined: report.native_av.original_receive_tasks_joined,
+                conversationId: cid, sessionIds: sessions.map(session => session.id),
+                connectionIds: connections.map(item => item.connection.id),
+                streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"], video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),
+                executableSha256: input.physical_peer_sha256 });
+            const normalizedPath = join(input.media_output_directory, "movement-segments.json");
+            await writeFile(normalizedPath, encode(normalized), { flag: "wx", mode: 0o600 });
+            report.native_movement_capture = { format: normalized.format, sha256: hash(await readFile(normalizedPath)),
+                original_capture_sha256: await Promise.all(connections.map(async (_, index) =>
+                    hash(await readFile(join(input.media_output_directory, "received-" + index + ".json"))))),
+                original_move_records_bound: normalized.original_move_records_bound,
+                reliable_data_exchanges_bound: normalized.reliable_data_exchanges_bound };
             assert.equal(report.device_movement.replacement_data_io_verified, true);
             const movementMessages = report.device_movement.replacement_data_exchanges.flatMap(exchange => exchange.messages);
             assert.equal(movementMessages.length, 40);

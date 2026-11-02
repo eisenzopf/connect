@@ -334,6 +334,7 @@ pub(super) async fn run(
     let mut skipped_video = 0u32;
     let mut video_open = false;
     let mut root_observed = false;
+    let mut root_observed_programme_us = None;
     let mut negotiated = Vec::<Value>::new();
     let mut owner_ready = false;
     let mut stop_requested = false;
@@ -435,10 +436,10 @@ pub(super) async fn run(
                     if let Some(video)=&source.video {
                         if !video_open && tokio::time::Instant::now()>=next_poll {
                             phase="original-completion-observation";
-                            if let Some(admission)=controls::completion(&mut client,&command,&root,
-                                scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,&device,&selected,&mut root_revision).await? {
-                                root_observed=true;phase="original-post-commit-video-controls";
-                                let incoming=controls::open(&mut client,&scope,&root,&admission,video,&selected,&offer_json["capabilities"],&output).await?;
+                            if let Some(admission)=tokio::time::timeout_at(until, controls::completion(&mut client,&command,&root,
+                                scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,&device,&selected,&mut root_revision)).await?? {
+                                root_observed=true;root_observed_programme_us=Some(start.elapsed().as_micros());phase="original-post-commit-video-controls";
+                                let incoming=tokio::time::timeout_at(until, controls::open(&mut client,&scope,&root,&admission,video,&selected,&offer_json["capabilities"],&output)).await??;
                                 negotiated.extend(incoming.into_iter().map(|binding| binding.raw));video_open=true;
                                 emit(json!({"phase":"target-video-controls-completed","original_root_observed":true,"decoded_media_inferred":false})).await?;
                             }
@@ -518,6 +519,7 @@ pub(super) async fn run(
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
+        "root_completed_observed_programme_us":root_observed_programme_us,
         "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
         "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,

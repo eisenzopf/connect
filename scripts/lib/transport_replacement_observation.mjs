@@ -16,6 +16,8 @@ export function physicalAvSegment(observed, expected) {
     assert.equal(observed.decoded_media_verified, false);
     assert.ok(uint(expected.programStartUnixUs, Number.MAX_SAFE_INTEGER) && expected.programStartUnixUs > 0);
     assert.equal(observed.program_start_unix_us, expected.programStartUnixUs);
+    const rootObservedUs = observed.root_completed_observed_programme_us;
+    assert.ok(uint(rootObservedUs, 61_999_999), "actual completed-root programme observation is required");
     const ids = [expected.audioStreamId, expected.sendVideoStreamId, expected.receiveVideoStreamId];
     const hasData = expected.sendDataStreamId !== undefined || expected.receiveDataStreamId !== undefined;
     const dataIds = hasData ? [expected.sendDataStreamId, expected.receiveDataStreamId] : [];
@@ -58,6 +60,8 @@ export function physicalAvSegment(observed, expected) {
         assert.ok(uint(row.elapsed_us, 62_000_000) && row.elapsed_us >= previous, "original program arrival order");
         previous = row.elapsed_us;
         assert.equal(typeof row.original_root_completed_observed, "boolean");
+        assert.equal(row.original_root_completed_observed, row.elapsed_us >= rootObservedUs,
+            "packet completion boundary must match the actual original-root observation");
         assert.ok(!completedSeen || row.original_root_completed_observed, "completion observation cannot regress");
         assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20 && row.datagram.length <= 1188);
         assert.ok(row.datagram.every(value => uint(value, 255)));
@@ -109,6 +113,7 @@ export function physicalAvSegment(observed, expected) {
     assert.ok(completedSeen, "capture needs an actual post-completion observation");
     const histories = groups => [...groups].map(([ssrc, rows]) => ({ ssrc, rows }));
     return { format: "connect/physical-av-segment/1", program_start_unix_us: observed.program_start_unix_us,
+        root_completed_observed_programme_us: rootObservedUs,
         audio: histories(audio), video: histories(video), clock_reports: clocks,
         quarantined_precompletion_rows: quarantine, original_datagram_count: observed.received.length,
         negotiated_data_resources: dataResources, reliable_data_io_verified: false,

@@ -17,6 +17,8 @@ async function fixture(dataProfile = false) {
     const movement = { original_moves_completed: 20, concurrent_session_chains: 2, moves_per_source: [10, 10],
         active_av_routes: 6, maximum_pending_candidates: 2, shared_sdk_closed_during_replacement: false,
         original_program_start_unix_us: program, moves: [], physical_segments: [] };
+    const dataIo = dataProfile === "io";
+    if (dataIo) { movement.replacement_data_io_verified = true; movement.replacement_data_exchanges = []; }
     const plan = [], sessionIds = ["session-0", "session-1"];
     for (const sourceIndex of [0, 4]) {
         let current = connectionIds[sourceIndex];
@@ -43,8 +45,60 @@ async function fixture(dataProfile = false) {
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
                 video_controls_completed: true, operation_completed_inferred: false, decoded_media_verified: false,
                 program_start_unix_us: program, negotiated_streams: streams,
+                root_completed_observed_programme_us: ordinal * 3_000_000 + 2_000_000,
                 received: [{ elapsed_us: ordinal * 3_000_000 + 2_000_000, datagram, original_root_completed_observed: true }] };
             const next = "candidate-" + key;
+            let dataFiles, inputHash;
+            if (dataIo) {
+                const incoming = { operation_id: "data-in-" + key, message_id: "message-in-" + key, stream_id: streamIds[peer].data,
+                    from_participant: "upstream", to_participant: "local", body_base64: Buffer.alloc(65536, 7).toString("base64") };
+                const outgoing = { operation_id: "data-out-" + key, message_id: "message-out-" + key, stream_id: step.dataId,
+                    from_participant: "local", to_participant: "downstream", body_base64: Buffer.alloc(65536, 8).toString("base64") };
+                step.data = { incoming, outgoing };
+                const scope = { conversation_id: "room", session_id: sessionIds[sid], connection_id: next };
+                const cutoff = ordinal * 3000 + 10100;
+                const receipt = { format: "connect/physical-data-exchange/1", root_operation_id: step.operationId,
+                    conversation_id: "room", session_id: sessionIds[sid], connection_id: next,
+                    incoming_operation_id: incoming.operation_id, incoming_message_id: incoming.message_id,
+                    outgoing_operation_id: outgoing.operation_id, outgoing_message_id: outgoing.message_id,
+                    incoming_exact_body_base64: incoming.body_base64, incoming_received: true, outgoing_core_queue_admission: true,
+                    outgoing_mutation_submissions: 1, outgoing_recovered_read_only: false, original_root_completed_observed: true,
+                    cutoff_programme_ms: cutoff, observed_programme_ms: ordinal * 3000 + 2150, remote_delivery_inferred: false };
+                observed.data_exchange_receipt = receipt;
+                const reference = { schema: "connect-operation-reference/1", command: "message.send", operation_id: incoming.operation_id,
+                    scope: { ...scope, connection_id: connectionIds[peer] } };
+                const payload = original => ({ msg_id: original.message_id, to: [original.to_participant], label: original.stream_id,
+                    content_type: "application/octet-stream", body_encoding: "base64", body: original.body_base64, reliability: { mode: "reliable_ordered" } });
+                const values = {
+                    "data-start": { format: "connect/physical-data-start/1", root_operation_id: step.operationId, connection_id: next,
+                        incoming_operation_id: incoming.operation_id, outgoing_operation_id: outgoing.operation_id,
+                        armed_programme_ms: ordinal * 3000 + 2100, cutoff_programme_ms: cutoff },
+                    "data-original-send": { format: "connect/physical-data-original/1", type: "message.send",
+                        scope: { ...scope, operation_id: outgoing.operation_id }, payload: payload(outgoing) },
+                    "data-receipt": receipt,
+                    "data-upstream-original": { reference, original_cutoff_programme_ms: cutoff, message: incoming },
+                    "data-wire": { frames: [{ v: 2, type: "message.send", cid: "room", sid: sessionIds[sid], connid: next,
+                        operation_id: incoming.operation_id, payload: { ...payload(incoming), from: incoming.from_participant } },
+                    { v: 2, type: "operation.updated", cid: "room", sid: sessionIds[sid], connid: next, in_reply_to: "send-wire",
+                        payload: { state: "completed", operation_id: outgoing.operation_id, command_type: "message.send",
+                            result: { message_id: outgoing.message_id, connection_id: next, core_queue_admission: true } } },
+                    { v: 2, type: "ack", cid: "room", sid: sessionIds[sid], connid: next, in_reply_to: "send-wire", payload: {} }] },
+                };
+                dataFiles = {};
+                const dataPath = suffix => join(folder, (["data-upstream-original", "data-exchange"].includes(suffix) ? suffix : "target-observation." + suffix) + ".json");
+                for (const [suffix, value] of Object.entries(values)) { await save(dataPath(suffix), value); dataFiles[suffix] = sha(await readFile(dataPath(suffix))); }
+                const exchange = { root_operation_id: step.operationId, connection_id: next, upstream_core_queue_admission: true,
+                    physical_incoming_exact_bytes: 65536, downstream: { message_id: outgoing.message_id, exact_received_bytes: 65536,
+                        payload_sha256: sha(Buffer.from(outgoing.body_base64, "base64")), connection_id: connectionIds[sourceIndex === 0 ? 1 : 5] },
+                    physical_receipt_sha256: dataFiles["data-receipt"], original_cutoff_programme_ms: cutoff, mutations_replayed: false,
+                    messages: [incoming, outgoing].map(original => ({ operation_id: original.operation_id, message_id: original.message_id,
+                        from_participant: original.from_participant, to_participant: original.to_participant,
+                        payload_sha256: sha(Buffer.from(original.body_base64, "base64")) })) };
+                await save(dataPath("data-exchange"), exchange); dataFiles["data-exchange"] = sha(await readFile(dataPath("data-exchange")));
+                movement.replacement_data_exchanges.push(exchange);
+                const input = { media: { data: step.data }, command: { operation_id: step.operationId, conversation_id: "room", session_id: sessionIds[sid], connection_id: current } };
+                await save(join(folder, "target-input.json"), input); inputHash = sha(Buffer.from(JSON.stringify(input.media)));
+            }
             await save(join(folder, "target-observation.json"), observed);
             await save(join(folder, "target-observation.owner-ready.json"), {
                 format: "connect/native-replacement-owner-ready/1", operation_id: step.operationId,
@@ -56,6 +110,7 @@ async function fixture(dataProfile = false) {
                 target_worker_joined: true, target_worker_forced: false, target_config_unchanged: true,
                 target_executable_unchanged: true, target_executable_sha256: executableSha256,
                 target_owner_ready_sha256: sha(await readFile(join(folder, "target-observation.owner-ready.json"))),
+                ...(dataIo ? { physical_data_exchange_verified: true, physical_data_files: dataFiles, source_input_sha256: inputHash } : {}),
                 target_observation_sha256: captureHash });
             await save(join(folder, "original-reference.json"), { command: "connection.replace", operation_id: step.operationId,
                 scope: { conversation_id: "room", session_id: sessionIds[sid], connection_id: current } });
@@ -106,6 +161,18 @@ test("twenty Data captures retain both original reliable bindings without claimi
     options.plan[0].dataId = options.plan[1].dataId;
     await assert.rejects(physicalMovementSegments(options), /movement identities must be unique/);
 }, true));
+
+test("twenty complete Data proofs bind source contract, original intents, actual receives, parent bytes and every private artifact", () => run(undefined, async options => {
+    const result = await physicalMovementSegments(options);
+    assert.equal(result.reliable_data_exchanges_bound, 20);
+    assert.ok(result.segments.every(segment => segment.reliable_data.original_data_messages_bound === 2));
+    assert.equal(result.full_timeline_decoded, false);
+    await edit(options, "target-observation.data-receipt.json", value => { value.connection_id = "foreign"; });
+    const path = join(options.directory, "0-0/target-observation.data-receipt.json");
+    const digest = sha(await readFile(path));
+    await edit(options, "stage.json", value => { value.physical_data_files["data-receipt"] = digest; });
+    await assert.rejects(physicalMovementSegments(options));
+}, "io"));
 
 test("live packet owners and incomplete movement sets refuse before reading a directory", async () => {
     await assert.rejects(physicalMovementSegments({ packetWorkersJoined: false }), /packet workers must join/);

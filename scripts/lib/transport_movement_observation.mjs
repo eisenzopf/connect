@@ -5,6 +5,7 @@ import { open, realpath } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { physicalAvSegment } from "./transport_replacement_observation.mjs";
+import { physicalDataCustody } from "./transport_movement_data_observation.mjs";
 
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -47,6 +48,10 @@ export async function physicalMovementSegments({ directory, movement, plan,
     assert.match(executableSha256, /^[0-9a-f]{64}$/);
     assert.equal(plan.length, 20); assert.equal(movement.moves.length, 20);
     const dataExpected = streamIds.some(streams => streams.data !== undefined);
+    const dataIoExpected = movement.replacement_data_io_verified === true;
+    if (dataIoExpected) {
+        assert.equal(dataExpected, true); assert.equal(movement.replacement_data_exchanges.length, 20);
+    }
     if (dataExpected) {
         assert.ok(streamIds.every(streams => id(streams.data)), "every original Data identity is required");
         assert.ok(plan.every(step => id(step.dataId)), "every replacement must retain its Data contract");
@@ -122,15 +127,28 @@ export async function physicalMovementSegments({ directory, movement, plan,
             ...(step.dataId === undefined ? {} : { sendDataStreamId: step.dataId,
                 receiveDataStreamId: streamIds[peer].data }),
         });
+        let reliableData;
+        if (dataIoExpected) {
+            const exchanges = movement.replacement_data_exchanges.filter(exchange => exchange.root_operation_id === step.operationId);
+            assert.equal(exchanges.length, 1);
+            reliableData = await physicalDataCustody({ readOriginal: originalFile, folder, stage: stage.value,
+                observed: observed.value, step, conversationId, sessionId: sessionIds[sid], connectionId: moved.connection,
+                predecessor: current.get(sourceIndex), upstream: connectionIds[peer], downstream: connectionIds[sourceIndex === 0 ? 1 : 5],
+                expectedExchange: exchanges[0] });
+        }
         segments.push({ source_index: sourceIndex, ordinal, operation_id: step.operationId,
             connection_id: moved.connection, original_capture_sha256: observed.digest,
+            published_stream_ids: { audio: step.audioId, video: step.videoId, ...(step.dataId ? { data: step.dataId } : {}) },
             custody_sha256: { stage: stage.digest, reference: reference.digest,
-                admission: admission.digest, ready: ready.digest }, capture: normalized });
+                admission: admission.digest, ready: ready.digest }, capture: normalized,
+            ...(reliableData ? { reliable_data: reliableData } : {}) });
         current.set(sourceIndex, moved.connection);
     }
     assert.equal(usedMoves.size, 20); assert.equal(usedCaptures.size, 20);
     return { format: "connect/physical-movement-segments/1", original_move_records_bound: 20,
         program_start_unix_us: movement.original_program_start_unix_us, segments,
+        original_connection_ids: connectionIds, session_ids: sessionIds, original_stream_ids: streamIds,
+        reliable_data_exchanges_bound: dataIoExpected ? 20 : 0,
         final_connections: [...current].map(([source_index, connection_id]) => ({ source_index, connection_id })),
         full_timeline_decoded: false, cell_qualified: false, task_complete: false,
         scope: "Offline custody and original packet interpretation only. These twenty target segments still require the original six captures, separate physical codec histories and independent whole-window decoding. No decoded quality or transport qualification." };

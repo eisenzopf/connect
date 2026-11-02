@@ -18,7 +18,7 @@ async function save(path, value) {
 export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
     executable, executableSha256, currentEnds, dataClients, startTarget = startPhysicalReplacementTarget,
-    endRetained = endRetainedConnections, exchangeData = exchangeMovementData }) {
+    endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = () => performance.now() }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
@@ -120,7 +120,29 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             assert.equal(end.mutation_submissions, 1);
             assert.equal(end.original_cutoff_ms, 67000);
             assert.ok(end.elapsed_since_programme_end_ms >= 0 && end.elapsed_since_programme_end_ms < 5000);
-            physicalEnds.push({ index: sourceIndex, ...end });
+            const generation = owner.movement.binding.generation;
+            assert.ok(Number.isSafeInteger(generation) && generation > 0);
+            const remaining = () => {
+                assertCurrent(); const remaining = Math.floor(workload.startedAt + 67000 - now());
+                assert.ok(remaining > 0 && remaining <= 5000, "original-physical-owner-retirement-cutoff"); return remaining;
+            };
+            let retired;
+            for (;;) {
+                try { retired = await owner.connection.refresh({ timeoutMs: remaining() }); }
+                catch (failure) {
+                    if (!(failure.problem?.code === 503 && failure.problem?.reason === "storage-unavailable")) throw failure;
+                }
+                if (retired) {
+                    assert.equal(retired.id, owner.connection.id);
+                    if (retired.state === "retired" && retired.generation > generation) break;
+                }
+                await new Promise(done => setTimeout(done, Math.min(50, remaining())));
+            }
+            remaining();
+            const receipt = { index: sourceIndex, ...end, admitted_generation: generation,
+                retired_generation: retired.generation, retirement_observed_ms: now() - workload.startedAt - 62000 };
+            await save(join(moveDirectory, "final-current-retirement.json"), receipt); remaining();
+            physicalEnds.push(receipt);
         }
         return stage;
     };

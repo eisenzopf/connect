@@ -295,8 +295,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                     connectionId: admittedConnectionId, rootOperationId: intent.operationId });
                 report.physical_data_exchange_verified = true;
                 report.physical_data_files = {};
-                for (const suffix of ["data-original-send", "data-start", "data-wire", "data-receipt", "data-exchange"]) {
-                    const path = suffix === "data-exchange" ? join(directory, "data-exchange.json") : output.replace(/\.json$/, "." + suffix + ".json");
+                for (const suffix of ["data-original-send", "data-start", "data-wire", "data-receipt", "data-upstream-original", "data-exchange"]) {
+                    const path = ["data-upstream-original", "data-exchange"].includes(suffix) ? join(directory, suffix + ".json") : output.replace(/\.json$/, "." + suffix + ".json");
                     const info = await stat(path); assert.equal(info.mode & 0o077, 0);
                     assert.ok(info.size > 0 && info.size <= 2 * 1024 * 1024);
                     report.physical_data_files[suffix] = hash(await readFile(path));

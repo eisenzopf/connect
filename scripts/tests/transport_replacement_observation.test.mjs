@@ -14,6 +14,7 @@ function fixture(received) {
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
         video_controls_completed: true, operation_completed_inferred: false, decoded_media_verified: false,
         program_start_unix_us: expected.programStartUnixUs,
+        root_completed_observed_programme_us: received.find(row => row.original_root_completed_observed)?.elapsed_us ?? 0,
         negotiated_streams: [binding("remote-video", "video", "sendonly", 9),
             binding("own-video", "video", "sendrecv", 8), binding("own-audio", "audio", "sendrecv", 7)], received };
 }

@@ -10,8 +10,11 @@ async function scenario(mode) {
     const signal = new AbortController(), starts = [], admitted = [], subscriptions = [], stopped = [], joined = [], retired = [], finalWaits = new Map();
     const roles = ["owner", "two", "three", "four", "owner", "two"], peers = [3, 0, 1, 2, 5, 4];
     const revisions = [1, 1];
+    const physicalRetired = new Set();
     const controllers = [{ owner: "existing-original-helper" }, { owner: "existing-controller-helper" }];
-    const connection = (id, generation) => ({ id, async refresh() { return { id, generation, streamRevision: 2 }; },
+    const connection = (id, generation) => ({ id, async refresh() {
+        if (mode === "retirement-refusal" && physicalRetired.has(id)) throw Object.assign(Error("current metadata refused"), { kind: "authorization", certainty: "read-only" });
+        return { id, generation: generation + Number(physicalRetired.has(id)), state: physicalRetired.has(id) ? "retired" : "active", streamRevision: 2 }; },
         streams: { async subscribe(intent, options) {
             subscriptions.push({ intent, options });
             return { async wait() { return { snapshot: { state: "completed" } }; } };
@@ -66,7 +69,7 @@ async function scenario(mode) {
         assert.equal(options.target.deviceId, ordinal % 2 ? "original-device" : "replacement-device");
         if (mode === "unknown" && sid === 0 && ordinal === 2) throw original;
         revisions[sid]++;
-        const moved = { retired: [options.connectionId] };
+        const moved = { retired: [options.connectionId], binding: { generation: options.originalGeneration + 1 } };
         const reference = { command: "connection.replace", operation_id: options.operationId,
             scope: { connection_id: options.connectionId } };
         await options.retireOriginal({ reference, original: { id: options.connectionId,
@@ -98,7 +101,8 @@ async function scenario(mode) {
                     joined.push(options.operationId); finalWaits.set(options.operationId, done);
                     if (finalWaits.size === 2) setImmediate(() => signal.abort());
                 });
-                if (!result) { joined.push(options.operationId); result = stage; } return result;
+                if (!result) { joined.push(options.operationId); result = stage; }
+                physicalRetired.add("candidate-" + sid + "-" + ordinal); return result;
             } };
     };
     try {
@@ -108,7 +112,7 @@ async function scenario(mode) {
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
-            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained,
+            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained, now: () => 62500,
             dataClients: connections.map(() => ({})),
             exchangeData: async args => {
                 const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
@@ -127,10 +131,11 @@ async function scenario(mode) {
         }
         if (mode !== "normal" && mode !== "data") {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure"].includes(mode) ? error === original :
-                mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : error.kind === "cancelled");
+                mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
-            assert.equal(joined.length, ["cancel-after20", "foreign-final-end"].includes(mode) ? 2 : 0);
+            if (mode === "retirement-refusal") assert.ok(joined.length >= 1 && joined.length <= 2);
+            else assert.equal(joined.length, ["cancel-after20", "foreign-final-end"].includes(mode) ? 2 : 0);
             assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
             assert.ok(subscriptions.length <= admitted.length);
             const failure = JSON.parse(await readFile(join(directory, "run/movement-failure.json"), "utf8"));
@@ -140,6 +145,9 @@ async function scenario(mode) {
             else if (mode === "data-failure") {
                 assert.ok(starts.length >= 1 && starts.length <= 2);
                 assert.equal(failure.failure.observation.stage, "original-physical-data-exchange");
+            } else if (mode === "retirement-refusal") {
+                assert.ok(starts.length >= 10 && starts.length <= 20);
+                assert.equal(failure.failure.certainty, "read-only");
             } else if (mode !== "retained-failure") { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); }
             return;
         }
@@ -180,6 +188,7 @@ test("parent cancellation before the workload attempts no original move", () => 
 test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));
 test("a failed retained end cancels movement and joins every already admitted physical owner", () => scenario("retained-failure"));
 test("a final end receipt for a foreign Connection cannot pass twenty successful roots", () => scenario("foreign-final-end"));
+test("a completed final end cannot replace current-authorized retirement metadata for that same owner", () => scenario("retirement-refusal"));
 test("two Session chains cannot silently share one serialized ordinary control helper", async () => {
     const shared = {};
     await assert.rejects(deviceMovementWorkload({ workload: { routes: Array(6) }, connections: Array(6),
