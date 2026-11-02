@@ -19,11 +19,19 @@
     "Open/closed audio replacement scenarios retain muted active Data and video resources."
   ],
   "verification": {
-    "stage": "running",
-    "core_private_consultation_tests": "pending",
+    "stage": "Core component checks passed; service/release verification running",
     "service_media_tests": "pending",
     "production_runtime": "pending",
-    "fresh_synthetic_scene": "reserved once for the same original build"
+    "fresh_synthetic_scene": "reserved once for the same original build",
+    "core_private_consultation_tests_passed": 64,
+    "core_failed": 0,
+    "core_ignored": 0,
+    "core_regression_cases": [
+      "endpoint_preparation_allows_quarantined_data_with_video_and_preserves_its_gate",
+      "endpoint_preparation_data_unmute_hold_retire_or_removed_port_invalidates_audio_readiness",
+      "replacement_scene_with_quarantined_data_and_video_commits_only_audio"
+    ],
+    "core_test_log_sha256": "8a38e1b62fd5732615797855d10f06aeef38f6e023d34c16dec0d3f5bb69453b"
   },
   "no_new_data_publication_permission": true,
   "thresholds_changed": false,
