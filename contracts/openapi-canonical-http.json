@@ -5695,7 +5695,7 @@
           "core_queue_admission"
         ],
         "additionalProperties": false,
-        "description": "Historical local Core queue admission for a signed native Connection-scoped message.send. Neither a recipient write nor remote application consumption; operation.get requires current authorization and cannot acquire native custody."
+        "description": "Historical local Core queue admission for a signed native Connection-scoped message.send. Its initial signed operation.updated and current-authorized operation.get retain the same operation_id, record_id, command_type and expected_revision (null for message.send), together with state and revision. Neither a recipient write nor remote application consumption; operation.get requires current authorization and cannot acquire native custody."
       },
       "SessionCodecReconciliationReference": {
         "type": "object",

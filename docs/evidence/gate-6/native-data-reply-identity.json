@@ -1,0 +1,52 @@
+{
+  "format": "connect/native-data-reply-identity/1",
+  "task": "G6-058",
+  "source_commit": "24883499",
+  "passed": true,
+  "scope": "Signed local macOS arm64 native component; standard debug test-support. Full production movement/media qualification remains pending.",
+  "problem": "The native initial operation.updated omitted command_type and expected_revision while operation.get retained both. The independent physical Data peer refused the incomplete initial journal identity even when the original send had completed.",
+  "implementation": {
+    "file": "crates/connect-service/src/canonical.rs",
+    "sha256": "608360cf8750b18c76ec33bb9f85906dffc29d24530b3c103cd1534d5d8fbeef",
+    "behavior": "Retain original command_type and explicit expected_revision in native initial operation.updated, matching authorized operation.get. No peer validator, operation ID, deadline, authority or submission behavior was relaxed."
+  },
+  "before": {
+    "passed": false,
+    "result": "0 passed; 1 failed; 0 ignored",
+    "failure": "Signed native Data reply command_type was null instead of message.send",
+    "source_inputs_unchanged": true,
+    "state_sha256": "cc16befbbab6e23b01128b2182cb2742d3940ebc64cb8c3baa1c326bc1202468",
+    "log_sha256": "332f5aec749e958cce369da580e9db19df50c67548d74499e42d912a0cd6c238"
+  },
+  "after": {
+    "passed": true,
+    "result": "1 passed; 0 failed; 0 ignored",
+    "source_inputs_unchanged": true,
+    "state_sha256": "44890c12bbbf263d64fa70a8a8cd05503a4f9f2fbb42df4eeee30603ca355534",
+    "log_sha256": "f27829de2d4735303d3f081fb0acff31efdfa1f62a587d7abd63560ef5c0dbf2"
+  },
+  "broader_native_checks": {
+    "stage": "complete",
+    "passed": true,
+    "commands": [
+      {
+        "name": "all-native-data",
+        "exit_code": 0,
+        "passed": true,
+        "expected_count": 7
+      },
+      {
+        "name": "native-av-control",
+        "exit_code": 0,
+        "passed": true,
+        "expected_count": 1
+      }
+    ],
+    "binary_sha256": "b4c8e995f44646713361dced94332d7deb74b07f425999f88573d6e14e445c82",
+    "elapsed_seconds": 361.64644491672516,
+    "source_inputs_unchanged": true
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

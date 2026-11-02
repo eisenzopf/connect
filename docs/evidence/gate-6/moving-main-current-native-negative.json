@@ -1,0 +1,40 @@
+{
+  "format": "connect/moving-main-native-negative/1",
+  "task": "G6-058",
+  "passed": false,
+  "source_revision": "170dccf8145f10067729c9aa713487887314126b",
+  "normal_production_cli_sha256": "4f64c20e0e31ba1bda8cf6e563956345b0a8208226adb449ddb2c6e62e891f30",
+  "independent_peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "report_sha256": "eba50952d74d7464e55f573ab0924f512710b3f445a90cb740ddc9abffdf230d",
+  "observed": {
+    "original_replacements_completed": 1,
+    "other_original_failed_after_parent_stop": 1,
+    "source_zero_camera_subscription_completed": true,
+    "distinct_new_data_originals_completed": 2,
+    "new_data_messages_per_original": 1,
+    "new_data_effects_per_original": 1,
+    "each_new_data_effect_attempt": 1,
+    "new_data_recipient_write_rows": 0,
+    "full_data_roundtrip_proven": false
+  },
+  "failures": [
+    "Physical Data peer refused incomplete initial operation identity; fixed separately in native-data-reply-identity.json, full IO verification pending.",
+    "Core source catalog mutex contention returned Media(Backpressure); cause and effect on the concurrent second movement remain unresolved.",
+    "Parent read-only original-completion deadline elapsed for the concurrent second root; original later failed after target stop."
+  ],
+  "cleanup": {
+    "both_original_servers_joined": true,
+    "unretired_native_lifetimes": 0,
+    "original_db_and_wal_unchanged": true,
+    "stopped_copy_audit_sha256": "aac7f89179756cf67c6c119882fce999010c6eaa37bf214a196fc77098769487",
+    "full_helper_task_resource_audit_pending": true
+  },
+  "scope": "One local synthetic intended4-participant/6-AV-Data-Connection/2-Session/20-move/full62s programme component stopped early; full workload and independent whole-window decode did not pass.",
+  "host_capture_executed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

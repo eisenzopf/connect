@@ -17,7 +17,7 @@ def render():
     ref=lambda name:{'$ref':'#/components/schemas/'+name}
     def obj(properties,required=None):return dict(type='object',properties=properties,required=list(properties) if required is None else required,additionalProperties=False)
     schemas['NativeDataAcceptance']=obj(dict(connection_id=ref('WireIdentifier'),message_id=ref('WireIdentifier'),core_queue_admission=dict(type='boolean',const=True)))
-    schemas['NativeDataAcceptance']['description']='Historical local Core queue admission for a signed native Connection-scoped message.send. Neither a recipient write nor remote application consumption; operation.get requires current authorization and cannot acquire native custody.'
+    schemas['NativeDataAcceptance']['description']='Historical local Core queue admission for a signed native Connection-scoped message.send. Its initial signed operation.updated and current-authorized operation.get retain the same operation_id, record_id, command_type and expected_revision (null for message.send), together with state and revision. Neither a recipient write nor remote application consumption; operation.get requires current authorization and cannot acquire native custody.'
     schemas['SessionCodecReconciliationReference']=obj(dict(operation_id=ref('WireIdentifier'),record_id=ref('WireIdentifier')))
     codec_counts=['targets','queued','preparing','updated','unchanged','refused','unavailable','cancelled','superseded','unknown']
     schemas['SessionCodecReconciliationCounts']=obj({name:dict(type='integer',minimum=0,maximum=9007199254740991) for name in codec_counts})

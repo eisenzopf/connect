@@ -66,6 +66,13 @@ which the SDK verifies against the inner immutable journal event. Those source
 IDs are not a new operation requested by the subscription. Notifications and
 receipt hints remain hints; the journal is authoritative.
 
+For native Connection-scoped Data, the initial signed `operation.updated` and
+HTTP/native `operation.get` preserve the same `operation_id`, `record_id`,
+`command_type` and `expected_revision` alongside the observed state/revision.
+`message.send` uses a null expected revision. A completed
+`core_queue_admission` result reports local queue admission; it does not prove
+recipient delivery or permit HTTP to acquire native writer custody.
+
 The SDK application adapter and server application entry points use one closed
 classification for genuine application-specific calls. They refuse canonical
 communication, including old provider call/SIP mutations, over the older

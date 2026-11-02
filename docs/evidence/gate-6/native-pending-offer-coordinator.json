@@ -59,12 +59,13 @@
     "original_state_sha256": "c1e09840ea5c426120ff3e3b7bfc3682ce377b9a76388afbdf1afe6b2066012f",
     "original_failure_log_sha256": "59f55b9daf668354f421610eee6d9f17a55d25f7f7c4eead2df3b1c59d562170",
     "capacity_reuse_failure_cause": "unresolved",
-    "queued_main_fixture_started": false
+    "queued_main_fixture_started": false,
+    "scope": "Historical first follow-up negative; current_full_native_sequence records the later complete seven-case result."
   },
   "unresolved": [
-    "Native cancellation/capacity-reuse case failed at a second accepted original in the observer/key-reissue scenario; no allocation/media start in that case, causality to the coordinator change unproven. All remaining native cases, production build and actual main remain unrun.",
-    "Earlier main camera subscription NotReady root cause is unproven.",
-    "20 actual moves, full 62-second programme, original Data roundtrips, host capture and whole-window independent media decode remain open."
+    "Full main component stopped after one observed move; see moving-main-current-native-negative.json.",
+    "Initial Data reply identity fix passes signed components; production full movement IO remains pending.",
+    "Concurrent Core catalog contention/read-only timeout,20 moves,full62s programme,Data roundtrips,host capture and whole-window independent decode remain open."
   ],
   "passed": false,
   "task_complete": false,
@@ -143,7 +144,11 @@
     "ignored": 0,
     "source_inputs_unchanged_at_component_result": true,
     "binary_sha256": "620cfb0798ec0b8de059dbcd04b13ec74c2938529258ee3113ff02bf0a3f6c5c",
-    "production_release_build_pending": true,
-    "full_transport_programme_unqualified": true
+    "production_release_build_pending": false,
+    "full_transport_programme_unqualified": true,
+    "production_release_built": true,
+    "production_cli_sha256": "4f64c20e0e31ba1bda8cf6e563956345b0a8208226adb449ddb2c6e62e891f30",
+    "normal_production_no_test_support": true,
+    "production_build_state_sha256": "05f538152742526a0e63a506c8f5f1ce5aad9313235b74a3a31c362a6e5356ac"
   }
 }

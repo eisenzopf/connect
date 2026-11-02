@@ -1,0 +1,150 @@
+{
+  "format": "connect/reference-app-expiry-current-macos/1",
+  "task": "G6-072",
+  "run_id": 41499071156,
+  "job_id": 125461566025,
+  "source_revision": "b88a5f5b923ce04961a4d9729aae97e717183585",
+  "passed": false,
+  "checks_passed": 5,
+  "checks_expected": 37,
+  "failure": {
+    "stage": "native-browser-video-playout-component",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 300,
+        "column": 12
+      }
+    ]
+  },
+  "browser": "156.0.8078.48",
+  "native_video_playout_component": {
+    "painted": 0,
+    "dropped": 3,
+    "queued": 0,
+    "pixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "frame_construction_ms": 8,
+    "enqueue_ms": 1,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {
+      "late": 3
+    },
+    "timer_samples": [
+      {
+        "requested_at_ms": 2809.0999999996275,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 3034.899999999441,
+        "wake_lateness_ms": 145.79999999981374,
+        "callback_duration_ms": 0.20000000018626451
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [],
+    "observation_ms": 592
+  },
+  "source_inputs_unchanged": true,
+  "runtime_unchanged": true,
+  "application_runtime_matches": true,
+  "independent_archive_audit": {
+    "format": "connect/reference-app-original-artifact-audit/1",
+    "run_id": 41499071156,
+    "passed": true,
+    "platforms": [
+      {
+        "platform": "macos",
+        "target": "aarch64-apple-darwin",
+        "source_revision": "b88a5f5b923ce04961a4d9729aae97e717183585",
+        "git_source_files_verified": 4993,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 755,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "d61c3f86203f03a23370ee97a3731ae1f58bda0a60fbed3d8e5043e7b2e9e3b8",
+        "native": {
+          "integer_sample_codec_source_verified": true,
+          "bundled_static_opus_symbols": [
+            "_opus_encoder_create",
+            "_opus_encode",
+            "_opus_decoder_create",
+            "_opus_decode"
+          ],
+          "no_external_homebrew_opus_dependency": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 5,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      }
+    ],
+    "elapsed_seconds": 2.699784374795854,
+    "all4_artifact_zip_digests_and_crc_previously_verified": true,
+    "scope": "Read-only original archive/source/inventory/byte/mode/license and existing install-proof binding audit. No executable or installer was run and no live quality failure is resolved. Raw observer profile audit remains separate.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "archives": [
+    {
+      "artifact_id": 13171683550,
+      "bytes": 25206,
+      "sha256": "35ad242f62c9ff7251e8b08584fee9537d406f3e2bf9c3eb5dbee68fd0b70ccc",
+      "crc_verified": true,
+      "members": [
+        "browser.json",
+        "installation.json",
+        "node-producer.json",
+        "node-source-inputs.json"
+      ],
+      "all_zip_crc_verified": true
+    },
+    {
+      "artifact_id": 13171454127,
+      "bytes": 447791,
+      "sha256": "91ee040165f76bbff99c59612a4297b25a38be49bada14aeeeba1a42a9f2445b",
+      "crc_verified": true,
+      "members": [
+        "aarch64-apple-darwin/runtime.json",
+        "aarch64-apple-darwin/source-inputs.json"
+      ],
+      "all_zip_crc_verified": true
+    },
+    {
+      "artifact_id": 13171493827,
+      "bytes": 57268431,
+      "sha256": "a6d2caa7d136942e65e89f4cc1fcdbd96dd040faa78b07958184dddc122082d5",
+      "crc_verified": true,
+      "members": [
+        "connect-runtime-0.1.0-aarch64-apple-darwin-b88a5f5b923c.tar.gz"
+      ],
+      "all_zip_crc_verified": true
+    },
+    {
+      "artifact_id": 13171224236,
+      "bytes": 737274,
+      "sha256": "63c4550436c620b4a5a4a20184f2fda9ba4cd697d6ef6b44f487078fabd71c2c",
+      "crc_verified": true,
+      "members": [
+        "dependencies/types-node-26.6.4.tgz",
+        "dependencies/types-node-26.6.4.LICENSE",
+        "dependencies/undici-types-8.9.0.LICENSE",
+        "dependencies/undici-types-8.9.0.tgz",
+        "rudeless-connect-0.1.0.tgz"
+      ],
+      "all_zip_crc_verified": true
+    }
+  ],
+  "cause": "Unresolved. Native timer woke about145.8ms after its original80ms requested delay; all3 original frames were correctly dropped as late. No playout freshness threshold or paint assertion changed.",
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

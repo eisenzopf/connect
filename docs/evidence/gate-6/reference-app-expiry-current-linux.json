@@ -87,6 +87,30 @@
         "x86_64-unknown-linux-gnu/runtime.json",
         "x86_64-unknown-linux-gnu/source-inputs.json"
       ]
+    },
+    {
+      "artifact_id": 13169479563,
+      "file_name": "runtime-package.zip",
+      "bytes": 61894913,
+      "sha256": "ad6d9293b23b21fd1568cb51804f3a1a6c29e6d395e2336cd5cae821959b3af8",
+      "all_zip_crc_verified": true,
+      "members": [
+        "connect-runtime-0.1.0-x86_64-unknown-linux-gnu-b88a5f5b923c.tar.gz"
+      ]
+    },
+    {
+      "artifact_id": 13170827988,
+      "file_name": "node-package.zip",
+      "bytes": 737274,
+      "sha256": "a6cfb2c4a2b0ada09562a40791b664f5fe2f5965bfab8d0a2367b37220852f4b",
+      "all_zip_crc_verified": true,
+      "members": [
+        "dependencies/types-node-26.6.4.LICENSE",
+        "dependencies/types-node-26.6.4.tgz",
+        "dependencies/undici-types-8.9.0.LICENSE",
+        "dependencies/undici-types-8.9.0.tgz",
+        "rudeless-connect-0.1.0.tgz"
+      ]
     }
   ],
   "evidence_sha256": {
@@ -96,8 +120,45 @@
     ".local/gate-6/reference-app-expiry-ci-linux/source-inputs.json": "c97102cf763a938438d59e7d424a9644cbf62962ca2ea03267e48c815f72b0de"
   },
   "root_cause": "unresolved; audio late-drop counters alone do not establish timing causality",
-  "source_runtime_node_full_archive_audit_pending": true,
-  "macos_job_pending": true,
+  "source_runtime_node_full_archive_audit_pending": false,
+  "macos_job_pending": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "macos_job_evidence": "reference-app-expiry-current-macos.json",
+  "original_clock_trace_replay_exact": true,
+  "clock_replay_pending_observations": 0,
+  "independent_archive_audit": {
+    "format": "connect/reference-app-original-artifact-audit/1",
+    "run_id": 41499071156,
+    "passed": true,
+    "platforms": [
+      {
+        "platform": "linux",
+        "target": "x86_64-unknown-linux-gnu",
+        "source_revision": "b88a5f5b923ce04961a4d9729aae97e717183585",
+        "git_source_files_verified": 4993,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 753,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "37b96835a1c70e3fb235a21d1f3ca250e7d2533639d3dd0b15e4d20b52904bb5",
+        "native": {
+          "elf_header_verified": true,
+          "system_opus_license_present": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 25,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      }
+    ],
+    "elapsed_seconds": 2.185164332855493,
+    "all4_artifact_zip_digests_and_crc_previously_verified": true,
+    "scope": "Read-only original archive/source/inventory/byte/mode/license and existing install-proof binding audit. No executable or installer was run and no live quality failure is resolved. Raw observer profile audit remains separate.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  }
 }

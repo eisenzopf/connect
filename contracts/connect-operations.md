@@ -15,6 +15,12 @@ Authorized `operation.get` status and durable transition admission replies inclu
 `record_id`, the Store's stable record identifier for that operation. Native
 control status replies expose the same identifier. It is distinct from the
 caller-owned `operation_id`; it conveys no permission or completion by itself.
+The initial signed native control `operation.updated` also includes the original
+`command_type` and `expected_revision`, matching the current-authorized
+`operation.get` journal projection. Native `message.send` retains an explicit
+null `expected_revision`. Its completed `core_queue_admission` result proves
+local admission; recipient writes and application consumption need separate
+observations.
 A handoff target may reference its own signed native offer record as `policy_ref`
 only while that physical peer's current named handoff policy permits the route.
 
