@@ -11,12 +11,14 @@ import { newSetupPlan, digest } from "../examples/parley-on-connect/app/setup.mj
 import { summarizeCpuProfile } from "./lib/app_cpu_summary.mjs";
 import { startNativeServerSample, finishNativeBeforeStop } from "./lib/native_server_sample.mjs";
 import { AppMediaClockTrace } from "./lib/app_media_clock_trace.mjs";
+import { collectNativeAudioTrace } from "./lib/app_native_audio_trace.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 const flags = process.argv.slice(4);
-assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server", "--trace-media-clock"].includes(flag)) && new Set(flags).size === flags.length);
+assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server", "--trace-media-clock", "--trace-native-audio"].includes(flag)) && new Set(flags).size === flags.length);
 const cpuProfile = flags.includes("--profile-app-cpu"), sampleNative = flags.includes("--sample-native-server");
 const clockTrace = flags.includes("--trace-media-clock") ? new AppMediaClockTrace() : null;
+const traceNativeAudio = flags.includes("--trace-native-audio");
 if (sampleNative) assert.equal(process.platform, "darwin");
 assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(root, ".local") + "/") && base !== output);
 await mkdir(output, { recursive: false, mode: 0o700 });
@@ -54,6 +56,7 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     cpu_summary: sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))),
     native_sampler: sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))),
     clock_trace: sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))),
+    native_audio_trace: sha(await readFile(join(root, "scripts/lib/app_native_audio_trace.mjs"))),
     installer: sha(await readFile(join(root, producer.installer))) };
 if (producer.kind === "verified-local-components") assert.equal(installation.installer_sha256, sourceInputs.installer);
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
@@ -66,7 +69,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, cpu_profile_requested: cpuProfile,
     native_server_sample_requested: sampleNative, task_complete: false, whole_gate_qualified: false,
-    media_clock_trace_requested: Boolean(clockTrace),
+    media_clock_trace_requested: Boolean(clockTrace), native_audio_trace_requested: traceNativeAudio,
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
         "Actual production runtime and public Node SDK installed from independently verified local archives; complete SDK candidate remains unqualified.") +
         " Current one-command application setup and owned browser. Synthetic local control, invitations, text, offline recovery, restart and two native audio Connection negotiation/subscription/gate/end controls. Owned synthetic browser audio capture/decoded playback when its explicit checks pass. Identified video capture/playback is separately reported when its explicit checks pass. Full lifecycle/failure, model, provider and WAN qualification remain open." };
@@ -120,7 +123,8 @@ function groupMembers(pid) {
 async function start(number) {
     stage = "one-command-startup-" + number;
     processChild = spawn(process.execPath, [join(consumer, "app/run.mjs"), "--state", state, "--connect", installation.executable,
-        ...(cpuProfile ? ["--cpu-profile", "bounded"] : [])],
+        ...(cpuProfile ? ["--cpu-profile", "bounded"] : []),
+        ...(traceNativeAudio ? ["--native-audio-trace", "bounded"] : [])],
         { cwd: consumer, detached: true, env: Object.fromEntries(["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])), stdio: ["ignore", "pipe", "pipe"] });
     const original = processChild;
     finished = new Promise(done => { original.once("error", error => done({ error: error.code })); original.once("close", (code, signal) => done({ code, signal })); });
@@ -901,6 +905,10 @@ try {
         if (report.process_cleanup_failed) processChild.kill("SIGKILL");
         await deadline(finished, 5000).catch(() => {});
     });
+    if (traceNativeAudio) {
+        try { report.native_audio_trace = await collectNativeAudioTrace(join(state, "logs")); }
+        catch { report.native_audio_trace = { observed: false, reason: "private-trace-unavailable", raw_logs_published: false }; }
+    }
     if (cpuProfile) {
         try {
             const directory = join(state, "logs");
@@ -922,6 +930,7 @@ try {
         sha(await readFile(join(root, "scripts/lib/app_cpu_summary.mjs"))) === sourceInputs.cpu_summary &&
         sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))) === sourceInputs.native_sampler &&
         sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))) === sourceInputs.clock_trace &&
+        sha(await readFile(join(root, "scripts/lib/app_native_audio_trace.mjs"))) === sourceInputs.native_audio_trace &&
         sha(await readFile(join(root, producer.installer))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
     report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;

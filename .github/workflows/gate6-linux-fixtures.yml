@@ -34,6 +34,10 @@ on:
         description: 'App component only: bounded original media HTTP/clock timing observations'
         type: boolean
         default: false
+      app_native_audio_trace:
+        description: 'App diagnostic only: bounded existing native audio age trace; private raw logs and numeric summary'
+        type: boolean
+        default: false
       source_revision:
         description: 'Installation lane only: exact source SHA for the current-schema baseline; blank selects this commit'
         type: string
@@ -128,6 +132,7 @@ jobs:
       app_cpu_profile: ${{ inputs.app_cpu_profile || false }}
       native_server_sample: ${{ inputs.native_server_sample || false }}
       app_clock_trace: ${{ inputs.app_clock_trace || false }}
+      app_native_audio_trace: ${{ inputs.app_native_audio_trace || false }}
   reference-app:
     if: ${{ inputs.lane == 'reference-app' || inputs.lane == 'reference-app-macos' }}
     permissions:

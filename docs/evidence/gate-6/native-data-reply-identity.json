@@ -48,5 +48,16 @@
   },
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "production_runtime_verification": {
+    "source_revision": "f00bb09174652b6bd41f4b8e2d9fc3f07a293c05",
+    "normal_cli_sha256": "ec68b9a4a2e5a24ad4053a670947bb6b1e41472e55c3bbd99ea7511b55b7e4b1",
+    "independent_peer_unchanged": true,
+    "one_actual_move_with_both_exact_64KiB_Data_directions": true,
+    "initial_signed_reply_full_identity_verified": true,
+    "original_effects_and_recipient_writes_once": true,
+    "stopped_copy_audit_sha256": "ca6048d02bff18a34484f6b0a230bb57268f2a1975f770e15ecd10b1fee489c0",
+    "full_movement_workload_passed": false,
+    "reference": "moving-main-current-native-negative.json"
+  }
 }

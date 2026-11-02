@@ -48,15 +48,18 @@ async function unusedPort(udp = false) {
 }
 async function main() {
     process.umask(0o077);
-    let state = resolve(".local/parley"), selected = "connect", cpuProfile = false;
+    let state = resolve(".local/parley"), selected = "connect", cpuProfile = false, nativeAudioTrace = false;
     const args = process.argv.slice(2), seen = new Set();
     for (let index = 0; index < args.length; index += 2) {
         const flag = args[index], value = args[index + 1];
-        if (!["--state", "--connect", "--cpu-profile"].includes(flag) || !value || seen.has(flag)) fail("invalid-app-arguments");
+        if (!["--state", "--connect", "--cpu-profile", "--native-audio-trace"].includes(flag) || !value || seen.has(flag)) fail("invalid-app-arguments");
         seen.add(flag);
         if (flag === "--state") state = resolve(value);
         else if (flag === "--connect") selected = value;
-        else { if (value !== "bounded") fail("invalid-app-arguments"); cpuProfile = true; }
+        else {
+            if (value !== "bounded") fail("invalid-app-arguments");
+            if (flag === "--cpu-profile") cpuProfile = true; else nativeAudioTrace = true;
+        }
     }
     // Resolve a regular installed package before creating any Connect state.
     stage = "installed-sdk";
@@ -82,6 +85,7 @@ async function main() {
         const log = await open(path, "wx", 0o600);
         const env = Object.fromEntries(["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
         if (cpuProfile && name === "app") env.PARLEY_APP_CPU_PROFILE = "1";
+        if (nativeAudioTrace && name === "server") env.RUST_LOG = "warn,rvoip_core::audio_path=trace";
         const processChild = spawn(file, argv, { env, stdio: ["ignore", "pipe", "pipe"] });
         const record = { process: processChild, failed: null, bytes: 0, writing: Promise.resolve() };
         let diagnosticBuffer = "";
@@ -164,7 +168,7 @@ async function main() {
         // installation is preserved and refused, never replaced or repaired.
         await verifyBootstrap(state, !initialized);
         stage = "server-startup";
-        const server = await child(runtime, ["serve", "--config", join(installation, "server.toml")], "server");
+        const server = await child(runtime, ["serve", "--config", join(installation, "server.toml")], "server", nativeAudioTrace ? 8 * 1024 * 1024 : undefined);
         await ready(server, plan.ports.http);
         stage = "scoped-actor-setup";
         await configureActors({ directory: state, plan, execute, signal: controller.signal,

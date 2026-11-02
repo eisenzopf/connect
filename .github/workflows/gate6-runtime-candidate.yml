@@ -17,6 +17,9 @@ on:
       app_clock_trace:
         type: boolean
         default: false
+      app_native_audio_trace:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -175,6 +178,7 @@ jobs:
           node --test scripts/tests/app_cpu_summary.test.mjs
           node --test scripts/tests/native_server_sample.test.mjs
           node --test scripts/tests/app_media_clock_trace.test.mjs
+          node --test scripts/tests/app_native_audio_trace.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_reference_app_components.py -v
       - name: Package public Node SDK for the component app rehearsal
         if: ${{ inputs.reference_app && !inputs.qualification }}
@@ -229,7 +233,7 @@ jobs:
           BROWSER
       - name: Rehearse all current installed app checks with original owners
         if: ${{ inputs.reference_app }}
-        run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser ${{ inputs.app_cpu_profile && '--profile-app-cpu' || '' }} ${{ inputs.native_server_sample && runner.os == 'macOS' && '--sample-native-server' || '' }} ${{ inputs.app_clock_trace && '--trace-media-clock' || '' }}
+        run: node scripts/check-reference-app-installed.mjs .local/gate6-reference-app/candidate .local/gate6-reference-app/browser ${{ inputs.app_cpu_profile && '--profile-app-cpu' || '' }} ${{ inputs.native_server_sample && runner.os == 'macOS' && '--sample-native-server' || '' }} ${{ inputs.app_clock_trace && '--trace-media-clock' || '' }} ${{ inputs.app_native_audio_trace && '--trace-native-audio' || '' }}
       - name: Retain app component proof and synthetic browser evidence
         if: ${{ always() && inputs.reference_app }}
         run: |

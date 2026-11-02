@@ -1,0 +1,42 @@
+{
+  "format": "connect/reference-app-native-audio-observer/1",
+  "task": "G6-072",
+  "applied": true,
+  "ordinary_behavior_default_unchanged": true,
+  "opt_in_flag": "--trace-native-audio",
+  "workflow_input": "app_native_audio_trace",
+  "source_files": {
+    ".github/workflows/gate6-linux-fixtures.yml": "2668042b74af93b6b6500e9ca3c859624cbfef5ca13cc9b7e229d6be06f49184",
+    ".github/workflows/gate6-runtime-candidate.yml": "4a1ac11967b2ff28cf854934a7c2e0a49840a43697fd178887ddd4f254c2a038",
+    "examples/parley-on-connect/app/run.mjs": "79defddca0aa4fdf827756545f3c9d266a2eae4a14270903c58d2fc298e8a41f",
+    "scripts/check-reference-app-installed.mjs": "5f8ac16e58825ec1289bc9c22ba77dfead023d7fe3cabdf7d855ea116a947a6e",
+    "scripts/lib/app_native_audio_trace.mjs": "4b47e9a2805bc1cd969bfae95f81e16b2398b9e3f0b7f4e554b7cb6a0b6e733a",
+    "scripts/tests/app_native_audio_trace.test.mjs": "0006fd154ed7332464d63928132931af73de7233679ee880c5d9f6310f34c13b"
+  },
+  "unit_verification": {
+    "node": "v22.16.0",
+    "tests": 105,
+    "passed": 105,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "log_sha256": "1421629979e8fb2c1d7e6a88728f223fbcb307c306377ababfd9221c221d7bc3",
+    "includes_existing_app_cases": 100,
+    "includes_observer_bound_and_privacy_cases": 5
+  },
+  "signed_trace_component": {
+    "profile": "local macOS arm64 standard-debug/test-support PCMU/VP8 replacement; collector validation only",
+    "binary_sha256": "b4c8e995f44646713361dced94332d7deb74b07f425999f88573d6e14e445c82",
+    "passed": true,
+    "original_binary_and_source_unchanged": true,
+    "test_log_sha256": "5d08611ffa012feabdcf89b26b637923ec6661ccd9ca7d48f566b9f2a8afd96f",
+    "summary_sha256": "af833b82c24ebca0fcf15c3514c0b5ee710934c20534250fa60b8eb1d687b181",
+    "queue_age_samples": 772,
+    "io_age_samples": 830,
+    "malformed_events": 0
+  },
+  "limits": "No Linux/browser Opus delay cause established. Logged timing overhead is separate from ordinary media qualification. Raw private log lines, Connection IDs and paths are excluded; no media/source clock, packet, deadline, authority or mutation predicate changed.",
+  "full_installed_observer_run_pending": true,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
