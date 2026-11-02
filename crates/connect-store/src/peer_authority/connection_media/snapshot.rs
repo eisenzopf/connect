@@ -287,6 +287,50 @@ fn cached_with<T: Clone>(
 /// then reacquire SQL and seal the exact unchanged version under the new reader.
 /// No caller waits with SQL or retains a partial reader while retrying.
 impl Store {
+    /// Build a fresh compound read under one complete current file interval.
+    /// Command SQL is never acquired. The same observer's SQL/schema/clock
+    /// stamp is sealed around both derivation and the final read construction;
+    /// no metadata, partial reader or permission survives a refused capture.
+    pub(crate) fn try_current_packet_projection<T, U>(
+        &self,
+        mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+        finish: impl FnOnce(&Connection, &T, Arc<AuthorityGuardSet>) -> Result<U>,
+    ) -> Result<U> {
+        let interval = std::cell::RefCell::new(None::<Arc<AuthorityGuardSet>>);
+        let mut projection = None;
+        acquire_with_facts(
+            self,
+            |c, stamp| {
+                let (facts, scopes) = derive(c)?;
+                Ok(((facts, stamp), scopes))
+            },
+            |c, (facts, stamp)| {
+                if version(c)? != *stamp {
+                    return Err(Error::new(
+                        "authority-busy",
+                        "Current packet state changed before projection",
+                    ));
+                }
+                let held = interval.borrow().clone().ok_or_else(Error::storage)?;
+                let value = current_refusal(c, *stamp, finish(c, facts, held))?;
+                if version(c)? != *stamp {
+                    return Err(Error::new(
+                        "authority-busy",
+                        "Current packet state changed during projection",
+                    ));
+                }
+                projection = Some(value);
+                Ok(())
+            },
+            |scopes| {
+                let held = self.try_acquire_authority(scopes)?;
+                interval.replace(Some(held.clone()));
+                Ok(held)
+            },
+        )?;
+        projection.ok_or_else(Error::storage)
+    }
+
     /// Type-erased immutable facts only, exactly like a native origin's memo.
     /// Entries never own SQL, file authority, execution or a media IO grant.
     pub(crate) fn new_packet_projection_metadata<T: Send + Sync + 'static>(

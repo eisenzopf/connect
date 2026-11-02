@@ -348,3 +348,14 @@ failed runtime workload into a pass. See [the scoped inspector fix](../evidence/
 Each physical peer now records `root_completed_observed_programme_us` at its verified original-root read boundary. This is its application observation time, not an invented backend commit or kernel arrival time. Packet interpretation retains pre-observation rows separately. The main producer binds the original six recordings and twenty physical captures; separate Opus/VP8 histories never share compressed decoder state across physical receiver, stream or SSRC boundaries. Ownership intervals exclude old-owner rows after the next recorded root observation. The whole-window decoder keeps original timestamps, refuses duplicate frame coverage, and resets marker onset detection per history.
 
 The controlled encoded-source calibration passes all six full60s receiver windows across92 decoder histories, while preserving the frozen quality/marker limits. Its custody input is synthetic and proves no live service, Data, journal, device presentation or transport behavior. Normal production verification and the actual full main rehearsal remain required. See [capture integration and calibration evidence](../evidence/gate-6/moving-capture-integration.json).
+
+Provisional replacement decoder and scene authority reads use the independent
+read-only packet SQL observers. Holding an unrelated command/status connection
+therefore cannot prevent their current read. The Store still admits one complete
+file authority interval and seals the same observer SQL/schema/clock before and
+after final source, target and audience construction. A busy observer pool has
+no command fallback. External commits during construction refuse and release
+every reader; original revocation, expiry, generation and scope checks remain.
+The before/after contention and recovery cases are recorded in
+[the SQL isolation evidence](../evidence/gate-6/replacement-current-sql-isolation.json).
+These Store components do not qualify the full media programme.

@@ -95,11 +95,28 @@ fn replacement_start_has_separate_once_only_effect_and_fresh_provisional_generat
         .native_replacement_media_origin(captured.clone())
         .unwrap();
     drop(proof);
+    // An unrelated command/status read cannot starve actual decoder input or
+    // output. Provisional packet authority uses its own current SQL observer.
+    let command_sql = f.store.connection().unwrap();
     let media = f.store.try_native_replacement_media_read(&origin).unwrap();
     assert!(media.current());
     assert_eq!(media.target().connection.generation, 2);
+    drop(command_sql);
     assert_eq!(f.count("connections"), 2);
     drop(media);
+    let observers: Vec<_> = (0..crate::packet_observation::OBSERVERS)
+        .map(|_| f.store.try_packet_connection().unwrap())
+        .collect();
+    assert_eq!(
+        f.store
+            .try_native_replacement_media_read(&origin)
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    drop(observers);
+    drop(f.store.try_native_replacement_media_read(&origin).unwrap());
     let identity = f
         .store
         .revalidate(&request.credentials[0])
@@ -606,10 +623,12 @@ fn replacement_full_scene_read_uses_one_complete_interval_for_target_and_existin
     drop(proof);
     f.store.record_native_replacement_started(&started).unwrap();
     let origin = f.store.native_replacement_media_origin(started).unwrap();
+    let command_sql = f.store.connection().unwrap();
     let scene = f
         .store
         .try_native_replacement_scene_read(&origin, &sources)
         .unwrap();
+    drop(command_sql);
     assert!(scene.current());
     assert!(scene
         .existing(sources[0].runtime_connection_id(), None)
@@ -626,6 +645,23 @@ fn replacement_full_scene_read_uses_one_complete_interval_for_target_and_existin
         "Scene ownership must not add subscription permission"
     );
     drop(scene);
+    let observers: Vec<_> = (0..crate::packet_observation::OBSERVERS)
+        .map(|_| f.store.try_packet_connection().unwrap())
+        .collect();
+    assert_eq!(
+        f.store
+            .try_native_replacement_scene_read(&origin, &sources)
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    drop(observers);
+    drop(
+        f.store
+            .try_native_replacement_scene_read(&origin, &sources)
+            .unwrap(),
+    );
     assert!(f
         .store
         .try_native_replacement_scene_read(&origin, &sources[..1])

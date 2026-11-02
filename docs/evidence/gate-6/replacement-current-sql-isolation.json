@@ -1,0 +1,72 @@
+{
+  "format": "connect/replacement-current-sql-isolation/1",
+  "task": "G6-058",
+  "implementation_parent_revision": "10ce86cf8cc8affcbc7140ef253d74864be8ab78",
+  "applied": true,
+  "passed": true,
+  "scope": "Local Store authority and failure/recovery components; real signed media and normal production programme verification remain pending.",
+  "diagnostic": {
+    "source_revision": "10ce86cf8cc8affcbc7140ef253d74864be8ab78",
+    "normal_cli_sha256": "ec68b9a4a2e5a24ad4053a670947bb6b1e41472e55c3bbd99ea7511b55b7e4b1",
+    "phase_trace_enabled": true,
+    "stack_sampling": false,
+    "elapsed_seconds": 99.57657741708681,
+    "source_and_executable_guards_unchanged": true,
+    "private_media_authority_busy_refusals": 352,
+    "scene_command_sql_busy_refusals": 266,
+    "scene_file_authority_busy_refusals": 6,
+    "primary_original_read_only_deadline": true,
+    "all_original_db_wal_bytes_unchanged": true,
+    "unretired_native_lifetimes": 0,
+    "phase_summary_sha256": "a2595ad9783e27e5004f0220779287a810e10820aa7374c8543494afb6b37780",
+    "limitations": "Trace records deferrals, not CPU time or full root-cause attribution. Explicit diagnostic, not ordinary quality qualification."
+  },
+  "before": [
+    {
+      "case": "decoder",
+      "actual_test_failed": true,
+      "error": "authority-busy: Current state is busy",
+      "trigger": "Hold unrelated command SQL connection while requiring current provisional read",
+      "source_inputs_unchanged": true,
+      "log_sha256": "e89f9703e042d9863ccd5a303aedf03567da704e7cfd1998fb11842ca739f539"
+    },
+    {
+      "case": "scene",
+      "actual_test_failed": true,
+      "error": "authority-busy: Current state is busy",
+      "trigger": "Hold unrelated command SQL connection while requiring current provisional read",
+      "source_inputs_unchanged": true,
+      "log_sha256": "c9f409f284f4fbb72f7bbcfb73cba956c7baf552f1ab9479e1fb3f7770db9e43"
+    }
+  ],
+  "after": {
+    "exact_decoder_case_passed": true,
+    "exact_scene_case_passed": true,
+    "replacement_source_cases_passed": 150,
+    "packet_snapshot_cases_passed": 29,
+    "failures": 0,
+    "ignored": 0,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "18c57c5aad514c23f313dadc64503db0ab16a7f047645063893914c0566ded74",
+    "external_commit_during_final_read_rejected_on_both_success_and_refusal": true,
+    "all_failed_readers_released": true
+  },
+  "behavior": [
+    "Provisional decoder and complete scene reads use independent read-only SQL observers instead of command/status SQL custody.",
+    "Derive the original complete authority scope, release SQL for one immediate file admission, and seal the same observer SQL/schema/clock through final source/target/audience construction.",
+    "A busy observer pool refuses without command fallback; once released, original reads recover. Existing revocation, expiry, exact-generation, recipient and once-only effect checks remain.",
+    "No cached grant, additional reader admission, mutation replay, changed clock, extended deadline, workload or threshold change."
+  ],
+  "source_files_sha256": {
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "d1504754278627960092310135d11151ac36569998fc15681a37d92321067321",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "fb060022355e1f8d186a505a86cbe743647aa20aecabbc500a5f6bd399d00948",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "df94ab99b6f002b61429359fb4bb4ac4438b63b1eff7711a8d22c0313bb45fbc",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs": "73cab781be92b9c8cd62b5df2b7eaf7625743c52c0c3a5693efc9e757b3dcdd4"
+  },
+  "actual_signed_runtime_pending": true,
+  "normal_production_rehearsal_pending": true,
+  "host_capture_executed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -389,32 +389,34 @@ impl Store {
         &self,
         origin: &NativeReplacementMediaOrigin,
     ) -> Result<NativeReplacementMediaRead> {
-        // All SQL/fence admissions are nonblocking, including under decoder
-        // engine fences. Resolve twice with this one SQL permit and acquire the
-        // complete authority set once; never re-enter SQL behind a queued reader.
-        let c = self.try_connection()?;
-        let (_, _, scopes, expires) = media_facts(self, &c, origin)?;
-        let held = self.try_acquire_authority(&scopes)?;
-        let (member, saved, scopes, current_expiry) = media_facts(self, &c, origin)?;
-        if !self.authority_covers(&held, &scopes) {
-            return Err(Error::forbidden());
-        }
-        let source = origin
-            .started
-            .attempt
-            .allocated
-            .attempt
-            .prepared
-            .selection
-            .read_with_connection(self, &c, held.clone(), expires.min(current_expiry))?;
+        // Decoder input/output must not race command/status SQL custody. Use
+        // the same independently observed, version-sealed current admission as
+        // ordinary packets, then build every source/retained/target fact under
+        // that one complete interval without admitting another reader.
         let descriptor: serde_json::Value =
             serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
-        let target = projection(&source, member, &saved, &descriptor)?;
-        Ok(NativeReplacementMediaRead {
-            source,
-            target,
-            interval: held,
-        })
+        self.try_current_packet_projection(
+            |c| {
+                let (member, saved, scopes, expires) = media_facts(self, c, origin)?;
+                Ok(((member, saved, expires), scopes))
+            },
+            |c, (member, saved, expires), held| {
+                let source = origin
+                    .started
+                    .attempt
+                    .allocated
+                    .attempt
+                    .prepared
+                    .selection
+                    .read_with_connection(self, c, held.clone(), *expires)?;
+                let target = projection(&source, member.clone(), saved, &descriptor)?;
+                Ok(NativeReplacementMediaRead {
+                    source,
+                    target,
+                    interval: held,
+                })
+            },
+        )
     }
 }
 pub(super) fn media_facts(
@@ -653,114 +655,120 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
     ) -> Result<NativeReplacementSceneRead> {
         let prepared = &origin.started.attempt.allocated.attempt.prepared;
-        // Every admission here is immediate. Keeping this one SQL permit avoids
-        // repeatedly racing a queued status/watch read between planning and
-        // validation. A contended authority fence refuses without waiting under
-        // SQL; then the complete facts are resolved again under the merged grant.
-        let c = self.try_connection()?;
-        let context = prepared.selection.context(self, &c)?;
-        if ![
-            context.source_runtime_connection_id.as_str(),
-            context.retained_runtime_connection_id.as_str(),
-        ]
-        .iter()
-        .all(|id| {
-            sources.iter().any(|s| s.runtime_connection_id() == *id)
-                || (*id == context.source_runtime_connection_id
-                    && matches!(
-                        prepared.selection.source(),
-                        crate::NativeReplacementSourceOrigin::Telephone(_)
-                    ))
-        }) {
-            return Err(Error::forbidden());
-        }
-        let mut scopes = media_facts(self, &c, origin)?.2;
-        scopes.extend(
-            self.native_scene_facts(&c, sources, &context.conversation_id, &context.session_id)?
-                .1,
-        );
-        let held = self.try_acquire_authority(&AuthorityScope::merged(&scopes)?)?;
-        let (member, saved, mut required, expiry) = media_facts(self, &c, origin)?;
-        let (mut facts, scene_scopes, scene_expiry) =
-            self.native_scene_facts(&c, sources, &context.conversation_id, &context.session_id)?;
-        required.extend(scene_scopes);
-        if !self.authority_covers(&held, &required) {
-            return Err(Error::forbidden());
-        }
-        let expiry = expiry.min(scene_expiry);
-        let source = prepared
-            .selection
-            .read_with_connection(self, &c, held.clone(), expiry)?;
+        // Continue on independent current SQL observers, even while command
+        // status/watch owns its connection. Derive every scene scope before one
+        // complete file admission, then seal the same observer through all
+        // source/target/audience construction without a second reader.
         let descriptor: serde_json::Value =
             serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
-        let target = projection(&source, member, &saved, &descriptor)?;
-        self.native_replacement_scene_pairs(
-            &c,
-            sources,
-            &mut facts,
-            &context.source_runtime_connection_id,
-            source.source().telephone(),
-            &target,
-            origin
-                .started
-                .attempt
-                .request
-                .credentials
-                .last()
-                .ok_or_else(Error::forbidden)?,
-        )?;
-        let mut audience_sources = audience::origins(&c, sources, &target, &prepared.record)?;
-        let mut telephone_pairs = std::collections::BTreeMap::new();
-        if let Some(phone) = source.source().telephone() {
-            audience::telephone_origin(&c, phone, &mut audience_sources)?;
-            for native in sources {
-                let actor = self.native_media_route_actor(&c, native)?;
-                let view = &facts
-                    .get(&(native.runtime_connection_id().into(), None))
-                    .ok_or_else(Error::forbidden)?
-                    .0;
-                let both = phone
-                    .route_actor()
-                    .permits_recipient(&view.session.actor.identity_id)
-                    && actor.permits_recipient(&phone.member().identity_id);
-                telephone_pairs.insert(
-                    native.runtime_connection_id().into(),
-                    (
-                        both && actor.permits("stream.subscribe"),
-                        both && phone.route_actor().permits("stream.subscribe"),
-                    ),
-                );
-            }
-            let actor = actor_from_connection(
-                &c,
-                origin
-                    .started
-                    .attempt
-                    .request
-                    .credentials
-                    .last()
-                    .ok_or_else(Error::forbidden)?,
-            )?;
-            let both = phone.route_actor().permits_recipient(&actor.identity_id)
-                && actor.permits_recipient(&phone.member().identity_id);
-            telephone_pairs.insert(
-                target.runtime_connection_id.clone(),
-                (
-                    both && actor.permits("stream.subscribe"),
-                    both && phone.route_actor().permits("stream.subscribe"),
-                ),
-            );
-        }
-        let reads = self.native_scene_reads(facts, held.clone(), expiry)?;
-        Ok(NativeReplacementSceneRead {
-            media: Arc::new(NativeReplacementMediaRead {
-                source,
-                target,
-                interval: held,
-            }),
-            reads,
-            audience_sources,
-            telephone_pairs,
-        })
+        self.try_current_packet_projection(
+            |c| {
+                let context = prepared.selection.context(self, c)?;
+                if ![
+                    context.source_runtime_connection_id.as_str(),
+                    context.retained_runtime_connection_id.as_str(),
+                ]
+                .iter()
+                .all(|id| {
+                    sources.iter().any(|s| s.runtime_connection_id() == *id)
+                        || (*id == context.source_runtime_connection_id
+                            && matches!(
+                                prepared.selection.source(),
+                                crate::NativeReplacementSourceOrigin::Telephone(_)
+                            ))
+                }) {
+                    return Err(Error::forbidden());
+                }
+                let (member, saved, mut scopes, expiry) = media_facts(self, c, origin)?;
+                let (facts, scene_scopes, scene_expiry) = self.native_scene_facts(
+                    c,
+                    sources,
+                    &context.conversation_id,
+                    &context.session_id,
+                )?;
+                scopes.extend(scene_scopes);
+                Ok((
+                    (context, member, saved, expiry.min(scene_expiry), facts),
+                    AuthorityScope::merged(&scopes)?,
+                ))
+            },
+            |c, (context, member, saved, expiry, facts), held| {
+                let mut facts = facts.clone();
+                let source =
+                    prepared
+                        .selection
+                        .read_with_connection(self, c, held.clone(), *expiry)?;
+                let target = projection(&source, member.clone(), saved, &descriptor)?;
+                self.native_replacement_scene_pairs(
+                    c,
+                    sources,
+                    &mut facts,
+                    &context.source_runtime_connection_id,
+                    source.source().telephone(),
+                    &target,
+                    origin
+                        .started
+                        .attempt
+                        .request
+                        .credentials
+                        .last()
+                        .ok_or_else(Error::forbidden)?,
+                )?;
+                let mut audience_sources =
+                    audience::origins(c, sources, &target, &prepared.record)?;
+                let mut telephone_pairs = std::collections::BTreeMap::new();
+                if let Some(phone) = source.source().telephone() {
+                    audience::telephone_origin(c, phone, &mut audience_sources)?;
+                    for native in sources {
+                        let actor = self.native_media_route_actor(c, native)?;
+                        let view = &facts
+                            .get(&(native.runtime_connection_id().into(), None))
+                            .ok_or_else(Error::forbidden)?
+                            .0;
+                        let both = phone
+                            .route_actor()
+                            .permits_recipient(&view.session.actor.identity_id)
+                            && actor.permits_recipient(&phone.member().identity_id);
+                        telephone_pairs.insert(
+                            native.runtime_connection_id().into(),
+                            (
+                                both && actor.permits("stream.subscribe"),
+                                both && phone.route_actor().permits("stream.subscribe"),
+                            ),
+                        );
+                    }
+                    let actor = actor_from_connection(
+                        c,
+                        origin
+                            .started
+                            .attempt
+                            .request
+                            .credentials
+                            .last()
+                            .ok_or_else(Error::forbidden)?,
+                    )?;
+                    let both = phone.route_actor().permits_recipient(&actor.identity_id)
+                        && actor.permits_recipient(&phone.member().identity_id);
+                    telephone_pairs.insert(
+                        target.runtime_connection_id.clone(),
+                        (
+                            both && actor.permits("stream.subscribe"),
+                            both && phone.route_actor().permits("stream.subscribe"),
+                        ),
+                    );
+                }
+                let reads = self.native_scene_reads(facts, held.clone(), *expiry)?;
+                Ok(NativeReplacementSceneRead {
+                    media: Arc::new(NativeReplacementMediaRead {
+                        source,
+                        target,
+                        interval: held,
+                    }),
+                    reads,
+                    audience_sources,
+                    telephone_pairs,
+                })
+            },
+        )
     }
 }

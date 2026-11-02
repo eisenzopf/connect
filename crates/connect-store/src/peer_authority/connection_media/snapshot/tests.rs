@@ -465,6 +465,41 @@ impl Fixture {
 }
 
 #[test]
+fn compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit() {
+    for refused in [false, true] {
+        let f = Fixture::new();
+        let external = Connection::open(f.store.path()).unwrap();
+        let result = f.store.try_current_packet_projection(
+            |c| f.derive(c),
+            |_, facts, held| {
+                assert_eq!(*facts, 1);
+                assert!(f.store.authority_covers(&held, &[f.read.clone()]));
+                external
+                    .execute("UPDATE packet_snapshot_test SET value=2", [])
+                    .unwrap();
+                if refused {
+                    Err(Error::forbidden())
+                } else {
+                    Ok((*facts, held))
+                }
+            },
+        );
+        assert_eq!(result.err().unwrap().code, "authority-busy");
+        drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+        let command_sql = f.store.connection().unwrap();
+        let (value, held) = f
+            .store
+            .try_current_packet_projection(|c| f.derive(c), |_, value, held| Ok((*value, held)))
+            .unwrap();
+        assert_eq!(value, 2);
+        assert!(f.store.try_acquire_authority(&[f.write.clone()]).is_err());
+        drop(command_sql);
+        drop(held);
+        drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+    }
+}
+
+#[test]
 fn packet_snapshot_external_commit_refuses_stale_facts_releases_reader_and_recovers() {
     let f = Fixture::new();
     let external = Connection::open(f.store.path()).unwrap();
