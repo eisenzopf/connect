@@ -672,6 +672,25 @@ async fn exercise_replacement_with_av_control(
                     "{:?}",
                     callback.original()
                 );
+                #[cfg(feature = "test-support")]
+                {
+                    // This actual signed target has received its native offer
+                    // and deliberately has not answered it. Waiting for that
+                    // peer must not retain the global role coordinator needed
+                    // by an unrelated Session's preparation or projection.
+                    let roles = tokio::time::timeout(
+                        Duration::from_secs(1),
+                        f.server.service.hold_canonical_roles_for_test(),
+                    )
+                    .await
+                    .expect("pending native negotiation held the global role coordinator")
+                    .unwrap();
+                    drop(roles);
+                    assert_eq!(
+                        status(&f, &key.id, &command.operation_id).await.state,
+                        OperationState::Preparing,
+                    );
+                }
                 let payload = &callback.original()["payload"];
                 let streams=payload["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
                 let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":if av {av_capabilities()} else {capabilities()},"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
