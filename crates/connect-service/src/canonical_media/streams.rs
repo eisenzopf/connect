@@ -58,6 +58,16 @@ impl StreamInvocation {
             || wire.session_id != self.connection.origin.session_id()
             || Some(self.revision) != wire.expected_revision
         {
+            tracing::debug!(target: "connect_service::native_stream_preparation",
+                proof_current = authority.peer_guard().is_some_and(|p| p.current()),
+                target_current = self.target.current(),
+                invocation_cancelled = self.authorized.invocation_cancellation().is_cancelled(),
+                deadline_expired = tokio::time::Instant::now() >= self.deadline,
+                connection_matches = wire.connection_id == self.connection.origin.connection_id(),
+                conversation_matches = wire.conversation_id == self.connection.origin.conversation_id(),
+                session_matches = wire.session_id == self.connection.origin.session_id(),
+                revision_matches = Some(self.revision) == wire.expected_revision,
+                "Native stream invocation current check refused");
             return Err(StreamControlError::Authority);
         }
         Ok(())
@@ -157,12 +167,13 @@ impl Policy {
             .iter()
             .map(|source| source.origin.as_ref())
             .collect::<Vec<_>>();
-        let (target, reads) = self.store.native_stream_media_reads_with_peer(
-            &connection.origin,
-            &origins,
-            proof,
-            lease,
-        )?;
+        let (target, reads) = self
+            .store
+            .native_stream_media_reads_with_peer(&connection.origin, &origins, proof, lease)
+            .inspect_err(|error| {
+                tracing::debug!(target: "connect_service::native_stream_preparation",
+                    code = %error.code, "Native stream invocation scene read refused");
+            })?;
         let target = Arc::new(target);
         let mut sources = BTreeMap::new();
         for (source, read) in entries.into_iter().zip(reads) {

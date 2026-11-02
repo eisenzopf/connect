@@ -460,8 +460,10 @@ impl Runtime {
             };
         let seconds = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = Instant::now() + Duration::from_secs(seconds);
+        let mut preparation_stage = "stream-invocation";
         let ready = self
             .native_preflight(&a, deadline, || {
+                preparation_stage = "stream-invocation";
                 let invocation = plan
                     .clone()
                     .map(|plan| {
@@ -469,16 +471,20 @@ impl Runtime {
                             .stream_invocation(a.clone(), plan, &lease, deadline)
                     })
                     .transpose()?;
+                preparation_stage = "original-attempt";
                 store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
+                preparation_stage = "physical-source";
                 physical.validate(
                     &a,
                     a.authority::<StoreInvocationAuthority>()
                         .ok_or_else(Error::forbidden)?,
                 )?;
+                preparation_stage = "physical-lifetime";
                 if physical.lifetime.is_cancelled() || self.stop.is_cancelled() {
                     return Err(Error::forbidden());
                 }
                 let quality_invocation = if quality {
+                    preparation_stage = "quality-invocation";
                     Some(crate::canonical_native_quality::Invocation::prepare(
                         &self,
                         a.clone(),
@@ -490,6 +496,7 @@ impl Runtime {
                     None
                 };
                 let advertisement = if advertising {
+                    preparation_stage = "capability-invocation";
                     Some(crate::canonical_native_capabilities::Received::prepare(
                         &self,
                         a.clone(),
@@ -506,6 +513,8 @@ impl Runtime {
         let (invocation, quality_invocation, advertisement) = match ready {
             Ok(v) => v,
             Err(e) => {
+                tracing::debug!(target: "connect_service::native_stream_preparation", stage = preparation_stage,
+                    code = %e.code, "Native stream invocation preparation refused before media IO");
                 tracing::debug!(target: "connect_service::canonical_native_streams", code=%e.code, "Native stream invocation preparation refused");
                 let result = store
                     .fail_native_stream_without_effect(lease, e)

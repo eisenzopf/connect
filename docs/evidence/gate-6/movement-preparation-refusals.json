@@ -121,5 +121,145 @@
     "All original packet tasks, SDK helpers, target workers and service process join. Original failed operations are not resubmitted.",
     "A subsequent narrowly instrumented runtime is being built to distinguish scene-read, original-attempt, physical-source, lifetime and invocation-current checks. No authorization or quality limits changed."
   ],
-  "transport_cells_qualified": 0
+  "transport_cells_qualified": 0,
+  "additional_diagnostic_runs": [
+    {
+      "scene": "movement-preparation-refusal-release",
+      "execution_passed": false,
+      "pipeline_sha256": "3c9b66087502cfe818788c1ae4e669d1aca7aa1fe0bc10ec1c5554198c523d09",
+      "probe_sha256": "67f13f1163041ebff494a2366ff779340ee19c6137ab890205592b1927dac058",
+      "normal_runtime_binary_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+      "unchanged_peer_binary_sha256": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99",
+      "input_guards_unchanged": true,
+      "original_packet_workers_joined": true,
+      "all_helpers_and_server_joined_without_force": true,
+      "physical_owners_completed": 2,
+      "failure": {
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only"
+      },
+      "target_stage_failures": [
+        {
+          "source_slot": "0-1",
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        },
+        {
+          "source_slot": "4-1",
+          "failure": {
+            "phase": "original-allocation-root",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        }
+      ],
+      "original_signed_read_failures": [
+        {
+          "source_slot": "0-0",
+          "original_completion_read_storage_unavailable": false
+        },
+        {
+          "source_slot": "0-1",
+          "original_completion_read_storage_unavailable": false
+        },
+        {
+          "source_slot": "4-0",
+          "original_completion_read_storage_unavailable": false
+        }
+      ],
+      "existing_unit_test_compilation_concurrent": true,
+      "quality_or_full_transport_claim": false
+    },
+    {
+      "scene": "movement-control-stage-release",
+      "execution_passed": false,
+      "pipeline_sha256": "5005468e6a02e247fc03501c786fdd8a1678231c039a414caa6b1588214c9293",
+      "probe_sha256": "41ab1a635544d338d38c26d263627530c514c10b65d2ae255629da6f7fb24bb9",
+      "normal_runtime_binary_sha256": "b0889f620e60bc09afcda5f35fe20ffcb66ad5b6b239835ef55abe4ad6e1eee9",
+      "unchanged_peer_binary_sha256": "831c7fd850e2c98796285261b8d72a733c6921c7d57a8f2b394aae6ae99eae99",
+      "input_guards_unchanged": true,
+      "original_packet_workers_joined": true,
+      "all_helpers_and_server_joined_without_force": true,
+      "physical_owners_completed": 3,
+      "failure": {
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "stage": "physical-target"
+        }
+      },
+      "target_stage_failures": [
+        {
+          "source_slot": "0-1",
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        },
+        {
+          "source_slot": "4-2",
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "refused"
+          }
+        }
+      ],
+      "original_signed_read_failures": [
+        {
+          "source_slot": "0-0",
+          "original_completion_read_storage_unavailable": false
+        },
+        {
+          "source_slot": "0-1",
+          "original_completion_read_storage_unavailable": true
+        },
+        {
+          "source_slot": "4-0",
+          "original_completion_read_storage_unavailable": false
+        },
+        {
+          "source_slot": "4-1",
+          "original_completion_read_storage_unavailable": false
+        },
+        {
+          "source_slot": "4-2",
+          "original_completion_read_storage_unavailable": false
+        }
+      ],
+      "existing_unit_test_compilation_concurrent": true,
+      "quality_or_full_transport_claim": false
+    }
+  ],
+  "diagnostics": {
+    "server_changes": "Debug-only scene/preparation-stage and current-proof/target/lifetime/scope boolean observations; no authority predicate, budget or media-quality change.",
+    "release_build_passed": true,
+    "dependency_and_format_checks_passed": true,
+    "existing_service_media_tests": "original exec41450stillcompiling; outcome pending",
+    "movement_stage_tracking": "Keeps the first failed Session/source/ordinal/stage through sibling cancellation and all joins. No operation ID or packet recorded in redacted observation.",
+    "movement_owner_regression_command": "node --test scripts/tests/transport_movement_workload.test.mjs",
+    "movement_owner_regressions_passed": 5,
+    "movement_owner_regressions_failed": 0,
+    "node_syntax_check_passed": true,
+    "source_inputs_manifest_sha256": "e925ce9b0a6dcefcacd7ef3caea0f62a8209c971974119674dbd5485fe1ecbd7"
+  },
+  "remaining_findings": [
+    "Neither new scene reproduced the earlier post-commit forbidden video-unmute. Those earlier recorded negatives remain unresolved.",
+    "The stage-tracked scene stopped at source0Session0ordinal1 physical-target/original-completion. Its target log records signed original operation.get503storage-unavailable, then the physical target exits and the controller times out reading the same original root.",
+    "Prepare a narrow original-status read deferral for503only: retain physical owner and original operation identity, return to existing media/poll loop, preserve all existing overall bounds, never replay mutations or treat a deferral as admission. Patch is prepared privately but not yet applied or verified.",
+    "Control waits inside the physical media loop also remain a source-scheduling issue to address; no claim this explains authorization failure."
+  ]
 }

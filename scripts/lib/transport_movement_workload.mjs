@@ -51,7 +51,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     const stop = new AbortController(), abort = () => { stop.abort(); stopOwners(); };
     workload.signal.addEventListener("abort", abort, { once: true });
     if (workload.signal.aborted) abort();
-    let firstFailure;
+    let firstFailure, firstFailureStage;
+    const stages = new Map();
     const assertCurrent = () => {
         if (stop.signal.aborted) throw firstFailure ?? Object.assign(Error("original movement workload cancelled"), { kind: "cancelled", certainty: "read-only" });
     };
@@ -75,14 +76,22 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         const sid = route.sessionIndex, source = sourcePrograms[sourceIndex], controller = controllers[sid];
         let current = connections[sourceIndex].connection, previous, previousDirectory;
         for (const step of plan.filter(v => v.sourceIndex === sourceIndex)) {
+            const stage = name => stages.set(sourceIndex, {
+                source_index: sourceIndex, session_index: sid, ordinal: step.ordinal, stage: name,
+            });
+            stage("current-workload");
             assertCurrent();
+            stage("session-refresh");
             const session = await sessions[sid].refresh({ timeoutMs: 8000 });
+            stage("source-connection-refresh");
             const original = await current.refresh({ timeoutMs: 8000 });
+            stage("retained-connection-refresh");
             const retained = await connections[incoming].connection.refresh({ timeoutMs: 8000 });
             const confirm = previous ? undefined : route.expectRetirement(step.operationId);
             const moveDirectory = join(directory, sourceIndex + "-" + step.ordinal);
             const began = performance.now();
             assertCurrent();
+            stage("physical-target");
             const owner = await startTarget({ controller, privateRoot, directory: moveDirectory,
                 executable, executableSha256, operationId: step.operationId,
                 conversationId, sessionId: sessions[sid].id, connectionId: current.id,
@@ -96,8 +105,10 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                         receiveVideoStreamId: streamIds[incoming].video,
                         ssrc: 0x47000002 + sourceIndex * 256 + step.ordinal * 2, frames: source.videoFrames } },
                 retireOriginal: async proof => {
+                    stage("previous-owner-join");
                     if (previous) await collect(previous, sourceIndex, previousDirectory);
                     else { confirm(proof); await route.stopAndJoin(); }
+                    stage("physical-target-readiness");
                 },
             });
             owners.add(owner);
@@ -110,6 +121,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 stage_directory: moveDirectory };
             completed.push(observedMove);
             assertCurrent();
+            stage("incoming-video-subscription");
             await receiver.switchIncomingVideo(step.subscriptionId, step.videoId, async () => {
                 const currentReceiver = await receiver.connection.refresh({ timeoutMs: 8000 });
                 return receiver.connection.streams.subscribe({ selectors: {
@@ -118,6 +130,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 }, expectedStreamRevision: currentReceiver.streamRevision },
                 { operationId: step.subscriptionId, timeoutMs: 8000 });
             });
+            stage("live-session-refresh");
             const live = await sessions[sid].refresh({ timeoutMs: 8000 });
             assert.ok(!["ended", "failed", "cancelled"].includes(live.state));
             observedMove.camera_subscription_completed = true;
@@ -125,12 +138,15 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         }
         // The final physical owners keep their original program clock and
         // natural62second fail-safe. The caller still owns Session end/drain.
+        stages.set(sourceIndex, { source_index: sourceIndex, session_index: sid, ordinal: 9,
+            stage: "final-natural-owner-join" });
         await collect(previous, sourceIndex, previousDirectory, true);
         return { sourceIndex, connection: current };
     }
     try {
         const results = await Promise.allSettled(sources.map(index => chain(index).catch(failure => {
-            firstFailure ??= failure; abort(); throw failure;
+            if (!firstFailure) { firstFailure = failure; firstFailureStage = stages.get(index); }
+            abort(); throw failure;
         })));
         if (firstFailure) throw firstFailure;
         assertCurrent();
@@ -155,7 +171,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         if (firstFailure) await save(join(directory, "movement-failure.json"), {
             passed: false, original_moves_completed: completed.length, moves: completed,
             physical_segments: segments, failure: { name: firstFailure.name,
-                kind: firstFailure.kind ?? null, certainty: firstFailure.certainty ?? null },
+                kind: firstFailure.kind ?? null, certainty: firstFailure.certainty ?? null,
+                observation: firstFailureStage ?? null },
             target_joins_failed: joins.filter(v => v.status === "rejected").length,
             task_complete: false, whole_gate_qualified: false,
         });
