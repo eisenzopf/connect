@@ -1,0 +1,41 @@
+{
+  "format": "connect/gate-6/reference-app-observer-candidate/1",
+  "task": "G6-072",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "source_revision": "d492bace53fdd1f8fe5ef4817e5fa66fa188eaf1",
+  "run": 41369927293,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/41369927293",
+  "status": "Both exact-source platform jobs started; original results pending.",
+  "scope": "Existing isolated Linux x86_64 and macOS arm64 production packaging, external offline component installation and original37actual installed reference-app checks. No provider/model/telephone endpoints.",
+  "reason": "Previous hosted source d5fa96c1 predates the verified Store resource-registry, queued realtime, original-observer and exact-observer cache corrections. Current candidate must be observed separately.",
+  "configuration": {
+    "workflow": "gate6-linux-fixtures.yml",
+    "lane": "reference-app-components",
+    "app_cpu_profile": true,
+    "native_server_sample": true,
+    "app_clock_trace": true,
+    "native_server_sample_scope": "Existing8second macOS owned server sampler, only if original workload reaches its trigger.",
+    "browser_checker_changed": false,
+    "quality_and_timing_thresholds_changed": false
+  },
+  "previous_terminal_negative": "docs/evidence/gate-6/reference-app-d5-negative.json",
+  "runtime_behavior_pass_claim": false,
+  "source_and_artifact_audit_complete": false,
+  "jobs": [
+    {
+      "databaseId": 125037997939,
+      "name": "reference-app-components / Native x86_64-unknown-linux-gnu assets",
+      "status": "in_progress",
+      "conclusion": "",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41369927293/job/125037997939"
+    },
+    {
+      "databaseId": 125037998237,
+      "name": "reference-app-components / Native aarch64-apple-darwin assets",
+      "status": "in_progress",
+      "conclusion": "",
+      "url": "https://github.com/eisenzopf/connect/actions/runs/41369927293/job/125037998237"
+    }
+  ]
+}
