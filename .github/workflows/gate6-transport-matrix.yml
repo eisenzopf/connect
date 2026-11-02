@@ -123,6 +123,8 @@ jobs:
         run: |
           node --test --test-concurrency=1 \
             scripts/tests/transport_av.test.mjs \
+            scripts/tests/transport_programme_lifetime.test.mjs \
+            scripts/tests/transport_av_lifetime.test.mjs \
             scripts/tests/transport_live_upgrade.test.mjs \
             scripts/tests/transport_media_owner.test.mjs \
             scripts/tests/transport_media_reader.test.mjs \

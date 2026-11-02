@@ -1,0 +1,82 @@
+{
+  "format": "connect/gate-6/programme-owner-joins/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Actual nativeAv coordinator with test-double packet IO plus55affected owner/control/movement/capture tests. No physical transport, codec or decoded quality qualification.",
+  "problem": "The normal62.2second packet-read timer aborted the same signal used by in-window control work, cancelling final capture/control joining even when it would complete within the frozen teardown bound.",
+  "before": {
+    "production_logic_changed": false,
+    "counterexample_verified": true,
+    "passed": 0,
+    "failed": 1,
+    "source_inputs_unchanged": true,
+    "native_av_harness_sha256": "fd2405f6b4fcd52b3050e83602aed8314d7562c41d2352b33c7504e787ce2075",
+    "native_av_elapsed_ms": 62225.420625,
+    "all24_original_packet_tasks_joined": true,
+    "pending_reads": 0,
+    "control_joined": false,
+    "failure_stage": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    },
+    "before_log_sha256": "26995abf65acff4410bc63b1316c9deb78f2ee8de6d2aceee186a25b8504b0d3"
+  },
+  "change": {
+    "normal_read_completion_stops_original_packet_owners": true,
+    "normal_read_completion_cancels_control": false,
+    "programme_milliseconds": 62000,
+    "measured_window_milliseconds": 60000,
+    "packet_read_cutoff_milliseconds": 62200,
+    "absolute_normal_join_cutoff_milliseconds": 67000,
+    "early_failure_cleanup_bound_milliseconds": 5000,
+    "later_events_renew_deadlines": false,
+    "parent_cancellation_remains_failure": true,
+    "first_original_error_or_uncertainty_preserved": true,
+    "deadline_can_abandon_original_owners": false,
+    "shared_SDK_helper_closed_for_one_Connection": false,
+    "source_clocks_or_media_quality_limits_changed": false
+  },
+  "after": {
+    "implemented": true,
+    "verified": true,
+    "passed": 55,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "source_inputs_unchanged": true,
+    "native_av_harness_sha256": "e4b9c45fc121a01daac82b6df100b849aded6e44935cd8f5cadcc55ed0b4eff7",
+    "node_version": "v22.16.0",
+    "node_binary_sha256": "a45751fbfe88440bebff63cd44814e4ed6deb642bc3e3c4a14c4f8ae0ed9e019",
+    "test_files": [
+      "scripts/tests/transport_av.test.mjs",
+      "scripts/tests/transport_live_upgrade.test.mjs",
+      "scripts/tests/transport_media_owner.test.mjs",
+      "scripts/tests/transport_media_reader.test.mjs",
+      "scripts/tests/transport_movement_workload.test.mjs",
+      "scripts/tests/transport_replacement_target.test.mjs",
+      "scripts/tests/transport_replacement_owner.test.mjs",
+      "scripts/tests/transport_replacement_observation.test.mjs",
+      "scripts/tests/transport_movement_observation.test.mjs",
+      "scripts/tests/transport_programme_lifetime.test.mjs",
+      "scripts/tests/transport_av_lifetime.test.mjs"
+    ],
+    "native_av_elapsed_ms": 62595.757542,
+    "all24_original_packet_tasks_joined": true,
+    "pending_reads": 0,
+    "control_joined": true,
+    "failure": null,
+    "cohort_elapsed_seconds": 64.76997154206038,
+    "after_log_sha256": "7e3e08072a2bad9da3adc1875e775b25f564315c429df22298bfed7a8aac44f0",
+    "transport_CI_cohort_updated": true
+  },
+  "remaining": [
+    "Main Data+AV/movement/current-Connection-end integration and full timeline decode remain required.",
+    "Latest actual8c31media observation predates this harness change: all6audio/marker/rate checks pass,1of6fullcomponent routes pass,5retain video-integrity failures.",
+    "Full20movements/impairment/browser/remote/resource/recovery/32cell qualification remains outstanding."
+  ],
+  "transport_cells_qualified": 0,
+  "full_media_quality_claim": false
+}

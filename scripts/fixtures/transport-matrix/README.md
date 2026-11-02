@@ -372,6 +372,15 @@ frames per second, correct source pixels and source-clock reports. FFmpeg PTS
 must match the retained original RTP timestamps. Failed work cancels and joins
 all twelve readers before original Connection ends and SDK owner closure.
 
+When an in-window control workload is supplied, normal packet-read completion
+stops only its original packet owners at the unchanged62.2second cutoff. Final
+control/capture owners join by the original programme end plus five seconds.
+An earlier failure narrows cleanup to five seconds from that failure; later
+events cannot renew either deadline. Parent cancellation remains a failure even
+when twenty control roots have already completed. A deadline failure retains
+ownership until original control and physical owners join; it cannot abandon or
+replay an uncertain mutation. These joins add no packets to the measured window.
+
 The reserve Device's initial SDK helper is explicitly closed before the long
 media phase. Its unchanged documented configuration is opened after the source
 owner closes, and the same original Create reference is restored under current

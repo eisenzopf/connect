@@ -7,6 +7,7 @@ import { SdkRtpPacket } from "../../sdk/typescript/dist/index.js";
 import { RtpSender, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
 import { ConnectionMediaOwner } from "./transport_media_owner.mjs";
 import { SwitchingMediaReader } from "./transport_media_reader.mjs";
+import { joinMediaProgramme } from "./transport_programme_lifetime.mjs";
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
@@ -63,8 +64,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         throw failure;
     }
     const controller = new AbortController(), start = performance.now(), unixStart = Date.now();
-    const end = start + 62000, tasks = []; let error, workFailure, timer;
-    let controlResult;
+    const end = start + 62000, tasks = [], packetTasks = []; let error, workFailure;
+    let controlResult, controlTask;
     for (const route of routes) {
         route.owner = new ConnectionMediaOwner(controller.signal);
         const peer = connections[route.peerIndex];
@@ -157,61 +158,73 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             }
         }
     }
-    const launch = (task, route, medium, direction) => tasks.push(task.catch(failure => {
-        if (!error) {
-            if (route.owner.signal.aborted && failure.kind === "cancelled") return;
-            error = failure;
-            workFailure = { route_index: route.index, medium, direction, stage: route.stages[direction][medium] ?? "pending" };
-        }
-        controller.abort();
-    }));
+    const launch = (task, route, medium, direction) => {
+        const owned = task.catch(failure => {
+            if (!error) {
+                if (route.owner.signal.aborted && failure.kind === "cancelled") return;
+                error = failure;
+                workFailure = { route_index: route.index, medium, direction, stage: route.stages[direction][medium] ?? "pending" };
+            }
+            controller.abort(error);
+        });
+        packetTasks.push(owned); tasks.push(owned);
+    };
     try {
         for (const route of routes) for (const medium of ["audio", "video"]) {
             launch(route.owner.run(() => receiving(route, medium)), route, medium, "receive");
             launch(route.owner.run(() => sending(route, medium)), route, medium, "send");
         }
-        if (during) tasks.push(Promise.resolve().then(() => during(Object.freeze({
-            signal: controller.signal, programStartUnixUs: unixStart * 1000,
-            routes: Object.freeze(routes.map(route => Object.freeze({ index: route.index,
-                peerIndex: route.peerIndex, connection: route.item.connection,
-                sessionIndex: route.item.sid, role: route.item.role,
-                // Retire only this Connection's four packet tasks. A second
-                // Session may still belong to the same live SDK/helper.
-                stopAndJoin: () => route.owner.stopAndJoin(),
-                expectRetirement: operationId => route.owner.expectRetirement({ operationId,
-                    connectionId: route.item.connection.id, generation: route.generation }),
-                switchIncomingVideo: (operationId, streamId, select) => route.videoReader.switchWith(operationId, async () => {
-                    const operation = await select();
-                    const reference = operation.referenceJson();
-                    assert.equal(reference.operation_id, operationId);
-                    assert.equal(reference.command, "stream.subscribe");
-                    assert.equal(reference.scope.connection_id, route.item.connection.id);
-                    const completed = await operation.wait({ timeoutMs: 8000 });
-                    assert.equal(completed.snapshot.state, "completed");
-                    const receipt = completed.value;
-                    assert.equal(receipt.connection.id, route.item.connection.id);
-                    assert.equal(receipt.connectionGeneration, route.generation);
-                    assert.ok(Array.isArray(receipt.bindings), "camera switch requires paired capture");
-                    const native = await route.item.connection.media.refresh({ timeoutMs: 8000 });
-                    assert.equal(native.streamRevision, receipt.streamRevision);
-                    const stream = native.streams.find(s => s.id === streamId && s.medium === "video" && s.direction === "recvonly");
-                    assert.ok(stream);
-                    const captured = receipt.bindings.find(b => b.parameters.id === streamId);
-                    assert.ok(captured, "camera switch requires its exact captured binding");
-                    assert.equal(captured.connectionGeneration, route.generation);
-                    assert.deepEqual(captured.parameters, stream);
-                    return { streamId, media: route.item.connection.streams.byId(streamId).media };
-                }),
-            }))),
-        }))).then(value => { controlResult = value; }, failure => {
-            if (!error) { error = failure; workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" }; }
-            controller.abort();
-        }));
-        // The deadline aborts only reads owned by this component; originals and
-        // their control/mutation owners are still closed by the caller.
-        await Promise.race([new Promise(done => { timer = setTimeout(done, 62200); }), Promise.all(tasks)]);
+        if (during) {
+            controlTask = Promise.resolve().then(() => during(Object.freeze({
+                signal: controller.signal, programStartUnixUs: unixStart * 1000,
+                routes: Object.freeze(routes.map(route => Object.freeze({ index: route.index,
+                    peerIndex: route.peerIndex, connection: route.item.connection,
+                    sessionIndex: route.item.sid, role: route.item.role,
+                    // Retire only this Connection's four packet tasks. A second
+                    // Session may still belong to the same live SDK/helper.
+                    stopAndJoin: () => route.owner.stopAndJoin(),
+                    expectRetirement: operationId => route.owner.expectRetirement({ operationId,
+                        connectionId: route.item.connection.id, generation: route.generation }),
+                    switchIncomingVideo: (operationId, streamId, select) => route.videoReader.switchWith(operationId, async () => {
+                        const operation = await select();
+                        const reference = operation.referenceJson();
+                        assert.equal(reference.operation_id, operationId);
+                        assert.equal(reference.command, "stream.subscribe");
+                        assert.equal(reference.scope.connection_id, route.item.connection.id);
+                        const completed = await operation.wait({ timeoutMs: 8000 });
+                        assert.equal(completed.snapshot.state, "completed");
+                        const receipt = completed.value;
+                        assert.equal(receipt.connection.id, route.item.connection.id);
+                        assert.equal(receipt.connectionGeneration, route.generation);
+                        assert.ok(Array.isArray(receipt.bindings), "camera switch requires paired capture");
+                        const native = await route.item.connection.media.refresh({ timeoutMs: 8000 });
+                        assert.equal(native.streamRevision, receipt.streamRevision);
+                        const stream = native.streams.find(s => s.id === streamId && s.medium === "video" && s.direction === "recvonly");
+                        assert.ok(stream);
+                        const captured = receipt.bindings.find(b => b.parameters.id === streamId);
+                        assert.ok(captured, "camera switch requires its exact captured binding");
+                        assert.equal(captured.connectionGeneration, route.generation);
+                        assert.deepEqual(captured.parameters, stream);
+                        return { streamId, media: route.item.connection.streams.byId(streamId).media };
+                    }),
+                }))),
+            }))).then(value => { controlResult = value; }, failure => {
+                if (!error) { error = failure; workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" }; }
+                controller.abort(error);
+            });
+            tasks.push(controlTask);
+        }
+        await joinMediaProgramme({ startedAt: start, signal: controller.signal,
+            abort: failure => controller.abort(failure), owners: routes.map(route => route.owner),
+            packetTasks, controlTask });
+    } catch (failure) {
+        if (!error) {
+            error = failure;
+            workFailure = { route_index: null, medium: null, direction: "control", stage: "programme-join" };
+        }
+        controller.abort(error);
     } finally {
-        clearTimeout(timer); controller.abort(); await Promise.all(tasks);
+        controller.abort(error); await Promise.all(tasks);
         await Promise.all(routes.map(route => route.owner.stopAndJoin().catch(() => {})));
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
