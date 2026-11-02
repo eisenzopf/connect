@@ -29,7 +29,7 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
-        let _roles = self.role_projection.lock().await;
+        let roles = self.role_projection.lock().await;
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
@@ -182,6 +182,11 @@ impl Runtime {
             let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),policy.data_observer.clone().map(|observer| observer as Arc<dyn rvoip_uctp::v2::native_negotiation::NativeDataObserver>),8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
             let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
             policy.activation.set(activation.clone()).map_err(|_|Error::forbidden())?;
+            // The exact current Store read and peer invocation retain authority
+            // while this dormant target answers its signed offer. No role is
+            // changed by that network wait; the actual movement reacquires the
+            // coordinator and current scene before its single commit.
+            drop(roles);
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
             let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");

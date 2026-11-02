@@ -1,0 +1,39 @@
+{
+  "format": "connect/native-pending-offer-coordinator/1",
+  "task": "G6-058",
+  "component_profile": "standard-debug-test-support; not release media qualification",
+  "actual_case": "canonical_native_connections::consultation::groups::replacement::production_replacement_negotiates_generation_two_resources_with_signed_target_confirmation_and_initial_mute",
+  "before": {
+    "compile_exit_code": 0,
+    "test_exit_code": 101,
+    "expected_failure": "pending native negotiation held the global role coordinator",
+    "actual_result": "0 passed; 1 failed; 0 ignored",
+    "source_inputs_unchanged": true,
+    "binary_sha256": "f8e9a8192651918af68c8105722ad6bd7a903b81fe22d9cfcf591e99040bda44",
+    "elapsed_seconds": 1041.1539304163307,
+    "state_sha256": "115c0408bcdadb1a0a19aba78c5755f66036574882cab2b478494f0d816f137d",
+    "test_log_sha256": "3f210e0647d43e0603a894ce5a448ba56976515bf8a0c9679cd8c9cf6b6bf47e"
+  },
+  "implementation": {
+    "applied": true,
+    "file": "crates/connect-service/src/canonical_replacement/start.rs",
+    "sha256": "a840fc6d134ba140f0434bb1d4c46bc797a1684b5225a6b1f24c83a95319119a",
+    "behavior": "Release the global role coordinator after dormant target configuration and before signed native offer/answer IO. Keep the exact Store start read, peer invocation and original deadline through negotiation; actual movement still acquires the coordinator and a fresh scene before commit.",
+    "reservation_guard": "The existing Store start transaction records the once-only attempt before coordinator release and refuses another start attempt."
+  },
+  "after": {
+    "stage": "compile-component",
+    "component_verified": false,
+    "production_release_built": false,
+    "planned_exact_native_cases": 7,
+    "verification_pending": true
+  },
+  "unresolved": [
+    "Earlier main camera subscription NotReady root cause is unproven.",
+    "20 actual moves, full 62-second programme, original Data roundtrips, host capture and whole-window independent media decode remain open."
+  ],
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "cell_qualified": false
+}
