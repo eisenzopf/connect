@@ -1,0 +1,292 @@
+{
+  "run_id": 41531103024,
+  "job_id": 125571210238,
+  "source_revision": "e9b65713943928b9a1fd01596396b217e56f95a6",
+  "platform": "darwin",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.48",
+  "all_optional_observers_off": true,
+  "passed": false,
+  "checks_passed": 17,
+  "checks_required": 37,
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "TimeoutError",
+    "code": null,
+    "source_stack": [
+      {
+        "line": 587,
+        "column": 47
+      }
+    ]
+  },
+  "media": [
+    {
+      "role": "owner",
+      "metrics": {
+        "capturedAudioFrames": 1438,
+        "capturedVideoFrames": 0,
+        "encodedFrames": 1421,
+        "sentRtp": 1413,
+        "receivedRtp": 4,
+        "clockReportsSent": 29,
+        "clockReportsReceived": 1,
+        "videoClockReportsSent": 0,
+        "videoClockReportsReceived": 0,
+        "decodedAudioFrames": 4,
+        "playedAudioFrames": 2,
+        "decodedVideoFrames": 0,
+        "paintedVideoFrames": 0,
+        "droppedFrames": 26,
+        "synchronizedPackets": 2,
+        "unsynchronizedPackets": 2,
+        "audioLateDrops": 2,
+        "audioHorizonDrops": 0,
+        "audioCapacityDrops": 0,
+        "videoLateDrops": 0,
+        "videoHorizonDrops": 0,
+        "videoTimerDrops": 0,
+        "videoCapacityDrops": 0,
+        "droppedClockReports": 0,
+        "lastAudioOffsetMs": -47.908,
+        "lastVideoOffsetMs": null,
+        "receiveClockCorrections": 1,
+        "lastAudioCaptureOffsetMs": -717,
+        "lastVideoCaptureOffsetMs": null,
+        "receiveStartedMs": 1705,
+        "deviceSetupMs": 154,
+        "captureGraphMs": 74,
+        "cameraSetupMs": null,
+        "phase": "active",
+        "stoppedAt": null,
+        "stopReason": null,
+        "activeTracks": 1,
+        "activeContexts": 1,
+        "queuedAudioSources": 0,
+        "queuedSendFrames": 0,
+        "queuedVideoFrames": 0,
+        "pendingRequests": 1,
+        "stopped": false
+      },
+      "output": {
+        "frames": 2,
+        "energy": 0.00019545394969534407,
+        "tone440": 1.4701698233210927e-09,
+        "tone880": 4.116981127395484e-05
+      },
+      "state": "active",
+      "status": "Microphone shared. Incoming audio playing."
+    },
+    {
+      "role": "organizer",
+      "metrics": {
+        "capturedAudioFrames": 23,
+        "capturedVideoFrames": 0,
+        "encodedFrames": 16,
+        "sentRtp": 1,
+        "receivedRtp": 1,
+        "clockReportsSent": 1,
+        "clockReportsReceived": 0,
+        "videoClockReportsSent": 0,
+        "videoClockReportsReceived": 0,
+        "decodedAudioFrames": 1,
+        "playedAudioFrames": 1,
+        "decodedVideoFrames": 0,
+        "paintedVideoFrames": 0,
+        "droppedFrames": 11,
+        "synchronizedPackets": 0,
+        "unsynchronizedPackets": 1,
+        "audioLateDrops": 0,
+        "audioHorizonDrops": 0,
+        "audioCapacityDrops": 0,
+        "videoLateDrops": 0,
+        "videoHorizonDrops": 0,
+        "videoTimerDrops": 0,
+        "videoCapacityDrops": 0,
+        "droppedClockReports": 0,
+        "lastAudioOffsetMs": 77.4,
+        "lastVideoOffsetMs": null,
+        "receiveClockCorrections": 0,
+        "lastAudioCaptureOffsetMs": -664,
+        "lastVideoCaptureOffsetMs": null,
+        "receiveStartedMs": 1821,
+        "deviceSetupMs": 30,
+        "captureGraphMs": 20,
+        "cameraSetupMs": null,
+        "phase": "stopped",
+        "stoppedAt": "active",
+        "stopReason": "app-media-network",
+        "activeTracks": 0,
+        "activeContexts": 0,
+        "queuedAudioSources": 0,
+        "queuedSendFrames": 0,
+        "queuedVideoFrames": 0,
+        "pendingRequests": 0,
+        "stopped": true
+      },
+      "output": {
+        "frames": 1,
+        "energy": 4.101899858633123e-68,
+        "tone440": 2.553967464101094e-71,
+        "tone880": 1.116668095842352e-71
+      },
+      "state": "app-media-network",
+      "status": "Media connection unavailable. Reconnect before starting media again."
+    }
+  ],
+  "app_failures": [
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": null,
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    },
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "cancelled",
+      "location": {
+        "file": "media.mjs",
+        "line": 219,
+        "column": 21
+      },
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    }
+  ],
+  "native_video_playout_component": {
+    "painted": 3,
+    "dropped": 0,
+    "queued": 0,
+    "pixel": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "frame_construction_ms": 5,
+    "enqueue_ms": 1,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {},
+    "timer_samples": [
+      {
+        "requested_at_ms": 2736.6999999997206,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 2843.1999999997206,
+        "wake_lateness_ms": 26.5,
+        "callback_duration_ms": 9.899999999906868
+      },
+      {
+        "requested_at_ms": 2853.0999999996275,
+        "requested_delay_ms": 30,
+        "fired_at_ms": 2907.899999999907,
+        "wake_lateness_ms": 24.800000000279397,
+        "callback_duration_ms": 1.6999999997206032
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [
+      {
+        "began_ms": 2843.5,
+        "duration_ms": 8.599999999627471
+      },
+      {
+        "began_ms": 2852.399999999907,
+        "duration_ms": 0.6999999997206032
+      },
+      {
+        "began_ms": 2907.899999999907,
+        "duration_ms": 1.6999999997206032
+      }
+    ],
+    "observation_ms": 820
+  },
+  "source_runtime_browser_unchanged": true,
+  "artifact_audit": {
+    "format": "connect/reference-app-original-artifact-audit/1",
+    "run_id": 41531103024,
+    "passed": true,
+    "platforms": [
+      {
+        "platform": "macos",
+        "target": "aarch64-apple-darwin",
+        "source_revision": "e9b65713943928b9a1fd01596396b217e56f95a6",
+        "git_source_files_verified": 5008,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 755,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "6a95771cb8e61acd7f85679280483be313e1d32adbf4c1b2679d16a5c8f8dc9c",
+        "native": {
+          "integer_sample_codec_source_verified": true,
+          "bundled_static_opus_symbols": [
+            "_opus_encoder_create",
+            "_opus_encode",
+            "_opus_decoder_create",
+            "_opus_decode"
+          ],
+          "no_external_homebrew_opus_dependency": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 17,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      }
+    ],
+    "elapsed_seconds": 1.8488338338211179,
+    "all4_artifact_zip_digests_and_crc_previously_verified": true,
+    "scope": "Read-only original archive/source/inventory/byte/mode/license and existing install-proof binding audit. No executable or installer was run and no live quality failure is resolved. Raw observer profile audit remains separate.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "png_audit": [
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 3900,
+      "sha256": "5d8b9ba864bd50903497afdeb3dedbb32c2f2145c935e198643e2500b5a5aa9d",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Pre-audio native controls only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No audio/AV temporal quality proof."
+    },
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "sha256": "69a4115aa513384374efc0a3ad06f0622df49fc00705bcaa506acc9af0436442",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Pre-audio native controls only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No audio/AV temporal quality proof."
+    }
+  ],
+  "browser_report_sha256": "38939d368a01ad83943edea9efc988d59d62f299eb60ae259b592bae66f5ef12",
+  "raw_profiles_available": false,
+  "http_clock_trace_available": false,
+  "native_audio_trace_available": false,
+  "cause_established": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "format": "connect/reference-app-packet-sql-ordinary-negative/1",
+  "workflow_url": "https://github.com/eisenzopf/connect/actions/runs/41531103024",
+  "no_workflow_rerun": true,
+  "runtime_is_earlier_e9_candidate_not_current_0d5f": true,
+  "scope": "Ordinary all37installed App checks on the frozen native platform/browser; all optional CPU/native/clock/audio observers OFF. Original source/package/license/screenshot audit only, no new install execution or root-cause inference. Full transport24fps/60s/32cells remain separate."
+}

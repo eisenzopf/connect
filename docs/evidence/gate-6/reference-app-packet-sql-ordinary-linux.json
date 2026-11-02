@@ -1,0 +1,235 @@
+{
+  "run_id": 41531103024,
+  "job_id": 125571210595,
+  "source_revision": "e9b65713943928b9a1fd01596396b217e56f95a6",
+  "platform": "linux",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "all_optional_observers_off": true,
+  "passed": false,
+  "checks_passed": 25,
+  "checks_required": 37,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 754,
+        "column": 20
+      }
+    ]
+  },
+  "windows": [
+    {
+      "window": 1,
+      "participants": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2011.7999999998137,
+          "completed_audio_frames": 91,
+          "painted_video_frames": 58,
+          "audio_energy": 0.15953731717687325,
+          "desired_tone": 0.07975768781708348,
+          "excluded_tone": 4.5857439182342245e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2011.0999999996275,
+          "completed_audio_frames": 96,
+          "painted_video_frames": 51,
+          "audio_energy": 0.14394007350732108,
+          "desired_tone": 0.07204590056835825,
+          "excluded_tone": 4.149072105484589e-05
+        }
+      ]
+    },
+    {
+      "window": 2,
+      "participants": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2011.8000000002794,
+          "completed_audio_frames": 95,
+          "painted_video_frames": 58,
+          "audio_energy": 0.04966819523549759,
+          "desired_tone": 0.024834029130176405,
+          "excluded_tone": 1.4031273676474781e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2010.8000000002794,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 59,
+          "audio_energy": 0.05347336071500275,
+          "desired_tone": 0.026754094506491854,
+          "excluded_tone": 1.5653543398672136e-05
+        }
+      ]
+    },
+    {
+      "window": 3,
+      "participants": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2005.1999999997206,
+          "completed_audio_frames": 94,
+          "painted_video_frames": 58,
+          "audio_energy": 0.049066523726657874,
+          "desired_tone": 0.024527661185327787,
+          "excluded_tone": 1.442477315726832e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2007.3999999999069,
+          "completed_audio_frames": 93,
+          "painted_video_frames": 58,
+          "audio_energy": 0.04991912761060302,
+          "desired_tone": 0.02493653743752844,
+          "excluded_tone": 1.4742930164036522e-05
+        }
+      ]
+    },
+    {
+      "window": 4,
+      "participants": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2012.6000000000931,
+          "completed_audio_frames": 98,
+          "painted_video_frames": 58,
+          "audio_energy": 0.05130069464172671,
+          "desired_tone": 0.02543035236604274,
+          "excluded_tone": 1.4979977891888701e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2007.1000000000931,
+          "completed_audio_frames": 89,
+          "painted_video_frames": 58,
+          "audio_energy": 0.04814576879040333,
+          "desired_tone": 0.024085580968527975,
+          "excluded_tone": 1.4599841043429847e-05
+        }
+      ]
+    },
+    {
+      "window": 5,
+      "participants": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2008.7000000001863,
+          "completed_audio_frames": 75,
+          "painted_video_frames": 58,
+          "audio_energy": 0.039116820762115756,
+          "desired_tone": 0.01951301693648555,
+          "excluded_tone": 1.1189343060441482e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2013.1999999997206,
+          "completed_audio_frames": 17,
+          "painted_video_frames": 58,
+          "audio_energy": 0.00919308862448498,
+          "desired_tone": 0.004607093324667355,
+          "excluded_tone": 2.4825011656239688e-06
+        }
+      ]
+    }
+  ],
+  "failed_predicate": "Fifth sustained combined-AV window organizer completed17audioframes, below unchanged50minimum; owner75. Both58video and2active tracks. First4window pairs pass their audio/video progress thresholds; this does not complete the37-check app run.",
+  "source_runtime_browser_unchanged": true,
+  "artifact_audit": {
+    "format": "connect/reference-app-original-artifact-audit/1",
+    "run_id": 41531103024,
+    "passed": true,
+    "platforms": [
+      {
+        "platform": "linux",
+        "target": "x86_64-unknown-linux-gnu",
+        "source_revision": "e9b65713943928b9a1fd01596396b217e56f95a6",
+        "git_source_files_verified": 5008,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 753,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "44354474af0462fe476558be2b27ea55800e887c83fc6dfe40adf0e0289ae0a4",
+        "native": {
+          "elf_header_verified": true,
+          "system_opus_license_present": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 25,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      }
+    ],
+    "elapsed_seconds": 1.208133582957089,
+    "all4_artifact_zip_digests_and_crc_previously_verified": true,
+    "scope": "Read-only original archive/source/inventory/byte/mode/license and existing install-proof binding audit. No executable or installer was run and no live quality failure is resolved. Raw observer profile audit remains separate.",
+    "task_complete": false,
+    "whole_gate_qualified": false
+  },
+  "png_audit": [
+    {
+      "name": "capture-controls-narrow.png",
+      "width": 320,
+      "height": 3921,
+      "sha256": "320ac190fb8cca91df4aa509eac53ace2de1255f5d83380bf57abe2c2bbbf5cc",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Native/control or earlier audio capture view only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No AV temporal quality proof."
+    },
+    {
+      "name": "capture-controls.png",
+      "width": 1440,
+      "height": 2389,
+      "sha256": "cef463bc613650c4ed63d62bbb29d15c669f499a5f6eb13ededa85d8ab771fba",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Native/control or earlier audio capture view only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No AV temporal quality proof."
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "width": 320,
+      "height": 4012,
+      "sha256": "dbd420c84dd73dddf6764f1106dbc9e117c1865d9e1826d1e41864ba7a243a0d",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Native/control or earlier audio capture view only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No AV temporal quality proof."
+    },
+    {
+      "name": "native-controls.png",
+      "width": 1440,
+      "height": 2559,
+      "sha256": "82e6a456ffd38c935dc2df2784d7d153b8a597e348d0b5d5ac751d4e9ed40681",
+      "all_png_crc_verified": true,
+      "deflate_size_verified": true,
+      "capture_dimensions_match": true,
+      "visually_reviewed": true,
+      "visual_scope": "Native/control or earlier audio capture view only; escaped text, contained controls, visible keyboard focus, desktop and320px layout. No AV temporal quality proof."
+    }
+  ],
+  "browser_report_sha256": "b27df492e7714f78fc784b63bd7b6448698668b3111f05baf3733736b5dc1942",
+  "download_recovery": "Initial artifact fetch got HTTP503 after first verified ZIP. Retained failure; resumed same original artifacts, all4exact size/GitHubSHA/ZIPCRC verify. No workflow rerun.",
+  "raw_profiles_available": false,
+  "http_clock_trace_available": false,
+  "native_audio_trace_available": false,
+  "cause_established": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "format": "connect/reference-app-packet-sql-ordinary-negative/1",
+  "workflow_url": "https://github.com/eisenzopf/connect/actions/runs/41531103024",
+  "no_workflow_rerun": true,
+  "runtime_is_earlier_e9_candidate_not_current_0d5f": true,
+  "scope": "Ordinary all37installed App checks on the frozen native platform/browser; all optional CPU/native/clock/audio observers OFF. Original source/package/license/screenshot audit only, no new install execution or root-cause inference. Full transport24fps/60s/32cells remain separate."
+}
