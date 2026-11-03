@@ -18,7 +18,7 @@
     "native_video_records_actual_queues_and_original_source_handoff",
     "native_queue_full_expiry_and_policy_refusal_remain_real_failures"
   ],
-  "focused_arm_checks_pending": true,
+  "focused_arm_checks_pending": false,
   "production_integration_pending": true,
   "actual_native_health_pending": true,
   "general_suites_rerun": false,
@@ -43,5 +43,37 @@
       "passed": false
     }
   ],
-  "correction": "Use existing MediaPacket.try_forward_to in both new cases. Production observer code unchanged. Fresh verified preparation, focused compilation and actual runtime pending."
+  "correction": "Use existing MediaPacket.try_forward_to in both new cases. Production observer code unchanged. Fresh verified preparation, focused compilation and actual runtime pending.",
+  "focused_arm_checks": {
+    "stage": "complete",
+    "controller_pid": 78757,
+    "source_guard_active": false,
+    "source_revision": "cabc8b945d44e1e827708452e2d98d9d5a7db1cf",
+    "passed": true,
+    "steps": [
+      {
+        "case": "native_video_records_actual_queues_and_original_source_handoff",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 593 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "eb6d8a1f947a7dd37e3b03a351a940c345f5be52d648fb432627a60ed66c209b"
+      },
+      {
+        "case": "native_queue_full_expiry_and_policy_refusal_remain_real_failures",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 593 filtered out; finished in 0.22s"
+        ],
+        "log_sha256": "28ee865732f14ada62fa8d061eb913acc8ef999678005a72bc535dc632b57462"
+      }
+    ],
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "1cdb0b3f4b9e92bcf3e7573875b5ed34af4e05e4b2b614e9b646fc01f31663a1",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 105.22719711300306
+  },
+  "focused_scope": "Two new exact actual Core cases only; all593 other functions filtered in each execution. Queue/handoff, real full refusal, original expiry and policy refusal verified; no transport, server runtime, quality, cell or task qualification."
 }
