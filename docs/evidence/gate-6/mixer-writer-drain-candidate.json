@@ -29,5 +29,10 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "compile_issue": {
+    "source_revision": "896d1764e061a566c71206ab616962fa0f06fa08",
+    "diagnostic": "E0624: new Service fixture calls Store-private AuthorityWait::poll_every. The original compile is still completing its other target; no case executed.",
+    "correction": "Factor the unchanged production5ms/100us wait into a private helper; expose only its construction through Store::replacement_projection_wait_for_test under test-support. The Service case now uses this exact production wait, without exposing the private generic poll method or changing runtime timing."
+  }
 }

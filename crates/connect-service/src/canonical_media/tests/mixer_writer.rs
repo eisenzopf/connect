@@ -1,7 +1,7 @@
 //! Actual Core scene tick + Store fences + Service's contended leaf callback.
 //! Relationship/transport fixtures are synthetic; this is not native IO proof.
 use super::*;
-use connect_store::{AuthorityGuardSet, AuthorityMode, AuthorityScope, AuthorityWait};
+use connect_store::{AuthorityGuardSet, AuthorityMode, AuthorityScope};
 use rvoip_core::{
     identity::AuthenticationMethod,
     ids::{ConversationId, ParticipantId, StreamId},
@@ -318,8 +318,7 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
         let writer = std::thread::spawn(move || {
             requested.recv_timeout(Duration::from_secs(5)).unwrap();
             let began = std::time::Instant::now();
-            let wait =
-                AuthorityWait::new(Duration::from_millis(5)).poll_every(Duration::from_micros(100));
+            let wait = Store::replacement_projection_wait_for_test();
             started.send(()).unwrap();
             let acquired = writer_store.acquire_authority(&writes, &wait);
             let outcome = acquired.as_ref().map(|_| ()).map_err(|e| e.code.clone());

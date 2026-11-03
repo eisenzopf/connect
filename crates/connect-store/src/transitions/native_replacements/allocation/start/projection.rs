@@ -163,7 +163,18 @@ impl Drop for AdmissionTiming<'_> {
     }
 }
 
+fn replacement_capture_wait() -> crate::AuthorityWait {
+    crate::AuthorityWait::new(std::time::Duration::from_millis(5))
+        .poll_every(std::time::Duration::from_micros(100))
+}
+
 impl Store {
+    /// Conformance composition uses the exact production admission budget and
+    /// cadence. This supplies no scope, reader, writer or authorization grant.
+    #[cfg(feature = "test-support")]
+    pub fn replacement_projection_wait_for_test() -> crate::AuthorityWait {
+        replacement_capture_wait()
+    }
     /// No native IO belongs here. Derive the existing complete footprint,
     /// release SQL before a short fair authority drain, then rederive under
     /// the same zero-busy-timeout SQL guard returned to the transaction.
@@ -187,8 +198,7 @@ impl Store {
             let c = self.try_connection()?;
             derive(&c)
         })?;
-        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5))
-            .poll_every(std::time::Duration::from_micros(100));
+        let wait = replacement_capture_wait();
         let held = timing.step(1, || self.acquire_authority(&scopes, &wait))?;
         let c = timing.step(2, || self.try_connection())?;
         let current = timing.step(3, || derive(&c))?;
