@@ -427,3 +427,14 @@ The explicit metadata diagnostic can record closed static command kinds and admi
 The final managed replacement fence follows original role/port preparation and ticket quiescence. Ordinary mixer ticks take the same Tokio mutex. A busy mutex is not proof that the compound publication failed: acquire that metadata mutex asynchronously under the earliest original cutoff and every original cancellation token. Keep the already prepared transaction; do not reopen ports or resubmit the logical mutation. After acquisition, retain the existing current-authority, lifecycle, plan/model, source, target and readiness checks before the single publication. Handoff behavior is unchanged.
 
 The original [runtime rejection](../evidence/gate-6/peer-lifetime-availability-result.json) identifies this exact busy lock before publication; [four focused helper checks](../evidence/gate-6/replacement-mixer-publication-wait-candidate.json) cover recovery and refusal. Full Core integration and normal optimized media verification are still required. Historical unknown effects remain unknown and are never replayed.
+
+The current packet loop claims `NativeDatagrams` from its original public
+`CanonicalClient`. An inline pump services the same original RTP/clock schedules
+while each pinned completion read, publication/subscription control or Data
+exchange awaits its signed result. It does not restart those futures, create
+another peer, renew the programme, retime packets or infer root completion.
+Actual observed root completion still separates quarantined capture rows; video
+remains gated until its original controls succeed. All packet futures settle
+inline and the exclusive reader drops before final control-only end. The private
+observation records packet events completed during control waits. This integration
+is implemented but its compilation and next selected rehearsal remain pending.

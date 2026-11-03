@@ -8,6 +8,7 @@ use connect_client::canonical::{
 use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
 mod data;
+mod media;
 mod owner;
 mod selected;
 mod terminal;
@@ -325,22 +326,11 @@ pub(super) async fn run(
     let config = CanonicalClientConfig::load(&path)?;
     let device = config.device_id.clone();
     let mut client = CanonicalClient::open(config).await?;
-    let mut rows = vec![];
-    let mut sent = 0u32;
-    let mut skipped = 0u32;
-    let mut captured_bytes = 0usize;
+    let mut media = media::Observation::default();
     let mut phase = "allocation";
-    let mut sent_video = 0u32;
-    let mut skipped_video = 0u32;
-    let mut video_open = false;
-    let mut root_observed = false;
-    let mut root_observed_programme_us = None;
     let mut negotiated = Vec::<Value>::new();
     let mut owner_ready = false;
     let mut stop_requested = false;
-    let mut program_origin = None;
-    let mut source_start_audio_index = 0;
-    let mut source_start_video_index = 0;
     let mut terminal_end_receipt = None;
     let mut data_exchange = None;
     let work = async {
@@ -356,7 +346,7 @@ pub(super) async fn run(
         let answer = negotiation(&mut client, &scope, "connection.answer", Some(&request)).await?;
         let selected = selected::own(&answer.original()["payload"], &offer_json)?;
         let audio = selected.iter().find(|s|s.raw["kind"]=="audio").ok_or("original audio binding missing")?.clone();
-        let handle=audio.handle;let pt=audio.pt.ok_or("original audio RTP payload type missing")?;
+        audio.pt.ok_or("original audio RTP payload type missing")?;
         let video_binding=selected.iter().find(|s|s.raw["kind"]=="video").cloned();
         phase = "parameter-callback";
         let callback = negotiation(&mut client, &scope, "connection.offer", None).await?;
@@ -374,120 +364,68 @@ pub(super) async fn run(
         }
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
-        let anchor = tokio::time::Instant::now();
-        let program = timeline::Program::at(source.program_start_unix_us,
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(), source.seconds)?;
-        let start = anchor.checked_sub(program.elapsed).ok_or("original program monotonic origin out of bounds")?;
-        let unix = program.unix;
-        program_origin = Some(unix);
-        let until = start + Duration::from_secs(u64::from(source.seconds));
-        let mut index = program.audio_index;
-        let mut video_index = program.video_index;
-        source_start_audio_index = index;
-        source_start_video_index = video_index;
-        let mut datagram = 0u32;
-        let mut octets = 0u32;
-        let mut rtp_seq = 0u16;
-        let mut video_seq = 0u16;
-        let mut video_octets = 0u32;
-        let mut first_video_key = true;
-        let mut last_video_clock = None;
+        let io = client.claim_native_datagrams()?;
+        let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media)?;
+        let start = pump.start;
+        let until = pump.until;
         let mut root_revision = root.revision;
         let mut next_poll = start + Duration::from_millis(50);
         let mut next_owner = start;
         while tokio::time::Instant::now() < until {
             if source.owner_control && tokio::time::Instant::now() >= next_owner {
                 phase = "physical-owner-control";
-                if owner::stop(&output, &command.operation_id).await? {
+                if pump.during(owner::stop(&output, &command.operation_id)).await?? {
                     stop_requested = true;
                     break;
                 }
                 if let Some(data) = &mut data_exchange {
                     phase = "physical-data-exchange";
-                    data.tick(&mut client, root_observed, start, &output).await?;
+                    let root_observed = pump.observation.root_observed;
+                    pump.during(data.tick(&mut client, root_observed, start, &output)).await??;
                     phase = "physical-owner-control";
                 }
-                if !owner_ready && sent > 0 && (source.video.is_none() || (video_open && sent_video > 0)) {
-                    owner::ready(&output, &command.operation_id,
+                if !owner_ready && pump.observation.sent > 0
+                    && (source.video.is_none() || (pump.observation.video_open && pump.observation.sent_video > 0)) {
+                    pump.during(owner::ready(&output, &command.operation_id,
                         scope.connection_id.as_deref().ok_or("replacement candidate missing")?,
-                        &negotiated, source.video.is_some()).await?;
+                        &negotiated, source.video.is_some())).await??;
                     owner_ready = true;
                 }
                 next_owner = tokio::time::Instant::now() + Duration::from_millis(20);
                 phase = "physical-media";
             }
-            let next_audio = if index<source.audio_packets.len() {start+Duration::from_millis(index as u64*20)} else {until};
-            let next_video = source.video.as_ref().filter(|v|video_index<v.frames.len())
-                .map(|_|start+Duration::from_micros(video_index as u64*1_000_000/30)).unwrap_or(until);
-            let poll = if source.video.is_some() && !video_open {next_poll} else {until};
-            let owner = if source.owner_control { next_owner } else { until };
-            let next=next_audio.min(next_video).min(poll).min(owner).min(until);
-            match timeline::receive_before_tick(next, client.receive_native_media_datagram()).await {
-                Some(packet) => {
-                    let packet=packet?;captured_bytes+=packet.len();
-                    let maximum_rows=if source.video.is_some() {16000} else {4000};
-                    if rows.len()>=maximum_rows || captured_bytes>16*1024*1024 {
-                        return Err("replacement receive observation bound exceeded".into());
+            if let Some(video) = &source.video {
+                if !pump.observation.video_open && tokio::time::Instant::now() >= next_poll {
+                    phase = "original-completion-observation";
+                    let pending = controls::completion(&mut client, &command, &root,
+                        scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,
+                        &device, &selected, &mut root_revision);
+                    if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
+                        pump.observation.root_observed = true;
+                        pump.observation.root_observed_programme_us = Some(start.elapsed().as_micros());
+                        phase = "original-post-commit-video-controls";
+                        let incoming = pump.during(tokio::time::timeout_at(until,
+                            controls::open(&mut client, &scope, &root, &admission, video,
+                                &selected, &offer_json["capabilities"], &output))).await???;
+                        negotiated.extend(incoming.into_iter().map(|binding| binding.raw));
+                        pump.observation.video_open = true;
+                        pump.during(emit(json!({"phase":"target-video-controls-completed",
+                            "original_root_observed":true,"decoded_media_inferred":false}))).await??;
                     }
-                    rows.push(json!({"elapsed_us":start.elapsed().as_micros(),"datagram":packet,
-                        "original_root_completed_observed":root_observed}));
-                }
-                None => {
-                    if let Some(video)=&source.video {
-                        if !video_open && tokio::time::Instant::now()>=next_poll {
-                            phase="original-completion-observation";
-                            if let Some(admission)=tokio::time::timeout_at(until, controls::completion(&mut client,&command,&root,
-                                scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,&device,&selected,&mut root_revision)).await?? {
-                                root_observed=true;root_observed_programme_us=Some(start.elapsed().as_micros());phase="original-post-commit-video-controls";
-                                let incoming=tokio::time::timeout_at(until, controls::open(&mut client,&scope,&root,&admission,video,&selected,&offer_json["capabilities"],&output)).await??;
-                                negotiated.extend(incoming.into_iter().map(|binding| binding.raw));video_open=true;
-                                emit(json!({"phase":"target-video-controls-completed","original_root_observed":true,"decoded_media_inferred":false})).await?;
-                            }
-                            next_poll=tokio::time::Instant::now()+Duration::from_millis(50);phase="physical-media";
-                        }
-                    }
-                    if index<source.audio_packets.len() && tokio::time::Instant::now()>=next_audio {
-                        let elapsed=start.elapsed().as_millis();let timestamp=index as u32*960;
-                        if elapsed.saturating_sub(index as u128*20)>=200 {skipped+=1;} else {
-                            let bytes=&source.audio_packets[index];
-                            client.send_native_media_datagram(&wire(handle,datagram,rtp_seq,timestamp,source.ssrc,pt,bytes))?;
-                            datagram+=1;rtp_seq=rtp_seq.wrapping_add(1);sent+=1;octets+=bytes.len() as u32;
-                            if sent==1 || index%25==0 {
-                                client.send_native_media_datagram(&pack_sender_clock_datagram(&SenderClockDatagram {
-                                    stream_local_id:handle,seq:datagram,report:SenderClockReport {ssrc:source.ssrc,rtp:timestamp,
-                                        ntp:ntp(unix+index as u128*20_000),packets:sent,octets,cname:"g6-replacement-target".into()}})?)?;
-                                datagram+=1;
-                            }
-                        }
-                        index+=1;
-                    }
-                    if let (Some(video),Some(binding))=(&source.video,&video_binding) {
-                        if video_index<video.frames.len() && tokio::time::Instant::now()>=next_video {
-                            let frame=&video.frames[video_index];let original_us=video_index as u128*1_000_000/30;
-                            if !video_open || start.elapsed().as_micros().saturating_sub(original_us)>=200_000
-                                || (first_video_key && !video::key(frame)) {skipped_video+=1;} else {
-                                let timestamp=video_index as u32*3000;let mut complete=true;
-                                for packet in video::packets(binding,video.ssrc,timestamp,&mut video_seq,&mut datagram,frame) {
-                                    if start.elapsed().as_micros().saturating_sub(original_us)>=200_000 {complete=false;skipped_video+=1;break;}
-                                    client.send_native_media_datagram(&packet)?;sent_video+=1;video_octets+=(packet.len()-20) as u32;
-                                }
-                                if complete {
-                                    first_video_key=false;
-                                    if last_video_clock.is_none_or(|last|video_index-last>=15) {
-                                        client.send_native_media_datagram(&pack_sender_clock_datagram(&SenderClockDatagram {
-                                            stream_local_id:binding.handle,seq:datagram,report:SenderClockReport {ssrc:video.ssrc,rtp:timestamp,
-                                                ntp:ntp(unix+original_us),packets:sent_video,octets:video_octets,cname:"g6-replacement-target".into()}})?)?;
-                                        datagram+=1;last_video_clock=Some(video_index);
-                                    }
-                                }
-                            }
-                            video_index+=1;
-                        }
-                    }
+                    next_poll = tokio::time::Instant::now() + Duration::from_millis(50);
+                    phase = "physical-media";
                 }
             }
+            let poll = if source.video.is_some() && !pump.observation.video_open { next_poll } else { until };
+            let owner = if source.owner_control { next_owner } else { until };
+            pump.step(poll.min(owner)).await?;
         }
-        if source.video.is_some() && (!video_open || sent_video==0) {return Err("replacement AV source ended without original completed video controls and original video packets".into());}
+        if source.video.is_some() && (!pump.observation.video_open || pump.observation.sent_video == 0) {
+            return Err("replacement AV source ended without original completed video controls and original video packets".into());
+        }
+        // All packet futures run inline and have settled. Drop the exclusive IO
+        // owner before retaining only the original final control scope.
+        drop(pump);
         if data_exchange.as_ref().is_some_and(|data| !data.completed()) {
             return Err("physical owner ended without its original exact Data exchange".into());
         }
@@ -512,10 +450,25 @@ pub(super) async fn run(
     } else {
         Ok(())
     };
+    let media::Observation {
+        rows,
+        sent,
+        skipped,
+        captured_bytes,
+        sent_video,
+        skipped_video,
+        video_open,
+        root_observed,
+        root_observed_programme_us,
+        program_origin,
+        source_start_audio_index,
+        source_start_video_index,
+        control_packet_events,
+    } = media;
     let shutdown = client.shutdown().await;
     let result = json!({"format":"connect/native-replacement-peer-observation/1",
         "passed":work.is_ok() && shutdown.is_ok(),"sent_audio_packets":sent,"skipped_original_frames":skipped,
-        "captured_bytes":captured_bytes,"received":rows,"original_client_joined":shutdown.is_ok(),
+        "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,

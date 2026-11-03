@@ -27,8 +27,9 @@ The owner captures the current credential/server-key cutoff; after an explicit
 refresh, drop it and claim again to use the validated successor cutoff. It
 cannot renew itself or extend a control deadline. Server authorization still
 applies to each original packet. This changes the Rust client boundary without
-adding an HTTP or wire command. Its focused ownership/concurrency checks and
-physical fixture integration remain pending.
+adding an HTTP or wire command. Three focused ARM checks verify signed-control/duplex concurrency, cancelled
+reads, exclusive ownership, expiry and close. Physical fixture integration
+and full media qualification remain pending.
 
 Use `receive_signaling()` to read retained verified envelopes. Passive
 `connection.ready`, `connection.quality`, `stream.opened`, `stream.closed` and

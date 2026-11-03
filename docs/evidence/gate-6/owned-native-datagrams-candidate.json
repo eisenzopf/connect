@@ -1,0 +1,39 @@
+{
+  "format": "connect/gate6-owned-native-datagrams-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "0e626ec342216e21bbd911e46820ded90504911b",
+  "focused_client_check": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "0e626ec342216e21bbd911e46820ded90504911b",
+    "passed": true,
+    "exit_code": 0,
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 147.1910149590003,
+    "log_sha256": "1315bd72388cc1a62b69a96b2a28d3016b6df2b156e70c25a6201d0083031665"
+  },
+  "test_result_lines": [
+    "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 266 filtered out; finished in 0.28s"
+  ],
+  "source_sha256": {
+    "crates/connect-client/src/canonical/native_io.rs": "de73eb206af0c6c927b29d99e3ec2461f9c5b1b7720df88f55b035c2b4588eca",
+    "crates/connect-client/src/canonical/native.rs": "bad1c3756a4a474863c39eaa48a73411eb621b7d5be93abba7ce94e3dd9f0665"
+  },
+  "behaviors": [
+    "Actual signed original ACK waits for duplex datagram echo on the same physical peer",
+    "Cancelled atomic receive preserves that same reader owner",
+    "Duplicate owner and legacy or SDK read refuse while ownership is held",
+    "Dropping owner keeps original control peer current",
+    "Captured expiry refuses receive without retiring an otherwise current peer",
+    "Original client close retires outstanding IO"
+  ],
+  "scope": "Three exact optimized client checks on localARM controlled signed post-auth QUIC; no service admission, physical replacement, whole quality or complete-cell claim.",
+  "fixture_integration_pending": true,
+  "normal_production_rehearsal_pending": true,
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
