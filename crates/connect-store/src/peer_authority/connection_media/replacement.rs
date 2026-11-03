@@ -251,6 +251,10 @@ struct Resolved {
     expires_at: i64,
     subscriptions: [bool; 2],
 }
+fn preparation_read_refused(stage: &'static str, error: Error) -> Error {
+    tracing::debug!(target:"connect_store::native_replacement_preparation",stage,code=%error.code,"Replacement preparation source refused");
+    error
+}
 fn resolve(
     store: &Store,
     c: &Connection,
@@ -258,8 +262,12 @@ fn resolve(
     old: &NativeReplacementSourceOrigin,
     remote: &NativeMediaOrigin,
 ) -> Result<Resolved> {
-    let actor = origin.require(store, c)?;
-    let context = origin.context(store, c)?;
+    let actor = origin
+        .require(store, c)
+        .map_err(|e| preparation_read_refused("source-original", e))?;
+    let context = origin
+        .context(store, c)
+        .map_err(|e| preparation_read_refused("source-context", e))?;
     if context.target_transport == connect_protocol::provisioning::EndpointTransport::Telephone {
         actor.require("sip_dial")?;
         let owner_current: bool = c
@@ -286,11 +294,12 @@ fn resolve(
         || remote.session_id() != context.session_id
         || remote.conversation_id() != context.conversation_id
     {
-        return Err(Error::forbidden());
+        return Err(preparation_read_refused("source-pins", Error::forbidden()));
     }
     let (source, mut scopes, old_expiry, old_subscribe) = match old {
         NativeReplacementSourceOrigin::Native(n) => {
-            let (view, scopes, expires) = facts(store, c, n)?;
+            let (view, scopes, expires) =
+                facts(store, c, n).map_err(|e| preparation_read_refused("source-native", e))?;
             (Some(view), scopes, expires, subscription_permission(c, n)?)
         }
         NativeReplacementSourceOrigin::Telephone(p) => (
@@ -300,7 +309,8 @@ fn resolve(
             false,
         ),
     };
-    let (retained, remote_scopes, remote_expiry) = facts(store, c, remote)?;
+    let (retained, remote_scopes, remote_expiry) =
+        facts(store, c, remote).map_err(|e| preparation_read_refused("source-retained", e))?;
     scopes.extend(remote_scopes);
     scopes.push(AuthorityScope::identity(
         &actor.identity_id,

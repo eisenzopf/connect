@@ -318,11 +318,18 @@ impl Runtime {
                     .native_replacement_preparation_attempt_read(&lease)
             })
             .await?;
-            let actor = self.media.store.revalidate(&credential)?;
+            let actor = self.media.store.revalidate(&credential).map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-credential",code=%error.code,"Replacement preparation authority refused");
+                error
+            })?;
             let principal = StoreValidator::canonical(self.media.store.clone())
                 .principal(actor)
-                .map_err(|_| Error::forbidden())?;
+                .map_err(|_| {
+                    tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-principal","Replacement preparation authority refused");
+                    Error::forbidden()
+                })?;
             if principal.subject != read.caller().actor.identity_id {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-subject","Replacement preparation authority refused");
                 return Err(Error::forbidden());
             }
             let telephone_target = if let Some(route) = &telephone_route {

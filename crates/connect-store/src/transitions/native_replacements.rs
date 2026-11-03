@@ -206,6 +206,10 @@ fn bound(
     }
     rows::by_record(c, &origin.record)
 }
+fn preparation_refused(stage: &'static str, error: Error) -> Error {
+    tracing::debug!(target:"connect_store::native_replacement_preparation",stage,code=%error.code,"Replacement preparation metadata refused");
+    error
+}
 impl Store {
     /// Reserve IDs and a single managed-preparation effect before Core is
     /// called. This drops its input readers before acquiring metadata writers.
@@ -350,10 +354,14 @@ impl Store {
     ) -> Result<NativeReplacementPreparationRead> {
         {
             let c = self.try_connection()?;
-            bound(&c, self, lease)?;
+            bound(&c, self, lease).map_err(|e| preparation_refused("read-reservation", e))?;
         }
-        let mut read = lease.selection.read(self)?;
-        read.limit(lease.expires)?;
+        let mut read = lease
+            .selection
+            .read(self)
+            .map_err(|e| preparation_refused("read-selection", e))?;
+        read.limit(lease.expires)
+            .map_err(|e| preparation_refused("read-interval", e))?;
         Ok(read)
     }
     pub fn begin_native_replacement_preparation(
@@ -364,19 +372,25 @@ impl Store {
         NativeReplacementPreparationAttempt,
         NativeReplacementPreparationRead,
     )> {
-        read.limit(lease.expires)?;
+        read.limit(lease.expires)
+            .map_err(|e| preparation_refused("begin-interval", e))?;
         if read.selection().snapshot() != lease.selection.snapshot()
             || read.selection().origin.record != lease.selection.origin.record
             || read.selection().origin.credential != lease.selection.origin.credential
         {
-            return Err(Error::forbidden());
+            return Err(preparation_refused("begin-selection", Error::forbidden()));
         }
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let row = bound(&tx, self, &lease)?;
-        lease.selection.origin.require(self, &tx)?;
+        let row =
+            bound(&tx, self, &lease).map_err(|e| preparation_refused("begin-reservation", e))?;
+        lease
+            .selection
+            .origin
+            .require(self, &tx)
+            .map_err(|e| preparation_refused("begin-original", e))?;
         let saved = lease.plan()?;
         let request = ReplacementPreparationRequest {
             candidate_connection_id: saved["candidate_connection_id"]
@@ -400,7 +414,10 @@ impl Store {
                 .map_err(|_| invalid())?,
         };
         let runtime = saved["candidate_runtime_id"].as_str().ok_or_else(invalid)?;
-        if plan(self, &tx, &lease.selection, &request, runtime)? != saved {
+        if plan(self, &tx, &lease.selection, &request, runtime)
+            .map_err(|e| preparation_refused("begin-plan", e))?
+            != saved
+        {
             return Err(conflict());
         }
 
@@ -420,7 +437,7 @@ impl Store {
         }
         native_handoffs::touch(&tx, lease.record_id(), self)?;
         if !read.current() {
-            return Err(Error::forbidden());
+            return Err(preparation_refused("begin-current", Error::forbidden()));
         }
         tx.commit().map_err(|_| Error::storage())?;
         Ok((

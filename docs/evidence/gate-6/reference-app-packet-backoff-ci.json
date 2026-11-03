@@ -1,0 +1,249 @@
+{
+  "format": "connect/reference-app-original-cohort/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "run_id": 41555197857,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41555197857",
+  "source_revision": "4c3f1d7e4eacf0d3e459e667ddaa41753cbbfc10",
+  "passed": false,
+  "platforms": [
+    {
+      "platform": "linux",
+      "job_id": 125653637454,
+      "passed": true,
+      "checks_passed": 37,
+      "failure": null,
+      "browser": "156.0.8078.4",
+      "browser_product": "full-chromium",
+      "frozen_browser_profile": "ubuntu24-x86_64",
+      "runtime_sha256": "0c3b32ae0f5a3996ae7fc0feb713e90a68ec76d72b8b04312fa852c55ce796fe",
+      "native_video_outcome": {
+        "painted": 3,
+        "dropped": 0,
+        "queued": 0,
+        "drop_reasons": {},
+        "observation_ms": 301
+      },
+      "paired_two_second_windows": [
+        [
+          {
+            "role": "owner",
+            "completed_audio_frames": 90,
+            "painted_video_frames": 58
+          },
+          {
+            "role": "organizer",
+            "completed_audio_frames": 93,
+            "painted_video_frames": 47
+          }
+        ],
+        [
+          {
+            "role": "owner",
+            "completed_audio_frames": 93,
+            "painted_video_frames": 57
+          },
+          {
+            "role": "organizer",
+            "completed_audio_frames": 91,
+            "painted_video_frames": 57
+          }
+        ],
+        [
+          {
+            "role": "owner",
+            "completed_audio_frames": 86,
+            "painted_video_frames": 60
+          },
+          {
+            "role": "organizer",
+            "completed_audio_frames": 96,
+            "painted_video_frames": 59
+          }
+        ],
+        [
+          {
+            "role": "owner",
+            "completed_audio_frames": 92,
+            "painted_video_frames": 57
+          },
+          {
+            "role": "organizer",
+            "completed_audio_frames": 88,
+            "painted_video_frames": 58
+          }
+        ],
+        [
+          {
+            "role": "owner",
+            "completed_audio_frames": 82,
+            "painted_video_frames": 58
+          },
+          {
+            "role": "organizer",
+            "completed_audio_frames": 94,
+            "painted_video_frames": 58
+          }
+        ]
+      ],
+      "audit": {
+        "platform": "linux",
+        "target": "x86_64-unknown-linux-gnu",
+        "source_revision": "4c3f1d7e4eacf0d3e459e667ddaa41753cbbfc10",
+        "git_source_files_verified": 5014,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 753,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "0c3b32ae0f5a3996ae7fc0feb713e90a68ec76d72b8b04312fa852c55ce796fe",
+        "native": {
+          "elf_header_verified": true,
+          "system_opus_license_present": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 37,
+        "original_app_passed": true,
+        "cell_qualified": false,
+        "task_complete": false
+      },
+      "audit_sha256": "74187d3e177b9447f6c09d6c2fc15c50ef7517125b2e9c9e031660f03453c266",
+      "browser_report_sha256": "4a0e9c778a839163e6c8c2dd7ef13c4a9b2d5f52b738ae0656d0c9cf604675b7",
+      "artifacts": [
+        {
+          "id": 13195144216,
+          "name": "gate6-runtime-candidate-package-x86_64-unknown-linux-gnu",
+          "size_in_bytes": 61906028,
+          "digest": "sha256:2be3c5e7c053b4747375a381f59a010b8c8192d7b1b2fefad1e9a9c6defd70e4"
+        },
+        {
+          "id": 13195138760,
+          "name": "gate6-reference-app-node-package-x86_64-unknown-linux-gnu",
+          "size_in_bytes": 737274,
+          "digest": "sha256:69af0b18482f0b4984355d35ac61c6d6aea5770184195cacbe9e3911cb30f555"
+        },
+        {
+          "id": 13195108851,
+          "name": "gate6-reference-app-components-x86_64-unknown-linux-gnu",
+          "size_in_bytes": 1273925,
+          "digest": "sha256:e0d22b78bd8c6595183f0f727627ffa17dbafce61fa4577cf8bf3611470cd60d"
+        },
+        {
+          "id": 13195029343,
+          "name": "gate6-runtime-candidate-evidence-x86_64-unknown-linux-gnu",
+          "size_in_bytes": 448239,
+          "digest": "sha256:e5edde3b6f1ad5f5514d5ddf94a7d296ba368718a8ab7dc63225b72ca37927d2"
+        }
+      ],
+      "final_browser_guards": {
+        "sources_unchanged": true,
+        "runtime_unchanged": true,
+        "browser_launcher_unchanged": true,
+        "application_runtime_matches": true
+      }
+    },
+    {
+      "platform": "macos",
+      "job_id": 125653636801,
+      "passed": false,
+      "checks_passed": 5,
+      "failure": {
+        "stage": "native-browser-video-playout-component",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "source_stack": [
+          {
+            "line": 304,
+            "column": 12
+          }
+        ]
+      },
+      "browser": "156.0.8078.48",
+      "browser_product": "explicit-owned-chromium-executable",
+      "frozen_browser_profile": "macos-arm64",
+      "runtime_sha256": "170f4808638a14a01753263cbb121f0bf4519233d5d5eaeb3095e1b6df5275be",
+      "native_video_outcome": {
+        "painted": 0,
+        "dropped": 3,
+        "queued": 0,
+        "drop_reasons": {
+          "late": 3
+        },
+        "observation_ms": 845
+      },
+      "paired_two_second_windows": [],
+      "audit": {
+        "platform": "macos",
+        "target": "aarch64-apple-darwin",
+        "source_revision": "4c3f1d7e4eacf0d3e459e667ddaa41753cbbfc10",
+        "git_source_files_verified": 5014,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 755,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "170f4808638a14a01753263cbb121f0bf4519233d5d5eaeb3095e1b6df5275be",
+        "native": {
+          "integer_sample_codec_source_verified": true,
+          "bundled_static_opus_symbols": [
+            "_opus_encoder_create",
+            "_opus_encode",
+            "_opus_decoder_create",
+            "_opus_decode"
+          ],
+          "no_external_homebrew_opus_dependency": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 5,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      },
+      "audit_sha256": "ae507cbcd5f77489262dacf22c5bb528a8201c655a40610b2ab25d9b6762aaff",
+      "browser_report_sha256": "8cc45579dd677c1e8df36feea1cb47e47a831f86a1adc2a3228e6ec02833b5d7",
+      "artifacts": [
+        {
+          "id": 13196088410,
+          "name": "gate6-reference-app-components-aarch64-apple-darwin",
+          "size_in_bytes": 22691,
+          "digest": "sha256:b6f2e662d0a9c22bc3bc6981eca71c363aa99e1c685a828ff81f7f495e698ca8"
+        },
+        {
+          "id": 13195894112,
+          "name": "gate6-runtime-candidate-package-aarch64-apple-darwin",
+          "size_in_bytes": 57288855,
+          "digest": "sha256:f65aa09146141c43d1518d6d503a32f22bfc37bb7985cf7ec98805c6c4601129"
+        },
+        {
+          "id": 13195863988,
+          "name": "gate6-reference-app-node-package-aarch64-apple-darwin",
+          "size_in_bytes": 737274,
+          "digest": "sha256:e9779f36092f25cbe009ca0e3b60e9ca2d31eb4e094587bf8b5dce380983ada1"
+        },
+        {
+          "id": 13195614238,
+          "name": "gate6-runtime-candidate-evidence-aarch64-apple-darwin",
+          "size_in_bytes": 448794,
+          "digest": "sha256:988b3665cc9637b1ffaabcaa245e6e89591f769541a8e82f1e1cdf0c1509ebcd"
+        }
+      ],
+      "final_browser_guards": {
+        "sources_unchanged": true,
+        "runtime_unchanged": true,
+        "browser_launcher_unchanged": true,
+        "application_runtime_matches": true
+      }
+    }
+  ],
+  "optional_observers_requested": false,
+  "audio_completions_minimum_per_two_seconds": 50,
+  "video_paints_minimum_per_two_seconds": 6,
+  "independently_reexecuted_install": false,
+  "scope": "Original cohort archive/source/runtime/Node/install-proof audit. Allfour ZIP digests/bytes/CRC/safe paths verified per platform; actual reports retained separately. Screenshots do not establish temporal quality. App criteria unchanged; this is not full G058 transport qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -1,0 +1,63 @@
+{
+  "format": "connect/native-preparation-stage-diagnostics/1",
+  "tasks": [
+    "G6-058"
+  ],
+  "source_base_revision": "428c0be250c356c8f81eef0b1b94cf1f0ce3d3e7",
+  "source_files_sha256": {
+    "crates/connect-service/src/canonical_replacement.rs": "d5076207957b75ce240b796a0df9cb3afdd7bbd63973dc237028604aca088a1d",
+    "crates/connect-store/src/peer_authority/connection_media/replacement.rs": "6b888ad3ff1552ee114a99d5e830f216c9803b46584a0d203d29b256bcce4ddc",
+    "crates/connect-store/src/transitions/native_replacements.rs": "a2ff9bcd2e90df70ec89c94e8aa1dcf9c9eb3770709a5df8c35a57f20bad064a"
+  },
+  "behavior_changed": false,
+  "logging_scope": "Static stage names and error codes only; no identifiers, credentials, messages, SQL or payloads.",
+  "normal_production_build_passed": true,
+  "production_binary_sha256": "4b0c76c24bc636d5a2025e79fb7ddbbcfa220565c518015d9ff6b9265b8ed05d",
+  "independent_peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+  "build_elapsed_seconds": 923.924002959393,
+  "build_source_inputs_sha256": "7e2359f15aec4887ea2d34286042919f87fecb7414c40aa58fae2441dffddf63",
+  "fixture_elapsed_seconds": 89.64819570770487,
+  "fixture_passed": false,
+  "original_sources_and_executables_unchanged": true,
+  "primary_failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "conflict",
+    "certainty": "refused",
+    "protocol_problem_code": 409,
+    "problem": {
+      "code": 409,
+      "category": "state",
+      "reason": "resync_required"
+    },
+    "source_stack": []
+  },
+  "native_av_failure": {
+    "route_index": null,
+    "medium": null,
+    "direction": "control",
+    "stage": "during-workload"
+  },
+  "completed_original_roots": 2,
+  "original_roots": 2,
+  "preparation_refusal_reproduced": false,
+  "redacted_preparation_stage_counts": {
+    "read-selection": 2,
+    "source-original": 1
+  },
+  "redacted_event_attribution": "source-original forbidden is not established as the cause of the prior V19 refusal; both V20 originals completed. Primary409resync failure aborted the workload before second moves.",
+  "target_data_failures": "Both first target workers stopped during failed-workload cleanup without exact original Data receipts; not an independent prepare refusal.",
+  "unretired_native_lifetimes": 0,
+  "stopped_original_db_wal_unchanged": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "stopped_audit_sha256": "f00831be3ee6e1a34c2a094094689b383c10dede9025d1eac1464b7746fe7e56",
+  "full_independent_media_decode_passed": false,
+  "host_capture_executed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

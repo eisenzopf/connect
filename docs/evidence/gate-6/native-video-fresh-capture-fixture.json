@@ -90,7 +90,7 @@
   "exact_source_regression_report_sha256": "c412a223733e0dfd722decf499721d7383c9c057ca415e59c41772a57234022d",
   "existing_renderer_unit_cases_passed": 7,
   "existing_installation_boundary_cases_passed": 6,
-  "full_installed_app_rehearsal_pending": true,
+  "full_installed_app_rehearsal_pending": false,
   "app_av_window_minimums_unchanged": {
     "audio_completions": 50,
     "video_paints": 6
@@ -103,5 +103,7 @@
   "existing_test_source_sha256": {
     "examples/parley-on-connect/app/media-playout.test.mjs": "9a03dcb4eb0399002d7f3c98fc262ca857278f9826a2370d7d09b09e8ebfddc7",
     "scripts/tests/test_reference_app_components.py": "5e9a0473bebd05fa345fa38b5dee937e9c0bc7d9d93b05f2f637460463383435"
-  }
+  },
+  "full_installed_app_rehearsal_result": "Run41559358460:Linux37/37PASS;Mac25/37negative sustainedAV with0/0audio completions in pairedwindow2. Native fresh-video component3paint/0drop onboth. G072remainsopen.",
+  "full_installed_app_evidence": "docs/evidence/gate-6/reference-app-fresh-video-ci.json"
 }
