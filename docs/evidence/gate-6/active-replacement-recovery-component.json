@@ -1,0 +1,82 @@
+{
+  "format": "connect/gate6-active-replacement-recovery-component/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "result": "One new exact Store successor cleanup case passes at57e1fb3d after correcting fixture administrator ID revalidation (product recovery implementation unchanged from9a475515). Service startup compile is deferred to the next native integration build and is not claimed by this run.",
+  "coverage": [
+    "Fresh and claimed replacement candidates with a completed Ready receipt. Same-runtime recovery leaves established state unchanged and does not invoke the absence observer.",
+    "Target credentials are revoked before real Store reopen and exclusive successor ownership. Old origins remain unusable for media or same-runtime cleanup.",
+    "Wrong original-route absence at the first or final observation refuses cleanup and rolls back all writes. Correct absence retires the exact original replacement lifetime and interrupted higher-generation connection.",
+    "Original completed result, effect IDs, states, attempts, submission generations and Ready-journal count remain unchanged. Retirement is journaled; repeat recovery is idempotent and cannot revive authority."
+  ],
+  "limitations": [
+    "Native resource absence is a controlled Store observation, not an actual native process SIGKILL proof.",
+    "Service startup wiring still needs the next canonical runtime integration compilation. No standalone Service cargo check was run.",
+    "Final publication cancellation, Data observer fault, P0/P1 writer-drain, P3/P5 and full media qualification remain unfinished."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true,
+  "runs": [
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 107179,
+      "source_revision": "9a475515404c0211bc963327af9305ee1d5291e7",
+      "passed": false,
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::active_recovery::successor_retires_established_replacement_without_rewriting_receipt_or_reviving_authority",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1339 filtered out; finished in 0.25s"
+          ],
+          "log_sha256": "f16ce3e7e47df115445810af17e80218e75fb9591e8f37786665cdc88a089b14"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "active_replacement_recovery_candidate": true,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "8fbdc77fd07bed9354868fd6a170ee60e7d90788f24d783774193d77b336ca7e",
+      "executable_unchanged": true,
+      "service_check_rerun": false,
+      "service_compile_deferred_to": "activation-crash-v34 canonical runtime integration build at f0a1ae3e (contains 9a475515 unchanged product code)",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 80.54456494199985
+    },
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 107346,
+      "source_revision": "57e1fb3d5c2dffb5b1a2acd6e47d058e591dac6d",
+      "passed": true,
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::active_recovery::successor_retires_established_replacement_without_rewriting_receipt_or_reviving_authority",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1339 filtered out; finished in 0.56s"
+          ],
+          "log_sha256": "206e4f696d38e1b26400b3c098e753c574e036a630c0686f0278081cdf0b3d9d"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "active_replacement_recovery_candidate": true,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "93708f7cd6897e91841916fd492ed6bb0d2af51b95e0f150b3b79a981b27bfd1",
+      "executable_unchanged": true,
+      "service_check_rerun": false,
+      "service_compile_deferred_to": "activation-crash-v34 canonical runtime integration build at 57e1fb3d (contains 9a475515 unchanged product code)",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 80.61486420499568
+    }
+  ],
+  "failure_and_correction": "The original new case failed before recovery: Fixture.admin stores a credential ID, but authenticate expects a bearer token. 57e1fb3d uses current revalidate(ID) before the actual Store revoke. Product recovery code is unchanged from9a475515. Only this failed new case was rerun."
+}

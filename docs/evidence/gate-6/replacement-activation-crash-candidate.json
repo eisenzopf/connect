@@ -9,7 +9,7 @@
     "Run only the new exact crash case; it invokes one ignored child entry point and requires an actual SIGKILL."
   ],
   "limitations": [
-    "Candidate is not compiled or executed yet.",
+    "Candidate integration compilation is running; the new crash case has not executed yet.",
     "The crash marker proves durable physical capture before Ready; it does not assert a particular inactive adapter installation subphase.",
     "No crash after already-published Ready, final native cancellation/SQL race, Data observer allocation fault or media-quality qualification."
   ],
@@ -17,5 +17,6 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "verification_state": "Compiling the new exact crash case at57e1fb3d on local ARM; no result claimed. This source includes the unchanged9a475515 Service startup wiring and the f0a1ae3e crash test."
 }
