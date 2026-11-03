@@ -1,0 +1,8 @@
+{
+  "name": "connect-first-conversation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22.16" }
+}
