@@ -11,12 +11,8 @@
     "In the queued arm, call actual Service current_queued under the same contention. Require writer success under its unchanged5ms deadline, one contended callback, tick below50ms and no held source reader after tick.",
     "Join the writer, clear the scene, shut down actual controllers and require complete Store writer acquisition after cleanup."
   ],
-  "checks_pending": [
-    "Compile corrected mixer and new Store refusal cases on local ARM with pinned patch282.",
-    "Run only the failed mixer case and three new pre-Core refusal Store cases; no broad/full workload."
-  ],
+  "checks_pending": [],
   "limitations": [
-    "Corrected compile passed at538ad29a; case failed before contention because fixture had no subscriptions. Subscription correction pending verification.",
     "Core relationship facts and adapter resources are synthetic. Store fences and Service refusal callback are actual, but the positive lease is not a NativeMediaRead and the writer does not run captured replacement SQL.",
     "A pass establishes the controlled mixer/Store contention mechanism; it cannot attribute all449ms in the original workload or qualify native media quality.",
     "No native cancellation/Data observer fault, video bootstrap, authenticated epoch or full transport cell proof."
@@ -66,5 +62,7 @@
     },
     "failure": "Positive mixer output prerequisite failed: no audio subscriptions were installed. Contention arms were never reached.",
     "correction": "Expose actual subscription control through opt-in helper patch282 and subscribe each receiver to the other exact controller. Keep actual output assertion; create writer thread only after setup passes."
-  }
+  },
+  "component_evidence": "docs/evidence/gate-6/mixer-writer-drain-component.json",
+  "verification_state": "One exact controlled composition case passes on local ARM at8806dca3."
 }

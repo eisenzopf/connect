@@ -4,8 +4,8 @@
   "date": "2026-11-03",
   "change": "Separate a known adoption preparation refusal before Core invocation from uncertain physical movement. Consume the original reservation into a typed negative capture, atomically record its exact not-started observation and failed effect, and retire only the candidate under actual native absence. Keep the source/retained programme and original attempt; no Ready and no movement replay.",
   "checks_pending": [
-    "Compile Store and run only three new exact cases in commit::not_submitted on local Ubuntu24 ARM.",
-    "Compile changed Service wiring as part of the corrected mixer libtest; an actual native adoption-preparation fault remains a separate unproved integration case."
+    "Run only the corrected first Store case at3f34950f; retain the two passing cases from guarded8806dca3 without rerunning.",
+    "Execute the separately committed native injection case at685773d1 after corrected Store verification."
   ],
   "new_cases": [
     "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
@@ -20,7 +20,6 @@
     "An existing live negative capture can settle generic unknown metadata, but cannot cross successor ownership; the unknown metadata in this case is fixture-injected, not a process-crash proof."
   ],
   "limitations": [
-    "Uncompiled and unexecuted candidate.",
     "Store absence is a fixture fact, not actual Core/Service failure injection or media continuity.",
     "This does not close native cancellation/publication ordering, video/bootstrap, authenticated epochs or transport qualification."
   ],
@@ -61,6 +60,77 @@
     "case": "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
     "failure": "Fixture expected a retained packet reader to block shared historical metadata admission; recording correctly succeeded. The case stopped before its rollback/cleanup assertions.",
     "correction": "Hold an actual Conversation writer for the refusal assertion, and positively verify compatible recording under the retained packet reader. No product authority footprint changes.",
-    "other_cases": "Two other new Store cases returned pass; terminal whole-run guards and Service mixer result remain pending."
-  }
+    "other_cases": "Two other Store cases pass with terminal source/prepared/executable guards unchanged; actual Service mixer case also passes. Overall original mixed run remains failed."
+  },
+  "guarded_initial_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 109140,
+    "source_revision": "8806dca32a17692d69a17468d6e98fb2b68bee7f",
+    "passed": false,
+    "steps": [
+      {
+        "group": "store",
+        "case": "connection_control::tests::replacement_sources::commit::not_submitted::pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1344 filtered out; finished in 0.23s"
+        ],
+        "log_sha256": "acf5c6b36000501c4cfe1b7749208b81598e77a4eee6c4987202d7085eb0982b"
+      },
+      {
+        "group": "store",
+        "case": "connection_control::tests::replacement_sources::commit::not_submitted::pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1344 filtered out; finished in 0.47s"
+        ],
+        "log_sha256": "4e5d275f7c987ed63c9f495320758cd9229a52f5db6c94f802c3eadac80551a6"
+      },
+      {
+        "group": "store",
+        "case": "connection_control::tests::replacement_sources::commit::not_submitted::live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_ownership",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1344 filtered out; finished in 0.23s"
+        ],
+        "log_sha256": "4385e66b831f22fb1e51a31d33d3e793d4da8a479ed627195830b0aca3bd0a4b"
+      },
+      {
+        "group": "service",
+        "case": "canonical_media::tests::mixer_writer::actual_mixer_releases_store_reader_before_writer_budget_when_retained_service_callback_is_queued",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.23s"
+        ],
+        "log_sha256": "94c7c352b6647a58255ac9e43af6189ed532fd130d6a5c190b6f9378bd7ae332"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "mixer_writer_candidate": true,
+    "pre_core_refusal_candidate": true,
+    "builds": [
+      {
+        "group": "store",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "a3c290274a78b53a4576aab219be8a1ee96c20e165dc5d1e8728a64bc438d70b",
+        "test_executable_sha256": "ce2ddbaa88d971672e0dd1a5748f6592371fcd3f14b131a54e48796928e5e26a",
+        "executable_unchanged": true
+      },
+      {
+        "group": "service",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "6096f082e3c120e7ecd765039a9f8877225fd3248687d7a247e93284a00ce341",
+        "test_executable_sha256": "a957344077ce942a98a38fde1f9b90469e01b9ab73e58e71aaccca0735c8239f",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "standalone_service_check_rerun": false,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 936.2236638470058
+  },
+  "verification_state": "Store and changed Service compile pass at8806dca3. Two of three Store cases pass with terminal source/dependency/executable guards unchanged. First case failed its contention fixture, corrected at3f34950f; only that case is rerunning."
 }
