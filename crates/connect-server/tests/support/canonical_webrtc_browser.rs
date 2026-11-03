@@ -106,6 +106,33 @@ async fn enroll(f: &Fixture, c: &CanonicalClientConfig, index: usize) {
         )
         .unwrap();
 }
+fn signing_jwk(c: &CanonicalClientConfig) -> Value {
+    use ed25519_dalek::pkcs8::DecodePrivateKey;
+    use p256::elliptic_curve::sec1::ToEncodedPoint;
+
+    // Current fixture keys can be RFC5958 PKCS#8 v2, which the pinned Node
+    // OpenSSL parser rejects. Decode the same enrolled key with Rust's typed
+    // decoder and send its JWK privately to the ordinary browser SDK instead.
+    let encoded = std::fs::read(&c.signing_private_key).unwrap();
+    match c.signing_algorithm.as_str() {
+        "EdDSA" => {
+            let key = ed25519_dalek::SigningKey::from_pkcs8_der(&encoded).unwrap();
+            json!({"kty":"OKP","crv":"Ed25519",
+                "d":URL_SAFE_NO_PAD.encode(key.to_bytes()),
+                "x":URL_SAFE_NO_PAD.encode(key.verifying_key().to_bytes())})
+        }
+        "ES256" => {
+            let key = p256::SecretKey::from_pkcs8_der(&encoded).unwrap();
+            let public = key.public_key().to_encoded_point(false);
+            json!({"kty":"EC","crv":"P-256",
+                "d":URL_SAFE_NO_PAD.encode(key.to_bytes()),
+                "x":URL_SAFE_NO_PAD.encode(public.x().unwrap()),
+                "y":URL_SAFE_NO_PAD.encode(public.y().unwrap())})
+        }
+        _ => panic!("Unknown fixture signing algorithm"),
+    }
+}
+
 fn participant(
     f: &Fixture,
     c: &CanonicalClientConfig,
@@ -116,7 +143,7 @@ fn participant(
 ) -> Value {
     json!({"url":format!("wss://localhost:{}/connect",f.server.websocket_address.unwrap().port()),
         "credential":c.credential,"identityId":c.identity_id,"device":{"id":c.device_id,"kind":c.device_kind,"platform":c.device_platform},
-        "signing":{"algorithm":c.signing_algorithm,"keyId":c.signing_key_id,"privatePkcs8":URL_SAFE_NO_PAD.encode(std::fs::read(&c.signing_private_key).unwrap())},
+        "signing":{"algorithm":c.signing_algorithm,"keyId":c.signing_key_id,"jwk":signing_jwk(c)},
         "server":{"algorithm":c.server_algorithm,"keyId":c.server_key_id,"publicRaw":URL_SAFE_NO_PAD.encode(std::fs::read(&c.server_public_key).unwrap()),"notBefore":c.server_key_not_before.timestamp(),"expiresAt":c.server_key_expires_at.timestamp()},
         "connection":{"conversationId":cid,"sessionId":"browser-session","connectionId":format!("browser-connection-{index}"),"operationId":format!("browser-offer-{index}"),"expectedRevision":0,"participantId":party,"audioStreamId":format!("browser-audio-{index}"),"videoStreamId":format!("browser-video-{index}")},
         "subscribe":{"operationId":format!("browser-select-{index}"),"expectedRevision":1,"subscriptions":[{"from_participant":remote,"kinds":["audio"]},{"strm_id":format!("browser-video-{}",1-index)}]},
