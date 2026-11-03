@@ -18,7 +18,7 @@
     "source_inputs_unchanged": true,
     "elapsed_seconds": 80.76824996000141
   },
-  "scope": "Exact controlled Store case holding current native packet authority while attempting immutable original preparation metadata. Before source compiles, then the case fails authority-busy with all other1328 cases filtered. This is not native media or full service proof.",
+  "scope": "Exact controlled Store case holding current native packet authority while attempting immutable original preparation metadata. Before source compiles, then the case fails authority-busy with all other1328 cases filtered. This is not native media or full service proof. Three exact corrected Store cases now pass on the same ARM guest; full normal production media remains pending.",
   "change": "Reservation reacquires the complete current source Read union, instead of Identity/Conversation Write admission. It creates only immutable reservation/plan and one unstarted effect; SQLite still serializes current validation and uniqueness. No graph, binding, participant, capability or authority change occurs at this phase.",
   "preserved": [
     "Input readers dropped before fresh admission; real queued authorization writers cannot be bypassed.",
@@ -32,7 +32,7 @@
     "endpoint_reservation_refuses_contended_sql_but_accepts_current_readers"
   ],
   "test_maintenance": "Obsolete reservation-writer scheduling assertions are replaced with live packet coexistence, genuine queued revocation, SQL contention and original duplicate-custody cases. Actual authorization writer fairness remains required.",
-  "after_checks_pending": true,
+  "after_checks_pending": false,
   "normal_production_rehearsal_pending": true,
   "source_sha256": {
     "crates/connect-store/src/transitions/native_replacements.rs": "4f0fb736673fa5d8da6f18e13783971e398cebafc41940d45a1093373ddd39db",
@@ -42,5 +42,43 @@
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "after_exact_arm_checks": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "d1a53b5669570960c82a8e64ae8942df84db0c28",
+    "passed": true,
+    "general_suites_rerun": false,
+    "steps": [
+      {
+        "case": "reservation_metadata_can_coexist_with_live_packet_authority",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1327 filtered out; finished in 0.17s"
+        ],
+        "log_sha256": "65a671b51b9ff3562b96400b56ca3202a636693190d4cf4e939ba0b040f2ebf0"
+      },
+      {
+        "case": "reservation_metadata_respects_a_real_queued_revocation",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1327 filtered out; finished in 0.42s"
+        ],
+        "log_sha256": "2db5b9a0bcdd64f88d844449fdeb0688f4363509b2713bf7d5982e04c4f0552e"
+      },
+      {
+        "case": "endpoint_reservation_refuses_contended_sql_but_accepts_current_readers",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1327 filtered out; finished in 0.20s"
+        ],
+        "log_sha256": "8dde1d4157c34b746bf9b6cfe810a058e8c1ec90dfdd411263345f4083aa937e"
+      }
+    ],
+    "compile_exit_code": 0,
+    "test_executable_sha256": "7d98cef91a86bbe975d636b066aec73191b5867651521728a3cd8f2939fdfe4a",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 80.02779493500202
+  }
 }
