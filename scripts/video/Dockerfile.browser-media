@@ -1,4 +1,4 @@
-# Build on the owned local ARM VM using its recorded clean build-image digest.
+# Build on the owned local ARM VM using a digest-verified clean local image tag.
 ARG BUILD_BASE_IMAGE
 FROM ${BUILD_BASE_IMAGE}
 USER root

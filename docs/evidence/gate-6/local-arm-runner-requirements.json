@@ -21,7 +21,7 @@
   "mac_native": "macos-arm64",
   "active_transport_cells": 32,
   "requirements_changed": {
-    ".github/workflows/gate6-browser-media.yml": "e43fbf87e0ede24e94a94f22633b4b01a8041d1be5a9e023ae3cefd299da69f7",
+    ".github/workflows/gate6-browser-media.yml": "1b42157ad2b0b49463a9a9fac60e974c1373846f5b9c3389f624375e9e92d594",
     ".github/workflows/gate6-browser-observer.yml": "dcc2c15d6a2287b65bff14873c263f49386b9b60fe2177786cd48cac9a478a91",
     ".github/workflows/gate6-linux-fixtures.yml": "45cccde12fae7c809f8f07a1ebea853b2e79f4f45b303fe4d9023d6688665bbe",
     ".github/workflows/gate6-linux-installation.yml": "f9bc65083e379f234bfa303a018d194b69882049139fb703e101287b9f8e1998",
@@ -60,7 +60,7 @@
     "docs/developer/remote-telephone-rehearsal.md": "993a779f77366a34c31bcdd6c6d7919ae2503f341d9831e16fee335496a2ccd0",
     "scripts/check-gate-6-transports.py": "416cdd7236334db48106a2e128372fa55bdd0fc947a3556942b6e861601a7da0",
     "scripts/check-gate6-atomic-subscriptions.py": "3ad99423da26badf14e32b012ed3732f3b810c957c8aa89829c36d108e0d6b8f",
-    "scripts/check-gate6-browser-expiry.py": "0ffc79549afc197fd2ea1983a95009930efc5a1241852904a9e057280dbd12ad",
+    "scripts/check-gate6-browser-expiry.py": "20fbc5398a2976b9979203eba084a01ee0549074ed5b010415a87cbd6d4a26cf",
     "scripts/check-gate6-browser-media.py": "589959c8e079c1336197805db961aa58818717f541673253353506edeed6dbd3",
     "scripts/check-gate6-canonical-http.py": "fa7bbb79c87e3ba5030468ec65ecfba5334650181cc52cd1f510ed81f1e501fc",
     "scripts/check-gate6-connection-handoff.py": "e134a148c19cafdf3adc2c45e1f108682cde7c437a44965d3d8a098a235dd5b0",
@@ -94,7 +94,7 @@
     "scripts/check-operational-processes.py": "d6bd7c67460bea52549b783f7c7463437d9de747fff69b97df9d80d0b69fe8e8",
     "scripts/check-operations-guide.py": "8261f0bd647c79e1703f0a29cc06c6ffc9cde79c498150e97ee17c2d48251c3d",
     "scripts/check-reference-app-installed.mjs": "f6626c885b46cd3f08ec6c83eb8afe487a3b6d7fa929f9f548f989aa16585f11",
-    "scripts/fixtures/local-linux/README.md": "66b92a52acbf6fe327f1b585930ac6e0191934d44804672d105f67ea333eaafb",
+    "scripts/fixtures/local-linux/README.md": "0c65ee7a52eedba24c8553879f8af07945c132d19800a8addca89fe4a933843f",
     "scripts/fixtures/native-remote/Dockerfile.base": "0b4b1baeebd7110d9c3f64f74c63fdf2f41f3ca0fd0ea752ea20452d43f34c58",
     "scripts/fixtures/native-remote/README.md": "2aaaa558cdf91b8b208a60fd7912769e2af95ccf20469f39f22a349cd5088c53",
     "scripts/install-reference-app-candidate.py": "c2da303e0b89ac01099c726fba04cdffe2e7cf00308b62649fb3614986d936a7",
@@ -127,7 +127,7 @@
     "scripts/verify-linux-installation.py": "74994c9b8a2be2d3229ce83826f3e1e9fe4f37720cab38111ce2ca5b9be7e225",
     "scripts/verify-sdk-runtime.py": "6494db1a50750568efaa1960b68825d09c593ddd684d4ef45cd45aa1ca0d4e38",
     "scripts/verify-transport-component.py": "b069b4559daa792f5fb269d36f3794c677ca382bc7cf6f14e549a8bd019767df",
-    "scripts/video/Dockerfile.browser-media": "d3bd73e9b4af5255aabc7675afebb40d6ca00b812a81aa45795d1c2f3d96deb6",
+    "scripts/video/Dockerfile.browser-media": "afccf7b81ebd3a3bd435361895543c7590800a339f25bb26efa34d969d695399",
     "scripts/video/Dockerfile.remote-browser": "46cbb24c70e6694a1f6b66f00580f2b8c9bc2a916e74da5874537c5e6727db66",
     "scripts/video/browser_fixture_scope.mjs": "b277a522cacac728769cea6c59cb2a2188db01e3801e1ab9dc8a7c8273e13846",
     "scripts/video/browser_profile.py": "6f949c7706dae3c0076739dca0431cc5b9cb7430e1e1a6453d98b306d699dcc9",
@@ -159,5 +159,13 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "scope": "Runner requirement/source migration only. Old dated evidence, quoted protocol examples and negative foreign-architecture controls retain their original facts. No new ARM task pass follows from these edits. G054 is the single requested next retest; continue the remaining Gate6 plan afterward.",
-  "source_migration_revision": "07fd9c4220e22fd3e0bedde876006285a45b23b1"
+  "source_migration_revision": "07fd9c4220e22fd3e0bedde876006285a45b23b1",
+  "arm_turn_asset_selection": {
+    "version": "4.18.0",
+    "reference": "coturn/coturn@sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068",
+    "architecture": "arm64",
+    "selection": "Official4.18.0 manifest list ARM64 child; previous59af child isamd64 and was not executed.",
+    "manifest_sha256": "bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3"
+  },
+  "image_build_input": "Digest-verified local image tag with --pull=false; bare sha256 IDs are not valid Dockerfile FROM references."
 }

@@ -79,7 +79,7 @@ Playwright package inputs. `scripts/prepare-local-browser-image.py --browser
 .local/gate6-browser-media/image-context` creates that context, verifies native
 ELF183 and the installed browser version, and rejects escaping symlinks. Build
 `scripts/video/Dockerfile.browser-media` with `--platform linux/arm64` and
-`--build-arg BUILD_BASE_IMAGE=<recorded-existing-ARM-build-image-id>`. Record the
+`--pull=false --build-arg BUILD_BASE_IMAGE=<digest-verified-local-ARM-build-image-tag>`. Record the
 resulting immutable image ID and package inventory before the test. Never commit
 or snapshot a running fixture's private repository/state into an image.
 
@@ -90,3 +90,13 @@ x86 image. Browser media, direct/relay bridge, expiry and impairment runners
 verify native ARM kernel/toolchain and browser image/asset identities. Current
 source/binary guards, original read/programme/cleanup deadlines and media limits
 remain required.
+
+Dockerfile `FROM` resolves image references rather than a bare local image ID.
+Tag the existing ARM build image with its full verified image ID in the tag,
+verify that tag resolves to the original ID before and after the build, and pass
+that local tag as `BUILD_BASE_IMAGE` with `--pull=false`. Record both the image ID
+and tag. The G054 TURN target is the ARM64 child of coturn4.18.0:
+`coturn/coturn@sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068`.
+The older `59af...` digest is its amd64 sibling and must never run in the active
+ARM profile. Inspect actual image architecture and the unchanged4.18.0 version
+before the selected test.

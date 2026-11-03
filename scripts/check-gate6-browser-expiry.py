@@ -20,7 +20,7 @@ native_host = runpy.run_path(str(ROOT / 'scripts/lib/linux_arm64_profile.py'))['
 INPUTS = runpy.run_path(str(ROOT / 'scripts/check-gate6-ice-restart.py'))['inputs']
 OWNED = runpy.run_path(str(ROOT / 'scripts/lib/owned_fixture_container.py'))
 command, Container = OWNED['command'], OWNED['OwnedContainer']
-TURN_REFERENCE = 'coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf'
+TURN_REFERENCE = 'coturn/coturn@sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068'
 
 HOLDER_CODE = """import os,signal,sys
 def reap(*_):

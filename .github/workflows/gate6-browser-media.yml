@@ -102,11 +102,11 @@ jobs:
       - name: Prepare pinned owned TURN image
         if: ${{ inputs.lane == 'full' || inputs.lane == 'relay' || inputs.lane == 'expired-turn' }}
         run: |
-          docker pull --platform linux/arm64 coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf
+          docker pull --platform linux/arm64 coturn/coturn@sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068
           python3 - <<'PY'
           from pathlib import Path
           import json,subprocess
-          reference='coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf'
+          reference='coturn/coturn@sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068'
           value=json.loads(subprocess.check_output(['docker','image','inspect',reference]))[0]
           assert value['Os']=='linux' and value['Architecture']=='arm64'
           Path('.local/gate6-browser-media/evidence/turn-image.json').write_text(json.dumps(dict(
