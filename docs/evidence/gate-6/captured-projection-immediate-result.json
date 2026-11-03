@@ -672,5 +672,14 @@
   "whole_gate_qualified": false,
   "scope": "Selected normal four-move local native ARM rehearsal only. New immediate metadata admission retains original complete writer scope, authorization, transaction and once-only physical-effect checks. Full programme/media results are reported separately from focused Store evidence. No inference about every earlier gap, intermittent Core refusal, browser/remote/other-signing cells, impairment or idle-resource restoration.",
   "decoded_rgb_hashes_verified": 14,
-  "retained_audio_gap_observation": "Saved original rows show common short gaps near both movement windows. The largest555ms gap is confined to the moved source and its peer in Session0; the four other routes have maximum158-162ms gaps. Same-history RTP deltas show missing content, not only delayed arrival. No new transport or decoder run."
+  "retained_audio_gap_observation": "Saved original rows show common short gaps near both movement windows. The largest555ms gap is confined to the moved source and its peer in Session0; the four other routes have maximum158-162ms gaps. Same-history RTP deltas show missing content, not only delayed arrival. No new transport or decoder run.",
+  "saved_video_bootstrap_inspection": {
+    "format": "connect/saved-moving-video-bootstrap-inspection/1",
+    "rgb_histories_verified": 14,
+    "wrong_pixel_frames_after_same_history_RTP_hole_before_next_keyframe": 328,
+    "wrong_pixel_frames_without_prior_same_history_RTP_hole": 0,
+    "keyless_selected_prefix_frames": 121,
+    "histories_with_keyless_prefix": 8,
+    "scope": "Read-only saved v23 VP8 row/key flags and exact originally decoded RGB. No encoder/decoder/transport rerun or changed quality verdict. A same-history RTP hole preceding pixels is correlation, not proof of where the packet was lost. Physical histories and original source clocks stay separate."
+  }
 }
