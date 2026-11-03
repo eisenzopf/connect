@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-queued-packet-owner-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "Actual v23 clears four-root control and all queue-full/stale observations, but whole decoded quality remains negative. Saved unchanged RTP rows show short common gaps during both movement windows and a separate555ms source0/peer gap. Synchronous leaf registry yield and Store sleep loops can occupy each callback for10ms; this is a concrete scheduling risk, not yet the proven cause of all residual gaps.",
+  "proposed_change": "Only callbacks with original packet context or Receive purpose use a single immediate current registry/Store attempt. Core existing queued realtime NotReady recovery yields asynchronously, releases all failed partial readers, and retains original200ms source-age/earlier-lease/cancellation/generation checks. Fresh ingress and all other policy purposes retain original10ms admission behavior. No grant caching, physical/mutation replay, source retiming, deadline extension or quality threshold changes.",
+  "source_change_applied": false,
+  "before_source_revision": "6777d863a9f7b75b52eddad8ecfe49c7200ab0d0",
+  "private_candidate_patch_sha256": "95f6bfe0aa8796bafe3e62c213e254bd706d900ddde710781dcd8f8e0593d17c",
+  "new_controlled_case": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+  "case_scope": "Actual Policy.current Receive callback under held real entries registry on a current-thread Tokio runtime. Sixteen callbacks must return NotReady under50ms combined, then release and fresh missing receiver/source must refuse Authority. This proves callback scheduling behavior only, not native delivery, authorization-positive recovery, whole media quality or any cell.",
+  "before_check_pending": true,
+  "after_check_pending": true,
+  "normal_runtime_pending": true,
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
