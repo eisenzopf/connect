@@ -1,0 +1,85 @@
+{
+  "format": "connect/gate6-video-transfer-source-review/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "source_revision": "b3a5d14b254a7c1e9b854a6987bc20b0b3667f9d",
+  "source_lock_sha256": "3ea4a88cefc93f641958ce6ddee4d3d952e49db8103c79fef2e2604b665e77d8",
+  "scope": "Read-only source review while original v34 crash build remains frozen at57e1fb3d. No new transport/decoder run or pass inferred.",
+  "sources": [
+    {
+      "path": "crates/connect-protocol/src/transitions.rs",
+      "sha256": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+      "anchor": "    Replace {",
+      "line": 107,
+      "finding": "Public replacement intent selects endpoint/candidate and retained connection; it has no typed video-preservation field."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+      "sha256": "4ba6104b2b988cf134256e03c16c6fe14307e699aee3ebf33c92938d24d4a46e",
+      "anchor": "pub struct AudioDeviceReplacementRequest",
+      "line": 9,
+      "finding": "Managed Core replacement plan carries audio publication/selection state; the reviewed plan builds SavedAudioProgram mappings."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs",
+      "sha256": "4ea180b182f1e77de92a9a17980567b456946589d9063ff7bfb861677b658bb5",
+      "anchor": "pub struct DirectSubscription",
+      "line": 7,
+      "finding": "Unmixed routing binds exact source controller, logical stream and receiver stream. Audio program copying alone cannot establish the new video receive routes."
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/start.rs",
+      "sha256": "a840fc6d134ba140f0434bb1d4c46bc797a1684b5225a6b1f24c83a95319119a",
+      "anchor": "native.mute_native_media_for_private_admission",
+      "line": 193,
+      "finding": "Target negotiated resources are muted before private readiness; full resource presence is not ordinary video readiness."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer.rs",
+      "sha256": "da65ec043f6b36ed613e9b3cde5bdc67cbfead533156744e866619f8b1edb0e1",
+      "anchor": "phase = \"original-post-commit-video-controls\"",
+      "line": 407,
+      "finding": "The peer invokes video controls only after observing completed original root, and opens video after controls return."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/controls.rs",
+      "sha256": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
+      "anchor": "    // Every publication was muted during resource preparation. Preserve Data",
+      "line": 282,
+      "finding": "The late unmute also opens Data publications, and the subscription batch includes audio, video and optional Data. Video staging must preserve separate Data authority and reliable delivery semantics."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/media.rs",
+      "sha256": "912c05c97b5e7825c8d25f1169a04f34f17c44606f09cf101f8b19a4d6141983",
+      "anchor": "                let frame = &video.frames[self.video_index];",
+      "line": 208,
+      "finding": "The source consumes the original preencoded programme; first video publication waits for a future original keyframe. This loop has no live encoder/request-to-keyframe path."
+    },
+    {
+      "path": "scripts/lib/transport_av.py",
+      "sha256": "566281caeac196ebb9771e181cf4850717d1f24860b8b8d7b36220769b01800a",
+      "anchor": "'-deadline', 'realtime', '-cpu-used', '8', '-b:v', '500k'",
+      "line": 137,
+      "finding": "The complete fixture VP8 programme is encoded ahead of time at500kbit/s,1Mbit/s maximum,GOP30. Feedback needs a request-capable source while retaining this profile and its original clock."
+    },
+    {
+      "path": "scripts/lib/transport_moving_av.py",
+      "sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9",
+      "anchor": "cut = capture['root_completed_observed_programme_us'] / 1000",
+      "line": 94,
+      "finding": "The observer uses a locally observed root completion time as an ownership cut. Video staging must be paired with authenticated epoch attribution rather than moving that cut to an arbitrary timestamp."
+    }
+  ],
+  "implementation_order": [
+    "Add explicit typed video-transfer intent and immutable source/target stream mapping. Preserve old mute/selection intent only under fresh complete operator, source and target authorization and accepted capabilities; negotiate incoming video resources while ordinary target media remains closed.",
+    "Extend the managed Core replacement preparation/commit beyond SavedAudioProgram to the exact video publication gates and direct-subscription mappings. Publish their actual resource revisions with the existing activation barrier. Keep Data publication/subscription and reliable writer/exchange requirements distinct; do not infer Data transfer permission from video intent.",
+    "Add bounded, current-authorized keyframe feedback and a request-capable source that encodes a fresh eligible frame using the original programme clock. Reusing the next periodic keyframe from the current immutable vector does not implement request-driven bootstrap. Bind the new receiver history to its authenticated connection/generation/stream epoch before changing verifier ownership cuts."
+  ],
+  "constraints": [
+    "No weakening of original dimensions, codec, bitrate, GOP maximum, packet age, frame limits, quality coverage or four-move schedule.",
+    "No all-intra substitution, stale keyframe replay, cross-device decoder-state reuse or resetting original source timestamps.",
+    "No broad/full media rerun until focused activation/bootstrap/epoch evidence exists. G054 remains deferred."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}
