@@ -404,7 +404,10 @@ impl ReplacementAdoption {
             && activation
                 .as_ref()
                 .zip(self.target.activation.get())
-                .is_some_and(|(installed, original)| Arc::ptr_eq(installed, original))
+                .is_some_and(|(installed, original)| {
+                    let original: Arc<dyn MediaActivation> = original.clone();
+                    Arc::ptr_eq(installed, &original)
+                })
             && binding.as_ref().is_some_and(|binding| {
                 binding.connection() == id
                     && binding.generation() == expected.origin().generation()
