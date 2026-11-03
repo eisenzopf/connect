@@ -1,6 +1,7 @@
 //! Immutable admission kind. Replacement origins retain their real operation,
 //! candidate and generation, independently of the retired source's authority.
 use super::*;
+mod recovery;
 #[derive(Clone)]
 pub(super) enum NativeMediaAdmission {
     Offer(crate::transitions::NativeOfferMediaBinding),
@@ -22,6 +23,19 @@ impl NativeMediaAdmission {
         }
     }
     pub(super) fn historical(&self, c: &Connection, store: &Store) -> Result<()> {
+        match self {
+            Self::Offer(a) => a.historical(c, store),
+            Self::Replacement { runtime, .. } => {
+                if runtime != store.runtime_epoch() {
+                    return Err(Error::forbidden());
+                }
+                self.replacement_historical(c)
+            }
+        }
+    }
+    // Historical attribution only. Foreign-runtime use is confined to exclusive
+    // successor retirement; packet paths retain historical()'s runtime fence.
+    fn replacement_historical(&self, c: &Connection) -> Result<()> {
         let Self::Replacement {
             record,
             attempt,
@@ -32,11 +46,10 @@ impl NativeMediaAdmission {
             generation,
         } = self
         else {
-            let Self::Offer(a) = self else { unreachable!() };
-            return a.historical(c, store);
+            return Err(Error::forbidden());
         };
         let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_lifetimes n JOIN native_replacements r ON r.operation_record_id=n.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='commit' JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' JOIN connection_offers m ON m.connection_id=r.candidate_connection_id WHERE n.operation_record_id=?1 AND n.attempt_id=?2 AND n.effect_id=?3 AND n.attempt_runtime=?4 AND r.candidate_connection_id=?5 AND m.runtime_connection_id=?6 AND n.generation=?7 AND o.state='completed' AND s.started=1 AND s.observation_json IS NOT NULL AND s.attempt_id=n.attempt_id AND s.effect_id=n.effect_id)",params![record,attempt,effect,runtime,connection,core,generation],|r|r.get(0)).map_err(|_|Error::storage())?;
-        if !exact || runtime != store.runtime_epoch() {
+        if !exact {
             return Err(Error::forbidden());
         }
         Ok(())
@@ -126,15 +139,7 @@ impl Store {
         origin: &NativeMediaOrigin,
         absent: &dyn crate::NativeOfferRuntimeObservation,
     ) -> Result<()> {
-        let NativeMediaAdmission::Replacement {
-            record,
-            runtime,
-            connection,
-            core,
-            generation,
-            ..
-        } = &origin.attempt
-        else {
+        let NativeMediaAdmission::Replacement { runtime, .. } = &origin.attempt else {
             return Err(Error::forbidden());
         };
         let owner = self.require_runtime_owner()?;
@@ -145,6 +150,38 @@ impl Store {
                 .is_some_and(|o| Arc::ptr_eq(&o, &owner))
             || !owner.current()
         {
+            return Err(Error::forbidden());
+        }
+        self.settle_replacement_retirement(
+            &origin.attempt,
+            origin.conversation_id(),
+            origin.session_id(),
+            absent,
+            false,
+        )
+    }
+
+    fn settle_replacement_retirement(
+        &self,
+        attempt: &NativeMediaAdmission,
+        conversation: &str,
+        session: &str,
+        absent: &dyn crate::NativeOfferRuntimeObservation,
+        successor: bool,
+    ) -> Result<()> {
+        let NativeMediaAdmission::Replacement {
+            record,
+            runtime,
+            connection,
+            core,
+            generation,
+            ..
+        } = attempt
+        else {
+            return Err(Error::forbidden());
+        };
+        let owner = self.require_runtime_owner()?;
+        if (runtime != self.runtime_epoch()) != successor || !owner.current() {
             return Err(Error::forbidden());
         }
         let expected = crate::NativeOfferObservation::Retired {
@@ -160,7 +197,7 @@ impl Store {
                 let c = self.connection()?;
                 crate::authority_admission::conversation_scopes(
                     &c,
-                    &origin.intent.conversation_id,
+                    conversation,
                     AuthorityMode::Write,
                 )
             },
@@ -169,7 +206,7 @@ impl Store {
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        origin.attempt.historical(&tx, self)?;
+        attempt.replacement_historical(&tx)?;
         let retired: bool = tx
             .query_row(
                 "SELECT state='retired' FROM connections WHERE id=?1",
@@ -179,7 +216,7 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1 AND connection_id=?2",params![record,connection]).map_err(|_| Error::storage())?;
         if !retired {
-            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3",params![connection,generation,runtime]).map_err(|_| Error::storage())?;
+            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND ((generation=?2 AND observed_runtime_id=?3 AND NOT ?4) OR (?4 AND generation>?2 AND observed_runtime_id IS NULL AND readiness_json IS NULL AND state IN ('interrupted','retiring')))",params![connection,generation,runtime,successor]).map_err(|_| Error::storage())?;
             if changed != 1 {
                 return Err(Error::forbidden());
             }
@@ -212,7 +249,7 @@ impl Store {
                 if recipient == operation_owner {
                     data["operation_id"] = serde_json::json!(operation_id);
                 }
-                tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,'connection_retired',?4,?5,?6,?7)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,origin.intent.conversation_id,record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
+                tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,'connection_retired',?4,?5,?6,?7)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,conversation,record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
             }
         }
         if absent.observe()? != expected
@@ -221,20 +258,14 @@ impl Store {
                 &held,
                 &crate::authority_admission::conversation_scopes(
                     &tx,
-                    &origin.intent.conversation_id,
+                    conversation,
                     AuthorityMode::Write,
                 )?,
             )
         {
             return Err(Error::forbidden());
         }
-        crate::session_participant_lifecycle::reconcile(
-            &tx,
-            self,
-            origin.conversation_id(),
-            origin.session_id(),
-            None,
-        )?;
+        crate::session_participant_lifecycle::reconcile(&tx, self, conversation, session, None)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(())
     }

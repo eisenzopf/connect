@@ -453,6 +453,14 @@ Whole-runtime recovery can separately retire the other native connections lost
 with the predecessor; the replacement projection itself never retires the
 retained peer. A second recovery finds no pending activation and emits no event.
 
+Already-activated native replacements have a separate successor cleanup path.
+The original confirmed effect, completed result and physical mapping remain
+immutable. Exclusive successor ownership and exact original-route absence
+retire the fenced old lifetime and emit retirement without recreating a media
+origin, requiring the revoked old credential or rewriting historical completion.
+Only that predecessor's interrupted/retiring incarnation can be settled; current
+packet admission still rejects every foreign runtime and retired lifetime.
+
 A failed projection rolls back all of these writes. Retrying it creates no
 second connection, operation or lifecycle event. Old native cleanup may arrive
 before or after projection. Lineage compares immutable native admission

@@ -253,6 +253,10 @@ impl Runtime {
             native.clone(),
             webtransport_native.clone(),
         ]))?;
+        store.recover_native_replacement_cleanup(&crate::canonical_native::Recovery([
+            native.clone(),
+            webtransport_native.clone(),
+        ]))?;
         for _ in 0..limits.connections.div_ceil(256) {
             if store.recover_native_streams(256)? < 256 {
                 break;

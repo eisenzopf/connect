@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-active-replacement-recovery-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Exclusive successor startup settles already-activated replacement lifetimes separately from initial offers and captured unactivated moves. It verifies immutable effect/lifetime/current mapping and actual original-route absence, retires only the interrupted/retiring predecessor incarnation, preserves completed result/effects and emits retirement without recreating media origin.",
+  "checks_pending": [
+    "New focused Store restart case for fresh/claimed candidates, revoked original credentials, same-runtime exclusion, wrong early/final absence rollback, immutable receipt/effect conservation, exact retirement, no new Ready event and duplicate-recovery idempotence.",
+    "Service library compile for the startup cleanup integration."
+  ],
+  "limitations": [
+    "Controlled native absence in Store case; not an actual SIGKILL/adapter restart proof.",
+    "Actual native activation barrier integration is running separately at18773f7f; no result inferred.",
+    "P0/P1 writer-drain, P3/P5 and complete transport matrix remain."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

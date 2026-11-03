@@ -222,6 +222,12 @@ operation as stopped, without publishing Ready, replaying movement or rebuilding
 an ordinary media grant. If the physical result was never durably captured, the
 attempt remains unknown; absence alone does not prove that movement succeeded.
 
+Already-activated replacements retain their original completed result after a
+restart. Exclusive successor cleanup verifies the immutable original effect,
+connection mapping and generation plus exact native absence, then retires the
+old lifetime and journals retirement. It does not rewrite the completed result
+from `ready` to `stopped`, repeat movement or restore old credential authority.
+
 A known physical native replacement is recorded once, then its ordinary Service
 entry and Data observer are installed while ordinary media admission remains
 closed. Final Store publication requires custody of that exact installed entry
