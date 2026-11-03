@@ -63,7 +63,7 @@
     {
       "name": "movement-producer-and-offline-custody",
       "tests_passed": 25,
-      "log_sha256": "1dfce81ebb676bed2c727ee6c54a13a6f48475941f65e5e89dbb05158c992eea"
+      "log_sha256": "7c0b47644dc9a4ff32475326b14257e3b7f893c531903a491160848a0c99e33d"
     },
     {
       "name": "transport-Python-regressions-including-matrix-and-independent-Opus-VP8-decoder",
