@@ -85,12 +85,99 @@
     "format_passed": true,
     "private_expected_upstream_rustfmt_check_passed": true,
     "source_lock_patch_digests_verified": true,
-    "production_compilation_pending": true,
-    "fresh_ordinary_runtime_pending": true,
+    "production_compilation_pending": false,
+    "fresh_ordinary_runtime_pending": false,
     "behavior_or_authorization_changed": false,
     "deadlines_or_retry_changed": false,
     "primary_v23_branch_unresolved": true,
     "task_complete": false,
-    "cell_qualified": false
+    "cell_qualified": false,
+    "fresh_ordinary_runtime": {
+      "source_revision": "edeae7356df044c7b2a8c87b4a48c5061103148d",
+      "passed": false,
+      "elapsed_seconds_including_normal_build": 1442.8141380003653,
+      "normal_profiles": {
+        "cli": {
+          "opt_level": "3",
+          "test": false,
+          "test_support": false
+        },
+        "peer": {
+          "opt_level": "3",
+          "test": false,
+          "test_support": false
+        }
+      },
+      "cli_sha256": "444989a57f19296fbac614d4807fcff23bbc9671f6efdf4ceafe80930d86bd8f",
+      "peer_sha256": "8c6ba0a83a53a6b3ac84b831048838bf7bdb7c8a74350a9ee03ae6d22249e731",
+      "source_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "sdk_dist_inputs_unchanged": true,
+      "report_sha256": "db1ad2287ee4114b55981b0e924d85827e89aeb5597edc43a35077d242a3a0aa",
+      "media_work_elapsed_ms": 26439.363457999996,
+      "failure": {
+        "phase": "six-native-opus-vp8-sixty-second-workload",
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only",
+        "source_stack": []
+      },
+      "specific_read_caller_unattributed": true,
+      "returned_original_moves": 4,
+      "each_returned_move_camera_and_data_passed": true,
+      "joined_successful_physical_stages": 4,
+      "original_roots": [
+        {
+          "slot": "0-0",
+          "state": "completed",
+          "revision": 16
+        },
+        {
+          "slot": "4-0",
+          "state": "completed",
+          "revision": 16
+        },
+        {
+          "slot": "4-1",
+          "state": "completed",
+          "revision": 16
+        },
+        {
+          "slot": "0-1",
+          "state": "completed",
+          "revision": 16
+        },
+        {
+          "slot": "0-2",
+          "state": "failed",
+          "revision": 12
+        },
+        {
+          "slot": "4-2",
+          "state": "unknown",
+          "revision": 7
+        }
+      ],
+      "unknown_root_must_not_replay": true,
+      "new_not_ready_branch_observed": false,
+      "catalog_backpressure_observed": true,
+      "exact_deadline_cause_proven": false,
+      "cleanup": {
+        "servers_joined_unforced": true,
+        "physical_targets_joined_unforced": 6,
+        "all_observed_helpers_joined": true,
+        "unretired_native_lifetimes": 0,
+        "original_db_wal_unchanged": true,
+        "stopped_audit_sha256": "9b69bbba33a0b4ff3b54e279994080bfb8d598760b46080c127f95bf88327383",
+        "complete_resource_qualification": false
+      },
+      "host_capture": false,
+      "full_programme_or_decode_passed": false,
+      "task_complete": false,
+      "cell_qualified": false,
+      "whole_gate_qualified": false
+    },
+    "specific_catalog_not_ready_branch_remains_unproven": true,
+    "runtime_observation_was_not_error_ordering_fix": true
   }
 }

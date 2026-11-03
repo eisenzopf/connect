@@ -38,7 +38,10 @@ async function scenario(mode) {
     const sessions = [0, 1].map(i => ({ id: "session-" + i,
         async refresh() { return { state: "accepted", topologyRevision: revisions[i] }; } }));
     const original = Object.assign(Error("original unknown move"), { kind: "deadline", certainty: "uncertain" });
-    const workload = { routes, signal: signal.signal, programStartUnixUs: 1793600000000000, startedAt: 0 };
+    const reported = [];
+    const workload = { routes, signal: signal.signal, reportFailure(failure) {
+        reported.push({ failure, stopped: stopped.length });
+    }, programStartUnixUs: 1793600000000000, startedAt: 0 };
     const currentEnds = roles.map((_, index) => ({ index, operationId: "end-" + index }));
     let retainedJoined = false;
     const endRetained = async args => {
@@ -142,6 +145,12 @@ async function scenario(mode) {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
                 mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
+            if (["unknown", "data-failure", "retained-failure"].includes(mode)) {
+                assert.equal(reported.length, 1);
+                assert.equal(reported[0].failure, original);
+                if (mode !== "retained-failure") assert.ok(reported[0].stopped < stopped.length,
+                    "the first control failure must be reported before cleanup joins admitted owners");
+            }
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
             if (mode === "retirement-refusal") assert.ok(joined.length >= 1 && joined.length <= 2);
             else assert.equal(joined.length, ["cancel-after20", "foreign-final-end"].includes(mode) ? 2 : 0);

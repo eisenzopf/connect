@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { nativeAv } from "../lib/transport_av.mjs";
 
-async function checkFailure(firstSubmissionAccepted, setupFailure = false, withControl = false) {
+async function checkFailure(firstSubmissionAccepted, setupFailure = false, withControl = false, cleanupFailure = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "transport-av-cancel-"));
     const sources = join(directory, "sources"); await mkdir(sources, { mode: 0o700 });
@@ -25,6 +25,8 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
     const manifest = { format: "connect/native-av-sources/2", seconds: 62, observation_seconds: 60,
         sources: connections.map(() => ({ input_sha256: createHash("sha256").update(raw).digest("hex") })) };
     await writeFile(join(sources, "manifest.json"), JSON.stringify(manifest));
+    const pendingReads = new Set();
+    const cleanupRefusal = Object.assign(Error("publisher stopped during control cleanup"), { kind: "receipt-unavailable", certainty: "refused" });
     const stream = {
         async sendRtp(_packet, options) {
             assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 200, "public-write-cannot-outlive-original-200ms-source-age");
@@ -41,7 +43,15 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             if (clocksPending-- > 0) return Promise.resolve({ kind: "clock", report: clock });
             waiting++;
             return new Promise((_, reject) => {
-                signal.addEventListener("abort", () => { waiting--; aborted++; reject(Object.assign(Error(), { kind: "cancelled", certainty: "read-only" })); }, { once: true });
+                const fail = failure => {
+                    if (!pendingReads.delete(fail)) return;
+                    waiting--; signal.removeEventListener("abort", abort); reject(failure);
+                };
+                const abort = () => {
+                    aborted++; fail(Object.assign(Error(), { kind: "cancelled", certainty: "read-only" }));
+                };
+                pendingReads.add(fail);
+                if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
             });
         },
     };
@@ -96,6 +106,13 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 assert.equal(selectionCalls, 1);
                 assert.equal(workload.signal.aborted, false);
                 assert.equal(waiting, 10); assert.equal(aborted, 3);
+                if (cleanupFailure) {
+                    // This is the control failure boundary, before target cleanup
+                    // can close a publisher while the control task still joins.
+                    workload.reportFailure?.(failure);
+                    for (const fail of [...pendingReads]) fail(cleanupRefusal);
+                    await new Promise(setImmediate);
+                }
                 throw failure;
             } : undefined), error => error === failure);
         assert.equal(observations.length, 1);
@@ -151,3 +168,5 @@ test("clock failure retains only the completed original audio queue receipt and 
 test("original media setup failure remains explicit before any source clock or media task starts", () => checkFailure(false, true));
 
 test("in-workload control retires one Connection, rebinds a captured camera and preserves the shared participant second Session", () => checkFailure(false, false, true));
+
+test("the original control failure survives publisher refusals raised during its joined cleanup", () => checkFailure(false, false, true, true));

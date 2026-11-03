@@ -169,6 +169,13 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         });
         packetTasks.push(owned); tasks.push(owned);
     };
+    const reportControlFailure = failure => {
+        if (!error) {
+            error = failure;
+            workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" };
+        }
+        controller.abort(error);
+    };
     try {
         for (const route of routes) for (const medium of ["audio", "video"]) {
             launch(route.owner.run(() => receiving(route, medium)), route, medium, "receive");
@@ -176,7 +183,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         }
         if (during) {
             controlTask = Promise.resolve().then(() => during(Object.freeze({
-                signal: controller.signal, programStartUnixUs: unixStart * 1000, startedAt: start,
+                signal: controller.signal, reportFailure: reportControlFailure,
+                programStartUnixUs: unixStart * 1000, startedAt: start,
                 routes: Object.freeze(routes.map(route => Object.freeze({ index: route.index,
                     peerIndex: route.peerIndex, connection: route.item.connection,
                     sessionIndex: route.item.sid, role: route.item.role, generation: route.generation,
@@ -208,10 +216,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                         return { streamId, media: route.item.connection.streams.byId(streamId).media };
                     }),
                 }))),
-            }))).then(value => { controlResult = value; }, failure => {
-                if (!error) { error = failure; workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" }; }
-                controller.abort(error);
-            });
+            }))).then(value => { controlResult = value; }, reportControlFailure);
             tasks.push(controlTask);
         }
         await joinMediaProgramme({ startedAt: start, signal: controller.signal,

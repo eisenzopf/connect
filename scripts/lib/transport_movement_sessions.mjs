@@ -13,7 +13,13 @@ export async function observeMovementSessions({ workload, primarySessions, contr
     workload.signal.addEventListener("abort", parentAbort, { once: true });
     if (workload.signal.aborted) parentAbort();
     let firstFailure, reads = 0, cycles = 0;
-    const fail = failure => { firstFailure ??= failure; stop.abort(firstFailure); };
+    const fail = failure => {
+        if (!firstFailure) {
+            firstFailure = failure;
+            workload.reportFailure?.(firstFailure);
+        }
+        stop.abort(firstFailure);
+    };
     const cutoff = workload.startedAt + 67000;
     const observing = (async () => {
         while (!stopObserving.signal.aborted && !stop.signal.aborted) {

@@ -112,22 +112,6 @@
     "movement_stage_returned_live_owners": 1,
     "camera_subscription_completed": false,
     "data_exchanges_completed": 0,
-    "primary_failure": {
-      "command": "stream.subscribe",
-      "problem_code": 404,
-      "reason": "resource_not_found",
-      "engine_plan_error": "Media(NotReady)",
-      "diagnostic_stage": "source-catalog",
-      "receiver_installation_or_flow_confirmation_cause": false,
-      "exact_catalog_not_ready_branch_unresolved": true
-    },
-    "concurrent_physical_target_subscription": {
-      "state": "unknown",
-      "revision": 2,
-      "target_failure_stage": "original-post-commit-video-controls",
-      "root_completed_observed": true,
-      "safe_to_replay": false
-    },
     "native_work_observation": {
       "elapsed_ms": 5158.486875,
       "original_tasks_started": 24,
@@ -148,6 +132,46 @@
     "causal_performance_improvement_proven": false,
     "task_complete": false,
     "cell_qualified": false,
-    "whole_gate_qualified": false
+    "whole_gate_qualified": false,
+    "primary_control_failure": {
+      "phase": "original-post-commit-video-controls",
+      "engine_error": "Capacity",
+      "journal_state": "unknown",
+      "journal_revision": 2,
+      "unknown_effect_attempts": 1,
+      "safe_to_replay": false,
+      "exact_capacity_cause_unresolved": true,
+      "parent_movement_failure_stage": "physical-target-readiness"
+    },
+    "cleanup_collateral_camera_refusal": {
+      "command": "stream.subscribe",
+      "problem_code": 404,
+      "reason": "resource_not_found",
+      "engine_plan_error": "Media(NotReady)",
+      "diagnostic_stage": "source-catalog",
+      "receiver_installation_or_flow_confirmation_cause": false,
+      "exact_catalog_not_ready_branch_unresolved": true,
+      "primary_failure": false,
+      "physical_target_stop_request_precedes_404": true
+    },
+    "earlier_physical_target_subscription": {
+      "state": "unknown",
+      "revision": 2,
+      "target_failure_stage": "original-post-commit-video-controls",
+      "root_completed_observed": true,
+      "safe_to_replay": false
+    },
+    "attribution_correction": {
+      "previous_404_primary_attribution_superseded": true,
+      "file_write_witnesses": {
+        "0-0/target-observation.json": "2026-11-03T03:00:17.692523+00:00",
+        "0-0/target.log": "2026-11-03T03:00:17.700335+00:00",
+        "0-0/stage.json": "2026-11-03T03:00:17.885597+00:00",
+        "4-0/target-observation.owner-stop.json": "2026-11-03T03:00:17.901573+00:00"
+      },
+      "file_write_times_are_order_witnesses_not_cpu_or_stage_latency": true,
+      "original_control_failure_precedes_cleanup_and_camera_refusal": true,
+      "audit_sha256": "0790dd98425cf1b0a767a13eaf10eadcbba38633eab2fde6c510d005e99683a5"
+    }
   }
 }

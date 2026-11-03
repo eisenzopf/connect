@@ -1,0 +1,243 @@
+{
+  "format": "connect/reference-app-single-capture-ordinary-ci/1",
+  "task": "G6-072",
+  "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+  "run_id": 41567909346,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41567909346",
+  "passed": false,
+  "all_optional_observers_off": true,
+  "both_platform_jobs_terminal": true,
+  "all8_original_archives_verified": true,
+  "both_full_source_runtime_node_and_install_proof_audits_passed": true,
+  "prepared_source_comparison": "Preserved locked v94 inputs from this run, not the later current v95 diagnostic sources.",
+  "platforms": [
+    {
+      "platform": "linux",
+      "result": {
+        "run_id": 41567909346,
+        "job_id": 125693850780,
+        "platform": "linux",
+        "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+        "completed": true,
+        "passed": false,
+        "checks_passed": 25,
+        "checks_required": 37,
+        "failure": {
+          "stage": "sustained-combined-browser-audio-video",
+          "name": "AssertionError",
+          "code": "ERR_ASSERTION",
+          "source_stack": [
+            {
+              "line": 762,
+              "column": 20
+            }
+          ]
+        },
+        "all_optional_observers_off": true,
+        "first_two_second_window": [
+          {
+            "role": "owner",
+            "elapsed_ms": 2024.2000000001863,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 40,
+            "audio_late_drops_total": 24,
+            "last_audio_offset_ms": -206.517,
+            "last_audio_capture_offset_ms": 2
+          },
+          {
+            "role": "organizer",
+            "elapsed_ms": 2012.8999999999069,
+            "completed_audio_frames": 0,
+            "painted_video_frames": 54,
+            "audio_late_drops_total": 37,
+            "last_audio_offset_ms": -197.564,
+            "last_audio_capture_offset_ms": -4
+          }
+        ],
+        "native_video_component_paints": 3,
+        "native_video_component_drops": 0,
+        "source_archive_runtime_install_audit_passed": true,
+        "runtime_sha256": "ab1ddf0b2f8c75198473139532ff95c9dcf7953af5d184d98ca754c68d9c7aad",
+        "audit_sha256": "ec1c399a079fccf94d17bb14cd643582dbddd39f4face5bac017a0aa03e5f6e4",
+        "scope": "Ordinary App, no observer causal inference; audio50/video6 per2s fivepairedwindows unchanged; failed first window. Does not qualify G6-072 or G6-058."
+      },
+      "original_artifact_audit": {
+        "platform": "linux",
+        "target": "x86_64-unknown-linux-gnu",
+        "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+        "git_source_files_verified": 5021,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 753,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "ab1ddf0b2f8c75198473139532ff95c9dcf7953af5d184d98ca754c68d9c7aad",
+        "native": {
+          "elf_header_verified": true,
+          "system_opus_license_present": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 25,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      },
+      "audit_sha256": "ec1c399a079fccf94d17bb14cd643582dbddd39f4face5bac017a0aa03e5f6e4",
+      "original_archives": [
+        {
+          "id": 13202440354,
+          "name": "gate6-runtime-candidate-package-x86_64-unknown-linux-gnu",
+          "size": 61912287,
+          "sha256": "d428992be0c71821ff99e1a32594538065b8b3bebb332a8c114643c108ae762b",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13201732086,
+          "name": "gate6-reference-app-components-x86_64-unknown-linux-gnu",
+          "size": 826872,
+          "sha256": "665a5e8f0c08162d98a54d97ed4cafffb7585d7e9c8e67cee442f48407b5cc13",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13202420385,
+          "name": "gate6-runtime-candidate-evidence-x86_64-unknown-linux-gnu",
+          "size": 448586,
+          "sha256": "593059274593e81fb4db5d3ce42c689c089bde96c1a4f4c8469ea30976a3006a",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13201906801,
+          "name": "gate6-reference-app-node-package-x86_64-unknown-linux-gnu",
+          "size": 737274,
+          "sha256": "6c0692b34c6b5a18ec845c15730945b12db066360178a218eb35e9605f522cc8",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        }
+      ]
+    },
+    {
+      "platform": "macos",
+      "result": {
+        "run_id": 41567909346,
+        "job_id": 125693850422,
+        "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+        "checks_passed": 5,
+        "checks_required": 37,
+        "passed": false,
+        "all_optional_observers_off": true,
+        "failure": {
+          "stage": "native-browser-video-playout-component",
+          "name": "AssertionError",
+          "code": "ERR_ASSERTION",
+          "source_stack": [
+            {
+              "line": 312,
+              "column": 12
+            }
+          ]
+        },
+        "frozen_browser": "156.0.8078.48",
+        "native_component": {
+          "painted": 0,
+          "dropped": 3,
+          "queued": 0,
+          "page_state": {
+            "visibility": "visible",
+            "focused": true
+          },
+          "drop_reasons": {
+            "late": 3
+          },
+          "timer_wake_lateness_ms": [
+            1155.8999999999069,
+            93.5,
+            66.39999999990687
+          ],
+          "observation_ms": 2157
+        },
+        "complete_app_media_checks_executed": false,
+        "source_archive_runtime_install_audit_passed": true,
+        "runtime_sha256": "1e8565b5b698eaee1ccd9b86b1ba4b7093bc2705d916f5317543be08208db00d",
+        "task_complete": false
+      },
+      "original_artifact_audit": {
+        "platform": "macos",
+        "target": "aarch64-apple-darwin",
+        "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+        "git_source_files_verified": 5021,
+        "prepared_source_files_verified": 4098,
+        "runtime_files_verified": 755,
+        "all_runtime_bytes_modes_and_manifest_bound": true,
+        "node_files_verified": 195,
+        "node_dependency_archives_and_license_text_verified": 2,
+        "runtime_sha256": "1e8565b5b698eaee1ccd9b86b1ba4b7093bc2705d916f5317543be08208db00d",
+        "native": {
+          "integer_sample_codec_source_verified": true,
+          "bundled_static_opus_symbols": [
+            "_opus_encoder_create",
+            "_opus_encode",
+            "_opus_decoder_create",
+            "_opus_decode"
+          ],
+          "no_external_homebrew_opus_dependency": true
+        },
+        "producer_reported_regular_offline_install": true,
+        "independently_executed_install": false,
+        "original_browser_checks_passed": 5,
+        "original_app_passed": false,
+        "cell_qualified": false,
+        "task_complete": false
+      },
+      "audit_sha256": "b7750aabcd65253d4656b412bd1d117ea8644cbddab43abdc1f4c53c2bce7534",
+      "original_archives": [
+        {
+          "id": 13202450775,
+          "name": "gate6-runtime-candidate-evidence-aarch64-apple-darwin",
+          "size": 449137,
+          "sha256": "4c30be19255be17df3e0a9e3b40d6a180782f7ef3e43f7efa131fc2142cd8e2f",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13202316100,
+          "name": "gate6-reference-app-components-aarch64-apple-darwin",
+          "size": 22752,
+          "sha256": "388c5c9c3ba455546e22aeecb70bf40f02b9b59b60e70e590077b68186883501",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13201977190,
+          "name": "gate6-runtime-candidate-package-aarch64-apple-darwin",
+          "size": 57293011,
+          "sha256": "873f6dd607b010afeb74d9650ce1209a68c34ad4b78d65e5786b1e62b773019d",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        },
+        {
+          "id": 13201952210,
+          "name": "gate6-reference-app-node-package-aarch64-apple-darwin",
+          "size": 737274,
+          "sha256": "8ff1766772426f4f05ba50c84729624eecc7ff07734666f52c4ed24b5654bb8b",
+          "all_zip_crc_verified": true,
+          "safe_paths": true
+        }
+      ]
+    }
+  ],
+  "acceptance_unchanged": {
+    "required_checks_per_platform": 37,
+    "combined_observation_windows": 5,
+    "window_seconds": 2,
+    "minimum_completed_audio_frames_per_peer": 50,
+    "minimum_video_paints_per_peer": 6
+  },
+  "scope": "Ordinary current component installation plus original browser result, no CPU/stack/clock/audio observers. Linux fails first sustained AV window; Mac fails earlier native finite-video component. No causal performance comparison, complete App or transport-cell qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

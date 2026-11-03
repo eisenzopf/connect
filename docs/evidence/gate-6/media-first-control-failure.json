@@ -1,0 +1,41 @@
+{
+  "format": "connect/media-first-control-failure/1",
+  "task": "G6-058",
+  "passed": true,
+  "implementation_parent_revision": "edeae7356df044c7b2a8c87b4a48c5061103148d",
+  "source_files_sha256": {
+    "scripts/lib/transport_av.mjs": "bb9517f36fc26d86c9caa1fc878badba7a2b53f56ee63e1e91baef34d2d58ac7",
+    "scripts/lib/transport_movement_workload.mjs": "92a30652e3599eb2dfb7565df77c8bcdbf6d2a0c2980543629ca9ca773511b70",
+    "scripts/lib/transport_movement_sessions.mjs": "2879d602982e39522ae6ee431d813664116dd2c43861c882f07406428292ed0a",
+    "scripts/tests/transport_av.test.mjs": "f5c3824f5432512b6b303e63d9a23530fdee0752d4fa7dcf7a40ec16cc9d0f2c",
+    "scripts/tests/transport_movement_workload.test.mjs": "21e0a3d13f22373de896c25b46ccdedc13096a3925ee2d5001ba627041624630",
+    "scripts/tests/transport_movement_sessions.test.mjs": "b3c9424b6a03842176f46fb4fe482033df635c130d02185abd7be6265ea9c01b"
+  },
+  "before": {
+    "actual_tracked_av_source_sha256": "25dede911307bfeb09a8db26f334e31cc192eab9094424ea781a328f1f8816ac",
+    "controlled_cleanup_error_overwrote_original_control_error": true,
+    "source_inputs_unchanged": true,
+    "owned_control_and_packet_tasks_joined": true,
+    "pending_packet_reads": 0,
+    "repro_sha256": "5b6f2ab5c888fc82cc4b064260224c324919fd48942322f6b7b7e34a6684a507",
+    "private_repro_was_outside_tracked_source_guard": true,
+    "original_test_exit_code": 1
+  },
+  "after": {
+    "current_tracked_cases_passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "original_62_5_second_normal_lifetime_case_passed": true,
+    "all_tracked_prepared_and_sdk_dist_inputs_unchanged": true,
+    "elapsed_seconds": 63.14700570888817,
+    "log_sha256": "2a16d7cb54367dc5dd6acadbb8ee3bdf665ab80c13c347e41804e98a4f23f3d9"
+  },
+  "mechanism": "Publish the first control failure to the AV owner before movement or Session-observer cleanup starts. Keep that original error and stage, then cancel and join the same owners. Later packet failures cannot replace its cause.",
+  "mutation_or_io_retry_added": false,
+  "authority_or_deadline_changed": false,
+  "production_media_failure_resolved": false,
+  "scope": "Actual fixture coordinator error ordering and owned task lifecycle with opaque packet test doubles. Neither codec nor real transport quality qualification. V23 primary attribution is corrected by stopped original journal and write-time witnesses; exact engine Capacity cause remains unresolved.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -252,7 +252,11 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         });
         const tasks = [...sources.map(index => () => chain(index)), retained];
         const results = await Promise.allSettled(tasks.map((task, index) => Promise.resolve().then(task).catch(failure => {
-            if (!firstFailure) { firstFailure = failure; firstFailureStage = stages.get(sources[index]) ?? { stage: "retained-current-end" }; }
+            if (!firstFailure) {
+                firstFailure = failure;
+                firstFailureStage = stages.get(sources[index]) ?? { stage: "retained-current-end" };
+                workload.reportFailure?.(firstFailure);
+            }
             abort(failure); throw failure;
         })));
         if (firstFailure) throw firstFailure;

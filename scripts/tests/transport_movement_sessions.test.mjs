@@ -15,7 +15,10 @@ function scenario(mode) {
             return { id: mode === "foreign" && controller ? "foreign" : "session-" + index,
                 state: mode === "ended" ? "ended" : "accepted", isMain: index === 0 };
         } });
-    const args = { workload: { signal: parent.signal, startedAt: 0 },
+    const reported = [];
+    const args = { workload: { signal: parent.signal, startedAt: 0, reportFailure(failure) {
+        reported.push({ failure, readsJoined: allReadsJoined });
+    } },
         primarySessions: [0, 1].map(index => session(index, false)),
         controllerSessions: [0, 1].map(index => session(index, true)), now: () => clock,
         async wait(ms, signal) {
@@ -38,7 +41,7 @@ function scenario(mode) {
             if (mode === "parent-cancel") { parent.abort(refusal); throw workload.signal.reason; }
             return "original-workload-result";
         } };
-    return { args, reads, waits, refusal, parent, get allReadsJoined() { return allReadsJoined; } };
+    return { args, reads, waits, refusal, parent, reported, get allReadsJoined() { return allReadsJoined; } };
 }
 test("both original Sessions remain observed through primary and independent controller SDKs; all reads join", async () => {
     const s = scenario("normal"), result = await observeMovementSessions(s.args);
@@ -53,6 +56,8 @@ test("current authorization failure cancels the live original workload and joins
     const s = scenario("refused");
     await assert.rejects(observeMovementSessions(s.args), error => error === s.refusal);
     assert.equal(s.reads.length, 4); assert.equal(s.allReadsJoined, 4); assert.equal(s.waits.length, 0);
+    assert.equal(s.reported.length, 1); assert.equal(s.reported[0].failure, s.refusal);
+    assert.equal(s.reported[0].readsJoined, 4);
 });
 test("foreign or terminal Session evidence cancels movement without new helpers", async () => {
     for (const mode of ["foreign", "ended"]) {
