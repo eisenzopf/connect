@@ -18,7 +18,7 @@ impl crate::NativeReplacementInstallationObservation for Installation {
         )
     }
 }
-fn captured(m: &Movement) -> crate::NativeReplacementCommitted {
+pub(super) fn captured(m: &Movement) -> crate::NativeReplacementCommitted {
     let read =
         m.f.store
             .try_native_replacement_scene_read(&m.origin, &m.sources)

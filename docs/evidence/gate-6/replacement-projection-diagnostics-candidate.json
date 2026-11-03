@@ -1,0 +1,27 @@
+{
+  "format": "connect/gate6-replacement-projection-diagnostics-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Fixed-size saturating counters on the immutable physical capture record measure capture/activation admission attempts, SQL scope derivation, authority acquisition, SQL reacquisition, footprint revalidation and refusal classes. Service retains the existing metadata retry helper and blocking Store dispatch, aggregating dispatch/execution/outside-Store time and refusal counts. It emits one summary per returned retry phase after Store guards have been released. No packet trace, durable-state change, additional permission or retry of the physical effect.",
+  "new_case": "connection_control::tests::replacement_sources::commit::diagnostics::projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusals",
+  "checks_pending": [
+    "Run the one new focused Store case with actual SQL mutex contention, retained media-reader contention, foreign SQLite transaction refusal, successful projection and idempotent duplicate projection.",
+    "Compile the Service integration for the new phase-summary wrapper on local ARM."
+  ],
+  "diagnostic_semantics": [
+    "Admission counters describe only the complete footprint acquisition boundary; admitted does not mean the following SQL transaction committed.",
+    "Service store_execution_us includes admission plus the remaining Store body. SQL transaction/commit latency is not independently isolated by this change.",
+    "outside_store_us is the phase elapsed residual after measured dispatch and Store execution; it includes retry sleep, async wakeup and local accounting, not a pure sleep metric.",
+    "Capture-owned counters are bounded in storage and saturate. Concurrent snapshots are best effort; use a returned phase after its Store calls for analysis. No logging or JSON serialization occurs inside SQL/authority/native registry custody."
+  ],
+  "limitations": [
+    "Candidate not compiled or executed yet. The current crash integration job remains frozen at57e1fb3d and does not include this change.",
+    "This does not prove the observed449ms capture delay was authority starvation or close actual mixer writer-drain, prequeue loss attribution, video bootstrap or epoch qualification.",
+    "No full media workload or old test-suite rerun."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

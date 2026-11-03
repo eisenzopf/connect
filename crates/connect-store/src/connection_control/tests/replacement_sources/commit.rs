@@ -1275,6 +1275,7 @@ impl crate::NativeReplacementInstallationObservation for MetadataOnlyInstalled {
 mod activation_barrier;
 mod activation_recovery;
 mod active_recovery;
+mod diagnostics;
 
 struct MetadataOnlyInstallationGuard;
 impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard {}

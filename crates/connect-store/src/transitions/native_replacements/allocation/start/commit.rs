@@ -19,6 +19,8 @@ pub struct NativeReplacementCommitted {
     attempt: NativeReplacementCommitAttempt,
     observation: String,
     audience: Option<NativeReplacementAudienceCapture>,
+    capture_diagnostics: super::projection::AdmissionCounters,
+    activation_diagnostics: super::projection::AdmissionCounters,
 }
 pub struct NativeReplacementCommitUncertain {
     attempt: NativeReplacementCommitAttempt,
@@ -99,6 +101,8 @@ impl NativeReplacementCommitAttempt {
             attempt: self,
             observation,
             audience: None,
+            capture_diagnostics: Default::default(),
+            activation_diagnostics: Default::default(),
         })
     }
     pub fn uncertain(self) -> NativeReplacementCommitUncertain {
@@ -234,23 +238,25 @@ impl Store {
             &captured.attempt,
             Some(&captured.observation),
             captured.audience.as_ref(),
+            Some(&captured.capture_diagnostics),
         )
     }
     pub fn native_replacement_commit_uncertain(
         &self,
         captured: &NativeReplacementCommitUncertain,
     ) -> Result<OperationRecord> {
-        self.record_replacement_commit(&captured.attempt, None, None)
+        self.record_replacement_commit(&captured.attempt, None, None, None)
     }
     fn record_replacement_commit(
         &self,
         a: &NativeReplacementCommitAttempt,
         observation: Option<&str>,
         audience: Option<&NativeReplacementAudienceCapture>,
+        diagnostics: Option<&super::projection::AdmissionCounters>,
     ) -> Result<OperationRecord> {
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let (held, mut c) = self.try_replacement_capture_projection(|c| {
+        let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
             let row = rows::by_record(c, &p.record)?;
             let mut scopes = admission::row_scopes(&row)?;
             if audience.is_some() {
@@ -404,16 +410,19 @@ impl Store {
             &target.runtime_connection_id,
             target.connection.generation,
         )?);
-        let (held, mut c) = self.try_replacement_capture_projection(|c| {
-            let row = rows::by_record(c, &p.record)?;
-            let mut scopes = admission::row_scopes(&row)?;
-            scopes.extend(crate::authority_admission::conversation_scopes(
-                c,
-                &target.connection.conversation_id,
-                crate::AuthorityMode::Write,
-            )?);
-            AuthorityScope::merged(&scopes)
-        })?;
+        let (held, mut c) = self.try_replacement_capture_projection(
+            live.map(|capture| &capture.activation_diagnostics),
+            |c| {
+                let row = rows::by_record(c, &p.record)?;
+                let mut scopes = admission::row_scopes(&row)?;
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    c,
+                    &target.connection.conversation_id,
+                    crate::AuthorityMode::Write,
+                )?);
+                AuthorityScope::merged(&scopes)
+            },
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -652,6 +661,14 @@ impl Store {
 }
 
 impl NativeReplacementCommitted {
+    /// Best-effort fixed-size diagnostics, not readiness or current authority.
+    /// Read only after Store work returns; concurrent snapshots are not atomic.
+    pub fn projection_diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({"format":"connect/replacement-projection-diagnostics/1",
+            "capture":self.capture_diagnostics.snapshot(),
+            "activation":self.activation_diagnostics.snapshot()})
+    }
+
     /// The identical metadata survives physical capture; it confers no permission.
     pub fn activation(&self) -> &Arc<crate::NativeReplacementActivation> {
         &self.attempt.activation

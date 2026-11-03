@@ -135,7 +135,7 @@ impl Store {
         let a = &captured.attempt;
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let (held, mut c) = self.try_replacement_capture_projection(|c| {
+        let (held, mut c) = self.try_replacement_capture_projection(None, |c| {
             let row = rows::by_record(c, &p.record)?;
             let mut scopes = admission::row_scopes(&row)?;
             if captured.audience.is_some() {

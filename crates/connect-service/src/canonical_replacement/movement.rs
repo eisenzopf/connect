@@ -159,11 +159,16 @@ impl Runtime {
             Some(Capture::Known(capture.clone()));
         let recorded = super::projection::record(
             roles,
-            retry_metadata(&self.stop, || {
-                let store = self.media.store.clone();
-                let capture = capture.clone();
-                store_call(move || store.record_native_replacement_committed(&capture))
-            }),
+            super::diagnostics::metadata(
+                &self.stop,
+                &capture,
+                super::diagnostics::Phase::Capture,
+                || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    move || store.record_native_replacement_committed(&capture)
+                },
+            ),
         )
         .await;
         if let Err(error) = recorded {
@@ -222,14 +227,17 @@ impl Runtime {
             runtime: self.clone(),
             adoption,
         });
-        let projected = retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let capture = capture.clone();
-            let installed = installed.clone();
-            store_call(move || {
-                store.project_native_replacement_committed(&capture, installed.as_ref())
-            })
-        })
+        let projected = super::diagnostics::metadata(
+            &self.stop,
+            &capture,
+            super::diagnostics::Phase::Activation,
+            || {
+                let store = self.media.store.clone();
+                let capture = capture.clone();
+                let installed = installed.clone();
+                move || store.project_native_replacement_committed(&capture, installed.as_ref())
+            },
+        )
         .await;
         let origin = match projected {
             Ok(origin) => origin,

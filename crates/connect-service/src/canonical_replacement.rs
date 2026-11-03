@@ -1,6 +1,7 @@
 //! Owned managed replacement phases; retained tickets contain no domain reader.
 mod allocation;
 pub(crate) mod continuation;
+mod diagnostics;
 mod media;
 pub(crate) use media::TargetPolicy;
 mod movement;
