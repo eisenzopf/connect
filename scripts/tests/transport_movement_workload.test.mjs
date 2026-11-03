@@ -3,11 +3,14 @@ import test from "node:test";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { deviceMovementWorkload } from "../lib/transport_movement_workload.mjs";
+import { MOVE_START_OFFSETS_MS, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "../lib/transport_movement_profile.mjs";
 
 async function scenario(mode) {
     const root = resolve(".local"); await mkdir(root, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(root, "movement-controller-"));
     const signal = new AbortController(), starts = [], admitted = [], subscriptions = [], stopped = [], joined = [], retired = [], finalWaits = new Map();
+    let clock = 0;
+    const clockWaits = [];
     const roles = ["owner", "two", "three", "four", "owner", "two"], peers = [3, 0, 1, 2, 5, 4];
     const revisions = [1, 1];
     const physicalRetired = new Set();
@@ -60,6 +63,7 @@ async function scenario(mode) {
     if (mode === "cancelled") signal.abort();
     const startTarget = async options => {
         const sid = Number(options.sessionId.at(-1)), ordinal = starts.filter(v => v.sessionId === options.sessionId).length;
+        assert.ok(clock >= MOVE_START_OFFSETS_MS[ordinal] && clock < 62000);
         assert.equal(options.controller, controllers[sid]);
         starts.push(options);
         if (mode === "external-failure" && sid === 0) {
@@ -68,7 +72,7 @@ async function scenario(mode) {
             throw original;
         }
         const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
-        assert.equal(saved.length, 20);
+        assert.equal(saved.length, 4);
         assert.equal(saved.filter(v => v.operationId === options.operationId).length, 1);
         assert.equal(options.expectedTopologyRevision, revisions[sid]);
         assert.equal(options.source.programStartUnixUs, workload.programStartUnixUs);
@@ -79,7 +83,7 @@ async function scenario(mode) {
             assert.equal(saved.find(step => step.operationId === options.operationId).dataId, options.dataStreamId);
         }
         assert.equal(options.target.deviceId, ordinal % 2 ? "original-device" : "replacement-device");
-        if (mode === "unknown" && sid === 0 && ordinal === 2) throw original;
+        if (mode === "unknown" && sid === 0 && ordinal === 1) throw original;
         revisions[sid]++;
         const moved = { retired: [options.connectionId], binding: { generation: options.originalGeneration + 1 } };
         const reference = { command: "connection.replace", operation_id: options.operationId,
@@ -93,7 +97,7 @@ async function scenario(mode) {
         }), { mode: 0o600 });
         const stage = { passed: true };
         if (dataProfile) stage.physical_data_exchange_verified = true;
-        if (ordinal === 9) {
+        if (ordinal === 1) {
             assert.equal(options.source.terminalEndOperationId, "end-" + (sid === 0 ? 0 : 4));
             stage.final_current_owner_end = { operation_id: options.source.terminalEndOperationId,
                 connection_id: "candidate-" + sid + "-" + ordinal, mutation_submissions: 1,
@@ -109,12 +113,15 @@ async function scenario(mode) {
                 return result;
             },
             async join() {
-                if (mode === "cancel-after20") return new Promise(done => {
+                if (mode === "cancel-after4") return new Promise(done => {
                     joined.push(options.operationId); finalWaits.set(options.operationId, done);
                     if (finalWaits.size === 2) setImmediate(() => signal.abort());
                 });
                 if (!result) { joined.push(options.operationId); result = stage; }
-                physicalRetired.add("candidate-" + sid + "-" + ordinal); return result;
+                return new Promise(done => {
+                    finalWaits.set(options.operationId, () => { physicalRetired.add("candidate-" + sid + "-" + ordinal); done(result); });
+                    if (finalWaits.size === 2) { clock = 62500; for (const finish of finalWaits.values()) finish(); }
+                });
             } };
     };
     try {
@@ -124,7 +131,13 @@ async function scenario(mode) {
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
-            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained, now: () => 62500,
+            executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained, now: () => clock,
+            wait: async (ms, abort) => {
+                assert.equal(abort.aborted, false); clockWaits.push(ms);
+                if (mode === "cancel-during-wait") signal.abort();
+                else if (mode !== "no-progress-wait") clock += ms - Number(mode === "early-wake" && clockWaits.length === 1) * 0.25;
+                await Promise.resolve();
+            },
             dataClients: connections.map(() => ({})),
             exchangeData: async args => {
                 const saved = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
@@ -141,9 +154,9 @@ async function scenario(mode) {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
         }
-        if (mode !== "normal" && mode !== "data") {
+        if (!["normal", "data", "early-wake"].includes(mode)) {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
-                mode === "foreign-final-end" ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
+                ["foreign-final-end", "no-progress-wait"].includes(mode) ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
             if (["unknown", "data-failure", "retained-failure"].includes(mode)) {
                 assert.equal(reported.length, 1);
@@ -153,12 +166,19 @@ async function scenario(mode) {
             }
             assert.equal(new Set(starts.map(v => v.operationId)).size, starts.length);
             if (mode === "retirement-refusal") assert.ok(joined.length >= 1 && joined.length <= 2);
-            else assert.equal(joined.length, ["cancel-after20", "foreign-final-end"].includes(mode) ? 2 : 0);
+            else assert.equal(joined.length, ["cancel-after4", "foreign-final-end"].includes(mode) ? 2 : 0);
             assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
             assert.ok(subscriptions.length <= admitted.length);
             const failure = JSON.parse(await readFile(join(directory, "run/movement-failure.json"), "utf8"));
             assert.equal(failure.passed, false); assert.equal(failure.target_joins_failed, 0);
-            if (mode === "cancelled") assert.equal(starts.length, 0);
+            if (["cancelled", "cancel-during-wait", "no-progress-wait"].includes(mode)) {
+                assert.equal(starts.length, 0);
+                if (mode === "no-progress-wait") assert.equal(failure.failure.observation.stage, "scheduled-move");
+                if (mode === "cancel-during-wait") {
+                    assert.ok(clockWaits.length > 0);
+                    assert.ok(["current-workload", "scheduled-move"].includes(failure.failure.observation.stage));
+                }
+            }
             else if (mode === "unknown") assert.equal(failure.failure.certainty, "uncertain");
             else if (mode === "data-failure") {
                 assert.ok(starts.length >= 1 && starts.length <= 2);
@@ -168,28 +188,36 @@ async function scenario(mode) {
                 assert.equal(failure.failure.certainty, original.certainty);
                 assert.equal(failure.failure.observation.stage, "media-workload");
             } else if (mode === "retirement-refusal") {
-                assert.ok(starts.length >= 10 && starts.length <= 20);
+                assert.ok(starts.length >= 2 && starts.length <= 4);
                 assert.equal(failure.failure.certainty, "read-only");
-            } else if (mode !== "retained-failure") { assert.equal(starts.length, 20); assert.equal(failure.original_moves_completed, 20); }
+            } else if (mode !== "retained-failure") { assert.equal(starts.length, 4); assert.equal(failure.original_moves_completed, 4); }
             return;
         }
         const { observation, currentConnections } = await run;
-        assert.equal(starts.length, 20); assert.equal(subscriptions.length, 20);
-        assert.equal(new Set(starts.map(v => v.operationId)).size, 20);
-        assert.equal(new Set(subscriptions.map(v => v.options.operationId)).size, 20);
-        assert.equal(stopped.length, 18); assert.equal(joined.length, 2);
+        assert.equal(starts.length, 4); assert.equal(subscriptions.length, 4);
+        assert.equal(new Set(starts.map(v => v.operationId)).size, 4);
+        assert.equal(new Set(subscriptions.map(v => v.options.operationId)).size, 4);
+        assert.equal(stopped.length, 2); assert.equal(joined.length, 2);
         assert.deepEqual(retired.sort(), [0, 4]);
-        assert.equal(observation.original_moves_completed, 20);
+        assert.equal(observation.original_moves_completed, 4);
+        assert.equal(observation.movement_profile, MOVEMENT_PROFILE);
+        assert.equal(observation.movement_profile_sha256, MOVEMENT_PROFILE_SHA256);
+        assert.deepEqual(observation.scheduled_start_offsets_ms, [15000, 40000]);
+        assert.ok(clockWaits.length >= (mode === "early-wake" ? 3 : 2));
+        for (const move of observation.moves) {
+            assert.equal(move.scheduled_start_ms, MOVE_START_OFFSETS_MS[move.ordinal]);
+            assert.ok(move.actual_start_ms >= move.scheduled_start_ms && move.actual_start_ms < 62000);
+        }
         assert.equal(observation.data_resource_contract_requested, dataProfile);
         assert.equal(observation.replacement_data_io_verified, dataProfile);
-        assert.equal(observation.replacement_data_exchanges.length, dataProfile ? 20 : 0);
+        assert.equal(observation.replacement_data_exchanges.length, dataProfile ? 4 : 0);
         if (dataProfile) for (const selected of subscriptions) {
             assert.equal(selected.intent.selectors.rest.length, 2);
             const original = starts.find(start => start.source.video.streamId === selected.intent.selectors.rest[0].stream);
             assert.ok(original);
             assert.equal(selected.intent.selectors.rest[1].stream, original.dataStreamId);
         }
-        assert.equal(observation.physical_segments.length, 20);
+        assert.equal(observation.physical_segments.length, 4);
         assert.equal(observation.planned_peak_connection_slots, 8);
         assert.equal(observation.shared_sdk_closed_during_replacement, false);
         assert.equal(observation.full_timeline_decoded, false);
@@ -197,20 +225,23 @@ async function scenario(mode) {
         assert.equal(retainedJoined, true);
         assert.equal(observation.current_owner_end.current_connections_ended, 6);
         assert.deepEqual(observation.current_owner_end.physical.map(end => end.index).sort(), [0, 4]);
-        assert.ok(currentConnections.every(v => [0, 4].includes(v.sourceIndex) && v.connection.id.endsWith("-9")));
+        assert.ok(currentConnections.every(v => [0, 4].includes(v.sourceIndex) && v.connection.id.endsWith("-1")));
     } finally { await rm(directory, { recursive: true, force: true }); }
 }
 
-test("twenty distinct original moves retain one source clock across two ten-move Session chains", () => scenario("normal"));
-test("the Data workload carries all original incoming and new target Data identities through twenty moves", () => scenario("data"));
+test("four distinct scheduled moves retain one source clock across two switch-and-return Session chains", () => scenario("normal"));
+test("an early timer wake waits for the remaining original-clock interval before any move", () => scenario("early-wake"));
+test("cancellation during the scheduled wait starts no original mutation", () => scenario("cancel-during-wait"));
+test("a scheduled wait that does not advance the clock fails instead of starting a move or spinning", () => scenario("no-progress-wait"));
+test("the Data workload carries all original incoming and new target Data identities through four moves", () => scenario("data"));
 test("a partly declared six-Connection Data workload refuses before any movement", () => scenario("partial-data"));
 test("a failed original Data exchange stops both movement chains and joins admitted owners without new roots", () => scenario("data-failure"));
 test("an unknown original prevents further moves and joins every already admitted physical owner", () => scenario("unknown"));
 test("parent cancellation before the workload attempts no original move", () => scenario("cancelled"));
-test("parent cancellation stops both final natural source waits and cannot promote twenty completed roots to a workload pass", () => scenario("cancel-after20"));
+test("parent cancellation stops both final natural source waits and cannot promote four completed roots to a workload pass", () => scenario("cancel-after4"));
 test("a failed retained end cancels movement and joins every already admitted physical owner", () => scenario("retained-failure"));
 test("an original external media error survives an earlier settling retained-end cancellation", () => scenario("external-failure"));
-test("a final end receipt for a foreign Connection cannot pass twenty successful roots", () => scenario("foreign-final-end"));
+test("a final end receipt for a foreign Connection cannot pass four successful roots", () => scenario("foreign-final-end"));
 test("a completed final end cannot replace current-authorized retirement metadata for that same owner", () => scenario("retirement-refusal"));
 test("two Session chains cannot silently share one serialized ordinary control helper", async () => {
     const shared = {};

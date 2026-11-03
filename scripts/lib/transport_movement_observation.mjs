@@ -6,6 +6,7 @@ import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { physicalAvSegment } from "./transport_replacement_observation.mjs";
 import { physicalDataCustody } from "./transport_movement_data_observation.mjs";
+import { MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "./transport_movement_profile.mjs";
 
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
@@ -32,9 +33,12 @@ async function originalFile(path, maximum) {
 export async function physicalMovementSegments({ directory, movement, plan,
     packetWorkersJoined, conversationId, sessionIds, connectionIds, streamIds, executableSha256 }) {
     assert.equal(packetWorkersJoined, true, "original packet workers must join before offline interpretation");
-    assert.equal(movement.original_moves_completed, 20);
+    assert.equal(movement.original_moves_completed, TOTAL_MOVES);
+    assert.equal(movement.movement_profile, MOVEMENT_PROFILE);
+    assert.equal(movement.movement_profile_sha256, MOVEMENT_PROFILE_SHA256);
+    assert.deepEqual(movement.scheduled_start_offsets_ms, MOVE_START_OFFSETS_MS);
     assert.equal(movement.concurrent_session_chains, 2);
-    assert.deepEqual(movement.moves_per_source, [10, 10]);
+    assert.deepEqual(movement.moves_per_source, [MOVES_PER_SESSION, MOVES_PER_SESSION]);
     assert.equal(movement.active_av_routes, 6);
     assert.equal(movement.maximum_pending_candidates, 2);
     assert.equal(movement.shared_sdk_closed_during_replacement, false);
@@ -46,20 +50,21 @@ export async function physicalMovementSegments({ directory, movement, plan,
     assert.equal(streamIds.length, 6);
     assert.ok(streamIds.every(v => id(v.audio) && id(v.video)));
     assert.match(executableSha256, /^[0-9a-f]{64}$/);
-    assert.equal(plan.length, 20); assert.equal(movement.moves.length, 20);
+    assert.equal(plan.length, TOTAL_MOVES); assert.equal(movement.moves.length, TOTAL_MOVES);
     const dataExpected = streamIds.some(streams => streams.data !== undefined);
     const dataIoExpected = movement.replacement_data_io_verified === true;
     if (dataIoExpected) {
-        assert.equal(dataExpected, true); assert.equal(movement.replacement_data_exchanges.length, 20);
+        assert.equal(dataExpected, true); assert.equal(movement.replacement_data_exchanges.length, TOTAL_MOVES);
     }
     if (dataExpected) {
         assert.ok(streamIds.every(streams => id(streams.data)), "every original Data identity is required");
         assert.ok(plan.every(step => id(step.dataId)), "every replacement must retain its Data contract");
     } else assert.ok(plan.every(step => step.dataId === undefined), "Data captures need the original Data profile");
-    assert.equal(movement.physical_segments.length, 20);
+    assert.equal(movement.physical_segments.length, TOTAL_MOVES);
     const keys = new Set(), operations = new Set(), streamNames = new Set();
     for (const step of plan) {
-        assert.ok([0, 4].includes(step.sourceIndex) && Number.isInteger(step.ordinal) && step.ordinal >= 0 && step.ordinal < 10);
+        assert.ok([0, 4].includes(step.sourceIndex) && Number.isInteger(step.ordinal) && step.ordinal >= 0 && step.ordinal < MOVES_PER_SESSION);
+        assert.equal(step.scheduled_start_ms, MOVE_START_OFFSETS_MS[step.ordinal]);
         const key = step.sourceIndex + "-" + step.ordinal;
         assert.ok(!keys.has(key)); keys.add(key);
         assert.ok(id(step.operationId) && !operations.has(step.operationId)); operations.add(step.operationId);
@@ -73,7 +78,7 @@ export async function physicalMovementSegments({ directory, movement, plan,
     assert.equal(await realpath(root), root);
     const segments = [], current = new Map([[0, connectionIds[0]], [4, connectionIds[4]]]);
     const usedConnections = new Set(connectionIds), usedCaptures = new Set(), usedMoves = new Set();
-    for (const sourceIndex of [0, 4]) for (let ordinal = 0; ordinal < 10; ordinal++) {
+    for (const sourceIndex of [0, 4]) for (let ordinal = 0; ordinal < MOVES_PER_SESSION; ordinal++) {
         const step = plan.find(v => v.sourceIndex === sourceIndex && v.ordinal === ordinal);
         assert.ok(step);
         const folder = join(root, sourceIndex + "-" + ordinal), sid = sourceIndex === 0 ? 0 : 1;
@@ -81,6 +86,8 @@ export async function physicalMovementSegments({ directory, movement, plan,
         const moves = movement.moves.filter(v => v.source_index === sourceIndex && v.ordinal === ordinal);
         assert.equal(moves.length, 1);
         const move = moves[0]; usedMoves.add(move);
+        assert.equal(move.scheduled_start_ms, MOVE_START_OFFSETS_MS[ordinal]);
+        assert.ok(Number.isFinite(move.actual_start_ms) && move.actual_start_ms >= move.scheduled_start_ms && move.actual_start_ms < 62000);
         assert.equal(move.session_index, sid);
         assert.equal(resolve(move.stage_directory), folder);
         for (const flag of ["original_reference_preserved", "original_retired", "camera_subscription_completed"])
@@ -127,6 +134,8 @@ export async function physicalMovementSegments({ directory, movement, plan,
             ...(step.dataId === undefined ? {} : { sendDataStreamId: step.dataId,
                 receiveDataStreamId: streamIds[peer].data }),
         });
+        assert.ok(normalized.root_completed_observed_programme_us >= move.scheduled_start_ms * 1000,
+            "captured-root-observation-cannot-precede-scheduled-move");
         let reliableData;
         if (dataIoExpected) {
             const exchanges = movement.replacement_data_exchanges.filter(exchange => exchange.root_operation_id === step.operationId);
@@ -137,6 +146,7 @@ export async function physicalMovementSegments({ directory, movement, plan,
                 expectedExchange: exchanges[0] });
         }
         segments.push({ source_index: sourceIndex, ordinal, operation_id: step.operationId,
+            scheduled_start_ms: move.scheduled_start_ms, actual_start_ms: move.actual_start_ms,
             connection_id: moved.connection, original_capture_sha256: observed.digest,
             published_stream_ids: { audio: step.audioId, video: step.videoId, ...(step.dataId ? { data: step.dataId } : {}) },
             custody_sha256: { stage: stage.digest, reference: reference.digest,
@@ -144,12 +154,14 @@ export async function physicalMovementSegments({ directory, movement, plan,
             ...(reliableData ? { reliable_data: reliableData } : {}) });
         current.set(sourceIndex, moved.connection);
     }
-    assert.equal(usedMoves.size, 20); assert.equal(usedCaptures.size, 20);
-    return { format: "connect/physical-movement-segments/1", original_move_records_bound: 20,
+    assert.equal(usedMoves.size, TOTAL_MOVES); assert.equal(usedCaptures.size, TOTAL_MOVES);
+    return { format: "connect/physical-movement-segments/1", original_move_records_bound: TOTAL_MOVES,
+        movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
+        scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS,
         program_start_unix_us: movement.original_program_start_unix_us, segments,
         original_connection_ids: connectionIds, session_ids: sessionIds, original_stream_ids: streamIds,
-        reliable_data_exchanges_bound: dataIoExpected ? 20 : 0,
+        reliable_data_exchanges_bound: dataIoExpected ? TOTAL_MOVES : 0,
         final_connections: [...current].map(([source_index, connection_id]) => ({ source_index, connection_id })),
         full_timeline_decoded: false, cell_qualified: false, task_complete: false,
-        scope: "Offline custody and original packet interpretation only. These twenty target segments still require the original six captures, separate physical codec histories and independent whole-window decoding. No decoded quality or transport qualification." };
+        scope: "Offline custody and original packet interpretation only. These four target segments still require the original six captures, separate physical codec histories and independent whole-window decoding. No decoded quality or transport qualification." };
 }

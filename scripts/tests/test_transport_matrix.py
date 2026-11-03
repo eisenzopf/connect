@@ -89,6 +89,18 @@ class MatrixBoundary(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HTTP reference omitted"):
             matrix.inventory(self.root, "d" * 40)
 
+    def test_amended_movement_count_cadence_and_original_programme_are_bound(self):
+        original = copy.deepcopy(self.contract)
+        for key, value in [("total_moves", 20), ("moves_per_session", 10),
+                ("start_offsets_ms", [0, 1000]), ("programme_ms", 120000),
+                ("profile", "historical-stress"), ("owner_amendment", "")]:
+            with self.subTest(field=key):
+                self.contract = copy.deepcopy(original)
+                self.contract["workload"]["movement"][key] = value
+                self.save()
+                with self.assertRaisesRegex(ValueError, "movement profile differs"):
+                    matrix.inventory(self.root, "d" * 40)
+
 
 if __name__ == "__main__":
     unittest.main()

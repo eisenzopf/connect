@@ -9,7 +9,7 @@
     "crates/connect-service/src/canonical_replacement/preparation.rs": "12c7584b0e9d65af5e6662c9707957c36a6e29ea4228abc05a7be046423f4a17",
     "crates/connect-service/src/canonical_replacement/projection.rs": "dacec37bbec040ed1e5fb097224009e874fdabb2c773fe02215d98133408db03"
   },
-  "passed": false,
+  "passed": true,
   "ordering_regression_passed": true,
   "checks": [
     {
@@ -51,9 +51,9 @@
     "selected_tests_passed": 1,
     "initial_short_exact_filter_selected_zero": true
   },
-  "full_service_check_pending": true,
-  "signed_av_case_pending": true,
-  "full_native_programme_pending": true,
+  "full_service_check_pending": false,
+  "signed_av_case_pending": false,
+  "full_native_programme_pending": false,
   "initial_attempts": [
     "Standalone compile initially chose a different cached protocol metadata version; resolved from the selected Store Cargo dependency fingerprint. This setup error is not the counterexample.",
     "The first after test caught an expired read entering before Tokio timer readiness. Explicit deadline checks before admission/current read now refuse it; final3selected tests pass."
@@ -70,5 +70,17 @@
   "task_complete": false,
   "cell_qualified": false,
   "whole_gate_qualified": false,
-  "scope": "Fix the observed opposing coordinator/authority lock order in preparation, attach, activation, movement recording and adoption. Core mutations keep coordinator plus current owned invocation; fresh metadata retries release it, and immutable historical records release it before file admission. The initial Core ticket still checks its optimistic participant revision under the coordinator. Reuse ordinary packet_authority_error for temporary replacement media contention. Three deterministic component tests and one existing classifier test do not qualify the full20move/62sprogramme, AV quality, matrix, app packages or completeGate6."
+  "scope": "Fix the observed opposing coordinator/authority lock order in preparation, attach, activation, movement recording and adoption. Core mutations keep coordinator plus current owned invocation; fresh metadata retries release it, and immutable historical records release it before file admission. The initial Core ticket still checks its optimistic participant revision under the coordinator. Reuse ordinary packet_authority_error for temporary replacement media contention. Three deterministic component tests and one existing classifier test do not qualify the full20move/62sprogramme, AV quality, matrix, app packages or completeGate6. Fullservicecheck andactualsignedAVcase nowpass onf06fa8f3 withallsourceinputsunchanged. The fullnativeprogramme remainsnegative after5moves/currentSessionreaddeadline; this verifies theordering component, notthewholeG058task.",
+  "component_verified": true,
+  "full_native_programme_passed": false,
+  "compiled_component_source": "f06fa8f35361cd3ac5d3739b9c09219f3edf1028",
+  "signed_av_test": {
+    "name": "production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+    "tests_passed": 1,
+    "test_binary_sha256": "7bcc5aee245659beb33225f0e8cc39fbc5af14871f32b687a712581ab435a841",
+    "source_inputs_unchanged": true,
+    "whole_transport_quality_qualified": false
+  },
+  "native_result": "docs/evidence/gate-6/native-replacement-projection-result.json",
+  "invariants_scope": "The f06fa8f3 ordering fix and its original twenty-move run, before the later owner movement amendment."
 }

@@ -15,6 +15,8 @@ import struct
 
 from .transport_av import (FREQUENCIES, checksum, command, marker_edges, marker_profile,
     ogg_page, ordinal_sync, rtp_timing, source_pixels)
+from .transport_movement_profile import (MOVE_START_OFFSETS_MS, MOVES_PER_SESSION,
+    TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256)
 
 PEERS = [3, 0, 1, 2, 5, 4]
 
@@ -69,8 +71,10 @@ def rows(value, medium, allowed_streams, default_stream=None):
 def timeline(directory, metadata):
     bundle = original(directory / 'movement-segments.json', 96 * 1024 * 1024, metadata['sha256'])
     if (bundle['format'] != 'connect/physical-movement-segments/1'
-            or bundle['original_move_records_bound'] != 20 or bundle['reliable_data_exchanges_bound'] != 20
-            or len(bundle['segments']) != 20 or len(bundle['original_connection_ids']) != 6
+            or bundle['original_move_records_bound'] != TOTAL_MOVES or bundle['reliable_data_exchanges_bound'] != TOTAL_MOVES
+            or bundle.get('movement_profile') != MOVEMENT_PROFILE or bundle.get('movement_profile_sha256') != MOVEMENT_PROFILE_SHA256
+            or bundle.get('scheduled_start_offsets_ms') != list(MOVE_START_OFFSETS_MS)
+            or len(bundle['segments']) != TOTAL_MOVES or len(bundle['original_connection_ids']) != 6
             or len(set(bundle['original_connection_ids'])) != 6 or len(bundle['original_stream_ids']) != 6
             or len(metadata['original_capture_sha256']) != 6):
         raise ValueError('moving complete original custody bundle')
@@ -81,14 +85,18 @@ def timeline(directory, metadata):
     candidates = set(bundle['original_connection_ids'])
     for receiver in (0, 4):
         chain = sorted((segment for segment in bundle['segments'] if segment['source_index'] == receiver), key=lambda s:s['ordinal'])
-        if [s['ordinal'] for s in chain] != list(range(10)):
-            raise ValueError('moving original ten-owner chain')
+        if [s['ordinal'] for s in chain] != list(range(MOVES_PER_SESSION)):
+            raise ValueError('moving original switch-and-return chain')
         cuts = []
         for segment in chain:
             capture = segment['capture']
             cut = capture['root_completed_observed_programme_us'] / 1000
+            scheduled = MOVE_START_OFFSETS_MS[segment['ordinal']]
+            actual = segment.get('actual_start_ms')
             if (capture['format'] != 'connect/physical-av-segment/1' or capture['program_start_unix_us'] != origin
-                    or not 2000 <= cut < 62000 or cuts and cut <= cuts[-1]
+                    or segment.get('scheduled_start_ms') != scheduled
+                    or type(actual) not in (int, float) or not math.isfinite(actual) or not scheduled <= actual <= cut < 62000
+                    or cuts and cut <= cuts[-1]
                     or segment['connection_id'] in candidates or segment['reliable_data']['original_data_messages_bound'] != 2):
                 raise ValueError('moving original ownership boundary or Data custody')
             candidates.add(segment['connection_id']); cuts.append(cut)
@@ -122,7 +130,7 @@ def timeline(directory, metadata):
                                 raise ValueError('moving pre-completion rows cannot initialize a physical decoder')
                             output.extend(rows(history['rows'], medium,
                                 {segment['published_stream_ids']['audio']} if medium == 'audio' else {streams[peer]['video']}))
-                physical.append((f'physical-{receiver}-{ordinal}', cuts[ordinal], cuts[ordinal+1] if ordinal < 9 else 62000,
+                physical.append((f'physical-{receiver}-{ordinal}', cuts[ordinal], cuts[ordinal+1] if ordinal + 1 < MOVES_PER_SESSION else 62000,
                     capture, audio, video))
         histories = []; clocks = {'audio':0,'video':0}
         excluded = {'audio':0, 'video':0}
@@ -273,7 +281,8 @@ def verify(directory,manifest,metadata):
                     artifacts={k:v for k,v in observed.items() if k!='measurements'}))
         result=summarize(route,decoded['audio'],decoded['video']);result['physical_codec_histories']=custody;results.append(result)
     report=dict(format='connect/moving-native-av-decoded/1',passed=all(r['passed'] for r in results),
-        original_moves=20,original_captures=6,physical_captures=20,connections=6,participants=4,sessions=2,
+        original_moves=TOTAL_MOVES,original_captures=6,physical_captures=TOTAL_MOVES,connections=6,participants=4,sessions=2,
+        movement_profile=MOVEMENT_PROFILE,movement_profile_sha256=MOVEMENT_PROFILE_SHA256,
         warmup_seconds=2,observation_seconds=60,source_manifest=manifest,capture_bundle_sha256=metadata['sha256'],
         physical_codec_histories_inspected=number,independently_decoded_codec_histories=decoders_started,routes=results,
         full_timeline_decoded=all(r['video']['undecodable_frames']==0 for r in results),task_complete=False,cell_qualified=False,matrix_qualified=False,whole_gate_qualified=False,

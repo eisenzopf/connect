@@ -15,6 +15,7 @@ sys.path.insert(0,str(ROOT/'scripts'))
 from lib.package_environment import fixture_environment
 from lib.transport_av import opus_packets, ivf_frames, decode_completed, marker_profile
 from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment
+from lib.transport_movement_profile import MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256
 
 
 class MovingCustody(unittest.TestCase):
@@ -24,7 +25,8 @@ class MovingCustody(unittest.TestCase):
         self.directory=Path(self.temp.name);self.metadata={'original_capture_sha256':[]}
         peers=[3,0,1,2,5,4];origin=1800000000000000
         streams=[{'audio':f'audio-{i}','video':f'video-{i}','data':f'data-{i}'} for i in range(6)]
-        bundle=dict(format='connect/physical-movement-segments/1',original_move_records_bound=20,reliable_data_exchanges_bound=20,
+        bundle=dict(format='connect/physical-movement-segments/1',original_move_records_bound=TOTAL_MOVES,reliable_data_exchanges_bound=TOTAL_MOVES,
+            movement_profile=MOVEMENT_PROFILE,movement_profile_sha256=MOVEMENT_PROFILE_SHA256,scheduled_start_offsets_ms=list(MOVE_START_OFFSETS_MS),
             program_start_unix_us=origin,original_connection_ids=[f'original-{i}' for i in range(6)],original_stream_ids=streams,segments=[])
         def packet(at,stream=None):
             return dict(elapsed_ms=at,timestamp=int(at*48),ssrc=7,payload='AQ==',**({'stream_id':stream,'key':True} if stream else {}))
@@ -37,12 +39,14 @@ class MovingCustody(unittest.TestCase):
             self.metadata['original_capture_sha256'].append(hashlib.sha256(path.read_bytes()).hexdigest())
         for receiver in (0,4):
             peer=peers[receiver]
-            for ordinal in range(10):
-                start=3000+ordinal*5000
+            for ordinal in range(MOVES_PER_SESSION):
+                start=MOVE_START_OFFSETS_MS[ordinal]+1000
+                arrivals=[start+100, MOVE_START_OFFSETS_MS[ordinal+1]+1100 if ordinal+1 < MOVES_PER_SESSION else 61000]
                 capture=dict(format='connect/physical-av-segment/1',program_start_unix_us=origin,root_completed_observed_programme_us=start*1000,
-                    audio=[dict(ssrc=7,rows=[packet(at, f'physical-audio-{receiver}-{ordinal}') for at in [start+100,start+5100]])],
-                    video=[dict(ssrc=7,rows=[packet(at,streams[peer]['video']) for at in [start+100,start+5100]])],clock_reports={'audio':[],'video':[]})
+                    audio=[dict(ssrc=7,rows=[packet(at, f'physical-audio-{receiver}-{ordinal}') for at in arrivals])],
+                    video=[dict(ssrc=7,rows=[packet(at,streams[peer]['video']) for at in arrivals])],clock_reports={'audio':[],'video':[]})
                 bundle['segments'].append(dict(source_index=receiver,ordinal=ordinal,connection_id=f'candidate-{receiver}-{ordinal}',
+                    scheduled_start_ms=MOVE_START_OFFSETS_MS[ordinal],actual_start_ms=MOVE_START_OFFSETS_MS[ordinal]+100,
                     published_stream_ids=dict(audio=f'physical-audio-{receiver}-{ordinal}',video=f'physical-video-{receiver}-{ordinal}'),capture=capture,
                     reliable_data=dict(original_data_messages_bound=2)))
         self.bundle=bundle;self.save()
@@ -53,35 +57,47 @@ class MovingCustody(unittest.TestCase):
 
     def tearDown(self):self.temp.cleanup()
 
-    def test_original_and_twenty_physical_captures_partition_owner_intervals_without_counting_late_rows(self):
+    def test_original_and_four_scheduled_physical_captures_partition_owner_intervals_without_counting_late_rows(self):
         bundle,routes=timeline(self.directory,self.metadata)
-        self.assertEqual(len(bundle['segments']),20);self.assertEqual(len(routes),6)
+        self.assertEqual(len(bundle['segments']),4);self.assertEqual(len(routes),6)
         for index in (0,4):
             audio=[h for h in routes[index]['histories'] if h['medium']=='audio']
-            self.assertEqual(len(audio),11)
-            self.assertEqual(sum(len(h['selected_indices']) for h in audio),12)
+            self.assertEqual(len(audio),3)
+            self.assertEqual(sum(len(h['selected_indices']) for h in audio),5)
             self.assertEqual(audio[0]['rows'][0]['elapsed_ms'],1000,'actual warmup initializes only its own decoder')
-            self.assertEqual(audio[0]['selected_indices'],[1])
-            self.assertEqual(audio[1]['rows'][0]['elapsed_ms'],3100)
+            self.assertEqual(audio[0]['selected_indices'],[1,2])
+            self.assertEqual(audio[1]['rows'][0]['elapsed_ms'],16100)
             self.assertEqual(audio[1]['selected_indices'],[0])
             self.assertGreater(routes[index]['excluded_rows']['audio'],0)
 
     def test_missing_roots_wrong_original_bindings_and_changed_capture_bytes_fail_before_decoder(self):
-        self.bundle['segments'][1]['capture']['root_completed_observed_programme_us']=3000000
+        self.bundle['segments'][1]['capture']['root_completed_observed_programme_us']=16000000
         self.save()
         with self.assertRaises(ValueError):timeline(self.directory,self.metadata)
-        self.bundle['segments'][1]['capture']['root_completed_observed_programme_us']=8000000
+        self.bundle['segments'][1]['capture']['root_completed_observed_programme_us']=41000000
         self.save();path=self.directory/'received-0.json';path.write_bytes(path.read_bytes()+b' ')
         with self.assertRaisesRegex(ValueError,'digest'):timeline(self.directory,self.metadata)
 
     def test_quarantined_precompletion_audio_cannot_initialize_an_independent_decoder(self):
-        self.bundle['segments'][0]['capture']['audio'][0]['rows'][0]['elapsed_ms']=2999
+        self.bundle['segments'][0]['capture']['audio'][0]['rows'][0]['elapsed_ms']=15999
         self.save()
         with self.assertRaisesRegex(ValueError,'pre-completion'):timeline(self.directory,self.metadata)
 
     def test_missing_data_receipts_do_not_become_full_custody(self):
-        self.bundle['reliable_data_exchanges_bound']=19;self.save()
+        self.bundle['reliable_data_exchanges_bound']=3;self.save()
         with self.assertRaises(ValueError):timeline(self.directory,self.metadata)
+
+    def test_stress_count_profile_substitution_and_early_ownership_refuse_before_decoder(self):
+        import copy
+        original=copy.deepcopy(self.bundle)
+        for key,value in [('original_move_records_bound',20),('movement_profile','historical-stress'),
+                ('movement_profile_sha256','f'*64),('scheduled_start_offsets_ms',[0,1000])]:
+            with self.subTest(field=key):
+                self.bundle=copy.deepcopy(original);self.bundle[key]=value;self.save()
+                with self.assertRaises(ValueError):timeline(self.directory,self.metadata)
+        self.bundle=copy.deepcopy(original)
+        self.bundle['segments'][0]['actual_start_ms']=14999;self.save()
+        with self.assertRaisesRegex(ValueError,'ownership boundary'):timeline(self.directory,self.metadata)
 
     def test_same_ssrc_different_streams_remain_separate_and_repeated_clocks_fail(self):
         sample=dict(elapsed_ms=2000,timestamp=3000,ssrc=7,payload='AQ==',key=True,stream_id='first')

@@ -1,0 +1,241 @@
+{
+  "format": "connect/native-replacement-projection-result/1",
+  "task": "G6-058",
+  "passed": false,
+  "source_revision": "f06fa8f35361cd3ac5d3739b9c09219f3edf1028",
+  "binary_sha256": "e3c9a7aa2d57b17f5dac957461701c814fa0a4378d11a85c053b3b4d843e9969",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "44d50a80d2625f586bc1cf07977078d8636da681cd95c72b195027510a5e4717",
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "moves_completed": 5,
+  "moves": [
+    {
+      "source_index": 0,
+      "session_index": 0,
+      "ordinal": 0,
+      "elapsed_ms": 2289.016813,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 4,
+      "session_index": 1,
+      "ordinal": 0,
+      "elapsed_ms": 2961.593433,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 0,
+      "session_index": 0,
+      "ordinal": 1,
+      "elapsed_ms": 6449.942474000001,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 4,
+      "session_index": 1,
+      "ordinal": 1,
+      "elapsed_ms": 6874.787343000002,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 4,
+      "session_index": 1,
+      "ordinal": 2,
+      "elapsed_ms": 6174.131192000001,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "data_exchange_verified": true
+    }
+  ],
+  "roots": [
+    {
+      "slot": "0-2",
+      "state": "unknown",
+      "revision": 15,
+      "problem": null
+    },
+    {
+      "slot": "4-2",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    },
+    {
+      "slot": "4-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    },
+    {
+      "slot": "0-1",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    },
+    {
+      "slot": "4-1",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    },
+    {
+      "slot": "0-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    }
+  ],
+  "phase_recording": [
+    {
+      "slot": "0-0",
+      "phase": "Attach",
+      "elapsed_ms": 5.013,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Activate",
+      "elapsed_ms": 2.952,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Attach",
+      "elapsed_ms": 4.72,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Activate",
+      "elapsed_ms": 5.534,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Readiness",
+      "elapsed_ms": 4.596,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Readiness",
+      "elapsed_ms": 5.934,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Attach",
+      "elapsed_ms": 42.807,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Activate",
+      "elapsed_ms": 12.837,
+      "error": null
+    },
+    {
+      "slot": "4-1",
+      "phase": "Attach",
+      "elapsed_ms": 4.483,
+      "error": null
+    },
+    {
+      "slot": "4-1",
+      "phase": "Activate",
+      "elapsed_ms": 8.713,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Readiness",
+      "elapsed_ms": 5.151,
+      "error": null
+    },
+    {
+      "slot": "4-1",
+      "phase": "Readiness",
+      "elapsed_ms": 60.661,
+      "error": null
+    },
+    {
+      "slot": "0-2",
+      "phase": "Attach",
+      "elapsed_ms": 3.548,
+      "error": null
+    },
+    {
+      "slot": "0-2",
+      "phase": "Activate",
+      "elapsed_ms": 197.41,
+      "error": null
+    },
+    {
+      "slot": "0-2",
+      "phase": "Readiness",
+      "elapsed_ms": 8.306,
+      "error": null
+    },
+    {
+      "slot": "4-2",
+      "phase": "Attach",
+      "elapsed_ms": 4.763,
+      "error": null
+    },
+    {
+      "slot": "4-2",
+      "phase": "Activate",
+      "elapsed_ms": 16.306,
+      "error": null
+    },
+    {
+      "slot": "4-2",
+      "phase": "Readiness",
+      "elapsed_ms": 8.041,
+      "error": null
+    }
+  ],
+  "observation_elapsed_ms": 21354.716532,
+  "failure": {
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "observation": {
+      "stage": "media-workload"
+    }
+  },
+  "all_original_tasks_joined": true,
+  "all_observed_helpers_joined": true,
+  "servers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "unretired_native_lifetimes": 0,
+  "original_db_wal_unchanged": true,
+  "full_programme_passed": false,
+  "independent_full_decode_executed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Same original6AVData/4participants/2Sessions/20moves/62sprogramme/60sobservation/8sreadwait. Five completed roots and returned movement stages with camera and bidirectional Data checks; source0thirdroot remainsunknown15afterworkloadabort. No activation recording authority-busy refusal in this run. The first failure reaches the current Session observation loop as a read-only SDK deadline; exact owner and cause require further evidence.21.355s partial observation, all6targets/tasks/helpers/serversjoined, stoppedunretired0. No replay, workload reduction, decoder/quality/capture/cell pass.",
+  "historical_stress_result": true,
+  "required_moves_in_that_run": 20,
+  "active_movement_profile_qualified": false
+}

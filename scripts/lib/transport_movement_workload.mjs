@@ -1,4 +1,4 @@
-// Twenty original physical replacements while the six-route AV owner is live.
+// One switch and return per Session while the six-route AV owner is live.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdir, open } from "node:fs/promises";
@@ -8,6 +8,8 @@ import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 import { endRetainedConnections } from "./transport_current_end.mjs";
 import { exchangeMovementData } from "./transport_movement_data.mjs";
+import { setTimeout as sleep } from "node:timers/promises";
+import { MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "./transport_movement_profile.mjs";
 
 async function save(path, value) {
     const file = await open(path, "wx", 0o600);
@@ -18,7 +20,8 @@ async function save(path, value) {
 export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
     executable, executableSha256, currentEnds, dataClients, startTarget = startPhysicalReplacementTarget,
-    endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = () => performance.now() }) {
+    endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = () => performance.now(),
+    wait = (ms, signal) => sleep(ms, undefined, { signal }) }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
@@ -52,8 +55,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.equal(sourcePrograms[index].videoFrames.length, 1860);
     }
     await mkdir(directory, { mode: 0o700 });
-    const plan = sources.flatMap(sourceIndex => Array.from({ length: 10 }, (_, ordinal) => ({
-        sourceIndex, ordinal, targetIndex: (ordinal + 1) % 2,
+    const plan = sources.flatMap(sourceIndex => Array.from({ length: MOVES_PER_SESSION }, (_, ordinal) => ({
+        sourceIndex, ordinal, targetIndex: (ordinal + 1) % 2, scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal],
         operationId: "move_" + randomUUID(), subscriptionId: "camera_" + randomUUID(),
         audioId: "audio_" + randomUUID(), videoId: "video_" + randomUUID(),
         ...(dataWorkload ? { dataId: "data_" + randomUUID() } : {}),
@@ -75,8 +78,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     assert.equal(new Set(originals).size, originals.length);
     if (dataWorkload) {
         const messages = plan.flatMap(step => Object.values(step.data));
-        assert.equal(new Set(messages.map(original => original.message_id)).size, 40);
-        assert.equal(new Set(messages.map(original => original.body_base64)).size, 40);
+        assert.equal(new Set(messages.map(original => original.message_id)).size, TOTAL_MOVES * 2);
+        assert.equal(new Set(messages.map(original => original.body_base64)).size, TOTAL_MOVES * 2);
     }
     await save(join(directory, "plan.json"), plan);
     await save(join(directory, "current-end-plan.json"), {
@@ -169,6 +172,17 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             });
             stage("current-workload");
             assertCurrent();
+            stage("scheduled-move");
+            const due = workload.startedAt + step.scheduled_start_ms;
+            while (now() < due) {
+                const before = now();
+                try { await wait(Math.max(1, Math.ceil(due - before)), stop.signal); }
+                catch (failure) { assertCurrent(); throw failure; }
+                assertCurrent();
+                assert.ok(now() > before, "scheduled-movement-wait-must-advance-original-clock");
+            }
+            assertCurrent();
+            assert.ok(now() - workload.startedAt >= step.scheduled_start_ms, "movement-cannot-start-before-scheduled-cadence");
             stage("session-refresh");
             const session = await sessions[sid].refresh({ timeoutMs: 8000 });
             stage("source-connection-refresh");
@@ -177,7 +191,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             const retained = await connections[incoming].connection.refresh({ timeoutMs: 8000 });
             const confirm = previous ? undefined : route.expectRetirement(step.operationId);
             const moveDirectory = join(directory, sourceIndex + "-" + step.ordinal);
-            const began = performance.now();
+            const began = now();
+            assert.ok(began - workload.startedAt < 62000, "movement-must-start-inside-original-programme");
             assertCurrent();
             stage("physical-target");
             const owner = await startTarget({ controller, privateRoot, directory: moveDirectory,
@@ -190,7 +205,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 ...(dataWorkload ? { dataStreamId: step.dataId } : {}),
                 source: { seconds: 62, ssrc: 0x47000001 + sourceIndex * 256 + step.ordinal * 2,
                     audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
-                    ...(step.ordinal === 9 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
+                    ...(step.ordinal === MOVES_PER_SESSION - 1 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
                     ...(dataWorkload ? { data: step.data } : {}),
                     video: { streamId: step.videoId, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
@@ -209,7 +224,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             const observedMove = { source_index: sourceIndex, session_index: sid, ordinal: step.ordinal,
                 original_reference_preserved: owner.reference.operation_id === step.operationId,
                 original_retired: owner.movement.retired.includes(original.id),
-                camera_subscription_completed: false, elapsed_ms: performance.now() - began,
+                camera_subscription_completed: false, elapsed_ms: now() - began,
+                scheduled_start_ms: step.scheduled_start_ms, actual_start_ms: began - workload.startedAt,
                 data_exchange_verified: false,
                 stage_directory: moveDirectory };
             completed.push(observedMove);
@@ -235,11 +251,11 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                     downstream: receiver.connection, signal: stop.signal });
                 dataExchanges.push(exchange); observedMove.data_exchange_verified = true;
             }
-            observedMove.elapsed_ms = performance.now() - began;
+            observedMove.elapsed_ms = now() - began;
         }
         // The actual final peer ends its own admitted Connection at the
         // original62s boundary. Its joined receipt proves the current owner.
-        stages.set(sourceIndex, { source_index: sourceIndex, session_index: sid, ordinal: 9,
+        stages.set(sourceIndex, { source_index: sourceIndex, session_index: sid, ordinal: MOVES_PER_SESSION - 1,
             stage: "final-natural-owner-join" });
         await collect(previous, sourceIndex, previousDirectory, true);
         return { sourceIndex, connection: current };
@@ -262,20 +278,22 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         if (firstFailure) throw firstFailure;
         assertCurrent();
         assert.ok(results.every(v => v.status === "fulfilled"));
-        assert.equal(completed.length, 20);
-        assert.equal(segments.length, 20);
+        assert.equal(completed.length, TOTAL_MOVES);
+        assert.equal(segments.length, TOTAL_MOVES);
         assert.equal(physicalEnds.length, 2);
         assert.equal(results[2].value.retained_connections_retired, 4);
         if (dataWorkload) {
-            assert.equal(dataExchanges.length, 20);
+            assert.equal(dataExchanges.length, TOTAL_MOVES);
             assert.ok(completed.every(move => move.data_exchange_verified));
         }
         assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_subscription_completed));
-        const observation = { original_moves_completed: 20, concurrent_session_chains: 2,
+        const observation = { original_moves_completed: TOTAL_MOVES, concurrent_session_chains: 2,
+            movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
+            scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS,
             data_resource_contract_requested: dataWorkload,
             replacement_data_io_verified: dataWorkload,
             replacement_data_exchanges: dataExchanges,
-            moves_per_source: [10, 10], active_av_routes: 6, maximum_pending_candidates: 2,
+            moves_per_source: [MOVES_PER_SESSION, MOVES_PER_SESSION], active_av_routes: 6, maximum_pending_candidates: 2,
             planned_peak_connection_slots: 8, shared_sdk_closed_during_replacement: false,
             original_program_start_unix_us: workload.programStartUnixUs,
             current_owner_end: { physical: physicalEnds, retained: results[2].value,
@@ -292,6 +310,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         const failure = joins.find(v => v.status === "rejected");
         if (firstFailure) await save(join(directory, "movement-failure.json"), {
             passed: false, original_moves_completed: completed.length, moves: completed,
+            movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
+            scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS,
             physical_segments: segments, failure: { name: firstFailure.name,
                 kind: firstFailure.kind ?? null, certainty: firstFailure.certainty ?? null,
                 observation: firstFailureStage ?? null, ...operationFailure(firstFailure) },

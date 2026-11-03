@@ -1,5 +1,15 @@
 # Physical native replacement peer
 
+Current movement profile (owner amendment, November 2): four physical moves
+in total, one switch and one return per Session, scheduled at 15 and 40 seconds
+on the original 62-second programme clock. There are eight distinct original
+64 KiB movement Data messages and six current-owner ends. All media-quality,
+current-authorization, original-operation recovery, independent decode/capture
+and cleanup checks still apply. The dated twenty-move observations below are
+historical stress evidence, not qualification of the amended profile. See the
+[operating profile](../decisions/015-gate-6-operating-profile.md) and
+[owner amendment](../evidence/gate-6/owner-movement-amendment.json).
+
 The independent Rust SDK consumer now has a `replacement_peer` mode. It uses
 only `connect_client::canonical::CanonicalClient` and the public allocation,
 media-start, signed-answer and native-datagram interfaces. The SDK controller's
@@ -332,7 +342,7 @@ A completed replacement journal can be observed before its ordinary service medi
 The live physical owner accepts a separately planned `source.terminalEndOperationId` only for its original 62-second AV programme. It stops media at that boundary and submits one original `connection.end` on its own public client, within the same programme's five-second teardown cutoff. Complete original intent and verified reply batches remain private. Unknown submission permits only status recovery of that saved key. The parent binds the receipt to the actual admitted connection and unchanged cutoff. The retained-route helper ends only the four retained SDK connections and joins all their packet work and original outcomes, including on failure. Full workload orchestration and runtime qualification remain open; these components do not qualify a transport cell.
 
 
-The current main media producer wires seven enrolled Devices, two independent movement controllers, forty distinct original64KiB Data messages, and all six current-owner ends. The final two physical owners also require current-authorized retired-generation observations within the original programme's62..67s cutoff. Full runtime qualification is pending. See [the applied Data integration](../evidence/gate-6/replacement-data-integration.json).
+The pre-amendment twenty-move media producer wired seven enrolled Devices, two independent movement controllers, forty distinct original64KiB Data messages, and all six current-owner ends. The final two physical owners also require current-authorized retired-generation observations within the original programme's62..67s cutoff. Full runtime qualification is pending. See [the applied Data integration](../evidence/gate-6/replacement-data-integration.json).
 
 Joined capture inspection keeps the full Data receipt in its original private
 capture and receipt files. The worker transfers a digest of every flat receipt
@@ -345,7 +355,7 @@ receipt comparison. Before/after verification reads the same stopped production
 captures without resubmitting any original mutation; it cannot turn the earlier
 failed runtime workload into a pass. See [the scoped inspector fix](../evidence/gate-6/capture-data-control-summary.json).
 
-Each physical peer now records `root_completed_observed_programme_us` at its verified original-root read boundary. This is its application observation time, not an invented backend commit or kernel arrival time. Packet interpretation retains pre-observation rows separately. The main producer binds the original six recordings and twenty physical captures; separate Opus/VP8 histories never share compressed decoder state across physical receiver, stream or SSRC boundaries. Ownership intervals exclude old-owner rows after the next recorded root observation. The whole-window decoder keeps original timestamps, refuses duplicate frame coverage, and resets marker onset detection per history.
+Each physical peer now records `root_completed_observed_programme_us` at its verified original-root read boundary. This is its application observation time, not an invented backend commit or kernel arrival time. Packet interpretation retains pre-observation rows separately. The pre-amendment twenty-move producer bound the original six recordings and twenty physical captures; separate Opus/VP8 histories never share compressed decoder state across physical receiver, stream or SSRC boundaries. Ownership intervals exclude old-owner rows after the next recorded root observation. The whole-window decoder keeps original timestamps, refuses duplicate frame coverage, and resets marker onset detection per history.
 
 The controlled encoded-source calibration passes all six full60s receiver windows across92 decoder histories, while preserving the frozen quality/marker limits. Its custody input is synthetic and proves no live service, Data, journal, device presentation or transport behavior. Normal production verification and the actual full main rehearsal remain required. See [capture integration and calibration evidence](../evidence/gate-6/moving-capture-integration.json).
 

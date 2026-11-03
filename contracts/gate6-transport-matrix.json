@@ -43,7 +43,15 @@
   "workload": {
     "participants": 4,
     "connections": 6,
-    "concurrent_sessions": 2
+    "concurrent_sessions": 2,
+    "movement": {
+      "profile": "gate6-realistic-device-roundtrip-v1",
+      "total_moves": 4,
+      "moves_per_session": 2,
+      "start_offsets_ms": [15000, 40000],
+      "programme_ms": 62000,
+      "owner_amendment": "2026-11-02: owner requested fewer, realistic moves. One switch and one return per Session, spread over the existing programme. Earlier twenty-move runs remain historical stress evidence."
+    }
   },
   "required_checks": [
     "identified-candidate-client-server-versions",

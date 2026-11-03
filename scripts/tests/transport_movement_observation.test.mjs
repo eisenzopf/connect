@@ -5,6 +5,8 @@ import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { physicalMovementSegments } from "../lib/transport_movement_observation.mjs";
 
+import { MOVE_START_OFFSETS_MS, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "../lib/transport_movement_profile.mjs";
+
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const save = (path, value) => writeFile(path, JSON.stringify(value) + "\n", { mode: 0o600 });
 async function fixture(dataProfile = false) {
@@ -14,8 +16,9 @@ async function fixture(dataProfile = false) {
     const streamIds = connectionIds.map(id => ({ audio: id + "-audio", video: id + "-video",
         ...(dataProfile ? { data: id + "-data" } : {}) }));
     const program = 1_800_000_000_000_000, executableSha256 = "a".repeat(64);
-    const movement = { original_moves_completed: 20, concurrent_session_chains: 2, moves_per_source: [10, 10],
-        active_av_routes: 6, maximum_pending_candidates: 2, shared_sdk_closed_during_replacement: false,
+    const movement = { original_moves_completed: 4, concurrent_session_chains: 2, moves_per_source: [2, 2],
+        movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
+        scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS, active_av_routes: 6, maximum_pending_candidates: 2, shared_sdk_closed_during_replacement: false,
         original_program_start_unix_us: program, moves: [], physical_segments: [] };
     const dataIo = dataProfile === "io";
     if (dataIo) { movement.replacement_data_io_verified = true; movement.replacement_data_exchanges = []; }
@@ -23,10 +26,10 @@ async function fixture(dataProfile = false) {
     for (const sourceIndex of [0, 4]) {
         let current = connectionIds[sourceIndex];
         const sid = Number(sourceIndex === 4), peer = sourceIndex === 0 ? 3 : 5;
-        for (let ordinal = 0; ordinal < 10; ordinal++) {
+        for (let ordinal = 0; ordinal < 2; ordinal++) {
             const key = sourceIndex + "-" + ordinal, folder = join(directory, key);
             await mkdir(folder, { mode: 0o700 });
-            const step = { sourceIndex, ordinal, operationId: "move-" + key,
+            const step = { sourceIndex, ordinal, scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal], operationId: "move-" + key,
                 subscriptionId: "camera-" + key, audioId: "audio-" + key, videoId: "video-" + key,
                 ...(dataProfile ? { dataId: "data-" + key } : {}) };
             plan.push(step);
@@ -45,8 +48,8 @@ async function fixture(dataProfile = false) {
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
                 video_controls_completed: true, operation_completed_inferred: false, decoded_media_verified: false,
                 program_start_unix_us: program, negotiated_streams: streams,
-                root_completed_observed_programme_us: ordinal * 3_000_000 + 2_000_000,
-                received: [{ elapsed_us: ordinal * 3_000_000 + 2_000_000, datagram, original_root_completed_observed: true }] };
+                root_completed_observed_programme_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000,
+                received: [{ elapsed_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000, datagram, original_root_completed_observed: true }] };
             const next = "candidate-" + key;
             let dataFiles, inputHash;
             if (dataIo) {
@@ -56,14 +59,14 @@ async function fixture(dataProfile = false) {
                     from_participant: "local", to_participant: "downstream", body_base64: Buffer.alloc(65536, 8).toString("base64") };
                 step.data = { incoming, outgoing };
                 const scope = { conversation_id: "room", session_id: sessionIds[sid], connection_id: next };
-                const cutoff = ordinal * 3000 + 10100;
+                const cutoff = MOVE_START_OFFSETS_MS[ordinal] + 10100;
                 const receipt = { format: "connect/physical-data-exchange/1", root_operation_id: step.operationId,
                     conversation_id: "room", session_id: sessionIds[sid], connection_id: next,
                     incoming_operation_id: incoming.operation_id, incoming_message_id: incoming.message_id,
                     outgoing_operation_id: outgoing.operation_id, outgoing_message_id: outgoing.message_id,
                     incoming_exact_body_base64: incoming.body_base64, incoming_received: true, outgoing_core_queue_admission: true,
                     outgoing_mutation_submissions: 1, outgoing_recovered_read_only: false, original_root_completed_observed: true,
-                    cutoff_programme_ms: cutoff, observed_programme_ms: ordinal * 3000 + 2150, remote_delivery_inferred: false };
+                    cutoff_programme_ms: cutoff, observed_programme_ms: MOVE_START_OFFSETS_MS[ordinal] + 2150, remote_delivery_inferred: false };
                 observed.data_exchange_receipt = receipt;
                 const reference = { schema: "connect-operation-reference/1", command: "message.send", operation_id: incoming.operation_id,
                     scope: { ...scope, connection_id: connectionIds[peer] } };
@@ -72,7 +75,7 @@ async function fixture(dataProfile = false) {
                 const values = {
                     "data-start": { format: "connect/physical-data-start/1", root_operation_id: step.operationId, connection_id: next,
                         incoming_operation_id: incoming.operation_id, outgoing_operation_id: outgoing.operation_id,
-                        armed_programme_ms: ordinal * 3000 + 2100, cutoff_programme_ms: cutoff },
+                        armed_programme_ms: MOVE_START_OFFSETS_MS[ordinal] + 2100, cutoff_programme_ms: cutoff },
                     "data-original-send": { format: "connect/physical-data-original/1", type: "message.send",
                         scope: { ...scope, operation_id: outgoing.operation_id }, payload: payload(outgoing) },
                     "data-receipt": receipt,
@@ -117,7 +120,8 @@ async function fixture(dataProfile = false) {
             await save(join(folder, "admission.json"), { movement: {
                 retired: [current], retained: [connectionIds[peer]], connection: next } });
             movement.moves.push({ source_index: sourceIndex, ordinal, session_index: sid, stage_directory: folder,
-                original_reference_preserved: true, original_retired: true, camera_subscription_completed: true });
+                original_reference_preserved: true, original_retired: true, camera_subscription_completed: true,
+                scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal], actual_start_ms: MOVE_START_OFFSETS_MS[ordinal] + 100 });
             movement.physical_segments.push({ sourceIndex, observation: join(folder, "target-observation.json"), sha256: captureHash });
             current = next;
         }
@@ -135,21 +139,21 @@ async function edit(options, name, change) {
     change(value); await save(path, value);
 }
 
-test("twenty capture records bind two exact original chains without claiming decoded quality", () => run(undefined, async options => {
+test("four capture records bind two exact original chains without claiming decoded quality", () => run(undefined, async options => {
     const result = await physicalMovementSegments(options);
-    assert.equal(result.original_move_records_bound, 20);
-    assert.equal(result.segments.length, 20);
-    assert.deepEqual(result.final_connections, [{ source_index: 0, connection_id: "candidate-0-9" },
-        { source_index: 4, connection_id: "candidate-4-9" }]);
-    assert.equal(result.segments[0].capture.audio[0].rows[0].elapsed_ms, 2000);
-    assert.equal(result.segments[9].capture.audio[0].rows[0].elapsed_ms, 29000);
+    assert.equal(result.original_move_records_bound, 4);
+    assert.equal(result.segments.length, 4);
+    assert.deepEqual(result.final_connections, [{ source_index: 0, connection_id: "candidate-0-1" },
+        { source_index: 4, connection_id: "candidate-4-1" }]);
+    assert.equal(result.segments[0].capture.audio[0].rows[0].elapsed_ms, 17000);
+    assert.equal(result.segments[1].capture.audio[0].rows[0].elapsed_ms, 42000);
     assert.equal(result.segments[0].capture.video.length, 0, "fixture has no decoded or assembled video");
     assert.equal(result.full_timeline_decoded, false); assert.equal(result.cell_qualified, false);
 }));
 
-test("twenty Data captures retain both original reliable bindings without claiming Data IO", () => run(undefined, async options => {
+test("four Data captures retain both original reliable bindings without claiming Data IO", () => run(undefined, async options => {
     const result = await physicalMovementSegments(options);
-    assert.equal(result.segments.length, 20);
+    assert.equal(result.segments.length, 4);
     for (const segment of result.segments) {
         assert.equal(segment.capture.negotiated_data_resources.length, 2);
         assert.equal(segment.capture.reliable_data_io_verified, false);
@@ -162,9 +166,9 @@ test("twenty Data captures retain both original reliable bindings without claimi
     await assert.rejects(physicalMovementSegments(options), /movement identities must be unique/);
 }, true));
 
-test("twenty complete Data proofs bind source contract, original intents, actual receives, parent bytes and every private artifact", () => run(undefined, async options => {
+test("four complete Data proofs bind source contract, original intents, actual receives, parent bytes and every private artifact", () => run(undefined, async options => {
     const result = await physicalMovementSegments(options);
-    assert.equal(result.reliable_data_exchanges_bound, 20);
+    assert.equal(result.reliable_data_exchanges_bound, 4);
     assert.ok(result.segments.every(segment => segment.reliable_data.original_data_messages_bound === 2));
     assert.equal(result.full_timeline_decoded, false);
     await edit(options, "target-observation.data-receipt.json", value => { value.connection_id = "foreign"; });
@@ -179,11 +183,30 @@ test("live packet owners and incomplete movement sets refuse before reading a di
     await assert.rejects(physicalMovementSegments({ packetWorkersJoined: true, movement: { original_moves_completed: 19 } }));
 });
 
+test("historical stress counts, another profile and an early move cannot qualify the amended cadence", async () => {
+    for (const change of [
+        o => { o.movement.original_moves_completed = 20; },
+        o => { o.movement.movement_profile = "historical-stress"; },
+        o => { o.movement.movement_profile_sha256 = "f".repeat(64); },
+        o => { o.movement.scheduled_start_offsets_ms = [0, 1000]; },
+        o => { o.plan[0].scheduled_start_ms = 0; },
+        o => { o.movement.moves[0].actual_start_ms = 14999; },
+        o => { o.movement.moves[0].actual_start_ms = 62000; },
+    ]) await run(change, o => assert.rejects(physicalMovementSegments(o)));
+});
+
+test("even internally rehashed capture bytes cannot place the original completion before the scheduled move", () => run(async o => {
+    await edit(o, "target-observation.json", value => { value.root_completed_observed_programme_us = 14_999_999; });
+    const digest = sha(await readFile(join(o.directory, "0-0/target-observation.json")));
+    o.movement.physical_segments[0].sha256 = digest;
+    await edit(o, "stage.json", value => { value.target_observation_sha256 = digest; });
+}, o => assert.rejects(physicalMovementSegments(o), /captured-root-observation-cannot-precede-scheduled-move/)));
+
 test("original operation, Session and predecessor identity cannot be substituted", async () => {
     for (const change of [
         r => { r.operation_id = "different-original"; },
         r => { r.scope.session_id = "session-1"; },
-        r => { r.scope.connection_id = "candidate-0-9"; },
+        r => { r.scope.connection_id = "candidate-0-1"; },
     ]) await run(o => edit(o, "original-reference.json", change), o => assert.rejects(physicalMovementSegments(o)));
 });
 

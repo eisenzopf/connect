@@ -12,6 +12,22 @@ cleanup requirements remain unchanged. Earlier x86 results retain their old
 source/architecture scope and cannot qualify ARM. Historical dated profiles below
 are superseded only as to the active Linux target; they are not relabeled passes.
 
+November 2 owner movement amendment: “that's more moves than is realistic.
+reduce the moves for the test.” The active device-movement profile is now
+`gate6-realistic-device-roundtrip-v1`: four moves total, one switch and one
+return in each of the two concurrent Sessions. Both Session chains schedule
+their switch at 15 seconds and return at 40 seconds on the original 62-second
+programme clock. A chain waits until its scheduled offset before current reads
+or target admission; a slow move cannot reset that clock or extend the programme.
+The four participants, six Connections, 60-second media observation, eight-second
+current reads, media quality and interruption limits, authorization, original
+operation recovery, independent decode, packet capture, five-second teardown and
+ten-second idle checks remain required. This changes device-movement count and
+cadence only; the separate twenty-handoff requirement remains. Bind every new
+result to the movement profile and digest in
+`contracts/gate6-transport-matrix.json`. Earlier twenty-move runs remain
+historical stress evidence; earlier partial runs cannot qualify this new profile.
+
 ## Runtime and topology
 
 Local development/first run: macOS arm64. Baseline observed macOS and toolchain

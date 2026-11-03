@@ -68,8 +68,17 @@ def load_contract(root):
         raise ValueError("Incomplete matrix behavior checklist")
     if len(contract["browser_selection_checks"]) != 2 or set(contract["browser_selection_checks"]) != SELECTION_CHECKS:
         raise ValueError("Fallback/refusal checks absent")
-    if contract["workload"] != dict(participants=4, connections=6, concurrent_sessions=2):
+    workload = contract["workload"]
+    if set(workload) != {"participants", "connections", "concurrent_sessions", "movement"} or any(
+            workload.get(key) != value for key, value in dict(participants=4, connections=6, concurrent_sessions=2).items()):
         raise ValueError("Declared workload differs")
+    movement = workload["movement"]
+    if not isinstance(movement, dict) or set(movement) != {
+            "profile", "total_moves", "moves_per_session", "start_offsets_ms", "programme_ms", "owner_amendment"} or any(
+            movement.get(key) != value for key, value in dict(profile="gate6-realistic-device-roundtrip-v1",
+                total_moves=4, moves_per_session=2, start_offsets_ms=[15000, 40000], programme_ms=62000).items()
+            ) or not isinstance(movement.get("owner_amendment"), str) or not movement["owner_amendment"].strip():
+        raise ValueError("Owner-approved movement profile differs")
     if len(contract["service_contract"]) != 4 or set(contract["service_contract"]) != SERVICE_INPUTS:
         raise ValueError("Service protocol or HTTP reference omitted")
     for name in [contract["profile"], *contract["service_contract"], *contract["fixture_templates"]]:

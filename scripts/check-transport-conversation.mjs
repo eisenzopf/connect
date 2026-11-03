@@ -14,6 +14,7 @@ import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
 import { deviceMovementWorkload } from "./lib/transport_movement_workload.mjs";
 import { observeMovementSessions } from "./lib/transport_movement_sessions.mjs";
 import { physicalMovementSegments } from "./lib/transport_movement_observation.mjs";
+import { TOTAL_MOVES } from "./lib/transport_movement_profile.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputPath = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
@@ -409,7 +410,7 @@ try {
                     report.device_movement = observed.value.observation;
                     return observed.value.observation;
                 });
-            report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === 20;
+            report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === TOTAL_MOVES;
             report.data_workload.current_owner_end = report.device_movement.current_owner_end;
             phase = "original-and-physical-capture-custody";
             const normalized = await physicalMovementSegments({ directory: join(privateDirectory, "movement"),
@@ -429,8 +430,8 @@ try {
                 reliable_data_exchanges_bound: normalized.reliable_data_exchanges_bound };
             assert.equal(report.device_movement.replacement_data_io_verified, true);
             const movementMessages = report.device_movement.replacement_data_exchanges.flatMap(exchange => exchange.messages);
-            assert.equal(movementMessages.length, 40);
-            assert.equal(new Set(movementMessages.map(message => message.message_id)).size, 40);
+            assert.equal(movementMessages.length, TOTAL_MOVES * 2);
+            assert.equal(new Set(movementMessages.map(message => message.message_id)).size, TOTAL_MOVES * 2);
             for (const [role, previous] of priorHistory) {
                 const participant = member(view, role).id;
                 const additional = movementMessages.filter(message => [message.from_participant, message.to_participant].includes(participant))
@@ -443,7 +444,7 @@ try {
             for (const role of controllerRoles) {
                 await clients.get(role).close({ timeoutMs: 5000 }); clients.delete(role);
             }
-            check("six-native-routes-twenty-original-moves-and-six-current-owner-ends-with-original-programme-clock");
+            check("six-native-routes-four-scheduled-original-moves-and-six-current-owner-ends-with-original-programme-clock");
         }
         phase = "six-native-connections-original-end";
         // Media ends already belong to four retained SDKs and two final peers.

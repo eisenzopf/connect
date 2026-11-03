@@ -1,0 +1,83 @@
+{
+  "format": "connect/gate6-owner-movement-amendment/1",
+  "date": "2026-11-02",
+  "tasks": [
+    "G6-058",
+    "G6-098"
+  ],
+  "source_parent": "f06fa8f35361cd3ac5d3739b9c09219f3edf1028",
+  "owner_instruction": "that's more moves than is realistic. reduce the moves for the test",
+  "previous_required_moves": 20,
+  "movement_profile": "gate6-realistic-device-roundtrip-v1",
+  "movement_profile_sha256": "9ba8a512a75796bd5facbf6c00bc257bb9d85d7b7317e390a31796cd958cc060",
+  "workload": {
+    "profile": "gate6-realistic-device-roundtrip-v1",
+    "total_moves": 4,
+    "moves_per_session": 2,
+    "start_offsets_ms": [
+      15000,
+      40000
+    ],
+    "programme_ms": 62000,
+    "owner_amendment": "2026-11-02: owner requested fewer, realistic moves. One switch and one return per Session, spread over the existing programme. Earlier twenty-move runs remain historical stress evidence."
+  },
+  "unchanged_requirements": {
+    "participants": 4,
+    "connections": 6,
+    "concurrent_sessions": 2,
+    "programme_ms": 62000,
+    "observation_ms": 60000,
+    "current_read_timeout_ms": 8000,
+    "teardown_ms": 5000,
+    "idle_ms": 10000,
+    "independent_decode": true,
+    "actual_private_packet_capture": true,
+    "media_quality_and_interruption_limits": true,
+    "current_authorization_and_original_operation_recovery": true,
+    "twenty_handoffs_separate_from_device_movement": true,
+    "active_matrix_cells": 32
+  },
+  "implementation": [
+    "Live producer schedules both chains against the original programme clock and performs only two moves per Session.",
+    "Cancellation or an expired programme prevents target admission; an early timer wake waits again without resetting the programme.",
+    "Node custody and independent Python decoder bind the profile digest, all four captures, eight original movement Data messages and six current-owner ends.",
+    "Historical counts/profile substitutions/early starts refuse; earlier partial stress runs are not promoted."
+  ],
+  "historical_evidence": "docs/evidence/gate-6/native-replacement-projection-result.json",
+  "fresh_arm_rehearsal": "pending",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "publication_authorized": false,
+  "candidate_files_sha256": {
+    "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+    "scripts/check-transport-conversation.mjs": "b0ca87a28cd511e5890fa3255128bfe153b949d4762bab21d3546d1d49d19b57",
+    "scripts/lib/transport_movement_profile.mjs": "476cbf67eff01704bcc859af9b535997b318623a7467acc0cca989ce930c60e2",
+    "scripts/lib/transport_movement_profile.py": "17fe81128aca6ebd909365240f93fa460829d2c6e797cf4ca9870268d8973487",
+    "scripts/lib/transport_movement_workload.mjs": "61e7f9453b3a6d4047918fb01640fe7c0ed989ee1974b0a3c4e1c986a8adc8f0",
+    "scripts/lib/transport_movement_observation.mjs": "a860460bb6710b5ae7644fec6dbdf1f4720f356a65be8a705080972eb35fa8be",
+    "scripts/lib/transport_moving_av.py": "f52ed84195ab22cd5002a62875e565106a046ef82a5e0fdbbf6be70100515773",
+    "scripts/lib/transport_matrix.py": "3563927b553c36361f21f3c015f5c9f55ee4639a508c454567abb7a48988285c"
+  },
+  "verification": [
+    {
+      "name": "movement-producer-and-offline-custody",
+      "tests_passed": 25,
+      "log_sha256": "1dfce81ebb676bed2c727ee6c54a13a6f48475941f65e5e89dbb05158c992eea"
+    },
+    {
+      "name": "transport-Python-regressions-including-matrix-and-independent-Opus-VP8-decoder",
+      "tests_passed": 83,
+      "log_sha256": "81a51336a171fa4bbb7de1478834755398dd9582fc70fde7342d1a14890bdf6a"
+    },
+    {
+      "name": "Node-Python-profile-digest-parity",
+      "passed": true
+    },
+    {
+      "name": "repository-format-check",
+      "passed": true
+    }
+  ],
+  "verification_scope": "Controller, custody, matrix and decoder tests; no fresh live amended-profile result yet."
+}
