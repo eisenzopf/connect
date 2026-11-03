@@ -7,7 +7,8 @@ import test from "node:test";
 import { nativeHost, executableHash, childPids, processExists } from "../lib/transport_host.mjs";
 
 test("actual native host and process image match the current Node executable", async () => {
-    assert.equal(nativeHost().platform, process.platform === "darwin" ? "macos-arm64" : "ubuntu24-x86_64");
+    assert.equal(nativeHost().platform, process.platform === "darwin" ? "macos-arm64" :
+        process.arch === "arm64" ? "ubuntu24-arm64" : "ubuntu24-x86_64");
     assert.equal(await executableHash(process.pid), createHash("sha256").update(await readFile(process.execPath)).digest("hex"));
     assert.equal(await processExists(process.pid), true);
 });

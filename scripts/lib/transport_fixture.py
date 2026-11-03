@@ -95,7 +95,7 @@ def workload_capacity(root, server, workload):
         raise FixtureError("fixture-workload-message-limit")
 
 
-def inspect_seed(root, seed, parameters):
+def inspect_seed(root, seed, parameters, *, arm64_component=False):
     """Validate private preparation inputs; no runtime authority is inferred."""
     fields = {"cell_id", "candidate_source_revision", "candidate_binary_sha256", "seed_manifest_sha256", "topology", "browser_origin"}
     if (not isinstance(parameters, dict) or set(parameters) != fields
@@ -107,6 +107,16 @@ def inspect_seed(root, seed, parameters):
             raise FixtureError("fixture-digest")
     matrix = inventory(root, parameters["candidate_source_revision"])
     matches = [c for c in matrix["cells"] if c["id"] == parameters["cell_id"]]
+    if arm64_component:
+        # Reuse the complete workload/seed validation without inventing a
+        # qualifying ARM cell in the frozen 32-cell acceptance inventory.
+        match = re.fullmatch(r"G6-058-component/ubuntu24-arm64/local/native-quic/(EdDSA|ES256)", parameters["cell_id"])
+        if match is None:
+            raise FixtureError("fixture-arm64-component")
+        template = next(c for c in matrix["cells"] if c["id"] ==
+            "G6-058/ubuntu24-x86_64/local/native-quic/" + match[1])
+        matches = [dict(template, id=parameters["cell_id"], server="ubuntu24-arm64",
+            expected_client_platform="ubuntu24-arm64", component_only=True)]
     if len(matches) != 1:
         raise FixtureError("fixture-cell")
     cell = matches[0]
@@ -283,10 +293,11 @@ def publish(path, content):
         os.fsync(stream.fileno())
 
 
-def materialize(root, seed, output, parameters, binary, environment):
-    plan = inspect_seed(root, seed, parameters)
+def materialize(root, seed, output, parameters, binary, environment, *, arm64_component=False):
+    plan = inspect_seed(root, seed, parameters, arm64_component=arm64_component)
     host = (platform.system(), platform.machine())
-    expected = ("Darwin", "arm64") if plan["cell"]["server"] == "macos-arm64" else ("Linux", "x86_64")
+    expected = (("Linux", "aarch64") if arm64_component else
+        ("Darwin", "arm64") if plan["cell"]["server"] == "macos-arm64" else ("Linux", "x86_64"))
     if host != expected:
         raise FixtureError("fixture-server-platform")
     if host[0] == "Linux":
@@ -349,6 +360,7 @@ def materialize(root, seed, output, parameters, binary, environment):
         production_restore_joined=True, server_configuration_materialized=True,
         participant_setup_complete=False, actual_topology_verified=False, runtime_authority_verified=False,
         packet_capture_observed=False, decoded_media_observed=False,
+        arm64_component_only=arm64_component,
         cell_qualified=False, task_complete=False, whole_gate_qualified=False)
     publish(output / "materialized.json", (json.dumps(summary, indent=2) + "\n").encode())
     directory = os.open(output, os.O_RDONLY)

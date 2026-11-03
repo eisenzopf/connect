@@ -8,10 +8,10 @@ import { release, networkInterfaces } from "node:os";
 
 const hash = value => createHash("sha256").update(value).digest("hex");
 export function nativeHost() {
-    assert.ok((process.platform === "linux" && process.arch === "x64") ||
+    assert.ok((process.platform === "linux" && ["x64", "arm64"].includes(process.arch)) ||
         (process.platform === "darwin" && process.arch === "arm64"));
     assert.ok(process.getuid() > 0);
-    return { platform: process.platform === "linux" ? "ubuntu24-x86_64" : "macos-arm64",
+    return { platform: process.platform === "linux" ? (process.arch === "arm64" ? "ubuntu24-arm64" : "ubuntu24-x86_64") : "macos-arm64",
         os: process.platform, architecture: process.arch, kernel_release: release(), ordinary_user: true };
 }
 export async function executableHash(pid) {

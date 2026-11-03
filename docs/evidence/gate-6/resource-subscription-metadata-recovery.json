@@ -120,10 +120,72 @@
     "no_journal_original_replay": true,
     "stream_quotas_source_clocks_and_quality_limits_unchanged": true
   },
-  "production_runtime_verification_pending": true,
+  "production_runtime_verification_pending": false,
   "live_capacity_failure_cause_proven": false,
   "scope": "Actual Core staged resource and routing transaction tests with controlled held current-source hooks and owned adapter fixtures, then complete default Core library (opus,vcon-signing). Four before cases fail with pre-IO Backpressure; after recovery/cancel/deadline/current source denial passes. No complete media programme, real codec quality, App, provider or transport-cell qualification.",
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "production_runtime": {
+    "source_revision": "63388ba253a23f0ef3e68ec65b121b4ac5d40bf4",
+    "passed": false,
+    "fixture_exit_code": 1,
+    "binary_sha256": "a814407caa9b52cad470cf519496e947c9795881457ae125aa30ace5a7d03b5d",
+    "peer_binary_sha256": "eeb3b57e40d4c2c4c3809bec9f4a04f79034b3dd8b5b4f338df6ef409ef5ba75",
+    "report_sha256": "59c8b7cb0b2c32dce58edb7167a4319eae3ef208869ac264fecd3c5da4b1ee69",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "elapsed_seconds_including_build": 1444.0195422503166,
+    "roots_completed_revision16": 4,
+    "forward_effects_confirmed_once": true,
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true,
+    "original_servers_gone": true,
+    "stages": [
+      {
+        "slot": "0-0",
+        "passed": true,
+        "failure": null,
+        "stage_sha256": "dd4f9527d5536415f0810302d9b202da9e3a9b7803cf2a518611d1df31f68735"
+      },
+      {
+        "slot": "0-1",
+        "passed": false,
+        "failure": {
+          "phase": "target-worker-join",
+          "name": "AssertionError",
+          "kind": null,
+          "certainty": null,
+          "source": {
+            "line": 238,
+            "column": 20
+          }
+        },
+        "stage_sha256": "283779fd52edadd117409f26ec0b9c74f3edd5cb378370b2531b63eb5674c09f"
+      },
+      {
+        "slot": "4-0",
+        "passed": true,
+        "failure": null,
+        "stage_sha256": "3a75926e460924d92df46cdc4cd185fe4886fdbf459b77c8f7216585bb4c6914"
+      },
+      {
+        "slot": "4-1",
+        "passed": false,
+        "failure": {
+          "phase": "original-completion",
+          "name": "NodeSdkError",
+          "kind": "deadline",
+          "certainty": "read-only"
+        },
+        "stage_sha256": "3e0eceeb16b7dc74257ec3faba52826e140802ee674df3afc76fd7b9da6279cc"
+      }
+    ],
+    "primary_failure": "source4/session1 original-completion read-only deadline; durable original completed revision16. A concurrent source0/session1 target-worker-join assertion also failed. No original replay. Specific completion-observation delay cause remains unproven.",
+    "full_programme_passed": false,
+    "host_capture_requested": false,
+    "cell_qualified": false,
+    "task_complete": false
+  }
 }

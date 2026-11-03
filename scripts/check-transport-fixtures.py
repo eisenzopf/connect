@@ -40,7 +40,7 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False):
     global PRIVATE, OUTPUT
     assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
     assert native_port is None or (type(native_port) is int and 1024 <= native_port <= 65535 and media_workload and network_profile == "local")
@@ -57,13 +57,18 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         PRIVATE, OUTPUT = BASE / "private/actors", BASE / "evidence/actors"
     assert signing_algorithm in {"EdDSA", "ES256"}
     os.umask(0o077)
+    if arm64_component:
+        assert platform.system() == "Linux" and platform.machine() == "aarch64"
+        assert network_profile == "local"
     if platform.system() == "Linux":
-        assert platform.machine() == "x86_64"
+        assert platform.machine() == ("aarch64" if arm64_component else "x86_64")
         release = platform.freedesktop_os_release()
         assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
-        assert re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
-        server_platform, target = "ubuntu24-x86_64", "x86_64-unknown-linux-gnu"
-        host = dict(os="linux", architecture="x86_64", kernel_release=platform.release(), distribution=release["PRETTY_NAME"])
+        cpuinfo = Path("/proc/cpuinfo").read_text()
+        assert re.search(r"^CPU architecture\s*:\s*8\s*$" if arm64_component else r"^vendor_id\s*:", cpuinfo, re.M)
+        server_platform, target = (("ubuntu24-arm64", "aarch64-unknown-linux-gnu") if arm64_component else
+            ("ubuntu24-x86_64", "x86_64-unknown-linux-gnu"))
+        host = dict(os="linux", architecture=platform.machine(), kernel_release=platform.release(), distribution=release["PRETTY_NAME"])
     else:
         assert platform.system() == "Darwin" and platform.machine() == "arm64"
         assert subprocess.check_output(["/usr/sbin/sysctl", "-n", "hw.optional.arm64"], text=True).strip() == "1"
@@ -90,7 +95,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Native macOS-arm64 or Ubuntu24.04x86_64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        scope="Native macOS-arm64 or Ubuntu24.04 x86_64/explicit ARM64 component production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+    report["arm64_component_only"] = arm64_component
     report["host_capture_requested"] = host_capture
     report["requested_native_port"] = native_port
     report["host_capture_required_for_complete_cell"] = True
@@ -230,7 +236,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 assert server.poll() is None and time.monotonic() < until
                 time.sleep(.05)
             server_pid = server.pid if namespace is None else namespace.identify_server(server)
-            actual_executable = (Path(f"/proc/{server_pid}/exe") if server_platform == "ubuntu24-x86_64" else
+            actual_executable = (Path(f"/proc/{server_pid}/exe") if platform.system() == "Linux" else
                 Path(subprocess.check_output(["/bin/ps", "-ww", "-p", str(server_pid), "-o", "comm="], text=True).strip()))
             assert actual_executable.is_absolute() and digest(actual_executable) == report["binary_sha256"]
             report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"], original_joined=False, managed_by_systemd=namespace is not None))
@@ -299,13 +305,14 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         original_seed = files(seed)
         original_server = tomllib.loads((seed / "server.toml").read_text())
         original_operator = tomllib.loads((seed / "operator.toml").read_text())
-        parameters = dict(cell_id="G6-058/" + server_platform + "/" + network_cell + "/native-quic/" + signing_algorithm,
+        identity_prefix = "G6-058-component/" if arm64_component else "G6-058/"
+        parameters = dict(cell_id=identity_prefix + server_platform + "/" + network_cell + "/native-quic/" + signing_algorithm,
             candidate_source_revision=report["source_revision"], candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=None,
             topology=dict(kind="local-loopback" if namespace is None else "ubuntu-netns", server_platform=server_platform, client_platform=server_platform,
                 client_emulated=False, native_endpoint=original_operator["endpoint"], server_name=original_operator["server_name"]))
         phase = "materialize"
-        summary = materialize(ROOT, seed, output, parameters, binary, env)
+        summary = materialize(ROOT, seed, output, parameters, binary, env, arm64_component=arm64_component)
         assert summary["server_configuration_materialized"] and summary["production_restore_joined"]
         assert not summary["cell_qualified"] and not summary["participant_setup_complete"]
         for name in ("server.toml", "operator.toml", "materialized.json"):
@@ -318,27 +325,27 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         report["checks"].append("production-restore-and-private-config-preserve-original-trust-validity-and-credential")
         before_retry = files(output)
         try:
-            materialize(ROOT, seed, output, parameters, binary, env)
+            materialize(ROOT, seed, output, parameters, binary, env, arm64_component=arm64_component)
         except FileExistsError:
             pass
         else:
             raise AssertionError("Existing fixture was replaced")
         assert files(output) == before_retry
         report["checks"].append("occupied-instance-refuses-without-overwrite")
-        wrong = dict(parameters, cell_id="G6-058/" + server_platform + "/" + network_cell + "/native-quic/" + other_algorithm)
+        wrong = dict(parameters, cell_id=identity_prefix + server_platform + "/" + network_cell + "/native-quic/" + other_algorithm)
         try:
-            materialize(ROOT, seed, PRIVATE / "wrong-signing", wrong, binary, env)
+            materialize(ROOT, seed, PRIVATE / "wrong-signing", wrong, binary, env, arm64_component=arm64_component)
         except FixtureError as error:
             assert str(error) == "fixture-signing-profile"
         else:
             raise AssertionError("Wrong signing cohort accepted")
         assert not (PRIVATE / "wrong-signing").exists()
         report["checks"].append("wrong-signing-seed-refuses-before-state-publication")
-        browser = dict(parameters, cell_id="G6-058/" + server_platform + "/" + network_cell + "/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
+        browser = dict(parameters, cell_id=identity_prefix + server_platform + "/" + network_cell + "/chrome-wss-webrtc/" + signing_algorithm, browser_origin="https://browser.fixture.invalid")
         try:
-            materialize(ROOT, seed, PRIVATE / "missing-browser", browser, binary, env)
+            materialize(ROOT, seed, PRIVATE / "missing-browser", browser, binary, env, arm64_component=arm64_component)
         except FixtureError as error:
-            assert str(error) == "fixture-browser-transports"
+            assert str(error) == ("fixture-arm64-component" if arm64_component else "fixture-browser-transports")
         else:
             raise AssertionError("Native-only seed accepted as browser fixture")
         assert not (PRIVATE / "missing-browser").exists()
@@ -657,6 +664,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--arm64-component", action="store_true", help="Native Ubuntu24.04 ARM64 local component workload; never a required x86_64 matrix cell")
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
@@ -666,8 +674,10 @@ if __name__ == "__main__":
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
+    if args.arm64_component and args.network_profile != "local":
+        parser.error("--arm64-component requires the local component profile")
     if args.without_host_capture and (not args.media_workload or args.network_profile != "local"):
         parser.error("--without-host-capture requires the explicit local --media-workload component")
     if args.native_port is not None and (not args.media_workload or args.network_profile != "local" or not 1024 <= args.native_port <= 65535):
         parser.error("--native-port requires an explicit local media fixture port in1024..65535")
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port, args.arm64_component))

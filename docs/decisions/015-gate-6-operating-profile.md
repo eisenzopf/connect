@@ -20,6 +20,19 @@ x86_64; record image digest, kernel and package versions before its rehearsal.
 A local machine cannot claim an uninstalled remote runner has been tested.
 Profile changes update this record before the affected run.
 
+November 2 owner-directed local testing update: run development and media
+diagnostics on the Mac Studio's native ARM64 Linux guest. The dedicated Colima
+`connect-gate6` VZ profile has 6 vCPUs, 12 GiB RAM and a 60 GiB guest disk;
+foreign-architecture emulation and host mounts are disabled. Use the explicit
+`colima-connect-gate6` Docker context, preserving the existing default VM and
+its unrelated database. Build and run from the guest disk, as an ordinary user.
+The local Ubuntu24.04 ARM64 component uses the same source, workloads, deadlines
+and quality limits, with explicit `G6-058-component/ubuntu24-arm64` identities.
+It cannot qualify an x86_64 acceptance cell. The original 32-cell inventory and
+hosting targets remain unchanged. Stop GitHub-hosted media qualification;
+run41574727724 was cancelled before any media result. Any cloud resources need
+owner discussion. See the [local procedure](../../scripts/fixtures/local-linux/README.md).
+
 October 25 local WT measurement update: the installed Chrome runner is now
 155.0.8059.85. Pin that patch version for the explicit 60-second capture/render
 measurements and record its actual CDP version in each report. The original

@@ -84,6 +84,31 @@ class FixtureBoundary(unittest.TestCase):
         with self.assertRaisesRegex(FixtureError, "enrollment-https-required"):
             inspect_seed(self.root, self.seed, self.parameters)
 
+    def test_arm_component_requires_explicit_mode_and_preserves_matrix_inventory(self):
+        from lib.transport_matrix import inventory
+        before = inventory(self.root, "a" * 40)
+        self.parameters["cell_id"] = "G6-058-component/ubuntu24-arm64/local/native-quic/EdDSA"
+        self.parameters["topology"].update(server_platform="ubuntu24-arm64", client_platform="ubuntu24-arm64")
+        with self.assertRaisesRegex(FixtureError, "fixture-cell"):
+            inspect_seed(self.root, self.seed, self.parameters)
+        plan = inspect_seed(self.root, self.seed, self.parameters, arm64_component=True)
+        self.assertTrue(plan["cell"]["component_only"])
+        self.assertEqual(plan["cell"]["status"], "not-run")
+        self.assertEqual(inventory(self.root, "a" * 40), before)
+        self.assertEqual(before["required_cells"], 32)
+        self.parameters["topology"]["server_platform"] = "ubuntu24-x86_64"
+        with self.assertRaisesRegex(FixtureError, "fixture-topology"):
+            inspect_seed(self.root, self.seed, self.parameters, arm64_component=True)
+
+    def test_arm_component_cannot_impersonate_a_required_cell_or_browser_or_remote(self):
+        for identity in [self.parameters["cell_id"],
+                "G6-058-component/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+                "G6-058-component/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA"]:
+            with self.subTest(identity=identity):
+                self.parameters["cell_id"] = identity
+                with self.assertRaisesRegex(FixtureError, "fixture-arm64-component"):
+                    inspect_seed(self.root, self.seed, self.parameters, arm64_component=True)
+
     def test_wrong_signing_network_or_expiry_cannot_be_rewritten_as_a_valid_cohort(self):
         base = copy.deepcopy(self.server)
         for key, value in [("signing_algorithm", "ES256"), ("network_profile", "remote"),
