@@ -31,9 +31,10 @@
     "cleanup": "After historical Ready, shut down the actual target peer to drive normal adapter cleanup and durable retirement. Direct controller cancellation alone is not claimed to remove adapter registry state.",
     "patch": "patches/rvoip/gate6-publication-retirement-observation.patch",
     "patch_sha256": "1015c5d706f0cad06904b3334fdf8c872b91b6fe24a4ec1c7a2d7f03e0c2b4bd",
-    "status": "Implemented, not compiled or executed. Only opt-in test-support observes cancellation; production default unchanged."
+    "status": "Passed at9563bd8a in10.43s. Exact before-publication case passes12.63s."
   },
   "execution_plan": "After corrected v42 component checks and Service compile pass with guards, build one server integration executable and execute only the two new signed publication cases. Preserve original failed compile and all prior scoped passes.",
   "lifecycle_build_correction": "docs/evidence/gate-6/native-publication-lifecycle-build-correction.json",
-  "latest_verification": "Original7b1e91ba integration build failed E0508 before tests with unchanged source/dependency guards. Test-only close-by-reference correction9563bd8a is running the same three new cases locally; outcomes pending."
+  "latest_verification": "Both exact signed native publication cases pass at9563bd8a; unchanged source/dependency/executable guards. Separate Data case fails fixture prerequisite, so overall run remains failed.",
+  "verified_component": "docs/evidence/gate-6/native-publication-signed-component.json"
 }

@@ -1,0 +1,64 @@
+{
+  "format": "connect/gate6-native-publication-signed-component/1",
+  "task": "G6-058",
+  "source": "9563bd8aa0ecffa9a97f305d6fe0200d875d3dd5",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "result": "Two signed native publication lifecycle cases pass; same run independently fails the Data observer case.",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 112075,
+    "source_revision": "9563bd8aa0ecffa9a97f305d6fe0200d875d3dd5",
+    "passed": false,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::publication::production_native_retirement_between_observation_and_publication_never_emits_ready",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 438 filtered out; finished in 12.63s"
+        ],
+        "log_sha256": "4ffbcf4b70fdcecab6c190cd41eb700253d11747ea5781d22073779d7e9b35af"
+      },
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::publication::production_native_retirement_during_publication_orders_ready_before_retired_without_replay",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 438 filtered out; finished in 10.43s"
+        ],
+        "log_sha256": "ecd282ef9a3bdf29b36c9ab06eba95d3c137c3c27ce3eb4396609318e6333243"
+      },
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::data_observer::production_native_data_observer_scope_failure_stops_known_move_without_ready_or_replay",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 438 filtered out; finished in 10.33s"
+        ],
+        "log_sha256": "833e5f3a70f1c642605d91048df0ddf3e6bb94f645ad3783dbad99bd9875b1c5"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_retirement_candidate": true,
+    "compile_exit_code": 0,
+    "compile_log_sha256": "4d669108cc8437abd49d4fb7730c199f2d8759b5dc4985f9c87d043a860043de",
+    "test_executable_sha256": "d2d41251b277ba3633b0bc6e86c00676fa438f2e8c9d5359cbc5b086628f4742",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 269.90557070600335
+  },
+  "coverage": [
+    "Cancellation of the actual prepared native controller between generation observation and publication produces stopped result, no Ready, exact retirement, seven once-confirmed effects and identical original replay.",
+    "Actual overlapping controller retirement cancels packets during the callback, waits for metadata release, then ordinary peer closure settles durable retirement after Ready. Original replay preserves events/results/effects; retained binding unchanged and final shutdown drains slots."
+  ],
+  "limits": [
+    "Deterministic test-support interleavings, not randomized network failures or media quality.",
+    "No duplex continuity after committed move loses target, no video bootstrap/epoch/matrix or complete Gate6 task proof.",
+    "The Data case used an audio-only profile, so the actual pending Data observer was absent and its fault hook could not execute. Ready was truthful for the configured audio fixture. Corrected Data fixture must be separately verified."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

@@ -19,5 +19,20 @@
   "cell_qualified": false,
   "G054_deferred": true,
   "lifecycle_build_correction": "docs/evidence/gate-6/native-publication-lifecycle-build-correction.json",
-  "latest_verification": "Original7b1e91ba integration build failed E0508 before tests with unchanged source/dependency guards. Test-only close-by-reference correction9563bd8a is running the same three new cases locally; outcomes pending."
+  "latest_verification": "Two native publication cases pass at9563bd8a. Data-specific case failed due missing Data fixture prerequisite; corrected single-case run active.",
+  "failed_run": {
+    "case": "canonical_native_connections::consultation::groups::replacement::activation::data_observer::production_native_data_observer_scope_failure_stops_known_move_without_ready_or_replay",
+    "exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 438 filtered out; finished in 10.33s"
+    ],
+    "log_sha256": "833e5f3a70f1c642605d91048df0ddf3e6bb94f645ad3783dbad99bd9875b1c5"
+  },
+  "failure_diagnosis": "Audio-only Session/endpoint profile created no PendingObserver; negative hook never activated and operation correctly completed Ready. Fixture did not exercise intended fault.",
+  "correction": {
+    "source": "cf078c2b2f801fd52d4f9992ddafab82823467c9",
+    "integration": "85c04561",
+    "change": "Provision audio+Data endpoint and Session, advertise json protocol, negotiate distinct replacement-data duplex stream and require its actual handle. Run only the failed Data case.",
+    "status": "Local ARM build active; outcome pending."
+  }
 }
