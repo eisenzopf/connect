@@ -1564,6 +1564,11 @@
       "path": "patches/rvoip/gate6-replacement-video-scene-fixture.patch",
       "sha256": "d62fa240175970088a382bb3a92c77c13f400763318d7957a890aafd5bb383e4",
       "source": "G6-058 P3 fixture correction: registered media scene owns ingress. Exercise actual scene ticks and retained egress/queued ingress across cutover, rather than unsupported manual receiver extraction. Original failure preserved, no passing cases rerun."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-video-fixture-retain-audio.patch",
+      "sha256": "af8233d7ddf940299cfe54283fd77bd9d0b76188930bd4fccab4dab60e5dad0c",
+      "source": "G6-058 P3 fixture correction: desired stream list is a complete next set. Retain original audio when adding video, assert unchanged audio resources, and require a valid prepared plan before negative mapping/authority cases. Original NotReady failures preserved; no production relaxation."
     }
   ]
 }

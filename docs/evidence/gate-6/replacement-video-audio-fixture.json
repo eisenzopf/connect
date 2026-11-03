@@ -1,0 +1,58 @@
+{
+  "format": "connect/gate6-replacement-video-audio-fixture/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "failed_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 113344,
+    "source_revision": "74acb814aa6afad4b2aa66e3a69226d91e712168",
+    "passed": false,
+    "steps": [
+      {
+        "group": "core",
+        "case": "staged_streams::tests::private_consult::replacement::video::replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 588 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "098299fe9ace6a91a6ae48fb39e23d3a246fd0bf4207d3b69aeeb339456fb1bd"
+      },
+      {
+        "group": "core",
+        "case": "staged_streams::tests::private_consult::replacement::video::replacement_video_directional_ports_prepare_and_transfer_without_opening_receiver_ingress",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 588 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "c3868715eb7e130ca1dcde76badccf643230541ee8d53777b4768fe81770a6c5"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "core",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "e3e482d4d1b49fdf57ee229bb857c01578172a3a5af86519ee65f8e4a2655f76",
+        "test_executable_sha256": "743963c3bae0d5719dc4c6f12cb2cc7d201b6510e24a6de0ea9c2b0ee12d85e1",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Dependent native case withheld until Core routing cases pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 370.13626039700466
+  },
+  "cause": "Fixture change desired list contained only Video. The stream lifecycle treats this as the complete next set and ended original Audio, so replacement planning returned NotReady before routing assertions.",
+  "correction": "Retain Audio alongside Video, assert original audio resources unchanged, and require a valid prepared replacement plan before negative mapping checks.",
+  "patch": "patches/rvoip/gate6-replacement-video-fixture-retain-audio.patch",
+  "verification": "Prepared source and format verified; two failed Core cases awaiting retry. Dependent new signed native SDK case withheld until both pass.",
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

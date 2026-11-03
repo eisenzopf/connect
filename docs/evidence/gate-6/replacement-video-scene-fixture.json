@@ -12,7 +12,7 @@
     "Hold actual receiver egress across commit and leave a second old frame in scene ingress; both retained receiver outputs must reject old delivery and remain empty after cutover.",
     "Both new video directions route through scene tick, unchanged negotiated bindings, exact camera/incoming targets, preserved Data quarantine and original audio checks."
   ],
-  "verification": "Prepared snapshot and format verified. Corrected case and new directional/native cases not yet run. v50 Service/client compile still active; its complete final guards/results must be read before guest mutation.",
+  "verification": "See replacement-video-audio-fixture.json for terminal guarded failures and correction; no routing PASS claimed.",
   "do_not_rerun": [
     "stream_lifecycle::tests::replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches",
     "replacement_video::tests::explicit_video_mapping_is_bounded_unambiguous_and_closed"
@@ -23,5 +23,5 @@
   "cell_qualified": false,
   "G054_deferred": true,
   "latest_component_evidence": "docs/evidence/gate-6/replacement-video-intent-component.json",
-  "latest_status": "Final guarded local ARM source8f52f376: model and protocol cases PASS; default Service/client compile PASS; Core route fixture FAIL before assertions. Corrected failed route and two new directional/native cases started at74acb814/patch290. No passing cases rerun."
+  "latest_status": "Guarded patch290 source74acb814 Core cases both failed NotReady: video-only fixture setup ended original audio. Patch291 retains audio and validates a positive plan before rejection cases. Native case remains unrun."
 }

@@ -1,0 +1,45 @@
+{
+  "format": "connect/gate6-live-vp8-encoder-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "run": {
+    "exit_code": 0,
+    "elapsed_seconds": 0.41830369699164294,
+    "source_inputs_unchanged": true,
+    "sources": {
+      "scripts/video/live_vp8_encoder.c": "59c50c1c0998c6f55f716459f763cd5141fb301392acc4d3cfe028a816ca6471",
+      "scripts/video/build_live_vp8_encoder.py": "b09c6c0f34c20cbd3608a93f63a02653f74877e3429415496ce52ed3dd647703",
+      "scripts/tests/test_live_vp8_encoder.py": "7fa11c36c88e43fe5ccbc824c98226aebba3f64a5ac642e13131474d6dd0557d",
+      "scripts/lib/package_environment.py": "103967dd3e8523c418269123ff5d171e8522c4be25b2a2629bbe99ebe63fd116"
+    },
+    "log_sha256": "e6266dd6af97c015e52d39cb0faedc95ea77e24a7fc379839a5fff0425efaa81",
+    "architecture": "aarch64"
+  },
+  "behavior": {
+    "build": {
+      "source_sha256": "59c50c1c0998c6f55f716459f763cd5141fb301392acc4d3cfe028a816ca6471",
+      "executable_sha256": "afdb1a09a653a0c4dac3c00fdccbbe5fce43508c2f3bacfe045cea4dd26a6215",
+      "libvpx": "1.14.0",
+      "scope": "Build only; not encoder behavior, transport or media qualification"
+    },
+    "independently_decoded_frames": 73,
+    "requested_keyframe_index": 7,
+    "original_indices_preserved": true,
+    "transport_qualified": false,
+    "full_media_qualified": false
+  },
+  "proof": [
+    "Requested frame 7 is freshly encoded as keyframe; unrequested counterfactual frame 7 is not a keyframe.",
+    "Independent FFmpeg decoder verifies all 40 original markers and a separate fresh decoder verifies 33 markers beginning at requested frame 7.",
+    "Original indices and maximum 30-frame GOP preserved; skipped indices force a fresh keyframe as needed.",
+    "Malformed, out-of-range, duplicate, reversed, symlink and nonprivate input refused."
+  ],
+  "remaining": [
+    "Connect encoder to bounded native transport feedback.",
+    "Authenticate activation epochs and original operation/physical incarnation.",
+    "Verify integrated request-to-keyframe and activation-to-decoded timing plus original quality and bitrate requirements."
+  ],
+  "transport_qualified": false,
+  "full_media_qualified": false,
+  "task_complete": false
+}

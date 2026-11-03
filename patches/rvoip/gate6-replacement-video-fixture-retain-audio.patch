@@ -1,0 +1,42 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+@@ -69,15 +69,28 @@
+     let video_id = desired(Medium::Video).logical_id;
+     for name in ["alice", "bob", "public"] {
+         let c = &f.room.nodes[name].controller;
++        let audio = bindings(c)
++            .into_iter()
++            .filter(|b| b.0.requested.medium == Medium::Audio)
++            .collect::<Vec<_>>();
++        assert_eq!(audio.len(), 1);
+         c.change(
+             c.revision(),
+-            &[desired(Medium::Video)],
++            &[desired(Medium::Audio), desired(Medium::Video)],
+             &BTreeSet::new(),
+             deadline(),
+             CancellationToken::new(),
+         )
+         .await
+         .unwrap();
++        assert_eq!(
++            bindings(c)
++                .into_iter()
++                .filter(|b| b.0.requested.medium == Medium::Audio)
++                .collect::<Vec<_>>(),
++            audio,
++            "adding fixture video replaced original audio resources"
++        );
+     }
+     let old = f.room.nodes["alice"].controller.clone();
+     let new = f.room.nodes["device"].controller.clone();
+@@ -141,6 +154,8 @@
+             .is_err());
+     }
+ 
++    f.plan_with_video(Some(request()))
++        .expect("valid audio/video replacement must be ready before negative mapping checks");
+     let mut invalid = request();
+     invalid.receivers[0].replacement = desired(Medium::Data).logical_id;
+     assert!(f.plan_with_video(Some(invalid)).is_err());
