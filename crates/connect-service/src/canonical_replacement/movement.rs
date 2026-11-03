@@ -181,6 +181,10 @@ impl Runtime {
         } else {
             None
         };
+        tracing::debug!(target:"connect_service::canonical_replacement",
+            connection=%outcome.admitted, stage="data-observer-recorded",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
         let read = super::projection::read(
             &self.role_projection,
             &self.stop,
@@ -200,6 +204,10 @@ impl Runtime {
                 return Err(error);
             }
         };
+        tracing::debug!(target:"connect_service::canonical_replacement",
+            connection=%outcome.admitted, stage="adoption-authority-read",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
         // Preserve the known movement before any later confirmation failure.
         // Failure here ends only this new route; it cannot roll back the commit.
         let mut confirmed = true;
