@@ -2,6 +2,13 @@
 
 2026-10-15; G6-011. These are implementation targets, not measured results.
 
+November 3 owner disposition: return **G6-054 to the holding pen** and continue
+the remaining Gate 6 dependency graph. G6-054 remains deferred and incomplete;
+its earlier resumption instructions below are historical. Do not run or
+investigate it while completing the other tasks. Its eventual qualification
+still applies to final reconciliation. Continue G6-058 on local native ARM
+resources, with the reduced four-move programme and existing quality limits.
+
 November 2 owner scope amendment: “we don’t need x86. focus on arm” and
 “we can do that later.” The active Linux target is Ubuntu24.04 ARM64, on the
 local Mac Studio VZ guest. Defer x86_64 qualification and remove it as a current
