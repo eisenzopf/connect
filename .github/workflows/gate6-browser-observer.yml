@@ -7,31 +7,18 @@ on:
         type: choice
         options: [full, native-av]
         default: full
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/video/check-renderer.mjs'
-      - 'scripts/video/owned_chromium.mjs'
-      - 'scripts/video/decoded_video_frames.mjs'
-      - 'scripts/video/decoded-video-frames.test.mjs'
-      - 'scripts/video/marker_calibration.mjs'
-      - 'scripts/video/source_identity.mjs'
-      - 'scripts/video/audio_envelope.mjs'
-      - 'scripts/video/audio_observation.mjs'
-      - 'scripts/video/audio_sample_clock.mjs'
-      - 'scripts/video/audio_spectrum.mjs'
-      - 'scripts/video/observer-tools/**'
-      - 'scripts/video/browser_profile.py'
-      - 'docs/evidence/gate-6/chrome-current-trust-probe.py'
-      - '.github/workflows/gate6-browser-observer.yml'
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 concurrency:
   group: gate6-browser-observer-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  linux-x86-renderer:
-    runs-on: ubuntu-24.04
+  linux-arm64-renderer:
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -50,15 +37,15 @@ jobs:
       - name: Calibrate observers and prove candidate normal private TLS trust
         if: ${{ inputs.lane != 'native-av' }}
         run: |
-          test "$(uname -m)" = x86_64
+          test "$(uname -m)" = aarch64
           mkdir -p .local/gate6-browser-observer/evidence
-          docker run --rm --network none --shm-size=1g --platform linux/amd64 \
+          docker run --rm --network none --shm-size=1g --platform linux/arm64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
             --workdir /work \
             --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
             --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
-            mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8 \
+            "${CONNECT_GATE6_ARM_BROWSER_IMAGE:?existing local ARM browser image required}" \
             sh -eu -c '
               node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/run
               python3 docs/evidence/gate-6/chrome-current-trust-probe.py \
@@ -70,13 +57,13 @@ jobs:
       - name: Check the full 60-second motion observer without RTC
         if: ${{ inputs.lane != 'native-av' }}
         run: |
-          docker run --rm --network none --shm-size=1g --platform linux/amd64 \
+          docker run --rm --network none --shm-size=1g --platform linux/arm64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
             --workdir /work \
             --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
             --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
-            mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8 \
+            "${CONNECT_GATE6_ARM_BROWSER_IMAGE:?existing local ARM browser image required}" \
             node scripts/video/check-renderer.mjs .local/gate6-browser-observer/evidence/quality quality
       - name: Isolate native VP8 RTC presentation without Connect
         if: ${{ inputs.lane != 'native-av' }}
@@ -94,21 +81,22 @@ jobs:
           trap cleanup_observer_network EXIT
           observer_failed=0
           for observer_mode in rtc rtc-buffer rtc-content; do
-          docker run --rm --network "$observer_network" --shm-size=1g --platform linux/amd64 \
+          docker run --rm --network "$observer_network" --shm-size=1g --platform linux/arm64 \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
             --workdir /work \
             --env CONNECT_PINNED_CHROMIUM_CACHE=/ms-playwright \
             --env CONNECT_PLAYWRIGHT_MODULE=/work/scripts/video/observer-tools/node_modules/playwright/index.mjs \
-            mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8 \
+            "${CONNECT_GATE6_ARM_BROWSER_IMAGE:?existing local ARM browser image required}" \
             node scripts/video/check-renderer.mjs ".local/gate6-browser-observer/evidence/$observer_mode" "$observer_mode" || observer_failed=1
           done
           exit "$observer_failed"
       - name: Isolate native browser AV startup without Connect
         if: always()
         run: |
-          mkdir -p .local/gate6-browser-observer/image-context .local/gate6-browser-observer/evidence
-          docker build --platform linux/amd64 --file scripts/video/Dockerfile.browser-media \
+          mkdir -p .local/gate6-browser-observer/evidence
+          python3 scripts/prepare-local-browser-image.py --browser "$CONNECT_GATE6_CHROME" --output .local/gate6-browser-observer/image-context
+          docker build --platform linux/arm64 --build-arg BUILD_BASE_IMAGE="${CONNECT_GATE6_ARM_BUILD_IMAGE:?existing local ARM build image required}" --file scripts/video/Dockerfile.browser-media \
             --tag connect-g6-observer-av .local/gate6-browser-observer/image-context
           docker image inspect --format '{{.Id}}' connect-g6-observer-av > .local/gate6-browser-observer/evidence/av-image-id.txt
           av_network="$(docker network create --internal --driver bridge --label "connect.gate6.av-observer=$GITHUB_RUN_ID" "connect-g6-av-observer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")"
@@ -122,7 +110,7 @@ jobs:
           PY
           }
           trap cleanup_av_network EXIT
-          docker run --rm --read-only --network "$av_network" --platform linux/amd64 --cpus 4 --memory 6g --shm-size=1g \
+          docker run --rm --read-only --network "$av_network" --platform linux/arm64 --cpus 4 --memory 6g --shm-size=1g \
             --tmpfs /tmp:rw,nosuid,nodev,size=1g \
             --mount "type=bind,source=$PWD,target=/work,readonly" \
             --mount "type=bind,source=$PWD/.local/gate6-browser-observer/evidence,target=/work/.local/gate6-browser-observer/evidence" \
@@ -143,7 +131,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-linux-x86-browser-observer
+          name: gate6-linux-arm64-browser-observer
           path: |
             .local/gate6-browser-observer/evidence/run/summary.json
             .local/gate6-browser-observer/evidence/run/source-inputs.json

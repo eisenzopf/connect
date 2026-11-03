@@ -6,7 +6,7 @@ from http.server import HTTPServer,BaseHTTPRequestHandler
 root=Path.cwd();parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True);selection=parser.add_mutually_exclusive_group(required=True);selection.add_argument('--binary',type=Path);selection.add_argument('--image-browser',type=Path);parser.add_argument('--renderer-manifest',type=Path);parser.add_argument('--playwright-module',type=Path,required=True);args=parser.parse_args()
 out=args.output.absolute();assert out.is_relative_to(root/'.local');out.mkdir(parents=True,mode=0o700,exist_ok=False)
 if args.image_browser:
- image=json.loads(args.image_browser.read_text());assert image['architecture']=='x64' and len(image['candidates'])==1
+ image=json.loads(args.image_browser.read_text());assert image['architecture']=='arm64' and len(image['candidates'])==1
  binary=Path(image['candidates'][0]);assert str(binary).startswith('/ms-playwright/chromium-')
 else:binary=args.binary.absolute()
 module_path=args.playwright_module.absolute()

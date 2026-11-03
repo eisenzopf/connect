@@ -1,11 +1,11 @@
 # Isolated native remote fixture
 
-Build the owned Ubuntu 24.04 Linux/amd64 SDK compiler image locally:
+Build the owned Ubuntu 24.04 Linux/arm64 SDK compiler image locally:
 
 ```sh
-docker build --platform linux/amd64 -f scripts/fixtures/native-remote/Dockerfile.base -t connect-gate6-native-client:rust1971-ubuntu2404 scripts/fixtures/native-remote
-docker build --platform linux/amd64 -f scripts/fixtures/native-remote/Dockerfile.verify -t connect-gate6-native-client:verified1971-ubuntu2404 scripts/fixtures/native-remote
-docker build --platform linux/amd64 -f scripts/fixtures/native-remote/Dockerfile.clang -t connect-gate6-native-client:clang1971-ubuntu2404 scripts/fixtures/native-remote
+docker --context colima-connect-gate6 build --platform linux/arm64 -f scripts/fixtures/native-remote/Dockerfile.base -t connect-gate6-native-client:rust1971-ubuntu2404 scripts/fixtures/native-remote
+docker --context colima-connect-gate6 build --platform linux/arm64 -f scripts/fixtures/native-remote/Dockerfile.verify -t connect-gate6-native-client:verified1971-ubuntu2404 scripts/fixtures/native-remote
+docker --context colima-connect-gate6 build --platform linux/arm64 -f scripts/fixtures/native-remote/Dockerfile.clang -t connect-gate6-native-client:clang1971-ubuntu2404 scripts/fixtures/native-remote
 ```
 
 The base reference pins the actual qualified Ubuntu image digest. Compiler and

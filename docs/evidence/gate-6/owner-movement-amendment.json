@@ -44,7 +44,7 @@
     "Historical counts/profile substitutions/early starts refuse; earlier partial stress runs are not promoted."
   ],
   "historical_evidence": "docs/evidence/gate-6/native-replacement-projection-result.json",
-  "fresh_arm_rehearsal": "pending",
+  "fresh_arm_rehearsal": "docs/evidence/gate-6/native-realistic-movement-result.json",
   "task_complete": false,
   "cell_qualified": false,
   "whole_gate_qualified": false,
@@ -88,5 +88,6 @@
     }
   ],
   "verification_scope": "Controller, custody, matrix and decoder tests; no fresh live amended-profile result yet.",
-  "retained_test_attempt": "The first broad parallel Node run passed116/117; a fake-clock Data observer advanced to its original cutoff before asynchronous receipt-file IO completed. The unchanged test suite passes117/117 serially; no production deadline or test cutoff was changed."
+  "retained_test_attempt": "The first broad parallel Node run passed116/117; a fake-clock Data observer advanced to its original cutoff before asynchronous receipt-file IO completed. The unchanged test suite passes117/117 serially; no production deadline or test cutoff was changed.",
+  "fresh_arm_rehearsal_passed": false
 }

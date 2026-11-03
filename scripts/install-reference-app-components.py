@@ -41,9 +41,8 @@ def install(runtime_path, runtime_proof_path, node_path, node_proof_path, output
     revision = runtime['source_revision']
     target = runtime['target']
     expected_host = {'aarch64-apple-darwin': ('Darwin', 'arm64'),
-                     'aarch64-unknown-linux-gnu': ('Linux', 'aarch64'),
-                     'x86_64-unknown-linux-gnu': ('Linux', 'x86_64')}
-    if target in ('x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu'):
+                     'aarch64-unknown-linux-gnu': ('Linux', 'aarch64')}
+    if target == 'aarch64-unknown-linux-gnu':
         release = platform.freedesktop_os_release()
         if release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
             raise ValueError('Native Ubuntu24.04 component consumer required')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise an owned, isolated Linux HTTPS host with synthetic installation state.
 
-Supply a source-bound Linux amd64 connect binary and an existing pinned Ubuntu
+Supply a source-bound Linux arm64 connect binary and an existing pinned Ubuntu
 image. No image pull, external endpoint, model, telephone or provider is used.
 The output retains private state and raw logs under .local/gate-6.
 """
@@ -53,13 +53,13 @@ def main():
         parser.error("Binary SHA256 does not match")
     with binary.open("rb") as stream:
         header = stream.read(64)
-    if header[:6] != b"\x7fELF\x02\x01" or int.from_bytes(header[18:20], "little") != 62:
-        parser.error("Binary must be little-endian Linux ELF amd64")
+    if header[:6] != b"\x7fELF\x02\x01" or int.from_bytes(header[18:20], "little") != 183:
+        parser.error("Binary must be little-endian Linux ELF ARM64")
     if not args.openssl:
         parser.error("OpenSSL is required for isolated fixture certificates")
     image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image], timeout=10))[0]
-    if image["Os"] != "linux" or image["Architecture"] != "amd64":
-        parser.error("The existing image must be Linux amd64")
+    if image["Os"] != "linux" or image["Architecture"] != "arm64":
+        parser.error("The existing image must be Linux arm64")
     output.mkdir(parents=True, mode=0o700)
     state = output / "runtime"
     state.mkdir(mode=0o700)
@@ -67,7 +67,7 @@ def main():
     network = name + "-network"
     report = {
         "task": "G6-053", "passed": False,
-        "scope": "Owned isolated Linux amd64 HTTPS server and host client across an internal container network and loopback-only published ports. Emulation is not native x86 performance, named remote, browser/media or complete installation qualification.",
+        "scope": "Owned isolated Linux arm64 HTTPS server and host client across an internal container network and loopback-only published ports. This local fixture does not qualify named remote, browser/media or complete installation qualification.",
         "client_platform": platform.platform(),
         "docker_architecture": subprocess.check_output(["docker", "info", "--format", "{{.Architecture}}"], text=True, timeout=10).strip(),
         "openssl_version": subprocess.check_output([args.openssl, "version"], text=True, timeout=5).strip(),
@@ -87,7 +87,7 @@ def main():
     def openssl(*command):
         run([args.openssl, *command])
 
-    common = ["--pull", "never", "--read-only", "--platform", "linux/amd64", "--cpus", "1", "--memory", "512m",
+    common = ["--pull", "never", "--read-only", "--platform", "linux/arm64", "--cpus", "1", "--memory", "512m",
               "--pids-limit", "128", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
               "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m", "--user", f"{os.getuid()}:{os.getgid()}",
               "--mount", f"type=bind,source={binary},target=/app/connect,readonly",

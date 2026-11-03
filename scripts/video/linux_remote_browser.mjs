@@ -10,9 +10,9 @@ const [directory,mode]=process.argv.slice(2);
 if(!directory||!["untrusted","media","clock"].includes(mode)||process.argv.length!==4)throw Error("Expected owned fixture directory and mode");
 const spec=JSON.parse(await fs.readFile(path.join(directory,"input.json"),"utf8"));
 if(spec.designatedRemoteHost!=="host.lima.internal")throw Error("Owned Linux gateway required");
-const binary="/ms-playwright/chromium-1234/chrome-linux/chrome";
+const binary="/ms-playwright/chromium-1248/chrome-linux-arm64/chrome";
 const version=spawnSync(binary,["--version"],{encoding:"utf8"});
-if(version.status!==0||version.stdout.trim()!=="Chromium 151.0.7922.34")throw Error("Pinned image browser changed");
+if(version.status!==0||version.stdout.trim()!=="Google Chrome for Testing 156.0.8078.4")throw Error("Pinned image browser changed");
 if(mode!=="untrusted"){
     const imported=spawnSync("python3",[path.join(spec.root,"scripts/video/linux_browser_trust.py"),path.join(directory,"root.der")],{encoding:"utf8"});
     await fs.writeFile(path.join(directory,"trust-import.json"),imported.stdout,{mode:0o600});

@@ -110,7 +110,7 @@ def main():
                   qualification='Actual signed TLS QUIC/WebTransport native source to Core and actual negotiated SIP INFO/RFC4733 UDP writes, immutable original operation and verified signing-key metadata, exact registered adapter and per-physical-poll flow/controller/credential/audio-port source fences. Independent fresh source/recipient signal policy with no retained ingress invocation; revocation/retirement/reoffer/physical close and post-grant pre-IO races; existing Core/SIP owned write regressions repeated.',
                   not_qualified=['Full G6-024: general native recipient scheduling, richer SIP/WebRTC received-source composition and remaining approved media profiles.',
                                  'Controlled local policy/journal fixtures do not qualify production Store/service/HTTP/SDK installation.',
-                                 'Local submission and SIP acceptance do not prove remote playback; no Linux x86_64, remote/browser/provider or Gate 6 acceptance claim.'],
+                                 'Local submission and SIP acceptance do not prove remote playback; no Linux ARM64, remote/browser/provider or Gate 6 acceptance claim.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   source_inputs_sha256=before, sources_unchanged=unchanged, steps=steps,

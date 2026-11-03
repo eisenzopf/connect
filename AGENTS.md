@@ -25,6 +25,8 @@
   targets Ubuntu 24.04 ARM64 hosting and remote/native/browser profiles. The
   owner deferred x86 on November 2, 2026; preserve historical x86 evidence
   without treating it as ARM qualification.
+  Execute Gate 6 tests on the owner's Mac Studio and its local native ARM Linux
+  VM. Do not dispatch GitHub Actions tests or provision cloud test machines.
   Default checks use isolated state and fixtures. Named remote/provider rehearsals
   require the concrete bounded configuration in G6-093 and designated test
   endpoints; keep those lanes explicit. Publication remains separate.

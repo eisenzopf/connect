@@ -42,8 +42,8 @@ class NativeCandidate(unittest.TestCase):
         self.archive = self.root / 'candidate.tar.gz'
         self.proof = {'passed': True, 'source_inputs_unchanged': True, 'production_release': True,
                       'test_support': False, 'source_revision': 'a' * 40, 'version': '0.1.0',
-                      'target': 'x86_64-unknown-linux-gnu', 'binary_sha256': hashlib.sha256(b'owned executable').hexdigest()}
-        self.identity = 'connect-runtime-0.1.0-x86_64-unknown-linux-gnu-' + 'a' * 12
+                      'target': 'aarch64-unknown-linux-gnu', 'binary_sha256': hashlib.sha256(b'owned executable').hexdigest()}
+        self.identity = 'connect-runtime-0.1.0-aarch64-unknown-linux-gnu-' + 'a' * 12
         self.files = {'bin/connect': {'sha256': self.proof['binary_sha256'], 'mode': 0o755},
                       'LICENSE': {'sha256': hashlib.sha256(b'original license').hexdigest(), 'mode': 0o644}}
         self.proof['files'] = self.files

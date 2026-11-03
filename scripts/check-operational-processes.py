@@ -75,7 +75,7 @@ def browser_frame(reader, budget, report):
 
 def main():
     os.umask(0o077)
-    assert platform.system() == "Linux" and platform.machine() == "x86_64"
+    assert platform.system() == "Linux" and platform.machine() == "aarch64"
     release = platform.freedesktop_os_release()
     assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
     PRIVATE.mkdir(parents=True, exist_ok=True)
@@ -89,7 +89,7 @@ def main():
         source_revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         source_inputs_sha256=sha(source_path), source_count=len(before), checks={},
         task_complete=False, whole_gate_qualified=False,
-        scope="Native Ubuntu24.04x86_64 production CLI server, separate actual Rust SDK helper and owned Chromium/Node browser HTTP client; synthetic loopback read-only profile. No media/performance capacity or provider/account qualification.")
+        scope="Native Ubuntu24.04 ARM64 production CLI server, separate actual Rust SDK helper and owned Chromium/Node browser HTTP client; synthetic loopback read-only profile. No media/performance capacity or provider/account qualification.")
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     children = []
@@ -123,7 +123,7 @@ def main():
         seal_executable(original, binary, binary_sha, pool=PRIVATE / "sealed")
         with binary.open("rb") as stream:
             header = stream.read(64)
-        assert header[:6] == b"\x7fELF\x02\x01" and int.from_bytes(header[18:20], "little") == 62
+        assert header[:6] == b"\x7fELF\x02\x01" and int.from_bytes(header[18:20], "little") == 183
         report["binary_sha256"] = binary_sha
         native_port, http_port = port(socket.SOCK_DGRAM), port(socket.SOCK_STREAM)
         state = PRIVATE / "state"

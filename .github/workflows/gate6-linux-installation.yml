@@ -19,6 +19,10 @@ on:
         description: 'Optional earlier successful installation package run ID (different source revision)'
         type: string
         default: ''
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
   actions: read
@@ -27,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   ubuntu-systemd:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 180
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target

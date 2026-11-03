@@ -57,5 +57,5 @@ existing journal/current state after an uncertain result. Production canonical
 Session/journal/Store installation, public subscriptions and end handling, initial
 Participant/media admission, complete inactive semantics, automatic refresh and
 full Gate 6 application lanes remain unfinished. Local TLS fixtures do not close
-Linux x86_64, remote/native/browser or named provider qualification. Named external
+Linux ARM64, remote/native/browser or named provider qualification. Named external
 rehearsals require bounded G6-093 configuration; publication is separate.

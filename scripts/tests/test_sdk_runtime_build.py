@@ -23,7 +23,7 @@ class NativeOpusBuild(unittest.TestCase):
                 self.assertFalse(destination.exists())
             require_bundled_opus({'target': 'aarch64-apple-darwin',
                 'opus_native_build': {'mode': 'bundled-static', 'native_archive_sha256': 'a'*64}})
-            require_bundled_opus({'target': 'x86_64-unknown-linux-gnu'})
+            require_bundled_opus({'target': 'aarch64-unknown-linux-gnu'})
 
     def test_actual_selected_bundled_archive_is_hashed(self):
         with tempfile.TemporaryDirectory() as directory:

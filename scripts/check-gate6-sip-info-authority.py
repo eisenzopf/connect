@@ -114,7 +114,7 @@ def main():
                   qualification='Canonical immutable owned SIP INFO API and first/Timer-E per-write transport authority. Actual isolated UDP, identical branch/CSeq/body/request bytes and prepared route on retransmission, fresh permission without idle readers, denial before any transport poll, cancellation/drop/deadline custody, exact final 200/401 and no guarded candidate or authentication retry.',
                   not_qualified=['Core method-specific INFO policy, exact SIP adapter lifecycle/negotiation composition and sealed native/SIP/WebRTC source and egress routing remain open.',
                                  'This component qualifies actual UDP; TCP/TLS/WebSocket physical IO and broader endpoint profiles have not been qualified by these tests.',
-                                 'A SIP final response does not prove remote tone playback. No production journal/service/HTTP/SDK installation, remaining media profiles, Linux x86_64, remote/browser/provider or full Gate 6 acceptance is claimed.'],
+                                 'A SIP final response does not prove remote tone playback. No production journal/service/HTTP/SDK installation, remaining media profiles, Linux ARM64, remote/browser/provider or full Gate 6 acceptance is claimed.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   source_inputs_sha256=before, sources_unchanged=unchanged, steps=steps,

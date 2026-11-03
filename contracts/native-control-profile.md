@@ -81,7 +81,7 @@ does not create a parallel business service or log.
 Connection end, public subscription operations, complete codec-update handling,
 production initial media/Participant admission and automatic refresh are separate
 unfinished Gate 6 work. The checks here use isolated local TLS fixtures with a
-controlled relationship/Store policy. Full Gate 6 Linux x86_64 and remote/native/
+controlled relationship/Store policy. Full Gate 6 Linux ARM64 and remote/native/
 browser lanes remain required. Named external/provider rehearsals require the
 concrete bounded G6-093 configuration and designated endpoints; publication is
 separate.

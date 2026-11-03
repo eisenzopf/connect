@@ -1,12 +1,16 @@
 name: Gate 6 SDK candidate packages
 on:
   workflow_call:
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 jobs:
   rust-source:
     name: Rust archives and cold external consumer
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 75
     env:
       CARGO_BUILD_JOBS: '2'

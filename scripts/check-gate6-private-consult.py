@@ -93,7 +93,7 @@ def main():
             'Media graph outcomes, preparation observations and sealed native commit proofs are not durable Connect operation receipts, Connection.ready or Participant presence. The host owns its current domain authority and journal.',
             'Decoded private speech uses distinct-owner Core fixtures with actual G.711 encode/decode. The native audience fixture uses two endpoints of one Participant, retains MCU self-echo suppression and qualifies existing signed resource confirmation only.',
             'Prompts, business approval and provider Context bodies stay outside the engine. Production Connect private message/history/context projections, Store policy and HTTP/SDK dispatch belong to their assigned later tasks. External provider cleanup is separate and no live-provider behavior is claimed.',
-            'Other transports, full workspace/package/release/performance, Linux x86_64 and remote/native/browser qualification, bounded G6-093 named rehearsals, Gate 6 acceptance and publication remain required.',
+            'Other transports, full workspace/package/release/performance, Linux ARM64 and remote/native/browser qualification, bounded G6-093 named rehearsals, Gate 6 acceptance and publication remain required.',
         ],
         exploratory_attempts=[dict(private_log=str(path.relative_to(ROOT)), sha256=digest(path), disposition='Unqualified exploratory compilation or behavior attempt') for path in sorted((ROOT / '.local/gate-6').glob('private-consult-*-exploratory.log'))],
         passed=unchanged and len(steps) == len(commands) and len(required) >= 170 and not missing and all(s['passed'] for s in steps))

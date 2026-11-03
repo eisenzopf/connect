@@ -28,6 +28,29 @@ result to the movement profile and digest in
 `contracts/gate6-transport-matrix.json`. Earlier twenty-move runs remain
 historical stress evidence; earlier partial runs cannot qualify this new profile.
 
+November 2 G6-054 resumption: after the reduced-movement run, the owner asks
+for the deferred remote-media test to be retested and reaffirms local resources
+for all test execution. Select the native Ubuntu24.04 ARM64 guest and its exact
+Rust1.97.1 target; no GitHub Actions media job or cloud machine is used. Browser
+fixture images must be Linux ARM64 and contain the already verified public
+Chromium1248/CFT156.0.8078.4 ARM distribution. Retain all original relay, expiry,
+restart, impairment, independently decoded media and resource-drain assertions.
+Record new source/runtime/image identities before execution; historical x86
+results cannot become ARM passes. Returning to the task does not waive any
+remaining browser/native/telephone or topology clause.
+
+November 2 runner-wide amendment: “update all runner test requirements to arm
+linux.” All active Linux runner preflights, package targets and ELF checks,
+browser/native/telephone fixture requirements, build images and workflow
+selections now use ARM64 Linux. The local Mac Studio and its native Ubuntu guest
+supply test execution; GitHub is for source synchronization. Automatic test
+triggers are removed and no Actions workflow is dispatched. The owner also says
+“but don't rerun any tests let's just retest this one and then move on to
+completing the rest of the gate 6 plan.” Only G6-054 is to be retested now;
+runner edits receive static inspection without general regression reruns. No
+historical result is relabeled, no current ARM pass is inferred from an edit,
+and all remaining Gate6 work stays in the approved dependency plan.
+
 ## Runtime and topology
 
 Local development/first run: macOS arm64. Baseline observed macOS and toolchain

@@ -98,6 +98,6 @@ echo the MCU intentionally suppresses; its video behavior does not establish
 cross-Participant native audio playback. That audio behavior needs its own wire
 fixture in addition to the existing distinct-owner engine checks.
 
-Full Gate 6 retains the approved Linux x86_64 and remote/native/browser lanes.
+Full Gate 6 retains the approved Linux ARM64 and remote/native/browser lanes.
 Named external rehearsals require bounded G6-093 configuration and designated
 endpoints. Publication remains separate.

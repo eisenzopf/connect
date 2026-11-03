@@ -1,5 +1,12 @@
 # Signed canonical native runtime
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 `connect serve --config .local/signed/server.toml` runs the production
 canonical QUIC listener. [Fresh initialization](canonical-bootstrap.md) now writes
 its protected signing configuration and enrolled client keys. It composes `StoreValidator::canonical`,
@@ -260,11 +267,11 @@ Every owned shutdown joins and no panic occurs. These WT/WSS probes check
 routing and certificate lifetime, without authenticated control/media.
 
 The isolated Linux HTTPS host runner takes an already built, source-bound
-amd64 `connect` executable and an existing image by its immutable image ID:
+ARM64 `connect` executable and an existing image by its immutable image ID:
 
 ```sh
 python3 scripts/rehearse-gate6-https-host.py \
-  --binary /absolute/path/to/connect-linux-amd64 \
+  --binary /absolute/path/to/connect-linux-arm64 \
   --binary-sha256 <sha256-from-the-build-summary> \
   --image sha256:<existing-Ubuntu-image-id> \
   --output .local/gate-6/https-listeners/fresh-linux-host

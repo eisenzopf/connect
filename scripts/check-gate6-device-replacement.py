@@ -101,7 +101,7 @@ def main():
             'Controlled browser/telephone SPI cases use actual guarded encoded audio and concrete endpoint callback attribution; they do not claim live browser, PSTN/provider-network, general wire DTMF or public workflow installation. G6-024 and later profile tasks remain required.',
             'Cleanup observations cover explicitly observed local resources; unknown remote/provider outcomes do not cause rollback, automatic origination or redial.',
             'Production Store/HTTP/SDK policies, durable operation/reconciliation and public Session/history projection remain G6-037/G6-038 and their dependent work.',
-            'Full release/performance, Linux x86_64, remote/native/browser qualification, bounded G6-093 named rehearsals, Gate 6 acceptance and separate publication remain required.',
+            'Full release/performance, Linux ARM64, remote/native/browser qualification, bounded G6-093 named rehearsals, Gate 6 acceptance and separate publication remain required.',
         ],
         exploratory_attempts=[dict(private_log=str(path.relative_to(ROOT)), sha256=digest(path), disposition='Unqualified exploratory compilation or behavior attempt') for path in sorted((ROOT / '.local/gate-6').glob('device-replacement-*-exploratory.log'))],
         passed=unchanged and len(steps) == len(commands) and len(required) >= 210 and not missing and all(s['passed'] for s in steps))

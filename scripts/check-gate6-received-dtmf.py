@@ -116,7 +116,7 @@ def main():
                   qualification='Actual received SIP INFO/RFC4733 and WebRTC SRTP source composition retains original Core binding, method/provenance, original event-start timing across media changes and stable physical observation identity. Explicit bounded metadata-only source subscriptions invalidate replacement, drop, source retirement and Core binding ABA. Source lifecycle/media/track fences apply at actual target IO under fresh independent signal authority. Actual SIP input to signed native recipients and actual SRTP input through Core and its authorized WebRTC adapter dispatch to a second SRTP peer; previous native/SIP/Core regressions repeated.',
                   not_qualified=['Full G6-024 remaining approved media profiles and G6-028.',
                                  'Controlled local host journal and permission fixtures do not qualify production Store/service/HTTP/SDK installation.',
-                                 'Success proves local writer submission; no Linux x86_64, remote/browser/provider or Gate 6 acceptance claim.'],
+                                 'Success proves local writer submission; no Linux ARM64, remote/browser/provider or Gate 6 acceptance claim.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   source_inputs_sha256=before, sources_unchanged=unchanged, steps=steps,

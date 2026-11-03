@@ -12,7 +12,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 NATIVE = runpy.run_path(str(ROOT / 'scripts/lib/native_network_component.py'))
 RUNNER = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-native-media.py'))
-IMAGE, digest, facts = NATIVE['IMAGE'], NATIVE['digest'], NATIVE['facts']
+image_reference, digest, facts = NATIVE['image_reference'], NATIVE['digest'], NATIVE['facts']
 
 
 def command(args):
@@ -139,10 +139,9 @@ def public_result(value):
 def run(root, private, server, inputs, execute):
     root, private = Path(root), Path(private)
     assert private.resolve().is_relative_to(root / '.local')
-    execute('telephone-network-image-pull', ['docker', 'pull', IMAGE], 600)
-    text = execute('telephone-network-image', ['docker', 'image', 'inspect', IMAGE], 15)
+    text = execute('telephone-network-image', ['docker', 'image', 'inspect', image_reference()], 15)
     image = json.loads(text)[0]
-    assert image['Architecture'] == 'amd64' and image['Os'] == 'linux'
+    assert image['Architecture'] == 'arm64' and image['Os'] == 'linux'
     version = execute('telephone-network-python', ['docker', 'run', '--rm', '--network', 'none', '--read-only',
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--entrypoint', 'python3', image['Id'], '--version'], 30).strip()
     assert re.fullmatch(r'Python 3\.\d+\.\d+', version)
@@ -179,7 +178,7 @@ def run(root, private, server, inputs, execute):
                 if result['passed']:
                     assert len(result['profiles']) == 2
                     for row in result['profiles']:
-                        assert row['guest']['os'] == 'linux' and row['guest']['architecture'] == 'x86_64'
+                        assert row['guest']['os'] == 'linux' and row['guest']['architecture'] == 'aarch64'
                         assert all(w['original_invite_replayed'] and w['paired_session_end']
                             and w['physical_peers_drained'] and w['server_shutdown_joined']
                             and w['sip_listener_released'] for w in row['server_witness'])
@@ -188,7 +187,7 @@ def run(root, private, server, inputs, execute):
                 sys.argv = previous
     finally:
         network = owner.close()
-    return dict(scope='Current native Linux x86_64 host and SIP/RTP peer on one owned internal bridge, controlled fixed peer-side NAT and public native SDK PCMU: original direct/20percentRTP-loss ×EdDSA/ES256 decode, journal-before-INVITE, replay, signed end and drains. No WAN/provider/PSTN/model, video, full matrix, performance or acceptance qualification.',
+    return dict(scope='Current native Linux ARM64 host and SIP/RTP peer on one owned internal bridge, controlled fixed peer-side NAT and public native SDK PCMU: original direct/20percentRTP-loss ×EdDSA/ES256 decode, journal-before-INVITE, replay, signed end and drains. No WAN/provider/PSTN/model, video, full matrix, performance or acceptance qualification.',
         passed=len(results) == 2 and all(result['passed'] for result in results) and network['original_bridge_removed'],
         results=results, image_id=image['Id'], guest_python=version, owned_network=network,
         full_task_qualified=False, acceptance_qualified=False)

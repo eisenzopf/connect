@@ -1,5 +1,12 @@
 # Browser observer calibration
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 G6-054 retains a 24 fps minimum for independently observed changing video.
 An RTP decoder counter cannot replace the pixel observation. Before attributing
 low observed frame rate to a transport, isolate the renderer with the same

@@ -77,7 +77,7 @@ def main():
                   qualification='Shared checked UCTP datagram/RTP framing in native Rust APIs and the actual browser acceptance fixture executed by Node. Eight valid and 31 invalid vectors; byte order, full-range distinct sequence fields, nonzero physical handles, CSRC/extension/padding boundaries and payload normalization. Node executes the browser module; this does not claim a live browser/WebTransport network.',
                   not_qualified=['Full G6-024: current-authorized general Core/gateway DTMF routing and method/provenance, remaining media/feedback/profile coverage.',
                                  'Datagram MTU, fragmentation, decoded media and network replay/liveness are separate behavior checks; parsing is not authenticated route admission.',
-                                 'Linux x86_64, independent browser network, remote/provider profiles, G6-093 rehearsals and Gate 6 acceptance.'],
+                                 'Linux ARM64, independent browser network, remote/provider profiles, G6-093 rehearsals and Gate 6 acceptance.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   node=subprocess.check_output(['node', '--version'], text=True).strip(),

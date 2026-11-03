@@ -40,7 +40,7 @@ class Integrity(unittest.TestCase):
             path.parent.mkdir(exist_ok=True)
             path.write_bytes(name.encode())
             self.files[name] = {'sha256': installer.digest(path), 'mode': 0o755 if name == 'bin/connect' else 0o644}
-        self.manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-x86_64', 'installation_id': 'connect-fixture', 'files': self.files, 'source_revision': 'a' * 40, 'source_epoch': 42, 'inputs': {'fixture.rs': '1' * 64}, 'build_profile': 'release', 'test_support': False, 'publication_authorized': False}
+        self.manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-arm64', 'installation_id': 'connect-fixture', 'files': self.files, 'source_revision': 'a' * 40, 'source_epoch': 42, 'inputs': {'fixture.rs': '1' * 64}, 'build_profile': 'release', 'test_support': False, 'publication_authorized': False}
         self.write_manifest()
 
     def write_manifest(self):

@@ -109,6 +109,6 @@ lane uses isolated policy/adapter fixtures and local TLS native endpoints.
 Decoded speaker markers use distinct owners in the Core scene. The native
 confirmation fixture uses two endpoints of one Participant and retains MCU
 self-echo suppression; it does not independently prove distinct-owner private
-audio. Linux x86_64, remote/native/browser acceptance, named provider rehearsals
+audio. Linux ARM64, remote/native/browser acceptance, named provider rehearsals
 with G6-093 configuration, full Gate 6 acceptance and publication are separate
 requirements.

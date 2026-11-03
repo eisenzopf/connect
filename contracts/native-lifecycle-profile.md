@@ -103,7 +103,7 @@ The component's default tests use isolated local TLS fixtures and controlled
 relationship/Store policy. They do not prove production Session admission,
 presence, durable Session projection, automatic credential refresh, general
 subscriptions, SIP/WebRTC/browser media or reliable-data business workflows.
-Gate 6 still includes its approved Linux x86_64 and remote/native/browser lanes;
+Gate 6 still includes its approved Linux ARM64 and remote/native/browser lanes;
 those need their own evidence. Named remote/provider rehearsals require the
 concrete bounded G6-093 configuration and designated test endpoints. Publication
 remains separate.

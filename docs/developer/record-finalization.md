@@ -1,5 +1,12 @@
 # Session record finalization and original-document recovery
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 G6-027 remains in progress. Ending a Session now freezes its original canonical record before attempting storage. The Session's local finalization entry owns the exact immutable bytes and manifest. `end_session` emits the Session outcome, then owns one bounded store attempt; it starts no detached record task. The record always includes a typed metadata outcome. Default message/transcript capture is disabled; an explicit installation policy can select source content under its own audience and independent retention.
 
 `session_record_status` reports capturing, pending, ready, unavailable capture, or an unknown store outcome. Backend errors, cancellation and the two-second deadline cannot prove that a write did not commit. The status retains that uncertainty and the original record. Invalid raw capture is excluded and the record keeps an explicit metadata outcome without those invalid bytes. A ready record alone never implies that audio was recorded, that a caller may view it, or that anyone received it.

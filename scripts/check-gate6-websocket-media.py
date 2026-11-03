@@ -131,7 +131,7 @@ def main():
     report = dict(task='G6-024', implementation_status='in-progress', full_task_qualification=False,
                   qualification='Local optional WebSocket co-located WebRTC primitive: automatically attached delayed bidirectional mono Opus with actual decode, Core-bridged decoded audio without manual priming, owned idle shutdown, SDP-envelope/trickle/WSS/library regressions. Reuses existing isolated backend signaling fixtures.',
                   not_qualified=['Production canonical Store/journal/service/HTTP/SDK installation, live browser and additional WebSocket media profiles.',
-                                 'G6-028 combined upstream qualification; Linux x86_64, named remote/provider G6-093 rehearsals and full Gate 6 acceptance/publication.'],
+                                 'G6-028 combined upstream qualification; Linux ARM64, named remote/provider G6-093 rehearsals and full Gate 6 acceptance/publication.'],
                   prior_component=dict(path=str(prior.relative_to(ROOT)), sha256=digest(prior), independently_preserved=True, runtime_totals_not_combined=True),
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),

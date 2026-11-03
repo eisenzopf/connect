@@ -5,6 +5,10 @@ on:
       phase:
         type: string
         default: all
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 concurrency:
@@ -13,7 +17,7 @@ concurrency:
 jobs:
   component:
     name: Operational ${{ matrix.phase }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 240
     strategy:
       fail-fast: false

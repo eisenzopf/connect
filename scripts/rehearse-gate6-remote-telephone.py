@@ -247,8 +247,8 @@ def main():
     assert image["Id"] == args.image and image["Os"] == "linux"
     gateway = "192.168.5.2"
     if args.owned_linux_bridge:
-        assert platform.system() == "Linux" and platform.machine() == "x86_64" and os.getuid() != 0
-        assert image["Architecture"] == "amd64"
+        assert platform.system() == "Linux" and platform.machine() == "aarch64" and os.getuid() != 0
+        assert image["Architecture"] == "arm64"
         info = json.loads(subprocess.check_output(["docker", "network", "inspect", args.owned_linux_bridge], timeout=15))[0]
         gateway = HELPERS["owned_gateway"](args.owned_linux_bridge, info)
         assert gateway == args.host_media_ip
@@ -262,13 +262,13 @@ def main():
         result[str(Path(__file__).relative_to(ROOT))] = digest(__file__)
         return result
     before = sources()
-    report = {"passed": False, "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
+    report = {"passed": False, "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native ARM performance or full G6-054 qualification.",
               "network_profile": args.network_profile,
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "image_id": args.image, "server_sha256": digest(binary), "source_inputs_sha256": before,
               "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "profiles": []}
     if args.owned_linux_bridge:
-        report["scope"] = "Current native Linux x86_64 host and Linux x86_64 synthetic SIP/RTP peer on an owned internal bridge, with one public native SDK PCMU peer and fixed nonce-observed peer-side NAT. Actual opposite-tone decode, journal-before-INVITE, replay, signed end and original drains; no WAN/provider/PSTN/model, video, full matrix or performance qualification."
+        report["scope"] = "Current native Linux ARM64 host and Linux ARM64 synthetic SIP/RTP peer on an owned internal bridge, with one public native SDK PCMU peer and fixed nonce-observed peer-side NAT. Actual opposite-tone decode, journal-before-INVITE, replay, signed end and original drains; no WAN/provider/PSTN/model, video, full matrix or performance qualification."
     try:
         for algorithm in ["EdDSA", "ES256"]:
             directory = out / algorithm

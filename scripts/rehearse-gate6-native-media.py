@@ -146,15 +146,15 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--owned-linux-bridge", action="store_true",
-                        help="Native Linux x86 host and client on one fresh internal Docker bridge")
+                        help="Native Linux ARM64 host and client on one fresh internal Docker bridge")
     parser.add_argument("--drop-every", type=int, choices=(0, 10), default=0,
                         help="Drop every tenth encrypted UDP datagram in each direction after media starts")
     parser.add_argument("--unreachable-port", action="store_true",
                         help="Keep an owned UDP port unresponsive; require client timeout before its offer")
     args = parser.parse_args()
     if args.owned_linux_bridge:
-        assert platform.system() == "Linux" and platform.machine() == "x86_64"
-        assert os.getuid() != 0 and re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
+        assert platform.system() == "Linux" and platform.machine() == "aarch64"
+        assert os.getuid() != 0 and re.search(r"^CPU architecture\s*:\s*8\s*$", Path("/proc/cpuinfo").read_text(), re.M)
     assert not (args.unreachable_port and args.drop_every), "Choose one bounded fault"
     out = args.output.absolute()
     assert out.parent.resolve().is_relative_to((ROOT / ".local/gate-6/native-remote").resolve())
@@ -170,10 +170,10 @@ def main():
     assert digest(binary) == server["artifact"]["sha256"]
     assert digest(probe) == guest["executable_sha256"]
     image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image]))[0]
-    assert image["Id"] == guest["image_id"] and image["Architecture"] == "amd64" and image["Os"] == "linux"
+    assert image["Id"] == guest["image_id"] and image["Architecture"] == "arm64" and image["Os"] == "linux"
     assert CASE + ": test" in subprocess.check_output([str(binary), "--list"], text=True).splitlines()
     before = HELPERS["sources"]()
-    report = {"passed": False, "scope": "Owned Linux/amd64 guest under QEMU on local Lima arm64 VM to macOS arm64 server; public canonical SDK audio or the selected bounded transport refusal. No native x86 performance, WAN, video, browser, SIP, relay, full loss-quality or ICE restart qualification.",
+    report = {"passed": False, "scope": "Owned native Linux/arm64 guest on the local Mac Studio ARM VM to macOS arm64 server; public canonical SDK audio or the selected bounded transport refusal. No native ARM performance, WAN, video, browser, SIP, relay, full loss-quality or ICE restart qualification.",
               "mode": "unreachable-port" if args.unreachable_port else "loss" if args.drop_every else "direct",
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_inputs_sha256": before, "server_executable_sha256": digest(binary),
@@ -194,7 +194,7 @@ def main():
             assert re.fullmatch(r"[0-9a-f]{64}", network)
             info = json.loads(subprocess.check_output(["docker", "network", "inspect", network], text=True, timeout=15))[0]
             gateway = owned_gateway(network, info)
-            report["scope"] = "Owned native Linux x86_64 host and Linux x86_64 public SDK client on one fresh internal bridge; synthetic signed PCMU duplex or selected bounded transport refusal. No WAN, provider, video, full matrix or performance qualification."
+            report["scope"] = "Owned native Linux ARM64 host and Linux ARM64 public SDK client on one fresh internal bridge; synthetic signed PCMU duplex or selected bounded transport refusal. No WAN, provider, video, full matrix or performance qualification."
         for algorithm in ["EdDSA", "ES256"]:
             fixture = out / algorithm
             fixture.mkdir(mode=0o700)
@@ -238,7 +238,7 @@ def main():
                         assert replacements == 1, "Fixture endpoint was not the designated local server"
                         config_path.write_text(config)
                     command = ["docker", "run", "--rm", "--cidfile", str(fixture / "container.id"), "--read-only",
-                               "--platform", "linux/amd64", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL",
+                               "--platform", "linux/arm64", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL",
                                "--security-opt", "no-new-privileges", "--mount", f"type=bind,source={probe.parent},target=/probe,readonly",
                                "--mount", f"type=bind,source={fixture},target=/fixture", image["Id"],
                                "/probe/native_media_probe", "/fixture", gateway]
@@ -294,7 +294,7 @@ def main():
             if row["passed"]:
                 gw, sw = guest_rows[0], server_rows[0]
                 row["passed"] = (gw["algorithm"] == sw["algorithm"] == algorithm and gw["os"] == "linux"
-                                 and gw["architecture"] == "x86_64" and sw["physical_peers_drained"]
+                                 and gw["architecture"] == "aarch64" and sw["physical_peers_drained"]
                                  and bool(re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", server_raw)))
                 if args.unreachable_port:
                     row["observed_unanswered_datagrams"] = blocked_datagrams

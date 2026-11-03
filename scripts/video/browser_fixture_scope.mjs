@@ -12,7 +12,7 @@ export function validateBrowserFixtureScope(spec, runtime=process) {
         const ports=Number.isInteger(bridge.port_start)&&Number.isInteger(bridge.port_end)
             &&(relay?bridge.port_start===32000&&bridge.port_end===32031:
                 bridge.port_start>=20000&&bridge.port_end===bridge.port_start+15&&bridge.port_end<=60015);
-        if(runtime.platform!=='linux'||runtime.arch!=='x64'||runtime.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER!=='1'
+        if(runtime.platform!=='linux'||runtime.arch!=='arm64'||runtime.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER!=='1'
             ||spec.designatedRemoteHost!=='connect.fixture.internal'||!privateIp(bridge.ip)||!ports
             ||relay!==Boolean(spec.requireRelay))throw Error('Explicit owned internal bridge configuration required');
     }

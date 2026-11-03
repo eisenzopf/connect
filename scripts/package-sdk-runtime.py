@@ -36,7 +36,7 @@ def git(*arguments):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target', choices=('aarch64-apple-darwin', 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu'), required=True)
+    parser.add_argument('--target', choices=('aarch64-apple-darwin', 'aarch64-unknown-linux-gnu'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
@@ -45,7 +45,7 @@ def main():
             parser.error('Native macOS arm64 host required')
     else:
         release = platform.freedesktop_os_release()
-        machine = 'aarch64' if args.target == 'aarch64-unknown-linux-gnu' else 'x86_64'
+        machine = 'aarch64'
         if platform.system() != 'Linux' or platform.machine() != machine or release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
             parser.error('Native Ubuntu24.04 ' + machine + ' host required')
     output = args.output.resolve(); evidence = args.evidence.resolve()

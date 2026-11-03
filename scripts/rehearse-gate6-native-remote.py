@@ -97,7 +97,7 @@ def cases(binary, selected, out, env):
 
 def guest_build(image, target, out, env):
     metadata = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image]))[0]
-    assert metadata['Os'] == 'linux' and metadata['Architecture'] == 'amd64'
+    assert metadata['Os'] == 'linux' and metadata['Architecture'] == 'arm64'
     script = out / 'guest-build.sh'
     script.write_text('''#!/usr/bin/env bash
 set -euo pipefail
@@ -111,10 +111,10 @@ bash scripts/prepare-dependencies.sh
 cargo build -p connect-client --example native_remote_probe --locked --offline --target-dir /target -j2 --message-format=json > /target/build.jsonl
 ''')
     version = tomllib.loads((ROOT / 'rust-toolchain.toml').read_text())['toolchain']['channel']
-    command = ['docker', 'run', '--rm', '--read-only', '--network', 'none', '--platform', 'linux/amd64',
+    command = ['docker', 'run', '--rm', '--read-only', '--network', 'none', '--platform', 'linux/arm64',
                '--cpus', '2', '--memory', '4g', '--tmpfs', '/tmp:rw,size=1g',
                '--tmpfs', '/task-cargo:rw,size=64m', '--env', 'CARGO_HOME=/task-cargo',
-               '--env', f'RUSTUP_TOOLCHAIN={version}-x86_64-unknown-linux-gnu',
+               '--env', f'RUSTUP_TOOLCHAIN={version}-aarch64-unknown-linux-gnu',
                '--env', 'CC=clang', '--env', 'CXX=clang++', '--env', 'CARGO_INCREMENTAL=0',
                '--env', 'CARGO_PROFILE_DEV_DEBUG=0', '--workdir', str(ROOT)]
     cargo_home = Path(os.environ.get('CARGO_HOME', Path.home() / '.cargo'))
@@ -149,7 +149,7 @@ def distinct(binary, guest, image, out, env):
                     assert time.monotonic() - started < 60, 'Bounded server fixture setup expired'
                     time.sleep(.02)
                 command = ['docker', 'run', '--rm', '--cidfile', str(fixture / 'container.id'), '--read-only',
-                           '--platform', 'linux/amd64', '--cpus', '2', '--memory', '1g',
+                           '--platform', 'linux/arm64', '--cpus', '2', '--memory', '1g',
                            '--mount', f'type=bind,source={guest.parent},target=/probe,readonly',
                            '--mount', f'type=bind,source={fixture},target=/fixture,readonly', image,
                            '/probe/native_remote_probe', '/fixture/client.toml', 'host.lima.internal']
@@ -173,7 +173,7 @@ def distinct(binary, guest, image, out, env):
                   for line in server_raw.splitlines() if 'distinct-native-server-witness ' in line]
         passed = guest_code == 0 and server_code == 0 and len(client) == 1 and len(server) == 1
         if passed:
-            passed = (client[0]['algorithm'] == algorithm and client[0]['architecture'] == 'x86_64'
+            passed = (client[0]['algorithm'] == algorithm and client[0]['architecture'] == 'aarch64'
                       and client[0]['os'] == 'linux' and client[0]['reconnected_receipt_preserved']
                       and client[0]['verified_native_heartbeat'] and server[0]['durable_create_operations'] == 1
                       and server[0]['old_physical_peers_drained']
@@ -204,7 +204,7 @@ def main():
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(tmp), RUST_LOG='connect_service=debug',
                CONNECT_G6_SIP_CRASH_CAPTURE=str(out / 'sip-submitted'))
     before = HELPERS['sources']()
-    report = dict(passed=False, scope='Eight isolated native Remote profile methods, two actual SIP SIGKILL public operator methods, two record drain methods, five local CLI/bootstrap methods and two macOS-server/Ubuntu-guest native control/reconnect profiles. Linux/amd64 guest is emulated on local aarch64 Lima; no distinct-host decoded media or native x86_64 performance claim.',
+    report = dict(passed=False, scope='Eight isolated native Remote profile methods, two actual SIP SIGKILL public operator methods, two record drain methods, five local CLI/bootstrap methods and two macOS-server/Ubuntu-guest native control/reconnect profiles. Linux/arm64 guest runs natively on the local Mac Studio ARM VM; no distinct-host decoded media or full ARM performance claim.',
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                   source_inputs_sha256=before, source_lock_sha256=digest(ROOT / 'dependencies/source-lock.json'),
                   started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), cases=[], distinct_profiles=[])

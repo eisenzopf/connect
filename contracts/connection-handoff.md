@@ -109,6 +109,6 @@ or complete public workflow installation.
 `scripts/check-gate6-connection-handoff.py` records executed cases, source digests,
 logs and test executable digests. The original G6-022 qualification is recorded
 in the Gate 6 implementation plan. Subsequent G6-040 extensions require their
-own current-source behavior evidence. Linux x86_64, remote and
+own current-source behavior evidence. Linux ARM64, remote and
 browser acceptance, durable service/HTTP/SDK integration, named provider
 rehearsals under G6-093 and publication remain assigned Gate 6 work.

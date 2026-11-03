@@ -1,5 +1,12 @@
 # Typed Node Connection and Stream control
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 G6-062 implementation is complete in its [recorded scope](../evidence/gate-6/node-implementation.json). Full installed package/platform parity and remaining runtime failures are tracked in G6-069/G6-070/G6-096/G6-098. Earlier evidence below retains its original scope.
 
 `session.connections` now exposes scoped `byId` and

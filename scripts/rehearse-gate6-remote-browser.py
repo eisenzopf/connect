@@ -17,7 +17,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 HELPERS = runpy.run_path(str(ROOT / "scripts/rehearse-gate6-fifty-participants.py"))
 CASE = "canonical_webrtc_browser::remote::distinct_network_browser_server_child"
-IMAGE = "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0"
+IMAGE = os.environ.get("CONNECT_GATE6_ARM_BROWSER_IMAGE", "")
 
 
 def digest(path):
@@ -85,7 +85,7 @@ def main():
         return result
 
     before = sources()
-    report = {"passed": False, "scope": "Owned Linux arm64 Chromium151 on local Lima VM to macOS Remote WSS/Opus/VP8 host. Actual normal CA refusal/import, signed public browser SDK, independent decoded duplex and original drains. Not approved installed Chrome155/Firefox158 matrix, native Linux x86 performance, WAN, SIP, TURN, ICE restart or full Gate6 qualification.",
+    report = {"passed": False, "scope": "Owned Linux arm64 CFT156 on local Lima VM to macOS Remote WSS/Opus/VP8 host. Actual normal CA refusal/import, signed public browser SDK, independent decoded duplex and original drains. Not approved installed Chrome155/Firefox158 matrix, native Linux ARM64 performance, WAN, SIP, TURN, ICE restart or full Gate6 qualification.",
               "algorithm": args.algorithm, "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_inputs_sha256": before, "server_executable_sha256": digest(binary), "image_id": IMAGE,
               "runner_sha256": digest(__file__), "diagnostic_audio_trace": args.trace_audio,

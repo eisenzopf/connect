@@ -16,6 +16,7 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
+native_host = runpy.run_path(str(ROOT / 'scripts/lib/linux_arm64_profile.py'))['native_host']
 INPUTS = runpy.run_path(str(ROOT / 'scripts/check-gate6-ice-restart.py'))['inputs']
 OWNED = runpy.run_path(str(ROOT / 'scripts/lib/owned_fixture_container.py'))
 command, Container = OWNED['command'], OWNED['OwnedContainer']
@@ -175,8 +176,8 @@ print('ready')"""
         assert command(['docker', 'exec', holder.cid, 'python3', '-c', ready, transport]) == 'ready'
         report['control_binding_ready'] = True
         chrome = command(['docker', 'exec', holder.cid, 'python3', '-c',
-            'import glob; p=glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome")+glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux/chrome"); assert len(p)==1; print(p[0])'])
-        assert re.fullmatch(r'/ms-playwright/chromium-[0-9]+/(?:chrome-linux64|chrome-linux)/chrome', chrome)
+            'import glob; p=glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux-arm64/chrome"); assert len(p)==1; print(p[0])'])
+        assert re.fullmatch(r'/ms-playwright/chromium-[0-9]+/chrome-linux-arm64/chrome', chrome)
         node = command(['docker', 'exec', holder.cid, 'which', 'node'])
         assert node.startswith('/') and '\n' not in node
         version = command(['docker', 'exec', holder.cid, chrome, '--version'])
@@ -251,7 +252,8 @@ def main():
     parser.add_argument('--image', required=True)
     parser.add_argument('--turn-image', required=True)
     args = parser.parse_args()
-    assert platform.system() == 'Linux' and platform.machine() == 'x86_64' and os.getuid() != 0
+    host = native_host()
+    assert os.getuid() != 0
     base = ROOT / '.local/gate6-browser-media/evidence'
     output = base / 'expired-turn'
     output.mkdir(mode=0o700, exist_ok=False)
@@ -266,7 +268,7 @@ def main():
     for image in (args.image, args.turn_image):
         assert re.fullmatch(r'sha256:[0-9a-f]{64}', image)
         info = json.loads(command(['docker', 'image', 'inspect', image]))[0]
-        assert info['Id'] == image and info['Os'] == 'linux' and info['Architecture'] == 'amd64'
+        assert info['Id'] == image and info['Os'] == 'linux' and info['Architecture'] == 'arm64'
     turn = json.loads(command(['docker', 'image', 'inspect', TURN_REFERENCE]))[0]
     assert turn['Id'] == args.turn_image
     prefix = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
@@ -287,7 +289,7 @@ def main():
         for algorithm in ('EdDSA', 'ES256'):
             cases.append(run_case(binary, args.image, args.turn_image, private_root / (transport + '-' + algorithm), transport, algorithm))
     report = dict(scope=__doc__ + ' Original expiry refusal/zero logical offers and allocations only; no distinct-network media, provider, performance or full G6-054 qualification.',
-        image_id=args.image, turn_image_id=args.turn_image, turn_reference=TURN_REFERENCE,
+        host=host, image_id=args.image, turn_image_id=args.turn_image, turn_reference=TURN_REFERENCE,
         turn_version=version, turn_binary_sha256=turn_sha, source_manifest_sha256=digest(base / 'build/source-inputs.json'),
         binary_sha256=producer['artifacts'][0]['sha256'], tool_inputs_sha256=digest(output / 'tool-inputs.json'),
         sources_unchanged=repository_inputs() == repository, tools_unchanged=tools() == tool_inputs,

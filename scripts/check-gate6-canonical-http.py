@@ -108,7 +108,7 @@ def main():
         passed=len(steps)==len(commands) and all(s['passed'] for s in steps) and unchanged and not missing,
         executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         qualification='Current-source isolated local macOS arm64 shared canonical control router, explicit HTTP SDK, retained signed native path, closed genuine application extensions, original operation receipts, failure/recovery and current reply correlation. No historical test totals are combined.',
-        not_qualified=['G6-038 and subsequent general Session/connection/stream orchestration and later integration task outcomes.','Linux x86_64, live browser/remote/provider, HTTPS/public ingress and physical HTTP response-write custody, independent conformance/performance/acceptance and publication.'],
+        not_qualified=['G6-038 and subsequent general Session/connection/stream orchestration and later integration task outcomes.','Linux ARM64, live browser/remote/provider, HTTPS/public ingress and physical HTTP response-write custody, independent conformance/performance/acceptance and publication.'],
         supported_commands=SUPPORTED, later_command_ownership=ownership, source_inputs_sha256=before,sources_unchanged=unchanged,
         required_tests=sorted(REQUIRED),missing_required_tests=missing,runtime_tests=sum(len(s['tests_passed']) for s in steps),steps=steps,
         executable_sha256=binaries,actual_http_samples_sha256={str(p.relative_to(ROOT)):sha(p) for p in sorted(samples.glob('*.json'))},

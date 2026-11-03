@@ -240,7 +240,7 @@ try {
         executablePath: chrome,
         viewport: { width: 1440, height: 1100 }, args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions"] });
     browser = context.browser(); report.browser = browser.version(); page = context.pages()[0];
-    const browserPlatform = arm64Component ? componentProfile.platform : process.platform === "darwin" ? "macos-arm64" : "ubuntu24-x86_64";
+    const browserPlatform = arm64Component ? componentProfile.platform : process.platform === "darwin" ? "macos-arm64" : "ubuntu24-arm64";
     const frozenBrowsers = JSON.parse(await readFile(join(root, "contracts/gate6-transport-matrix.json"), "utf8"));
     const expectedBrowser = arm64Component ? componentProfile.browser_version : frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome;
     assert.equal(report.browser, expectedBrowser,

@@ -1,5 +1,12 @@
 # Owned browser media network rehearsal
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 G6-054 remains in progress. This lane adds a measured local UDP fault fixture;
 it does not establish distinct-network, named remote, installation or full Gate 6
 acceptance. Clean-profile failures retain their original thresholds and evidence.
@@ -45,7 +52,7 @@ clean video quality and acceptance qualification.
 The current Mac refuses binding `127.0.0.2` with `EADDRNOTAVAIL`; its network
 configuration is unchanged. The separate manually dispatched
 `Gate 6 isolated Linux browser media` workflow runs the actual cases on a native
-Linux x86_64 kernel, in a network-disabled container with the previously verified
+Linux ARM64 kernel, in a network-disabled container with the previously verified
 CFT156 base image. It builds production runtime libraries at release opt3,
 separately from the recorded local producer's root-package opt0 exceptions.
 Only the integration-test driver uses an explicit final-target opt0 override;

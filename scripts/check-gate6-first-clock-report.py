@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--expect-missing-prompt-report', action='store_true')
     args = parser.parse_args()
-    assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
+    assert platform.system() == 'Linux' and platform.machine() == 'aarch64'
     output = args.output.resolve()
     assert output.is_relative_to(ROOT / '.local')
     output.mkdir(parents=True, mode=0o700, exist_ok=False)

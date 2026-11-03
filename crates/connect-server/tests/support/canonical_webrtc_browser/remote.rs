@@ -29,7 +29,7 @@ async fn distinct_network_browser_server_child() {
     let bridge = std::env::var("CONNECT_G6_OWNED_BROWSER_BRIDGE_IP")
         .ok()
         .map(|value| {
-            assert!(cfg!(all(target_os = "linux", target_arch = "x86_64")));
+            assert!(cfg!(all(target_os = "linux", target_arch = "aarch64")));
             assert_eq!(
                 std::env::var("CONNECT_G6_OWNED_BROWSER_BRIDGE").as_deref(),
                 Ok("1")

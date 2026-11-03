@@ -74,7 +74,7 @@ def main():
                   qualification='Shared fresh-per-packet DTMF permission/custody primitive and real UDP/RTP sequence integration. Default denial, invalid whole intent, exact observed packet/scope matching, actual read-guard release between writes, queued revocation, later authorized restoration, owned IO cancellation/deadline and typed unknown outcome. A submitted prefix or completed first digit preserves whole-sequence uncertainty after later refusal. Actual SIP/UDP and WebRTC/SRTP wire regressions share the supported Core Opus backend profile; the shared media tests separately use media-core defaults. All run on the same source.',
                   not_qualified=['General Core/native/gateway DTMF source, method, logical-operation and current-policy installation remains unfinished; raw dispatch is not qualified by this primitive.',
                                  'WebRTC actual driver IO custody is unfinished; its enqueue boundary cannot stand in for an authorized physical write.',
-                                 'Production Store/HTTP/SDK/journal dispatch, remaining media profiles, Linux x86_64, remote/browser/provider and full Gate 6 acceptance.'],
+                                 'Production Store/HTTP/SDK/journal dispatch, remaining media profiles, Linux ARM64, remote/browser/provider and full Gate 6 acceptance.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   source_inputs_sha256=before, sources_unchanged=before == sources(), steps=steps,

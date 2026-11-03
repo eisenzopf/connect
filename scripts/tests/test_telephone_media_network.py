@@ -155,7 +155,7 @@ class TelephoneNetworkBoundaryTests(unittest.TestCase):
     def test_public_facts_drop_identifiers_nonce_addresses_errors_and_nonfinite_counters(self):
         value = dict(passed=False, failure={'type': 'AssertionError', 'message': 'private-secret'},
             source_revision='a'*40, profiles=[dict(algorithm='EdDSA', passed=False,
-                guest=dict(os='linux', architecture='x86_64', received_rtp=180, nonce='private-secret'),
+                guest=dict(os='linux', architecture='aarch64', received_rtp=180, nonce='private-secret'),
                 server_witness=[dict(original_invite_replayed=True, call_id='private-secret')],
                 server_failure=dict(media_go_written=False, private='private-secret', panic_locations=[
                     dict(file='crates/connect-server/tests/fixture.rs',line=100,column=7),

@@ -130,7 +130,7 @@ def verify_package(archive, revision, git_hashes):
                 else:
                     digest = sha(content)
             files[relative] = {'sha256': digest, 'mode': mode}
-    if not manifest or manifest['format'] != 'connect/linux-package/1' or manifest['target'] != 'ubuntu-24.04-x86_64':
+    if not manifest or manifest['format'] != 'connect/linux-package/1' or manifest['target'] != 'ubuntu-24.04-arm64':
         raise ValueError('Wrong package profile')
     if manifest['installation_id'] != root or manifest['source_epoch'] != epoch or manifest['source_revision'] != revision:
         raise ValueError('Package source/identity mismatch')
@@ -222,7 +222,7 @@ def main():
     with Path(__file__).open('rb') as stream:
         proofs['verifier_sha256'] = sha(stream)
     proofs['verifier_source_revision'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    proofs.update(format='connect/verified-linux-installation/1', task='G6-056', installation=installation, whole_gate_qualified=False, deferred_qualification_dependencies=['G6-054'], scope='Ubuntu24.04 native x86_64 systemd; signed remote-profile peer in a separate local network namespace. No public WAN/provider/model/browser/media claim.')
+    proofs.update(format='connect/verified-linux-installation/1', task='G6-056', installation=installation, whole_gate_qualified=False, deferred_qualification_dependencies=['G6-054'], scope='Ubuntu24.04 native ARM64 systemd; signed remote-profile peer in a separate local network namespace. No public WAN/provider/model/browser/media claim.')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(proofs, indent=2) + '\n')
     print(json.dumps({'verified': True, 'initial': initial['source_revision'], 'current': current['source_revision'], 'checks': len(required)}))

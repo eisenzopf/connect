@@ -184,7 +184,7 @@ def main():
             'The new non-audio future wire cases qualify native video/screen RTP and actual ordered-data resource negotiation. Canonical reliable-message/journal delivery is covered by its separate existing cases; this resource case alone claims no message delivery.',
             'The subscription wire fixture uses two endpoints owned by one Participant; MCU self-echo is intentionally suppressed. Distinct-owner engine and separate managed native mixer cases provide audio evidence; the video fixture does not establish that audio behavior.',
             'Production Connect Store/Session/journal policy installation, automatic refresh/step-up and complete migration remain scoped to G6-037/G6-038 and subsequent application tasks. Complete virtual connection termination/presence is not inferred from stream removal.',
-            'Other guarded transports and video decode/render belong to their assigned qualification tasks. Full workspace/package/release/performance, approved Linux x86_64 and remote/native/browser lanes, bounded named rehearsals per G6-093, Gate 6 acceptance and separate publication remain open.',
+            'Other guarded transports and video decode/render belong to their assigned qualification tasks. Full workspace/package/release/performance, approved Linux ARM64 and remote/native/browser lanes, bounded named rehearsals per G6-093, Gate 6 acceptance and separate publication remain open.',
         ],
         exploratory_attempts=[dict(private_log=str(path.relative_to(ROOT)), sha256=digest(path),
                                    disposition='Unqualified exploratory compilation or behavior attempt')

@@ -100,7 +100,7 @@ def main():
     report = dict(task='G6-024', related_task='G6-015', implementation_status='in-progress',
                   qualification='Registered primary payload owns its NACK/RTX cache; original auxiliary packets still forward unchanged. Explicit Opus/NACK registration exercises telephone-event payloads and unregistered payloads, with/without RTX. Default WebRTC audio still advertises TWCC only; no live browser optional-audio-NACK negotiation is claimed. Full interceptor and declared RTC repair regressions, actual default WebRTC/SRTP DTMF, parent-Git archive patch application and clean pinned source reproduction.',
                   not_qualified=['General Core/native/SIP/WebRTC current-authorized DTMF dispatch, exact source/method/logical-operation correlation and WebRTC actual driver IO custody.',
-                                 'Remaining media profiles, Linux x86_64, remote/native/browser/provider lanes, bounded G6-093 rehearsals, full Gate 6 acceptance and publication.'],
+                                 'Remaining media profiles, Linux ARM64, remote/native/browser/provider lanes, bounded G6-093 rehearsals, full Gate 6 acceptance and publication.'],
                   platform=platform.platform(), rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   source_inputs_sha256=before, sources_unchanged=before == sources(), steps=steps,
                   runtime_checks=sum(len(s['tests_passed']) for s in steps), required_cases=[CASE] + REPAIR_CASES,

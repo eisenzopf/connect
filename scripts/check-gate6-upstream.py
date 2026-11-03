@@ -327,7 +327,7 @@ def main():
     result = dict(task='G6-028', implementation_status='runtime-qualified' if ok and unchanged and not missing and required_node <= node_observed else 'in-progress', passed=ok and unchanged and not missing and required_node <= node_observed,
                   qualification='Current-source local macOS arm64 M1 protocol/media/lifecycle/authentication/record recovery qualification in one upstream Cargo graph, a standalone packaged DTLS endpoint regression graph, and a separately built locked Connect canonical-runtime consumer graph. Owned local PostgreSQL; checked browser module on Node. No historical test totals are combined.',
                   not_qualified=['Production canonical session/media Store/service/HTTP/SDK installation and subsequent Gate 6 integration tasks.',
-                                 'Linux x86_64, live browser/remote/provider operating and independent conformance/performance/acceptance profiles; publication.'],
+                                 'Linux ARM64, live browser/remote/provider operating and independent conformance/performance/acceptance profiles; publication.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(), rustc=subprocess.check_output(['rustc', '--version'], text=True).strip(),
                   patches=lock['patches'], source_revisions=lock['sources'], source_inputs_sha256=before, sources_unchanged=unchanged,
                   clean_comparison=clean_comparison, clean_preparation_mode='verified-prior-fresh-tree' if args.prepared_dir else 'fresh-tree', reproduced_tree=str(clean.relative_to(ROOT)), upstream_build_graph=dict(packages=PACKAGES, features=FEATURES, artifacts=sorted(artifacts.values(), key=lambda a: a['key'])),

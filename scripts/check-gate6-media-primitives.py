@@ -91,7 +91,7 @@ def main():
                   audit_script_sha256=digest(pathlib.Path(__file__)),
                   not_qualified=['G6-028 combined current-source upstream qualification and clean consumer preparation.',
                                  'Production canonical Store/journal/service/HTTP/SDK installation and public session orchestration in G6-037/G6-038 and dependent tasks.',
-                                 'Live browser AV/fallback and extended operating/impairment/performance workloads, Linux x86_64 and named remote/provider G6-093 rehearsals, independent conformance, Gate 6 acceptance and publication.'])
+                                 'Live browser AV/fallback and extended operating/impairment/performance workloads, Linux ARM64 and named remote/provider G6-093 rehearsals, independent conformance, Gate 6 acceptance and publication.'])
     path = ROOT / 'docs/evidence/gate-6/media-primitives.json'
     path.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(dict(passed=True, task='G6-024', obligations=len(matrix), patches=97, source_audit=result['source_audit'])))

@@ -10,10 +10,14 @@ on:
         default: local
       target:
         type: string
-        default: ubuntu24-x86_64
+        default: ubuntu24-arm64
       signing:
         type: string
         default: EdDSA
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 concurrency:
@@ -22,7 +26,7 @@ concurrency:
 jobs:
   control:
     name: ${{ inputs.target }} transport ${{ inputs.component }} component
-    runs-on: ${{ inputs.target == 'macos-arm64' && 'macos-15' || 'ubuntu-24.04' }}
+    runs-on: ${{ fromJSON(inputs.target == 'macos-arm64' && '["self-hosted","macOS","ARM64","connect-gate6-local"]' || '["self-hosted","Linux","ARM64","connect-gate6-local"]') }}
     timeout-minutes: 240
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-installation-target
@@ -79,10 +83,10 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-aarch64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
-            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
-            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu-' }}
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-aarch64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+            ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-sdk-runtime-v1-aarch64-unknown-linux-gnu-' }}
             ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-linux-installation-v1' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
             ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin-' || 'g6-linux-installation-v1-' }}
       - name: Prepare verified sources and locked dependencies
@@ -101,7 +105,7 @@ jobs:
           python3 scripts/check-gate-6-transports.py --phase inventory
       - name: Validate selected signing cohort
         run: |
-          python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-x86_64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"; assert os.environ["TRANSPORT_NETWORK"] in {"local", "remote-profile-fixture"}; assert os.environ["TRANSPORT_NETWORK"] == "local" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-x86_64"'
+          python3 -c 'import os; assert os.environ["TRANSPORT_SIGNING"] in {"EdDSA", "ES256"}; assert os.environ["TRANSPORT_TARGET"] in {"ubuntu24-arm64", "macos-arm64"}; assert os.environ["TRANSPORT_COMPONENT"] != "control" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-arm64"; assert os.environ["TRANSPORT_NETWORK"] in {"local", "remote-profile-fixture"}; assert os.environ["TRANSPORT_NETWORK"] == "local" or os.environ["TRANSPORT_TARGET"] == "ubuntu24-arm64"'
       - name: Check actual host process observation and original child joins
         if: inputs.component == 'control' || inputs.component == 'conversation' || (inputs.component == 'data' || inputs.component == 'media')
         run: node --test scripts/tests/transport_host.test.mjs scripts/tests/transport_snapshot.test.mjs scripts/tests/transport_failure.test.mjs
@@ -182,4 +186,4 @@ jobs:
             .deps
             .local/gate6-linux-installation-target
             .local/gate6-linux-ci/source-times.json
-          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-x86_64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          key: ${{ inputs.target == 'macos-arm64' && 'g6-sdk-runtime-v1-aarch64-apple-darwin' || 'g6-sdk-runtime-v1-aarch64-unknown-linux-gnu' }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

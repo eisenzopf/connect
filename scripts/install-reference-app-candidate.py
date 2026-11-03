@@ -98,7 +98,7 @@ def install(target, output):
     runtime_archive = selected / 'runtime' / runtime['archive_name']
     native = output / 'runtime'
     install_runtime(runtime_archive, runtime, native)
-    if target == 'x86_64-unknown-linux-gnu':
+    if target == 'aarch64-unknown-linux-gnu':
         linkage = subprocess.check_output(['ldd', str(native / 'bin/connect')], text=True, timeout=5)
         (output / 'runtime-linkage.txt').write_text(linkage)
         if 'not found' in linkage:
@@ -134,7 +134,7 @@ def install(target, output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target', required=True, choices=['x86_64-unknown-linux-gnu', 'aarch64-apple-darwin'])
+    parser.add_argument('--target', required=True, choices=['aarch64-unknown-linux-gnu', 'aarch64-apple-darwin'])
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     install(args.target, args.output)

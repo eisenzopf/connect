@@ -1,8 +1,6 @@
 name: Local source checks
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -10,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   macos-arm64:
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, connect-gate6-local]
     timeout-minutes: 90
     env:
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -61,7 +59,7 @@ jobs:
     # The complete default-feature source lane remains in macos-arm64.
     # Recovery gets its own unchanged 90-minute job budget after the observed
     # combined lane exhausted that budget following an 85-minute source pass.
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, connect-gate6-local]
     timeout-minutes: 90
     env:
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -122,7 +120,7 @@ jobs:
           if-no-files-found: error
 
   gate-5-source:
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, connect-gate6-local]
     timeout-minutes: 360
     env:
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -167,7 +165,7 @@ jobs:
   gate-5-independent-control:
     # Real Python/aioquic control interoperability, separate cold compilation.
     # This cannot claim installed/model/media or whole Gate5 acceptance.
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, connect-gate6-local]
     timeout-minutes: 90
     env:
       CARGO_PROFILE_DEV_DEBUG: '0'
@@ -210,7 +208,7 @@ jobs:
   gate-5-native-example:
     # Generated-source native example cleanup, separate cold compilation.
     # This does not acquire hardware or qualify installed/model/whole Gate5 acceptance.
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, connect-gate6-local]
     timeout-minutes: 90
     env:
       CARGO_PROFILE_DEV_DEBUG: '0'

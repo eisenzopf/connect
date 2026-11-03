@@ -1,5 +1,12 @@
 # Native local and remote network profiles
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 The assigned G6-048 native profile is qualified in its recorded scopes. The
 [source-bound report](../evidence/gate-6/native-remote-profile.json) and
 [requirement audit](../evidence/gate-6/native-remote-audit.json) record the actual

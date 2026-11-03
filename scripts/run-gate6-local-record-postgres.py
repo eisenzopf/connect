@@ -121,7 +121,7 @@ def main():
                       executable=str(executable), executable_sha256=original_binary,
                       tests_passed=[case] if passed else [], exit_code=result.returncode if result else None,
                       sources_unchanged=unchanged, executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                      not_qualified=['Existing/remote database, Linux x86_64 hosting, provider deletion, production Connect policy, full G6-027 and Gate 6 acceptance.'])
+                      not_qualified=['Existing/remote database, Linux ARM64 hosting, provider deletion, production Connect policy, full G6-027 and Gate 6 acceptance.'])
         (directory / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(dict(passed=report['passed'], report=str(directory / 'report.json'), cleanup=cleanup)), flush=True)
     if not passed or not report['passed']:

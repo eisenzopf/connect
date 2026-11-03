@@ -139,7 +139,7 @@ def main():
                   qualification='Approved G6-024 local engine profile matrix: checked Rust/browser-module framing, exact peer-scoped stream IDs, decoded PCMU/PCMA/Opus and independently decoded VP8 camera/screen on real signed QUIC/WebTransport peers with unequal fixed physical MTUs, visible loss gaps and recovery, malformed/oversized/expired refusal, reliable text/JSON/binary on QUIC/WT/WSS, feedback/RTC repair, owned current DTMF IO and measured native quality. Controlled host-policy fixtures; no production application or remote/browser/hosting acceptance claim.',
                   not_qualified=['Full G6-024: WebSocket/WebRTC fallback media wiring and decoded-path audit remain open.',
                                  'Production Store/journal/service/HTTP/SDK installation and downstream G6-028 combined engine qualification.',
-                                 'Linux x86_64, live browser/remote/provider profiles, G6-093 named rehearsals, full Gate 6 acceptance and publication.'],
+                                 'Linux ARM64, live browser/remote/provider profiles, G6-093 named rehearsals, full Gate 6 acceptance and publication.'],
                   executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), platform=platform.platform(),
                   ffmpeg=subprocess.check_output(['ffmpeg','-version'],text=True).splitlines()[0],
                   node=subprocess.check_output(['node','--version'],text=True).strip(),

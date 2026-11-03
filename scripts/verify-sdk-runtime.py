@@ -112,8 +112,8 @@ def main():
             or manifest['helper_profiles'] != profiles or not manifest['production_build_verified']
             or len({files['bin/connect']['sha256'], proof['binary_sha256'], proof['completed_build_artifact_sha256'], manifest['binary_sha256']}) != 1):
         raise ValueError('Native file payload or identity differs')
-    if proof['target'] == 'x86_64-unknown-linux-gnu':
-        abi = binary_header[:6] == b'\x7fELF\x02\x01' and int.from_bytes(binary_header[18:20], 'little') == 62
+    if proof['target'] == 'aarch64-unknown-linux-gnu':
+        abi = binary_header[:6] == b'\x7fELF\x02\x01' and int.from_bytes(binary_header[18:20], 'little') == 183
     elif proof['target'] == 'aarch64-apple-darwin':
         abi = binary_header[:4] == b'\xcf\xfa\xed\xfe' and int.from_bytes(binary_header[4:8], 'little') == 0x0100000C
     else:

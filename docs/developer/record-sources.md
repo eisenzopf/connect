@@ -1,5 +1,12 @@
 # Session record source integration
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 G6-027's reusable engine stores source policy and integrity as data. Current read authorization is still required. Session membership never establishes a capture audience.
 
 Both explicit Session end and automatic last-connection end freeze the original outcome before any storage await. The existing teardown future owns the bounded store attempt; no background writer is spawned. Failed or cancelled storage retains the same frozen document for explicit retry, including after the Session has ended. A later builder edit or changed end reason cannot rewrite it. Automatic outcomes retain the terminal class (normal, cancelled or failed); private adapter error text is excluded.

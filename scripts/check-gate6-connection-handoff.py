@@ -99,7 +99,7 @@ def main():
             'Decoded Core cases include actual Human/Ai kinds and distinct owners in both directions. Managed TLS cases use distinct authenticated human identities, actual codec IO and controlled domain/negotiation storage; they do not claim public workflow installation or live providers.',
             'Cleanup confirmation covers only explicitly observed local resources. Remote/provider effects remain pending or unknown where no acknowledgment was observed; no rollback or redial is inferred.',
             'Conversation-wide durable role projection, production Store/HTTP/SDK operation/reconciliation and public history/event privacy remain their assigned later Gate 6 tasks. Local Session roles and physical speaking roles are verified together here.',
-            'Full release/performance, Linux x86_64 and remote/native/browser qualification, G6-093 bounded named rehearsals, Gate 6 acceptance and separate publication remain required.',
+            'Full release/performance, Linux ARM64 and remote/native/browser qualification, G6-093 bounded named rehearsals, Gate 6 acceptance and separate publication remain required.',
         ],
         exploratory_attempts=[dict(private_log=str(path.relative_to(ROOT)), sha256=digest(path), disposition='Unqualified exploratory compilation or behavior attempt') for path in sorted((ROOT / '.local/gate-6').glob('connection-handoff-*-exploratory.log'))],
         passed=unchanged and len(steps) == len(commands) and len(required) >= 191 and not missing and all(s['passed'] for s in steps))

@@ -56,7 +56,7 @@ class OwnedBridgeTurn:
         self.directory.mkdir(mode=0o700,exist_ok=False)
         image=json.loads(command(['docker','image','inspect',self.image]))[0]
         probe=json.loads(command(['docker','image','inspect',self.probe_image]))[0]
-        assert image['Id']==self.image and image['Os']=='linux' and image['Architecture'] in ('arm64','amd64')
+        assert image['Id']==self.image and image['Os']=='linux' and image['Architecture'] == 'arm64'
         assert probe['Id']==self.probe_image and probe['Architecture']==image['Architecture'] and probe['Os']=='linux'
         base=['docker','run','--rm','--read-only','--network','none','--cap-drop','ALL',
             '--cap-add','NET_BIND_SERVICE','--security-opt','no-new-privileges']

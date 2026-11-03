@@ -18,7 +18,7 @@ def main():
     parser.add_argument("--artifact-sha256", required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--component", choices=sorted(COMPONENTS), required=True)
-    parser.add_argument("--target", choices=("ubuntu24-x86_64", "macos-arm64"), required=True)
+    parser.add_argument("--target", choices=("ubuntu24-arm64", "macos-arm64"), required=True)
     parser.add_argument("--signing", choices=("EdDSA", "ES256", "both"), required=True)
     parser.add_argument("--network", choices=("local", "remote-profile-fixture"), required=True)
     parser.add_argument("--expect-result", choices=("passed", "failed"), required=True)

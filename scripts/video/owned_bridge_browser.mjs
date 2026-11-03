@@ -7,16 +7,16 @@ import {pathToFileURL} from 'node:url';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 
 const [directory]=process.argv.slice(2),output=path.resolve(directory??'');
-if(process.argv.length!==3||process.platform!=='linux'||process.arch!=='x64'
+if(process.argv.length!==3||process.platform!=='linux'||process.arch!=='arm64'
     ||process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER!=='1'||!output.startsWith(process.cwd()+'/.local/'))
-    throw Error('Owned Linux x86 bridge fixture required');
+    throw Error('Owned Linux ARM64 bridge fixture required');
 const spec=JSON.parse(await fs.readFile(path.join(output,'input.json'),'utf8'));
 if(spec.designatedRemoteHost!=='connect.fixture.internal'||!spec.ownedContainerBridge)throw Error('Owned bridge spec required');
 const binary=process.env.CONNECT_GATE6_CHROME;
 const version=spawnSync(binary,['--version'],{encoding:'utf8'});
 if(version.status!==0||version.stdout.trim()!=='Google Chrome for Testing 156.0.8078.4')throw Error('Current pinned CFT required');
 const {chromium}=await import(pathToFileURL(process.env.CONNECT_PLAYWRIGHT_MODULE).href);
-const summary={scope:'Owned internal Docker bridge, Linux x86 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.',
+const summary={scope:'Owned internal Docker bridge, Linux ARM64 CFT156 normal CA and decoded clean60 media. No WAN, provider or full matrix qualification.',
     browser:version.stdout.trim(),network_namespace_sha256:createHash('sha256').update(await fs.readlink('/proc/self/ns/net')).digest('hex'),passed:false};
 let stage='untrusted-ca',owner;
 try{

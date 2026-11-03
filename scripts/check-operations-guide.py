@@ -47,7 +47,7 @@ def port(kind):
 
 def main():
     os.umask(0o077)
-    assert platform.system() == "Linux" and platform.machine() == "x86_64"
+    assert platform.system() == "Linux" and platform.machine() == "aarch64"
     release = platform.freedesktop_os_release()
     assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
     PRIVATE.mkdir(parents=True)  # Never reuse/delete a previous private rehearsal.
@@ -62,7 +62,7 @@ def main():
         source_inputs_sha256=sha(source_path), source_count=len(before), checks=[], commands=[], servers=[],
         cli_envelope_profile="connect-control/1", canonical_transport_profile="connect/2",
         template_hashes={p.name: sha(p) for p in sorted(TEMPLATES.glob("*.json"))},
-        scope="Disposable native Ubuntu24.04x86_64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
+        scope="Disposable native Ubuntu24.04 ARM64 production CLI and synthetic signed control only. Commands use public APIs; only copied negative backups are intentionally corrupted. No media, provider, telephone, model, external call, WAN or publication.",
         task_complete=False, whole_gate_qualified=False)
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"

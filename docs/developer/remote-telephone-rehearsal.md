@@ -1,5 +1,12 @@
 # Owned distinct-network telephone rehearsal
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 `scripts/rehearse-gate6-remote-telephone.py` runs a fresh Linux arm64 synthetic
 SIP/RTP peer in the pinned local Lima container against a Mac canonical server
 using the explicit Remote network profile. A public native SDK audio peer in the
@@ -84,10 +91,10 @@ original-owner drain requirements are identical to the direct profile. This is
 a functional controlled-loss fixture, not a latency or load qualification.
 
 
-## Native Linux x86_64 host and peer
+## Native Linux ARM64 host and peer
 
 The `telephone-network` lane in `gate6-linux-fixtures.yml` builds the current
-server fixture on native Ubuntu 24.04 x86_64 and runs the original four
+server fixture on native Ubuntu 24.04 ARM64 and runs the original four
 EdDSA/ES256 direct and 20% PCMU RTP-loss cases. The synthetic Python SIP/RTP
 peer runs in the pinned Linux/amd64 image as the host operator UID, with a
 separate namespace on one fresh internal Docker bridge. The owner verifies

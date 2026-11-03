@@ -12,15 +12,19 @@ on:
         type: choice
         options: [pass, counterexample]
         default: pass
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 concurrency:
   group: gate6-browser-media-library-driver0-${{ github.ref }}${{ inputs.lane == 'fault' && '-fault' || '' }}
   cancel-in-progress: false
 jobs:
-  linux-x86-browser-media:
+  linux-arm64-browser-media:
     if: ${{ inputs.lane != 'source-clock' }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 90
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-browser-media/target
@@ -84,34 +88,34 @@ jobs:
         run: npm ci --prefix scripts/video/observer-tools --ignore-scripts --no-audit --no-fund
       - name: Build owned software audio image
         run: |
-          mkdir -p .local/gate6-browser-media/image-context
-          docker build --platform linux/amd64 --file scripts/video/Dockerfile.browser-media --tag connect-g6-browser-media .local/gate6-browser-media/image-context
+          python3 scripts/prepare-local-browser-image.py --browser "$CONNECT_GATE6_CHROME" --output .local/gate6-browser-media/image-context
+          docker build --platform linux/arm64 --build-arg BUILD_BASE_IMAGE="${CONNECT_GATE6_ARM_BUILD_IMAGE:?existing local ARM build image required}" --file scripts/video/Dockerfile.browser-media --tag connect-g6-browser-media .local/gate6-browser-media/image-context
           docker image inspect connect-g6-browser-media > .local/gate6-browser-media/evidence/image-private.json
           python3 - <<'PY'
           from pathlib import Path
           import json
           base=Path('.local/gate6-browser-media/evidence')
           image=json.loads((base/'image-private.json').read_text())[0]
-          assert image['Os']=='linux' and image['Architecture']=='amd64'
+          assert image['Os']=='linux' and image['Architecture']=='arm64'
           (base/'image.json').write_text(json.dumps({k:image[k] for k in ['Id','Os','Architecture','RepoDigests']},indent=2)+'\n')
           PY
       - name: Prepare pinned owned TURN image
         if: ${{ inputs.lane == 'full' || inputs.lane == 'relay' || inputs.lane == 'expired-turn' }}
         run: |
-          docker pull --platform linux/amd64 coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf
+          docker pull --platform linux/arm64 coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf
           python3 - <<'PY'
           from pathlib import Path
           import json,subprocess
           reference='coturn/coturn@sha256:59af4221a2c45c1195a1a4a865542b3ea744be1dd8e228d11bde87c6631081cf'
           value=json.loads(subprocess.check_output(['docker','image','inspect',reference]))[0]
-          assert value['Os']=='linux' and value['Architecture']=='amd64'
+          assert value['Os']=='linux' and value['Architecture']=='arm64'
           Path('.local/gate6-browser-media/evidence/turn-image.json').write_text(json.dumps(dict(
               reference=reference,**{key:value[key] for key in ['Id','Os','Architecture','RepoDigests']}),indent=2)+'\n')
           PY
       - name: Run independent bounded media and network cases
         if: ${{ inputs.lane != 'bridge' && inputs.lane != 'relay' && inputs.lane != 'expired-turn' }}
         run: |
-          docker run --rm --read-only --network none --platform linux/amd64 --cpus 4 --memory 6g --shm-size 1g \
+          docker run --rm --read-only --network none --platform linux/arm64 --cpus 4 --memory 6g --shm-size 1g \
             ${{ (inputs.lane == 'full' || inputs.lane == 'fault') && '--cap-add NET_ADMIN' || '' }} \
             --tmpfs /tmp:rw,nosuid,nodev,size=1g \
             --mount "type=bind,source=$PWD,target=$PWD,readonly" \
@@ -127,7 +131,7 @@ jobs:
             --env "CONNECT_PLAYWRIGHT_MODULE=$PWD/scripts/video/observer-tools/node_modules/playwright/index.mjs" \
             connect-g6-browser-media sh -eu -c '
               mkdir -p "$TMPDIR"
-              CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome\")+glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux/chrome\"); assert len(p)==1; print(p[0])")"
+              CONNECT_GATE6_CHROME="$(python3 -c "import glob; p=glob.glob(\"/ms-playwright/chromium-[0-9]*/chrome-linux-arm64/chrome\"); assert len(p)==1; print(p[0])")"
               export CONNECT_GATE6_CHROME
               python3 scripts/video/owned_pulse_audio.py --output .local/gate6-browser-media/evidence/audio -- \
                 python3 scripts/check-gate6-browser-media.py run ${{ inputs.lane == 'diagnostic' && '--component baseline' || inputs.lane == 'fault' && '--component impairment-eddsa' || inputs.lane == 'native-ice' && '--component native-ice' || '' }}
@@ -184,7 +188,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: gate6-linux-x86-browser-media
+          name: gate6-linux-arm64-browser-media
           path: |
             .local/gate6-linux-ci/evidence/dependency-cache.json
             .local/gate6-browser-media/evidence/build/summary.json
@@ -215,7 +219,7 @@ jobs:
           key: g6-browser-opt3-v1-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
   interceptor-component:
     if: ${{ inputs.lane == 'source-clock' }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 20
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-first-source-clock/target

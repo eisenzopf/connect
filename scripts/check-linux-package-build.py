@@ -127,7 +127,7 @@ def main():
                 raise RuntimeError('Bounded build step failed; raw diagnostics retained privately')
         if args.phase == 'recovery':
             return
-        packages = list((ROOT / 'dist').glob('connect-*-ubuntu-24.04-x86_64-*.tar.gz'))
+        packages = list((ROOT / 'dist').glob('connect-*-ubuntu-24.04-arm64-*.tar.gz'))
         assert len(packages) == 1
         package = packages[0]
         report['archive'] = package.name

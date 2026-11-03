@@ -96,7 +96,7 @@ def create_profile(browser, binary, profile, root_der):
         version = subprocess.check_output([str(binary), '--version'], text=True).strip()
         if sys.platform == 'darwin':
             expected = 'Google Chrome ' + CHROME_VERSION
-        elif sys.platform == 'linux' and platform.machine() in ('aarch64', 'x86_64'):
+        elif sys.platform == 'linux' and platform.machine() == 'aarch64':
             expected = 'Google Chrome for Testing ' + LINUX_CHROME_VERSION
         else:
             raise ValueError('Use a verified macOS or Linux qualification profile')

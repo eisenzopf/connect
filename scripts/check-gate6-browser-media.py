@@ -15,6 +15,7 @@ import subprocess
 import threading
 
 ROOT = Path(__file__).resolve().parents[1]
+native_host = runpy.run_path(str(ROOT / 'scripts/lib/linux_arm64_profile.py'))['native_host']
 BASE = ROOT / '.local/gate6-browser-media'
 INPUTS = runpy.run_path(str(ROOT / 'scripts/check-gate6-ice-restart.py'))['inputs']
 BOUNDED = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-turn-relay.py'))['bounded_child']
@@ -202,6 +203,7 @@ def save(path, value):
 
 
 def build():
+    host = native_host()
     fixture_level = os.environ.get('CONNECT_GATE6_FIXTURE_OPT_LEVEL', '3')
     assert fixture_level in {'0', '3'}, 'Use explicit fixture optimization0 or3; production remains opt3'
     output = BASE / 'evidence/build'
@@ -229,8 +231,8 @@ def build():
     artifacts = [row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
         and row['target']['name'] == 'gate6_canonical_webtransport' and row.get('executable')]
     unchanged = INPUTS() == before
-    report = dict(scope='Native Linux x86_64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt' + fixture_level + '. Build only.',
-        fixture_opt_level=fixture_level, unrequested_cli_artifacts=unrequested_cli_artifacts,
+    report = dict(scope='Local native Ubuntu24.04 ARM64 production runtime libraries at release opt3, no root package exceptions; integration test driver opt' + fixture_level + '. Build only.',
+        host=host, fixture_opt_level=fixture_level, unrequested_cli_artifacts=unrequested_cli_artifacts,
         command=command, execution=result, runtime_library_profiles=runtime_profiles,
         source_count=len(before), sources_unchanged=unchanged,
         source_manifest_sha256=digest(output / 'source-inputs.json'),
@@ -251,6 +253,7 @@ def build():
 
 
 def runtime(component=None):
+    host = native_host()
     assert os.environ.get('CONNECT_GATE6_OWNED_BROWSER_CONTAINER') == '1' and os.environ.get('PULSE_SERVER')
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', os.environ.get('CONNECT_GATE6_BROWSER_IMAGE_ID', ''))
     output = BASE / 'evidence/runtime'
@@ -378,14 +381,14 @@ def runtime(component=None):
     finally:
         changed = [name for name, value in repository.items() if not (ROOT / name).is_file() or digest(ROOT / name) != value]
         changed += [name for name, value in tools.items() if digest(name) != value]
-        report = dict(scope='Native Linux x86_64 anonymous network-disabled container: production runtime opt3 with explicitly recorded integration-driver optimization, normal private CA, original browser ICE, decoded clean/impairment media and owned UDP faults. No distinct-network, provider, installation or acceptance qualification.',
-            lane=component or 'full',full_matrix=component is None,
+        report = dict(scope='Local native Ubuntu24.04 ARM64 anonymous network-disabled container: production runtime opt3 with explicitly recorded integration-driver optimization, normal private CA, original browser ICE, decoded clean/impairment media and owned UDP faults. No distinct-network, provider, installation or acceptance qualification.',
+            host=host, lane=component or 'full',full_matrix=component is None,
             browser=version, image_id=os.environ.get('CONNECT_GATE6_BROWSER_IMAGE_ID'),
             producer=producer, source_count=len(repository), tool_count=len(tools),
             sources_unchanged=not changed, changed_inputs=changed, steps=steps,
             passed=len(steps) == (1 if component else 8) and all(step['passed'] for step in steps) and not changed)
         if component:
-            report['scope']='Single diagnostic component only: '+component+'. Native Linux x86 CFT156 with opt3 runtime libraries. No full-matrix, installation or acceptance qualification.'
+            report['scope']='Single diagnostic component only: '+component+'. Local native Ubuntu24.04 ARM64 CFT156 with opt3 runtime libraries. No full-matrix, installation or acceptance qualification.'
         save(output / 'summary.json', report)
     assert report['passed'], 'One or more required browser media cases failed; independent results retained'
 
@@ -396,8 +399,7 @@ if __name__ == '__main__':
     parser.add_argument('--component',choices=('native-ice','baseline','ice-eddsa','ice-es256',
         'unreachable-eddsa','unreachable-es256','impairment-eddsa','impairment-es256'))
     args = parser.parse_args()
-    assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
-    assert re.search(r'^vendor_id\s*:', Path('/proc/cpuinfo').read_text(), re.M)
+    native_host()
     os.chdir(ROOT)
     assert not args.component or args.mode=='run'
     build() if args.mode == 'build' else runtime(args.component)

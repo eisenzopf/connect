@@ -20,7 +20,7 @@ from lib.package_environment import fixture_environment
 from lib.sdk_candidate import digest
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGETS = {('darwin', 'arm64'), ('linux', 'x64')}
+TARGETS = {('darwin', 'arm64'), ('linux', 'arm64')}
 
 
 def npm_inputs(destination):
@@ -89,7 +89,7 @@ def main():
     bounded = runpy.run_path(str(ROOT / 'scripts/check-linux-package-build.py'))['run_bounded']
     report = {'format': 'connect/sdk-offline-build-inputs/1', 'passed': False, 'steps': [],
               'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-              'supported_source_targets': ['darwin-arm64', 'linux-x64'], 'task_complete': False, 'whole_gate_qualified': False}
+              'supported_source_targets': ['darwin-arm64', 'linux-arm64'], 'task_complete': False, 'whole_gate_qualified': False}
     sources = runpy.run_path(str(ROOT / 'scripts/check-gate6-linux-hosting.py'))['sources']
     before = sources()
     (evidence / 'source-inputs.json').write_text(json.dumps(before, sort_keys=True) + '\n')

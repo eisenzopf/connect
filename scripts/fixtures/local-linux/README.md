@@ -59,3 +59,34 @@ offline. Give `check_node_installation.py` an owned temporary directory outside
 the source checkout: its empty-cache consumer intentionally refuses an in-repo
 `TMPDIR`. Use a new proof-directory leaf on each attempt; its Node archive lives
 under `dist/sdk/typescript/<proof-directory-leaf>/`.
+
+All active Gate6 Linux runner requirements now use Ubuntu24.04 ARM64, native
+AArch64 Rust and ELF machine183. Package names use `ubuntu-24.04-arm64` and
+`aarch64-unknown-linux-gnu`; positive fixture definitions follow those identities.
+Mac native cases remain arm64. Old measured x86 results keep their original
+scope; changing a runner requirement does not rerun or qualify it.
+
+Run the CLI fixtures directly in the local VM. Workflow definitions retain only
+manual/reusable entrypoints and require explicitly named local self-hosted ARM
+labels; no workflow is dispatched and no runner registration is needed for the
+local procedure. Automatic push/PR test triggers are removed. GitHub is used for
+source synchronization and pushes.
+
+For a browser image, use a new guest-storage image context containing only the
+verified public Chromium1248/CFT156.0.8078.4 ARM distribution and the locked
+Playwright package inputs. `scripts/prepare-local-browser-image.py --browser
+/absolute/path/to/chromium-1248/chrome-linux-arm64/chrome --output
+.local/gate6-browser-media/image-context` creates that context, verifies native
+ELF183 and the installed browser version, and rejects escaping symlinks. Build
+`scripts/video/Dockerfile.browser-media` with `--platform linux/arm64` and
+`--build-arg BUILD_BASE_IMAGE=<recorded-existing-ARM-build-image-id>`. Record the
+resulting immutable image ID and package inventory before the test. Never commit
+or snapshot a running fixture's private repository/state into an image.
+
+Select the local immutable browser image through
+`CONNECT_GATE6_ARM_BROWSER_IMAGE=sha256:<recorded-image-id>`. Native/telephone
+network producers inspect this existing ARM image and never pull the historical
+x86 image. Browser media, direct/relay bridge, expiry and impairment runners
+verify native ARM kernel/toolchain and browser image/asset identities. Current
+source/binary guards, original read/programme/cleanup deadlines and media limits
+remain required.

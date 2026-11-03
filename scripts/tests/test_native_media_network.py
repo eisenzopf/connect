@@ -29,7 +29,7 @@ class NativeNetworkBoundaryTests(unittest.TestCase):
             owned_network=dict(requested=True, internal_bridge=True, original_bridge_removed=True,
                 remaining_containers=0, configuration='private-secret'), profiles=[dict(algorithm='EdDSA',
                 passed=False, guest_witness=[dict(algorithm='EdDSA', profile='remote', os='linux',
-                    architecture='x86_64', received_bytes=8000, credential='private-secret')],
+                    architecture='aarch64', received_bytes=8000, credential='private-secret')],
                 server_witness=[dict(algorithm='private-secret', physical_peers_drained=True)],
                 transport_fault=dict(error='private-secret', worker_joined=True,
                     guest_to_server=dict(eligible=100, dropped=10, forwarded=90, address='private-secret'),

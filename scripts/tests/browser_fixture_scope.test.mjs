@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateBrowserFixtureScope} from '../video/browser_fixture_scope.mjs';
-const runtime={platform:'linux',arch:'x64',env:{CONNECT_GATE6_OWNED_BROWSER_CONTAINER:'1'}};
+const runtime={platform:'linux',arch:'arm64',env:{CONNECT_GATE6_OWNED_BROWSER_CONTAINER:'1'}};
 const fixture=()=>({ownedContainerBridge:{ip:'172.19.0.2',port_start:32000,port_end:32031,require_relay:true},
     designatedRemoteHost:'connect.fixture.internal',iceRestart:true,requireRelay:true,profileMode:'clean',
     participants:[{connection:{iceTransportPolicy:'relay'}},{connection:{iceTransportPolicy:'relay'}}]});
@@ -21,7 +21,7 @@ test('remote names and public addresses cannot obtain the owned exception',()=>{
     }
 });
 test('other platforms and processes cannot use the bridge exception',()=>{
-    for(const r of [{...runtime,platform:'darwin'},{...runtime,arch:'arm64'},{...runtime,env:{}}])
+    for(const r of [{...runtime,platform:'darwin'},{...runtime,arch:'x64'},{...runtime,env:{}}])
         assert.throws(()=>validateBrowserFixtureScope(fixture(),r));
 });
 test('relay requires exact ports, both relay-only peers, original recovery and clean mode',()=>{

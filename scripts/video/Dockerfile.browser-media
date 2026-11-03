@@ -1,8 +1,15 @@
-FROM mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8
+# Build on the owned local ARM VM using its recorded clean build-image digest.
+ARG BUILD_BASE_IMAGE
+FROM ${BUILD_BASE_IMAGE}
 USER root
-# Owned paced software audio only; no host sound device, profile or credentials.
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-       pulseaudio=1:16.1+dfsg1-2ubuntu10.1 iproute2=6.1.0-1ubuntu6.4 \
+COPY package.json package-lock.json /opt/connect-browser-tools/
+RUN cd /opt/connect-browser-tools \
+    && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --ignore-scripts --no-audit --no-fund \
+    && node node_modules/playwright/cli.js install-deps chromium \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pulseaudio \
     && dpkg-query -W > /usr/local/share/connect-browser-packages.tsv \
     && rm -rf /var/lib/apt/lists/*
+# Only the previously verified public ARM Chromium distribution enters the image.
+# State, credentials, repository checkouts and Cargo caches are excluded.
+COPY chromium-1248/ /ms-playwright/chromium-1248/
+USER connect

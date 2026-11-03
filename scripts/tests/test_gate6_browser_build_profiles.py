@@ -142,6 +142,7 @@ class RuntimeBuildProfiles(unittest.TestCase):
 
             build = CHECK['build']
             with patch.dict(build.__globals__, {'ROOT':directory,'BASE':directory / 'run',
+                    'native_host':lambda:dict(architecture='aarch64',execution_scope='isolated-test-double'),
                     'INPUTS':lambda:next(observations),'BOUNDED':timeout,
                     'subprocess':SimpleNamespace(run=lambda *args,**kwargs:None),
                     'runpy':SimpleNamespace(run_path=cache)}), patch.dict('os.environ', {'GITHUB_OUTPUT':'','CONNECT_GATE6_FIXTURE_OPT_LEVEL':'0'}):

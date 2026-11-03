@@ -161,7 +161,7 @@ def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     package = args.package.resolve()
     manifest = json.loads((package / 'manifest.json').read_text())
-    report = {'source_revision': manifest['source_revision'], 'package_manifest_sha256': digest(package / 'manifest.json'), 'scope': 'Disposable native Ubuntu24.04 x86_64 systemd host; remote-profile signed client in a separate local network namespace. No public/WAN/provider/model/browser/media claim.', 'checks': {}, 'not_run': [], 'passed': False}
+    report = {'source_revision': manifest['source_revision'], 'package_manifest_sha256': digest(package / 'manifest.json'), 'scope': 'Disposable native Ubuntu24.04 ARM64 systemd host; remote-profile signed client in a separate local network namespace. No public/WAN/provider/model/browser/media claim.', 'checks': {}, 'not_run': [], 'passed': False}
     try:
         installer_package = (args.upgrade_package or package).resolve()
         installer_manifest = json.loads((installer_package / 'manifest.json').read_text())

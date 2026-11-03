@@ -1,7 +1,14 @@
 # Owned distinct-network browser fixture
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 `scripts/rehearse-gate6-browser-bridge.py` runs the canonical Remote server on
-an Ubuntu x86 host and current CFT156 browsers in a separate network namespace.
+a local Ubuntu ARM64 host and current CFT156 browsers in a separate network namespace.
 It creates one internal Docker bridge, binds the server's media and signed WSS
 listeners to that bridge's private gateway, and gives the container only the
 fixed `connect.fixture.internal` contact. It uses synthetic identities and media.

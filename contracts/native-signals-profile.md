@@ -416,7 +416,7 @@ source and executable digests; later changes require affected checks again.
 Full G6-024 remains unfinished: full quality/interop coverage, and the remaining cross-runtime
 framing/size/fragmentation/late/malformed/feedback/decoded-family qualification.
 Production Store/HTTP/SDK/journal operations remain their assigned G6-037/G6-038
-and dependent work. Approved Linux x86_64 and remote/native/browser profiles and
+and dependent work. Approved Linux ARM64 and remote/native/browser profiles and
 G6-093 bounded named rehearsals remain required separately. Publication remains
 a separate action.
 

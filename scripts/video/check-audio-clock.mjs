@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 const [directory]=process.argv.slice(2),output=path.resolve(directory??'');
 if(process.argv.length!==3||!output.startsWith(process.cwd()+path.sep+'.local'+path.sep)
-    ||process.platform!=='linux'||process.arch!=='x64'||!process.env.PULSE_SERVER)
+    ||process.platform!=='linux'||process.arch!=='arm64'||!process.env.PULSE_SERVER)
     throw Error('Owned Linux audio clock output and software server required');
 await fs.mkdir(output,{mode:0o700});
 const {chromium}=await import(pathToFileURL(process.env.CONNECT_PLAYWRIGHT_MODULE).href);

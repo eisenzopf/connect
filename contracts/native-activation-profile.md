@@ -58,6 +58,6 @@ end, general inactive semantics, reliable-data lifecycle or the full application
 workflow. Those remain Gate 6 work. This profile grants no durable operation
 receipt and creates no competing journal.
 
-Full Gate 6 still requires Linux x86_64 and the approved remote/native/browser
+Full Gate 6 still requires Linux ARM64 and the approved remote/native/browser
 profiles. Named external/provider rehearsals need the bounded G6-093 configuration
 and designated endpoints. Publication remains separate.

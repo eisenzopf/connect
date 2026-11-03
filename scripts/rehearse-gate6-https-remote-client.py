@@ -100,7 +100,7 @@ def main():
     if sha(binary) != args.binary_sha256 or not re.fullmatch(r"sha256:[0-9a-f]{64}", args.image):
         parser.error("Supply the recorded binary hash and existing pinned image ID")
     image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image], timeout=10))[0]
-    assert image["Os"] == "linux" and image["Architecture"] == "amd64"
+    assert image["Os"] == "linux" and image["Architecture"] == "arm64"
     out.mkdir(parents=True, mode=0o700)
     probe = out / "probe"
     probe.mkdir(mode=0o700)
@@ -109,7 +109,7 @@ def main():
     report = {"task": "G6-053", "passed": False, "binary_sha256": args.binary_sha256,
               "runner_sha256": sha(__file__), "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "server_platform": platform.platform(), "client_image": args.image,
-              "scope": "Owned Mac arm64 Remote-policy HTTPS host, Linux amd64 client in the local arm64 Lima VM, normal TLS via host.lima.internal. Every server listener binds loopback. No Ubuntu server, named external remote, browser/media, performance, provider/model or whole-gate qualification.",
+              "scope": "Owned Mac arm64 Remote-policy HTTPS host, Linux arm64 client in the local arm64 Lima VM, normal TLS via host.lima.internal. Every server listener binds loopback. No Ubuntu server, named external remote, browser/media, performance, provider/model or whole-gate qualification.",
               "external_provider_model_calls": 0}
     server = None
     start = time.monotonic()
@@ -171,7 +171,7 @@ def main():
                     time.sleep(0.05)
                 with (out / "client.log").open("wb") as client_log:
                     child = subprocess.run(["docker", "run", "--rm", "--pull", "never", "--name", name,
-                                            "--label", "connect.fixture=gate6-https-client", "--read-only", "--platform", "linux/amd64",
+                                            "--label", "connect.fixture=gate6-https-client", "--read-only", "--platform", "linux/arm64",
                                             "--network", "bridge", "--cpus", "1", "--memory", "128m", "--pids-limit", "32",
                                             "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", f"{os.getuid()}:{os.getgid()}",
                                             "--mount", f"type=bind,source={probe},target=/probe,readonly",

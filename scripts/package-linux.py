@@ -17,7 +17,7 @@ from lib.package_inventory import copy_prepared_crate_notices
 from lib.registry_licenses import copy_registry_notices, selected_dependency_ids
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = 'x86_64-unknown-linux-gnu'
+TARGET = 'aarch64-unknown-linux-gnu'
 
 
 def digest(path):
@@ -52,8 +52,8 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT / 'dist')
     args = parser.parse_args()
     release = platform.freedesktop_os_release()
-    if platform.system() != 'Linux' or platform.machine() != 'x86_64' or release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
-        parser.error('Build natively on Ubuntu 24.04 x86_64')
+    if platform.system() != 'Linux' or platform.machine() != 'aarch64' or release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
+        parser.error('Build natively on Ubuntu 24.04 ARM64')
     if git('status', '--porcelain'):
         parser.error('Commit source before packaging; clean checkout required')
     revision = git('rev-parse', 'HEAD')
@@ -69,7 +69,7 @@ def main():
         raise ValueError('Source changed during build')
     binary = Path(metadata['target_directory']) / 'release/connect'
     version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
-    identity = f'connect-{version}-ubuntu-24.04-x86_64-{revision[:12]}'
+    identity = f'connect-{version}-ubuntu-24.04-arm64-{revision[:12]}'
     output = args.output.resolve()
     if not output.is_relative_to((ROOT / 'dist').resolve()):
         parser.error('Packages belong under dist/')
@@ -99,7 +99,7 @@ def main():
     (runtime / 'dependencies/ldd.txt').write_text(re.sub(r'\s+\(0x[0-9a-fA-F]+\)', '', linkage))
     files = {str(p.relative_to(runtime)): {'sha256': digest(p), 'mode': 0o755 if p.relative_to(runtime).as_posix() == 'bin/connect' else 0o644} for p in sorted(runtime.rglob('*')) if p.is_file()}
     inputs = {name: digest(ROOT / name) for name in git('ls-files').splitlines() if (ROOT / name).is_file() and not (ROOT / name).is_symlink()}
-    manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-x86_64', 'installation_id': identity, 'source_revision': revision, 'source_epoch': epoch, 'build_profile': 'release', 'test_support': False, 'rustc': subprocess.check_output(['rustc', '-Vv'], text=True), 'inputs': inputs, 'files': files, 'publication_authorized': False}
+    manifest = {'format': 'connect/linux-package/1', 'target': 'ubuntu-24.04-arm64', 'installation_id': identity, 'source_revision': revision, 'source_epoch': epoch, 'build_profile': 'release', 'test_support': False, 'rustc': subprocess.check_output(['rustc', '-Vv'], text=True), 'inputs': inputs, 'files': files, 'publication_authorized': False}
     (runtime / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain') or any(digest(ROOT / name) != sha for name, sha in inputs.items()):
         raise ValueError('Source changed during packaging')

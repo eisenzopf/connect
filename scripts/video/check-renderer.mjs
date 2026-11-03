@@ -20,7 +20,7 @@ if(![3,4].includes(process.argv.length)||!directory||!['calibration','quality','
 const seconds=mode==='calibration'?8:60,pixelsPerSide=mode==='calibration'?[8,8]:[128,72];
 const rtcControl=mode.startsWith('rtc');
 const avControl=mode==='rtc-av';
-if(avControl&&(process.platform!=='linux'||process.arch!=='x64'
+if(avControl&&(process.platform!=='linux'||process.arch!=='arm64'
     ||process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER!=='1'||!process.env.PULSE_SERVER))
     throw Error('Native AV control requires its owned Linux software audio fixture');
 const output=path.resolve(directory);let binary=process.env.CONNECT_CHROME_BINARY;
@@ -31,10 +31,10 @@ await fs.mkdir(path.dirname(output),{recursive:true});await fs.mkdir(output,{mod
 if(process.env.CONNECT_PINNED_CHROMIUM_CACHE){
     // The pinned image has different executable subdirectories per CPU. Use
     // its ONE installed Chromium, never a download or alternate browser.
-    if(binary||process.platform!=='linux'||process.arch!=='x64'||process.env.CONNECT_PINNED_CHROMIUM_CACHE!=='/ms-playwright')
-        throw Error('Pinned image discovery requires the explicit Linux x86 cache');
+    if(binary||process.platform!=='linux'||process.arch!=='arm64'||process.env.CONNECT_PINNED_CHROMIUM_CACHE!=='/ms-playwright')
+        throw Error('Pinned image discovery requires the explicit Linux ARM64 cache');
     const cache='/ms-playwright',entries=(await fs.readdir(cache)).filter(name=>/^chromium-\d+$/.test(name)).sort(),candidates=[];
-    for(const entry of entries)for(const folder of ['chrome-linux64','chrome-linux']){
+    for(const entry of entries)for(const folder of ['chrome-linux-arm64']){
         const file=path.join(cache,entry,folder,'chrome');
         try{if((await fs.stat(file)).isFile())candidates.push(file);}catch(error){if(error.code!=='ENOENT')throw error;}
     }

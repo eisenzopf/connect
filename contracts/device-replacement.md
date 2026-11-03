@@ -142,7 +142,7 @@ source stability and exact executable digests. Runtime results are written to
 scene checkpoints remain historical and do not by themselves qualify the managed
 implementation. A task completion must cite the successful complete report.
 General wire DTMF/transport/quality stays G6-024; production Store/HTTP/SDK/journal
-and public Session projection stay in their assigned tasks. Linux x86_64, the
+and public Session projection stay in their assigned tasks. Linux ARM64, the
 approved remote/native/browser profiles and complete Gate 6 acceptance require
 their own assigned evidence. Publication remains separate.
 

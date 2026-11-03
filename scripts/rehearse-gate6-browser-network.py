@@ -18,6 +18,7 @@ import socket
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+native_host = runpy.run_path(str(ROOT / 'scripts/lib/linux_arm64_profile.py'))['native_host']
 NETEM = runpy.run_path(str(ROOT/'scripts/lib/owned_netem.py'))['OwnedNetem']
 HELPERS = runpy.run_path(str(ROOT/'scripts/rehearse-gate6-turn-relay.py'))
 
@@ -28,7 +29,7 @@ def digest(path):
 
 
 async def run(args):
-    assert platform.system()=='Linux' and platform.machine()=='x86_64'
+    host = native_host()
     binary = args.binary.resolve(strict=True)
     manifest = args.source_manifest.resolve(strict=True)
     sources = json.loads(manifest.read_text())
@@ -43,7 +44,7 @@ async def run(args):
     output.mkdir(parents=True,mode=0o700,exist_ok=False)
     browser=output/'browser';browser.mkdir(mode=0o700)
     test='canonical_webrtc_browser::canonical_chrome_owned_udp_impairment_'+args.algorithm.lower()
-    report=dict(scope=__doc__,passed=False,test=test,source_count=len(sources),
+    report=dict(scope=__doc__,host=host,passed=False,test=test,source_count=len(sources),
         kernel_release=platform.release(),
         source_manifest_sha256=digest(manifest),binary_sha256=digest(binary),runner_sha256=digest(__file__),
         profile='impairment',configured_random_drop_probability=.03,configured_delay_ms=[0,100],

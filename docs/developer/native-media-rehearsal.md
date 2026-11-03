@@ -1,5 +1,12 @@
 # Owned distinct-network native audio rehearsal
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 `scripts/rehearse-gate6-native-media.py` runs a synthetic Ubuntu Linux/amd64
 public SDK peer in the existing local Lima VM against a current macOS server
 fixture. The other audio peer runs beside that server. This is an owned local
@@ -81,7 +88,7 @@ the transport case described above.
 
 The `native-network` lane of `.github/workflows/gate6-linux-fixtures.yml` builds
 and source-binds the current server fixture and public `native_media_probe`
-example on Ubuntu 24.04 x86_64. It reuses the original exact child fixture and
+example on Ubuntu 24.04 ARM64. It reuses the original exact child fixture and
 Remote-profile signature/CA/hostname checks above. The client runs as the host
 operator UID in the pinned Linux/amd64 container image, with its own network
 namespace on a fresh internal bridge. It has no external route or host network.

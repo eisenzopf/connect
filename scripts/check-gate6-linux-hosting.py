@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native Ubuntu x86 configuration/HTTPS/RTCP checks; no account/live lanes.
+"""Native Ubuntu ARM64 configuration/HTTPS/RTCP checks; no account/live lanes.
 
 Raw compiler/test output and synthetic state stay private. Only source hashes,
 tool versions, exit/result counts and artifact hashes enter uploadable evidence.
@@ -51,13 +51,13 @@ def sources():
 
 
 def preflight():
-    assert platform.system() == "Linux" and platform.machine() == "x86_64", "Native Linux x86_64 profile required"
+    assert platform.system() == "Linux" and platform.machine() == "aarch64", "Native Linux ARM64 profile required"
     cpuinfo = Path("/proc/cpuinfo").read_text()
-    assert re.search(r"^vendor_id\s*:", cpuinfo, re.M), "An x86 kernel is required; an emulated amd64 userland on an ARM kernel is insufficient"
+    assert re.search(r"^CPU architecture\s*:\s*8\s*$", cpuinfo, re.M), "An ARM kernel and native ARM64 userland are required"
     release = platform.freedesktop_os_release()
     assert release.get("ID") == "ubuntu" and release.get("VERSION_ID") == "24.04", "Ubuntu24.04 profile required"
     rust = subprocess.check_output(["rustc", "-Vv"], text=True)
-    assert "rustc 1.97.1 " in rust and "host: x86_64-unknown-linux-gnu" in rust
+    assert "rustc 1.97.1 " in rust and "host: aarch64-unknown-linux-gnu" in rust
     native = {
         "rust": rust,
         "clang": subprocess.check_output(["clang", "--version"], text=True),
@@ -68,7 +68,7 @@ def preflight():
     (EVIDENCE / "preflight.json").write_text(json.dumps({"os": release, "platform": platform.platform(),
         "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         "runner_image_version": os.environ.get("ImageVersion"), "native_key": key, "toolchain": native,
-        "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."}, indent=2) + "\n")
+        "scope": "Native Ubuntu24.04 ARM64 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."}, indent=2) + "\n")
     output("native_key", key)
 
 

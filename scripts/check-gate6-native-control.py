@@ -166,7 +166,7 @@ def main():
             'Full public native workflow: production Participant/Session presence and initial media admission, public subscription, codec-update and end handlers, full inactive semantics, automatic credential refresh and step-up installation. Parameter preparation is still not readiness; lifecycle events here require actual per-binding flow under controlled current policy.',
             'Production Connect media/participant policies and canonical Session/journal installation, public presence and automatic refresh/step-up. Reliable-data lifecycle, video decode/render and native/browser application workflows need their own behavior evidence; public RTP lifecycle does not prove them.',
             'Production canonical Session-scoped message/journal and Store-policy installation; general non-audio Participant selectors, public durable subscription/negotiation handlers, guarded SIP/WebRTC and browser media; no video decode/render evidence.',
-            'General durable Session projection G6-038, complete G6-037 migration, full workspace/package/release/performance, approved Linux x86_64 and remote/native/browser lanes, bounded named rehearsals per G6-093, Gate 6 acceptance and separate publication.',
+            'General durable Session projection G6-038, complete G6-037 migration, full workspace/package/release/performance, approved Linux ARM64 and remote/native/browser lanes, bounded named rehearsals per G6-093, Gate 6 acceptance and separate publication.',
         ],
         exploratory_attempts=[dict(private_log=str(path.relative_to(ROOT)), sha256=digest(path),
                                    disposition='Unqualified exploratory compilation or behavior attempt')

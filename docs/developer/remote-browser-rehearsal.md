@@ -1,5 +1,12 @@
 # Owned distinct-network browser rehearsal
 
+Current runner requirement (owner amendment, November2): execute Linux fixtures
+locally on native Ubuntu24.04 ARM64. Use ARM images/assets, AArch64 Rust and
+ELF183; no GitHub Actions test dispatch or hosted VM. See the
+[local procedure](../../scripts/fixtures/local-linux/README.md). Dated x86 and
+emulation results below remain historical evidence and cannot qualify ARM.
+
+
 `scripts/rehearse-gate6-remote-browser.py` runs actual Linux Chromium peers in
 the existing local Lima VM against a Mac Remote-profile server. Only synthetic
 canvas/video and oscillator/audio sources are used. There are no device,

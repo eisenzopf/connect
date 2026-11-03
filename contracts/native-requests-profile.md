@@ -68,6 +68,6 @@ Store/Session/journal integration, automatic refresh or the full application
 workflow. The new request path is a prerequisite for those operations, not a
 substitute for their implementation or evidence.
 
-Full Gate 6 retains approved Linux x86_64 and remote/native/browser requirements.
+Full Gate 6 retains approved Linux ARM64 and remote/native/browser requirements.
 Named external/provider rehearsals need bounded G6-093 configuration and designated
 test endpoints. Publication remains separate.

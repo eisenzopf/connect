@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owned Linux x86 host/browser and optional TURN namespaces on one internal bridge."""
+"""Owned local ARM Linux host/browser and optional TURN namespaces on one internal bridge."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -16,6 +16,7 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
+native_host = runpy.run_path(str(ROOT / 'scripts/lib/linux_arm64_profile.py'))['native_host']
 CASE = 'canonical_webrtc_browser::remote::distinct_network_browser_server_child'
 INPUTS = runpy.run_path(str(ROOT/'scripts/check-gate6-ice-restart.py'))['inputs']
 
@@ -57,13 +58,12 @@ def main():
     parser.add_argument('--relay-transport',choices=['udp','tcp'])
     parser.add_argument('--turn-image')
     args = parser.parse_args()
-    assert platform.system() == 'Linux' and platform.machine() == 'x86_64'
+    host = native_host()
     assert os.getuid() != 0, 'Run the owned fixture as the non-root host operator'
     assert bool(args.relay_transport)==bool(args.turn_image)
-    assert re.search(r'^vendor_id\s*:', Path('/proc/cpuinfo').read_text(), re.M)
     assert re.fullmatch(r'sha256:[0-9a-f]{64}', args.image)
     image = json.loads(command(['docker', 'image', 'inspect', args.image]))[0]
-    assert image['Id'] == args.image and image['Architecture'] == 'amd64' and image['Os'] == 'linux'
+    assert image['Id'] == args.image and image['Architecture'] == 'arm64' and image['Os'] == 'linux'
     output = args.output.resolve()
     assert output.is_relative_to(ROOT/'.local')
     output.mkdir(parents=True, mode=0o700, exist_ok=False)
@@ -79,7 +79,7 @@ def main():
         if p.is_file() and p.suffix in ('.js','.mjs','.json')}
     assert tools
     (output/'tool-inputs.json').write_text(json.dumps(tools, indent=2)+'\n')
-    report = dict(scope=__doc__, algorithm=args.algorithm, passed=False, image_id=args.image,
+    report = dict(scope=__doc__, host=host, algorithm=args.algorithm, passed=False, image_id=args.image,
         relay_transport=args.relay_transport,
         binary_sha256=digest(binary), source_count=len(before), source_manifest_sha256=digest(args.source_manifest),
         tool_inputs_sha256=digest(output/'tool-inputs.json'))
@@ -97,8 +97,8 @@ def main():
     try:
         chrome = command(['docker','run','--rm','--read-only','--network','none',
             '--env','PYTHONDONTWRITEBYTECODE=1',args.image,'python3','-c',
-            'import glob; p=glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux64/chrome")+glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux/chrome"); assert len(p)==1; print(p[0])'])
-        assert re.fullmatch(r'/ms-playwright/chromium-[0-9]+/(?:chrome-linux64|chrome-linux)/chrome',chrome)
+            'import glob; p=glob.glob("/ms-playwright/chromium-[0-9]*/chrome-linux-arm64/chrome"); assert len(p)==1; print(p[0])'])
+        assert re.fullmatch(r'/ms-playwright/chromium-[0-9]+/chrome-linux-arm64/chrome',chrome)
         stage = 'bridge-create'
         network = command(['docker', 'network', 'create', '--internal', '--driver', 'bridge', name])
         info = json.loads(command(['docker', 'network', 'inspect', network]))[0]
@@ -109,7 +109,7 @@ def main():
         if args.relay_transport:
             assert re.fullmatch(r'sha256:[0-9a-f]{64}',args.turn_image)
             turn_image=json.loads(command(['docker','image','inspect',args.turn_image]))[0]
-            assert turn_image['Id']==args.turn_image and turn_image['Architecture']=='amd64' and turn_image['Os']=='linux'
+            assert turn_image['Id']==args.turn_image and turn_image['Architecture']=='arm64' and turn_image['Os']=='linux'
             stage='owned-turn-start'
             Turn=runpy.run_path(str(ROOT/'scripts/lib/owned_bridge_turn.py'))['OwnedBridgeTurn']
             turn=Turn(network,args.turn_image,args.image,ip,fixture/'turn',args.relay_transport)
@@ -133,7 +133,7 @@ def main():
             assert module.is_file()
             docker = ['docker', 'run', '--rm', '--cidfile', str(cidfile), '--user',f'{os.getuid()}:{os.getgid()}',
                 '--read-only', '--network', network,
-                '--platform', 'linux/amd64', '--cpus', '4', '--memory', '6g', '--shm-size', '1g',
+                '--platform', 'linux/arm64', '--cpus', '4', '--memory', '6g', '--shm-size', '1g',
                 '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                 '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=1g',
                 '--add-host', 'connect.fixture.internal:'+ip,

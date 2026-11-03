@@ -15,8 +15,8 @@ on:
       transport_target:
         description: 'Transport configuration/actor/conversation/data lanes: native server platform'
         type: choice
-        options: [ubuntu24-x86_64, macos-arm64]
-        default: ubuntu24-x86_64
+        options: [ubuntu24-arm64, macos-arm64]
+        default: ubuntu24-arm64
       transport_signing:
         description: 'Transport configuration/actor/conversation/data lanes: exact signing cohort'
         type: choice
@@ -46,35 +46,10 @@ on:
         description: 'Installation lane only: prior package workflow run for a distinct-source upgrade'
         type: string
         default: ''
-  push:
-    branches: [main]
-    paths:
-      - 'crates/**'
-      - 'contracts/**'
-      - 'dependencies/**'
-      - 'patches/**'
-      - 'Cargo.*'
-      - 'rust-toolchain.toml'
-      - 'sdk/typescript/**'
-      - 'sdk/python/**'
-      - 'sdk/tests/**'
-      - 'scripts/check-gate6-linux-hosting.py'
-      - 'scripts/rehearse-gate6-native-media.py'
-      - 'scripts/lib/native_network_component.py'
-      - 'scripts/lib/telephone_network_component.py'
-      - 'scripts/lib/sip_duplex_component.py'
-      - 'scripts/lib/rtc_compound_component.py'
-      - 'scripts/rehearse-gate6-remote-telephone.py'
-      - 'scripts/telephone/linux_remote_phone.py'
-      - 'scripts/tests/test_telephone_media_network.py'
-      - 'scripts/tests/test_native_media_network.py'
-      - 'scripts/lib/source_build_cache.py'
-      - 'scripts/lib/ci_dependency_cache.py'
-      - 'scripts/tests/test_source_build_cache.py'
-      - 'scripts/tests/test_ci_dependency_cache.py'
-      - 'scripts/tests/test_gate6_linux_diagnostics.py'
-      - 'scripts/tests/test_python_*.py'
-      - '.github/workflows/gate6-linux-fixtures.yml'
+env:
+  CONNECT_GATE6_ARM_BUILD_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BUILD_IMAGE }}
+  CONNECT_GATE6_ARM_BROWSER_IMAGE: ${{ vars.CONNECT_GATE6_ARM_BROWSER_IMAGE }}
+  CONNECT_GATE6_CHROME: ${{ vars.CONNECT_GATE6_CHROME }}
 permissions:
   contents: read
 concurrency:
@@ -87,7 +62,7 @@ jobs:
     with:
       component: media
       signing: ${{ inputs.transport_signing || 'EdDSA' }}
-      target: ${{ inputs.transport_target || 'ubuntu24-x86_64' }}
+      target: ${{ inputs.transport_target || 'ubuntu24-arm64' }}
       network: ${{ inputs.transport_network || 'local' }}
   transport-data:
     if: ${{ inputs.lane == 'transport-data' }}
@@ -95,7 +70,7 @@ jobs:
     with:
       component: data
       signing: ${{ inputs.transport_signing || 'EdDSA' }}
-      target: ${{ inputs.transport_target || 'ubuntu24-x86_64' }}
+      target: ${{ inputs.transport_target || 'ubuntu24-arm64' }}
       network: ${{ inputs.transport_network || 'local' }}
   transport-conversation:
     if: ${{ inputs.lane == 'transport-conversation' }}
@@ -103,7 +78,7 @@ jobs:
     with:
       component: conversation
       signing: ${{ inputs.transport_signing || 'EdDSA' }}
-      target: ${{ inputs.transport_target || 'ubuntu24-x86_64' }}
+      target: ${{ inputs.transport_target || 'ubuntu24-arm64' }}
       network: ${{ inputs.transport_network || 'local' }}
   transport-actors:
     if: ${{ inputs.lane == 'transport-actors' }}
@@ -111,7 +86,7 @@ jobs:
     with:
       component: actors
       signing: ${{ inputs.transport_signing || 'EdDSA' }}
-      target: ${{ inputs.transport_target || 'ubuntu24-x86_64' }}
+      target: ${{ inputs.transport_target || 'ubuntu24-arm64' }}
       network: ${{ inputs.transport_network || 'local' }}
   transport-fixture:
     if: ${{ inputs.lane == 'transport-fixture' }}
@@ -119,7 +94,7 @@ jobs:
     with:
       component: materializer
       signing: ${{ inputs.transport_signing || 'EdDSA' }}
-      target: ${{ inputs.transport_target || 'ubuntu24-x86_64' }}
+      target: ${{ inputs.transport_target || 'ubuntu24-arm64' }}
       network: ${{ inputs.transport_network || 'local' }}
   transport-control:
     if: ${{ inputs.lane == 'transport-control' }}
@@ -165,7 +140,7 @@ jobs:
       source_revision: ${{ inputs.source_revision || '' }}
   node-control:
     if: ${{ inputs.lane != 'transport-media' && inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-components' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -201,7 +176,7 @@ jobs:
           if-no-files-found: error
   python-control:
     if: ${{ inputs.lane != 'transport-media' && inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-components' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'video-feedback' && inputs.lane != 'consultation-return' && inputs.lane != 'native-network' && inputs.lane != 'telephone-network' && inputs.lane != 'media-network' && inputs.lane != 'mixer-clock' && inputs.lane != 'sip-duplex' && inputs.lane != 'rtc-compound' }}
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -249,10 +224,10 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
-  ubuntu-x86:
+  ubuntu-arm64:
     if: ${{ inputs.lane != 'transport-media' && inputs.lane != 'transport-data' && inputs.lane != 'transport-conversation' && inputs.lane != 'transport-actors' && inputs.lane != 'transport-fixture' && inputs.lane != 'transport-control' && inputs.lane != 'reference-app-components' && inputs.lane != 'reference-app-macos' && inputs.lane != 'reference-app' && inputs.lane != 'sdk-qualified' && inputs.lane != 'sdk-runtime' && inputs.lane != 'sdk-candidate' && inputs.lane != 'operations-guide' && inputs.lane != 'operational-process' && inputs.lane != 'operational-typecheck' && inputs.lane != 'operational-schema' && inputs.lane != 'operational' && inputs.lane != 'installation' && inputs.lane != 'python314' }}
-    name: ubuntu-x86 (Node ${{ matrix.node }})
-    runs-on: ubuntu-24.04
+    name: ubuntu-arm64 (Node ${{ matrix.node }})
+    runs-on: [self-hosted, Linux, ARM64, connect-gate6-local]
     timeout-minutes: 90
     strategy:
       fail-fast: false

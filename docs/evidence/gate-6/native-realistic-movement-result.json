@@ -1,0 +1,77 @@
+{
+  "format": "connect/native-realistic-movement-result/1",
+  "task": "G6-058",
+  "source_revision": "2be68af103ff8ad51a1fc755d7bc12e29dc331a4",
+  "passed": false,
+  "movement_profile": "gate6-realistic-device-roundtrip-v1",
+  "movement_profile_sha256": "9ba8a512a75796bd5facbf6c00bc257bb9d85d7b7317e390a31796cd958cc060",
+  "scheduled_start_offsets_ms": [
+    15000,
+    40000
+  ],
+  "planned_moves": 4,
+  "completed_moves": 1,
+  "moves": [
+    {
+      "source_index": 0,
+      "session_index": 0,
+      "ordinal": 0,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "elapsed_ms": 2220.0886260000007,
+      "scheduled_start_ms": 15000,
+      "actual_start_ms": 15430.999933,
+      "data_exchange_verified": true
+    }
+  ],
+  "observation_elapsed_ms": 23933.672466,
+  "failure": {
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "observation": {
+      "stage": "media-workload"
+    }
+  },
+  "target_joins_failed": 0,
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "binary_sha256": "e3c9a7aa2d57b17f5dac957461701c814fa0a4378d11a85c053b3b4d843e9969",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "16459dd39c92dbd8dc52db5cebc0da3ca3098b29810e48a9baeecd33a74b0406",
+  "original_tasks_joined": true,
+  "all_helpers_joined": true,
+  "all_servers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "unretired_native_lifetimes": 0,
+  "original_db_wal_unchanged": true,
+  "roots": [
+    {
+      "slot": "4-0",
+      "state": "failed",
+      "revision": 4,
+      "problem": {
+        "code": "preparation-stopped",
+        "source": "native-replacement"
+      }
+    },
+    {
+      "slot": "0-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    }
+  ],
+  "independent_full_decode_executed": false,
+  "private_packet_capture_executed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Fresh local Ubuntu24.04 ARM64 ordinary production service and independent physical peer. Four scheduled moves at15s/40s were planned on the original62s clock. One move, original retirement, camera selection and bidirectional Data exchange completed after15s; a read-only Session observation deadline aborts the programme at23.934s. No cadence, source, deadline or quality change after execution. Both targets, all original packet work, helpers and servers joined; immutable stopped journal has zero unretired lifetimes. No old stress result is adopted, no full-programme/decode/capture/cell pass, and no original mutation replay."
+}

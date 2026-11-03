@@ -111,11 +111,11 @@ def main():
         control.update(source_inputs_sha256=digest(source_path), source_count=len(before))
         phase = "host-preflight"
         system, machine = platform.system(), platform.machine()
-        assert (system, machine) in (("Linux", "x86_64"), ("Darwin", "arm64"))
+        assert (system, machine) in (("Linux", "aarch64"), ("Darwin", "arm64"))
         if system == "Linux":
             release = platform.freedesktop_os_release()
             assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
-            assert re.search(r"^vendor_id\s*:", Path("/proc/cpuinfo").read_text(), re.M)
+            assert re.search(r"^CPU architecture\s*:\s*8\s*$", Path("/proc/cpuinfo").read_text(), re.M)
         rust = subprocess.check_output(["rustc", "-Vv"], cwd=ROOT, env=env, text=True, timeout=5)
         assert rust.startswith("rustc 1.97.1 ")
         node = subprocess.check_output(["node", "--version"], cwd=ROOT, env=env, text=True, timeout=5).strip()

@@ -7,13 +7,17 @@ import contextlib
 import hashlib
 import json
 import math
+import os
 import re
 from pathlib import Path
 import runpy
 import sys
 import uuid
 
-IMAGE = 'mcr.microsoft.com/playwright@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8'
+def image_reference():
+    value = os.environ.get('CONNECT_GATE6_ARM_BROWSER_IMAGE', '')
+    assert re.fullmatch(r'sha256:[0-9a-f]{64}', value), 'Existing local ARM browser image digest required'
+    return value
 
 
 def digest(path):
@@ -24,7 +28,7 @@ def digest(path):
 def facts(value, names):
     """Only bounded numeric/boolean facts, digests and declared enum labels."""
     enums = {'algorithm': {'EdDSA', 'ES256'}, 'profile': {'remote'}, 'os': {'linux', 'macos'},
-        'architecture': {'x86_64', 'aarch64'}, 'open_refused': {'timeout'},
+        'architecture': {'aarch64'}, 'open_refused': {'timeout'},
         'mode': {'direct', 'loss', 'unreachable-port'}}
     result = {}
     for key in names:
@@ -87,10 +91,9 @@ def run(root, private, server, probe, inputs, execute):
     root, private = Path(root), Path(private)
     assert private.resolve().is_relative_to(root / '.local')
     assert all(Path(path).is_file() for path in (server, probe))
-    execute('native-network-image-pull', ['docker', 'pull', IMAGE], 600)
-    text = execute('native-network-image', ['docker', 'image', 'inspect', IMAGE], 15)
+    text = execute('native-network-image', ['docker', 'image', 'inspect', image_reference()], 15)
     image = json.loads(text)[0]
-    assert image['Architecture'] == 'amd64' and image['Os'] == 'linux'
+    assert image['Architecture'] == 'arm64' and image['Os'] == 'linux'
     metadata = private / 'native-network-build'
     metadata.mkdir(mode=0o700)
     source_file = metadata / 'source-inputs.json'
@@ -125,6 +128,6 @@ def run(root, private, server, probe, inputs, execute):
         finally:
             sys.argv = previous
         results.append(result)
-    return dict(scope='Current native Linux x86_64 host/client public SDK PCMU direct, bounded encrypted UDP loss and unreachable-port components; no WAN, video, full matrix, performance or acceptance qualification.',
+    return dict(scope='Current native Linux ARM64 host/client public SDK PCMU direct, bounded encrypted UDP loss and unreachable-port components; no WAN, video, full matrix, performance or acceptance qualification.',
         passed=len(results) == 3 and all(result['passed'] for result in results),
         results=results, image_id=image['Id'], full_task_qualified=False, acceptance_qualified=False)
