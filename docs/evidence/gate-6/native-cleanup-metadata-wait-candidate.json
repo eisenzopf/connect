@@ -1,0 +1,45 @@
+{
+  "format": "connect/gate6-native-cleanup-metadata-wait-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "44ac6fa4f5103c3968248fb254283bda33728594",
+  "source_sha256": {
+    "crates/connect-store/src/installation_ownership.rs": "b72c12b239fa4622a0e41773101984a4cef66a94a59f78202188a17a923e94a7",
+    "crates/connect-store/src/transitions/native_offers/observations.rs": "e03027250ee3e376a5b0c2417bbe151a5c91fff72fb875d414fd2842a0b2967c",
+    "crates/connect-service/src/canonical_native.rs": "6f21d41c527afe27c6fc876d08cecdedf423983aae02dcc3410a5130eaa24f32",
+    "crates/connect-store/src/connection_control/tests/native_wire.rs": "c1a9c3330f1fab13dc613aa760b99de364bbeecf2cc71f22c62203bf91d8b8cf"
+  },
+  "focused_store_check": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "44ac6fa4f5103c3968248fb254283bda33728594",
+    "passed": true,
+    "exit_code": 0,
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 94.86524712800019,
+    "log_sha256": "fbf7aa8ea7529fad030fc6a5a5685705926d99b680a865cd6293a59b90834ae2"
+  },
+  "test_result_lines": [
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1327 filtered out; finished in 0.45s"
+  ],
+  "behaviors": [
+    "Immediate original cleanup refuses while SQL mutex is held",
+    "Same bounded cleanup waits for SQL release and retires the original once",
+    "Cancellation refuses without retiring the original",
+    "Original wait expiry refuses without retiring the original",
+    "Repeated settled original adds no duplicate retirement fanout"
+  ],
+  "invariants": [
+    "One500ms shared wait covers SQL/authority admission",
+    "SQLite busy timeout remains zero",
+    "Original lease/runtime/mapping/generation and actual absence observations still required",
+    "No Core termination replay added",
+    "No deadline extension or media threshold changes"
+  ],
+  "scope": "One exact optimized Store unit function with controlled actual ledger custody and held SQL mutex; no physical Core/media proof. Normal service integration and selected workload pending.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
