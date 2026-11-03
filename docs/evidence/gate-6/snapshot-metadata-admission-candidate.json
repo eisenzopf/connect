@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-snapshot-metadata-admission-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "Actual v19 fourth movement ends at original-completion observation with signed503 authorization/authority_unavailable. That phase spans root wait and retained snapshot refresh. Source review: root wait already recovers signed503 reads, decode has no network IO, and snapshot exits immediately on this exact temporary refusal. This supports the retained snapshot hypothesis; a distinct new phase is needed for fresh runtime attribution.",
+  "change": "Snapshot read recovers only signed503 authorization/authority_unavailable with refused certainty and no operation or observation. Reissue same conversation.get/page under original request/time/cumulative byte limits and current authority; bounded125ms wait holds no authority. Real403, unrelated503, uncertainty and malformed replies still exit. Original mutation never reissued.",
+  "phase_observation": "Record original completed root before retained current-state refresh, and name that refresh retained-current-observation.",
+  "focused_new_cases": [
+    "signed_metadata_refusal_recovers_initial_or_same_page_without_mutation",
+    "metadata_recovery_stops_on_current_denial_or_unrelated_service_failure",
+    "metadata_recovery_preserves_original_deadline_and_cancellation"
+  ],
+  "focused_arm_checks_pending": true,
+  "runtime_pending": true,
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

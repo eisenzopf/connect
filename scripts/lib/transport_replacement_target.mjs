@@ -401,11 +401,12 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         admittedConnectionId = moved.connection.id;
         assert.deepEqual(moved.retired, [intent.connectionId]);
         assert.deepEqual(moved.retained.map(v => v.id), [intent.retainedConnectionId]);
+        report.original_root_completed = true;
+        phase = "retained-current-observation";
         const retained = await moved.retained[0].refresh({ timeoutMs: 5000 });
         assert.equal(retained.id, intent.retainedConnectionId); assert.equal(retained.generation, intent.retainedGeneration);
         assert.equal(moved.binding.deviceId, intent.target.deviceId);
         assert.ok(id(moved.connection.id)); assert.notEqual(moved.connection.id, intent.connectionId);
-        report.original_root_completed = true;
         phase = "original-retirement-observation";
         const until = performance.now() + 5000;
         let retiredOriginal;

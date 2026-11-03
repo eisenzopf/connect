@@ -1,9 +1,11 @@
 //! Signed read-only continuation recovery; no application mutation is accepted.
 use super::*;
 use crate::sdk::{Client, ErrorKind, RequestOptions};
+mod metadata;
 
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
+    Metadata(metadata::Mode),
     Evicted,
     Repeated,
     Denied,
@@ -28,6 +30,10 @@ async fn write(
     kind: &str,
     payload: Value,
 ) {
+    if let Case::Metadata(mode) = case {
+        metadata::emit(mode, request, writer, reader, signer, signal).await;
+        return;
+    }
     assert_eq!(request.kind(), "conversation.get");
     let mut frame = envelope(kind, payload);
     frame["cid"] = request.original()["cid"].clone();

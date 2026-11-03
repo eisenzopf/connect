@@ -54,6 +54,32 @@ pub(super) async fn read(
         {
             Ok(batch) => batch,
             Err(error)
+                if error.kind == ErrorKind::Application
+                    && error.certainty == Certainty::Refused
+                    && error.operation.is_none()
+                    && error.observation.is_none()
+                    && error.problem.as_ref().is_some_and(|problem| {
+                        problem.code == 503
+                            && problem.category == "authorization"
+                            && problem.reason == "authority_unavailable"
+                    }) =>
+            {
+                // Only a signed refusal of this read's temporary metadata
+                // admission. Recheck current authority on the same page, within
+                // the original time/request/byte bounds; retain no authority
+                // while waiting. A real policy denial or uncertain IO exits.
+                tokio::select! {
+                    biased;
+                    _ = options.signal.cancelled() => {
+                        return Err(Error::request(ErrorKind::Cancelled, None, false));
+                    }
+                    _ = tokio::time::sleep_until(
+                        (tokio::time::Instant::now() + Duration::from_millis(125)).min(deadline)
+                    ) => {}
+                }
+                continue;
+            }
+            Err(error)
                 if page.is_some()
                     && resyncs < 2
                     && error.kind == ErrorKind::Conflict

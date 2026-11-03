@@ -191,7 +191,7 @@
   },
   "quality_executed": false,
   "quality_passed": false,
-  "interpretation": "Production builds successfully. Three original moves finish controller observation; fourth original completion status read refuses authority_unavailable. All four stopped roots Completed16 with seven original forward effects confirmed once. No completed whole-programme media/quality result, and descriptor collection has one unavailable sample. Cannot conclude the source-Read change fixed or worsened quality. Empty native queue observations remain a collection gap. Current authorization refusals remain enforced.",
+  "interpretation": "Production builds successfully. Three original moves finish controller observation; fourth original-completion observation refuses authority_unavailable; that phase includes the status wait and a retained-current snapshot refresh. All four stopped roots Completed16 with seven original forward effects confirmed once. No completed whole-programme media/quality result, and descriptor collection has one unavailable sample. Cannot conclude the source-Read change fixed or worsened quality. Empty native queue observations remain a collection gap. Current authorization refusals remain enforced.",
   "private_result_hashes": {
     "state.json": "93ef4f693358e494a1b5492e7f6f62c6bc77d7f2d68185a92ae6c4d2bc4944a9",
     "bounded-summary.json": "15586623e6642a663bc7be542fe9a6beb5e0ad964da2bea5de4ee01d6ee8b450",
@@ -201,5 +201,6 @@
   "G054_deferred": true,
   "cell_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "cause_attribution": "The stage did not distinguish root wait from retained snapshot refresh. Code review shows wait retries signed503 reads while snapshot refresh exits on this temporary metadata refusal. Add distinct phase before the latter and bounded exact-refusal read recovery; fresh focused/runtime evidence required."
 }
