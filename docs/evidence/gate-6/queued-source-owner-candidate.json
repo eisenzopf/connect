@@ -35,6 +35,7 @@
   },
   "measured_callback_batch_ms": 160.01854,
   "owner_requested_root_cause_proposal": "docs/developer/g6-058-root-cause-proposal.html",
-  "followup": "P1 retained-source dispatch and immediate Service current check implemented; exact focused after checks pending on local ARM Linux. Actual writer-drain proof, activation barrier, authorized video bootstrap, authenticated epoch and full workload qualification remain open. No broad suite or full media workload launched.",
-  "after_checks_pending": true
+  "followup": "Two exact new Core/Service component checks passed on local ARM Linux. Actual mixer/Store writer-drain proof and known activation/video/epoch fixes remain before the full workload; no cell or G6-058 qualification.",
+  "after_checks_pending": false,
+  "after_component_evidence": "docs/evidence/gate-6/queued-source-owner-component.json"
 }

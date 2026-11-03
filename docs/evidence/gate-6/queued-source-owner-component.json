@@ -1,0 +1,64 @@
+{
+  "format": "connect/gate6-queued-source-owner-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "2bfb45473a0a5cc7e2cc449b230819d09965bec4",
+  "environment": "Owner Mac Studio local native Ubuntu 24.04 ARM64 VM",
+  "result": "Two focused new component cases pass; actual mixer/Store writer-drain and full media quality remain unqualified.",
+  "before_source_revision": "6252a914d5e6af7d8d4f6646e2cdbadeb97efc3e",
+  "before_callback_batch_ms": 160.01854,
+  "after_callback_batch_upper_bound_ms": 50,
+  "callback_count": 16,
+  "fresh_ingress_minimum_observed_by_assertion_ms": 8,
+  "after_exact_cases": [
+    {
+      "name": "core",
+      "case": "staged_streams::tests::queued_source_dispatch::retained_source_fresh_fallback_uses_queued_policy_without_changing_ingress_or_authority",
+      "compile_exit_code": 0,
+      "test_executable_sha256": "4c7239597e11eb1bf5669bf01595c1004c84073d02e17502f5375905c0972b75",
+      "test_exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 599 filtered out; finished in 0.00s"
+      ],
+      "test_log_sha256": "e4935bccbebb2aaa27922f3875ca5266098a9295ea7facde16fe79fabd203557",
+      "executable_unchanged": true
+    },
+    {
+      "name": "service",
+      "case": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+      "compile_exit_code": 0,
+      "test_executable_sha256": "fcbd704e1c8d43a305690a73f126b39c78f099d165ad93a5217448b995a8141d",
+      "test_exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.12s"
+      ],
+      "test_log_sha256": "4746432ac2b01922932ed56e6cc3e7aae442b598c348ed6a45a7eb214ca2445e",
+      "executable_unchanged": true
+    }
+  ],
+  "source_inputs_unchanged": true,
+  "prepared_sources_unchanged": true,
+  "elapsed_seconds": 1138.6032636480013,
+  "patch": {
+    "path": "patches/rvoip/gate6-queued-source-owner-admission.patch",
+    "sha256": "b0672108ea132ea2a863112aa9797055496da92f469c1e13efab255b3c2a88e1"
+  },
+  "setup_failure": {
+    "before_compile": true,
+    "cause": "Initial macOS tar export introduced AppleDouble metadata; dependency verifier refused it. Re-exported with Python tar, preserved original failed setup, then verified same product revision.",
+    "product_tests_executed_in_failed_setup": 0
+  },
+  "coverage": [
+    "Core Audio and Video fresh ingress uses current, retained source forwarding and queued delivery use current_queued, revoked source emits no packet.",
+    "Actual Service queued Publish registry contention returns within the original 50ms batch bound; fresh ingress retains its 10ms admission pacing, released registry still rejects missing authority."
+  ],
+  "limitations": [
+    "No actual mixer/Store writer-drain integration result yet.",
+    "No full media workload rerun; P2 activation barrier, P3 authorized video bootstrap, P5 authenticated epoch and remaining matrix work remain."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}
