@@ -1,18 +1,18 @@
 {
   "format": "connect/gate6-transport-matrix-report/1",
   "task": "G6-058",
-  "source_revision": "df1256dd1e8167a7f9bc1916be282e631d326ca7",
+  "source_revision": "eac0f9a4ad37d16e6687f127ea9108976cdc2872",
   "contract_inputs": {
-    "contracts/gate6-transport-matrix.json": "e04853fbd6840c5bfb8912ac775ae177513d3f060bce117e331694941735a4b4",
-    "docs/decisions/015-gate-6-operating-profile.md": "1795fbde0f8e59a358582d385247707a8b3de6c2adbe840cde4acf6e9f2dd061",
+    "contracts/gate6-transport-matrix.json": "bfbcc34d6fb9173a5c3d18de2fb82a4469cefcfbfec0e935b43c12aa96daf2cf",
+    "docs/decisions/015-gate-6-operating-profile.md": "e830d18909ca8fc52777b95af15ea6b57f2a23d7864aa8b53c13368a5df7fa89",
     "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
     "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
-    "contracts/openapi-canonical-http.json": "e5c4786071851ab7c5cb626c3459c0799e60b01bbbd70d035045721724186bba",
+    "contracts/openapi-canonical-http.json": "d900c38507301824445568a3b72204354ccf5c2f4c212c27b7227697afb9c652",
     "contracts/openapi-application-http.json": "c3cdc2252b77822799309abf887b1ce187562dadce3f05225abfe1ffd2b1bd21",
     "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
     "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
   },
-  "service_contract_sha256": "ead889c7bf58c9e578ed48e8aa260918b9e81218511aace7f040bd96123ab0de",
+  "service_contract_sha256": "27ef529287d76cf07ab9456aa79bb0afea270ce85bb9eee70718bc2f9de96ba7",
   "required_cells": 32,
   "cells": [
     {
@@ -273,7 +273,7 @@
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -303,7 +303,7 @@
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -333,7 +333,7 @@
       "network": "remote-profile-fixture",
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -365,7 +365,7 @@
       "network": "remote-profile-fixture",
       "transport": "chrome-webtransport",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -397,7 +397,7 @@
       "network": "remote-profile-fixture",
       "transport": "chrome-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -429,7 +429,7 @@
       "network": "remote-profile-fixture",
       "transport": "chrome-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -461,7 +461,7 @@
       "network": "remote-profile-fixture",
       "transport": "firefox-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -493,7 +493,7 @@
       "network": "remote-profile-fixture",
       "transport": "firefox-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -520,12 +520,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/native-quic/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "native-quic",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -550,12 +550,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/native-quic/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "native-quic",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -580,12 +580,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/chrome-webtransport/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -612,12 +612,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/chrome-webtransport/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -644,12 +644,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "chrome-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -676,12 +676,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "chrome-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -708,12 +708,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/firefox-wss-webrtc/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "firefox-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -740,12 +740,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/local/firefox-wss-webrtc/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
       "network": "local",
       "transport": "firefox-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -772,12 +772,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/native-quic/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -802,12 +802,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/native-quic/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -832,12 +832,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/chrome-webtransport/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -864,12 +864,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/chrome-webtransport/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "chrome-webtransport",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -896,12 +896,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "chrome-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -928,12 +928,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/chrome-wss-webrtc/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "chrome-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -960,12 +960,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "firefox-wss-webrtc",
       "signing": "EdDSA",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -992,12 +992,12 @@
       "outcome": null
     },
     {
-      "id": "G6-058/ubuntu24-x86_64/remote-profile-fixture/firefox-wss-webrtc/ES256",
-      "server": "ubuntu24-x86_64",
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
       "network": "remote-profile-fixture",
       "transport": "firefox-wss-webrtc",
       "signing": "ES256",
-      "expected_client_platform": "ubuntu24-x86_64",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "not-run",
       "reason": "full-cell-executor-not-run",
       "required_checks": [
@@ -1029,651 +1029,20 @@
   "task_complete": false,
   "whole_gate_qualified": false,
   "scope": "All required current local/Remote-profile transport cells. No inherited component, named WAN host or media result. G6-054 remains deferred; its verification is not waived.",
-  "execution_phase": "inventory",
+  "execution_phase": "owner-arm-target-inventory",
   "inventory_valid": true,
-  "implementation_status": "in-progress-platform-conversation-control-and-native-data-cleanup",
-  "source_revision_note": "Base Git revision for this local inventory; new files were uncommitted. Exact contract and implementation hashes identify the inspected bytes. No runtime result.",
-  "implementation_hashes": {
-    "contracts/gate6-transport-matrix.json": "e04853fbd6840c5bfb8912ac775ae177513d3f060bce117e331694941735a4b4",
-    "scripts/check-gate-6-transports.py": "49ecd0d236b3803ff6ef3ed822a5b348a58b2a51795801c541b1a0ef46640270",
-    "scripts/lib/transport_matrix.py": "ef27794ff347cd17abf81d0d1a7979c0b8f76eda3658bd5097c8671e66776ab0",
-    "scripts/tests/test_transport_matrix.py": "03a41fffe26c4607262022e9b56a070830c446ef9262c41e2db6236b112752da",
-    ".github/workflows/gate6-transport-matrix.yml": "291eb858a641431efffc757f68a5d0c44a31396066843ed866c894682888d65d",
-    ".github/workflows/gate6-linux-fixtures.yml": "80f4f89f3b5f3654997c13bdbe65569d2a07cc81b063b31a1ef2d603ae2b4028",
-    "docs/decisions/015-gate-6-operating-profile.md": "1795fbde0f8e59a358582d385247707a8b3de6c2adbe840cde4acf6e9f2dd061",
-    "scripts/fixtures/transport-matrix/README.md": "97fbd8de26f8cd324ec55fe12207dfa1892ad4858b8f33ec8d16fb162e01ca59",
-    "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
-    "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
-  },
-  "local_verification": {
-    "inventory_valid": true,
-    "guard_tests_passed": 6,
-    "python_syntax": true,
-    "workflow_yaml_parsed": true,
-    "procedure_links_resolve": true,
-    "scope": "Inventory/promotion/privacy guards only; no Rust build, control runtime, browser, remote profile or media execution."
-  },
-  "remaining": [
-    "Execute and independently source/executable/SDK-verify the15exact non-media control functions",
-    "Implement full per-cell materializers and exact candidate/client/server/topology collectors",
-    "Execute32required cells including participants, Session upgrades, device replacement, declared workload, private packet capture, independent decoded duplex and fallback/refusal checks",
-    "Keep G6-054 deferred and all required verification binding; no cell inherits an earlier component or another cell"
+  "owner_scope_update": "2026-11-02 owner selected ARM Linux and deferred x86; all32 active cells and all quality/behavior checks retained.",
+  "deferred_server_platforms": [
+    "ubuntu24-x86_64"
   ],
-  "full_cell_materializers_implemented": false,
+  "historical_component_report": "transports-x86-inventory-deferred.json",
+  "historical_component_results_inherited": false,
   "publication_authorized": false,
-  "current_control_candidate": {
-    "source_revision": "e5bf5977e723de738c118b90c8cca63acc6f51e9",
-    "workflow_run_id": 41271725390,
-    "job_id": 124745696980,
-    "status": "independently-source-verified-positive-15-of15",
-    "url": "https://github.com/eisenzopf/connect/actions/runs/41271725390",
-    "expected_functions": 15,
-    "passed_functions": 15,
-    "failed_functions": 0,
-    "verification_evidence": "docs/evidence/gate-6/transport-control-verified.json",
-    "artifact_sha256": "b7b1c805a7b9d1f42c43d227b26754967add6498aad00d3dc365c96a887d80c9",
-    "report_sha256": "1f3d6b5057482afbd16e5d0862045a22bf91a9e4fcfdceb93054ce4a7e30ab7f",
-    "full_matrix_cells_qualified": 0
-  },
-  "protected_fixture_configuration": {
-    "status": "source-verified-configuration-stage-pass",
-    "implementation_hashes": {
-      "scripts/lib/transport_fixture.py": "7fefb20a2ae1a3887a4722f6ae65b961404947b99d1ef89f09cfc83a88311fd8",
-      "scripts/materialize-gate6-transport-fixture.py": "602aeeb41ef727e53d205ea73b17f8c57f38f6eb843405d790b9596f7e7822c1",
-      "scripts/check-transport-fixtures.py": "db86eb0209ca265d2c303b3dbe0233196848abffe446086e4014a03d2a0b21b3",
-      "scripts/tests/test_transport_fixture.py": "1aa1b051b68bf06ea8d4a6b48de5055024e9b5d33a0538aeb4581ce67a64fa1a",
-      ".github/workflows/gate6-transport-matrix.yml": "01d8d3b53c460f44562e648c6b1c870a47cc0f6e2e53cd41630277ba5b58bf3b",
-      ".github/workflows/gate6-linux-fixtures.yml": "810172bed0915c615ee25e99fccd02c952ff14135a4e701a835b2a17d391042f",
-      "scripts/fixtures/transport-matrix/README.md": "88b02b74f967f0002c0945b71cde6c0170b2d9ff71c58f2e427b473124068a89"
-    },
-    "local_guard_tests_passed": 16,
-    "behavior": "Validate a matching private stopped canonical backup, invoke production restore, preserve credential/key validity, and materialize absolute server/operator asset references in a new private instance. No listeners or actors are started by materialization.",
-    "rehearsal": "Isolated transport-fixture CI lane: production CLI init/create/backup, real restore/materialization, occupied-output and wrong-signing/browser refusal, original conversation/operation native reads and original server joins.",
-    "runtime_verified": true,
-    "full_cell_materializer": false,
-    "cell_qualified": false,
-    "remaining": "Participant/device enrollment, actual topology observation, full workload, browser/fallback, capture/media and per-cell runtime collection remain required.",
-    "runtime_candidate": {
-      "source_revision": "3c254ebf0045615252c9870ba58f9e191698bb6e",
-      "workflow_run_id": 41267028212,
-      "job_id": 124731857047,
-      "status": "completed-success-independently-verified",
-      "url": "https://github.com/eisenzopf/connect/actions/runs/41267028212",
-      "runtime_verified": true
-    },
-    "negative_evidence": "docs/evidence/gate-6/transport-materializer-negative.json",
-    "correction": "Resolve the current serde-omitted default_sessions from its pinned protocol source definition; preserve seed/config bytes and refuse an explicit insufficient limit or changed default contract.",
-    "verification_evidence": "docs/evidence/gate-6/transport-materializer-verified.json",
-    "runtime_scope": "Ubuntu24.04 native x86_64, local EdDSA production CLI server/operator configuration; six behavior checks, six public CLI commands plus production restore, two original server groups joined. All32fullmatrixcells remain unqualified."
-  },
-  "actor_enrollment": {
-    "status": "source-verified-public-cli-enrollment-stage-pass",
-    "implementation_hashes": {
-      "scripts/lib/transport_actors.py": "882f5a8faf7d09aae9f27fe3ce7c8e97f658df7dff62e66247ca1fe445584ecf",
-      "scripts/enroll-gate6-transport-actors.py": "22f87b3104be122e5f859a9c6e15bd1f2063d4df89348060d30c1420045993c2",
-      "scripts/tests/test_transport_actors.py": "b2a441f8c3fac0d6008458cc5fad5262678e8b47033a0c87a7ab55a3f95815b7",
-      "scripts/check-transport-fixtures.py": "7bcd403e626b361b1fa5263fd917aaf09653656917adb7e277cfba081452379d",
-      ".github/workflows/gate6-linux-fixtures.yml": "c2c19428fb12b1544916265b726161f68521699cfe71fd67a439cd4ef23dfa44",
-      ".github/workflows/gate6-transport-matrix.yml": "7cad585ed071b8b63c5fbe4ac0f7af50f711a99d22235dc046611e8cde900e91"
-    },
-    "local_transport_guard_tests_passed": 21,
-    "identities": 4,
-    "devices": 5,
-    "replacement_device_identity": "first identity, independent device/key/credential",
-    "scope_operations_count": 26,
-    "recipient_ceiling": 3,
-    "expiry_bound": "one hour and no later than current administrator/server pin expiry",
-    "recovery": "Private original identity/credential operations saved before public IO; explicit resume uses exact identity replay and production issue-resume. Partial installations retained; changed source/issuer/scope or expired plan refuse.",
-    "runtime_rehearsal": "Isolated transport-actors lane: actual production enrollments, all five signed native clients, unchanged original-ID resume, participant provisioning forbidden, changed issuer pre-network refusal, revoked primary refusal with independent replacement/other clients still usable.",
-    "runtime_verified": true,
-    "conversation_participant_workload_observed": false,
-    "actual_topology_verified": false,
-    "cell_qualified": false,
-    "task_complete": false,
-    "scope": "Server-side enrollment stage only. Conversation membership, concurrent connections/sessions, actual replacement transition, actual browser transport, remote topology, capture and decoded media remain required.",
-    "runtime_candidate": {
-      "source_revision": "c969f3a11122cdb177d284aa969a9faaaca70769",
-      "workflow_run_id": 41267389925,
-      "job_id": 124732939529,
-      "status": "completed-success-independently-verified",
-      "url": "https://github.com/eisenzopf/connect/actions/runs/41267389925"
-    },
-    "verification_evidence": "docs/evidence/gate-6/transport-actors-verified.json",
-    "runtime_scope": "One Ubuntu24.04 local native EdDSA stage;12configuration/enrollment behavior checks,36publicCLI commands including2expectedrefusals,2originalservergroupsjoined. No actual Conversation workload, replacement transition, topology, browser or media qualification."
-  },
-  "control_fixture_correction": "Keep duplicate operational-owner refusal explicit; bind the unrelated discovery listener to its own Service/observations with the same current Store. Disabled-WT and unconfigured-discovery assertions remain required.",
-  "conversation_control": {
-    "status": "source-verified-public-sdk-conversation-control-stage-pass",
-    "implementation_hashes": {
-      "scripts/check-transport-conversation.mjs": "f05f1bd491ada00a355a1e899cc04705e604243dbd168f3b7de948c047752d19",
-      "scripts/check-transport-fixtures.py": "4bfc9e2ea15a5bd228be135cf3a9f6cbae3645690419354a4f728c867a2725aa",
-      ".github/workflows/gate6-linux-fixtures.yml": "4665c3a64d3ee84fb0f22c309137fa1208a5081cb76360ae65a77fa96b57cde3",
-      ".github/workflows/gate6-transport-matrix.yml": "153a6afb83347d0f05b95ab11033ca3971060f678059139d62fe8b6352bb296d"
-    },
-    "local_transport_guard_tests_passed": 21,
-    "node_syntax": true,
-    "python_syntax": true,
-    "workflow_yaml_parsed": true,
-    "runtime_verified": true,
-    "intended_observations": [
-      "four active members; participant add/update/remove/readmission",
-      "old message audience and old membership-epoch history/replay fencing",
-      "original replay, changed content and stale revision refusal",
-      "two simultaneous accepted data Session intents with one main",
-      "offered additive audio intent and unoffered video refusal",
-      "original operation/history recovered by separate Device after original helper close",
-      "all five original SDK helpers identified and joined"
-    ],
-    "live_connection_workload_observed": false,
-    "live_media_upgrade_observed": false,
-    "replacement_media_ownership_observed": false,
-    "actual_topology_verified": false,
-    "cell_qualified": false,
-    "task_complete": false,
-    "negative_evidence": "docs/evidence/gate-6/transport-conversation-negative.json",
-    "runtime_candidate": {
-      "source_revision": "5552d367c7e90eaeab21342a0d4e944370686865",
-      "workflow_run_id": 41268492370,
-      "job_id": 124736200265,
-      "status": "completed-success-independently-verified",
-      "url": "https://github.com/eisenzopf/connect/actions/runs/41268492370"
-    },
-    "observed": "13configuration/actor/rehearsal checks andall9NodeSDKscenario checks pass.4activeConversationmembers,2acceptedSessionintents, offeredadditiveaudiointent/unofferedvideorefusal, membershipepoch/audience/replayfencing and independentDeviceoriginalrecovery.40publicCLIcommands,5originalSDKhelperjoins+2originalservergroupjoins; current192SDKfiles bound. Complete transport cells remain unqualified.",
-    "diagnostic_correction": "Fixed Node script coordinates plus type/count-only assertion shapes; keep all assertions and outcomes. Fixture server failure cleanup now attempts original graceful stop and records force/exit/group outcome.",
-    "source_contract_correction": {
-      "source": "crates/connect-store/src/conversation_queries.rs::history_query",
-      "behavior": "A continuation is minted after every nonempty page. Follow unchanged opaque cursors until a terminal page, reject repeated cursors/duplicate messages, and retain one8s deadline/eightpage fixture bound. All expected audiences remain unchanged.",
-      "historical_failure_line_observed": false
-    },
-    "superseded_diagnostic_run": {
-      "workflow_run_id": 41268180780,
-      "job_id": 124735273319,
-      "source_revision": "b2cca97d",
-      "disposition": "Cancellation requested during cache restore for the identified deterministic short-page terminal assertion defect; no runtime result claimed."
-    },
-    "negative_evidence_9d": "docs/evidence/gate-6/transport-conversation-negative-9d.json",
-    "snapshot_correction": "Require three active participants and absence of the removed identity in the current snapshot; current-access denial, old-epoch denial, stable-ID readmission and all later checks remain required. No product behavior change.",
-    "verification_evidence": "docs/evidence/gate-6/transport-conversation-verified.json"
-  },
-  "native_data_workload": {
-    "status": "three-separately-verified-ubuntu-native-data-components-full-matrix-unqualified",
-    "implementation_hashes": {
-      "scripts/check-transport-conversation.mjs": "b8d63c0ffea38967a663d90fa52b92407a8bce762504d830549647b3cb88ce95",
-      "scripts/check-transport-fixtures.py": "ecdd677d372db97528945e686c696546280debec94a93b8775bb13461f8bc245",
-      "scripts/lib/transport_actors.py": "a042dc9b2ef1c15a0d97c46f1e569e2bae0d9d48260870e9206edfe02ee13daa",
-      "scripts/tests/test_transport_actors.py": "0eed4a1c183c35be53e3651783abdf49cccb87343d2541eb5e0a98ae27bac02e",
-      ".github/workflows/gate6-linux-fixtures.yml": "ad8e6b2cf8b14e6f0004b3ac9f7db2045565c8dead66ea3b39299b61fc85f344",
-      ".github/workflows/gate6-transport-matrix.yml": "4cc386ffaca4134b06b81c2a59cec6ac929e932629853ff7d219b218dbe493ff",
-      "crates/connect-server/src/cli/credential_installation.rs": "2d7cac6ff307f43f6772138c485ac1e8a93ee40b61e7697f7228439f2a05baa5",
-      "scripts/fixtures/transport-matrix/README.md": "fdff827f4956e4a87775ae5129b441ad8aec31dd3899196d51b5849572bd8b56",
-      "docs/operations/README.md": "54bc66e4b48f20b035b3ad822752d227d70dda410023b86880224cd9b7f057b2",
-      "crates/connect-service/src/canonical_native_data.rs": "12c29fcaa56fdd21d7692eacac6fe1a1b42c8b2dc7fbe85463041d17a692a11d",
-      "crates/connect-service/src/canonical.rs": "ab56c7bdbc74283011e534f10c48b8efebac07075f270a1fe14132a7daad2327",
-      "crates/connect-service/src/peer_authority.rs": "5d8ab1aa9426b516f4ba140310b1e812ccba9578e2785aef4196ffe33c894769",
-      "scripts/lib/transport_fixture.py": "376bcc7670b54c49986afa26d22b0a18acc17144bb12bdb8992476265d30227d",
-      "scripts/tests/test_transport_fixture.py": "5112f037bae27c4031ec96f6118561142d0001132e9ff8300101cb89082ea9e6",
-      "crates/connect-service/src/canonical_native.rs": "a8a2f8a26713ecad7f48262048e76691e107b0cdfc50d5f8057fb4192e9c03e7"
-    },
-    "local_transport_guards_passed": 42,
-    "node_python_syntax": true,
-    "workflow_yaml_parsed": true,
-    "fresh_scope_operations": 28,
-    "scope_change": "Add only stream.subscribe and connection.end for fresh immutable enrollment plans; existing plans refuse scope changes. Historical26permission proof remains sourcebound.",
-    "required_actual_observations": {
-      "participants": 4,
-      "sessions": 2,
-      "connections": 6,
-      "connection_counts_by_session": [
-        4,
-        2
-      ],
-      "independently_received_payloads": 6,
-      "bytes_per_payload": 65536,
-      "common_current_state_boundaries": 2,
-      "original_replay_duplicate_deliveries": 0,
-      "original_connection_retirements": 6,
-      "owned_data_queued_bytes_after_drain": 0
-    },
-    "local_topology_observation": "Actual server-owned IPv4loopbackUDPsocket and matching actual server/helper network namespaces, with source/binary/config bindings. Raw process/socket state private.",
-    "runtime_verified": true,
-    "audio_video_workload_verified": false,
-    "packet_capture_observed": false,
-    "replacement_media_ownership_verified": false,
-    "cell_qualified": false,
-    "task_complete": false,
-    "negative_evidence": "docs/evidence/gate-6/native-data-workload-negative.json",
-    "runtime_candidate": {
-      "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-      "workflow_run_id": 41276040539,
-      "job_id": 124760562911,
-      "status": "terminal-success-independently-source-verified",
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
-      "full_matrix_cells_qualified": 0
-    },
-    "observed": "Independently verified b563 repeats6offers/6submissions/6Core-queue completions/6exact64KiB receives, common ready boundaries, original replay, exact addressed histories and actuallocaltopology. All6endoperationscomplete. Last of5metadata rounds shows5retired/1ready; a later read hits the common8second deadline read-only. No later state or cleanup cause is inferred. Overall data component remainsnegative; original5helpers/2servers/captureowner join withoutforce.",
-    "diagnostic_follow_up": "Private DEBUG diagnostics distinguish authority/intent validation, handler authorization, original-record read, source-format preflight, durable admission, attempt, invocation, adapter publication and receipt stages. Public output retains closed stage/code/origin only. No changed assertions, payloads, permissions, deadlines or data semantics. Reached-stage markers distinguish requests that never enter authority/handler/worker from later admission/publication/receipt failures; no identifiers or payloads enter curated diagnostics.",
-    "diagnostic_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-a1.json",
-    "precondition_correction": "CLI issue/resume exposes the safe existing public Endpoint outcome. The trusted fixture saves exact original VerifyEndpoint commands and signed-control proof references before IO, checks participant self-verification refusal, verifies five Endpoints through the public administrative API, replays originals and resumes issuance with unchanged installation assets. Issuance does not implicitly verify; no private Store access.",
-    "corrected_endpoint_candidate": {
-      "source_revision": "47377682b54d52ed9b8226dfba271c41e287b186",
-      "workflow_run_id": 41269934969,
-      "job_id": 124740444538,
-      "status": "completed-failure-reliable-data-flow-after-six-native-offers",
-      "runtime_verified": false,
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-473.json",
-      "endpoint_verification_stage_passed": true,
-      "data_workload_passed": false
-    },
-    "endpoint_precondition_runtime_verified": true,
-    "latest_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-b563.json",
-    "capture_run_negative_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json",
-    "message_limit_correction_candidate": {
-      "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
-      "configured_message_bytes": 65536,
-      "production_default_changed": false,
-      "workload_payload_shrunk": false,
-      "insufficient_existing_seed_refuses_without_rewrite": true,
-      "exact_native_sender_recipient_history_added": true,
-      "local_transport_guards_passed": 42,
-      "node_python_syntax_passed": true,
-      "workflow_run_id": 41273896036,
-      "job_id": 124752048854,
-      "runtime_verified": true
-    },
-    "six_payload_stage_verified": {
-      "source_revision": "89700f7f9c4fa041fe0550f1362efbdf00580754",
-      "workflow_run_id": 41273896036,
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-897.json",
-      "submissions": 6,
-      "core_queue_completions": 6,
-      "exact_payload_receives": 6,
-      "bytes_received": 393216,
-      "actual_local_topology_verified": true,
-      "frozen_message_history_audiences_verified": true,
-      "original_replay_without_second_receive_verified": true,
-      "component_passed": false,
-      "full_matrix_cells_qualified": 0
-    },
-    "retirement_observation_candidate": {
-      "source_revision": "b563f7b193834e8c94280026e60402c3544d8896",
-      "workflow_run_id": 41274176272,
-      "job_id": 124752870284,
-      "description": "Observe original six IDs under one8second shared metadata deadline after all original end receipts; require retired state and later generation. No mutation replay, payload change, wider180second scenario budget or product behavior change. Curate actual states/count/elapsed time.",
-      "runtime_verified": false,
-      "status": "completed-negative-independently-verified",
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-b563.json"
-    },
-    "cleanup_diagnostics_candidate": {
-      "source_revision": "d19f059c57d534821b67b8a88169ed09806649db",
-      "workflow_run_id": 41274490677,
-      "job_id": 124753792159,
-      "status": "terminal-negative-independently-source-verified",
-      "runtime_verified": false,
-      "description": "Compiled and executed with closed private DEBUG cleanup stage/error-code and terminal flags. The negative runtime records authority-busy retries and eventual cleanup over the full runtime, without per-ID timing. No grants, effects, mutation replay or deadline changes.",
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-d19.json",
-      "cleanup_recorded": 6,
-      "authority_busy_retries": 182
-    },
-    "coherent_retirement_observer_candidate": {
-      "status": "terminal-positive-independently-source-verified",
-      "description": "One current-authorized public Conversation snapshot per round for all six original IDs and Sessions, with one revision/watermark across pages and unchanged eight-second common deadline, retired state and later generation requirements. No change to production cleanup, end effects, enrollment scopes or the complete workload.",
-      "node_observer_tests_passed": 5,
-      "actual_host_owner_tests_passed": 2,
-      "python_transport_guards_passed": 42,
-      "runtime_verified": true,
-      "full_matrix_cells_qualified": 0,
-      "implementation_hashes": {
-        "scripts/lib/transport_snapshot.mjs": "2f4e2c0ba32b3b2ea578dc082e7219d7c060ca583a95a6854ce37d8ea73c7b8b",
-        "scripts/tests/transport_snapshot.test.mjs": "ab2aaa50b0dc2f75e05b8e89fec5412d8c0d2bae347870102dca675f6864414d",
-        "scripts/check-transport-conversation.mjs": "c8d6f1d70566d8b1207f244055583fd10f700abca82b70c0ce9c698a2ca35fc5",
-        ".github/workflows/gate6-transport-matrix.yml": "d7d877c2bc4311f12af0a73a15e6b729d3b358990dd08e35074dbb7c71b99edf"
-      },
-      "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-      "workflow_run_id": 41276040539,
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
-      "job_id": 124760562911,
-      "artifact_id": 13070454465,
-      "artifact_sha256": "84beabafc5031199c42fec1a723d83986a4f1626922fb0f210f33ee598fba1f5",
-      "original_connections_retired": 6,
-      "observation_elapsed_ms": 4179,
-      "local_python_transport_guards_passed": 43
-    },
-    "complete_native_data_component_verified": {
-      "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
-      "parent_checks": 17,
-      "sdk_checks": 14,
-      "commands_observed": 58,
-      "payloads": 6,
-      "bytes_per_payload": 65536,
-      "original_end_receipts": 6,
-      "durably_retired_originals": 6,
-      "original_replay_without_duplicate": true,
-      "frozen_history_audiences": true,
-      "empty_owned_data_queues": true,
-      "both_session_ends": true,
-      "independent_device_original_history_recovery": true,
-      "current_primary_revocation": true,
-      "servers_joined": 2,
-      "native_helpers_joined": 5,
-      "packet_capture_owned_joined": true,
-      "full_matrix_cells_qualified": 0
-    },
-    "previous_runtime_candidate": {
-      "source_revision": "a1aa160c2c1d47cea2b919986218d282fc0aa18c",
-      "workflow_run_id": 41269342841,
-      "job_id": 124738696422,
-      "status": "completed-failure-prepare-status-not-ready"
-    },
-    "additional_cohort_candidates": [
-      {
-        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "workflow_run_id": 41277280763,
-        "job_id": 124761917118,
-        "target": "ubuntu24-x86_64",
-        "signing": "ES256",
-        "network": "local",
-        "status": "terminal-success-independently-source-verified",
-        "runtime_verified": true,
-        "verification_evidence": "docs/evidence/gate-6/native-data-workload-es256-verified.json"
-      },
-      {
-        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "workflow_run_id": 41277282986,
-        "job_id": 124761924257,
-        "target": "ubuntu24-x86_64",
-        "signing": "EdDSA",
-        "network": "remote-profile-fixture",
-        "status": "terminal-success-independently-source-verified",
-        "runtime_verified": true,
-        "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json"
-      }
-    ],
-    "verified_components": [
-      {
-        "signing": "EdDSA",
-        "network": "local",
-        "evidence": "docs/evidence/gate-6/native-data-workload-verified.json",
-        "source_revision": "67e8b6753642d4b4a5a72505e5a3228c46a49aaf",
-        "runtime_verified": true,
-        "target": "ubuntu24-x86_64"
-      },
-      {
-        "signing": "ES256",
-        "network": "local",
-        "evidence": "docs/evidence/gate-6/native-data-workload-es256-verified.json",
-        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "runtime_verified": true,
-        "target": "ubuntu24-x86_64"
-      },
-      {
-        "signing": "EdDSA",
-        "network": "remote-profile-fixture",
-        "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-verified.json",
-        "source_revision": "f41401962d585c2d54fab36a06bc156953f6ab21",
-        "runtime_verified": true,
-        "target": "ubuntu24-x86_64"
-      },
-      {
-        "signing": "ES256",
-        "network": "remote-profile-fixture",
-        "evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
-        "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
-        "runtime_verified": true,
-        "target": "ubuntu24-x86_64"
-      },
-      {
-        "target": "macos-arm64",
-        "signing": "ES256",
-        "network": "local",
-        "source_revision": "f958ae260c1c06ff072b51b3fef88603dfe6b28d",
-        "evidence": "docs/evidence/gate-6/native-data-workload-macos-es256-verified.json",
-        "runtime_verified": true
-      }
-    ],
-    "later_cohort_candidates": [
-      {
-        "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
-        "workflow_run_id": 41277924535,
-        "job_id": 124763781476,
-        "target": "macos-arm64",
-        "signing": "EdDSA",
-        "network": "local",
-        "status": "terminal-failure-independently-source-verified",
-        "runtime_verified": false,
-        "verification_evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json"
-      },
-      {
-        "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
-        "workflow_run_id": 41277928115,
-        "job_id": 124763791993,
-        "target": "ubuntu24-x86_64",
-        "signing": "ES256",
-        "network": "remote-profile-fixture",
-        "status": "terminal-negative-independently-source-verified",
-        "runtime_verified": false,
-        "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-negative.json"
-      }
-    ],
-    "independent_device_cancellation_diagnostic_candidate": {
-      "source_revision": "8957b070e580af643e1ba7775adceb5da0045746",
-      "workflow_run_id": 41279346285,
-      "job_id": 124767884653,
-      "status": "terminal-success-independently-source-verified",
-      "target": "ubuntu24-x86_64",
-      "signing": "ES256",
-      "network": "remote-profile-fixture",
-      "runtime_verified": true,
-      "scope": "Only add fixed call-phase labels after Session ends to distinguish original SDK close, original create recovery, current membership and history. IO, IDs and all budgets/assertions unchanged.",
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-ubuntu-remote-es256-verified.json",
-      "prior_cancellation_cause_resolved": false
-    },
-    "macos_eddsa_data_negative": {
-      "workflow_run_id": 41277924535,
-      "status": "terminal-failure-independently-source-verified",
-      "evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json",
-      "source_revision": "75adffe1c74b280973f1ea075d127461383632af",
-      "native_offers": 6,
-      "data_submissions": 6,
-      "data_completions": 5,
-      "receive_assertions_reached": false,
-      "cause_resolved": false,
-      "runtime_verified": false,
-      "verification_evidence": "docs/evidence/gate-6/native-data-workload-macos-negative-75ad.json"
-    }
-  },
-  "native_signing_cohorts": {
-    "status": "source-verified-ES256-configuration-and-actor-stage-pass",
-    "default": "EdDSA",
-    "supported": [
-      "EdDSA",
-      "ES256"
-    ],
-    "behavior": "New CLI initialization selects independent server/operator/example keys and matching key enrollment/pins. Isolated fixture lanes select the same exact cohort for bootstrap, restored seed, five actors and actual public SDK exchanges. Unsupported algorithms and existing-directory initialization refuse; no existing installation conversion.",
-    "runtime_verified": false,
-    "full_matrix_cells_qualified": 0,
-    "implementation_hashes": {
-      "crates/connect-server/src/cli/canonical_init.rs": "b531d27fdbe0819208c1449dabe41c9b5ceeea2c502405dcfefb9ed7a67f6925",
-      "crates/connect-server/src/main.rs": "acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58",
-      "scripts/check-transport-fixtures.py": "6662ca144387ec424dbf4cfaad27dfcb176f2c730dc26834a272d8d204e27b27",
-      "scripts/check-transport-conversation.mjs": "08b7ef1d6e2b92a143aed4f5ed9a5564e5e6d880932ec05a624380e5a4f9cf07",
-      ".github/workflows/gate6-linux-fixtures.yml": "634140ab89c587923cbd3da6eb36b2053879e86c59fa230496e867d543b8aff8",
-      ".github/workflows/gate6-transport-matrix.yml": "bef95e6444dad5cfbde003ac2df48f04587002df3d4fa1ba23bd6ce05927844e"
-    },
-    "local_verification": {
-      "transport_guards": 21,
-      "python_node_syntax": true,
-      "workflow_yaml_parsed": true,
-      "rust_formatted": true
-    },
-    "runtime_candidate": {
-      "source_revision": "d2a6a578c7496fe4536be09d1cbd8f4b072f71bd",
-      "workflow_run_id": 41270063787,
-      "job_id": 124740837933,
-      "signing_algorithm": "ES256",
-      "status": "completed-success-independently-source-verified"
-    },
-    "runtime_verified_cohorts": [
-      "ES256"
-    ],
-    "verification_evidence": "docs/evidence/gate-6/transport-actors-es256-verified.json",
-    "runtime_scope": "Normal production CLI ES256 bootstrap, stopped-backup restore, exact signing seed refusal, public scoped enrollment/signed reads/original recovery/current revocation. No Conversation/Session/Connection workload, packet capture, browser, remote topology or decoded media qualification."
-  },
-  "native_packet_capture": {
-    "status": "source-verified-private-capture-stage-during-data-negative",
-    "platform": "Ubuntu24.04x86_64",
-    "transport": "native-quic",
-    "behavior": "Separate owned tcpdump on loopback/exact fixture UDP port, private raw PCAP/logs. Require both directions, wire bytes at least six64KiB payloads each way, no kernel drops, bounded complete records and original capture owner join. Reject foreign/truncated/fragmented records, unsupported links, early packet-bound exit or forced cleanup.",
-    "implementation_hashes": {
-      "scripts/lib/transport_capture.py": "4f65d90f32c2c1335d95883961feb2a20a4e2b6fdffeada5d64389b0c450219f",
-      "scripts/tests/test_transport_capture.py": "fbc1c91fa37c629184c47f3ad8cf0e55ae808e2dcfe191e4dc2e9d5c736e681e",
-      "scripts/check-transport-fixtures.py": "9b1a03c3a80ae5c702066c7cc4c5b5fd63525a5116adbe6ea8496d0a4775d837",
-      ".github/workflows/gate6-transport-matrix.yml": "8027e2b96d4d4336d3a33f2308062bf1a2594fcf079f4962813d026e6c18642e"
-    },
-    "runtime_verified": true,
-    "decoded_media_verified": false,
-    "full_matrix_cells_qualified": 0,
-    "local_transport_guards_passed": 28,
-    "scope": "Actual private native data packet capture only; no decoded audio/video, browser/remote topology, replacement ownership or full cell qualification.",
-    "verification_evidence": "docs/evidence/gate-6/native-data-workload-negative-1b.json",
-    "runtime_scope": "Private native-loopback packet capture during the six-offer data-flow negative. Complete captured records and original capture owner join verified; ciphertext byte counts do not establish payload delivery, independent decoded media, local topology collector completion or a full cell.",
-    "observed": {
-      "packets": 666,
-      "pcap_bytes": 1317853,
-      "kernel_dropped_packets": 0,
-      "original_owner_joined": true
-    }
-  },
-  "native_platform_producers": {
-    "status": "implemented-macos-runtime-unverified",
-    "targets": [
-      "ubuntu24-x86_64",
-      "macos-arm64"
-    ],
-    "behavior": "Same exact public CLI/Node SDK scenario selects the actual native host and exact signing cohort. Linux retains actual executable/socket-inode/network-namespace checks. macOS checks arm64 kernel/toolchain, actual server/helper images and server-owned loopback UDP socket; captures use lo0/BSD loopback records. Per-platform caches and native CI runners are explicit.",
-    "local_verification": {
-      "python_transport_guards": 29,
-      "actual_macos_process_checks": 2,
-      "python_node_syntax": true,
-      "workflow_yaml_parsed": true
-    },
-    "implementation_hashes": {
-      "scripts/lib/transport_host.mjs": "8c5f9901d9b03b5594d744784a826eb0f28d983717195bf4bd50aae42253b22a",
-      "scripts/tests/transport_host.test.mjs": "81b40a1341991728d00b620179bc2824a4ee212838b5e44390e709a1440fcf52",
-      "scripts/lib/transport_capture.py": "a2fafed08a02f4eb2baa26a2c4253709e5ab374d3247a65bbfe067651d765735",
-      "scripts/tests/test_transport_capture.py": "ab1a9d0eee5b7c5aba4353bd901a6e339e6d2c222ae3421f78fdc33fb428d6b0",
-      "scripts/check-transport-fixtures.py": "96ec68070adc2e290a61f5d45312ddfe955273a80cc7ed90d2a88baf4fea9399",
-      "scripts/check-transport-conversation.mjs": "25acc9e37522b85c726e473a4c4f2e8b355aa47114cdff965345d41870c2fbda",
-      ".github/workflows/gate6-transport-matrix.yml": "c041d8d6a909b528404b4ff1ca1ff34cfc6aa92ed2963b45beed113c9edc2506",
-      ".github/workflows/gate6-linux-fixtures.yml": "d7e7d00d1494f194e7b89914078f18da6ec85302170162538804ba9142c47ac8"
-    },
-    "macos_full_native_stage_runtime_verified": false,
-    "full_matrix_cells_qualified": 0,
-    "runtime_candidates": [
-      {
-        "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
-        "workflow_run_id": 41271013831,
-        "job_id": 124743623361,
-        "target": "macos-arm64",
-        "signing_algorithm": "EdDSA",
-        "component": "conversation",
-        "status": "independently-source-verified-conversation-control-positive",
-        "verification_evidence": "docs/evidence/gate-6/transport-conversation-macos-verified.json",
-        "runtime_verified": true,
-        "verification_scope": "conversation-control-component-only",
-        "full_matrix_cells_qualified": 0
-      },
-      {
-        "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
-        "workflow_run_id": 41271017676,
-        "target": "ubuntu24-x86_64",
-        "signing_algorithm": "EdDSA",
-        "component": "data",
-        "status": "confirmed-live-verified-source-preparation",
-        "job_id": 124743962150
-      }
-    ]
-  },
-  "control_compilation_policy": {
-    "type_validation": "full-optimized-test-compilation",
-    "separate_cargo_check": false,
-    "full_integration_target": true,
-    "fixture_features": [
-      "test-support"
-    ],
-    "runtime_functions": 15,
-    "compile_budget_seconds": 5400,
-    "per_function_budget_seconds": 180
-  },
-  "control_correction_hashes": {
-    "crates/connect-server/tests/support/canonical_webtransport_discovery.rs": "7107b2798689e8d459a8717a59f1ddf5997bb9b0baac2f0da8f4c494760c52cf",
-    "scripts/check-gate-6-transports.py": "22c650e063f5d635208c7462c0b49551759fd439836861aa0e58c9db7d984105",
-    "scripts/fixtures/transport-matrix/README.md": "757deb2c4397dc9fd7408efd961987088c6fb72804bb8e35c78e092d2d73ff3d"
-  },
-  "ubuntu_remote_native_producer": {
-    "status": "source-bound-remote-conversation-component-runtime-verified",
-    "target": "ubuntu24-x86_64",
-    "network": "remote-profile-fixture",
-    "behavior": "Disposable Ubuntu24.04 systemd server as ordinary user; scoped native CLI/SDK clients in one owned network namespace/veth without external default route. Preserve original private resource intent, regular-user process identities, actual source/binary/route/socket/namespace observations and original service/client/network retirement. Same full public scenario and optional native data/capture producers; no private Store access.",
-    "implementation_hashes": {
-      "scripts/lib/transport_namespace.py": "d77f7789e98e08b4f2931e6d90e4d87b7acd656dd77ecf838e6bd13bb39e506e",
-      "scripts/tests/test_transport_namespace.py": "465980e0212a6743bfbc9473fc4322e27243ae8bf840515450307ad7b9ec56fe",
-      "scripts/lib/transport_host.mjs": "c09bf5eb66782f80e503ca3696fdd5d85bb4089d122967bbf5dd065fa98e32ab",
-      "scripts/lib/transport_capture.py": "5981b31d37cb327c7d65c0ab46de58841fb519c9b130f4a8b4349390caf48c46",
-      "scripts/tests/test_transport_capture.py": "a0a5d644bc4f3dba276c50b0360e9c484dea4244508b0d8ae92e565f6822de04",
-      "scripts/check-transport-fixtures.py": "9b8900924e71b99eeedd6845029e9b5e6c7ff75a06e9150eb680f903876b2dff",
-      "scripts/check-transport-conversation.mjs": "f145254af65952cababd8aa0d12f60ea13125df9225b9ac6b287c22423e7dc9b",
-      ".github/workflows/gate6-transport-matrix.yml": "14a6194e7f6e5602f0a89585018b9a4afc3b6d1a095d89ca0161eecb3d396995",
-      ".github/workflows/gate6-linux-fixtures.yml": "8f4f3f255b7b22e1b5267f3b0734839860ee866f2fa1ca8d826e45ca3607f629"
-    },
-    "local_verification": {
-      "python_transport_guards": 35,
-      "actual_macos_process_checks": 2,
-      "python_node_syntax": true,
-      "workflow_yaml_parsed": true
-    },
-    "runtime_verified": true,
-    "macos_remote_guest_implemented": false,
-    "full_matrix_cells_qualified": 0,
-    "task_complete": false,
-    "scope": "Owned isolated Remote-profile native configuration/control producer only. No named external hosts, provider/model execution, browser, decoded audio/video, replacement ownership or full matrix qualification.",
-    "runtime_candidate": {
-      "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
-      "workflow_run_id": 41272768297,
-      "job_id": 124748754159,
-      "status": "independently-source-verified-conversation-control-positive",
-      "component": "conversation",
-      "signing_algorithm": "EdDSA",
-      "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
-      "runtime_verified": true,
-      "verification_scope": "conversation-control-component-only",
-      "full_matrix_cells_qualified": 0
-    },
-    "verified_source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
-    "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
-    "verification_scope": "Ubuntu native namespace conversation/control only; full cell and current later source changes are not qualified"
-  },
-  "previous_control_negative_evidence": "docs/evidence/gate-6/transport-control-negative-505.json",
-  "verified_conversation_components": {
-    "macos": {
-      "source_revision": "abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2",
-      "workflow_run_id": 41271013831,
-      "job_id": 124743623361,
-      "status": "independently-source-verified-conversation-control-positive",
-      "verification_evidence": "docs/evidence/gate-6/transport-conversation-macos-verified.json",
-      "runtime_verified": true,
-      "verification_scope": "conversation-control-component-only",
-      "full_matrix_cells_qualified": 0
-    },
-    "ubuntu_remote": {
-      "source_revision": "ab50b5dafe830fa8c9609954b9710572a9e06c6a",
-      "workflow_run_id": 41272768297,
-      "job_id": 124748754159,
-      "status": "independently-source-verified-conversation-control-positive",
-      "verification_evidence": "docs/evidence/gate-6/transport-conversation-ubuntu-remote-verified.json",
-      "runtime_verified": true,
-      "verification_scope": "conversation-control-component-only",
-      "full_matrix_cells_qualified": 0
-    }
-  }
+  "full_cell_materializers_implemented": false,
+  "remaining": [
+    "Finish original20 physical device moves and independent60second media/decode budgets.",
+    "Execute complete Local/Remote native,ChromeWT,ChromeWSS/WebRTC andFirefoxWSS/WebRTC cells on both activeARMplatforms/signing cohorts.",
+    "Capture each actual topology and encrypted wire, verify current-authority/failure/recovery/resource checks independently.",
+    "Retain owner-deferredG6-054 qualification requirement and exact declared budgets."
+  ]
 }
