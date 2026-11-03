@@ -6,6 +6,8 @@ use rvoip_core::{
     identity::{CredentialKind, IdentityAssurance},
 };
 use serde_json::json;
+#[cfg(feature = "test-support")]
+mod mixer_writer;
 #[test]
 fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source() {
     let dir = tempfile::tempdir().unwrap();

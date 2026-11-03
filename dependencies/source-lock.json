@@ -1514,6 +1514,11 @@
       "path": "patches/rvoip/gate6-native-activation-observation.patch",
       "sha256": "30829a335394799d7eca0e5a1a04b212483e8bd0a0cec8d38ab60a78fd39e6cc",
       "source": "G6-058 P2: nonblocking observation of original native activation generation; cancelled/aborted resources report no generation even while adapter cleanup retains its route. New isolated metadata contention/poison and actual signed QUIC cancellation cases; no media permission or native replacement qualification implied."
+    },
+    {
+      "path": "patches/rvoip/gate6-controlled-mixer-conformance.patch",
+      "sha256": "21f9c5e7171da8ff3b9a3f5611c4b3ce8d3e727cedee801cc0a3f43eedc3aa1f",
+      "source": "G6-058 P1 controlled composition: opt-in test-support exposes the existing guarded scene attach/tick/clear for a host test with real Store fences and Service contention. No synthetic grant or production-path change; feature absent by default. Actual mixer/Store writer-drain result pending."
     }
   ]
 }

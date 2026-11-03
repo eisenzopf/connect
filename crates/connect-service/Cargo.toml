@@ -8,7 +8,7 @@ repository.workspace = true
 publish = false
 
 [features]
-test-support = ["connect-store/test-support"]
+test-support = ["connect-store/test-support", "rvoip-core/test-support"]
 
 [dependencies]
 connect-protocol.workspace = true

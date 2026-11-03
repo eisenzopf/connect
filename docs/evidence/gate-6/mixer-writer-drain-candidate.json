@@ -1,0 +1,33 @@
+{
+  "format": "connect/gate6-mixer-writer-drain-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Add one controlled composition case using the actual Core guarded scene tick, real Store identity/Conversation fences and actual Service leaf-registry callbacks. New opt-in Core test-support helper exposes existing attach/tick/clear only; ordinary builds have no helper or changed mixer behavior. Connect Service test-support enables it.",
+  "new_case": "canonical_media::tests::mixer_writer::actual_mixer_releases_store_reader_before_writer_budget_when_retained_service_callback_is_queued",
+  "proof_design": [
+    "Create a real isolated Store Conversation with two identities and acquire its complete identity/Conversation read footprint in synthetic media leases. Negotiate two actual PCMU staged controllers and prove actual mixer output before contention.",
+    "Only scene.tick runs while armed. Trigger when a queued source admission observes another source lease still owned by that tick; hold the real Service entries registry and start an actual complete Store writer with the production5ms acquisition budget.",
+    "In the controlled comparison arm, call the existing Service fresh-ingress10ms callback under that registry. Require authority-busy writer failure and at least8ms callback occupancy. This selects a counterfactual callback; it is not a historical-binary run.",
+    "In the queued arm, call actual Service current_queued under the same contention. Require writer success under its unchanged5ms deadline, one contended callback, tick below50ms and no held source reader after tick.",
+    "Join the writer, clear the scene, shut down actual controllers and require complete Store writer acquisition after cleanup."
+  ],
+  "checks_pending": [
+    "Compile on the local Ubuntu24 ARM VM with pinned patch281 sources and connect-service/test-support.",
+    "Run only the one new exact case; no existing suite or full media workload."
+  ],
+  "limitations": [
+    "Not compiled or executed yet.",
+    "Core relationship facts and adapter resources are synthetic. Store fences and Service refusal callback are actual, but the positive lease is not a NativeMediaRead and the writer does not run captured replacement SQL.",
+    "A pass establishes the controlled mixer/Store contention mechanism; it cannot attribute all449ms in the original workload or qualify native media quality.",
+    "No native cancellation/Data observer fault, video bootstrap, authenticated epoch or full transport cell proof."
+  ],
+  "patch": {
+    "path": "patches/rvoip/gate6-controlled-mixer-conformance.patch",
+    "sha256": "21f9c5e7171da8ff3b9a3f5611c4b3ce8d3e727cedee801cc0a3f43eedc3aa1f"
+  },
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

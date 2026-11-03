@@ -1,0 +1,69 @@
+--- a/crates/foundation/rvoip-core/Cargo.toml
++++ b/crates/foundation/rvoip-core/Cargo.toml
+@@ -91,6 +91,8 @@
+ required-features = ["opus"]
+ 
+ [features]
++# Explicit host conformance composition; absent from production builds.
++test-support = []
+ # P11 — feature flags per INTERFACE_DESIGN.md §2.2. The "shape" flags
+ # (`uctp`/`sip`/`rtp`/`media`) are advisory today — they signal what
+ # substrate adapters the consumer plans to use but don't gate code in
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3515,6 +3515,8 @@
+ pub(crate) mod guarded_audio;
+ pub(crate) mod media_scene;
+ mod scene_consumer;
++#[cfg(feature = "test-support")]
++pub mod test_support;
+ 
+ pub mod reliable_data;
+ 
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+@@ -0,0 +1,44 @@
++//! Feature-gated host conformance access to the actual owned scene tick.
++//! This creates no policy grant, replacement, or transport. Callers supply
++//! already negotiated controllers and their exact current policy instance.
++use super::*;
++
++pub struct ControlledAudioScene(Arc<media_scene::GuardedMediaScene>);
++impl ControlledAudioScene {
++    pub fn new(
++        conversation: ConversationId,
++        session: SessionId,
++        policy: Arc<dyn MediaPolicy>,
++    ) -> Self {
++        Self(media_scene::GuardedMediaScene::new(
++            conversation,
++            session,
++            policy,
++            8000,
++        ))
++    }
++    pub async fn attach(
++        &self,
++        controller: Arc<StreamController>,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<()> {
++        let id = controller.connection.clone();
++        let mut member = self.0.prepare(controller)?;
++        member.quiesce(deadline, CancellationToken::new()).await?;
++        if !member.ready() {
++            return Err(StreamControlError::NotReady);
++        }
++        self.0.insert(id, member, true);
++        Ok(())
++    }
++    /// Same production scene tick, including current admission, decoding,
++    /// source leases, receiver policy, and bounded queued output ownership.
++    pub fn tick(&self) {
++        self.0.tick();
++    }
++}
++impl Drop for ControlledAudioScene {
++    fn drop(&mut self) {
++        self.0.clear();
++    }
++}
