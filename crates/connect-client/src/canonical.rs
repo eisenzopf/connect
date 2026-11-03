@@ -2,6 +2,7 @@
 //! Callers retain logical operation IDs and correlate verified replies/events.
 pub use crate::NativeNetworkProfile;
 use crate::{ClientError, Result};
+pub use native_io::NativeDatagrams;
 use rvoip_auth_core::sig9421::{
     ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier, SignatureVerificationContext,
     StaticKeyResolver,
@@ -151,6 +152,7 @@ pub struct CanonicalClient {
     event_bytes: usize,
     server_key_expires_at: chrono::DateTime<chrono::Utc>,
     owned_signaling: Option<owned_signaling::OwnedSignaling>,
+    native_datagram_reader: Arc<AtomicBool>,
 }
 struct Pending {
     connection: quinn::Connection,
@@ -283,6 +285,7 @@ impl CanonicalClient {
             event_bytes: 0,
             server_key_expires_at: config.server_key_expires_at,
             owned_signaling: None,
+            native_datagram_reader: Arc::new(AtomicBool::new(false)),
         };
         let hello = envelope(
             "auth.hello",
@@ -1001,6 +1004,7 @@ mod capabilities;
 mod dtmf;
 pub mod http;
 mod native;
+mod native_io;
 mod quality;
 mod step_up;
 pub use calls::CanonicalHistoryPage;

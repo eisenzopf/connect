@@ -16,6 +16,20 @@ is current; it cannot revive a closed peer. The audio helpers enable this reader
 automatically. Before opting in, cancelling a raw reliable-frame read still
 retires the peer because its partial frame cannot be resumed safely.
 
+For packet timers that must progress while a signed control request is pending,
+call `claim_native_datagrams()` on that same `CanonicalClient`. The returned
+`NativeDatagrams` owns its one RTP/clock reader and exposes atomic `receive()`
+and local-queue `send()` operations independently of the client's control borrow.
+It opens no additional peer and grants no stream permission. Another owner or
+legacy datagram read refuses until this owner drops. Cancelling an atomic read
+retains the owner. Closing or dropping the original client retires its IO.
+The owner captures the current credential/server-key cutoff; after an explicit
+refresh, drop it and claim again to use the validated successor cutoff. It
+cannot renew itself or extend a control deadline. Server authorization still
+applies to each original packet. This changes the Rust client boundary without
+adding an HTTP or wire command. Its focused ownership/concurrency checks and
+physical fixture integration remain pending.
+
 Use `receive_signaling()` to read retained verified envelopes. Passive
 `connection.ready`, `connection.quality`, `stream.opened`, `stream.closed` and
 `capability.advertise` facts coalesce by kind and exact resource. Replies, data,

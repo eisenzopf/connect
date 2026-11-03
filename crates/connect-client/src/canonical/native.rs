@@ -35,7 +35,7 @@ fn answer_frame(
     Envelope::from_value(value.clone()).map_err(|_| ClientError::Protocol)?;
     Ok(value)
 }
-fn datagram(bytes: &[u8]) -> Result<()> {
+pub(super) fn datagram(bytes: &[u8]) -> Result<()> {
     if bytes.len() > MAX_NATIVE_MEDIA_DATAGRAM {
         return Err(ClientError::Protocol);
     }
@@ -192,6 +192,7 @@ impl CanonicalClient {
     /// Idle media has no frame deadline; current peer authority still gates both ends.
     pub(crate) async fn receive_owned_native_datagram(&self) -> Result<Vec<u8>> {
         self.check_current()?;
+        let _reader = super::native_io::ReaderClaim::take(&self.native_datagram_reader)?;
         let bytes = self
             .connection
             .read_datagram()
@@ -208,6 +209,7 @@ impl CanonicalClient {
     /// reports never count as decoded media or readiness. Atomic timeout or
     /// cancellation leaves signaling and other streams usable.
     pub async fn receive_native_media_datagram(&mut self) -> Result<Vec<u8>> {
+        let _reader = super::native_io::ReaderClaim::take(&self.native_datagram_reader)?;
         let mut current = self.pending()?;
         current.complete = true;
         let remaining = (self.authenticated_until.min(self.server_key_expires_at)
