@@ -436,17 +436,17 @@ impl Store {
             .and_then(|v| serde_json::from_str(&v).map_err(|_| Error::storage()))?;
         let source = row.record.connection_id.as_ref().ok_or_else(invalid)?;
         let target = &a.target;
-        let state = if stopped { "retired" } else { "ready" };
-        let generation = target
-            .connection
-            .generation
-            .checked_add(u64::from(stopped))
-            .ok_or_else(conflict)?;
-        let observed_runtime = (!stopped).then_some(p.runtime.as_str());
-        let observed_at = (!stopped).then(crate::now);
+        // The immutable lifetime triggers bind the actual captured admission
+        // before its retirement fence. These intermediate rows stay inside this
+        // transaction, behind its complete authority writer: the stopped path
+        // retires them before journal emission or commit, so no reader sees Ready.
+        let state = "ready";
+        let generation = target.connection.generation;
+        let observed_runtime = Some(p.runtime.as_str());
+        let observed_at = Some(crate::now());
         let ready: serde_json::Value =
             serde_json::from_str(&captured.observation).map_err(|_| Error::storage())?;
-        let readiness = (!stopped).then(|| ready["readiness"].to_string());
+        let readiness = Some(ready["readiness"].to_string());
         let mut offer = intent.offer.clone();
         offer
             .as_object_mut()
@@ -536,6 +536,15 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_replacement_lifetimes(operation_record_id,credential_id,key_id,device_id,endpoint_id,participant_id,membership_epoch,generation,resources_json,source_expires_at,attempt_runtime,attempt_id,effect_id) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![p.record,descriptor["credential_id"].as_str().ok_or_else(invalid)?,descriptor["key_id"].as_str().ok_or_else(invalid)?,target.device_id,target.connection.endpoint_id,target.connection.participant_id,target.connection.membership_epoch,target.connection.generation,a.resources,a.source_expires_at,p.runtime,a.attempt,a.effect]).map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation,retired) VALUES(?1,?2,?3,?4,?5)",params![p.record,target.connection.connection_id,p.runtime,target.connection.generation,stopped]).map_err(|_| Error::storage())?;
+        if stopped {
+            let changed = tx.execute(
+                "UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND state='ready'",
+                params![target.connection.connection_id, generation],
+            ).map_err(|_| Error::storage())?;
+            if changed != 1 {
+                return Err(conflict());
+            }
+        }
         workers::invalidate(&tx, &p.record)?;
         native_handoffs::touch(&tx, &p.record, self)?;
         for connection in [source.as_str(), target.connection.connection_id.as_str()] {

@@ -426,10 +426,23 @@ retry, including after cancellation. Historical recording remains possible
 after original controller revocation. A confirmed movement capture alone does
 not complete the public operation or create a connection.
 
-A separate atomic projection consumes that exact confirmed capture. It records
+A separate atomic projection consumes that exact confirmed capture. Native
+Service preallocates an inactive ordinary entry and Data observer, installs them
+after capture, then supplies exact entry custody through the final transaction.
+Current target authority is checked before activation. The ready outcome records
 the candidate's actual generation and replaces lineage, preserves its participant
 and main session, retires only the old connection, advances topology, records
 ready/retired journal facts and completes the original replacement operation.
+
+If the new target has already stopped, an exact absence observation instead
+settles the known move as `activation_state: "stopped"`. Its original physical
+admission/lifetime and subsequent retirement are recorded in one transaction;
+no public Ready state or connection_ready journal event is emitted. The target
+appears in both historical admitted and retired lists, with null `readiness` and
+separate captured `physical_readiness`. The retained peer is unchanged. Completed
+means the movement outcome is known; it does not promise continuing connectivity.
+Never replay the physical effect to repair activation or a lost response.
+
 A failed projection rolls back all of these writes. Retrying it creates no
 second connection, operation or lifecycle event. Old native cleanup may arrive
 before or after projection. Lineage compares immutable native admission
