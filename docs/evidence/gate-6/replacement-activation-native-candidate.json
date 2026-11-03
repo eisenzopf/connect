@@ -4,10 +4,7 @@
   "date": "2026-11-03",
   "new_case": "canonical_native_connections::consultation::groups::replacement::activation::production_captured_replacement_revocation_never_publishes_ready_or_replays_movement",
   "change": "Extend the existing real signed native replacement fixture with a dedicated barrier-audit case. Abort final lifetime insertion with a fixture SQL trigger, wait for known physical capture, prove no public Ready/lifetime, revoke target credentials, remove the trigger, and require stopped outcome with retired exact generation, no Ready event, identical once-only effects, retained decoded peer probe and final cleanup.",
-  "checks_pending": [
-    "Compile canonical runtime integration target on local ARM with prepared pinned sources.",
-    "Run only the new exact production barrier-audit case with a bounded original test process."
-  ],
+  "checks_pending": [],
   "limitations": [
     "This tests actual cross-layer revocation before activation, not deterministic cancellation between the final native observation and SQL commit.",
     "No process SIGKILL, Data observer allocation fault, full media workload, video bootstrap or matrix qualification."
@@ -16,5 +13,6 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "component_evidence": "docs/evidence/gate-6/replacement-activation-native-component.json"
 }

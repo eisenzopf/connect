@@ -1,0 +1,49 @@
+{
+  "format": "connect/gate6-replacement-activation-native-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "result": "One new exact signed native replacement barrier case passes at18773f7f.",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 106014,
+    "source_revision": "18773f7fe94f4b483753283b602e3d5adbb95946",
+    "passed": true,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::production_captured_replacement_revocation_never_publishes_ready_or_replays_movement",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 427 filtered out; finished in 13.29s"
+        ],
+        "log_sha256": "d09f260e9f2ccbdea247dd0242a49ff731e21004abb97c68c30a5a294488cf45"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_activation_barrier_candidate": true,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "443d83b817da156481fe4c6a11cc99515370c33cb6eb6c1467e81557ad8cbf20",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1321.7804380679954
+  },
+  "coverage": [
+    "Real signed native target negotiation and once-only Core physical movement with final Store lifetime publication aborted by an isolated SQL trigger.",
+    "Before target credential revocation, captured physical movement has no completed root, durable replacement lifetime or Ready journal event.",
+    "Actual target credential revocation followed by trigger removal settles the captured move as completed/stopped, readiness null, historical physical readiness retained, exact target lifetime retired and no Ready event.",
+    "Original effect vector remains unchanged with all seven effects confirmed at attempt one. The retained decoded peer probe and duplicate original command pass, followed by native slot cleanup and joined server shutdown."
+  ],
+  "limitations": [
+    "One normal native QUIC signed-identity case; no complete media workload or transport cell.",
+    "No deterministic cancellation between final native observation and SQL commit, actual process SIGKILL or Data observer allocation fault.",
+    "P0/P1 writer-drain attribution, P3 video bootstrap and P5 authenticated observation remain unfinished."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
