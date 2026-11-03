@@ -10,15 +10,14 @@
     "Publish explicit native activation_state and physical_readiness with corresponding HTTP/OpenAPI contract."
   ],
   "verification_pending": [
-    "Four new Store barrier cases on local native ARM.",
-    "Service library compile.",
     "Actual Service/native termination races, restart reconciliation and Data observer failure.",
     "Actual mixer/Store writer-drain case and detailed refusal counters.",
     "P3 video bootstrap, P5 authenticated epoch, integrated workload and complete matrix."
   ],
-  "tests_executed": false,
+  "tests_executed": true,
   "full_media_rehearsal_run": false,
   "cell_qualified": false,
   "task_complete": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "component_evidence": "docs/evidence/gate-6/replacement-activation-barrier-component.json"
 }

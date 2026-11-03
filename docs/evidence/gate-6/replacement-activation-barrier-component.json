@@ -1,0 +1,110 @@
+{
+  "format": "connect/gate6-replacement-activation-barrier-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "result": "Three new Store cases pass at the barrier candidate; the stopped-target case initially failed and passes after the isolated atomic-settlement correction. The first Service library check found a trait-object identity comparison type mismatch; the corrected source passes the Service library check.",
+  "runs": [
+    {
+      "source_revision": "287b483e2e2670fd4336eb3e3c6429473ed4d1a1",
+      "compile_exit_code": 0,
+      "test_executable_sha256": "ea2ed261ba577a1903fdba3dfd92c6de88bd220810bbc1b3a5a1d3abe2768f21",
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_barrier::readiness_requires_exact_installation_before_and_at_commit_and_failed_final_write_rolls_back",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1336 filtered out; finished in 0.25s"
+          ],
+          "log_sha256": "a25305506ab2ca7e3f50229a5ce8295b4cddcf6089b7298251e8c48f821222f4"
+        },
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_barrier::stopped_before_activation_preserves_known_move_without_ready_or_retained_route_retirement",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1336 filtered out; finished in 0.23s"
+          ],
+          "log_sha256": "1a85c2541b090af25f92c675b20a4bf260eb523eb813a1d33e60d64311437b62"
+        },
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_barrier::only_known_current_pending_activation_is_temporary_and_revocation_remains_permanent",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1336 filtered out; finished in 0.22s"
+          ],
+          "log_sha256": "b43b88a2da358ee4950eb0af766cbaaaed7a2f89a942f256dac17f0ffc05bb38"
+        },
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_barrier::installation_custody_survives_until_the_ready_transaction_is_visible",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1336 filtered out; finished in 0.22s"
+          ],
+          "log_sha256": "8916d497a0c45e0ad6411970ab6a5cefae3d2c05b3547eb62323a438db53b9ef"
+        }
+      ],
+      "service_check_exit_code": 101,
+      "service_check_log_sha256": "0d67a33affd833a6b3cc9cdf688fe6ed46b8b069a95f938c24d3801d151bf2be",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "executable_unchanged": true,
+      "elapsed_seconds": 559.6389251599976
+    },
+    {
+      "source_revision": "1c2d9dff69c6b74482f51b10e67222080cac9b9d",
+      "compile_exit_code": 0,
+      "test_executable_sha256": "fee097ef58f6637287d8377089ee8f238ebf259d7692e00e95b6c662dce1d116",
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_barrier::stopped_before_activation_preserves_known_move_without_ready_or_retained_route_retirement",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1336 filtered out; finished in 0.52s"
+          ],
+          "log_sha256": "da7ecd1bb57235da8cecde2d874da1a47174db7fad6851a01c24298cf86ee966"
+        }
+      ],
+      "service_check_exit_code": 0,
+      "service_check_log_sha256": "9c48a6183de283e0b2b06d48f3047eea417c626f412e7a12cf3050c6c6c78c0a",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "executable_unchanged": true,
+      "elapsed_seconds": 534.8273602210029
+    }
+  ],
+  "coverage": [
+    "Ready requires exact installation at entry and final commit; missing/lost installation or SQL write refusal leaves no durable change.",
+    "The Store retains its installation guard until the ready transaction is visible to an independent SQL reader.",
+    "Only an exact captured current pending target is temporarily refused; reserved/uncertain state and target revocation cannot gain activation.",
+    "Known moved targets stopped before activation settle without a public Ready state/event; new and claimed candidates retire with fenced generations, retained routes stay current, and duplicate settlement is idempotent."
+  ],
+  "failure_and_correction": "The initial stopped projection inserted retired state before immutable admission/lifetime binding. Existing lifetime triggers require the original captured ready admission. The correction records that historical admission and its retirement within one transaction; only retired state and retirement journal facts become visible. No schema constraint was relaxed.",
+  "limitations": [
+    "Store fixtures use metadata-only installation/absence observers. These results do not exercise actual Service/Core movement or physical termination races.",
+    "Service compile checks are not runtime evidence. Actual Service removal/termination, Data observer failures and restart reconciliation still require focused integration proof.",
+    "No new full media workload, mixer/Store writer-drain proof, video-bootstrap/epoch proof or complete transport cell."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true,
+  "source_review_followups": [
+    {
+      "finding": "Native adapter presence outlives controller cancellation during asynchronous cleanup. Final Service guard pins entry/binding/activation identity; it does not yet prove uncancelled resources.",
+      "anchors": [
+        ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native.rs:2328",
+        "crates/connect-service/src/canonical_replacement/movement.rs:342"
+      ],
+      "verification": "Source review only; focused actual cancellation/activation case required."
+    },
+    {
+      "finding": "Foreign-runtime recovery preserves confirmed effects but leaves unfinished started native replacement Unknown; there is no dedicated inactive-entry stopped projection during startup.",
+      "anchors": [
+        "crates/connect-store/src/transitions/native_replacements.rs:594",
+        "crates/connect-service/src/canonical_runtime.rs:244"
+      ],
+      "verification": "Source review only; one bounded crash/capture/reconciliation case required."
+    }
+  ]
+}
