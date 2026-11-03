@@ -163,10 +163,7 @@ export function verifyPhysicalOwnerEndReceipt(receipt, intent, admittedConnectio
 // exact durable prepare receipt permits launching the independent target.
 // This is an observation, never authority: allocation revalidates everything.
 export function replacementPreparationRecorded(root) {
-    const prepare = root.effects?.filter(effect => effect.provider === "native-replacement-prepare");
-    return root.state === "preparing" && root.cancel_requested !== true &&
-        Array.isArray(prepare) && prepare.length === 1 && prepare[0].state === "confirmed" &&
-        prepare[0].attempt === 1 && prepare[0].compensates_effect_id == null;
+    return root.state === "preparing" && root.native_replacement_prepared === true;
 }
 
 export const physicalReplacementTarget = options => physicalTarget(options, false);

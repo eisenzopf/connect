@@ -175,6 +175,9 @@ impl CanonicalHandler {
                 )
                 .await?;
             let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
+            if matches!(request.payload(), Payload::OperationGet(_)) {
+                crate::canonical_operations::project_preparation(&record, &mut payload);
+            }
             if let Some(subscription) = record.subscription_record_id {
                 payload["subscription_record_id"] = json!(subscription);
             }

@@ -1,9 +1,11 @@
 //! Canonical recovery uses the same durable operation decisions as other facades.
+mod preparation;
 use crate::{Service, StoreInvocationAuthority};
 use connect_protocol::{
     transitions::{OperationAction, OperationRecord, ReconcileOutcome},
     Error, Result,
 };
+pub(crate) use preparation::project as project_preparation;
 use rvoip_uctp::v2::{payloads::OperationReconcileOutcome, Envelope, Payload, Scope};
 
 /// The top-level ID identifies a cancel/reconcile decision; the payload ID

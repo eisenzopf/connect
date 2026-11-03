@@ -22,7 +22,7 @@
   "counterexample": "Same focused real-process case fails old controller after 1 status read versus 8 required; corrected controller reads all original statuses before spawning and joins the original synthetic worker without force.",
   "scope": "Synthetic controller/process ownership only; no native service admission or media proof. Initial isolated harness attempt lacked its SDK import path; neither version ran. Corrected isolated harness uses existing local SDK dist and exact changed source.",
   "behavior": "Wait for one original prepare effect confirmed attempt one, not a reservation, in-flight effect, wrong attempt, duplicate or compensation. Current service authority and once-only begin remain mandatory. Backend no longer waits on preparation while holding peer authority.",
-  "normal_arm_runtime_pending": true,
+  "normal_arm_runtime_pending": false,
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -32,5 +32,6 @@
     "crates/connect-service/src/canonical_replacement/allocation.rs": "405d9fdde4c10277f0bd7269b71e17f72ebb4cd8a2da085af11a1bbf9ee62a91",
     "scripts/lib/transport_replacement_target.mjs": "c4c6527ff7bf94c86e5ff499e7ace4a927140410e82617ee51627bd4e755731c",
     "scripts/tests/transport_replacement_owner.test.mjs": "022e33e87d7ad5e61f64570daa98403bfae6a3661204b55a16ced2cb515a01db"
-  }
+  },
+  "normal_arm_runtime_result": "preparation-confirmation-result.json: normal compile passed; controller failed because actual signed projection omits effects. Candidate superseded by native_replacement_prepared projection."
 }

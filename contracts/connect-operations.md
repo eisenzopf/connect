@@ -21,6 +21,17 @@ The initial signed native control `operation.updated` also includes the original
 null `expected_revision`. Its completed `core_queue_admission` result proves
 local admission; recipient writes and application consumption need separate
 observations.
+For `connection.replace`, current-authorized `operation.get` also returns
+`native_replacement_prepared`: a boolean derived from the unique original
+`native-replacement-prepare` effect being confirmed at attempt one without
+compensation. The `preparing` state and revision alone include reservation and
+in-flight preparation. Clients observe this fact before submitting a signed
+target allocation; it grants no allocation authority, bindings or media
+readiness. Allocation revalidates current authority and immediately refuses an
+absent or unrecorded original capture, without retaining a reader while waiting
+for the preparation worker. Full effect details are not exposed on this wire
+projection.
+
 A handoff target may reference its own signed native offer record as `policy_ref`
 only while that physical peer's current named handoff policy permits the route.
 

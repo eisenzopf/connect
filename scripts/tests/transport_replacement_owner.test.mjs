@@ -65,13 +65,11 @@ const poll = setInterval(() => {
             await assert.rejects(stat(join(root, "stage/target-input.json")), { code: "ENOENT" });
             assert.ok(preparationReads < preparationStates.length);
         }
-        const effects = preparationStates?.[preparationReads] ?? [{
-            provider: "native-replacement-prepare", state: "confirmed", attempt: 1,
-        }];
+        const preparation = preparationStates?.[preparationReads] ?? { native_replacement_prepared: true };
         preparationReads++;
         return [{ value: { type: "operation.updated", payload: {
             operation_id: "original", record_id: "record", revision: preparationReads,
-            command_type: "connection.replace", expected_revision: 1, state: "preparing", effects,
+            command_type: "connection.replace", expected_revision: 1, state: "preparing", ...preparation,
         } } }];
     } } };
     const directory = join(root, "stage");
@@ -145,18 +143,16 @@ test("a failed physical owner cannot turn completed admission into a passing fin
 
 // New focused counterexample: reservation is not the original captured ticket.
 test("preparation confirmation precedes target spawn without retaining allocation authority", async () => {
-    const effect = (state, attempt, extra = {}) => ({ provider: "native-replacement-prepare", state, attempt, ...extra });
-    const observations = [[], [effect("prepared", 0)], [effect("submitting", 1)],
-        [effect("confirmed", 0)], [effect("confirmed", 2)],
-        [effect("confirmed", 1), effect("confirmed", 1)],
-        [effect("confirmed", 1, { compensates_effect_id: "another-effect" })],
-        [effect("confirmed", 1)]];
+    const observations = [{}, { native_replacement_prepared: false },
+        { native_replacement_prepared: 1 }, { native_replacement_prepared: "true" },
+        { effects: [{ provider: "native-replacement-prepare", state: "confirmed", attempt: 1 }] },
+        { native_replacement_prepared: true }];
     await fixture(async ({ owner, directory, preparationReads, counters }) => {
         assert.equal(preparationReads, observations.length);
         assert.deepEqual(counters(), { submitted: 1, retired: 1, restored: 1 });
         const input = JSON.parse(await readFile(join(directory, "target-input.json"), "utf8"));
         assert.equal(input.root.revision, observations.length);
-        assert.deepEqual(input.root.effects, observations.at(-1));
+        assert.equal(input.root.native_replacement_prepared, true);
         const result = await owner.stopAndJoin();
         assert.equal(result.passed, true);
         assert.equal(result.target_worker_joined, true);

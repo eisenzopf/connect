@@ -3269,6 +3269,10 @@
           "result": {},
           "problem": {
             "type": "object"
+          },
+          "native_replacement_prepared": {
+            "type": "boolean",
+            "description": "Current-authorized connection.replace operation.get projection only. True exactly when the original unique native-replacement-prepare effect is confirmed at attempt one without compensation. False before capture. Journal observation only; grants no native target allocation, current authority or media readiness. Preparing/revision alone are insufficient."
           }
         },
         "required": [

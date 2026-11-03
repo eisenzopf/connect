@@ -1,0 +1,105 @@
+{
+  "format": "connect/gate6-preparation-confirmation-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "local_platform": "ubuntu-24.04-linux-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "a59f44b056af6521a06ce0224e0134d0f80a3bde",
+    "binary_sha256": "cfd6244cd28a81d241f9bb3b6ba4102026c7e7c51c040c7debe9e6422ff2a29b",
+    "peer_binary_sha256": "a507b457e9d0b2e760ae57b985b289c513fcb3c3cb8595ea7c0a92b8d7af94f7",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 872.6215995240018,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "original_moves_completed": 0,
+  "physical_targets_launched": 0,
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 31565215,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 44044,
+      "to_server_packets": 23850,
+      "from_server_packets": 20194,
+      "captured_bytes": 30860487,
+      "udp_payload_bytes": 29010639,
+      "to_server_udp_bytes": 12004897,
+      "from_server_udp_bytes": 17005742
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "stopped_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "failed",
+        "revision": 4,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "failed",
+        "revision": 4,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          }
+        ]
+      }
+    ],
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true,
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite"
+  },
+  "first_cause": "Controller waited for effects which the signed operation.updated projection does not expose. Both original preparations confirmed once, then were compensated once after the original controller deadline; no target was launched.",
+  "signed_root_keys": [
+    "command_type",
+    "expected_revision",
+    "operation_id",
+    "record_id",
+    "revision",
+    "state"
+  ],
+  "quality_observation": "Full programme and independent quality unrun; no inherited quality result.",
+  "next_candidate": "Current-authorized operation.get returns bounded native_replacement_prepared boolean from the original confirmed prepare effect. Controller waits for exact true before target spawn. Allocation still immediately refuses missing capture under current authority.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

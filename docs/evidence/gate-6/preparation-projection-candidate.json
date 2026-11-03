@@ -1,0 +1,47 @@
+{
+  "format": "connect/gate6-preparation-projection-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "focused_arm_checks": {
+    "platform": "linux-arm64",
+    "general_suites_rerun": false,
+    "checks": [
+      {
+        "version": "before",
+        "exit_code": 1,
+        "log_sha256": "27157b345e62d9994cf0703d7e96170bc82f9bdceb0be6b0b4c3bc79fa008d82"
+      },
+      {
+        "version": "after",
+        "exit_code": 0,
+        "log_sha256": "2acf1f5018ef01296f8f46a010e11db013367dad16b9fd76493bd0573d3921c7"
+      }
+    ],
+    "projection_exit_code": 0,
+    "projection_log_sha256": "5475c381d2e30441ace25ce5b46e228855f2dc0d6dc2bbfc73604886957560e6",
+    "projection_result_lines": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    ],
+    "elapsed_seconds": 11.05325984600131,
+    "passed": true
+  },
+  "scope": "Exact production projection module compiled against real connect-protocol in an isolated release harness. One new exact projection case and one new exact real-process controller counterexample only. Full service wiring/normal runtime pending.",
+  "behaviors": [
+    "Only connection.replace operation.get adds a bounded native_replacement_prepared boolean; original unique confirmed prepare at attempt one without compensation is true.",
+    "Empty, prepared, submitting, unknown, repeated-attempt, compensated and duplicate prepare effects are false; unrelated command projection unchanged.",
+    "Controller preserves original operation and cutoff; missing, false, numeric/string true and invented raw effects cannot launch a target; exact boolean true launches its joined original synthetic worker.",
+    "No effect metadata, binding, permission, media readiness, signature exemption, replay or extended deadline is introduced."
+  ],
+  "source_sha256": {
+    "crates/connect-service/src/canonical_operations/preparation.rs": "9c02597271849c1b8dbb372df0298f4df17f7d77a7a31884d7d6b544d978600b",
+    "crates/connect-service/src/canonical.rs": "fe713cd29a94176b339f3a81a1fa2c74ab03d9d39aaad88cef470c5cd69f5951",
+    "scripts/lib/transport_replacement_target.mjs": "81926fc56a318ffd45846d21b0ce5bd958a7490bc1f2f996cb989e9b24e2df46",
+    "scripts/tests/transport_replacement_owner.test.mjs": "4359502989390ac2843b4912265a81577a9a80ef8ebb3d7c65e930cbb2bae56b"
+  },
+  "normal_arm_runtime_pending": true,
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
