@@ -4,8 +4,7 @@
   "date": "2026-11-03",
   "change": "Separate a known adoption preparation refusal before Core invocation from uncertain physical movement. Consume the original reservation into a typed negative capture, atomically record its exact not-started observation and failed effect, and retire only the candidate under actual native absence. Keep the source/retained programme and original attempt; no Ready and no movement replay.",
   "checks_pending": [
-    "Run only the corrected first Store case at3f34950f; retain the two passing cases from guarded8806dca3 without rerunning.",
-    "Execute the separately committed native injection case at685773d1 after corrected Store verification."
+    "Finish the separately committed actual native injection/duplex case at685773d1; no Store case rerun needed."
   ],
   "new_cases": [
     "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
@@ -132,5 +131,42 @@
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 936.2236638470058
   },
-  "verification_state": "Store and changed Service compile pass at8806dca3. Two of three Store cases pass with terminal source/dependency/executable guards unchanged. First case failed its contention fixture, corrected at3f34950f; only that case is rerunning."
+  "verification_state": "Three new Store cases pass across two guarded runs. Only the initially failed contention fixture was corrected and rerun; both passing cases were retained.",
+  "component_evidence": "docs/evidence/gate-6/pre-core-refusal-component.json",
+  "corrected_fixture_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 109682,
+    "source_revision": "3f34950f7c039d7664412ea3089566121a801a11",
+    "passed": true,
+    "steps": [
+      {
+        "group": "store",
+        "case": "connection_control::tests::replacement_sources::commit::not_submitted::pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1344 filtered out; finished in 0.28s"
+        ],
+        "log_sha256": "f88f43041aa6bd05a91fed66da8924a4da3b5cf449211f60bb6b2da29eefd111"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "mixer_writer_candidate": false,
+    "pre_core_refusal_candidate": true,
+    "builds": [
+      {
+        "group": "store",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "2a897ac6279fcf07aae9377ecda8e4503dd04faa0a36d27018f702e01d66863e",
+        "test_executable_sha256": "a539e49ef1ae530f4834e822ddc43637d83f6d642dc0227749154d555a5d8dd2",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "standalone_service_check_rerun": false,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 81.85990654900525
+  }
 }
