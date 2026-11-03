@@ -283,16 +283,24 @@ try {
             } });
         const originals = [], constructionStart = performance.now();
         try {
-            // This component tests cloned-frame ownership and native timers.
-            // Prepare the three synthetic payloads before starting their short
-            // playout window; native canvas/VideoFrame initialization is setup.
-            for (let i = 0; i < 3; i++) originals.push(new VideoFrame(input, { timestamp: i * 33333 }));
-            const frameConstructionMs = performance.now() - constructionStart;
+            // Native setup is outside the measured three-frame ownership check.
+            const warm = new VideoFrame(input, { timestamp: 0 }); warm.close();
+            let frameConstructionMs = performance.now() - constructionStart, enqueueMs = 0;
             const start = performance.now() / 1000;
-            for (const [i, frame] of originals.entries()) {
-                try { queue.enqueue(frame, start + .08 + i / 30); } finally { frame.close(); }
+            for (let i = 0; i < 3; i++) {
+                // A delayed native wake must expire old frames, not make all
+                // later synthetic captures old before they are even submitted.
+                // Capture each next frame after a native source-timer yield;
+                // never refresh the timestamp of an already captured frame.
+                if (i) await new Promise(done => setTimeout(done, 1000 / 30));
+                const capturedAt = performance.now() / 1000;
+                const frame = new VideoFrame(input, { timestamp: Math.round(capturedAt * 1000000) });
+                frameConstructionMs += performance.now() - capturedAt * 1000;
+                originals.push(frame);
+                const enqueueStart = performance.now();
+                try { queue.enqueue(frame, capturedAt + .08); } finally { frame.close(); }
+                enqueueMs += performance.now() - enqueueStart;
             }
-            const enqueueMs = performance.now() - start * 1000;
             await new Promise(done => setTimeout(done, 300));
             return { painted, dropped, queued: queue.size, pixel: [...target.getImageData(4, 4, 1, 1).data],
                 frame_construction_ms: Math.round(frameConstructionMs), enqueue_ms: Math.round(enqueueMs),

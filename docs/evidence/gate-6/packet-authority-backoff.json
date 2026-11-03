@@ -144,10 +144,44 @@
     "store_files_unchanged": true,
     "rerun_for_this_service_change": false
   },
-  "normal_production_runtime_pending": true,
+  "normal_production_runtime_pending": false,
   "full_programme_pending": true,
   "performance_improvement_proven": false,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "normal_production_followup": {
+    "source_revision": "4c3f1d7e4eacf0d3e459e667ddaa41753cbbfc10",
+    "build_passed": true,
+    "opt_level": "3",
+    "test_support": false,
+    "binary_sha256": "43b675363ef463d138d7d6874f1f51447850557e8113c88538e5e1d5dcc1ce10",
+    "same_verified_rust_sources": true,
+    "full_programme_passed": false,
+    "original_roots_executed": 4,
+    "original_roots_completed": 3,
+    "movement_stages_passed": 2,
+    "failed_root_problem": {
+      "code": "forbidden",
+      "source": "native-replacement-preparation"
+    },
+    "failed_preparation_effect_started": false,
+    "failed_preparation_effect_attempt": 0,
+    "unretired_native_lifetimes": 0,
+    "both_servers_joined": true,
+    "failure_cleanup": {
+      "server_exit_code": 0,
+      "forced": false,
+      "original_group_retired": true
+    },
+    "original_db_wal_unchanged": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "private_journal_audit_sha256": "7880ba7ab96172a9eb9f4c23834053225ee2c4ac5c2c58b15545c550fc976d38",
+    "report_sha256": "cfd7a74a92d3d65b62179b19c52f112d06eb18448e9800e6072661cf269964f0",
+    "host_capture": false,
+    "whole_window_decode_complete": false,
+    "scope": "Current normal CLI and specific failure/cleanup observations only. Three original mutations complete; a fourth refuses during metadata preparation before actual IO begins. Original failed mutation is not replayed. Latency improvement or complete-cell quality is not established."
+  }
 }

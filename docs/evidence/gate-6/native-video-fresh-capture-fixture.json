@@ -1,0 +1,107 @@
+{
+  "format": "connect/native-video-fresh-capture-fixture/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "passed": true,
+  "scope": "Checker-only fixture correction. Actual frozen fullChrome.48 executes exact original and draft page.evaluate callback bodies against unchanged production VideoPlayout. This is not a full installed App pass or transport qualification.",
+  "source_files_sha256": {
+    "scripts/check-reference-app-installed.mjs": "89cbc66c001f234a049be647fedf07a6965e8338f3eb63cfd955c1088f18d61f",
+    "examples/parley-on-connect/app/ui/media-playout.mjs": "fdad4d847eeae824322bc02bc38e94981133a6e1c1e3ca1c0e6a4c0f1be61595"
+  },
+  "original_checker_sha256": "5f8ac16e58825ec1289bc9c22ba77dfead023d7fe3cabdf7d855ea116a947a6e",
+  "browser": "156.0.8078.48",
+  "browser_launcher_sha256": "ace438d6d7a00aedc0f983b4b02bdbf88cf25e204812affac0b39a7391ed7fe6",
+  "controlled_startup_pause_ms": 210,
+  "pause_after_first_native_timer_registration_ms": 20,
+  "renderer_lateness_limit_ms_unchanged": 50,
+  "renderer_horizon_and_capacity_unchanged": true,
+  "fresh_frames_captured_after_native_yield": true,
+  "native_source_cadence_hz": 30,
+  "original_frame_outcome_count_unchanged": 3,
+  "minimum_paint_requirement_unchanged": 1,
+  "green_pixel_and_empty_queue_assertions_unchanged": true,
+  "cases": [
+    {
+      "variant": "original",
+      "controlled_pause": false,
+      "painted": 3,
+      "dropped": 0,
+      "queued": 0,
+      "drop_reasons": {},
+      "pixel": [
+        0,
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "variant": "original",
+      "controlled_pause": true,
+      "painted": 0,
+      "dropped": 3,
+      "queued": 0,
+      "drop_reasons": {
+        "late": 3
+      },
+      "pixel": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "variant": "fresh-capture-draft",
+      "controlled_pause": false,
+      "painted": 3,
+      "dropped": 0,
+      "queued": 0,
+      "drop_reasons": {},
+      "pixel": [
+        0,
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "variant": "fresh-capture-draft",
+      "controlled_pause": true,
+      "painted": 2,
+      "dropped": 1,
+      "queued": 0,
+      "drop_reasons": {
+        "late": 1
+      },
+      "pixel": [
+        0,
+        255,
+        0,
+        255
+      ]
+    }
+  ],
+  "original_counterexample_reproduced": true,
+  "original_browser_joined": true,
+  "original_http_joined": true,
+  "source_inputs_unchanged": true,
+  "exact_source_regression_report_sha256": "c412a223733e0dfd722decf499721d7383c9c057ca415e59c41772a57234022d",
+  "existing_renderer_unit_cases_passed": 7,
+  "existing_installation_boundary_cases_passed": 6,
+  "full_installed_app_rehearsal_pending": true,
+  "app_av_window_minimums_unchanged": {
+    "audio_completions": 50,
+    "video_paints": 6
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "original_frames_retimestamped": false,
+  "regression_runner_sha256": "6b5352f73b3819890a3039b55539e15fd25abfa9b24c5ba891f79ce414ea673b",
+  "existing_test_source_sha256": {
+    "examples/parley-on-connect/app/media-playout.test.mjs": "9a03dcb4eb0399002d7f3c98fc262ca857278f9826a2370d7d09b09e8ebfddc7",
+    "scripts/tests/test_reference_app_components.py": "5e9a0473bebd05fa345fa38b5dee937e9c0bc7d9d93b05f2f637460463383435"
+  }
+}

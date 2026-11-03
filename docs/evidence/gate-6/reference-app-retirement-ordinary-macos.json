@@ -1,0 +1,131 @@
+{
+  "format": "connect/reference-app-retirement-ordinary-macos/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "passed": false,
+  "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+  "run_id": 41549564631,
+  "job_id": 125633506026,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41549564631/job/125633506026",
+  "browser": "156.0.8078.48",
+  "browser_product": "explicit-owned-chromium-executable",
+  "frozen_browser_profile_verified": "macos-arm64",
+  "checks_passed_before_failure": 5,
+  "failure": {
+    "stage": "native-browser-video-playout-component",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 304,
+        "column": 12
+      }
+    ]
+  },
+  "native_video_playout_component": {
+    "painted": 0,
+    "dropped": 3,
+    "queued": 0,
+    "pixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "frame_construction_ms": 26,
+    "enqueue_ms": 0,
+    "page_state": {
+      "visibility": "visible",
+      "focused": true
+    },
+    "drop_reasons": {
+      "late": 3
+    },
+    "timer_samples": [
+      {
+        "requested_at_ms": 3063.1999999997206,
+        "requested_delay_ms": 80,
+        "fired_at_ms": 3293.399999999907,
+        "wake_lateness_ms": 150.20000000018626,
+        "callback_duration_ms": 0.10000000009313226
+      }
+    ],
+    "omitted_timer_samples": 0,
+    "paint_samples": [],
+    "observation_ms": 695
+  },
+  "independent_artifact_audit": {
+    "platform": "macos",
+    "target": "aarch64-apple-darwin",
+    "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+    "git_source_files_verified": 5011,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 755,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "43a45a68206b8353ecaecc067ce3276c58a4fcb8cd269afd339105751bfd162a",
+    "native": {
+      "integer_sample_codec_source_verified": true,
+      "bundled_static_opus_symbols": [
+        "_opus_encoder_create",
+        "_opus_encode",
+        "_opus_decoder_create",
+        "_opus_decode"
+      ],
+      "no_external_homebrew_opus_dependency": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 5,
+    "original_app_passed": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifacts": [
+    {
+      "id": 13194291677,
+      "name": "gate6-runtime-candidate-package-aarch64-apple-darwin",
+      "bytes": 57289070,
+      "sha256": "4b01455a87719461b4ebe2e7989b59ebdb558a819ee39e0fade11a785aa303cd",
+      "zip_crc_verified": true
+    },
+    {
+      "id": 13194181960,
+      "name": "gate6-reference-app-node-package-aarch64-apple-darwin",
+      "bytes": 737274,
+      "sha256": "7022eba1c57e8e4a898ab0cc1862d5d6e83558471dcaa64074705b8400244263",
+      "zip_crc_verified": true
+    },
+    {
+      "id": 13194032117,
+      "name": "gate6-reference-app-components-aarch64-apple-darwin",
+      "bytes": 22712,
+      "sha256": "94adc6c0b9d1a1df2d3aca6eb69af0f47dd6f68958b1dee5489d574351f25940",
+      "zip_crc_verified": true
+    },
+    {
+      "id": 13194012149,
+      "name": "gate6-runtime-candidate-evidence-aarch64-apple-darwin",
+      "bytes": 448650,
+      "sha256": "a19ad096942beda49cebb07f03e3dea30a926f82c8dcae316d47b2eafa2daa5a",
+      "zip_crc_verified": true
+    }
+  ],
+  "browser_report_sha256": "b21d60b0e35198f65ca7ce9790702babae95a6ccbbe3e0572e555acfd7a0e4f9",
+  "original_job_log_sha256": "59d2975734d7d6e07df0a6a64256d99c9b22a9c3fe5f9115726640aba97ef12d",
+  "scope": "Original Mac installed component negative at664bf592. Five checks pass, then a230ms timer wake makes all three pre-created frames exceed the unchanged50ms lateness limit. The renderer correctly drops them; the checker requires a fresh-frame recovery fixture. Later actual App audio/video and lifecycle checks did not execute. This does not test the newer packet-backoff runtime.",
+  "browser_final_unchanged_guards": {
+    "sources_unchanged": true,
+    "runtime_unchanged": true,
+    "browser_launcher_unchanged": true,
+    "application_runtime_matches": true
+  },
+  "previous_audit_failure": "Original audit-v1 incorrectly required Linux browser-product label; corrected audit-v2 matches explicit-owned-chromium-executable and frozenMac profile. Original audit failure retained.",
+  "screenshot_visual_review_performed": false,
+  "later_packet_backoff_candidate_tested": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
