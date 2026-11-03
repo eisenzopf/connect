@@ -953,6 +953,7 @@ try {
         sha(await readFile(join(root, "scripts/lib/native_server_sample.mjs"))) === sourceInputs.native_sampler &&
         sha(await readFile(join(root, "scripts/lib/app_media_clock_trace.mjs"))) === sourceInputs.clock_trace &&
         sha(await readFile(join(root, "scripts/lib/app_native_audio_trace.mjs"))) === sourceInputs.native_audio_trace &&
+        (!arm64Component || sha(await readFile(join(root, "scripts/fixtures/local-linux/profile.json"))) === sourceInputs.arm64_component_profile) &&
         sha(await readFile(join(root, producer.installer))) === sourceInputs.installer;
     report.runtime_unchanged = await digest(installation.executable) === sourceInputs.runtime;
     report.browser_launcher_unchanged = chrome ? await digest(chrome) === report.browser_launcher_sha256 : null;
