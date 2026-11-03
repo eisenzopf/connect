@@ -39,9 +39,18 @@ impl Policy {
         scope: &MediaScope<'_>,
         held: Option<Arc<NativeMediaRead>>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        // Share the existing packet-read retry budget across leaf registry and
-        // Store acquisition. Retry no readiness, activation or authority result.
-        let until = std::time::Instant::now() + std::time::Duration::from_millis(10);
+        // Queued realtime owners already retry NotReady asynchronously under
+        // their original frame age and earlier lease expiry. Return contention
+        // after one current read so synchronous callbacks cannot occupy their
+        // executor while the metadata writer/other media needs that executor.
+        // Fresh ingress retains its existing synchronous admission budget: its
+        // adapter has not yet accepted the original frame into a queued owner.
+        let budget = if held.is_some() || matches!(scope.purpose, MediaPurpose::Receive { .. }) {
+            std::time::Duration::ZERO
+        } else {
+            std::time::Duration::from_millis(10)
+        };
+        let until = std::time::Instant::now() + budget;
         if let Some(target) =
             super::packet_metadata::read_until(until, || self.initial_target(scope.connection))?
         {

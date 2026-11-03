@@ -49,6 +49,7 @@ impl Runtime {
                 error
             })?
         };
+        let commit_began = std::time::Instant::now();
         let result = self
             .core
             .commit_staged_device_replacement_with_held(plan, &i)
@@ -73,6 +74,10 @@ impl Runtime {
                 return Err(Error::forbidden());
             }
         };
+        tracing::debug!(target:"connect_service::canonical_replacement",
+            connection=%outcome.admitted, stage="physical-complete",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
         let observed = outcome
             .media
             .receiver_revisions
@@ -138,12 +143,20 @@ impl Runtime {
             }),
         )
         .await?;
+        tracing::debug!(target:"connect_service::canonical_replacement",
+            connection=%outcome.admitted, stage="capture-recorded",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
         let origin = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let capture = capture.clone();
             store_call(move || store.project_native_replacement_committed(&capture))
         })
         .await?;
+        tracing::debug!(target:"connect_service::canonical_replacement",
+            connection=%outcome.admitted, stage="established-projected",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
         // Create historical write custody before acquiring the adoption reader
         // and before making the ordinary Data route visible. This is metadata
         // only; no publication, delivery, or original effect is repeated.
@@ -222,7 +235,10 @@ impl Runtime {
             self.retire_moved_replacement(origin).await;
             return Err(Error::forbidden());
         }
-        tracing::debug!(target:"connect_service::canonical_replacement",generation=origin.generation(),"Replacement actual managed movement committed");
+        tracing::debug!(target:"connect_service::canonical_replacement",generation=origin.generation(),
+            connection=%outcome.admitted, stage="adopted",
+            elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement actual managed movement committed");
         drop(_roles);
         self.watch_moved_replacement(origin).await;
         Ok(())
