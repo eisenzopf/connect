@@ -1483,6 +1483,11 @@
       "path": "patches/rvoip/gate6-replacement-mixer-publication-wait.patch",
       "sha256": "ac3566f74b40cd92a14c70a1dfdffbb01b473f243e56dbbbf9fbb8ff71c4eb42",
       "source": "G6-058: wait for the existing owned Tokio mixer metadata mutex at the final compound replacement publication fence, after original roles/ports/tickets are prepared and drained. Use the earliest original cutoff and every original cancellation token; revalidate all current authority, model, lifecycle and readiness under the acquired fence. Never rerun preparation, reopen ports, replay a mutation or renew a deadline. Handoff lock path remains unchanged. Actual ARM trace proves managed-mixer-lock immediate conflict before publication at programme16.600s; focused component and fresh production/runtime verification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-native-media-diagnostics.patch",
+      "sha256": "f37fac745774ef204332d4cff567ab5bfd0bf199d04a5a44fc5df32073e5a78f",
+      "source": "G6-058: attach the owning Core numeric MediaDiagnostics collector to actual canonical native RTP ports. Observe bounded ingress/egress queue occupancy, exact mpsc-full refusals, original-age expiry and age before guarded local IO; correlate successful native video target-queue handoff with its original source receipt despite local Stream relabeling. Count observations only, with no new authority, readiness, IO, retries, clock reset or changed media limits. Data queues stay outside realtime sampling. Two new controlled Core cases cover actual queue/handoff, full/expired/refused media and conflicting collector configuration; focused and actual native runtime verification pending."
     }
   ]
 }

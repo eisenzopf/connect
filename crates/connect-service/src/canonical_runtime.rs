@@ -227,11 +227,18 @@ impl Runtime {
             max_direct_subscribers: limits.connections,
             ..Default::default()
         });
-        let native = CanonicalNativeAdapter::new(Transport::Quic).map_err(|_| Error::storage())?;
+        let native = CanonicalNativeAdapter::new_with_media_diagnostics(
+            Transport::Quic,
+            core.media_diagnostics(),
+        )
+        .map_err(|_| Error::storage())?;
         core.register(native.clone())
             .map_err(|_| Error::storage())?;
-        let webtransport_native =
-            CanonicalNativeAdapter::new(Transport::WebTransport).map_err(|_| Error::storage())?;
+        let webtransport_native = CanonicalNativeAdapter::new_with_media_diagnostics(
+            Transport::WebTransport,
+            core.media_diagnostics(),
+        )
+        .map_err(|_| Error::storage())?;
         core.register(webtransport_native.clone())
             .map_err(|_| Error::storage())?;
         store.recover_native_offer_cleanup(&crate::canonical_native::Recovery([

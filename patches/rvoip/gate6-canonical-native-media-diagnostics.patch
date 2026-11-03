@@ -1,0 +1,620 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/diagnostics.rs b/crates/foundation/rvoip-core/src/staged_streams/diagnostics.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/diagnostics.rs
+@@ -0,0 +1,129 @@
++//! Observations of actual guarded queues. This owns no permission or media IO.
++use super::*;
++use crate::media_diagnostics::{ForwardStage, MediaDiagnostics, QueueStage};
++
++#[derive(Clone)]
++pub(super) struct PortDiagnostics {
++    collector: Arc<MediaDiagnostics>,
++    input: QueueStage,
++    output: QueueStage,
++}
++impl PortDiagnostics {
++    pub(super) fn forwarded_age(&self, admitted: Instant) {
++        self.collector.forwarded_age(
++            self.output,
++            admitted.elapsed().as_millis().min(i64::MAX as u128) as i64,
++        );
++    }
++    pub(super) fn stale_if_expired(&self, admitted: Instant) {
++        if admitted.elapsed() >= Duration::from_millis(200) {
++            self.collector.stale_discard(self.output);
++        }
++    }
++}
++impl AdapterMediaPort {
++    /// Trusted embedding only: attach one numeric collector to this exact
++    /// actual port. This changes no gate, ticket, deadline or readiness.
++    pub fn configure_queue_diagnostics(
++        &self,
++        collector: Arc<MediaDiagnostics>,
++        input: QueueStage,
++        output: QueueStage,
++    ) -> ControlResult<()> {
++        let expected = match self.0.kind() {
++            StreamKind::Audio => "audio",
++            StreamKind::Video => "video",
++            _ => return Err(StreamControlError::Unsupported),
++        };
++        if input.kind() != expected || output.kind() != expected {
++            return Err(StreamControlError::Unsupported);
++        }
++        let proposed = PortDiagnostics {
++            collector,
++            input,
++            output,
++        };
++        if let Err(proposed) = self.0.diagnostics.set(proposed) {
++            let original = self.0.diagnostics.get().expect("installed diagnostics");
++            if !Arc::ptr_eq(&original.collector, &proposed.collector)
++                || original.input as usize != proposed.input as usize
++                || original.output as usize != proposed.output as usize
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++        }
++        Ok(())
++    }
++    /// Pump-poll occupancy of the same bounded queue used by guarded delivery.
++    pub fn observe_egress_queue(&self) {
++        if let Some(observation) = self.0.diagnostics.get() {
++            observation.collector.observe_queue(
++                observation.output,
++                self.0.egress.max_capacity(),
++                self.0
++                    .egress
++                    .max_capacity()
++                    .saturating_sub(self.0.egress.capacity()),
++            );
++        }
++    }
++}
++impl Port {
++    pub(super) fn enqueue_ingress(
++        &self,
++        packet: MediaPacket,
++    ) -> Result<(), mpsc::error::TrySendError<MediaPacket>> {
++        if let Some(observation) = self.diagnostics.get() {
++            observation.collector.ingress(&packet.frame);
++        }
++        let result = self.ingress.try_send(packet);
++        if let Some(observation) = self.diagnostics.get() {
++            observation.collector.observe_queue(
++                observation.input,
++                self.ingress.max_capacity(),
++                self.ingress
++                    .max_capacity()
++                    .saturating_sub(self.ingress.capacity()),
++            );
++            if matches!(&result, Err(mpsc::error::TrySendError::Full(_))) {
++                observation.collector.enqueue_full(observation.input);
++            }
++        }
++        result
++    }
++    pub(super) fn enqueue_egress(
++        &self,
++        queued: QueuedMedia,
++    ) -> Result<(), mpsc::error::TrySendError<QueuedMedia>> {
++        let handoff = self.diagnostics.get().and_then(|_| {
++            (queued.frame.kind == StreamKind::Video && queued.sources.len() == 1).then(|| {
++                (
++                    queued.frame.clone(),
++                    queued.sources[0].source.binding.transport_id.clone(),
++                )
++            })
++        });
++        let result = self.egress.try_send(queued);
++        if let Some(observation) = self.diagnostics.get() {
++            observation.collector.observe_queue(
++                observation.output,
++                self.egress.max_capacity(),
++                self.egress
++                    .max_capacity()
++                    .saturating_sub(self.egress.capacity()),
++            );
++            if matches!(&result, Err(mpsc::error::TrySendError::Full(_))) {
++                observation.collector.enqueue_full(observation.output);
++            } else if result.is_ok() {
++                if let Some((frame, source)) = handoff {
++                    observation.collector.handoff_from(
++                        ForwardStage::NativeVideoFanout,
++                        &frame,
++                        &source,
++                    );
++                }
++            }
++        }
++        result
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -173,28 +173,27 @@
+         let subscription = consumer.subscriptions.stamp();
+         subscription.require_target(self)?;
+         let _subscription_guard = subscription.begin_local(self)?;
+-        port.egress
+-            .try_send(QueuedMedia {
+-                frame,
+-                data: None,
+-                local: Some(LocalAudioStamp {
+-                    purpose,
+-                    credential,
+-                    preparation,
+-                }),
+-                sources: vec![],
+-                target: port.clone(),
+-                target_ticket: ticket,
+-                target_consumer: admission.consumer.clone(),
+-                target_scene: admission.scene.clone(),
+-                subscription: Some(subscription),
+-                direct: None,
+-                admitted_at: Instant::now(),
+-            })
+-            .map_err(|e| match e {
+-                mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+-                mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
+-            })
++        port.enqueue_egress(QueuedMedia {
++            frame,
++            data: None,
++            local: Some(LocalAudioStamp {
++                purpose,
++                credential,
++                preparation,
++            }),
++            sources: vec![],
++            target: port.clone(),
++            target_ticket: ticket,
++            target_consumer: admission.consumer.clone(),
++            target_scene: admission.scene.clone(),
++            subscription: Some(subscription),
++            direct: None,
++            admitted_at: Instant::now(),
++        })
++        .map_err(|e| match e {
++            mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
++            mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
++        })
+     }
+ }
+ impl QueuedMedia {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/native_queue_observations.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/native_queue_observations.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/native_queue_observations.rs
+@@ -0,0 +1,130 @@
++//! Actual queue/custody observations; no native transport qualification.
++use super::*;
++use crate::media_diagnostics::{MediaDiagnostics, QueueStage};
++
++fn attach(port: &AdapterMediaPort, collector: Arc<MediaDiagnostics>) {
++    let (input, output, _) = QueueStage::quic(port.0.kind()).unwrap();
++    port.configure_queue_diagnostics(collector, input, output)
++        .unwrap();
++}
++
++#[tokio::test]
++async fn native_video_records_actual_queues_and_original_source_handoff() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let target = f.ba.port(Medium::Video);
++    let collector = Arc::new(MediaDiagnostics::default());
++    attach(&source, collector.clone());
++    attach(&target, collector.clone());
++    assert!(collector.snapshot().queues.is_empty());
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    let original = frame(&source, 1);
++    source.try_publish(&original).unwrap();
++    receive(&mut input)
++        .await
++        .forward(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    target.observe_egress_queue();
++    outgoing(&mut output)
++        .await
++        .deliver(|received| {
++            assert_ne!(received.stream_id, original.stream_id);
++            assert_eq!(received.payload, original.payload);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    let observed = collector.snapshot();
++    assert_eq!(observed.queues.len(), 2);
++    assert!(observed
++        .queues
++        .iter()
++        .all(|(_, q)| q.capacity_packets == 64 && q.observations > 0));
++    let (_, output) = observed
++        .queues
++        .iter()
++        .find(|(s, _)| matches!(s, QueueStage::QuicVideoOut))
++        .unwrap();
++    assert!(output
++        .max_forwarded_frame_age_ms
++        .is_some_and(|age| age <= 200));
++    let (_, forwarding) = observed
++        .forwarding
++        .iter()
++        .find(|(s, _)| s.name() == "canonical-native-video-fanout")
++        .unwrap();
++    assert_eq!(forwarding.samples, 1);
++    assert_eq!(forwarding.missing_ingress_observations, 0);
++}
++
++#[tokio::test]
++async fn native_queue_full_expiry_and_policy_refusal_remain_real_failures() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let target = f.ba.port(Medium::Video);
++    let collector = Arc::new(MediaDiagnostics::default());
++    attach(&source, collector.clone());
++    attach(&target, collector.clone());
++    let capacity = source.ingress_capacity().0;
++    for sequence in 0..capacity {
++        source
++            .try_publish(&frame(&source, sequence as u32))
++            .unwrap();
++    }
++    assert!(matches!(
++        source.try_publish(&frame(&source, 1000)),
++        Err(StreamControlError::Backpressure)
++    ));
++    let snapshot = collector.snapshot();
++    let (_, input) = snapshot
++        .queues
++        .iter()
++        .find(|(s, _)| matches!(s, QueueStage::QuicVideoIn))
++        .unwrap();
++    assert_eq!(input.sampled_high_water_packets, capacity);
++    assert_eq!(input.enqueue_full_observations, 1);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    receive(&mut input)
++        .await
++        .forward(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    let queued = outgoing(&mut output).await;
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    assert!(matches!(
++        queued
++            .deliver(|_| async { panic!("expired frame reached IO") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    let snapshot = collector.snapshot();
++    let (_, output) = snapshot
++        .queues
++        .iter()
++        .find(|(s, _)| matches!(s, QueueStage::QuicVideoOut))
++        .unwrap();
++    assert_eq!(output.stale_forwarding_discards, 1);
++    assert!(output.max_forwarded_frame_age_ms.is_none());
++    f.policy.0.write().await.revoked.insert("alice".into());
++    assert!(matches!(
++        source.try_publish(&frame(&source, 1001)),
++        Err(StreamControlError::Authority)
++    ));
++    assert!(source
++        .configure_queue_diagnostics(
++            Arc::new(MediaDiagnostics::default()),
++            QueueStage::QuicVideoIn,
++            QueueStage::QuicVideoOut
++        )
++        .is_err());
++    assert!(source
++        .configure_queue_diagnostics(collector, QueueStage::QuicAudioIn, QueueStage::QuicAudioOut)
++        .is_err());
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2827,3 +2827,5 @@
+ mod fresh_metadata_recovery;
+ 
+ mod transport_update;
++
++mod native_queue_observations;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -494,12 +494,15 @@
+     cleanup: Option<Arc<dyn MediaPortCleanup>>,
+     messages_only: bool,
+ }
++mod diagnostics;
++
+ struct Port {
+     owner: Weak<StreamController>,
+     binding: ReadyMediaBinding,
+     baseline: PeerRouteTicket,
+     ticket: Mutex<PeerRouteTicket>,
+     state: Mutex<PortState>,
++    diagnostics: std::sync::OnceLock<diagnostics::PortDiagnostics>,
+     ingress: mpsc::Sender<MediaPacket>,
+     input: Mutex<Option<mpsc::Receiver<MediaPacket>>>,
+     egress: mpsc::Sender<QueuedMedia>,
+@@ -865,8 +868,7 @@
+             observed_frame.source_clock = observe(self.clock_liveness(ticket.clone(), &admission));
+         }
+         self.0
+-            .ingress
+-            .try_send(MediaPacket {
++            .enqueue_ingress(MediaPacket {
+                 frame: observed_frame,
+                 data: data.cloned(),
+                 source: self.0.clone(),
+@@ -1092,8 +1094,7 @@
+         let mut frame = self.frame.clone();
+         frame.stream_id = target.binding.transport_id.clone();
+         target
+-            .egress
+-            .try_send(QueuedMedia {
++            .enqueue_egress(QueuedMedia {
+                 frame,
+                 data: self.data.clone(),
+                 local: None,
+@@ -1276,6 +1277,11 @@
+             let admitted = match queued.admit_queued_media() {
+                 Ok(admitted) => admitted,
+                 Err(problem) => {
++                    if matches!(&problem, StreamControlError::Deadline) {
++                        if let Some(observation) = queued.target.diagnostics.get() {
++                            observation.stale_if_expired(queued.admitted_at);
++                        }
++                    }
+                     outcomes.push(ReadyAudioDelivery::Refused { queued, problem });
+                     continue;
+                 }
+@@ -1294,6 +1300,9 @@
+             tracing::trace!(target: "rvoip_core::audio_path", target = %admitted.target.connection,
+                 age_us = queued.admitted_at.elapsed().as_micros() as u64, batched = true,
+                 "Guarded audio entering IO");
++            if let Some(observation) = queued.target.diagnostics.get() {
++                observation.forwarded_age(queued.admitted_at);
++            }
+             let result = send(index, queued.frame.clone(), queued.delivery_origin());
+             queued.observe_delivery(&admitted, &result);
+             if interval.is_none() {
+@@ -1314,6 +1323,30 @@
+     /// Observe exact original source binding only inside the guarded send.
+     /// Mixed audio has no single source; unmixed direct media always does.
+     pub async fn deliver_with_origin<F, Fut>(self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        let observation = self.target.diagnostics.get().cloned();
++        let admitted_at = self.admitted_at;
++        let realtime = self.frame.kind != StreamKind::Data;
++        let sending = observation.clone();
++        let result = self
++            .deliver_observed(move |frame, origin| {
++                if let Some(observation) = &sending {
++                    observation.forwarded_age(admitted_at);
++                }
++                send(frame, origin)
++            })
++            .await;
++        if realtime && matches!(&result, Err(StreamControlError::Deadline)) {
++            if let Some(observation) = &observation {
++                observation.stale_if_expired(admitted_at);
++            }
++        }
++        result
++    }
++    async fn deliver_observed<F, Fut>(self, send: F) -> ControlResult<()>
+     where
+         F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+@@ -2671,6 +2704,7 @@
+                     cleanup: None,
+                     messages_only: false,
+                 }),
++                diagnostics: std::sync::OnceLock::new(),
+                 ingress,
+                 input: Mutex::new(Some(input)),
+                 egress,
+diff --git a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+--- a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
++++ b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+@@ -112,12 +112,14 @@
+ pub enum ForwardStage {
+     VideoBridge,
+     VideoFanout,
++    NativeVideoFanout,
+ }
+ impl ForwardStage {
+     pub fn name(self) -> &'static str {
+         match self {
+             Self::VideoBridge => "core-video-bridge",
+             Self::VideoFanout => "core-video-fanout",
++            Self::NativeVideoFanout => "canonical-native-video-fanout",
+         }
+     }
+ }
+@@ -274,7 +276,7 @@
+ }
+ struct State {
+     queues: [QueueObservation; 14],
+-    forward: [ForwardHistogram; 2],
++    forward: [ForwardHistogram; 3],
+     ingress: VecDeque<(FrameKey, Instant)>,
+     quic: QuicTransmissionObservation,
+     webrtc_video_input: WebRtcVideoInputObservation,
+@@ -291,7 +293,7 @@
+     }
+ }
+ /// One server's metadata collector. At most 512 frame receipt keys survive for
+-/// one second; two fixed logarithmic histograms and twelve static queue stages
++/// one second; three fixed logarithmic histograms and fourteen static queue stages
+ /// cannot grow with packet count, identifiers or Session history.
+ #[derive(Default)]
+ pub struct MediaDiagnostics {
+@@ -354,10 +356,16 @@
+     /// Successful destination queue handoff; includes adapter and Core queue
+     /// waiting. It excludes remote transport, decoder and physical playout.
+     pub fn handoff(&self, stage: ForwardStage, frame: &MediaFrame) {
++        self.handoff_from(stage, frame, &frame.stream_id);
++    }
++    /// The destination's local Stream label may differ from the original
++    /// source. This trusted metadata-only observation preserves its receipt key.
++    pub fn handoff_from(&self, stage: ForwardStage, frame: &MediaFrame, source: &StreamId) {
+         let now = Instant::now();
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         Self::prune(&mut state, now);
+-        let key = FrameKey::of(frame);
++        let mut key = FrameKey::of(frame);
++        key.stream = source.clone();
+         let received = state
+             .ingress
+             .iter()
+@@ -511,14 +519,18 @@
+                     (value.observations > 0).then(|| (stage, value.clone()))
+                 })
+                 .collect(),
+-            forwarding: [ForwardStage::VideoBridge, ForwardStage::VideoFanout]
+-                .into_iter()
+-                .filter_map(|stage| {
+-                    let value = &state.forward[stage as usize];
+-                    (value.samples > 0 || value.missing > 0 || value.timeouts > 0)
+-                        .then(|| (stage, value.snapshot()))
+-                })
+-                .collect(),
++            forwarding: [
++                ForwardStage::VideoBridge,
++                ForwardStage::VideoFanout,
++                ForwardStage::NativeVideoFanout,
++            ]
++            .into_iter()
++            .filter_map(|stage| {
++                let value = &state.forward[stage as usize];
++                (value.samples > 0 || value.missing > 0 || value.timeouts > 0)
++                    .then(|| (stage, value.snapshot()))
++            })
++            .collect(),
+         }
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -424,6 +424,7 @@
+ }
+ 
+ pub struct StagedRtpMedia {
++    diagnostics: Option<Arc<rvoip_core::media_diagnostics::MediaDiagnostics>>,
+     clocks: Arc<source_clock::Group>,
+     flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     scope: StagedRtpScope,
+@@ -446,7 +447,7 @@
+         lifetime: CancellationToken,
+     ) -> Arc<Self> {
+         Self::new_with_flow(
+-            scope, router, streams, negotiator, transport, lifetime, None, None,
++            scope, router, streams, negotiator, transport, lifetime, None, None, None,
+         )
+     }
+     pub(crate) fn new_with_flow(
+@@ -458,12 +459,14 @@
+         lifetime: CancellationToken,
+         flow: Option<Arc<crate::native_flow::NativeFlow>>,
+         ready_audio: Option<Arc<ReadyAudioEgress>>,
++        diagnostics: Option<Arc<rvoip_core::media_diagnostics::MediaDiagnostics>>,
+     ) -> Arc<Self> {
+         let handles = StreamHandleAllocator::shared(Arc::new(RouterAllocator {
+             router: router.clone(),
+             owner: scope.owner.clone(),
+         }));
+         Arc::new(Self {
++            diagnostics,
+             flow,
+             scope,
+             router,
+@@ -747,6 +750,16 @@
+                     .is_none_or(|router| !Arc::ptr_eq(&router, &self.router))
+             {
+                 return Err(StreamControlError::Authority);
++            }
++            if let Some(diagnostics) = &self.diagnostics {
++                let kind = match port.binding().negotiated.requested.medium {
++                    Medium::Audio => StreamKind::Audio,
++                    Medium::Video | Medium::Screen => StreamKind::Video,
++                    _ => return Err(StreamControlError::Unsupported),
++                };
++                let (input, output, _) = rvoip_core::media_diagnostics::QueueStage::quic(kind)
++                    .ok_or(StreamControlError::Unsupported)?;
++                port.configure_queue_diagnostics(diagnostics.clone(), input, output)?;
+             }
+             if !preparation.is_new {
+                 continue;
+@@ -896,6 +909,9 @@
+                 });
+                 let mut incomplete = false;
+                 loop {
++                    if let Some(port) = weak.upgrade() {
++                        port.observe_egress_queue();
++                    }
+                     let next = async {
+                         match receiver.as_mut() {
+                             Some(receiver) => receiver.recv().await,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -137,6 +137,7 @@
+ /// start Connecting with no media/presence. Media negotiation/install and
+ /// reliable data delivery must opt in separately; no readiness is invented.
+ pub struct CanonicalNativeAdapter {
++    diagnostics: Option<Arc<rvoip_core::media_diagnostics::MediaDiagnostics>>,
+     transport: Transport,
+     routes: DashMap<ConnectionId, Arc<Route>>,
+     events: mpsc::Sender<OrchestratorAdapterEvent>,
+@@ -147,6 +148,18 @@
+ }
+ impl CanonicalNativeAdapter {
+     pub fn new(transport: Transport) -> Result<Arc<Self>> {
++        Self::build(transport, None)
++    }
++    pub fn new_with_media_diagnostics(
++        transport: Transport,
++        diagnostics: Arc<rvoip_core::media_diagnostics::MediaDiagnostics>,
++    ) -> Result<Arc<Self>> {
++        Self::build(transport, Some(diagnostics))
++    }
++    fn build(
++        transport: Transport,
++        diagnostics: Option<Arc<rvoip_core::media_diagnostics::MediaDiagnostics>>,
++    ) -> Result<Arc<Self>> {
+         if !matches!(
+             transport,
+             Transport::Quic | Transport::WebTransport | Transport::WebSocket
+@@ -155,6 +168,7 @@
+         }
+         let (events, receiver) = mpsc::channel(64);
+         Ok(Arc::new(Self {
++            diagnostics,
+             transport,
+             routes: DashMap::new(),
+             events,
+@@ -463,6 +477,7 @@
+                     route.cancel.clone(),
+                     Some(flow.clone()),
+                     Some(self.ready_audio.clone()),
++                    self.diagnostics.clone(),
+                 )
+             }),
+             data: data.map(|negotiator| {

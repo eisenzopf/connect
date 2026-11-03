@@ -84,3 +84,7 @@ opens and the effective limit. `with_open_limit` supports an explicit bounded
 operator configuration. Keep the controller owned across reoffers; a new object
 is not a protocol operation for resetting the same Connection's history.
 See [`secure-profile.md`](secure-profile.md) for current qualification and limits.
+
+Canonical native RTP ports can attach the owning Core `MediaDiagnostics` collector during preparation, after exact scope and router ownership validation. Health reports sampled ingress and egress occupancy, actual full-queue refusals, original-admission age before guarded local IO and expired queued media. These observations grant no authority and change no readiness, retry, deadline or payload. Data stays outside realtime sampling.
+
+`canonical-native-video-fanout` measures original video ingress receipt to successful Core destination queue handoff, correlating the original source across destination Stream relabeling. It excludes transport transmission, remote receipt, decoding and playout. The collector retains at most 512 receipt keys for one second and publishes numeric aggregates only. Concurrent queue samples can miss peaks; an empty list means no observations, not proof of zero pressure. The first canonical wiring is a candidate until focused ARM and actual native Health evidence confirms it.

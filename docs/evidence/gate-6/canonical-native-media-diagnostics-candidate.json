@@ -1,0 +1,29 @@
+{
+  "format": "connect/gate6-canonical-native-media-diagnostics-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "reason": "Actual native AV workloads v17-v19 yield empty Health queue/forwarding lists despite active RTP; this is absent collection, not zero pressure.",
+  "change": "Attach owning Core numeric collector to actual canonical native RTP ports after original scope/router ownership validation. Observe real bounded ingress/egress occupancy, actual mpsc-full refusals, original-age expiry and age immediately before existing guarded IO. Correlate successful native video queue handoff using original source stream receipt across destination relabeling.",
+  "limits": [
+    "Observer owns no grant/readiness/IO or retry; original authority,200ms age,clock,cutoffs and payloads unchanged.",
+    "Bounded fixed histograms/stages, at most512 video receipt keys for1second; public aggregates contain no stream/participant identifiers.",
+    "Queue occupancy samples race with other producers/consumers and are sampled observations, not exact continuous pressure.",
+    "Forwarding ends at Core destination queue, excluding network delivery/decode/playout.",
+    "Data queues not sampled; no new Data refusal path.",
+    "Native QUIC and WebTransport staged RTP wiring only; no browser/legacy path or whole-cell qualification inferred."
+  ],
+  "patch_sha256": "f37fac745774ef204332d4cff567ab5bfd0bf199d04a5a44fc5df32073e5a78f",
+  "preparation": "274 recorded patch digests apply to fresh pinned source tree; old273 snapshot preserved.",
+  "focused_cases": [
+    "native_video_records_actual_queues_and_original_source_handoff",
+    "native_queue_full_expiry_and_policy_refusal_remain_real_failures"
+  ],
+  "focused_arm_checks_pending": true,
+  "production_integration_pending": true,
+  "actual_native_health_pending": true,
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
