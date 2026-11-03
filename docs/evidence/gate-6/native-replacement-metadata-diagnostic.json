@@ -1,0 +1,84 @@
+{
+  "format": "connect/native-replacement-metadata-diagnostic/1",
+  "task": "G6-058",
+  "passed": false,
+  "source_revision": "eac0f9a4ad37d16e6687f127ea9108976cdc2872",
+  "metadata_diagnostic_requested": true,
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "outer_baseline_after_sdk_setup": true,
+  "outer_input_map_persisted": true,
+  "binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "5223f8fe822c5e87b85870a63e13041ed1c58eda25f23bc0b2826266a68e2f0d",
+  "six_completed_physical_move_stages": true,
+  "completed_roots_revision16": 6,
+  "stopped_roots": [
+    {
+      "slot": "4-3",
+      "state": "failed",
+      "revision": 6,
+      "problem": {
+        "code": "allocation-stopped",
+        "source": "native-replacement"
+      }
+    },
+    {
+      "slot": "0-3",
+      "state": "failed",
+      "revision": 1,
+      "problem": {
+        "code": "forbidden",
+        "source": "native-replacement"
+      }
+    }
+  ],
+  "diagnostic_counts": [
+    {
+      "message": "Replacement scene read deferred",
+      "code": "authority-busy",
+      "count": 98
+    },
+    {
+      "message": "Private replacement media read deferred",
+      "code": "authority-busy",
+      "count": 48
+    },
+    {
+      "message": "Native replacement preparation deferred or refused",
+      "code": "forbidden",
+      "count": 1
+    }
+  ],
+  "observation_elapsed_ms": 37467.185471,
+  "original_native_tasks_joined": true,
+  "all_observed_helpers_joined": true,
+  "original_servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "original_db_wal_unchanged": true,
+  "unretired_native_lifetime_rows": 0,
+  "production_patch_applied": false,
+  "root_cause_proven": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Same original6AVData/4participant/2Session/20move/62sprogramme/60s observation and8sreadwait on native ARM. Existing replacement debug namespace reveals98scene-read and48private-media authority-busy observations. Six moves pass; fourth-pair callers hit read-only deadlines. Stopped roots are allocation-stopped6 and forbidden1. All strict guards pass and stopped lifetime rows are zero. Busy observations do not establish sole cause. No original replay or runtime/source/quality/budget change; next diagnostic adds existing per-phase timestamps before choosing a production fix."
+}

@@ -228,9 +228,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             streams.append(stream)
             server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug") if data_workload else env
             if native_replacement_metadata_trace:
-                # Existing static error codes only; preserve the original
+                # Private existing phase/error logs; preserve the original
                 # mutation, current authorization and media/deadline budgets.
-                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug"
+                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug"
             command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,
@@ -671,7 +671,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arm64-component", action="store_true", help="Native Ubuntu24.04 ARM64 local component workload; separate diagnostic identity, never a complete matrix cell")
-    parser.add_argument("--trace-replacement-metadata", action="store_true", help="Media diagnostic only: enable existing static replacement authority/metadata error codes")
+    parser.add_argument("--trace-replacement-metadata", action="store_true", help="Media diagnostic only: enable existing private replacement phase and metadata diagnostics")
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
