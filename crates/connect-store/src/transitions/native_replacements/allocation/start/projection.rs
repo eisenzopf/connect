@@ -12,6 +12,8 @@ pub(super) struct AdmissionCounters {
     elapsed_us: [std::sync::atomic::AtomicU64; 4],
     failed_stage: [std::sync::atomic::AtomicU64; 5],
     refusals: [std::sync::atomic::AtomicU64; 3],
+    transaction_elapsed_us: [std::sync::atomic::AtomicU64; 3],
+    transaction_outcomes: [std::sync::atomic::AtomicU64; 5],
 }
 fn add(counter: &std::sync::atomic::AtomicU64, value: u64) {
     use std::sync::atomic::Ordering::Relaxed;
@@ -23,6 +25,14 @@ impl AdmissionCounters {
         let times = self.elapsed_us.each_ref().map(|v| v.load(Relaxed));
         let failures = self.failed_stage.each_ref().map(|v| v.load(Relaxed));
         let refusals = self.refusals.each_ref().map(|v| v.load(Relaxed));
+        let sql_times = self
+            .transaction_elapsed_us
+            .each_ref()
+            .map(|v| v.load(Relaxed));
+        let sql_outcomes = self
+            .transaction_outcomes
+            .each_ref()
+            .map(|v| v.load(Relaxed));
         serde_json::json!({
             "attempts":self.attempts.load(Relaxed), "admitted":self.admitted.load(Relaxed),
             "incomplete":self.incomplete.load(Relaxed),
@@ -32,8 +42,77 @@ impl AdmissionCounters {
             "failed_sql_reacquire":failures[2], "failed_derive_after":failures[3],
             "failed_scope_revalidation":failures[4],
             "authority_busy":refusals[0], "storage_unavailable":refusals[1],
-            "permanent_refusal":refusals[2]
+            "permanent_refusal":refusals[2],
+            "transaction": {
+                "begin_us":sql_times[0], "body_us":sql_times[1], "commit_us":sql_times[2],
+                "begin_failed":sql_outcomes[0], "body_aborted":sql_outcomes[1],
+                "commit_failed":sql_outcomes[2], "committed":sql_outcomes[3],
+                "unchanged":sql_outcomes[4]
+            }
         })
+    }
+}
+
+/// One admitted metadata transaction. The body includes validation, local
+/// observations and serialization, not only SQLite execution. Failed begin or
+/// commit includes the driver's cleanup; an aborted body includes rollback.
+/// No SQL, logging, allocation or authority is introduced by this observer.
+pub(super) struct TransactionTiming<'a> {
+    counters: Option<&'a AdmissionCounters>,
+    began: Option<std::time::Instant>,
+    elapsed: [u64; 3],
+    // 0/1/2 are the active begin/body/commit phases. 3/4 are terminal
+    // committed/unchanged outcomes. Drop in an active phase means failure.
+    stage: usize,
+}
+impl<'a> TransactionTiming<'a> {
+    pub(super) fn new(counters: Option<&'a AdmissionCounters>) -> Self {
+        Self {
+            counters,
+            began: counters.map(|_| std::time::Instant::now()),
+            elapsed: [0; 3],
+            stage: 0,
+        }
+    }
+    fn advance(&mut self, stage: usize) {
+        if let Some(began) = self.began.take() {
+            let now = std::time::Instant::now();
+            self.elapsed[self.stage] = now
+                .duration_since(began)
+                .as_micros()
+                .try_into()
+                .unwrap_or(u64::MAX);
+            if stage < 3 {
+                self.began = Some(now);
+            }
+        }
+        self.stage = stage;
+    }
+    pub(super) fn body(&mut self) {
+        self.advance(1);
+    }
+    pub(super) fn committing(&mut self) {
+        self.advance(2);
+    }
+    pub(super) fn committed(&mut self) {
+        self.advance(3);
+    }
+    pub(super) fn unchanged(&mut self) {
+        self.advance(4);
+    }
+}
+impl Drop for TransactionTiming<'_> {
+    fn drop(&mut self) {
+        let Some(counters) = self.counters else {
+            return;
+        };
+        if let Some(began) = self.began.take() {
+            self.elapsed[self.stage] = began.elapsed().as_micros().try_into().unwrap_or(u64::MAX);
+        }
+        for (counter, elapsed) in counters.transaction_elapsed_us.iter().zip(self.elapsed) {
+            add(counter, elapsed);
+        }
+        add(&counters.transaction_outcomes[self.stage], 1);
     }
 }
 struct AdmissionTiming<'a> {

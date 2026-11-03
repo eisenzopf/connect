@@ -1,0 +1,33 @@
+{
+  "format": "connect/gate6-replacement-transaction-diagnostics-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Extend capture-owned bounded metadata counters with SQLite begin, body and commit elapsed time and separate begin failure, body abort, commit failure, successful commit and unchanged replay outcomes. Only atomic accounting occurs under Store custody; existing Service summary serializes the counters after return. No transaction, authority or retry policy is changed.",
+  "new_case": "connection_control::tests::replacement_sources::commit::transaction_diagnostics::transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay",
+  "checks_pending": [
+    "Compile Store library tests on local Ubuntu 24.04 ARM64, after the preceding diagnostic job finishes with source guards verified.",
+    "Run only the new exact transaction-boundary case."
+  ],
+  "proof_design": [
+    "Original known capture and duplicate capture; duplicate is counted as unchanged rather than committed.",
+    "A foreign SQLite BEGIN IMMEDIATE fails the real transaction begin, after complete authority admission.",
+    "An isolated fixture SQL trigger aborts a real lifetime insert inside the body.",
+    "A fixture-only deferred foreign key permits the body then fails COMMIT. Original Store snapshots and empty fixture child table prove rollback.",
+    "Remove fixture triggers/tables, project the same original capture successfully, then repeat. Exact transaction outcomes, unchanged effect count and duplicate snapshot are required."
+  ],
+  "diagnostic_semantics": [
+    "body_us includes validation, serialization, native installation observations and rollback on aborted/unchanged bodies; it is not SQL CPU time.",
+    "commit_us includes the SQLite driver commit and cleanup on failure. begin_us measures the begin call. Counters measure admitted transactions; failures before admission remain represented by existing admission counters.",
+    "No extra logging, SQL statements, authorization, tasks, packet data, credentials or positive grants are retained by metrics. Uncertain capture and successor historical settlement remain uninstrumented by this optional context.",
+    "Snapshots are best effort during concurrent work; inspect after the phase returns."
+  ],
+  "limitations": [
+    "Uncompiled and unexecuted candidate until its exact local ARM case completes.",
+    "Does not identify the original449ms delay or prove actual mixer writer progress, native cancellation, decoded continuity, video bootstrap or authenticated media epochs."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

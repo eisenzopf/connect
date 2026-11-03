@@ -268,9 +268,11 @@ impl Store {
             }
             AuthorityScope::merged(&scopes)
         })?;
+        let mut timing = super::projection::TransactionTiming::new(diagnostics);
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        timing.body();
         let row = rows::by_record(&tx, &p.record)?;
         admission::require_row(self, &held, &row)?;
         let old:Option<(Option<String>,String)>=tx.query_row("SELECT s.observation_json,e.state FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,a.expected],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
@@ -280,11 +282,15 @@ impl Store {
                 if let Some(audience) = audience {
                     audience.require_recorded(&tx, &a.effect)?;
                 }
+                drop(tx);
+                timing.unchanged();
                 return Ok(row.record);
             }
             return Err(conflict());
         }
         if observation.is_none() && state == "unknown" {
+            drop(tx);
+            timing.unchanged();
             return Ok(row.record);
         }
         if let Some(observation) = observation {
@@ -308,7 +314,9 @@ impl Store {
         }
         native_handoffs::touch(&tx, &p.record, self)?;
         let record = rows::by_record(&tx, &p.record)?.record;
+        timing.committing();
         tx.commit().map_err(|_| Error::storage())?;
+        timing.committed();
         Ok(record)
     }
 }
@@ -423,9 +431,13 @@ impl Store {
                 AuthorityScope::merged(&scopes)
             },
         )?;
+        let mut timing = super::projection::TransactionTiming::new(
+            live.map(|capture| &capture.activation_diagnostics),
+        );
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        timing.body();
         let row = rows::by_record(&tx, &p.record)?;
         admission::require_row(self, &held, &row)?;
         let exact:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND s.observation_json=?7 AND e.observation_json=?8)",params![p.record,p.runtime,p.reservation,p.hash,p.attempt,p.effect,p.observation,p.expected],|r|r.get(0)).map_err(|_| Error::storage())?;
@@ -449,23 +461,26 @@ impl Store {
                 return Err(conflict());
             }
             if stopped {
+                drop(tx);
+                timing.unchanged();
                 return Ok(live.map(|capture| capture.activation().origin().clone()));
             }
-            return self
-                .replacement_established_origin(
-                    &tx,
-                    &p.record,
-                    live.ok_or_else(Error::forbidden)?
-                        .attempt
-                        .origin
-                        .started
-                        .attempt
-                        .request
-                        .clone(),
-                    intent,
-                    public_key,
-                )
-                .map(Some);
+            let origin = self.replacement_established_origin(
+                &tx,
+                &p.record,
+                live.ok_or_else(Error::forbidden)?
+                    .attempt
+                    .origin
+                    .started
+                    .attempt
+                    .request
+                    .clone(),
+                intent,
+                public_key,
+            )?;
+            drop(tx);
+            timing.unchanged();
+            return Ok(Some(origin));
         }
         if !matches!(
             row.record.state,
@@ -654,7 +669,9 @@ impl Store {
         if !owner.current() {
             return Err(Error::forbidden());
         }
+        timing.committing();
         tx.commit().map_err(|_| Error::storage())?;
+        timing.committed();
         drop(installation);
         Ok(origin)
     }

@@ -1276,6 +1276,7 @@ mod activation_barrier;
 mod activation_recovery;
 mod active_recovery;
 mod diagnostics;
+mod transaction_diagnostics;
 
 struct MetadataOnlyInstallationGuard;
 impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard {}
