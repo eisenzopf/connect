@@ -1,0 +1,52 @@
+{
+  "format": "connect/gate6-native-data-observer-failure-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 112459,
+    "source_revision": "c41e6737739ec3f06e86c80f80b86dbda093d186",
+    "passed": true,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::data_observer::production_native_data_observer_scope_failure_stops_known_move_without_ready_or_replay",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 438 filtered out; finished in 12.79s"
+        ],
+        "log_sha256": "95a3ed0d44a3d7ef6d4747b5880862c622bc63428c3115ee4a725734356bf8d7"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_retirement_candidate": true,
+    "compile_exit_code": 0,
+    "compile_log_sha256": "49b713734c65dcc8f3794f99d4c870bf942503f7d471b9ab5931141da37ff488",
+    "test_executable_sha256": "be38f6b3a5445af936784ea392165e81efa30ccc39ccea93433da1e8bafc0951",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 245.92668451101054
+  },
+  "coverage": [
+    "Original movement remains durably known and confirmed once, with seven original effects and no compensating replay.",
+    "No Ready or ordinary candidate lifetime; exact candidate retired and retained binding unchanged.",
+    "Signed original replay preserves record/revision/effects/result; final peer/server shutdown joins and zero native slots remain."
+  ],
+  "corrections": {
+    "source": "c41e6737739ec3f06e86c80f80b86dbda093d186",
+    "integration": "49e4dc52",
+    "change": "Session medium mixed with accepted and endpoint capabilities limited to audio/Data. Assert actual persisted Session data medium before negotiation. No production-code change or Video/Screen permission."
+  },
+  "limits": [
+    "Synthetic scope mismatch, not a storage outage, real network fault or Data exchange qualification.",
+    "Uses shared known-movement failure audit; retained send is not duplex or full AV quality."
+  ],
+  "prior_failures_preserved_in": "docs/evidence/gate-6/native-data-observer-failure-candidate.json",
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
