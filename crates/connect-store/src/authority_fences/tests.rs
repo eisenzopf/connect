@@ -70,6 +70,54 @@ pub(super) fn waiting(store: &Store, scope: &AuthorityScope) {
 }
 
 #[test]
+fn brief_metadata_wait_bounds_local_registry_and_preserves_original_owner() {
+    let f = Fixture::new();
+    let write = f.scope(AuthorityMode::Write);
+    let record = AuthorityScope::record("captured-record", AuthorityMode::Read).unwrap();
+    let wait = AuthorityWait::new(Duration::from_millis(5)).poll_every(Duration::from_micros(100));
+    let narrowed = wait.bounded(Duration::from_secs(1));
+    assert_eq!(narrowed.deadline, wait.deadline);
+    assert_eq!(narrowed.poll_interval, wait.poll_interval);
+
+    // The writer acquires its first scope, then encounters a real local
+    // registry exclusion at the record reader. Neither mutex acquisition nor
+    // partial file custody may outlive the original short admission window.
+    let held = f.store.authority.readers.lock().unwrap();
+    let began = Instant::now();
+    assert_eq!(
+        f.store
+            .acquire_authority(&[write.clone(), record], &narrowed)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(began.elapsed() < Duration::from_millis(50));
+    drop(f.store.try_acquire_authority(&[write.clone()]).unwrap());
+    drop(held);
+
+    let cancelled =
+        AuthorityWait::new(Duration::from_millis(5)).poll_every(Duration::from_micros(100));
+    let child = cancelled.bounded(Duration::from_secs(1));
+    cancelled.cancel();
+    assert_eq!(
+        f.store
+            .acquire_authority(&[write.clone()], &child)
+            .unwrap_err()
+            .code,
+        "cancelled"
+    );
+    assert_eq!(
+        f.store.acquire_authority(&[write], &wait).unwrap_err().code,
+        "authority-busy"
+    );
+    drop(
+        f.store
+            .try_acquire_authority(&[f.scope(AuthorityMode::Read)])
+            .unwrap(),
+    );
+}
+
+#[test]
 fn writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds() {
     let f = Fixture::new();
     let other = f.store.create_identity("other").unwrap().id;

@@ -1,12 +1,14 @@
-//! Captured facts must not park a pending writer in front of live packets.
+//! Brief fair admission for captured facts; no long writer parking or SQL wait.
 use super::*;
 use crate::installation_ownership::ConnectionGuard;
 
 impl Store {
     /// No native IO belongs here. Derive the existing complete footprint,
-    /// release SQL before immediate authority admission, then rederive under
+    /// release SQL before a short fair authority drain, then rederive under
     /// the same zero-busy-timeout SQL guard returned to the transaction.
-    /// Contention retains neither partial authority nor a SQL mutex. The owner
+    /// The five-millisecond acquisition budget cannot become DEFAULT_WAIT's
+    /// two-second writer barrier, or repeatedly miss a short packet reader.
+    /// Refusal retains neither partial authority nor a SQL mutex. The owner
     /// retries only its immutable captured metadata, never the physical effect.
     pub(super) fn try_replacement_capture_projection<'a>(
         &'a self,
@@ -16,7 +18,9 @@ impl Store {
             let c = self.try_connection()?;
             derive(&c)?
         };
-        let held = self.try_acquire_authority(&scopes)?;
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5))
+            .poll_every(std::time::Duration::from_micros(100));
+        let held = self.acquire_authority(&scopes, &wait)?;
         let c = self.try_connection()?;
         let current = derive(&c)?;
         if !self.authority_covers(&held, &current) {

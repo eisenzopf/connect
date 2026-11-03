@@ -108,12 +108,14 @@ impl std::fmt::Debug for AuthorityScope {
 pub struct AuthorityWait {
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
+    poll_interval: Duration,
 }
 impl AuthorityWait {
     pub fn new(timeout: Duration) -> Self {
         Self {
             deadline: Instant::now() + timeout.min(MAX_WAIT),
             cancelled: Arc::new(AtomicBool::new(false)),
+            poll_interval: Duration::from_millis(2),
         }
     }
     /// Narrow the same wait/cancellation owner; never renew its deadline.
@@ -121,7 +123,22 @@ impl AuthorityWait {
         Self {
             deadline: self.deadline.min(Instant::now() + timeout),
             cancelled: self.cancelled.clone(),
+            poll_interval: self.poll_interval,
         }
+    }
+    /// A short metadata drain needs finer polling than an ordinary command.
+    /// This changes neither the original deadline nor its cancellation owner.
+    pub(crate) fn poll_every(mut self, interval: Duration) -> Self {
+        self.poll_interval = interval.clamp(Duration::from_micros(50), Duration::from_millis(2));
+        self
+    }
+    fn pause(&self) -> Result<()> {
+        self.check()?;
+        std::thread::sleep(
+            self.poll_interval
+                .min(self.deadline.saturating_duration_since(Instant::now())),
+        );
+        self.check()
     }
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Release);
@@ -497,12 +514,18 @@ impl Manager {
         &self,
         wait: Option<&AuthorityWait>,
     ) -> Result<std::sync::MutexGuard<'_, BTreeMap<String, Weak<LockFile>>>> {
-        match wait {
-            Some(_) => self.readers.lock().map_err(|_| Error::storage()),
-            None => self.readers.try_lock().map_err(|error| match error {
-                std::sync::TryLockError::WouldBlock => authority_busy(),
-                std::sync::TryLockError::Poisoned(_) => Error::storage(),
-            }),
+        loop {
+            if let Some(wait) = wait {
+                wait.check()?;
+            }
+            match self.readers.try_lock() {
+                Ok(readers) => return Ok(readers),
+                Err(std::sync::TryLockError::WouldBlock) => match wait {
+                    Some(wait) => wait.pause()?,
+                    None => return Err(authority_busy()),
+                },
+                Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
+            }
         }
     }
     fn name(&self, key: &(Kind, String)) -> Result<String> {
@@ -630,9 +653,7 @@ fn lock(file: &File, wait: &AuthorityWait) -> Result<()> {
         wait.check()?;
         match FileExt::try_lock_exclusive(file) {
             Ok(()) => return Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(Duration::from_millis(2))
-            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => wait.pause()?,
             Err(_) => return Err(Error::new("authority-unavailable", "Authority lock failed")),
         }
     }
