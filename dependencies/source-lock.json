@@ -1534,6 +1534,11 @@
       "path": "patches/rvoip/gate6-publication-retirement-observation.patch",
       "sha256": "1015c5d706f0cad06904b3334fdf8c872b91b6fe24a4ec1c7a2d7f03e0c2b4bd",
       "source": "G6-058 P2 test-support only: read original controller cancellation without taking metadata locks so an actual signed host case can observe retire() fencing IO during final publication. No production default behavior, authorization or qualification change."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-av-gate-batch.patch",
+      "sha256": "9c6ab0fcb7e9945182e896b64acd8bb43288bf345d66de3566c0339d1a877bd5",
+      "source": "G6-058 P3 prerequisite: sealed replacement audio/video gate batch validates all targets before mutation, preserves physical identity and changes revision once. Existing audio replacement uses the same primitive. Data/screen excluded; exact video transfer intent/direct-route integration remains future work. One new controlled model case uncompiled/unexecuted; no media qualification."
     }
   ]
 }

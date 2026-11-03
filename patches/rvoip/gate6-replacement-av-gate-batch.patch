@@ -1,0 +1,256 @@
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -792,38 +792,52 @@
+         }
+         Ok(())
+     }
+-    /// One revision transfers a source's runtime gates to a new physical
+-    /// binding without copying codec, handle, transport or resource identity.
+-    pub(crate) fn inherit_audio_gates(
++    /// Transfer the sealed replacement's audio/video runtime gates in one
++    /// revision. Every member is validated before any mutation. Physical
++    /// resources, codec, logical identity and transport ownership stay local.
++    /// Data requires independent writer/permission custody and is excluded.
++    pub(crate) fn inherit_replacement_gates(
+         &mut self,
+         authority: &CurrentMediaAuthority<'_>,
+         expected: u64,
+-        id: &StreamId,
+-        source: &LogicalStream,
++        sources: &[(StreamId, LogicalStream)],
+         routing_changed: bool,
+     ) -> Result<()> {
+-        if source.state == LogicalStreamState::Ended
+-            || source.negotiated.requested.medium != Medium::Audio
+-        {
++        let ids = sources
++            .iter()
++            .map(|(id, _)| id.clone())
++            .collect::<BTreeSet<_>>();
++        if ids.len() != sources.len() || ids.is_empty() {
+             return Err(MediaTransitionError::Invalid);
+         }
+-        let ids = BTreeSet::from([id.clone()]);
+         self.validate_gate(authority, expected, &ids, StreamGateAction::Mute)?;
+         self.validate_gate(authority, expected, &ids, StreamGateAction::Resume)?;
+-        let stream = self
+-            .streams
+-            .get_mut(id)
+-            .ok_or(MediaTransitionError::Conflict)?;
+-        if stream.negotiated.requested.medium != Medium::Audio {
+-            return Err(MediaTransitionError::Invalid);
+-        }
+-        let changed = stream.state != source.state
+-            || stream.source_muted != source.source_muted
+-            || stream.hold_direction != source.hold_direction;
+-        stream.state = source.state;
+-        stream.source_muted = source.source_muted;
+-        stream.hold_direction = source.hold_direction;
+-        if changed || routing_changed {
++        if self.revision == u64::MAX {
++            return Err(MediaTransitionError::Capacity);
++        }
++        for (id, source) in sources {
++            let medium = source.negotiated.requested.medium;
++            if source.state == LogicalStreamState::Ended
++                || !matches!(medium, Medium::Audio | Medium::Video)
++                || self.streams[id].negotiated.requested.medium != medium
++            {
++                return Err(MediaTransitionError::Invalid);
++            }
++        }
++        let mut changed = routing_changed;
++        for (id, source) in sources {
++            let target = self
++                .streams
++                .get_mut(id)
++                .expect("validated replacement gate");
++            changed |= target.state != source.state
++                || target.source_muted != source.source_muted
++                || target.hold_direction != source.hold_direction;
++            target.state = source.state;
++            target.source_muted = source.source_muted;
++            target.hold_direction = source.hold_direction;
++        }
++        if changed {
+             self.revision += 1;
+         }
+         Ok(())
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1098,11 +1098,10 @@
+                     let mut candidate = state
+                         .model
+                         .routing_candidate(&owner.current(), plan.expected[id])?;
+-                    candidate.inherit_audio_gates(
++                    candidate.inherit_replacement_gates(
+                         &owner.current(),
+                         plan.expected[id],
+-                        logical,
+-                        source,
++                        &[(logical.clone(), source.clone())],
+                         audio.changed(),
+                     )?;
+                     for port in state
+@@ -1264,11 +1263,10 @@
+                     .model
+                     .routing_candidate(&owner.current(), plan.expected[id])?;
+                 if let Some((id, source)) = &target.inherited_gate {
+-                    next.inherit_audio_gates(
++                    next.inherit_replacement_gates(
+                         &owner.current(),
+                         plan.expected[&target.controller.connection],
+-                        id,
+-                        source,
++                        &[(id.clone(), source.clone())],
+                         target.audio.changed(),
+                     )?;
+                 } else if let Some(action) = target.gate {
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -1384,3 +1384,145 @@
+     state.set_gates(&f.authority(), 2, &ids, StreamGateAction::Unmute).unwrap();
+     assert!(!state.streams()[&id].source_muted);
+ }
++
++
++#[test]
++fn replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches() {
++    let f = Fixture::new();
++    let mut state = StreamLifecycle::new(&f.authority()).unwrap();
++    let now = Instant::now();
++    let p = profile();
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            0,
++            &p,
++            &p,
++            &[
++                desired("audio", Medium::Audio),
++                desired("camera", Medium::Video),
++                desired("data", Medium::Data),
++                desired("screen", Medium::Screen),
++            ],
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    state
++        .commit(&f.authority(), &prepared, &bindings(&prepared), now)
++        .unwrap();
++    let audio_id = StreamId::from_string("audio");
++    let video_id = StreamId::from_string("camera");
++    let before = state.streams().clone();
++    let mut old_audio = before[&audio_id].clone();
++    old_audio.state = LogicalStreamState::Paused;
++    old_audio.source_muted = true;
++    old_audio.hold_direction = Some(StreamDirection::Receive);
++    old_audio.transport_id = StreamId::from_string("old-device-audio");
++    old_audio.stream_local_id = 99;
++    old_audio.generation = 77;
++    old_audio.negotiated.requested.logical_id = StreamId::from_string("old-logical-audio");
++    old_audio.negotiated.format = audio();
++    let mut old_video = before[&video_id].clone();
++    old_video.source_muted = true; // Deliberately muted camera must stay muted.
++    old_video.transport_id = StreamId::from_string("old-device-camera");
++    let intended = vec![
++        (audio_id.clone(), old_audio.clone()),
++        (video_id.clone(), old_video.clone()),
++    ];
++    let mut ended_video = old_video.clone();
++    ended_video.state = LogicalStreamState::Ended;
++    let mut wrong_medium = old_video.clone();
++    wrong_medium.negotiated.requested.medium = Medium::Data;
++    let invalid = vec![
++        vec![],
++        vec![
++            (audio_id.clone(), old_audio.clone()),
++            (audio_id.clone(), old_audio.clone()),
++        ],
++        vec![
++            (audio_id.clone(), old_audio.clone()),
++            (StreamId::from_string("absent"), old_video.clone()),
++        ],
++        vec![
++            (audio_id.clone(), old_audio.clone()),
++            (video_id.clone(), ended_video),
++        ],
++        vec![
++            (audio_id.clone(), old_audio.clone()),
++            (video_id.clone(), wrong_medium),
++        ],
++        vec![(audio_id.clone(), old_video.clone())],
++        vec![(
++            StreamId::from_string("data"),
++            before[&StreamId::from_string("data")].clone(),
++        )],
++        vec![(
++            StreamId::from_string("screen"),
++            before[&StreamId::from_string("screen")].clone(),
++        )],
++    ];
++    for batch in invalid {
++        assert!(
++            state
++                .inherit_replacement_gates(&f.authority(), 1, &batch, true)
++                .is_err()
++        );
++        assert_eq!(state.revision(), 1);
++        assert_eq!(
++            state.streams(),
++            &before,
++            "invalid later member must not partially transfer audio"
++        );
++    }
++    let mut denied = f.authority();
++    denied.receive_media.remove(&Medium::Video);
++    assert_eq!(
++        state.inherit_replacement_gates(&denied, 1, &intended, true),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(
++        state.inherit_replacement_gates(&f.authority(), 0, &intended, true),
++        Err(MediaTransitionError::Conflict)
++    );
++    assert_eq!(state.streams(), &before);
++    assert_eq!(state.revision(), 1);
++    state
++        .inherit_replacement_gates(&f.authority(), 1, &intended, true)
++        .unwrap();
++    assert_eq!(state.revision(), 2, "audio and video share one revision");
++    let mut expected = before.clone();
++    for (id, source) in &intended {
++        let target = expected.get_mut(id).unwrap();
++        target.state = source.state;
++        target.source_muted = source.source_muted;
++        target.hold_direction = source.hold_direction;
++    }
++    assert_eq!(
++        state.streams(),
++        &expected,
++        "only gates transfer; physical resources and Data stay unchanged"
++    );
++    state
++        .inherit_replacement_gates(&f.authority(), 2, &intended, false)
++        .unwrap();
++    assert_eq!(
++        state.revision(),
++        2,
++        "unchanged gates do not invent another revision"
++    );
++    state
++        .inherit_replacement_gates(&f.authority(), 2, &intended, true)
++        .unwrap();
++    assert_eq!(
++        state.revision(),
++        3,
++        "route change still advances exactly once"
++    );
++    state.revision = u64::MAX;
++    assert_eq!(
++        state.inherit_replacement_gates(&f.authority(), u64::MAX, &intended, true),
++        Err(MediaTransitionError::Capacity)
++    );
++    assert_eq!(state.streams(), &expected);
++}

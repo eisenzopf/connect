@@ -1,0 +1,28 @@
+{
+  "format": "connect/gate6-replacement-av-gate-batch-candidate/1",
+  "task": "G6-058",
+  "phase": "P3 prerequisite",
+  "change": "Replace audio-only gate inheritance with a sealed audio/video batch primitive: all target IDs, source media/state and current target gate permission validate before mutation; one revision includes gate and routing changes. Existing managed audio call sites use a one-element batch.",
+  "patch": "patches/rvoip/gate6-replacement-av-gate-batch.patch",
+  "patch_sha256": "9c6ab0fcb7e9945182e896b64acd8bb43288bf345d66de3566c0339d1a877bd5",
+  "new_case": "stream_lifecycle::tests::replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches",
+  "assertions": [
+    "Invalid later target/source, duplicate mapping, ended source, medium mismatch, Data/screen and stale/denied authority leave all earlier targets and revision unchanged.",
+    "Audio and deliberately muted video gates transfer together with one revision; each target retains negotiated format, logical/transport identity, handle and generation.",
+    "Data and screen unchanged; no-op batch does not advance revision; route change advances once; exhausted revision refuses."
+  ],
+  "integration_requirements": [
+    "Explicit protocol/SDK video intent and immutable actual resource mappings under current source/target authorization.",
+    "Prepare direct route plans before cutover; validate receive authority one controller at a time before acquiring all controller states; include direct tickets in drain and commit direct maps with models/audio in the no-failure publication section.",
+    "Do not call existing gate mutation twice at the same expected revision. One compound model revision must cover audio, video and direct route changes.",
+    "Bind candidate incoming video to actual negotiated resources; preserve Data writer and subscription semantics independently.",
+    "Fresh keyframe feedback and authenticated media epochs remain required before a full workload."
+  ],
+  "limits": [
+    "Not compiled or executed. This is model-level support, not wired video routing or native AV continuity.",
+    "Source gate facts must come from the managed sealed replacement; this internal helper does not itself validate source lineage or grant authorization.",
+    "No full workload, broad suite, existing passing case or G6-054 rerun."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}
