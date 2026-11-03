@@ -1,0 +1,51 @@
+{
+  "format": "connect/gate6-replacement-activation-crash-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "result": "The one new exact captured-replacement SIGKILL recovery case and canonical runtime integration build pass at57e1fb3d.",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 107513,
+    "source_revision": "57e1fb3d5c2dffb5b1a2acd6e47d058e591dac6d",
+    "passed": true,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::crash::production_sigkill_captured_replacement_recovers_stopped_without_ready_or_replay",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 429 filtered out; finished in 11.00s"
+        ],
+        "log_sha256": "dbaadcdc1f6358f50c789c7716e7ff0b2457c225b48150d7f49af3505ed21f11"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_activation_crash_candidate": true,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "50268ea3ba7318ed7c466f59f88f50355bac76dfa5eb222b725f90aa7b4e73db",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1022.1682478049988
+  },
+  "coverage": [
+    "Actual signed native movement reaches durable capture while the fixture SQL trigger blocks final activation. All seven original effects are confirmed at attempt one; the root remains preparing with no result or replacement lifetime.",
+    "Parent requires actual SIGKILL of the fixture process and then checks the stopped database before removing only the isolated SQL trigger. No capture, operation or lifetime row is edited by the parent.",
+    "The real server restarts under a different runtime epoch with the same installation. Startup completes the original captured move as stopped, with readiness null and historical physical readiness.",
+    "The exact target generation is retired with readiness/runtime cleared, no Ready journal event is emitted for the original root, and all old native lifetimes are retired. Whole-process death legitimately terminates retained peers too.",
+    "Original effect vector is conserved. Public original-command replay returns the same stopped result and creates no new native peer, Connection or replacement preparation. Server shutdown joins cleanly."
+  ],
+  "service_startup_compile_scope": "The integration build at57e1fb3d includes unchanged9a475515 established replacement successor cleanup wiring. This compiles that path; the crash fixture exercises captured-unactivated recovery, not a crash of an already-activated replacement.",
+  "limitations": [
+    "Crash marker proves durable capture before Ready; it does not identify the inactive adapter installation subphase.",
+    "No already-Ready SIGKILL case, final native cancellation/SQL publication interleaving or Data observer allocation fault.",
+    "No P0 diagnostic candidate execution, actual mixer writer-drain, video bootstrap/epoch qualification or complete media transport cell."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

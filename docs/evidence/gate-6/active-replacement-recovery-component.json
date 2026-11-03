@@ -3,7 +3,7 @@
   "task": "G6-058",
   "date": "2026-11-03",
   "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
-  "result": "One new exact Store successor cleanup case passes at57e1fb3d after correcting fixture administrator ID revalidation (product recovery implementation unchanged from9a475515). Service startup compile is deferred to the next native integration build and is not claimed by this run.",
+  "result": "The new established replacement successor cleanup Store case passes at57e1fb3d after the fixture ID correction. The canonical runtime integration binary subsequently compiles at the same source, validating the Service startup wiring.",
   "coverage": [
     "Fresh and claimed replacement candidates with a completed Ready receipt. Same-runtime recovery leaves established state unchanged and does not invoke the absence observer.",
     "Target credentials are revoked before real Store reopen and exclusive successor ownership. Old origins remain unusable for media or same-runtime cleanup.",
@@ -12,7 +12,6 @@
   ],
   "limitations": [
     "Native resource absence is a controlled Store observation, not an actual native process SIGKILL proof.",
-    "Service startup wiring still needs the next canonical runtime integration compilation. No standalone Service cargo check was run.",
     "Final publication cancellation, Data observer fault, P0/P1 writer-drain, P3/P5 and full media qualification remain unfinished."
   ],
   "general_suites_rerun": false,
@@ -78,5 +77,14 @@
       "elapsed_seconds": 80.61486420499568
     }
   ],
-  "failure_and_correction": "The original new case failed before recovery: Fixture.admin stores a credential ID, but authenticate expects a bearer token. 57e1fb3d uses current revalidate(ID) before the actual Store revoke. Product recovery code is unchanged from9a475515. Only this failed new case was rerun."
+  "failure_and_correction": "The original new case failed before recovery: Fixture.admin stores a credential ID, but authenticate expects a bearer token. 57e1fb3d uses current revalidate(ID) before the actual Store revoke. Product recovery code is unchanged from9a475515. Only this failed new case was rerun.",
+  "service_integration_compile": {
+    "source_revision": "57e1fb3d5c2dffb5b1a2acd6e47d058e591dac6d",
+    "compile_exit_code": 0,
+    "integration_executable_sha256": "50268ea3ba7318ed7c466f59f88f50355bac76dfa5eb222b725f90aa7b4e73db",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "evidence": "docs/evidence/gate-6/replacement-activation-crash-component.json",
+    "scope": "Service startup wiring compiles; the new SIGKILL case covers a captured unactivated replacement, not an already-Ready replacement."
+  }
 }

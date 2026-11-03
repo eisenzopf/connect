@@ -4,12 +4,8 @@
   "date": "2026-11-03",
   "change": "Add one actual SIGKILL recovery case after original signed native movement is durably captured and an isolated SQL trigger blocks final replacement activation. Parent verifies SIGKILL, removes only the fixture trigger after death, restarts the real server and requires stopped historical completion, retired original generation, no Ready event or live lifetimes, unchanged effects, public original-command replay and zero recreated native peers.",
   "new_case": "canonical_native_connections::consultation::groups::replacement::activation::crash::production_sigkill_captured_replacement_recovers_stopped_without_ready_or_replay",
-  "checks_pending": [
-    "Compile the canonical runtime integration target on local Ubuntu 24.04 ARM64 after the preceding guarded jobs finish.",
-    "Run only the new exact crash case; it invokes one ignored child entry point and requires an actual SIGKILL."
-  ],
+  "checks_pending": [],
   "limitations": [
-    "Candidate integration compilation is running; the new crash case has not executed yet.",
     "The crash marker proves durable physical capture before Ready; it does not assert a particular inactive adapter installation subphase.",
     "No crash after already-published Ready, final native cancellation/SQL race, Data observer allocation fault or media-quality qualification."
   ],
@@ -18,5 +14,6 @@
   "task_complete": false,
   "cell_qualified": false,
   "G054_deferred": true,
-  "verification_state": "Compiling the new exact crash case at57e1fb3d on local ARM; no result claimed. This source includes the unchanged9a475515 Service startup wiring and the f0a1ae3e crash test."
+  "verification_state": "Integration build and one exact new actual SIGKILL case pass at57e1fb3d.",
+  "component_evidence": "docs/evidence/gate-6/replacement-activation-crash-component.json"
 }

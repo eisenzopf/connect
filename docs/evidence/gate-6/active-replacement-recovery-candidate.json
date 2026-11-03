@@ -3,9 +3,7 @@
   "task": "G6-058",
   "date": "2026-11-03",
   "change": "Exclusive successor startup settles already-activated replacement lifetimes separately from initial offers and captured unactivated moves. It verifies immutable effect/lifetime/current mapping and actual original-route absence, retires only the interrupted/retiring predecessor incarnation, preserves completed result/effects and emits retirement without recreating media origin.",
-  "checks_pending": [
-    "Service startup wiring compile, deferred to the new native crash integration build (no standalone metadata-only check)."
-  ],
+  "checks_pending": [],
   "limitations": [
     "Controlled native absence in Store case; not an actual SIGKILL/adapter restart proof.",
     "Actual native activation barrier integration is running separately at18773f7f; no result inferred.",
@@ -45,5 +43,6 @@
     "elapsed_seconds": 80.54456494199985
   },
   "initial_failure": "The new case failed at fixture admin authentication before revocation or successor recovery. Fixture.admin is a credential ID; authenticate expects a token. Correct the test to use the existing revalidate(ID) path before exercising real Store revoke. Product recovery code is unchanged.",
-  "component_evidence": "docs/evidence/gate-6/active-replacement-recovery-component.json"
+  "component_evidence": "docs/evidence/gate-6/active-replacement-recovery-component.json",
+  "service_compile_evidence": "docs/evidence/gate-6/replacement-activation-crash-component.json"
 }
