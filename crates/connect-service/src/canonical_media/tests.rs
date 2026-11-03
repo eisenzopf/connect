@@ -512,3 +512,50 @@ async fn queued_receive_registry_contention_returns_to_the_async_packet_owner() 
         Err(StreamControlError::Authority)
     ));
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn queued_source_registry_contention_returns_to_the_original_packet_owner() {
+    use rvoip_core::ids::ConversationId;
+    let dir = tempfile::tempdir().unwrap();
+    let store =
+        Arc::new(Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap());
+    let policy = Policy::new(store, 8);
+    let conversation = ConversationId::from_string("conversation".to_owned());
+    let session = SessionId::from_string("session".to_owned());
+    let source = ConnectionId::from_string("source".to_owned());
+    let principal = actor();
+    let scope = MediaScope {
+        conversation: &conversation,
+        session: &session,
+        connection: &source,
+        principal: &principal,
+        purpose: MediaPurpose::Publish,
+    };
+    let held = policy.entries.lock().unwrap();
+    let began = std::time::Instant::now();
+    for _ in 0..16 {
+        assert!(matches!(
+            policy.current_queued(&scope),
+            Err(StreamControlError::NotReady)
+        ));
+    }
+    assert!(
+        began.elapsed() < Duration::from_millis(50),
+        "retained source callbacks occupied the executor instead of returning contention: {:?}",
+        began.elapsed()
+    );
+    // The fresh-ingress callback still owns its existing short retry. The
+    // distinction is ownership of a retained packet, never different authority.
+    let fresh_began = std::time::Instant::now();
+    assert!(matches!(
+        policy.current(&scope),
+        Err(StreamControlError::NotReady)
+    ));
+    assert!(fresh_began.elapsed() >= Duration::from_millis(8));
+    drop(held);
+    tokio::task::yield_now().await;
+    assert!(matches!(
+        policy.current_queued(&scope),
+        Err(StreamControlError::Authority)
+    ));
+}

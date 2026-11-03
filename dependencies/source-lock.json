@@ -1500,6 +1500,10 @@
     {
       "path": "patches/rvoip/gate6-scene-video-retry-test-control.patch",
       "sha256": "2dc7e4902201fbc928364dd6dfad594a639c61dc97315761477913659a59e798"
+    },
+    {
+      "path": "patches/rvoip/gate6-queued-source-policy-hook.patch",
+      "sha256": "0d46a0aa311a618cf683c44c12dcd87c9df99ab365165d5db828137ec9ae3249"
     }
   ]
 }

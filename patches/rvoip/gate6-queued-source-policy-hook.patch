@@ -1,0 +1,17 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -342,6 +342,14 @@
+     /// lease from this domain. Never block or reenter engine state; use bounded
+     /// nonblocking authority acquisition and refuse a contended read.
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
++    /// Fresh current authorization for an already retained realtime packet
++    /// when no active packet-context custody exists. The engine owns bounded
++    /// retry under original packet metadata; this callback must not park that
++    /// owner behind another reader it already holds. No cached grant is implied.
++    /// Policies without a distinct ingress budget retain their current behavior.
++    fn current_queued(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current(scope)
++    }
+     /// Recheck this exact packet source or recipient policy while an actual
+     /// source lease for this original packet remains owned. Opt-in implementations may reuse only its
+     /// complete file fence; never borrow permissions or extend packet age.
