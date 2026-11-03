@@ -218,3 +218,72 @@ fn pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement() {
         assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
     }
 }
+
+#[test]
+fn live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_ownership() {
+    let m = fixture(true);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let record_id = attempt.activation().origin().offer_record_id().to_owned();
+    let gone = Absent(
+        read.media().target().runtime_connection_id.clone(),
+        read.media().target().connection.generation,
+    );
+    let refusal = attempt.not_submitted();
+    drop(read);
+    // Model the metadata state after a generic timeout/recovery sweep. The
+    // original process still owns its definite negative capture. This is not
+    // a captured Core error and does not simulate a physical process crash.
+    {
+        let mut c = m.f.store.connection().unwrap();
+        let tx = c.transaction().unwrap();
+        tx.execute("UPDATE operation_effects SET state='unknown' WHERE operation_record_id=?1 AND provider='native-replacement-commit'",[&record_id]).unwrap();
+        tx.execute(
+            "UPDATE operations SET state='unknown' WHERE record_id=?1",
+            [&record_id],
+        )
+        .unwrap();
+        tx.commit().unwrap();
+    }
+    assert_eq!(
+        m.f.store
+            .record_native_replacement_started_candidate_stopped(&m.started, &gone)
+            .unwrap_err()
+            .code,
+        "reconciliation-required"
+    );
+    let captured =
+        m.f.store
+            .record_native_replacement_commit_not_submitted(&refusal)
+            .unwrap();
+    assert_eq!(
+        captured.state,
+        OperationState::Unknown,
+        "cleanup remains pending"
+    );
+    assert_eq!(
+        m.f.store
+            .record_native_replacement_started_candidate_stopped(&m.started, &gone)
+            .unwrap()
+            .state,
+        OperationState::Failed
+    );
+    let path = m.f.store.path().to_owned();
+    drop(m.f.store);
+    let successor = Store::open(&path, connect_protocol::Limits::default()).unwrap();
+    let before = Store::inspect_snapshot(&path).unwrap();
+    assert_eq!(
+        successor
+            .record_native_replacement_commit_not_submitted(&refusal)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(Store::inspect_snapshot(&path).unwrap(), before);
+}

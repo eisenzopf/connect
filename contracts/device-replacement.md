@@ -434,7 +434,9 @@ historical negative fact, not permission to retry the movement. Only that exact
 marker and failed effect allow candidate-only cleanup after actual target
 absence. The source and retained connections remain unchanged. Cleanup settles
 the original root as failed/cancelled without a Ready event. Repeated capture
-and cleanup are unchanged reads. An uncertain Core return, timeout, started row
+and cleanup are unchanged reads. A still-owned negative capture may resolve
+generic timeout metadata without recreating execution authority. An uncertain
+Core return, timeout, started row
 or successor-runtime absence cannot create this capture or use this exception.
 
 A separate atomic projection consumes that exact confirmed capture. Native

@@ -17,7 +17,9 @@ impl NativeReplacementCommitAttempt {
 }
 impl Store {
     /// Persist a definitive pre-Core refusal under the original attempt. Keep
-    /// the operation preparing until exact candidate cleanup is observed.
+    /// the operation preparing/unknown until exact candidate cleanup is observed.
+    /// A still-owned negative capture can resolve generic recovery uncertainty;
+    /// an uncertain physical-result capture cannot be converted into this type.
     pub fn record_native_replacement_commit_not_submitted(
         &self,
         captured: &NativeReplacementCommitNotSubmitted,
@@ -49,7 +51,7 @@ impl Store {
             return Ok(row.record);
         }
         if observed.is_some()
-            || state != "submitting"
+            || !matches!(state.as_str(), "submitting" | "unknown")
             || !matches!(
                 row.record.state,
                 OperationState::Preparing | OperationState::Unknown
@@ -60,7 +62,7 @@ impl Store {
         tx.execute("UPDATE native_replacement_steps SET observation_json=?2 WHERE operation_record_id=?1 AND phase='commit'",
             params![p.record,NOT_SUBMITTED]).map_err(|_| Error::storage())?;
         tx.execute(
-            "UPDATE operation_effects SET state='failed' WHERE id=?1 AND state='submitting'",
+            "UPDATE operation_effects SET state='failed' WHERE id=?1 AND state IN ('submitting','unknown')",
             [&a.effect],
         )
         .map_err(|_| Error::storage())?;

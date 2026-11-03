@@ -4,18 +4,20 @@
   "date": "2026-11-03",
   "change": "Separate a known adoption preparation refusal before Core invocation from uncertain physical movement. Consume the original reservation into a typed negative capture, atomically record its exact not-started observation and failed effect, and retire only the candidate under actual native absence. Keep the source/retained programme and original attempt; no Ready and no movement replay.",
   "checks_pending": [
-    "Compile Store and run only two new exact cases in commit::not_submitted on local Ubuntu24 ARM.",
+    "Compile Store and run only three new exact cases in commit::not_submitted on local Ubuntu24 ARM.",
     "Compile changed Service wiring; an actual native adoption-preparation fault remains a separate unproved integration case."
   ],
   "new_cases": [
     "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
-    "pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement"
+    "pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement",
+    "live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_ownership"
   ],
   "intended_coverage": [
     "Complete writer refusal and real SQLite second-write rollback leave snapshots unchanged.",
     "Only exact original candidate/generation absence permits cleanup after the sealed non-submission capture.",
     "Effect identity, attempt, submission generation, no Ready, positive original-source/retained authorization and duplicate outcome/cleanup are conserved.",
-    "Uncaptured, uncertain and confirmed movements remain excluded from candidate-only cleanup."
+    "Uncaptured, uncertain and confirmed movements remain excluded from candidate-only cleanup.",
+    "An existing live negative capture can settle generic unknown metadata, but cannot cross successor ownership; the unknown metadata in this case is fixture-injected, not a process-crash proof."
   ],
   "limitations": [
     "Uncompiled and unexecuted candidate.",
