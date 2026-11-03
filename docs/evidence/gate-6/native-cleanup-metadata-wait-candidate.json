@@ -47,8 +47,17 @@
     "wait_narrows_existing_runtime_stop_cutoff": true,
     "store_component_sources_unchanged": true,
     "format_and_diff_check_passed": true,
-    "compile_pending": true,
-    "scope": "Host follow-up after44ac. The live production job remains frozen on44ac and does not verify this follow-up."
+    "compile_pending": false,
+    "scope": "Actual guarded ARM service release type-check verifies the queued metadata wait against the original shutdown cutoff; current service source is byte-identical. Current normal production rehearsal remains pending.",
+    "integration_typecheck": {
+      "source_revision": "d2a851fdfa2abdd0106e7f73d4bd4c055512e0e5",
+      "source_inputs_unchanged": true,
+      "service_source_unchanged_in_current_candidate": true,
+      "name": "service",
+      "exit_code": 0,
+      "elapsed_seconds": 442.06350810799995,
+      "log_sha256": "e2436aa0093c66ae43b3a5b3777eb722a14ca51ae84e8105a17918dfb2ee6819"
+    }
   },
   "production_result": "docs/evidence/gate-6/native-cleanup-metadata-wait-result.json",
   "control_scenario_passed": true,

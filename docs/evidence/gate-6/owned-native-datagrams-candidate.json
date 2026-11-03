@@ -28,12 +28,34 @@
     "Captured expiry refuses receive without retiring an otherwise current peer",
     "Original client close retires outstanding IO"
   ],
-  "scope": "Three exact optimized client checks on localARM controlled signed post-auth QUIC; no service admission, physical replacement, whole quality or complete-cell claim.",
+  "scope": "Three exact optimized client checks on localARM controlled signed post-auth QUIC; no service admission, physical replacement, whole quality or complete-cell claim. Base physical-peer/service release integration now type-checks with source guard unchanged; the stop-read follow-up is pending normal compilation.",
   "fixture_integration_pending": true,
   "normal_production_rehearsal_pending": true,
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "base_integration_typecheck": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "d2a851fdfa2abdd0106e7f73d4bd4c055512e0e5",
+    "passed": true,
+    "steps": [
+      {
+        "name": "physical-peer",
+        "exit_code": 0,
+        "elapsed_seconds": 41.24275597999804,
+        "log_sha256": "6fd5f5eb05c6cf6fbbb6b432735bcde37414d420427792cf1f6c7a44405cf3f3"
+      },
+      {
+        "name": "service",
+        "exit_code": 0,
+        "elapsed_seconds": 442.06350810799995,
+        "log_sha256": "e2436aa0093c66ae43b3a5b3777eb722a14ca51ae84e8105a17918dfb2ee6819"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 483.44222077499944
+  }
 }
