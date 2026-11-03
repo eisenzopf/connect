@@ -15,7 +15,7 @@
   "new_case_scope": "Actual Store immutable captured commit: held packet read, held local SQL mutex, foreign SQLite writer, unchanged state on refusal, later original projection and duplicate without new effects. No native IO.",
   "before_source_revision": "f7d82d40212e4fc448238ba6e390f01d31a88214",
   "before_check_pending": false,
-  "after_check_pending": true,
+  "after_check_pending": false,
   "normal_runtime_pending": true,
   "source_sha256": {
     "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "77c51fe2201eb5035c062040b3c31beac8ac7041b8539717ddd67ca3c6955075",
@@ -48,5 +48,23 @@
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 82.92762214600225
   },
-  "after_source_revision": "95471636826b1fa4d2dbce9b79a44dfb49dd5e21"
+  "after_source_revision": "95471636826b1fa4d2dbce9b79a44dfb49dd5e21",
+  "after_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "95471636826b1fa4d2dbce9b79a44dfb49dd5e21",
+    "passed": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "d618b25af26958de4a5f8137e4ddaedb91ec419514c947e9f7d67eba881c4413",
+    "test_exit_code": 0,
+    "test_results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1328 filtered out; finished in 0.25s"
+    ],
+    "test_log_sha256": "e767f312612c254f0271b1cc1e10d08316e994b8b75282038c4a09f3a8b0221b",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 79.25278314599564
+  }
 }
