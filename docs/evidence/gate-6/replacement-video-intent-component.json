@@ -1,0 +1,83 @@
+{
+  "format": "connect/gate6-replacement-video-intent-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "source": "8f52f37609ad4ab60f482241c71d8abfd25a1b19",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 112902,
+    "source_revision": "8f52f37609ad4ab60f482241c71d8abfd25a1b19",
+    "passed": false,
+    "steps": [
+      {
+        "group": "core",
+        "case": "stream_lifecycle::tests::replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 587 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "fe1f047525ec9c6774fa773041e866e771e56150a63179abab610ffd3eb5cf62"
+      },
+      {
+        "group": "core",
+        "case": "staged_streams::tests::private_consult::replacement::video::replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 587 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "9f37975380b9027b37e6dbe3e3a31b865f53f5bab2992e2e1e751dc0a3106d0c"
+      },
+      {
+        "group": "protocol",
+        "case": "replacement_video::tests::explicit_video_mapping_is_bounded_unambiguous_and_closed",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "9923266f2005a3e611a28a9213285f25318c495f599745ec5f2c9d484ac8c0a4"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "core",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "7a9bb57f88ab14b935d6f61862352ca2712e028abde40ea397a90eb0b629837b",
+        "test_executable_sha256": "e5b1da506690b7013057e9e4f86b7c4da03d9d90c450f6a323d02a94c82b4d67",
+        "executable_unchanged": true
+      },
+      {
+        "group": "protocol",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "c75460f69f6770b52471d42a3c72fc4d61475bde419a4a99e8e8a15dc87170b4",
+        "test_executable_sha256": "98d5316ed6d862d042a9dfd0fbe73e7d4c7f3c1e6ca6358bf78fedcd95910f72",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "service_client_check_exit_code": 0,
+    "service_client_check_log_sha256": "456eb5e0ba429c12017f9427b5b55b9c907f83faffb6a095bb92af507ba4b71e",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1047.870109534997
+  },
+  "coverage": [
+    "Model audio/video gate transaction passes atomic one-revision commit, authority/current-state checks and whole-batch invalid/refused cases.",
+    "Protocol mapping passes bounded identifiers/counts, cross-target uniqueness, same-group source uniqueness, closed nested objects and exact roundtrip.",
+    "Changed default Service/client libraries compile with the public wire mapping and Core integration."
+  ],
+  "failed_case": "Core media scene routing case stopped on Unsupported when taking registered scene ingress. It did not reach routing assertions. Patch290 switches to the owning scene tick and actual queued/egress fences.",
+  "correction": "docs/evidence/gate-6/replacement-video-scene-fixture.json",
+  "limits": [
+    "Aggregate run remains failed. Passing model/protocol cases are not rerun in the follow-up.",
+    "No positive actual Core/video-route or native SDK transfer result from this source. No keyframe recovery, authenticated epoch, decoded quality, full cell or task qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

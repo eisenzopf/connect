@@ -21,5 +21,7 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "latest_component_evidence": "docs/evidence/gate-6/replacement-video-intent-component.json",
+  "latest_status": "Final guarded local ARM source8f52f376: model and protocol cases PASS; default Service/client compile PASS; Core route fixture FAIL before assertions. Corrected failed route and two new directional/native cases started at74acb814/patch290. No passing cases rerun."
 }
