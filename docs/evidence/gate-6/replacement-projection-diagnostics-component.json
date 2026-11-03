@@ -1,0 +1,50 @@
+{
+  "format": "connect/gate6-replacement-projection-diagnostics-component/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "environment": "Owner Mac Studio native Ubuntu24 ARM64 VM",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 107986,
+    "source_revision": "b3a5d14b254a7c1e9b854a6987bc20b0b3667f9d",
+    "passed": true,
+    "steps": [
+      {
+        "case": "connection_control::tests::replacement_sources::commit::diagnostics::projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusals",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1340 filtered out; finished in 0.28s"
+        ],
+        "log_sha256": "a5c11ef5eb80ebb4642dabd52751616b51592af5dc86bb58d23466d41694374c"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "projection_diagnostics_candidate": true,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "ed6ae19e2a6124c8ac1a5a7d3610cdbfd742d10fe330bf15195331a4f7840685",
+    "executable_unchanged": true,
+    "service_check_exit_code": 0,
+    "service_check_log_sha256": "94e309da748b527e287d10a015969f20645114303a211e31ca10119a12ffa283",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 536.1318536469989
+  },
+  "coverage": [
+    "Actual local SQL mutex contention reports derive-before refusal; actual retained packet reader reports authority-wait refusal without invalidating the reader.",
+    "Foreign SQLite BEGIN IMMEDIATE allows authority admission but refuses transaction begin; admitted is explicitly not reported as a successful transaction.",
+    "Successful original projection and duplicate preserve effect count and the complete duplicate Store snapshot; counters retain no durable state or media permission.",
+    "Service metadata summary compiles with unchanged five-second retry and original blocking dispatch; no physical effect is placed inside the retry wrapper."
+  ],
+  "limitations": [
+    "This case does not measure the original449ms delay, actual mixer writer-drain, packet conservation, video bootstrap, authenticated epochs or a complete transport cell.",
+    "At this tested source SQL transaction/commit time is not isolated; the subsequent transaction-diagnostics candidate is separate and requires its own proof.",
+    "Service wrapper compiled but no integrated media workload executed."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
