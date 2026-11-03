@@ -55,5 +55,12 @@
     },
     "diagnostic": "E0432: new NativeReplacementCommitNotSubmitted type was not re-exported through transitions/mod.rs. No test executed.",
     "correction": "Add the missing internal re-export; retain original compile failure and unchanged source/prepared guards."
+  },
+  "controlled_case_issue": {
+    "source_revision": "8806dca32a17692d69a17468d6e98fb2b68bee7f",
+    "case": "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
+    "failure": "Fixture expected a retained packet reader to block shared historical metadata admission; recording correctly succeeded. The case stopped before its rollback/cleanup assertions.",
+    "correction": "Hold an actual Conversation writer for the refusal assertion, and positively verify compatible recording under the retained packet reader. No product authority footprint changes.",
+    "other_cases": "Two other new Store cases returned pass; terminal whole-run guards and Service mixer result remain pending."
   }
 }

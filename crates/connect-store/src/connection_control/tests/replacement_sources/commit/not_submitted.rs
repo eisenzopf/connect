@@ -32,9 +32,15 @@ fn pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup(
         "reconciliation-required"
     );
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    // Historical negative metadata needs shared Conversation authority. A
+    // packet reader is compatible; an actual writer must defer this recording.
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                m.sources[0].conversation_id(),
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
             .unwrap();
     assert_eq!(
         m.f.store
@@ -43,7 +49,6 @@ fn pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup(
             .code,
         "authority-busy"
     );
-    assert!(held.current());
     drop(held);
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 
@@ -71,10 +76,19 @@ fn pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup(
         .unwrap();
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 
+    let packet_reader =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
     let recorded =
         m.f.store
             .record_native_replacement_commit_not_submitted(&refusal)
             .unwrap();
+    assert!(
+        packet_reader.current(),
+        "historical refusal recording must not invalidate retained media"
+    );
+    drop(packet_reader);
     assert_eq!(
         recorded.state,
         OperationState::Preparing,
