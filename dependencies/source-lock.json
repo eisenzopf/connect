@@ -1471,8 +1471,8 @@
     },
     {
       "path": "patches/rvoip/gate6-subscription-preflight-diagnostics.patch",
-      "sha256": "b3623bf81c6a1e6e2bf030d379203440cc88a1ad1e4686a8403dcb1202229c85",
-      "source": "G6-058 diagnostic-only: distinguish missing receiver installation, exact receiver flow confirmation, and Core source-catalog refusal during the original signed subscription preflight. Missing explicit logical source is logged only to private debug output. No outcome, authorization, mutation, retry, deadline, stream binding or quality threshold changes. Original v4 NotReady cause remains unproven; current release verification and fresh actual runtime evidence required."
+      "sha256": "07aa6daa655d84244a3b10b98b4087661ee04e011ce9efeae216a4c54e36e640",
+      "source": "G6-058 diagnostic-only: distinguish missing receiver installation, exact receiver flow confirmation, and Core source-catalog refusal during the original signed subscription preflight. Missing explicit logical source is logged only to private debug output. No outcome, authorization, mutation, retry, deadline, stream binding or quality threshold changes. Original v4 NotReady cause remains unproven; current release verification and fresh actual runtime evidence required. V23 ordinary production narrows NotReady to Core catalog; add static target-member versus participant-source branches with counts only, no identities or media data. Exact current cause remains unresolved until an original runtime observes it."
     }
   ]
 }

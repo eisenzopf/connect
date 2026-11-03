@@ -33,7 +33,19 @@
                  .subscriptions
 --- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
 +++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
-@@ -293,6 +293,7 @@
+@@ -193,7 +193,10 @@
+             std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
+             std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
+         })?;
+-        let target = members.get(target_id).ok_or(StreamControlError::NotReady)?;
++        let target = members.get(target_id).ok_or_else(|| {
++            tracing::debug!(target: "rvoip_core::native_catalog", stage = "target-member", catalog_members = members.len(), "Native subscription target is absent");
++            StreamControlError::NotReady
++        })?;
+         let state = target
+             .controller
+             .state
+@@ -293,6 +296,7 @@
                              .collect::<Vec<_>>();
                          if found.len() != 1 {
                              return Err(if found.is_empty() {
@@ -41,3 +53,18 @@
                                  StreamControlError::NotReady
                              } else {
                                  MediaTransitionError::Invalid.into()
+@@ -331,7 +335,13 @@
+                                 s.controller.origin_member.participant() == participant
+                                     && !s.controller.shutdown.is_cancelled()
+                             })
+-                            .ok_or(StreamControlError::NotReady)?;
++                            .ok_or_else(|| {
++                                let matching = members.values().filter(|source| {
++                                    source.controller.origin_member.participant() == participant
++                                }).count();
++                                tracing::debug!(target: "rvoip_core::native_catalog", stage = "participant-source", catalog_members = members.len(), matching_participant_members = matching, "Native subscription participant source is absent");
++                                StreamControlError::NotReady
++                            })?;
+                         let request = ParticipantSelection {
+                             member: source.controller.origin_member.clone(),
+                             media: media.clone(),

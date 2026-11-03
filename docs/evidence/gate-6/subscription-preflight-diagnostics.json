@@ -75,5 +75,22 @@
   "passed": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "extension_after_ordinary_v23": {
+    "patch_sha256": "07aa6daa655d84244a3b10b98b4087661ee04e011ce9efeae216a4c54e36e640",
+    "source_preparation_verified": true,
+    "changed_prepared_source_files": 1,
+    "source_only_change": "Core subscription_plan.rs: static target-member versus participant-source debug labels and counts. No identities or media data added.",
+    "existing_namespace_and_fixture_tests_passed": 16,
+    "format_passed": true,
+    "private_expected_upstream_rustfmt_check_passed": true,
+    "source_lock_patch_digests_verified": true,
+    "production_compilation_pending": true,
+    "fresh_ordinary_runtime_pending": true,
+    "behavior_or_authorization_changed": false,
+    "deadlines_or_retry_changed": false,
+    "primary_v23_branch_unresolved": true,
+    "task_complete": false,
+    "cell_qualified": false
+  }
 }
