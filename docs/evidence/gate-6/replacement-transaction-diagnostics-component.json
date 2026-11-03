@@ -1,0 +1,49 @@
+{
+  "format": "connect/gate6-replacement-transaction-diagnostics-component/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "environment": "Owner Mac Studio native Ubuntu24 ARM64 VM",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 108244,
+    "source_revision": "4515294102242eebf003055b992c0ae6d34116e1",
+    "passed": true,
+    "steps": [
+      {
+        "case": "connection_control::tests::replacement_sources::commit::transaction_diagnostics::transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1341 filtered out; finished in 0.27s"
+        ],
+        "log_sha256": "dcc62360613d6321026b6eb651aaf726fce3fb902fdbec7458375cf3f0845f46"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "transaction_diagnostics_candidate": true,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "ad6c5844bd2d7765f646ae41d9befc468baef51dd66594996471d6c7d9644af9",
+    "executable_unchanged": true,
+    "service_check_rerun": false,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 82.29296468000393
+  },
+  "coverage": [
+    "Known capture commits once; original capture replay records unchanged without altering the snapshot.",
+    "A real foreign SQLite writer fails BEGIN after admission; an isolated lifetime trigger fails inside the body; a deferred foreign key fails COMMIT after the body succeeds.",
+    "Each failure records the exact phase, rolls back original Store facts, and leaves no child row from the deferred-constraint trigger.",
+    "Removing fixture tables/triggers permits the original projection and unchanged replay. Exact counts distinguish all five outcomes, original effect count is conserved and duplicate snapshot is identical."
+  ],
+  "limitations": [
+    "This is controlled Store projection with fixture installation observations, not native movement or media IO.",
+    "Body time includes validation, serialization, local observations and rollback, not only SQL.",
+    "No attribution of the original449ms delay or actual mixer writer-drain, native cancellation, video bootstrap, authenticated epochs or transport qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

@@ -4,10 +4,7 @@
   "date": "2026-11-03",
   "change": "Extend capture-owned bounded metadata counters with SQLite begin, body and commit elapsed time and separate begin failure, body abort, commit failure, successful commit and unchanged replay outcomes. Only atomic accounting occurs under Store custody; existing Service summary serializes the counters after return. No transaction, authority or retry policy is changed.",
   "new_case": "connection_control::tests::replacement_sources::commit::transaction_diagnostics::transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay",
-  "checks_pending": [
-    "Compile Store library tests on local Ubuntu 24.04 ARM64, after the preceding diagnostic job finishes with source guards verified.",
-    "Run only the new exact transaction-boundary case."
-  ],
+  "checks_pending": [],
   "proof_design": [
     "Original known capture and duplicate capture; duplicate is counted as unchanged rather than committed.",
     "A foreign SQLite BEGIN IMMEDIATE fails the real transaction begin, after complete authority admission.",
@@ -22,12 +19,13 @@
     "Snapshots are best effort during concurrent work; inspect after the phase returns."
   ],
   "limitations": [
-    "Uncompiled and unexecuted candidate until its exact local ARM case completes.",
     "Does not identify the original449ms delay or prove actual mixer writer progress, native cancellation, decoded continuity, video bootstrap or authenticated media epochs."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "verification_state": "One new exact Store case passes at45152941. Only this new Store case was executed; Service wrapper is unchanged from separately verifiedb3a5d14b.",
+  "component_evidence": "docs/evidence/gate-6/replacement-transaction-diagnostics-component.json"
 }
