@@ -1,0 +1,15 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3466,6 +3466,12 @@
+             })
+             .count()
+     }
++    /// Read-only cancellation observation for deterministic host interleaving tests.
++    /// This does not wait on metadata or grant media/control authority.
++    #[cfg(feature = "test-support")]
++    pub fn retirement_requested_for_test(&self) -> bool {
++        self.shutdown.is_cancelled()
++    }
+     /// Synchronous delivery/preparation fence. The owner must retain this
+     /// controller and call shutdown to confirm asynchronous resource cleanup.
+     pub fn retire(&self) {

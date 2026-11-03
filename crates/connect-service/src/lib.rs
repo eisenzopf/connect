@@ -240,6 +240,24 @@ impl Service {
         record: &str,
         runtime_connection: &str,
     ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
+        self.arm_canonical_publication_retirement_for_test(record, runtime_connection, false)
+    }
+    /// Retire the actual controller after publication ordering, before SQL commit.
+    #[cfg(feature = "test-support")]
+    pub fn retire_canonical_replacement_during_publication_once_for_test(
+        &self,
+        record: &str,
+        runtime_connection: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
+        self.arm_canonical_publication_retirement_for_test(record, runtime_connection, true)
+    }
+    #[cfg(feature = "test-support")]
+    fn arm_canonical_publication_retirement_for_test(
+        &self,
+        record: &str,
+        runtime_connection: &str,
+        during: bool,
+    ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
         let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
         let id = rvoip_core::ids::ConnectionId::from_string(runtime_connection);
         // The exact prepared candidate already has native resources, but need
@@ -251,7 +269,7 @@ impl Service {
             .ok_or_else(Error::forbidden)?;
         runtime
             .media
-            .retire_replacement_publication_once_for_test(record, controller)
+            .retire_replacement_publication_once_for_test(record, controller, during)
     }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]

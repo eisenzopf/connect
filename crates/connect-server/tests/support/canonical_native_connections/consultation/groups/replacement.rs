@@ -190,6 +190,8 @@ enum ActivationAudit {
     RefuseBeforeCore,
     #[cfg(feature = "test-support")]
     RetireAtPublication,
+    #[cfg(feature = "test-support")]
+    RetireDuringPublication,
 }
 async fn exercise_replacement_with_av_control(
     allocate: bool,
@@ -816,7 +818,9 @@ async fn exercise_replacement_with_av_control(
             #[cfg(feature = "test-support")]
             let fault_audit = if matches!(
                 activation_audit,
-                ActivationAudit::RefuseBeforeCore | ActivationAudit::RetireAtPublication
+                ActivationAudit::RefuseBeforeCore
+                    | ActivationAudit::RetireAtPublication
+                    | ActivationAudit::RetireDuringPublication
             ) {
                 assert!(!deferred_projection && !candidate_target && !observer);
                 let record = status(&f, &key.id, &command.operation_id).await;
@@ -825,6 +829,8 @@ async fn exercise_replacement_with_av_control(
                         .service
                         .refuse_canonical_replacement_adoption_once_for_test(&record.record_id)
                         .unwrap()
+                } else if matches!(activation_audit, ActivationAudit::RetireDuringPublication) {
+                    activation::publication::arm_during(&f, &record.record_id)
                 } else {
                     activation::publication::arm(&f, &record.record_id)
                 };
@@ -844,6 +850,18 @@ async fn exercise_replacement_with_av_control(
             if let Some((armed, original_bindings)) = fault_audit {
                 if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
                     activation::pre_core::verify(
+                        &f,
+                        &key.id,
+                        &command,
+                        candidate,
+                        &mut controller,
+                        &mut peers,
+                        armed,
+                        original_bindings,
+                    )
+                    .await;
+                } else if matches!(activation_audit, ActivationAudit::RetireDuringPublication) {
+                    activation::publication::verify_during(
                         &f,
                         &key.id,
                         &command,

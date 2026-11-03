@@ -23,5 +23,15 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "overlap_candidate": {
+    "case": "canonical_native_connections::consultation::groups::replacement::activation::publication::production_native_retirement_during_publication_orders_ready_before_retired_without_replay",
+    "hook": "Inside the actual final native publication callback, start real StreamController::retire on an owned thread. Observe its original cancellation token without taking metadata locks; require retirement still blocked while callback owns metadata. Join after callback releases custody.",
+    "expected": "Successful SQL publishes Ready before later exact retirement; original public replay preserves record/revision/effects/result and journal rows. One movement only; retained binding unchanged; final fixture shutdown joins with zero slots.",
+    "cleanup": "After historical Ready, shut down the actual target peer to drive normal adapter cleanup and durable retirement. Direct controller cancellation alone is not claimed to remove adapter registry state.",
+    "patch": "patches/rvoip/gate6-publication-retirement-observation.patch",
+    "patch_sha256": "1015c5d706f0cad06904b3334fdf8c872b91b6fe24a4ec1c7a2d7f03e0c2b4bd",
+    "status": "Implemented, not compiled or executed. Only opt-in test-support observes cancellation; production default unchanged."
+  },
+  "execution_plan": "After corrected v42 component checks and Service compile pass with guards, build one server integration executable and execute only the two new signed publication cases. Preserve original failed compile and all prior scoped passes."
 }

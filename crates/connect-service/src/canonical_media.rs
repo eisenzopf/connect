@@ -7,6 +7,8 @@ pub(crate) mod ice;
 mod packet_metadata;
 mod packets;
 pub(crate) mod preparation;
+#[cfg(feature = "test-support")]
+mod publication_fixture;
 pub(crate) mod reconciliation;
 pub(crate) mod replacement;
 mod sources;
@@ -72,15 +74,7 @@ pub(crate) struct Policy {
     #[cfg(feature = "test-support")]
     replacement_adoption_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
     #[cfg(feature = "test-support")]
-    replacement_publication_retirements: Mutex<
-        BTreeMap<
-            String,
-            (
-                Arc<rvoip_core::staged_streams::StreamController>,
-                Arc<std::sync::atomic::AtomicBool>,
-            ),
-        >,
-    >,
+    replacement_publication_retirements: Mutex<BTreeMap<String, publication_fixture::Retirement>>,
 }
 /// One bounded original native invocation, never retained by a packet port.
 // The protocol dispatcher owns the actual signature/physical exchange proof.
@@ -438,43 +432,6 @@ impl Policy {
         let armed = Arc::new(std::sync::atomic::AtomicBool::new(true));
         refusals.insert(record.into(), armed.clone());
         Ok(armed)
-    }
-    #[cfg(feature = "test-support")]
-    pub(crate) fn retire_replacement_publication_once_for_test(
-        &self,
-        record: &str,
-        controller: Arc<rvoip_core::staged_streams::StreamController>,
-    ) -> connect_protocol::Result<Arc<std::sync::atomic::AtomicBool>> {
-        let mut retirements = self
-            .replacement_publication_retirements
-            .lock()
-            .map_err(|_| connect_protocol::Error::storage())?;
-        if retirements.contains_key(record) {
-            return Err(connect_protocol::Error::forbidden());
-        }
-        let armed = Arc::new(std::sync::atomic::AtomicBool::new(true));
-        retirements.insert(record.into(), (controller, armed.clone()));
-        Ok(armed)
-    }
-    /// Deterministic interleaving after the old generation check, before the
-    /// new native publication callback. Only retires an actual local controller.
-    #[cfg(feature = "test-support")]
-    pub(crate) fn retire_at_publication_for_test(
-        &self,
-        record: &str,
-    ) -> connect_protocol::Result<()> {
-        let retirement = self
-            .replacement_publication_retirements
-            .try_lock()
-            .map_err(|_| {
-                connect_protocol::Error::new("authority-busy", "Publication fixture metadata busy")
-            })?
-            .remove(record);
-        if let Some((controller, armed)) = retirement {
-            controller.retire();
-            armed.store(false, std::sync::atomic::Ordering::Release);
-        }
-        Ok(())
     }
     #[cfg(feature = "test-support")]
     pub(crate) fn with_registry_for_test(

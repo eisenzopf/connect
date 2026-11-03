@@ -1529,6 +1529,11 @@
       "path": "patches/rvoip/gate6-native-publication-custody.patch",
       "sha256": "6525258dbd68c40ba6325e98da4355f05326301fc0334b944ae5947a51d42a74",
       "source": "G6-058 P2 candidate: nonblocking native publication callback pins exact signed Core installed controller/port metadata through final local SQL commit. Final cancellation read defines publication ordering; packet cancellation remains immediate and overlapping retirement follows publication. Focused Core/Store checks and native integration pending; no qualification implied."
+    },
+    {
+      "path": "patches/rvoip/gate6-publication-retirement-observation.patch",
+      "sha256": "1015c5d706f0cad06904b3334fdf8c872b91b6fe24a4ec1c7a2d7f03e0c2b4bd",
+      "source": "G6-058 P2 test-support only: read original controller cancellation without taking metadata locks so an actual signed host case can observe retire() fencing IO during final publication. No production default behavior, authorization or qualification change."
     }
   ]
 }

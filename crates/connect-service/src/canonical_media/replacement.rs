@@ -494,14 +494,32 @@ impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {
     ) -> connect_protocol::Result<()> {
         #[cfg(feature = "test-support")]
         self.policy.retire_at_publication_for_test(self.record)?;
-        self.native
-            .try_publish_installed(self.generation, commit)
-            .map_err(|error| match error {
-                StreamControlError::NotReady => connect_protocol::Error::new(
-                    "authority-busy",
-                    "Native publication metadata is busy",
-                ),
-                _ => connect_protocol::Error::forbidden(),
-            })?
+        #[cfg(feature = "test-support")]
+        let mut retirement = None;
+        let published = self.native.try_publish_installed(self.generation, || {
+            #[cfg(feature = "test-support")]
+            {
+                retirement = self
+                    .policy
+                    .begin_publication_retirement_for_test(self.record)?;
+                if let Some(retirement) = &retirement {
+                    retirement.wait_for_cancellation()?;
+                }
+            }
+            commit()
+        });
+        // Core releases installation metadata before we join actual retirement.
+        // This hook is absent from normal production builds.
+        #[cfg(feature = "test-support")]
+        if let Some(retirement) = retirement {
+            retirement.join()?;
+        }
+        published.map_err(|error| match error {
+            StreamControlError::NotReady => connect_protocol::Error::new(
+                "authority-busy",
+                "Native publication metadata is busy",
+            ),
+            _ => connect_protocol::Error::forbidden(),
+        })?
     }
 }
