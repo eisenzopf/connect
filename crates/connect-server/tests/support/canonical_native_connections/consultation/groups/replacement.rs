@@ -1,5 +1,7 @@
 //! Public replacement now owns a real Core ticket, with original media intact.
 use super::*;
+#[path = "replacement/activation.rs"]
+mod activation;
 #[path = "replacement/av.rs"]
 mod av;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
@@ -176,6 +178,7 @@ async fn exercise_replacement_with_control(
         selected_case,
         candidate_target,
         false,
+        false,
     )
     .await;
 }
@@ -190,6 +193,7 @@ async fn exercise_replacement_with_av_control(
     selected_case: Option<(bool, bool, bool)>,
     candidate_target: bool,
     av: bool,
+    activation_barrier_audit: bool,
 ) {
     if candidate_target {
         assert!(
@@ -802,7 +806,7 @@ async fn exercise_replacement_with_av_control(
             send_readiness(&mut peers[2]).await;
             if deferred_projection {
                 let until = tokio::time::Instant::now() + Duration::from_secs(5);
-                loop {
+                let captured_effects = loop {
                     let r = status(&f, &key.id, &command.operation_id).await;
                     if r.effects.iter().any(|e| {
                         e.provider == "native-replacement-commit"
@@ -810,14 +814,17 @@ async fn exercise_replacement_with_av_control(
                     }) {
                         assert_eq!(r.state, OperationState::Preparing);
                         assert!(r.result.is_none());
-                        break;
+                        if activation_barrier_audit {
+                            activation::unpublished(&f, candidate, &r.record_id);
+                        }
+                        break r.effects;
                     }
                     assert!(
                         tokio::time::Instant::now() < until,
                         "Known movement was not captured: {r:?}"
                     );
                     tokio::time::sleep(Duration::from_millis(20)).await;
-                }
+                };
                 let admin = f.server.store.authenticate(&f.admin).unwrap();
                 let credential = f
                     .server
@@ -845,6 +852,10 @@ async fn exercise_replacement_with_av_control(
                             .effects
                             .iter()
                             .all(|e| e.state == EffectState::Confirmed && e.attempt == 1));
+                        if activation_barrier_audit {
+                            assert_eq!(r.effects, captured_effects);
+                            activation::stopped_without_ready(&f, candidate, &r);
+                        }
                         break;
                     }
                     assert!(

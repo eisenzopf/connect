@@ -15,6 +15,7 @@ async fn production_replacement_av_retains_resources_and_opens_video_only_after_
         Some((false, false, false)),
         false,
         true,
+        false,
     )
     .await;
 }
