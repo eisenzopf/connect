@@ -1,0 +1,82 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+@@ -104,9 +104,8 @@
+     let bob_port = f.room.nodes["bob"].adapter.port(Medium::Video);
+     let incoming_port =
+         f.room.nodes["device"].adapter.ports.lock().unwrap()[&incoming.logical_id].clone();
+-    let mut old_input = old.take_ingress(&video_id).unwrap();
+-    let mut new_input = new.take_ingress(&video_id).unwrap();
+-    let mut bob_input = bob.take_ingress(&video_id).unwrap();
++    // The registered scene owns every ingress. Exercise its real routing tick.
++    let mut unselected_output = (!directional).then(|| new_port.take_egress().unwrap());
+     let mut bob_output = bob_port.take_egress().unwrap();
+     let mut public_output = f.room.nodes["public"]
+         .adapter
+@@ -189,19 +188,35 @@
+     .unwrap();
+     // A real queued old-camera frame must lose its route at the atomic cutover.
+     old_port.try_publish(&frame(&old_port, 20)).unwrap();
+-    let queued = receive(&mut old_input).await;
+-    queued.try_forward_to(&bob, &video_id).unwrap();
++    f.room.tick();
+     let queued_egress = outgoing(&mut bob_output).await;
++    let queued_public = outgoing(&mut public_output).await;
++    // This second old-camera packet remains in the actual scene ingress queue.
++    old_port.try_publish(&frame(&old_port, 21)).unwrap();
+     let plan = f.plan_with_video(Some(request())).unwrap();
+     let (_, handle) = f.commit(plan).await.unwrap();
+     assert!(old.shutdown.is_cancelled());
+-    assert!(queued.try_forward_to(&bob, &video_id).is_err());
+     assert!(queued_egress
+         .deliver(|_| async {
+             panic!("old route reached sink after cutover");
+         })
+         .await
+         .is_err());
++    assert!(queued_public
++        .deliver(|_| async {
++            panic!("old public route survived cutover");
++        })
++        .await
++        .is_err());
++    f.room.tick();
++    assert!(
++        bob_output.try_recv().is_err(),
++        "queued old ingress crossed cutover"
++    );
++    assert!(
++        public_output.try_recv().is_err(),
++        "queued old ingress reached public receiver"
++    );
+     assert_eq!(new.revision(), revisions[1] + 1);
+     assert_eq!(bob.revision(), revisions[2] + 1);
+     assert_eq!(public.revision(), revisions[3] + 1);
+@@ -219,9 +234,7 @@
+     assert!(data.try_publish(&frame(&data, 21)).is_err());
+     // Both selected directions work without a post-completion subscribe/unmute.
+     new_port.try_publish(&frame(&new_port, 30)).unwrap();
+-    let packet = receive(&mut new_input).await;
+-    packet.try_forward_to(&bob, &video_id).unwrap();
+-    packet.try_forward_to(&public, &video_id).unwrap();
++    f.room.tick();
+     for output in [&mut bob_output, &mut public_output] {
+         outgoing(output)
+             .await
+@@ -233,9 +246,13 @@
+             .unwrap();
+     }
+     bob_port.try_publish(&frame(&bob_port, 40)).unwrap();
+-    let packet = receive(&mut bob_input).await;
+-    packet.try_forward_to(&new, &incoming.logical_id).unwrap();
+-    assert!(packet.try_forward_to(&new, &video_id).is_err());
++    f.room.tick();
++    if let Some(output) = &mut unselected_output {
++        assert!(
++            output.try_recv().is_err(),
++            "incoming selection also reached camera output"
++        );
++    }
+     outgoing(&mut incoming_output)
+         .await
+         .deliver(|v| async move {

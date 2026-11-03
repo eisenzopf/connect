@@ -1559,6 +1559,11 @@
       "path": "patches/rvoip/gate6-replacement-video-directional-preparation.patch",
       "sha256": "196caec211634fc2e74fb16d89299cce0a643e251b0ccf0b223924115234b98c",
       "source": "G6-058 P3 directional native video preparation: mute only endpoint inputs, permit dormant output-only auxiliary ports without an input-mute flag, retain current authority and closed routing; new exact directional Core case. Native policy and signed test updated in Connect; qualification pending."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-video-scene-fixture.patch",
+      "sha256": "d62fa240175970088a382bb3a92c77c13f400763318d7957a890aafd5bb383e4",
+      "source": "G6-058 P3 fixture correction: registered media scene owns ingress. Exercise actual scene ticks and retained egress/queued ingress across cutover, rather than unsupported manual receiver extraction. Original failure preserved, no passing cases rerun."
     }
   ]
 }

@@ -1,0 +1,25 @@
+{
+  "format": "connect/gate6-replacement-video-scene-fixture/1",
+  "task": "G6-058",
+  "failed_source": "8f52f37609ad4ab60f482241c71d8abfd25a1b19",
+  "failed_case": "staged_streams::tests::private_consult::replacement::video::replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences",
+  "failure": "Unsupported at video.rs:92, old.take_ingress. Registered scene owns ingress; public take_ingress deliberately refuses while scene_consumer exists. Test stopped before routing assertions.",
+  "failed_log_sha256": "9f37975380b9027b37e6dbe3e3a31b865f53f5bab2992e2e1e751dc0a3106d0c",
+  "patch": "patches/rvoip/gate6-replacement-video-scene-fixture.patch",
+  "patch_sha256": "d62fa240175970088a382bb3a92c77c13f400763318d7957a890aafd5bb383e4",
+  "correction": [
+    "Publish through actual adapter ports and tick the registered scene. No manually extracted input or direct-forward shortcut.",
+    "Hold actual receiver egress across commit and leave a second old frame in scene ingress; both retained receiver outputs must reject old delivery and remain empty after cutover.",
+    "Both new video directions route through scene tick, unchanged negotiated bindings, exact camera/incoming targets, preserved Data quarantine and original audio checks."
+  ],
+  "verification": "Prepared snapshot and format verified. Corrected case and new directional/native cases not yet run. v50 Service/client compile still active; its complete final guards/results must be read before guest mutation.",
+  "do_not_rerun": [
+    "stream_lifecycle::tests::replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches",
+    "replacement_video::tests::explicit_video_mapping_is_bounded_unambiguous_and_closed"
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
