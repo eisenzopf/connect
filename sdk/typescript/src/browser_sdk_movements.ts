@@ -1,3 +1,7 @@
+import {
+    replacementVideo,
+    type ReplacementVideo,
+} from "./replacement_video.js";
 import { fields } from "./browser_sdk_sessions.js";
 import {
     canonicalJson,
@@ -45,6 +49,7 @@ export type BrowserMoveTarget =
     | { readonly endpoint: EndpointId; readonly candidate?: never }
     | { readonly candidate: ConnectionId; readonly endpoint?: never };
 export interface BrowserMoveInput {
+    readonly video?: ReplacementVideo;
     readonly retain: ConnectionId;
     readonly target: BrowserMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
@@ -266,7 +271,11 @@ export function moveIntent(
     via: ConnectionId,
     bad: () => never,
 ) {
-    fields(input, ["retain", "target", "expectedTopologyRevision"], bad);
+    fields(
+        input,
+        ["retain", "target", "expectedTopologyRevision", "video"],
+        bad,
+    );
     if (
         !identifier(input.retain) ||
         input.retain === via ||
@@ -285,6 +294,9 @@ export function moveIntent(
     return {
         body: {
             retained_connid: input.retain,
+            ...(input.video === undefined
+                ? {}
+                : { video: replacementVideo(input.video, bad) }),
             ...(endpoint
                 ? { endpoint_id: target }
                 : { candidate_connid: target }),

@@ -218,6 +218,7 @@ fn context(
         endpoint_id,
         candidate_connid,
         retained_connid,
+        ..
     } = &origin.request.intent
     else {
         return Err(Error::forbidden());

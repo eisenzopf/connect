@@ -326,6 +326,7 @@ impl Fixture {
                     endpoint_id: Some("transition-endpoint-3".into()),
                     candidate_connid: None,
                     retained_connid: "transition-connection-1".into(),
+                    video: None,
                 },
             },
         }

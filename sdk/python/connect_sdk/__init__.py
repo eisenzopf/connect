@@ -29,7 +29,7 @@ __all__ = [
     'SourceClock', 'StreamGateObservation', 'StreamResourceRevision', 'StreamSelectionReceipt',
     'StreamSelector', 'StreamSnapshot', 'StreamTarget', 'ConsultationOperation', 'ConsultInput',
     'ConsultationResult', 'ConversationRole', 'DeviceId', 'EndpointTarget', 'CandidateTarget',
-    'HandoffInput', 'HandoffResult', 'HandoffRoleChange', 'MoveInput', 'MoveResult', 'MoveBinding',
+    'HandoffInput', 'HandoffResult', 'HandoffRoleChange', 'MoveInput', 'ReplacementVideo', 'ReplacementVideoStream', 'MoveResult', 'MoveBinding',
     'SessionRole', 'TopologyChange', 'AudienceMember', 'EventSource', 'JournalEvent',
     'IncomingInvitation', 'EventStream', 'InvitationStream', 'RawCanonical', 'ValidatedEnvelope',
     'AdministrativeClient', 'AdministrativeOperations', 'TrustedProvisioningCommand', 'Json',
@@ -110,7 +110,7 @@ _EXPORT_GROUPS = (
         'StreamGateObservation', 'StreamResourceRevision', 'StreamSelectionReceipt',
         'StreamSelector', 'StreamSnapshot', 'StreamTarget', 'ConsultInput', 'ConsultationResult',
         'ConversationRole', 'DeviceId', 'EndpointTarget', 'CandidateTarget', 'HandoffInput',
-        'HandoffResult', 'HandoffRoleChange', 'MoveInput', 'MoveResult', 'MoveBinding',
+        'HandoffResult', 'HandoffRoleChange', 'MoveInput', 'ReplacementVideo', 'ReplacementVideoStream', 'MoveResult', 'MoveBinding',
         'SessionRole', 'TopologyChange', 'AudienceMember', 'EventSource', 'JournalEvent',
         'IncomingInvitation',
     )),
@@ -162,7 +162,7 @@ if TYPE_CHECKING:
         ResumeConnection, SourceClock, StreamGateObservation, StreamResourceRevision, StreamSelectionReceipt,
         StreamSelector, StreamSnapshot, StreamTarget,
         ConsultInput, ConsultationResult, ConversationRole, DeviceId, EndpointTarget, CandidateTarget,
-        HandoffInput, HandoffResult, HandoffRoleChange, MoveInput, MoveResult, MoveBinding, SessionRole, TopologyChange,
+        HandoffInput, HandoffResult, HandoffRoleChange, MoveInput, ReplacementVideo, ReplacementVideoStream, MoveResult, MoveBinding, SessionRole, TopologyChange,
         AudienceMember, EventSource, JournalEvent, IncomingInvitation,
     )
     from .task_types import TASK_PROFILE, TaskCommand, TaskDefinition, TaskOutcome, TaskRecord, TaskScope

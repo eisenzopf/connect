@@ -85,7 +85,8 @@ pub use invitations::{IncomingInvitation, InvitationStream};
 pub use media::MediaStats;
 pub use movements::{
     HandoffCleanup, HandoffInput, HandoffResult, HandoffRole, HandoffRoleChange, HandoffRoleScope,
-    MoveBindingObservation, MoveInput, MoveResult, MoveTarget, Outgoing,
+    MoveBindingObservation, MoveInput, MoveResult, MoveTarget, Outgoing, ReplacementVideo,
+    ReplacementVideoStream,
 };
 pub use operation::{
     Completion, Operation, OperationKey, OperationKind, OperationKinds, OperationReference,

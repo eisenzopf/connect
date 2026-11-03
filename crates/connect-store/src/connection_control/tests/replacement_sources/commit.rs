@@ -780,6 +780,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
                 endpoint_id: Some(old_endpoint),
                 candidate_connid: None,
                 retained_connid: m.sources[1].connection_id().into(),
+                video: None,
             },
             payload_extensions: Default::default(),
         };

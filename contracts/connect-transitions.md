@@ -292,3 +292,29 @@ into a public context. Independent returns preserve the other current private
 pair's speaking programs and exclusions. Candidate discovery uses only its own
 current parent registration and exact native incarnation; another completed
 context's old execution credential cannot authorize or obstruct that lookup.
+
+
+### Explicit video during native replacement
+
+`connection.replace` accepts optional `video: { publications, receivers }`.
+Each list contains `{ previous, replacement }` logical stream IDs. Both lists
+are required when video is supplied, with 1–32 mappings in total. Previous IDs
+must be unique within each list; replacement IDs must be unique across both.
+A duplex old stream can appear once in each list, using distinct new ports.
+
+Publications transfer the old camera's mute/pause/hold gates to the exact new
+negotiated video source and retarget its existing selected receivers. Receiver
+mappings transfer only the old receiver's existing source selection to the
+specified new negotiated video sink; any extra input on that new port stays
+muted. Resource identities, codecs and generations are validated at preparation
+and commit. Current authorization is required again at commit. Missing selected
+camera mappings, stale resources or denied authority refuse the compound move;
+no separate post-completion video subscribe/unmute is needed for the mapped
+routes. Omitting video keeps auxiliary ports quarantined. Data is independent.
+Telephone replacement does not accept this native video intent.
+
+These fields describe routing intent, not a keyframe, decoded output, quality
+receipt or permission grant. Fresh bootstrap and authenticated media epochs are
+separate Gate 6 requirements. Rust, Node, browser and Python movement inputs
+carry the same explicit mappings. The HTTP canonical schema describes the wire
+shape; endpoint/session media capabilities still constrain actual negotiation.

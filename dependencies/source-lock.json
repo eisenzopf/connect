@@ -1544,6 +1544,11 @@
       "path": "patches/rvoip/gate6-replacement-video-route-transaction.patch",
       "sha256": "bfaa98dfbf124f9d8462f99dad8575e51ac056347ae894a544661a5d2e67976f",
       "source": "G6-058 P3 candidate: explicit sealed old/new video publication and receiver mappings; current direct receive authority, exact resource/gate snapshots, combined A/V gate and direct-route commit with old packet ticket drain. Two new exact Core cases pending compilation/execution; Service remains audio-only until public typed intent is wired. No keyframe, full media, native AV or matrix qualification."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-video-wire-intent.patch",
+      "sha256": "cccdf0b53f1cd90d66f35ea40c0a497abeb44760816238c1c5a05fa0a93970de",
+      "source": "G6-058 P3 public wire candidate: typed optional video publication/receiver mappings in connection.replace. Connect validates bounded IDs, distinct receiver/publication targets and transfers only exact currently authorized negotiated resources. No bootstrap or quality qualification."
     }
   ]
 }

@@ -815,6 +815,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
             endpoint_id: Some(endpoint.clone()),
             candidate_connid: None,
             retained_connid: "codec-source".into(),
+            video: None,
         },
         payload_extensions: Default::default(),
     };

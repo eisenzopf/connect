@@ -64,6 +64,12 @@ pub(crate) fn command(e: &Envelope) -> Result<Option<TransitionCommand>> {
             retained_connid: v.retained_connid.as_str().into(),
             endpoint_id: v.endpoint_id.as_ref().map(|p| p.as_str().into()),
             candidate_connid: v.candidate_connid.as_ref().map(|p| p.as_str().into()),
+            video: v
+                .video
+                .as_ref()
+                .map(|video| serde_json::to_value(video).and_then(serde_json::from_value))
+                .transpose()
+                .map_err(|_| Error::new("invalid-request", "Invalid replacement video mapping"))?,
         },
         _ => return Ok(None),
     };

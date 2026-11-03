@@ -42,7 +42,7 @@ pub(super) fn seed(f: &Fixture, other: &CanonicalClientConfig) -> Vec<Value> {
         let intent=match kind {
             0=>TransitionIntent::Consult{retained_connid:connection(1),private_participants:vec![parts[2].clone(),parts[0].clone()],hold_treatment:HoldTreatment::Silence},
             1=>TransitionIntent::Handoff{source_participant:parts[0].clone(),target_participant:parts[2].clone(),retained_connid:connection(1),candidate_connid:Some(connection(2)),outgoing:OutgoingDisposition::Leave,role_scope:RoleScope::Session,expected_conversation_revision:None},
-            _=>TransitionIntent::Replace{retained_connid:connection(1),endpoint_id:Some(endpoint(3)),candidate_connid:None},
+            _=>TransitionIntent::Replace{retained_connid:connection(1),endpoint_id:Some(endpoint(3)),candidate_connid:None, video: None, },
         };
         let mut payload=serde_json::to_value(intent).unwrap();let command=payload["type"].as_str().unwrap().to_owned();payload.as_object_mut().unwrap().retain(|k,v|k!="type"&&!v.is_null());
         json!({"type":command,"payload":payload,"scope":{"cid":conv.id,"sid":session.id,"connid":connection(0),"operation_id":format!("{prefix}-original"),"expected_revision":0},"terminal":if kind==0{"cancelled"}else{"failed"},"problem":match kind{1=>json!({"code":"invalid-request","source":"native-handoff"}),2=>json!({"code":"forbidden","source":"native-replacement"}),_=>Value::Null}})

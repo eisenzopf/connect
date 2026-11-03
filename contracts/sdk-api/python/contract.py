@@ -362,10 +362,23 @@ class CandidateTarget:
     candidate: ConnectionId
 
 @dataclass(frozen=True)
+class ReplacementVideoStream:
+    previous: str
+    replacement: str
+
+
+@dataclass(frozen=True)
+class ReplacementVideo:
+    publications: Sequence[ReplacementVideoStream]
+    receivers: Sequence[ReplacementVideoStream]
+
+
+@dataclass(frozen=True)
 class MoveInput:
     retain: ConnectionId
     target: EndpointTarget | CandidateTarget
     expected_topology_revision: TopologyRevision
+    video: ReplacementVideo | None = None
 
 class ConsultationOperation(Operation[ConsultationResult], Protocol):
     async def return_to_retained(self, expected_topology_revision: TopologyRevision, options: MutationOptions) -> Operation[Session]: ...

@@ -99,6 +99,7 @@ pub async fn journey<A: Api>(
         .control
         .replace_device(
             MoveInput {
+                video: None,
                 retain: context.retained.id().clone(),
                 target: MoveTarget::Endpoint(context.phone.clone()),
                 expected_topology_revision: before.topology_revision,

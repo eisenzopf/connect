@@ -1,0 +1,33 @@
+{
+  "format": "connect/gate6-replacement-video-intent-candidate/1",
+  "task": "G6-058",
+  "phase": "P3 public intent and Core transfer candidate",
+  "changes": [
+    "Typed optional video publication/receiver mappings are captured in the original replacement intent across Rust, Node, browser and Python SDKs and HTTP/wire contracts. Closed mapping objects, bounded identifiers, 1..32 total mappings, per-group previous IDs and global replacement uniqueness.",
+    "Store preserves the original intent in the prepared plan and verifies target offered video kind/direction; telephone source/target refuse video intent. Service passes only the frozen mapping to Core.",
+    "Core patch286 stages existing selections, exact negotiated resources and current authority; patch287 adds typed wire payload and embedded schema. No caller-supplied generation or permission bypass.",
+    "Canonical and application HTTP/OpenAPI references regenerated; source/schema/dispatch generation succeeds locally with 59 tags and 69 dispatch cases (42 supported)."
+  ],
+  "patch": "patches/rvoip/gate6-replacement-video-wire-intent.patch",
+  "patch_sha256": "cccdf0b53f1cd90d66f35ea40c0a497abeb44760816238c1c5a05fa0a93970de",
+  "source_lock_sha256": "542669f1c9d5e4997399ff712f48c13128ed8c8cf24e2b983e7ada4c353a62ad",
+  "verification": {
+    "prepared_patches": 287,
+    "prepared_digest_verified": true,
+    "http_schema_generation_log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11",
+    "rust_format": "scripts/format.sh completed",
+    "core_cases": "Pending local ARM compilation and execution",
+    "protocol_case": "replacement_video::tests::explicit_video_mapping_is_bounded_unambiguous_and_closed",
+    "changed_service_client_compile": "Pending local ARM verification"
+  },
+  "limits": [
+    "No signed native AV replacement proof yet.",
+    "General receive-only private preparation, request-driven fresh keyframes and authenticated activation epochs remain unfinished.",
+    "SDK behavior including saved original-operation recovery with video intent remains to verify. No complete SDK, media quality, transport cell or Gate6 qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

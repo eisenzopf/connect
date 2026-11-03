@@ -134,3 +134,8 @@ export type {
     SdkDataAcceptance,
     SdkDataStats,
 } from "./node_media_types.js";
+
+export type {
+    ReplacementVideo,
+    ReplacementVideoStream,
+} from "./replacement_video.js";

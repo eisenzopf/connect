@@ -333,7 +333,10 @@ export interface HandoffInput {
 export type MoveTarget =
     | { readonly endpoint: EndpointId; readonly candidate?: never }
     | { readonly candidate: ConnectionId; readonly endpoint?: never };
+export interface ReplacementVideoStream { readonly previous: string; readonly replacement: string; }
+export interface ReplacementVideo { readonly publications: readonly ReplacementVideoStream[]; readonly receivers: readonly ReplacementVideoStream[]; }
 export interface MoveInput {
+    readonly video?: ReplacementVideo;
     readonly retain: ConnectionId;
     readonly target: MoveTarget;
     readonly expectedTopologyRevision: Revision<"topology">;

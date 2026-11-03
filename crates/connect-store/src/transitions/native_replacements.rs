@@ -172,6 +172,24 @@ fn plan(
         .ok_or_else(conflict)?;
     let expected = serde_json::json!({"operation_id":ctx.operation_record_id,"session":ctx.session_id,"participant":ctx.participant_id,"membership_epoch":ctx.membership_epoch,"source":ctx.source_runtime_connection_id,"retained":ctx.retained_runtime_connection_id,"candidate":runtime,"endpoint":ctx.target_endpoint_id,"device":ctx.target_device_id,"generation":generation,"participant_revision":request.participant_revision});
     let mut result = serde_json::json!({"operation_id":ctx.operation_record_id,"candidate_connection_id":candidate,"candidate_runtime_id":runtime,"generation":generation,"source_generation":ctx.source_generation,"source_role":ctx.role,"target_endpoint_revision":ctx.target_endpoint_revision,"target_device_kind":ctx.target_device_kind,"target_device_platform":ctx.target_device_platform,"confirmation":request.confirmation,"timeout_seconds":request.timeout_seconds,"expected_preparation":expected});
+    if let TransitionIntent::Replace {
+        video: Some(video), ..
+    } = &selection.origin.request().intent
+    {
+        video.validate()?;
+        if telephone_route.is_some()
+            || matches!(
+                selection.source(),
+                crate::NativeReplacementSourceOrigin::Telephone(_)
+            )
+        {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "Video replacement requires native source and target resources",
+            ));
+        }
+        result["video"] = serde_json::to_value(video).map_err(|_| Error::storage())?;
+    }
     if let Some(route) = telephone_route {
         result["telephone_policy"] =
             serde_json::to_value(&request.telephone_policy).map_err(|_| Error::storage())?;

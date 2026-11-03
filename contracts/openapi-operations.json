@@ -377,6 +377,9 @@
                 "minLength": 1,
                 "maxLength": 128,
                 "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "video": {
+                "$ref": "#/components/schemas/ReplacementVideo"
               }
             },
             "required": [
@@ -1350,6 +1353,69 @@
             }
           }
         ]
+      },
+      "ReplacementVideoStream": {
+        "type": "object",
+        "properties": {
+          "previous": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "replacement": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "previous",
+          "replacement"
+        ],
+        "additionalProperties": false
+      },
+      "ReplacementVideo": {
+        "type": "object",
+        "properties": {
+          "publications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplacementVideoStream"
+            },
+            "maxItems": 32
+          },
+          "receivers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplacementVideoStream"
+            },
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "publications",
+          "receivers"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "properties": {
+              "publications": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "properties": {
+              "receivers": {
+                "minItems": 1
+              }
+            }
+          }
+        ],
+        "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
+      },
+      "Identifier": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._~-]+$"
       }
     }
   },

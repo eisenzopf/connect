@@ -196,3 +196,8 @@ export {
     type BrowserSourceSelection,
     type BrowserUiState,
 } from "./browser_ui.js";
+
+export type {
+    ReplacementVideo,
+    ReplacementVideoStream,
+} from "./replacement_video.js";

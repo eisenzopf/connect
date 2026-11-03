@@ -132,6 +132,7 @@ async fn perform(
             endpoint_id,
             candidate_connid,
             retained_connid,
+            video,
         } => {
             let target = match (endpoint_id, candidate_connid) {
                 (Some(e), None) => sdk::MoveTarget::Endpoint(e.parse()?),
@@ -148,6 +149,7 @@ async fn perform(
                 )
                 .replace_device(
                     sdk::MoveInput {
+                        video: video.clone(),
                         retain: retained_connid.parse()?,
                         target,
                         expected_topology_revision: sdk::TopologyRevision::try_from(

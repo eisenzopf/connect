@@ -79,6 +79,7 @@ fn handoff_input(
 }
 fn move_input(candidate: bool) -> MoveInput {
     MoveInput {
+        video: None,
         retain: "remote".parse().unwrap(),
         target: if candidate {
             MoveTarget::Candidate("candidate".parse().unwrap())
@@ -434,6 +435,7 @@ async fn movement_intent_and_reference_validation_precede_any_mutation() {
         let error = connection(&client)
             .replace_device(
                 MoveInput {
+                    video: None,
                     target,
                     retain: "remote".parse().unwrap(),
                     expected_topology_revision: rev(),

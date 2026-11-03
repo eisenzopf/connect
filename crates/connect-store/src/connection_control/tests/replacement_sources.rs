@@ -75,6 +75,7 @@ fn fixture_with_source_capabilities(
             endpoint_id: Some(target.clone()),
             candidate_connid: None,
             retained_connid: remote.connection_id().into(),
+            video: None,
         },
         payload_extensions: Default::default(),
     };

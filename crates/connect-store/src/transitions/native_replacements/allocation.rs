@@ -192,6 +192,31 @@ fn target_facts_for_profile(
             "Replacement target requires one isolated duplex audio stream and provisioned optional video or Data",
         ));
     }
+    if let Some(value) = saved.get("video") {
+        let video: connect_protocol::replacement_video::ReplacementVideo =
+            serde_json::from_value(value.clone()).map_err(|_| Error::storage())?;
+        video.validate()?;
+        for (publication, mappings) in [(true, &video.publications), (false, &video.receivers)] {
+            for mapping in mappings {
+                let target = streams
+                    .iter()
+                    .find(|stream| stream["id"].as_str() == Some(mapping.replacement.as_str()))
+                    .ok_or_else(invalid)?;
+                let directions = if publication {
+                    ["sendonly", "sendrecv"]
+                } else {
+                    ["recvonly", "sendrecv"]
+                };
+                if target["kind"] != "video"
+                    || !target["direction"]
+                        .as_str()
+                        .is_some_and(|v| directions.contains(&v))
+                {
+                    return Err(invalid());
+                }
+            }
+        }
+    }
     // Reuse this exact admitted fence. Never acquire a nested original-source
     // reader behind a queued writer, nor fall back from an insufficient proof.
     let member = crate::audience::member(c, &actor.identity_id, &context.conversation_id, true)?;

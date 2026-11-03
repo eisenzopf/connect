@@ -2758,6 +2758,63 @@
         }
       ]
     },
+    "ReplacementVideoStream": {
+      "type": "object",
+      "properties": {
+        "previous": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "replacement": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "previous",
+        "replacement"
+      ],
+      "additionalProperties": false
+    },
+    "ReplacementVideo": {
+      "type": "object",
+      "properties": {
+        "publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReplacementVideoStream"
+          },
+          "maxItems": 32
+        },
+        "receivers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReplacementVideoStream"
+          },
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "publications",
+        "receivers"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "publications": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "receivers": {
+              "minItems": 1
+            }
+          }
+        }
+      ],
+      "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
+    },
     "ConnectionReplace": {
       "type": "object",
       "properties": {
@@ -2769,6 +2826,9 @@
         },
         "retained_connid": {
           "$ref": "#/$defs/Identifier"
+        },
+        "video": {
+          "$ref": "#/$defs/ReplacementVideo"
         }
       },
       "required": [

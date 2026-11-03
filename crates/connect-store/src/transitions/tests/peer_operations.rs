@@ -909,6 +909,7 @@ fn endpoint_replacement_admits_only_immutable_intent_while_current_packet_reader
         retained_connid: "conn-bob".into(),
         endpoint_id: Some("replacement-endpoint".into()),
         candidate_connid: None,
+        video: None,
     };
     let command = transition_command(command);
     let mut signed = request(&f, get("unused"));

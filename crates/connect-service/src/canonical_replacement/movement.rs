@@ -20,7 +20,7 @@ impl Runtime {
     ) -> Result<()> {
         let (roles, i) = super::projection::read(&self.role_projection, &self.stop,
             root.deadline.min(tokio::time::Instant::now() + Duration::from_secs(5)), || async {
-                let plan = self.core.plan_staged_device_replacement(&root.handle, None).map_err(|error| {
+                let plan = self.core.plan_staged_device_replacement(&root.handle, replacement_video(&root.plan)?).map_err(|error| {
                     tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
                     Error::forbidden()
                 })?;
@@ -402,4 +402,27 @@ impl connect_store::NativeReplacementInstallationObservation for Installed {
         }
         Ok(installed)
     }
+}
+
+fn replacement_video(
+    plan: &serde_json::Value,
+) -> Result<Option<rvoip_core::staged_streams::device_replacement::ReplacementVideoRequest>> {
+    use rvoip_core::staged_streams::device_replacement::{
+        ReplacementVideoRequest, ReplacementVideoStream,
+    };
+    let Some(value) = plan.get("video") else {
+        return Ok(None);
+    };
+    let video: connect_protocol::replacement_video::ReplacementVideo =
+        serde_json::from_value(value.clone()).map_err(|_| Error::storage())?;
+    video.validate()?;
+    let mapping =
+        |v: connect_protocol::replacement_video::ReplacementVideoStream| ReplacementVideoStream {
+            previous: rvoip_core::ids::StreamId::from_string(v.previous),
+            replacement: rvoip_core::ids::StreamId::from_string(v.replacement),
+        };
+    Ok(Some(ReplacementVideoRequest {
+        publications: video.publications.into_iter().map(mapping).collect(),
+        receivers: video.receivers.into_iter().map(mapping).collect(),
+    }))
 }

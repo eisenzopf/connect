@@ -17,6 +17,7 @@ pub struct HandoffRequest {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MoveRequest {
+    video: Option<ReplacementVideo>,
     retain: ConnectionId,
     target: MoveTarget,
     expected_revision: TopologyRevision,
@@ -71,6 +72,7 @@ pub(super) async fn replace(
         .connection_by_id(connid)
         .replace_device(
             MoveInput {
+                video: input.video,
                 retain: input.retain,
                 target: input.target,
                 expected_topology_revision: input.expected_revision,

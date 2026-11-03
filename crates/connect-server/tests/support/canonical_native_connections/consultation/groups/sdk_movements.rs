@@ -296,6 +296,7 @@ pub(super) async fn replacement(
         retained_connid,
         endpoint_id,
         candidate_connid,
+        video,
     } = &command.intent
     else {
         panic!("replacement");
@@ -311,6 +312,7 @@ pub(super) async fn replacement(
         .connection_by_id(command.connection_id.as_ref().unwrap().parse().unwrap())
         .replace_device(
             MoveInput {
+                video: video.clone(),
                 retain: retained_connid.parse().unwrap(),
                 target,
                 expected_topology_revision: sdk::TopologyRevision::try_from(

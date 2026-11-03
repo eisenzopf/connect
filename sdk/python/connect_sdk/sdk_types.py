@@ -446,10 +446,23 @@ class CandidateTarget:
 
 
 @dataclass(frozen=True)
+class ReplacementVideoStream:
+    previous: str
+    replacement: str
+
+
+@dataclass(frozen=True)
+class ReplacementVideo:
+    publications: Sequence[ReplacementVideoStream]
+    receivers: Sequence[ReplacementVideoStream]
+
+
+@dataclass(frozen=True)
 class MoveInput:
     retain: ConnectionId
     target: EndpointTarget | CandidateTarget
     expected_topology_revision: TopologyRevision
+    video: ReplacementVideo | None = None
 
 
 @dataclass(frozen=True, repr=False)

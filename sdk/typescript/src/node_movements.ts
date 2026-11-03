@@ -1,3 +1,7 @@
+import {
+    replacementVideo,
+    type ReplacementVideo,
+} from "./replacement_video.js";
 import { sdkRevision } from "./node_sdk.js";
 import type {
     SdkId,
@@ -52,6 +56,7 @@ export type SdkMoveTarget =
     | { readonly endpoint: EndpointId; readonly candidate?: never }
     | { readonly candidate: ConnectionId; readonly endpoint?: never };
 export interface SdkMoveInput {
+    readonly video?: ReplacementVideo;
     readonly retain: ConnectionId;
     readonly target: SdkMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
@@ -151,6 +156,9 @@ export function moveInput(v: SdkMoveInput, via: ConnectionId): JsonObject {
         retain: v.retain,
         target: { kind: endpoint ? "endpoint" : "candidate", id },
         expected_revision: sdkRevision<"topology">(v.expectedTopologyRevision),
+        ...(v.video === undefined
+            ? {}
+            : { video: replacementVideo(v.video, invalid) }),
     };
 }
 export function movementContext(v: Json, command: string, via: Json): boolean {

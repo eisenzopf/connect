@@ -50,6 +50,7 @@ pub(super) async fn run(
             endpoint_id: Some(endpoint),
             candidate_connid: None,
             retained_connid: "codec-source".into(),
+            video: None,
         },
         payload_extensions: Default::default(),
     };

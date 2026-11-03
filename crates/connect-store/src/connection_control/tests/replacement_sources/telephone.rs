@@ -107,6 +107,7 @@ fn setup_policy(
         endpoint_id: Some(endpoint_id.clone()),
         candidate_connid: None,
         retained_connid: sources[1].connection_id().into(),
+        video: None,
     };
     command.payload_extensions.insert(
         "destination".into(),

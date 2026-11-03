@@ -1254,6 +1254,44 @@
         ],
         "type": "string"
       },
+      "Input_ReplacementVideo": {
+        "additionalProperties": false,
+        "properties": {
+          "publications": {
+            "items": {
+              "$ref": "#/components/schemas/Input_ReplacementVideoStream"
+            },
+            "type": "array"
+          },
+          "receivers": {
+            "items": {
+              "$ref": "#/components/schemas/Input_ReplacementVideoStream"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "publications",
+          "receivers"
+        ],
+        "type": "object"
+      },
+      "Input_ReplacementVideoStream": {
+        "additionalProperties": false,
+        "properties": {
+          "previous": {
+            "type": "string"
+          },
+          "replacement": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "previous",
+          "replacement"
+        ],
+        "type": "object"
+      },
       "Input_Request": {
         "additionalProperties": false,
         "properties": {
@@ -2150,6 +2188,16 @@
               "type": {
                 "const": "connection.replace",
                 "type": "string"
+              },
+              "video": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Input_ReplacementVideo"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -14907,7 +14955,7 @@
   "x-connect-generation-inputs": {
     "Cargo.lock": "e8dd63daf5fdf833015b8ffab0867d62413dc83e429c23a3b0dbec5a70b081da",
     "Cargo.toml": "ef8daccfe0a291dc61a8b3af478223b9a7d03d5c98e7c2cee8b0db627011c722",
-    "contracts/openapi-canonical-http.json": "e5c4786071851ab7c5cb626c3459c0799e60b01bbbd70d035045721724186bba",
+    "contracts/openapi-canonical-http.json": "879b6f16c475cc6b35e3391fa4c8b85aafd38f30493af853b361e148615ae51b",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
     "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
     "crates/connect-protocol/examples/check_ice_restart_offer.rs": "25d6d67af68fd2686491810ca6976f6a5cf07f29c00eae0d5903315b4a116382",
@@ -14926,7 +14974,7 @@
     "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
     "crates/connect-protocol/src/events.rs": "1341260e990dc5d91d5ff3a5697c7e01c0ef54de59598086e4fa1bfcb9b6c298",
     "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
-    "crates/connect-protocol/src/lib.rs": "baaf23e18933ab36c4ce80eb20ae4c1b1bb673416ec593c67682013399a8b347",
+    "crates/connect-protocol/src/lib.rs": "e249058d55064d888b84d6b939e69ff5ea285f1982f88289c768c0102ba8f73b",
     "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
     "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
     "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
@@ -14946,6 +14994,7 @@
     "crates/connect-protocol/src/received_dtmf.rs": "99e322febcbdbc0fe839c0e256bb613347a67de8c2d829bf7df446d9599923df",
     "crates/connect-protocol/src/record_mutations.rs": "984346c16a8bffcc24de259bc9c878d11ab1e350eae274b897135b635a19ad20",
     "crates/connect-protocol/src/record_retention.rs": "69514b71bf86e3bf9fc3d143515a5983afc5f10844eafd9b6ccaac90cd9a4943",
+    "crates/connect-protocol/src/replacement_video.rs": "9d1d37109a8da2b5c70842b8d09059e5ca66d9dba08aa36565ac9e159aa5726f",
     "crates/connect-protocol/src/routing.rs": "299658249d9715c985da4636cec46077ec7c76e29767b7339d4d02d82639ac33",
     "crates/connect-protocol/src/session_codecs.rs": "e1cd465ddc186ab6054b193b13f9782739762ee16bfb41c3ff77bc9764f19963",
     "crates/connect-protocol/src/session_control/targets.rs": "4fb3870462f591ca21d169db21f846e1a2fe02096c8c02218de9e0476adbf2f2",
@@ -14958,7 +15007,7 @@
     "crates/connect-protocol/src/tasks/principal.rs": "15fd3964780deb097cbdb6ca8cce6410b9856e20a6e59a76594352a169a59548",
     "crates/connect-protocol/src/tasks/request.rs": "9def8ad3c4297b05fdfaab0824f2e077dc0d58840b7d09f01ae64323ddb82018",
     "crates/connect-protocol/src/tasks/validation.rs": "2e39602776e6da4850a94c4ea803b5ebdbdb8252377b791d48a35e871a053197",
-    "crates/connect-protocol/src/transitions.rs": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+    "crates/connect-protocol/src/transitions.rs": "99e0e3f46ef474cc37b111571f75585877515879a7aa78005664993b2f803d3b",
     "crates/connect-protocol/src/user_delegation.rs": "208746e9ffac0bae03bdd6fa2177a9801d7dca273f56458c820e2e656e22b35a",
     "crates/connect-protocol/src/video_profile.rs": "d1b626fb37196a0c4eb974d7db12aa6c11031a94a51bddca478d388cd65c356c",
     "crates/connect-protocol/src/webrtc_ice_restart/offer/negotiated.rs": "cc07caa3e052cdd26056fe90bf968cf7618b07fa2ace343449b3714eb335e7e0",
@@ -14971,7 +15020,7 @@
     "crates/connect-protocol/tests/enrollment.rs": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "3ddfcd6c990e3ccbc3d91e6e9a683789edb2526fa7b481a07ec939e95f827cf9",
-    "dependencies/source-lock.json": "40234d7920c8f3b62cfdc251808b67133698f1146b6028ab6abe1369c9bad9e2",
+    "dependencies/source-lock.json": "542669f1c9d5e4997399ff712f48c13128ed8c8cf24e2b983e7ada4c353a62ad",
     "scripts/generate-application-http-openapi.py": "446f18f31b5d737b61e5efd84bd0a6cbe7cc7729ac0ec73741efc6725db9c026"
   },
   "x-connect-generation-refinements": [

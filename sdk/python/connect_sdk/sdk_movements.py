@@ -11,7 +11,7 @@ from .sdk_types import (
     CandidateTarget, ConnectionId, ConsultationResult, ConsultInput, ConversationRevision,
     ConversationRole, EndpointTarget, HandoffInput, HandoffResult, HandoffRoleChange,
     Json, MoveBinding, MoveInput, MoveResult, MutationOptions, OperationKey, Scope,
-    SessionRole, TopologyChange, TopologyRevision, identifier,
+    SessionRole, TopologyChange, TopologyRevision, identifier, ReplacementVideo, ReplacementVideoStream,
 )
 
 ConsultationOperation: TypeAlias = Operation[ConsultationResult]
@@ -202,6 +202,20 @@ async def replace_device(connection: Connection, input: MoveInput, options: Muta
     elif type(input.target) is CandidateTarget and input.target.candidate not in (connection.id,input.retain):target={"kind":"candidate","id":_id(input.target.candidate)}
     else:return _invalid()
     captured={"retain":input.retain,"target":target,"expected_revision":_revision(input.expected_topology_revision)}
+    if input.video is not None:
+        video=input.video
+        if type(video) is not ReplacementVideo or not isinstance(video.publications,(tuple,list)) or not isinstance(video.receivers,(tuple,list)) or not 1 <= len(video.publications)+len(video.receivers) <= 32:return _invalid()
+        targets: set[str]=set()
+        groups={}
+        for name,items in (("publications",video.publications),("receivers",video.receivers)):
+            previous: set[str]=set()
+            group=[]
+            for item in items:
+                if type(item) is not ReplacementVideoStream or not identifier(item.previous) or not identifier(item.replacement) or item.previous in previous or item.replacement in targets:return _invalid()
+                previous.add(item.previous);targets.add(item.replacement)
+                group.append({"previous":item.previous,"replacement":item.replacement})
+            groups[name]=group
+        captured["video"]=groups
     context={"kind":"replacement","retained_connection_id":input.retain,"target":target}
     key=OperationKey(options.operation_id,"connection.replace",Scope(connection.conversation_id,connection.session_id,connection.id))
     return await _movement(connection._client,"connection_move",key,captured,context,connection._client.operation_kinds.connection_replace,options)

@@ -108,6 +108,8 @@ pub enum TransitionIntent {
         endpoint_id: Option<String>,
         candidate_connid: Option<String>,
         retained_connid: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        video: Option<crate::replacement_video::ReplacementVideo>,
     },
 }
 impl TransitionIntent {
@@ -149,7 +151,12 @@ impl TransitionIntent {
                 "role_scope",
                 "expected_conversation_revision",
             ],
-            Self::Replace { .. } => &["retained_connid", "endpoint_id", "candidate_connid"],
+            Self::Replace { .. } => &[
+                "retained_connid",
+                "endpoint_id",
+                "candidate_connid",
+                "video",
+            ],
         }
     }
     pub fn candidate(&self) -> Option<&str> {
@@ -303,8 +310,12 @@ impl TransitionRequest {
             TransitionIntent::Replace {
                 endpoint_id,
                 candidate_connid,
+                video,
                 ..
             } => {
+                if let Some(video) = video {
+                    video.validate()?;
+                }
                 if self.connection_id.is_none()
                     || endpoint_id.is_some() == candidate_connid.is_some()
                 {

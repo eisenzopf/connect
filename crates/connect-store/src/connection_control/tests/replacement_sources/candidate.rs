@@ -89,6 +89,7 @@ pub(super) fn pending() -> Pending {
         endpoint_id: None,
         candidate_connid: Some("replacement-next".into()),
         retained_connid: sources[1].connection_id().into(),
+        video: None,
     };
     // The original peer still holds its invocation reader. Admission must not
     // wait for that reader to finish an unanswered parameter callback.

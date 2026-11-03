@@ -459,6 +459,7 @@ async fn exercise_replacement_with_av_control(
                 endpoint_id: (!candidate_target).then(|| endpoint.clone()),
                 candidate_connid: candidate_target.then(|| candidate_id.to_owned()),
                 retained_connid: "codec-source".into(),
+                video: None,
             },
             payload_extensions: Default::default(),
         };
@@ -1545,6 +1546,7 @@ async fn subsequent_move(
             endpoint_id: Some(endpoint),
             candidate_connid: None,
             retained_connid: "codec-source".into(),
+            video: None,
         },
         payload_extensions: Default::default(),
     };

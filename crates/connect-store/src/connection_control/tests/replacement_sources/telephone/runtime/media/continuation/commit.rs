@@ -557,6 +557,7 @@ fn telephone_source_native_replacement_uses_independent_current_origin_and_gener
             endpoint_id: Some(target.clone()),
             candidate_connid: None,
             retained_connid: sources[1].connection_id().into(),
+            video: None,
         },
         payload_extensions: Default::default(),
     };

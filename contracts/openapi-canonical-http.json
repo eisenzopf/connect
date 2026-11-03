@@ -3639,6 +3639,63 @@
           }
         ]
       },
+      "WireReplacementVideoStream": {
+        "type": "object",
+        "properties": {
+          "previous": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "replacement": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "previous",
+          "replacement"
+        ],
+        "additionalProperties": false
+      },
+      "WireReplacementVideo": {
+        "type": "object",
+        "properties": {
+          "publications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireReplacementVideoStream"
+            },
+            "maxItems": 32
+          },
+          "receivers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireReplacementVideoStream"
+            },
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "publications",
+          "receivers"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "properties": {
+              "publications": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "properties": {
+              "receivers": {
+                "minItems": 1
+              }
+            }
+          }
+        ],
+        "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
+      },
       "WireConnectionReplace": {
         "type": "object",
         "properties": {
@@ -3650,6 +3707,9 @@
           },
           "retained_connid": {
             "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "video": {
+            "$ref": "#/components/schemas/WireReplacementVideo"
           }
         },
         "required": [

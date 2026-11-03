@@ -37,8 +37,8 @@ def generate(destination):
         unknown = set(node) - vocabulary
         if unknown:
             raise ValueError(f'Unsupported compiled schema vocabulary: {unknown}')
-        if node.get('additionalProperties', True) is not True:
-            raise ValueError('Runtime currently preserves optional extensions')
+        if not isinstance(node.get('additionalProperties', True), bool):
+            raise ValueError('Runtime supports boolean additionalProperties only')
         if 'pattern' in node and node['pattern'] not in ('^[A-Za-z0-9._~-]+$', '^(sip|sips|tel):[!-~]+$'):
             raise ValueError('Runtime supports only the fixed identifier and Session gateway patterns')
         if 'format' in node and node['format'] != 'date-time':
@@ -66,6 +66,10 @@ def generate(destination):
             enums[hint] = spec['enum']
             return hint
         if 'const' in spec:
+            if isinstance(spec['const'], bool):
+                return 'bool'
+            if isinstance(spec['const'], int):
+                return 'u64'
             enums[hint] = [spec['const']]
             return hint
         kind = spec.get('type')
@@ -114,7 +118,10 @@ def generate(destination):
                           '    CodecRenegotiate { codec_preferences: Vec<String> },',
                           '}', ''])
         else:
-            lines.extend(['#[derive(Clone, Serialize, Deserialize)]', f'pub struct {name} {{'])
+            lines.append('#[derive(Clone, Serialize, Deserialize)]')
+            if spec.get('additionalProperties') is False:
+                lines.append('#[serde(deny_unknown_fields)]')
+            lines.append(f'pub struct {name} {{')
             for key, value in spec.get('properties', {}).items():
                 rust = field_type(value, name + pascal(key))
                 optional = key not in spec.get('required', [])
@@ -137,8 +144,11 @@ def generate(destination):
 
     registry = []
     for branch in schema['allOf']:
-        kind = branch['if']['properties']['type']['const']
         then = branch['then']
+        # Additional envelope invariants are validation clauses, not payload registrations.
+        if '$ref' not in then.get('properties', {}).get('payload', {}):
+            continue
+        kind = branch['if']['properties']['type']['const']
         model = then['properties']['payload']['$ref'].rsplit('/', 1)[-1]
         required = then['required'] + then.get('anyOf', [{}])[0].get('required', [])
         registry.append((kind, model, required))

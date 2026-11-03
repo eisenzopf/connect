@@ -475,7 +475,16 @@ pub enum MoveTarget {
     Endpoint(EndpointId),
     Candidate(ConnectionId),
 }
+pub struct ReplacementVideoStream {
+    pub previous: String,
+    pub replacement: String,
+}
+pub struct ReplacementVideo {
+    pub publications: Vec<ReplacementVideoStream>,
+    pub receivers: Vec<ReplacementVideoStream>,
+}
 pub struct MoveInput {
+    pub video: Option<ReplacementVideo>,
     pub retain: ConnectionId,
     pub target: MoveTarget,
     pub expected_topology_revision: TopologyRevision,

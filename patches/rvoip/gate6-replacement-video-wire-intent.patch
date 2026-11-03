@@ -1,0 +1,121 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/payloads.rs b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -1084,12 +1084,40 @@
+ }
+ 
+ #[derive(Clone, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct ReplacementVideoStream {
++    pub previous: Identifier,
++    pub replacement: Identifier,
++}
++
++impl std::fmt::Debug for ReplacementVideoStream {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReplacementVideoStream(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct ReplacementVideo {
++    pub publications: Vec<ReplacementVideoStream>,
++    pub receivers: Vec<ReplacementVideoStream>,
++}
++
++impl std::fmt::Debug for ReplacementVideo {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReplacementVideo(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
+ pub struct ConnectionReplace {
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub endpoint_id: Option<Identifier>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub candidate_connid: Option<Identifier>,
+     pub retained_connid: Identifier,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub video: Option<ReplacementVideo>,
+ }
+ 
+ impl std::fmt::Debug for ConnectionReplace {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -2769,6 +2769,9 @@
+         },
+         "retained_connid": {
+           "$ref": "#/$defs/Identifier"
++        },
++        "video": {
++          "$ref": "#/$defs/ReplacementVideo"
+         }
+       },
+       "required": [
+@@ -3028,6 +3031,63 @@
+         "sig"
+       ],
+       "additionalProperties": true
++    },
++    "ReplacementVideoStream": {
++      "type": "object",
++      "properties": {
++        "previous": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "replacement": {
++          "$ref": "#/$defs/Identifier"
++        }
++      },
++      "required": [
++        "previous",
++        "replacement"
++      ],
++      "additionalProperties": false
++    },
++    "ReplacementVideo": {
++      "type": "object",
++      "properties": {
++        "publications": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/ReplacementVideoStream"
++          },
++          "maxItems": 32
++        },
++        "receivers": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/ReplacementVideoStream"
++          },
++          "maxItems": 32
++        }
++      },
++      "required": [
++        "publications",
++        "receivers"
++      ],
++      "additionalProperties": false,
++      "anyOf": [
++        {
++          "properties": {
++            "publications": {
++              "minItems": 1
++            }
++          }
++        },
++        {
++          "properties": {
++            "receivers": {
++              "minItems": 1
++            }
++          }
++        }
++      ],
++      "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
+     }
+   },
+   "allOf": [

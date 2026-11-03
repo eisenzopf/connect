@@ -1,6 +1,7 @@
 //! Typed handoff and device movement preserve captured topology and original intent.
 use super::consultations::Continuation;
 use super::*;
+pub use connect_protocol::replacement_video::{ReplacementVideo, ReplacementVideoStream};
 use connect_protocol::transitions::{
     OutgoingDisposition, RoleScope, TransitionCommand, TransitionIntent,
 };
@@ -46,6 +47,7 @@ pub enum MoveTarget {
 }
 #[derive(Clone, Debug)]
 pub struct MoveInput {
+    pub video: Option<ReplacementVideo>,
     pub retain: ConnectionId,
     pub target: MoveTarget,
     pub expected_topology_revision: TopologyRevision,
@@ -526,6 +528,7 @@ impl Connection {
             retained_connid: input.retain.as_str().into(),
             endpoint_id,
             candidate_connid,
+            video: input.video,
         };
         let context = Continuation::Replacement {
             retained_connection_id: input.retain,
