@@ -1,0 +1,66 @@
+{
+  "format": "connect/gate6-replacement-preparation-readiness-checks/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "candidate_source_revision": "ee3b20b3e426c83f7ef69a5d85f9dd295714a0a4",
+  "platform": "local Ubuntu24.04 aarch64 VM on owner Mac Studio",
+  "files_sha256": {
+    "crates/connect-service/src/canonical_replacement/readiness.rs": "864b0a6908d5d6d9cfbc0d34c6b08d2354f149ad5083062c71a3f37bfdd4669d",
+    "crates/connect-service/src/canonical_replacement/allocation.rs": "6bb7384ee5d7acf6d78ad46f21897b80a4f440ba29a69e1dfa051d2c4bb2e11e",
+    "scripts/lib/transport_replacement_target.mjs": "877c27df766956479ee94bbedf87e574c3fcd43e48f0c6f8af3323864cf4e62e",
+    "scripts/tests/transport_replacement_owner.test.mjs": "db38fc30415ab9861ad37973765ce9fc15b4468978ad2b8a6c3e0a2e8bf68810"
+  },
+  "focused_checks": {
+    "readiness_component": {
+      "passed": 4,
+      "failed": 0,
+      "scope": "Exact production readiness.rs source compiled as a standalone Rust test module, with the same Rust1.97.1 and already built extern dependencies. This is not a complete connect-service libtest run.",
+      "behaviors": [
+        "wait for recorded capture after original reservation",
+        "missing capture expires under original bound",
+        "stop/invocation/physical cancellation refuses ready capture",
+        "authority refusal is never retried"
+      ]
+    },
+    "physical_owner_controller": {
+      "passed": 3,
+      "failed": 0,
+      "scope": "Actual separately owned synthetic process and mocked operation reads; no native media qualification.",
+      "behaviors": [
+        "early worker exit cancels only read wait and preserves physical cause",
+        "live ownership joins and repeated stop share cleanup",
+        "failed owner cannot promote admission to final success"
+      ]
+    },
+    "old_controller_counterexample": {
+      "expected_failure": true,
+      "passed": 0,
+      "failed": 1,
+      "actual_message": "synthetic-read-deadline",
+      "expected_message": "original-physical-target-exited-before-completion"
+    }
+  },
+  "log_sha256": {
+    "old-controller-counterexample.log": "677f26999e6ef04fe519d8894f2c415eb1c0fb1848c02f24d92dfc47f8996590",
+    "readiness-component.log": "f52d7f6806de6293e54796aae6306d021f94f6a9dbbba6de7f34ffe6ae67cbaf",
+    "readiness-component-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "node-owner.log": "59dd125870e190e3c547ca22953baf9651ac0ea5edf01c982f90afdbada9abfc"
+  },
+  "superseded_check": {
+    "full_service_libtest_build": "Interrupted before executing tests, after483.464s compiling uncached test dependencies/service. Exact component source was then checked independently. No full libtest pass claim.",
+    "normal_production_service_build": "In progress on frozen candidate ee3b20b3; actual four-move media result pending."
+  },
+  "invariants": {
+    "original_mutation_reference_preserved": true,
+    "no_mutation_replay_added": true,
+    "original_8s_workload_operation_bound_unchanged": true,
+    "existing_5s_metadata_bound_used": true,
+    "media_quality_and_cleanup_bounds_unchanged": true,
+    "G054_deferred": true,
+    "general_regression_suites_rerun": false
+  },
+  "runtime_qualified": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

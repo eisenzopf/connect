@@ -201,3 +201,9 @@ protected Task access, artifact bytes/links and record mutation contracts.
 `contracts/http-endpoints.json` checks current source declarations against those
 references. Route coverage is separate from actual request/response and
 current-authorization evidence, including all named `/v1/operations` variants.
+
+## Replacement preparation observations
+
+For native device replacement, `preparing` includes reservation and the original Core preparation call. It does not establish recorded target custody, media readiness or completed movement. The physical allocation invocation waits for the original recorded preparation under the existing five-second metadata bound and current peer/invocation lifetime, without holding the role projection lock or repeating preparation/allocation. HTTP may observe the original operation; it cannot act as a physical media owner. Preserve the saved logical operation reference across uncertainty.
+
+See [the physical replacement contract](native-physical-replacement-peer.md) and [focused readiness checks](../evidence/gate-6/replacement-preparation-readiness-checks.json). These checks do not qualify a transport cell.
