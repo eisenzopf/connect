@@ -1280,4 +1280,8 @@ mod not_submitted;
 mod transaction_diagnostics;
 
 struct MetadataOnlyInstallationGuard;
-impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard {}
+impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard {
+    fn publish(&self, commit: Box<dyn FnOnce() -> crate::Result<()> + '_>) -> crate::Result<()> {
+        commit()
+    }
+}

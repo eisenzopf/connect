@@ -447,6 +447,12 @@ impl ReplacementAdoption {
             return Err(connect_protocol::Error::forbidden());
         }
         Ok(Some(Box::new(InstalledEntry {
+            native: self
+                .target
+                .activation
+                .get()
+                .ok_or_else(connect_protocol::Error::forbidden)?,
+            generation: expected.origin().generation(),
             _entries: entries,
             _provisional: provisional,
             _activation: activation,
@@ -458,6 +464,8 @@ impl ReplacementAdoption {
 /// Service removal takes the same registry mutex. Keep both registries stable
 /// only for the short final SQL commit, after all fallible Store work is done.
 struct InstalledEntry<'a> {
+    native: &'a rvoip_uctp::v2::native_negotiation::NativeMediaActivation,
+    generation: u64,
     _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
     _binding: std::sync::MutexGuard<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
 
@@ -471,4 +479,19 @@ struct InstalledEntry<'a> {
         >,
     >,
 }
-impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {}
+impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {
+    fn publish(
+        &self,
+        commit: Box<dyn FnOnce() -> connect_protocol::Result<()> + '_>,
+    ) -> connect_protocol::Result<()> {
+        self.native
+            .try_publish_installed(self.generation, commit)
+            .map_err(|error| match error {
+                StreamControlError::NotReady => connect_protocol::Error::new(
+                    "authority-busy",
+                    "Native publication metadata is busy",
+                ),
+                _ => connect_protocol::Error::forbidden(),
+            })?
+    }
+}

@@ -1,0 +1,198 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/activation.rs b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/activation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+@@ -58,6 +58,64 @@
+     }
+     pub fn committed_generation(&self) -> Option<u64> {
+         self.is_committed().then_some(self.generation)
++    }
++    /// Order one synchronous host publication against controller retirement.
++    /// The final cancellation read under the controller state lock is the
++    /// ordering point. Cancellation before it refuses the callback. Cancellation
++    /// afterward still fences packets immediately, but retirement cannot remove
++    /// the installed port metadata until this callback returns. A successful
++    /// host commit can therefore precede subsequent retirement; this is never a
++    /// promise of future connectivity or a media authority lease.
++    ///
++    /// Acquisition is nonblocking. The callback must perform only its already
++    /// prepared local publication: no native IO, await, policy or control call.
++    pub fn try_publish_installed<R>(
++        &self,
++        generation: u64,
++        publish: impl FnOnce() -> R,
++    ) -> ControlResult<R> {
++        let controller = self.controller()?;
++        let state = controller.state.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        if state.closed
++            || generation != self.generation
++            || !self.committed.load(Ordering::Acquire)
++            || self.bindings.is_empty()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut ports = Vec::with_capacity(self.bindings.len());
++        for binding in &self.bindings {
++            let port = state
++                .active
++                .values()
++                .find(|port| {
++                    port.binding.transport_id == binding.transport_id
++                        && port.binding.stream_local_id == binding.stream_local_id
++                        && port.binding.generation == binding.generation
++                        && port.binding.connection_generation == generation
++                })
++                .ok_or(StreamControlError::Authority)?;
++            let active = port.state.try_lock().map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++                std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++            })?;
++            if !active.ready || !matches!(active.status, PortStatus::Active | PortStatus::Paused) {
++                return Err(StreamControlError::Authority);
++            }
++            ports.push(active);
++        }
++        // This final read orders publication. Neither token is deferred or
++        // replaced: external lifetime cancellation continues to fence IO now.
++        if controller.shutdown.is_cancelled() || self.cancelled.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let result = publish();
++        drop(ports);
++        drop(state);
++        Ok(result)
+     }
+     /// Use only inside the same current control lease after its protocol has
+     /// independently verified required endpoint confirmation. This changes no
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/replacement_activation.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/replacement_activation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/replacement_activation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/replacement_activation.rs
+@@ -392,3 +392,100 @@
+     drop(held);
+     assert_eq!(controller.shutdown(deadline()).await, 0);
+ }
++
++#[tokio::test]
++async fn installed_publication_orders_retirement_but_never_defers_packet_cancellation() {
++    for mode in [
++        "already-cancelled",
++        "retire-during",
++        "external-during",
++        "rollback",
++    ] {
++        let (_, policy, held, controller, adapter) = setup(true, false).await;
++        controller
++            .change_with_held(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++                held.clone(),
++            )
++            .await
++            .unwrap();
++        let proof = policy.proof.lock().unwrap().clone().unwrap();
++        let port = adapter.port(Medium::Audio);
++        let called = std::cell::Cell::new(0);
++        // Wrong generation and busy controller metadata never invoke SQL work.
++        assert!(proof.try_publish_installed(3, || called.set(99)).is_err());
++        let busy = controller.state.lock().unwrap();
++        let began = std::time::Instant::now();
++        for _ in 0..16 {
++            assert!(matches!(
++                proof.try_publish_installed(2, || called.set(99)),
++                Err(StreamControlError::NotReady)
++            ));
++        }
++        assert!(began.elapsed() < Duration::from_millis(50));
++        drop(busy);
++        if mode == "already-cancelled" {
++            controller.shutdown.clone().cancel();
++            assert!(matches!(
++                proof.try_publish_installed(2, || called.set(99)),
++                Err(StreamControlError::Cancelled)
++            ));
++            assert_eq!(called.get(), 0);
++        } else {
++            let mut retirement = None;
++            let mut done_retiring = None;
++            let result = proof
++                .try_publish_installed(2, || {
++                    called.set(called.get() + 1);
++                    assert!(controller.state.try_lock().is_err());
++                    if mode == "retire-during" || mode == "rollback" {
++                        let c = controller.clone();
++                        let (sent, done) = std::sync::mpsc::channel();
++                        retirement = Some(std::thread::spawn(move || {
++                            c.retire();
++                            sent.send(()).unwrap();
++                        }));
++                        let until = std::time::Instant::now() + Duration::from_secs(1);
++                        while !controller.shutdown.is_cancelled() {
++                            assert!(std::time::Instant::now() < until);
++                            std::thread::yield_now();
++                        }
++                        assert!(port.ingress_is_closed(), "packet cancellation is immediate");
++                        assert!(
++                            matches!(done.try_recv(), Err(std::sync::mpsc::TryRecvError::Empty)),
++                            "retirement removed resources before publication returned"
++                        );
++                        // Keep the receiver alive until the retirement sender completes.
++                        done_retiring = Some(done);
++                    } else {
++                        // External parent/shared lifetime cancellation does not call
++                        // retire: it must still fence packets during publication.
++                        controller.shutdown.clone().cancel();
++                        assert!(port.ingress_is_closed());
++                    }
++                    if mode == "rollback" {
++                        Err("controlled host commit failure")
++                    } else {
++                        Ok(())
++                    }
++                })
++                .unwrap();
++            assert_eq!(result.is_err(), mode == "rollback");
++            if let Some(done) = done_retiring {
++                done.recv_timeout(Duration::from_secs(1)).unwrap();
++            }
++            if let Some(retirement) = retirement {
++                retirement.join().unwrap();
++            }
++            assert_eq!(called.get(), 1);
++            assert!(proof.try_publish_installed(2, || called.set(99)).is_err());
++        }
++        assert!(port.try_publish(&frame(&port, 160)).is_err());
++        drop(held);
++        assert_eq!(controller.shutdown(deadline()).await, 0);
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -124,6 +124,22 @@
+         })?;
+         Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
+     }
++    /// Keep the exact signed preparation and Core installed resources stable
++    /// through one synchronous host publication. This supplies no IO permission.
++    pub fn try_publish_installed<R>(
++        &self,
++        generation: u64,
++        publish: impl FnOnce() -> R,
++    ) -> ControlResult<R> {
++        let prepared = self.prepared.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        prepared
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .try_publish_installed(generation, publish)
++    }
+     pub fn confirmed_generation(&self) -> Option<u64> {
+         self.prepared
+             .lock()

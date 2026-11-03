@@ -28,7 +28,12 @@ impl NativeReplacementActivation {
 
 /// Holds the exact installed Service entry against removal through publication.
 /// This is local resource custody, never permission to read or write media.
-pub trait NativeReplacementInstallationGuard {}
+pub trait NativeReplacementInstallationGuard {
+    /// Recheck and order native retirement around the final synchronous commit.
+    /// The callback is already prepared local SQL work, never native IO or an
+    /// authorization acquisition. Failure before it runs must leave no Ready.
+    fn publish(&self, commit: Box<dyn FnOnce() -> Result<()> + '_>) -> Result<()>;
+}
 
 /// Trusted runtime observation of the exact inactive ordinary entry and its
 /// observer installation. Acquisition must be nonblocking local metadata only:

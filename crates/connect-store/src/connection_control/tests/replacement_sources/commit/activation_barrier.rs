@@ -273,7 +273,14 @@ fn installation_custody_survives_until_the_ready_transaction_is_visible() {
         drops: std::sync::Mutex<Vec<bool>>,
     }
     struct Guard<'a>(&'a Observation);
-    impl crate::NativeReplacementInstallationGuard for Guard<'_> {}
+    impl crate::NativeReplacementInstallationGuard for Guard<'_> {
+        fn publish(
+            &self,
+            commit: Box<dyn FnOnce() -> crate::Result<()> + '_>,
+        ) -> crate::Result<()> {
+            commit()
+        }
+    }
     impl Drop for Guard<'_> {
         fn drop(&mut self) {
             // An independent reader can see only committed data. This checks
@@ -306,4 +313,69 @@ fn installation_custody_survives_until_the_ready_transaction_is_visible() {
         .project_native_replacement_committed(&capture, &observation)
         .unwrap();
     assert_eq!(*observation.drops.lock().unwrap(), vec![false, true]);
+}
+
+#[test]
+fn final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once() {
+    struct Publication {
+        refuse: std::sync::atomic::AtomicBool,
+        calls: AtomicUsize,
+    }
+    struct Guard<'a>(&'a Publication);
+    impl crate::NativeReplacementInstallationGuard for Guard<'_> {
+        fn publish(
+            &self,
+            commit: Box<dyn FnOnce() -> crate::Result<()> + '_>,
+        ) -> crate::Result<()> {
+            self.0.calls.fetch_add(1, Ordering::SeqCst);
+            if self.0.refuse.load(Ordering::SeqCst) {
+                return Err(Error::forbidden());
+            }
+            commit()
+        }
+    }
+    impl crate::NativeReplacementInstallationObservation for Publication {
+        fn hold_installed(
+            &self,
+            _: &crate::NativeReplacementActivation,
+        ) -> crate::Result<Option<Box<dyn crate::NativeReplacementInstallationGuard + '_>>>
+        {
+            Ok(Some(Box::new(Guard(self))))
+        }
+    }
+    let m = fixture(true);
+    let capture = captured(&m);
+    let observation = Publication {
+        refuse: std::sync::atomic::AtomicBool::new(true),
+        calls: AtomicUsize::new(0),
+    };
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    assert_eq!(
+        m.f.store
+            .project_native_replacement_committed(&capture, &observation)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(observation.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert_eq!(ready_events(&m, &capture), 0);
+    observation.refuse.store(false, Ordering::SeqCst);
+    m.f.store
+        .project_native_replacement_committed(&capture, &observation)
+        .unwrap();
+    let after = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let events = ready_events(&m, &capture);
+    assert!(events > 0);
+    assert_eq!(observation.calls.load(Ordering::SeqCst), 2);
+    m.f.store
+        .project_native_replacement_committed(&capture, &observation)
+        .unwrap();
+    assert_eq!(
+        observation.calls.load(Ordering::SeqCst),
+        2,
+        "historical replay must not publish again"
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), after);
+    assert_eq!(ready_events(&m, &capture), events);
 }

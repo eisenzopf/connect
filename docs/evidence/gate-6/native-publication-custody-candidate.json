@@ -1,0 +1,34 @@
+{
+  "format": "connect/gate6-native-publication-custody-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Execute final replacement SQL commit inside a nonblocking native callback that pins exact signed Core controller/port installation metadata. Final current cancellation read defines publication ordering; cancellation still fences packet IO immediately, while overlapping resource retirement follows callback completion.",
+  "patch": {
+    "path": "patches/rvoip/gate6-native-publication-custody.patch",
+    "sha256": "6525258dbd68c40ba6325e98da4355f05326301fc0334b944ae5947a51d42a74"
+  },
+  "state_order": [
+    "Cancellation observed before native publication callback: refuse callback, rollback all Ready/Completed projection writes, settle exact known movement as stopped without physical replay.",
+    "Cancellation after final check under installed-resource custody: immediate packet revocation remains active, physical metadata retirement waits for callback return. Successful SQL orders Ready then retirement; failed SQL emits no Ready.",
+    "No Store current authority or SQL mutex is acquired from Core; Service supplies only the already-prepared final local commit. All resource acquisitions are try-locks."
+  ],
+  "new_cases": [
+    "staged_streams::tests::replacement_activation::installed_publication_orders_retirement_but_never_defers_packet_cancellation",
+    "connection_control::tests::replacement_sources::commit::activation_barrier::final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once"
+  ],
+  "checks_pending": [
+    "Compile and run only the two new exact Core/Store cases on local ARM after original v41 terminates with source guards.",
+    "Compile changed native/Service wiring; an actual signed cancellation versus publication integration case remains required before lifecycle closure."
+  ],
+  "limits": [
+    "Uncompiled and unexecuted candidate. New test assertions are not evidence of a pass.",
+    "Core fixture has actual staged controllers/ports but synthetic authority/adapter facts; Store callback fixture has no native resource observation.",
+    "External token cancellation is checked directly; continued connectivity is not asserted. Complete signed transport-loss/publication and Data observer fault cases remain unqualified.",
+    "No video bootstrap, epoch, full media-quality, complete transport-cell, idle or G6-054 evidence."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

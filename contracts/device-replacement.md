@@ -447,6 +447,19 @@ the candidate's actual generation and replaces lineage, preserves its participan
 and main session, retires only the old connection, advances topology, records
 ready/retired journal facts and completes the original replacement operation.
 
+The final local SQL commit executes inside a native publication callback. The
+callback nonblockingly pins the original signed resource observation, controller
+state and exact active port metadata. Its final cancellation read is the lifecycle
+ordering point: cancellation already observed refuses publication and rolls the
+transaction back. Cancellation after that point still closes packet admission
+immediately; the overlapping retirement cannot remove the pinned resources until
+the synchronous callback returns. If SQL commits, Ready precedes the subsequent
+retirement record. If SQL fails, no Ready is published and the same known movement
+is reconciled without replay. No native IO, await, or fresh authority acquisition
+is permitted inside this callback. This orders overlapping lifecycle operations;
+it does not promise continuing network connectivity after the ordering point.
+The implementation and focused checks are recorded separately from qualification.
+
 If the new target has already stopped, an exact absence observation instead
 settles the known move as `activation_state: "stopped"`. Its original physical
 admission/lifetime and subsequent retirement are recorded in one transaction;

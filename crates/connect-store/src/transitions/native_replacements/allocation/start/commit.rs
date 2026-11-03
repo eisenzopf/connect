@@ -668,11 +668,18 @@ impl Store {
             &target.runtime_connection_id,
             target.connection.generation,
         )?;
-        if !owner.current() {
-            return Err(Error::forbidden());
+        let commit = Box::new(|| {
+            if !owner.current() {
+                return Err(Error::forbidden());
+            }
+            timing.committing();
+            tx.commit().map_err(|_| Error::storage())
+        });
+        if let Some(installation) = installation.as_ref() {
+            installation.publish(commit)?;
+        } else {
+            commit()?;
         }
-        timing.committing();
-        tx.commit().map_err(|_| Error::storage())?;
         timing.committed();
         drop(installation);
         Ok(origin)
