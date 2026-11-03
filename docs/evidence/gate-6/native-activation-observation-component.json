@@ -4,7 +4,7 @@
   "task": "G6-058",
   "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
   "source_revision": "76b35fd925b128b9334f43088f2e06660afebf7c",
-  "result": "Both new native activation cases pass. Service library compile fails on an error-conversion type mismatch; correction 6759c2c1 awaits its compile check.",
+  "result": "Both new native activation cases pass at 76b35fd9. The initial Service compile error-conversion mismatch is corrected and Service compiles at 6759c2c1.",
   "coverage": [
     "Original activation metadata try-read returns temporary refusal under real mutex contention, rejects poison and does not manufacture a generation from missing preparation.",
     "An actual signed local QUIC initial resource admission confirms generation one; synchronous retirement clears original resource confirmation while its adapter entry still remains."
@@ -57,12 +57,18 @@
   "limitations": [
     "Native case covers actual initial generation-one resource cancellation, not a Connect generation-two replacement or Store publication race.",
     "Native resource confirmation is a point-in-time observation, not a cancellation lock through SQL commit. Ordinary current packet checks remain required.",
-    "Service build correction remains unverified until the subsequent exact-source check.",
     "No full media workload, P1 writer-drain/P3/P5 proof or transport-cell qualification."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "cell_qualified": false,
   "task_complete": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "corrected_service_compile": {
+    "source_revision": "6759c2c1aa8b973e23e5f43341d76a7c1100bde3",
+    "exit_code": 0,
+    "log_sha256": "22d277b9c1974cfd1dc660a6eb21c1a37812a2383e8ec853e175fe4accd8d3a6",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true
+  }
 }

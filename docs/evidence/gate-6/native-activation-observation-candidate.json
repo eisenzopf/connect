@@ -4,9 +4,7 @@
   "date": "2026-11-03",
   "change": "Final Service installation observation also requires the expected generation from the original sealed NativeMediaActivation via a nonblocking metadata read. Busy maps to temporary refusal; missing/cancelled/wrong-generation or poison cannot publish Ready.",
   "patch": "patches/rvoip/gate6-native-activation-observation.patch",
-  "checks_pending": [
-    "Service library compile after error-conversion correction 6759c2c1."
-  ],
+  "checks_pending": [],
   "limitations": [
     "No actual replacement Store/Service end-race or process restart proof yet.",
     "Resource check is an observation at publication, not a guard against future network loss; current packet checks remain mandatory.",
@@ -16,5 +14,6 @@
   "task_complete": false,
   "cell_qualified": false,
   "G054_deferred": true,
-  "component_evidence": "docs/evidence/gate-6/native-activation-observation-component.json"
+  "component_evidence": "docs/evidence/gate-6/native-activation-observation-component.json",
+  "service_compile_evidence": "docs/evidence/gate-6/replacement-activation-recovery-component.json"
 }

@@ -1,0 +1,97 @@
+{
+  "format": "connect/gate6-replacement-activation-recovery-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "result": "Uncaptured-outcome case passes at 6759c2c1. Captured-outcome case fails there and passes after source-lineage correction 2973c18c. Service integration and the prior native-observation error-conversion fix compile at 6759c2c1.",
+  "runs": [
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 105565,
+      "source_revision": "6759c2c1aa8b973e23e5f43341d76a7c1100bde3",
+      "passed": false,
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_recovery::successor_settles_only_exact_captured_move_as_stopped_without_replay_or_ready",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1338 filtered out; finished in 0.28s"
+          ],
+          "log_sha256": "0f57a29a90f07db4e178f4f8cb7198d893f8dab6248a51461ff38beeaeaa0420"
+        },
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_recovery::successor_does_not_infer_uncaptured_movement_from_resource_absence",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1338 filtered out; finished in 0.24s"
+          ],
+          "log_sha256": "8d174601cb3cc13e1c3502b7ea872d5303f16b1385e613682886239cbab5efc7"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "service_activation_recovery_candidate": true,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "d6f12427b2bf361f4f18c9919eb6aaaa21e251c7332ef4c0573f424f25b1734c",
+      "executable_unchanged": true,
+      "service_check_exit_code": 0,
+      "service_check_log_sha256": "22d277b9c1974cfd1dc660a6eb21c1a37812a2383e8ec853e175fe4accd8d3a6",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 537.1477276970036
+    },
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 105850,
+      "source_revision": "2973c18c6c7b0791259799619f6165d562936b9a",
+      "passed": true,
+      "steps": [
+        {
+          "case": "connection_control::tests::replacement_sources::commit::activation_recovery::successor_settles_only_exact_captured_move_as_stopped_without_replay_or_ready",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1338 filtered out; finished in 0.56s"
+          ],
+          "log_sha256": "4c6514b6d6fb429a7f28e12b9d1963a86d56032f7a762e0f66136016fa57a539"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "service_activation_recovery_candidate": true,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "16582e5c7548ae54c89eea0c86d25d367a9d2a070f7e9c236b4c6d3032a072ac",
+      "executable_unchanged": true,
+      "service_check_rerun": false,
+      "service_check_reference": {
+        "source_revision": "6759c2c1aa8b973e23e5f43341d76a7c1100bde3",
+        "exit_code": 0,
+        "log_sha256": "22d277b9c1974cfd1dc660a6eb21c1a37812a2383e8ec853e175fe4accd8d3a6",
+        "scope": "Prior Service integration compile. This correction changes only Store SQL lineage selection and its test; no Service code or public API change."
+      },
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 80.6908032670035
+    }
+  ],
+  "coverage": [
+    "Same-runtime recovery does not observe or change active attempts. Exclusive successor Store ownership settles a confirmed original movement as stopped without returning a media origin.",
+    "Fresh and claimed candidates settle with exact absent target/generation checked before and after projection; incorrect observations roll back all writes.",
+    "Original effect identities, states, attempt counters and submission generations are conserved. No connection_ready event is emitted; target lifetime is retired and the original root completes with stopped/readiness-null and historical physical readiness.",
+    "Both startup epoch fencing and source retirement occur before projection. The correction permits historical lineage only with the exact retired original lifetime and unchanged original physical mapping.",
+    "Repeated recovery creates no further projection or event. An uncaptured physical result remains Unknown and is never inferred from absence."
+  ],
+  "failure_and_correction": "The first captured-recovery case returned storage-unavailable before its final wrong-absence check. Startup epoch fencing followed by native offer retirement advances the original source beyond original+1; the old INSERT SELECT therefore found no source row. 2973c18c adds an exclusive-successor stopped-only historical branch requiring exact original retired lifetime/runtime/generation and unchanged mapping. No current admission or SQL constraint is relaxed.",
+  "limitations": [
+    "Store reopen/ownership restart uses fixture native absence; no actual Connect native process crash, Data observer failure or publication/termination race is qualified.",
+    "Already-activated replacement successor lifetime cleanup still needs implementation/proof.",
+    "Service compile is recorded at 6759c2c1; it was not repeated for2973c18c, which changes only Store SQL lineage selection and the corresponding test, with no API/Service changes.",
+    "No mixer writer-drain, video bootstrap/epoch mapping, full media workload or complete transport cell."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}
