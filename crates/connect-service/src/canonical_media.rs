@@ -953,7 +953,19 @@ impl MediaPolicy for Policy {
         self.data_authority(scope, data, held)
     }
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        self.packet_current(scope, None)
+        self.packet_current(scope, None, false)
+    }
+    fn current_queued(
+        &self,
+        scope: &MediaScope<'_>,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        if !matches!(
+            scope.purpose,
+            MediaPurpose::Publish | MediaPurpose::Receive { .. }
+        ) {
+            return Err(StreamControlError::Authority);
+        }
+        self.packet_current(scope, None, true)
     }
     fn current_packet(
         &self,
@@ -971,7 +983,7 @@ impl MediaPolicy for Policy {
             .and_then(std::sync::Weak::upgrade)
             .and_then(|read| read.downcast::<NativeMediaRead>().ok())
             .ok_or(StreamControlError::Authority)?;
-        self.packet_current(scope, Some(read))
+        self.packet_current(scope, Some(read), true)
     }
     fn current_participant_receive(
         &self,

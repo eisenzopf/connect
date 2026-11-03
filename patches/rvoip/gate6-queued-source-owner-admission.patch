@@ -1,0 +1,126 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -347,7 +347,10 @@
+     /// retry under original packet metadata; this callback must not park that
+     /// owner behind another reader it already holds. No cached grant is implied.
+     /// Policies without a distinct ingress budget retain their current behavior.
+-    fn current_queued(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++    fn current_queued(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         self.current(scope)
+     }
+     /// Recheck this exact packet source or recipient policy while an actual
+@@ -2340,6 +2343,13 @@
+             let lease = match (data, packet_context) {
+                 (Some(data), None) => self.policy.current_data(&scope, data, held)?,
+                 (None, Some(context)) => self.policy.current_packet(&scope, context)?,
++                // A retained original with no still-active custody needs a
++                // fresh current grant, but its existing queued owner controls
++                // retry. Do not let fresh-ingress callback pacing occupy that
++                // owner while it may hold another source's current reader.
++                (None, None) if detached && !fresh_publication => {
++                    self.policy.current_queued(&scope)?
++                }
+                 (None, None) => self.policy.current(&scope)?,
+                 _ => return Err(StreamControlError::Authority),
+             };
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2829,3 +2829,5 @@
+ mod transport_update;
+ 
+ mod native_queue_observations;
++
++mod queued_source_dispatch;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/queued_source_dispatch.rs
+@@ -0,0 +1,87 @@
++//! Actual retained packet dispatch distinguishes fresh ingress from queued retry.
++use super::*;
++struct QueuedSourcePolicy {
++    inner: Arc<Policy>,
++    refuse_fresh: Arc<AtomicBool>,
++    queued_sources: Arc<AtomicUsize>,
++}
++impl MediaPolicy for QueuedSourcePolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if self.refuse_fresh.load(Ordering::Acquire)
++            && matches!(scope.purpose, MediaPurpose::Publish)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        self.inner.current(scope)
++    }
++    fn current_queued(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            self.queued_sources.fetch_add(1, Ordering::AcqRel);
++        }
++        self.inner.current(scope)
++    }
++}
++#[tokio::test]
++async fn retained_source_fresh_fallback_uses_queued_policy_without_changing_ingress_or_authority() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let refuse = Arc::new(AtomicBool::new(false));
++        let queued = Arc::new(AtomicUsize::new(0));
++        let f = Fixture::with_policy(
++            8,
++            Some(Box::new({
++                let refuse_fresh = refuse.clone();
++                let queued_sources = queued.clone();
++                move |inner| {
++                    Arc::new(QueuedSourcePolicy {
++                        inner,
++                        refuse_fresh,
++                        queued_sources,
++                    })
++                }
++            })),
++        );
++        f.start(&[medium]).await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let mut output = f.ba.port(medium).take_egress().unwrap();
++        source.try_publish(&frame(&source, 9000)).unwrap();
++        refuse.store(true, Ordering::Release);
++        assert!(matches!(
++            source.try_publish(&frame(&source, 12000)),
++            Err(StreamControlError::Authority)
++        ));
++        receive(&mut input)
++            .await
++            .try_forward_to(&f.b, &desired(medium).logical_id)
++            .unwrap();
++        outgoing(&mut output)
++            .await
++            .deliver(|f| async move {
++                assert_eq!(f.timestamp_rtp, 9000);
++                Ok(())
++            })
++            .await
++            .unwrap();
++        assert_eq!(
++            queued.load(Ordering::Acquire),
++            2,
++            "source forwarding and dequeued delivery did not use retained fresh policy"
++        );
++        refuse.store(false, Ordering::Release);
++        source.try_publish(&frame(&source, 18000)).unwrap();
++        f.policy.0.write().await.revoked.insert("alice".into());
++        assert!(matches!(
++            receive(&mut input)
++                .await
++                .try_forward_to(&f.b, &desired(medium).logical_id),
++            Err(StreamControlError::Authority)
++        ));
++        assert!(
++            output.try_recv().is_err(),
++            "queued policy supplied a cached source grant"
++        );
++    }
++}

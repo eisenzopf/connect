@@ -5,7 +5,7 @@
   "basis": "V26 physical-to-adopt499.650ms includes449.373ms capture recording, alongside worstaudio gap545.317ms. Source audit finds retained-source Publish fallback with no active weak packet context still receives Service fresh-ingress10ms retry; mixer can already own other source readers while invoking it. No claim this proves every live gap cause.",
   "before_prerequisite": "Patch278 adds MediaPolicy.current_queued with default delegation to current. Core routing and Service implementation remain unchanged before the controlled case; default callback is therefore the exact existing current path. Adds one actual Service held-registry/current-thread callback occupancy case.",
   "before_check_pending": false,
-  "product_routing_change_applied": false,
+  "product_routing_change_applied": true,
   "planned_change": "Tag retained realtime fresh fallback through Core current_queued; Service makes one current read and returns temporary refusal to original bounded Core owner. Preserve fresh ingress10ms callback, existing active-context checks, all current authorization and original frame/gate/scene/expiry/age bounds.",
   "normal_runtime_pending": true,
   "general_suites_rerun": false,
@@ -35,5 +35,6 @@
   },
   "measured_callback_batch_ms": 160.01854,
   "owner_requested_root_cause_proposal": "docs/developer/g6-058-root-cause-proposal.html",
-  "followup": "Investigation/proposal requested while this original diagnostic was running. Diagnostic finished; further product fixes remain proposed."
+  "followup": "P1 retained-source dispatch and immediate Service current check implemented; exact focused after checks pending on local ARM Linux. Actual writer-drain proof, activation barrier, authorized video bootstrap, authenticated epoch and full workload qualification remain open. No broad suite or full media workload launched.",
+  "after_checks_pending": true
 }
