@@ -171,9 +171,11 @@
     "Data behavior and Backpressure/permanent-refusal behavior unchanged."
   ],
   "general_suites_rerun": false,
-  "normal_runtime_pending": true,
+  "normal_runtime_pending": false,
   "G054_deferred": true,
   "cell_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "normal_runtime_passed": false,
+  "normal_runtime_evidence": "docs/evidence/gate-6/scene-video-admission-result.json"
 }

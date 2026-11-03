@@ -11,7 +11,7 @@
   "before_exact_case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
   "before_check_pending": false,
   "product_change_applied": true,
-  "normal_runtime_pending": true,
+  "normal_runtime_pending": false,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -95,5 +95,8 @@
   "after_component_passed": true,
   "after_component_evidence": "docs/evidence/gate-6/scene-video-admission-component.json",
   "after_product_source": "7e88395364d9e950dac09584ad8a46ad1d1bc425",
-  "after_test_repair_source": "7b9cf2ee044d9eb84b817497fd19a6e193cf1b47"
+  "after_test_repair_source": "7b9cf2ee044d9eb84b817497fd19a6e193cf1b47",
+  "normal_runtime_passed": false,
+  "normal_runtime_evidence": "docs/evidence/gate-6/scene-video-admission-result.json",
+  "runtime_findings": "All4moves/once-only effects and cleanup pass, AVsync6/6 pass; video unclassified markers26 vs1793 in preceding run. Full quality still fails6/6: audio58.76-59.24s/maxgap545.317ms; keyless prefixes100rows. Worst physical-to-adopt499.650ms, of which capture record449.373ms. Not a controlled full-workload causal attribution or full-cell promotion."
 }
