@@ -1,0 +1,18 @@
+{
+  "format": "connect/gate6-pending-activation-metadata-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "package": "P2 activation barrier, metadata prerequisite only",
+  "change": "The original current scene reservation creates a sealed immutable pending activation context for the exact commit attempt/effect/runtime/target generation. It exposes attribution for an inactive entry and preallocated Data writer, not current authority. The existing ordinary admission still requires the confirmed, completed exact operation and live current lifetime.",
+  "scope": "Store constructor cycle is addressed first. Service installation ordering, pending classification, installation receipt, failure recovery and authenticated activation epoch are not implemented by this component. Existing project_native_replacement_committed still publishes Ready/Completed before existing Service adoption.",
+  "checks_pending": true,
+  "new_exact_cases": [
+    "connection_control::tests::replacement_sources::commit::activation::reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_rechecks_revocation",
+    "connection_control::tests::replacement_sources::commit::activation::uncertain_commit_metadata_cannot_activate_a_route_or_reserve_data"
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}

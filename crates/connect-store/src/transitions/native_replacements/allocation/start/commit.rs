@@ -11,6 +11,7 @@ pub struct NativeReplacementCommitAttempt {
     target: PeerConnectionProjection,
     resources: String,
     source_expires_at: i64,
+    activation: Arc<crate::NativeReplacementActivation>,
 }
 pub struct NativeReplacementCommitted {
     attempt: NativeReplacementCommitAttempt,
@@ -26,6 +27,11 @@ redacted!(
     NativeReplacementCommitUncertain
 );
 impl NativeReplacementCommitAttempt {
+    /// Installation metadata for this exact once-only reservation, never IO authority.
+    pub fn activation(&self) -> &Arc<crate::NativeReplacementActivation> {
+        &self.activation
+    }
+
     /// Exact managed participant observation expected from the sealed Core
     /// movement result. This cannot be supplied by a signed wire ready flag.
     pub fn expected(&self) -> Result<serde_json::Value> {
@@ -154,12 +160,10 @@ impl Store {
         if !self.authority_covers(&read.media.interval, &target_scopes) {
             return Err(Error::forbidden());
         }
-        let mut intent: connect_protocol::connection_control::OfferIntent = serde_json::from_value(
-            serde_json::from_str::<serde_json::Value>(&origin.started.attempt.target)
-                .map_err(|_| Error::storage())?["intent"]
-                .clone(),
-        )
-        .map_err(|_| Error::storage())?;
+        let descriptor: serde_json::Value =
+            serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
+        let mut intent: connect_protocol::connection_control::OfferIntent =
+            serde_json::from_value(descriptor["intent"].clone()).map_err(|_| Error::storage())?;
         intent
             .offer
             .as_object_mut()
@@ -193,6 +197,18 @@ impl Store {
         if !read.current() {
             return Err(Error::forbidden());
         }
+        let activation = self.replacement_activation_metadata(
+            crate::peer_authority::ReplacementActivationInput {
+                record: p.record.clone(),
+                attempt: attempt.clone(),
+                effect: effect.clone(),
+                runtime: p.runtime.clone(),
+                target: read.media.target.clone(),
+                binding: origin.started.attempt.request.clone(),
+                descriptor,
+                expires_at: source_expires_at,
+            },
+        )?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(NativeReplacementCommitAttempt {
             origin,
@@ -202,6 +218,7 @@ impl Store {
             target: read.media.target.clone(),
             resources,
             source_expires_at,
+            activation,
         })
     }
     /// Persist a known actual outcome after all transient engine grants have
@@ -462,6 +479,11 @@ impl Store {
 }
 
 impl NativeReplacementCommitted {
+    /// The identical metadata survives physical capture; it confers no permission.
+    pub fn activation(&self) -> &Arc<crate::NativeReplacementActivation> {
+        &self.attempt.activation
+    }
+
     pub fn with_audience_revisions(
         mut self,
         audience: NativeReplacementAudienceCapture,

@@ -1254,3 +1254,5 @@ fn replacement_av_commit_capture_requires_every_original_negotiated_resource_ide
         );
     }
 }
+
+mod activation;

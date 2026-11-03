@@ -109,13 +109,14 @@ pub use peer_authority::{
     NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan, NativeCredentialRefreshTarget,
     NativeDataProjection, NativeDataRead, NativeDataWriter, NativeHandoffRead,
     NativeHandoffSelection, NativeIceOrigin, NativeMediaOrigin, NativeMediaRead,
-    NativeReconciliationRead, NativeReplacementPreparationRead, NativeReplacementSelection,
-    NativeReplacementSourceOrigin, NativeReplacementSourceRead, NativeReturnRead,
-    NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead, NativeStreamProjection,
-    PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand, PeerConnectionProjection,
-    PeerConversationCommand, PeerDataCommand, PeerDeviceClaim, PeerOperationClaim,
-    PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand, PeerSubscriptionRead,
-    PeerSubscriptionSource, SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
+    NativeReconciliationRead, NativeReplacementActivation, NativeReplacementPreparationRead,
+    NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
+    NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
+    NativeStreamProjection, PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand,
+    PeerConnectionProjection, PeerConversationCommand, PeerDataCommand, PeerDeviceClaim,
+    PeerOperationClaim, PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand,
+    PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead, SipAudienceOrigin,
+    SipAudienceRead,
 };
 pub use user_delegation::{IssuedUserDelegation, UserAuthorization};
 mod private_provider;

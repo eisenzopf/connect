@@ -24,10 +24,10 @@ pub use connection_media::{
     NativeConsultationRead, NativeConsultationSelection, NativeCredentialRefreshApplied,
     NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan, NativeCredentialRefreshTarget,
     NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin,
-    NativeMediaRead, NativeReconciliationRead, NativeReplacementPreparationRead,
-    NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
-    NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
-    SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
+    NativeMediaRead, NativeReconciliationRead, NativeReplacementActivation,
+    NativeReplacementPreparationRead, NativeReplacementSelection, NativeReplacementSourceOrigin,
+    NativeReplacementSourceRead, NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead,
+    NativeSignalRead, SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
 };
 pub use native_data::NativeDataProjection;
 pub use native_streams::{NativeIceOrigin, NativeStreamProjection};
@@ -891,3 +891,5 @@ impl Store {
         crate::records::read::policy(&tx, &meta.actor, intent)
     }
 }
+
+pub(crate) use connection_media::ReplacementActivationInput;

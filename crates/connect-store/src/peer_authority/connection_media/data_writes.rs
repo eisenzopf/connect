@@ -22,6 +22,20 @@ impl std::fmt::Debug for NativeDataWriter {
     }
 }
 impl NativeDataWriter {
+    pub(super) fn from_origin(origin: &NativeMediaOrigin) -> Self {
+        Self {
+            attempt: origin.attempt.clone(),
+            owner: origin.owner.clone(),
+            conversation: origin.conversation_id().into(),
+            session: origin.session_id().into(),
+            connection: origin.connection_id().into(),
+            runtime_connection: origin.runtime_connection_id().into(),
+            participant: origin.participant_id().into(),
+            epoch: origin.membership_epoch(),
+            generation: origin.generation(),
+        }
+    }
+
     fn owner(&self, store: &Store) -> Result<Arc<InstallationOwnership>> {
         let owner = store.require_runtime_owner()?;
         if !self
@@ -124,17 +138,7 @@ impl Store {
         current_owner(self, origin)?;
         let c = self.try_connection()?;
         origin.attempt.current(&c, self)?;
-        Ok(NativeDataWriter {
-            attempt: origin.attempt.clone(),
-            owner: origin.owner.clone(),
-            conversation: origin.conversation_id().into(),
-            session: origin.session_id().into(),
-            connection: origin.connection_id().into(),
-            runtime_connection: origin.runtime_connection_id().into(),
-            participant: origin.participant_id().into(),
-            epoch: origin.membership_epoch(),
-            generation: origin.generation(),
-        })
+        Ok(NativeDataWriter::from_origin(origin))
     }
     /// Trusted delivery-policy boundary, after fresh source/target/message
     /// readers are acquired and before possible IO. This grants no permission.
