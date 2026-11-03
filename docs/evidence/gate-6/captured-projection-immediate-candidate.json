@@ -16,7 +16,7 @@
   "before_source_revision": "f7d82d40212e4fc448238ba6e390f01d31a88214",
   "before_check_pending": false,
   "after_check_pending": false,
-  "normal_runtime_pending": true,
+  "normal_runtime_pending": false,
   "source_sha256": {
     "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "77c51fe2201eb5035c062040b3c31beac8ac7041b8539717ddd67ca3c6955075",
     "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs": "0e36ce49611c85e3be4d9b794fffbfda65803dbeeba85081dd06697bde46bb16",
@@ -66,5 +66,7 @@
     "source_inputs_unchanged": true,
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 79.25278314599564
-  }
+  },
+  "normal_runtime_passed": false,
+  "normal_runtime_result": "docs/evidence/gate-6/captured-projection-immediate-result.json"
 }
