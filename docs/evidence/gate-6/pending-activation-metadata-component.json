@@ -1,0 +1,49 @@
+{
+  "format": "connect/gate6-pending-activation-metadata-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "5a34ca2bee185bb71506da1e0902021afa63fa08",
+  "environment": "Owner Mac Studio local native Ubuntu 24.04 ARM64 VM",
+  "result": "Two new Store metadata lifecycle cases pass; this does not install the Service activation barrier.",
+  "compile_exit_code": 0,
+  "test_executable_sha256": "91244875dcf682273dfadea4ebb8d37786524e461528aa5f92be752f2d355e42",
+  "steps": [
+    {
+      "case": "connection_control::tests::replacement_sources::commit::activation::reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_rechecks_revocation",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1332 filtered out; finished in 0.35s"
+      ],
+      "log_sha256": "417ea910691fab26f8d27d8e586c283c5fe0e64db24aa0547b262665fb775b72"
+    },
+    {
+      "case": "connection_control::tests::replacement_sources::commit::activation::uncertain_commit_metadata_cannot_activate_a_route_or_reserve_data",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1332 filtered out; finished in 0.22s"
+      ],
+      "log_sha256": "916c400460e348a371adc4986c50191e71cfc06ed929c95db50fb176f5dd9694"
+    }
+  ],
+  "elapsed_seconds": 82.18561681099527,
+  "source_inputs_unchanged": true,
+  "prepared_sources_unchanged": true,
+  "executable_unchanged": true,
+  "coverage": [
+    "Reserved metadata and its pending Data writer grant no ordinary packet admission or write reservation; no durable snapshot changes during refused reads/writes.",
+    "Captured and durably recorded physical commit alone cannot activate the pending origin.",
+    "Exact completed projection makes the same origin current, with matching operation/physical connection/generation/participant/epoch; repeated projection changes no durable snapshot.",
+    "Revocation is checked after completion; a foreign Store cannot use the pending metadata.",
+    "An uncertain commit leaves the metadata unusable for media or Data reservation."
+  ],
+  "limitations": [
+    "Store-only lifecycle fixtures; no Core movement, Service entry installation, media IO or crash/recovery qualification.",
+    "Current production Service still adopts after Store Ready/Completed. Next package must change that ordering and cover missing installation, target loss and failed final transaction without replaying the physical effect or publishing false readiness."
+  ],
+  "service_activation_barrier_installed": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}
