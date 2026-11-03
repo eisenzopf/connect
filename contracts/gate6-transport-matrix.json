@@ -11,7 +11,7 @@
   "dimensions": {
     "server": [
       "macos-arm64",
-      "ubuntu24-x86_64"
+      "ubuntu24-arm64"
     ],
     "network": [
       "local",
@@ -35,7 +35,7 @@
       "chrome": "156.0.8078.80",
       "firefox": "158.0.1"
     },
-    "ubuntu24-x86_64": {
+    "ubuntu24-arm64": {
       "chrome": "156.0.8078.4",
       "firefox": "158.0.1"
     }
@@ -80,5 +80,9 @@
     "scripts/fixtures/transport-matrix/remote-profile.json"
   ],
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "deferred_server_platforms": [
+    "ubuntu24-x86_64"
+  ],
+  "owner_scope_update": "2026-11-02: owner directs ARM Linux focus; x86 deferred until later. Preserve all32 active Mac/ARM cells and all behavior/quality checks."
 }

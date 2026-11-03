@@ -2,8 +2,8 @@
 
 Use the dedicated native ARM64 Colima VM on the Mac Studio. This is a local
 component profile with the complete native workload and unchanged quality and
-deadline checks. It does not add an ARM entry to the 32 required acceptance
-cells. Do not dispatch media qualification to GitHub-hosted runners.
+deadline checks. The owner selected ARM64 as the active Linux target on November2; the32
+required cells now use MacARM64 and UbuntuARM64, with x86 deferred. Do not dispatch media qualification to GitHub-hosted runners.
 
 The existing profile was created with:
 
@@ -33,8 +33,8 @@ directory or resubmit an uncertain original operation. The explicit capture skip
 is reported and cannot establish packet-capture acceptance. Keep raw logs,
 SQLite/WAL, media and credentials in ignored `.local`. Retain failed outcomes.
 Builds and tests use guest disk storage, without a mounted host checkout. Run
-timing observations after other owned compilation has finished. ARM results
-remain separate from the required native x86_64 qualification.
+timing observations after other owned compilation has finished. x86 qualification is deferred by the owner; the diagnostic component still cannot
+qualify any complete transport cell.
 
 For the reference app, package the native production runtime with
 `scripts/package-sdk-runtime.py --target aarch64-unknown-linux-gnu` and the
@@ -49,7 +49,7 @@ Run `scripts/check-reference-app-installed.mjs` against that installation with
 156.0.8078.4 in `profile.json` before its first execution. Browser installation
 and prerequisites must complete before measuring media. All 37 app checks and
 their audio/video deadlines remain unchanged. ARM reports identify the actual
-architecture and cannot inherit an x86_64 or macOS browser result.
+architecture. Every transport cell still needs its complete independent evidence.
 
 On a cold guest, fetch the complete locked target dependency metadata before
 packaging: `cargo fetch --locked --target aarch64-unknown-linux-gnu`. A production

@@ -114,7 +114,7 @@ def inspect_seed(root, seed, parameters, *, arm64_component=False):
         if match is None:
             raise FixtureError("fixture-arm64-component")
         template = next(c for c in matrix["cells"] if c["id"] ==
-            "G6-058/ubuntu24-x86_64/local/native-quic/" + match[1])
+            "G6-058/ubuntu24-arm64/local/native-quic/" + match[1])
         matches = [dict(template, id=parameters["cell_id"], server="ubuntu24-arm64",
             expected_client_platform="ubuntu24-arm64", component_only=True)]
     if len(matches) != 1:
@@ -297,7 +297,7 @@ def materialize(root, seed, output, parameters, binary, environment, *, arm64_co
     plan = inspect_seed(root, seed, parameters, arm64_component=arm64_component)
     host = (platform.system(), platform.machine())
     expected = (("Linux", "aarch64") if arm64_component else
-        ("Darwin", "arm64") if plan["cell"]["server"] == "macos-arm64" else ("Linux", "x86_64"))
+        ("Darwin", "arm64") if plan["cell"]["server"] == "macos-arm64" else ("Linux", "aarch64"))
     if host != expected:
         raise FixtureError("fixture-server-platform")
     if host[0] == "Linux":

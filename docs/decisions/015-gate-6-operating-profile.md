@@ -2,6 +2,16 @@
 
 2026-10-15; G6-011. These are implementation targets, not measured results.
 
+November 2 owner scope amendment: “we don’t need x86. focus on arm” and
+“we can do that later.” The active Linux target is Ubuntu24.04 ARM64, on the
+local Mac Studio VZ guest. Defer x86_64 qualification and remove it as a current
+Gate6 completion dependency. The active32-cell matrix keeps both MacARM64 and
+UbuntuARM64, Local/Remote profiles, all4transports and both signing cohorts.
+All workload, current-authorization, recovery, quality, decode, capture and
+cleanup requirements remain unchanged. Earlier x86 results retain their old
+source/architecture scope and cannot qualify ARM. Historical dated profiles below
+are superseded only as to the active Linux target; they are not relabeled passes.
+
 ## Runtime and topology
 
 Local development/first run: macOS arm64. Baseline observed macOS and toolchain
@@ -10,17 +20,17 @@ is the repository's 1.97.1 toolchain for this increment. Python minimum is 3.12;
 Node minimum is 22. Supported package versions and actual runners are recorded
 by candidate qualification.
 
-Hosted server: Ubuntu 24.04 LTS x86_64, a declared systemd service plus a
+Hosted server: Ubuntu 24.04 LTS ARM64, a declared systemd service plus a
 documented container build for reproducibility. Test Chrome preferred WT and
 forced WSS/WebRTC fallback, Firefox fallback, and native/browser/native peers.
 The initial pinned browser targets are Chrome 155.0.8059.80 (installed local
 baseline) and Firefox 141.0 / Playwright revision 1490 (fallback target from the
 existing harness manifest, not yet executed). Linux targets Ubuntu 24.04 LTS
-x86_64; record image digest, kernel and package versions before its rehearsal.
+ARM64; record image digest, kernel and package versions before its rehearsal.
 A local machine cannot claim an uninstalled remote runner has been tested.
 Profile changes update this record before the affected run.
 
-November 2 owner-directed local testing update: run development and media
+Earlier November2 local testing update (before the owner deferred x86): run development and media
 diagnostics on the Mac Studio's native ARM64 Linux guest. The dedicated Colima
 `connect-gate6` VZ profile has 6 vCPUs, 12 GiB RAM and a 60 GiB guest disk;
 foreign-architecture emulation and host mounts are disabled. Use the explicit

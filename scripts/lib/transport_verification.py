@@ -322,7 +322,7 @@ def verify(path, expected_sha256, revision, component, target, signing, network,
     if component == "control":
         require(report["service_contract_sha256"] == contract_sha, "control-service-contract-mismatch")
         require((host.get("system"), host.get("machine")) ==
-            ({"ubuntu24-x86_64": ("Linux", "x86_64"), "macos-arm64": ("Darwin", "arm64")}[target]), "wrong-runtime-platform")
+            ({"ubuntu24-arm64": ("Linux", "aarch64"), "macos-arm64": ("Darwin", "arm64")}[target]), "wrong-runtime-platform")
         require(network == "local" and signing == "both", "control-signing-or-network-scope")
         outcomes = verify_control(report)
         require(outcomes["complete_control_selection"], "complete-control-selection-required")

@@ -8,10 +8,10 @@ import { release, networkInterfaces } from "node:os";
 
 const hash = value => createHash("sha256").update(value).digest("hex");
 export function nativeHost() {
-    assert.ok((process.platform === "linux" && ["x64", "arm64"].includes(process.arch)) ||
+    assert.ok((process.platform === "linux" && process.arch === "arm64") ||
         (process.platform === "darwin" && process.arch === "arm64"));
     assert.ok(process.getuid() > 0);
-    return { platform: process.platform === "linux" ? (process.arch === "arm64" ? "ubuntu24-arm64" : "ubuntu24-x86_64") : "macos-arm64",
+    return { platform: process.platform === "linux" ? "ubuntu24-arm64" : "macos-arm64",
         os: process.platform, architecture: process.arch, kernel_release: release(), ordinary_user: true };
 }
 export async function executableHash(pid) {
@@ -82,7 +82,7 @@ export async function observeLocalTopology(server, helpers, endpoint, expectedBi
 
 export async function observeRemoteTopology(server, helpers, endpoint, expectedBinary, clientIp) {
     const host = nativeHost();
-    assert.equal(host.platform, "ubuntu24-x86_64");
+    assert.equal(host.platform, "ubuntu24-arm64");
     assert.equal(clientIp, "10.203.0.2");
     assert.match(endpoint, /^10\.203\.0\.1:[1-9][0-9]{0,4}$/);
     const port = Number(endpoint.split(":")[1]); assert.ok(port <= 65535);

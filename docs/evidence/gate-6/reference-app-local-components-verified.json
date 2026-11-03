@@ -3,7 +3,7 @@
   "task": "G6-072",
   "passed": true,
   "shell_implementation_verified_locally": true,
-  "task_complete": false,
+  "task_complete": true,
   "whole_gate_qualified": false,
   "complete_sdk_candidate_qualified": false,
   "linux_x86_64_qualified": false,
@@ -314,5 +314,7 @@
     ],
     "observed": "Readable ordered controls and timeline, red local/green remote identified video, original operation states, no horizontal overflow."
   },
-  "scope": "Each local source-bound app run passes all37 checks with unchanged thresholds and all4 diagnostic observers OFF. Ten paired2second AV observations per platform each require50completed audio frames and6video paints. These are app component checks, not G6-05824fps/60second transport qualification. Mac sourceff709334 uses Chrome156.0.8078.80; ARM source636e07ac uses full Chromium156.0.8078.4. The two source revisions differ in profile/docs only for this comparison; no controlled architecture-only performance claim. Required Ubuntu x86_64 app qualification remains unexecuted locally, so G6-072 remains in progress. Three-developer onboarding, full Parley/provider scenario and whole acceptance remain open."
+  "scope": "Each local source-bound app run passes all37 checks with unchanged thresholds and all4 diagnostic observers OFF. Ten paired2second AV observations per platform each require50completed audio frames and6video paints. These are app component checks, not G6-05824fps/60second transport qualification. Mac sourceff709334 uses Chrome156.0.8078.80; ARM source636e07ac uses full Chromium156.0.8078.4. The two source revisions differ in profile/docs only for this comparison; no controlled architecture-only performance claim. The owner deferred x86 on November2 and selected ARM Linux. These audited Mac/ARM results complete the G6-072 shell work and its verification; no whole-gate or full Parley scenario promotion. Three-developer onboarding, full Parley/provider scenario and whole acceptance remain open.",
+  "x86_qualification_deferred_by_owner": true,
+  "owner_scope_update": "2026-11-02 owner: we do not need x86; focus on ARM; x86 can be done later."
 }

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 DIMENSIONS = {
-    "server": {"macos-arm64", "ubuntu24-x86_64"},
+    "server": {"macos-arm64", "ubuntu24-arm64"},
     "network": {"local", "remote-profile-fixture"},
     "transport": {"native-quic", "chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"},
     "signing": {"EdDSA", "ES256"},
@@ -92,7 +92,7 @@ def inventory(root, revision):
             checks.extend(contract["browser_selection_checks"])
         cells.append(dict(id="/".join(("G6-058", server, network, transport, signing)),
             server=server, network=network, transport=transport, signing=signing,
-            expected_client_platform="ubuntu24-x86_64" if network == "remote-profile-fixture" else server,
+            expected_client_platform="ubuntu24-arm64" if network == "remote-profile-fixture" else server,
             status="not-run", reason="full-cell-executor-not-run", required_checks=checks,
             client_versions=None, server_version=None, actual_topology=None,
             packet_capture=None, decoded_media=None, outcome=None))

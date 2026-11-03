@@ -1,5 +1,16 @@
 # Gate 6 transport matrix
 
+Owner update, November 2: the active Linux target is **Ubuntu24.04 ARM64** on
+the local Mac Studio VZ guest. x86 is deferred. The32 cells retain MacARM64 and
+UbuntuARM64, both network profiles, all4transports and both signing cohorts.
+All media, current-authorization, capture, recovery and cleanup checks remain.
+Earlier x86 reports keep their historical architecture/source scope. GitHub-hosted
+media workflows below are historical descriptions; use the local producer now.
+The owned systemd/netns lane requires
+`CONNECT_GATE6_OWNED_LINUX_VM=connect-gate6`, a native ARM Ubuntu24.04 guest and
+an ordinary user. No named host, provider or model account is enabled by it.
+
+
 [The matrix contract](../../../contracts/gate6-transport-matrix.json) preserves
 32 required cells: two server platforms, Local and isolated Remote-profile
 topologies, native QUIC/Chrome WT/Chrome WSS-WebRTC/Firefox WSS-WebRTC, and both
@@ -87,15 +98,15 @@ values with the inspected candidate and seed values):
 
 ```json
 {
-  "cell_id": "G6-058/ubuntu24-x86_64/local/native-quic/EdDSA",
+  "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
   "candidate_source_revision": "<40 lowercase hex characters>",
   "candidate_binary_sha256": "<64 lowercase hex characters>",
   "seed_manifest_sha256": "<64 lowercase hex characters>",
   "browser_origin": null,
   "topology": {
     "kind": "local-loopback",
-    "server_platform": "ubuntu24-x86_64",
-    "client_platform": "ubuntu24-x86_64",
+    "server_platform": "ubuntu24-arm64",
+    "client_platform": "ubuntu24-arm64",
     "client_emulated": false,
     "native_endpoint": "<exact provisioned IP:port>",
     "server_name": "<exact provisioned TLS name>"
@@ -112,7 +123,7 @@ browser row. Actor/device enrollment, an actual owned topology, the full workloa
 packet capture and media observations remain required stages.
 
 Select workflow input `transport_network=remote-profile-fixture` with
-`transport_target=ubuntu24-x86_64` for the isolated Ubuntu producer. It requires
+`transport_target=ubuntu24-arm64` for the isolated Ubuntu producer. It requires
 a disposable native Ubuntu24.04 Actions host with systemd and a regular owner
 user. The owner saves fresh physical-resource names before privileged IO,
 creates one veth pair and client namespace with only its connected route, and
@@ -248,7 +259,7 @@ API and replays the original commands without another revision change. The
 fixture does not inspect the installer's private intent or write Store state.
 
 The configuration, actor, conversation and data lanes accept workflow input
-`transport_target`: `ubuntu24-x86_64` or `macos-arm64`. The latter uses the native
+`transport_target`: `ubuntu24-arm64` or `macos-arm64`. The latter uses the native
 `macos-15` arm64 runner and its existing platform build cache. Actual host,
 toolchain and architecture checks remain required. The macOS producer identifies
 the original server and helper executable images through native process reads
@@ -319,7 +330,7 @@ python3 scripts/verify-transport-component.py \
   --artifact .local/gate-6/transport-matrix/data-abff.zip \
   --artifact-sha256 477c69e3111aacd2423f22b52b1ea9a070cb853e75b1b6ab47ded7a7d11c6357 \
   --revision abff53a6a94a7ed92de2f3d9b3b18416ff8f29d2 \
-  --component data --target ubuntu24-x86_64 --signing EdDSA \
+  --component data --target ubuntu24-arm64 --signing EdDSA \
   --network local --expect-result failed
 ```
 

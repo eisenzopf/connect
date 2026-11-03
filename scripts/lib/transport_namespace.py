@@ -1,6 +1,6 @@
 """Owned disposable Ubuntu network namespace and ordinary-user systemd server.
 
-Only the explicitly selected isolated CI profile may create these resources.
+Only the explicitly selected owned local ARM64 VM may create these resources.
 No default route, external host, provider or account configuration is installed.
 """
 import json
@@ -17,10 +17,10 @@ from .transport_matrix import digest
 from .package_environment import fixture_environment
 
 
-def ci_guard(environ=None):
+def owned_vm_guard(environ=None):
     environ = os.environ if environ is None else environ
-    if (environ.get("GITHUB_ACTIONS") != "true" or platform.system() != "Linux"
-            or platform.machine() != "x86_64" or os.getuid() == 0
+    if (environ.get("CONNECT_GATE6_OWNED_LINUX_VM") != "connect-gate6" or platform.system() != "Linux"
+            or platform.machine() != "aarch64" or os.getuid() == 0
             or not Path("/run/systemd/system").is_dir()):
         raise FixtureError("fixture-disposable-ubuntu-systemd-required")
     release = platform.freedesktop_os_release()
@@ -71,7 +71,7 @@ class NativeNamespace:
         return self.tool(label, ["sudo", "-n", *args], **kwargs)
 
     def start(self):
-        ci_guard()
+        owned_vm_guard()
         if not self.directory.resolve().is_relative_to((self.root / ".local").resolve()):
             raise FixtureError("fixture-network-private-path")
         self.directory.mkdir(mode=0o700)
@@ -114,7 +114,8 @@ class NativeNamespace:
         assert self.created and self.active_pid is None and self.owner is None
         selected = fixture_environment(env)
         if "RUST_LOG" in env:
-            assert env["RUST_LOG"] == "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+            base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+            assert env["RUST_LOG"] in {base, base + ",connect_service::canonical_replacement=debug"}
             selected["RUST_LOG"] = env["RUST_LOG"]
         return ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--wait", "--pipe",
             "--unit=" + self.unit, "--uid=" + str(os.getuid()), "--gid=" + str(os.getgid()),

@@ -63,13 +63,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         assert platform.system() == "Linux" and platform.machine() == "aarch64"
         assert network_profile == "local"
     if platform.system() == "Linux":
-        assert platform.machine() == ("aarch64" if arm64_component else "x86_64")
+        assert platform.machine() == "aarch64"
         release = platform.freedesktop_os_release()
         assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
         cpuinfo = Path("/proc/cpuinfo").read_text()
-        assert re.search(r"^CPU architecture\s*:\s*8\s*$" if arm64_component else r"^vendor_id\s*:", cpuinfo, re.M)
-        server_platform, target = (("ubuntu24-arm64", "aarch64-unknown-linux-gnu") if arm64_component else
-            ("ubuntu24-x86_64", "x86_64-unknown-linux-gnu"))
+        assert re.search(r"^CPU architecture\s*:\s*8\s*$", cpuinfo, re.M)
+        server_platform, target = "ubuntu24-arm64", "aarch64-unknown-linux-gnu"
         host = dict(os="linux", architecture=platform.machine(), kernel_release=platform.release(), distribution=release["PRETTY_NAME"])
     else:
         assert platform.system() == "Darwin" and platform.machine() == "arm64"
@@ -81,7 +80,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     host["rust"] = rust
     host["platform"] = server_platform
     assert network_profile in {"local", "remote"}
-    assert network_profile == "local" or server_platform == "ubuntu24-x86_64"
+    assert network_profile == "local" or server_platform == "ubuntu24-arm64"
     network_cell = "local" if network_profile == "local" else "remote-profile-fixture"
     assert os.environ.get("TRANSPORT_NETWORK", network_cell) == network_cell
     assert os.environ.get("TRANSPORT_TARGET", server_platform) == server_platform
@@ -97,7 +96,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
         servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
-        scope="Native macOS-arm64 or Ubuntu24.04 x86_64/explicit ARM64 component production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
+        scope="Native macOS-arm64 or Ubuntu24.04 ARM64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     report["arm64_component_only"] = arm64_component
     report["native_replacement_metadata_trace_requested"] = native_replacement_metadata_trace
     report["host_capture_requested"] = host_capture
@@ -671,7 +670,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--arm64-component", action="store_true", help="Native Ubuntu24.04 ARM64 local component workload; never a required x86_64 matrix cell")
+    parser.add_argument("--arm64-component", action="store_true", help="Native Ubuntu24.04 ARM64 local component workload; separate diagnostic identity, never a complete matrix cell")
     parser.add_argument("--trace-replacement-metadata", action="store_true", help="Media diagnostic only: enable existing static replacement authority/metadata error codes")
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")

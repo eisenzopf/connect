@@ -22,7 +22,9 @@
 - Keep credentials, private state, raw logs and release scratch under ignored
   `.local/`, generated upstream sources under `.deps/`, and packages under `dist/`.
 - Gates 1–5 qualify their recorded local macOS arm64 scopes. Gate 6 additionally
-  targets the approved Linux x86_64 hosting and remote/native/browser profiles.
+  targets Ubuntu 24.04 ARM64 hosting and remote/native/browser profiles. The
+  owner deferred x86 on November 2, 2026; preserve historical x86 evidence
+  without treating it as ARM qualification.
   Default checks use isolated state and fixtures. Named remote/provider rehearsals
   require the concrete bounded configuration in G6-093 and designated test
   endpoints; keep those lanes explicit. Publication remains separate.

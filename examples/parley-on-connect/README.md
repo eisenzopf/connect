@@ -14,7 +14,8 @@ message recovery, identified duplex audio/video, original Connection restart,
 permission revocation, offline recovery, same-command restart and owned shutdown.
 The original archives, installed files, source bindings and paired AV windows
 were independently audited. See [the local results](../../docs/evidence/gate-6/reference-app-local-components-verified.json).
-Required Ubuntu x86_64 app qualification remains open, so G6-072 stays in progress.
+The owner selected ARM Linux and deferred x86 on November2. G6-072 is complete
+for the local Mac/ARM profiles; the full Parley scenario remains open.
 The earlier bundled macOS21b4de99 result remains in
 [its original evidence](../../docs/evidence/gate-6/reference-app-bundled-macos-verified.json).
 
@@ -71,7 +72,7 @@ the local camera publication. Consented Sessions remain live as they progress
 from accepted through ready and active; a view refresh retains their original
 capture binding. Ending, closed, absent or changed scopes still stop media.
 Both current local macOS and native ARM64 Linux runs verify these controls
-and identified VP8 capture/render; required x86_64 qualification remains open.
+and identified VP8 capture/render; x86 qualification is deferred.
 
 Joining negotiates native resources. Explicit “Start microphone” or “Start
 microphone and camera” begins browser permission, capture, encoding and playback.
@@ -112,7 +113,7 @@ a controlled late device result after cancellation, real microphone permission
 revocation, offline retirement and participant switching. The delayed result
 uses a real owned synthetic browser stream; it models promise delivery rather
 than claiming an OS permission dialog was exercised. Both current local profiles
-pass actual ended-event and stop-cause checks; required Linux x86_64 remains open. The
+pass actual ended-event and stop-cause checks; x86 is deferred. The
 old fake permission-UI bypass is removed; explicit browser permission grants
 remain limited to owned synthetic devices.
 The rehearsal explicitly launches the installed full Chromium browser in headless
@@ -131,8 +132,7 @@ command preserves the original ports, identities, issuance IDs, absolute expiry
 and application state. Interrupted child installations use `connect issue-resume`;
 changed assets, a different runtime, expiry or an unsealed initial bootstrap
 refuse and retain the original state for inspection. This is the local synthetic
-profile. Both local profiles pass video and lifecycle checks. Required Linux x86_64
-qualification and the later full Parley scenario remain unfinished.
+profile. Both local profiles pass video and lifecycle checks. The owner deferred x86 qualification; the later full Parley scenario remains unfinished.
 
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
 seventeen stages, explicit audiences, business gates, observable outcomes and

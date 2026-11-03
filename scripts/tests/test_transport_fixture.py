@@ -47,9 +47,9 @@ class FixtureBoundary(unittest.TestCase):
             server_public_key="asset-0004.bin")
         for name in ["state.sqlite3", *(f"asset-{n:04}.bin" for n in range(5))]:
             publish(self.seed / name, ("synthetic-unit-data-not-a-valid-backup:" + name).encode())
-        self.parameters = dict(cell_id="G6-058/ubuntu24-x86_64/local/native-quic/EdDSA",
+        self.parameters = dict(cell_id="G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
             candidate_source_revision="a" * 40, candidate_binary_sha256="b" * 64, seed_manifest_sha256="c" * 64,
-            topology=dict(kind="local-loopback", server_platform="ubuntu24-x86_64", client_platform="ubuntu24-x86_64",
+            topology=dict(kind="local-loopback", server_platform="ubuntu24-arm64", client_platform="ubuntu24-arm64",
                 client_emulated=False, native_endpoint="127.0.0.1:4433", server_name="localhost"), browser_origin=None)
         self.save()
 
@@ -72,7 +72,7 @@ class FixtureBoundary(unittest.TestCase):
         self.assertIsNone(plan["cell"]["decoded_media"])
 
     def test_browser_cell_refuses_missing_media_or_enrollment_https_instead_of_degrading(self):
-        self.parameters["cell_id"] = "G6-058/ubuntu24-x86_64/local/chrome-wss-webrtc/EdDSA"
+        self.parameters["cell_id"] = "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA"
         self.parameters["browser_origin"] = "https://browser.fixture.invalid"
         for name in ("webtransport", "websocket"):
             self.server[name] = dict(mount_path="/connect", allowed_origins=[self.parameters["browser_origin"]])

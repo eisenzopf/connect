@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.transport_namespace import NativeNamespace, ci_guard
+from lib.transport_namespace import NativeNamespace, owned_vm_guard
 from lib.transport_fixture import FixtureError
 
 
@@ -20,11 +20,21 @@ class NamespaceBoundary(unittest.TestCase):
             VAPI_PRIVATE_KEY="synthetic-agent-secret", OPENAI_API_KEY="synthetic-model-secret")
         self.owner = NativeNamespace(self.root / ".local/network", self.root, self.env)
 
-    def test_only_explicit_disposable_native_ubuntu_ci_can_start(self):
+    def test_only_explicit_owned_arm_vm_can_start(self):
         with self.assertRaises(FixtureError):
-            ci_guard({"GITHUB_ACTIONS": "false"})
+            owned_vm_guard({"GITHUB_ACTIONS": "true"})
         with patch("lib.transport_namespace.platform.system", return_value="Darwin"), self.assertRaises(FixtureError):
-            ci_guard({"GITHUB_ACTIONS": "true"})
+            owned_vm_guard({"CONNECT_GATE6_OWNED_LINUX_VM": "connect-gate6"})
+        with patch("lib.transport_namespace.platform.system", return_value="Linux"), \
+                patch("lib.transport_namespace.platform.machine", return_value="aarch64"), \
+                patch("lib.transport_namespace.platform.freedesktop_os_release", return_value={"ID":"ubuntu","VERSION_ID":"24.04"}), \
+                patch("lib.transport_namespace.os.getuid", return_value=1001), \
+                patch("lib.transport_namespace.Path.is_dir", return_value=True):
+            owned_vm_guard({"CONNECT_GATE6_OWNED_LINUX_VM": "connect-gate6"})
+            with patch("lib.transport_namespace.platform.machine", return_value="x86_64"), self.assertRaises(FixtureError):
+                owned_vm_guard({"CONNECT_GATE6_OWNED_LINUX_VM": "connect-gate6"})
+            with patch("lib.transport_namespace.os.getuid", return_value=0), self.assertRaises(FixtureError):
+                owned_vm_guard({"CONNECT_GATE6_OWNED_LINUX_VM": "connect-gate6"})
 
     def test_client_drops_root_groups_and_capabilities_before_private_configuration(self):
         self.owner.created = True
