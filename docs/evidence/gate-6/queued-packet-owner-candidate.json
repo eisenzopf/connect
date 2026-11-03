@@ -11,7 +11,7 @@
   "case_scope": "Actual Policy.current Receive callback under held real entries registry on a current-thread Tokio runtime. Sixteen callbacks must return NotReady under50ms combined, then release and fresh missing receiver/source must refuse Authority. This proves callback scheduling behavior only, not native delivery, authorization-positive recovery, whole media quality or any cell.",
   "before_check_pending": false,
   "after_check_pending": false,
-  "normal_runtime_pending": true,
+  "normal_runtime_pending": false,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "cell_qualified": false,
@@ -48,7 +48,7 @@
       "adopted"
     ],
     "boundary": "One original monotonic clock starting immediately before physical commit; four low-volume existing-target debug events per successful movement. Exact connection correlation stays private.",
-    "runtime_verified": false,
+    "runtime_verified": true,
     "scope": "Distinguish future physical commit, metadata capture/public projection and adoption delay. No per-packet logging, backtrace, new waits, grants or source clocks."
   },
   "source_sha256": {
@@ -73,5 +73,7 @@
     "source_inputs_unchanged": true,
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 497.02599391900003
-  }
+  },
+  "normal_runtime_passed": false,
+  "normal_runtime_result": "docs/evidence/gate-6/queued-packet-owner-result.json"
 }
