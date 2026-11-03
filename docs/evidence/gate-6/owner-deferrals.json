@@ -61,5 +61,14 @@
     "handling": "Allow the already dispatched bounded run to finish and retain its artifact for later; no new G6-054 work while deferred."
   },
   "full_gate_qualified": false,
-  "publication_authorized": false
+  "publication_authorized": false,
+  "resumption_request": {
+    "date": "2026-11-02",
+    "user_instruction": "after this you can go back and retest the deferred test, can't remember the name",
+    "task": "G6-054",
+    "order": "After the fresh four-move ARM rehearsal completes.",
+    "status": "queued",
+    "execution_scope": "Local ARM Linux owned fixtures; no GitHub-hosted media VM, external cloud provisioning or provider call implied.",
+    "verification_waived": false
+  }
 }

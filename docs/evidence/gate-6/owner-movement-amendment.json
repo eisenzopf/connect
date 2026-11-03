@@ -77,7 +77,16 @@
     {
       "name": "repository-format-check",
       "passed": true
+    },
+    {
+      "name": "complete-Node-transport-regression-serial",
+      "tests_passed": 117,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "includes_real_62_second_controller_lifetime": true,
+      "log_sha256": "9590b0b0c422e8eca52832c607018ff1507b91936634f6f608f63c60b1e5c870"
     }
   ],
-  "verification_scope": "Controller, custody, matrix and decoder tests; no fresh live amended-profile result yet."
+  "verification_scope": "Controller, custody, matrix and decoder tests; no fresh live amended-profile result yet.",
+  "retained_test_attempt": "The first broad parallel Node run passed116/117; a fake-clock Data observer advanced to its original cutoff before asynchronous receipt-file IO completed. The unchanged test suite passes117/117 serially; no production deadline or test cutoff was changed."
 }
