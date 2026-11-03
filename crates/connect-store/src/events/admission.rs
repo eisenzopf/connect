@@ -173,8 +173,18 @@ pub(crate) fn snapshot_scopes(
     store: &Store,
 ) -> Result<Vec<AuthorityScope>> {
     let items = snapshots::scope_items(c, actor, cid, query, store)?;
+    snapshot_projection_scopes(c, actor, cid, &items)
+}
+/// Plan the exact trusted projection already captured in this SQL transaction.
+/// This retains no authorization or facts for a later invocation.
+pub(super) fn snapshot_projection_scopes(
+    c: &Connection,
+    actor: &Actor,
+    cid: &str,
+    items: &[SnapshotItem],
+) -> Result<Vec<AuthorityScope>> {
     let mut scopes = base(c, actor, cid)?;
-    snapshot_items(c, actor, cid, &items, &mut scopes)?;
+    snapshot_items(c, actor, cid, items, &mut scopes)?;
     AuthorityScope::merged(&scopes)
 }
 pub(crate) fn event_scopes(

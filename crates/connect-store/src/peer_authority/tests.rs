@@ -1145,9 +1145,9 @@ fn single_credential_snapshot_checks_current_projection_without_duplicate_source
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
         .unwrap();
     assert!(!page.items.is_empty());
-    // Current scopes before/after plus one frozen result capture. Source
-    // binding/key/device checks must not perform two extra complete captures.
-    assert_eq!(crate::events::snapshot_capture_count() - before, 3);
+    // The executor source-validates its one captured result under the same
+    // transaction/readers; current binding/key/device checks remain separate.
+    assert_eq!(crate::events::snapshot_capture_count() - before, 1);
 }
 #[test]
 fn multi_credential_snapshot_keeps_each_credentials_projection_revalidation() {
@@ -1177,9 +1177,9 @@ fn multi_credential_snapshot_keeps_each_credentials_projection_revalidation() {
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
         .unwrap();
     assert!(!page.items.is_empty());
-    // Two credentials are checked twice, in addition to the three captures
-    // required by the result/projection executor itself.
-    assert_eq!(crate::events::snapshot_capture_count() - before, 7);
+    // Each credential still gets both current projection checks, in addition
+    // to the single source-validated capture returned by the executor.
+    assert_eq!(crate::events::snapshot_capture_count() - before, 5);
 }
 #[test]
 fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks() {

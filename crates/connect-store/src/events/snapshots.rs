@@ -42,7 +42,21 @@ pub(super) fn create(
     size: usize,
     store: &Store,
 ) -> Result<SnapshotPage> {
-    let (revision, items, bytes, watermark) = capture(c, actor, cid)?;
+    create_captured(c, actor, cid, epoch, size, store, capture(c, actor, cid)?)
+}
+/// Freeze a projection captured and source-validated under the caller's current
+/// SQL transaction and authority readers. The paging cache retains frozen data,
+/// never the current transaction's authorization.
+pub(super) fn create_captured(
+    c: &Connection,
+    actor: &Actor,
+    cid: &str,
+    epoch: u64,
+    size: usize,
+    store: &Store,
+    captured: (u64, Vec<SnapshotItem>, usize, i64),
+) -> Result<SnapshotPage> {
+    let (revision, items, bytes, watermark) = captured;
     let id = format!("snap_{}", uuid::Uuid::new_v4());
     let sequence = store
         .events

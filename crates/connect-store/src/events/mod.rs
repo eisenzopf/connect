@@ -160,17 +160,27 @@ impl Store {
         }
         let actor = actor_from_connection(&tx, credential)?;
         let epoch = authorize(&tx, &actor, cid, "conversation.get")?;
-        let scopes = admission::snapshot_scopes(&tx, &actor, cid, &query, self)?;
-        if !self.authority_covers(held, &scopes) {
-            return Err(admission::changed());
-        }
         let size = limit(self, query.limit)?;
-        let result = if let Some(page) = &query.page {
-            snapshots::page(&tx, &actor, cid, epoch, &page, size, self)?
+        // One immediate transaction freezes the SQL projection while current
+        // source fences exclude authority changes. Validate the very items we
+        // return instead of capturing the entire topology three times. The
+        // final actor/key/peer checks and both coverage checks remain current.
+        let (result, scopes) = if let Some(page) = &query.page {
+            let result = snapshots::page(&tx, &actor, cid, epoch, page, size, self)?;
+            let scopes = admission::snapshot_projection_scopes(&tx, &actor, cid, &result.items)?;
+            if !self.authority_covers(held, &scopes) {
+                return Err(admission::changed());
+            }
+            (result, scopes)
         } else {
-            snapshots::create(&tx, &actor, cid, epoch, size, self)?
+            let captured = snapshots::capture(&tx, &actor, cid)?;
+            let scopes = admission::snapshot_projection_scopes(&tx, &actor, cid, &captured.1)?;
+            if !self.authority_covers(held, &scopes) {
+                return Err(admission::changed());
+            }
+            let result = snapshots::create_captured(&tx, &actor, cid, epoch, size, self, captured)?;
+            (result, scopes)
         };
-        let scopes = admission::snapshot_scopes(&tx, &actor, cid, &query, self)?;
         if !self.authority_covers(held, &scopes) {
             return Err(admission::changed());
         }
