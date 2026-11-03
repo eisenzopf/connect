@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-scene-video-admission-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "Saved v25 exact RGB inspection finds1793 unclassified markers after same-history RTP holes and none without a preceding hole. This locates corruption relative to missing compressed frames but not where loss occurred.",
+  "source_findings": [
+    "GuardedMediaScene::tick currently removes every realtime destination on any try_forward_to error, including transient NotReady; only Data remains pending.",
+    "Core packet-context weak death already selects fresh current admission under retained original metadata; no weak-expiry defect established."
+  ],
+  "planned_change": "Retry only transient realtime NotReady at a later normal scene tick, retaining original packet/arrival/source stamps, exact receiver port and route ticket, and earliest observed source/target grant deadline. No synchronous wait, republish, new recipient, relaxed age or cached grant.",
+  "before_exact_case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
+  "before_check_pending": true,
+  "product_change_applied": false,
+  "normal_runtime_pending": true,
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

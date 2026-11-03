@@ -1,0 +1,193 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene.rs
+@@ -589,3 +589,6 @@
+ 
+ #[path = "media_scene/subscriptions.rs"]
+ mod subscriptions;
++
++#[path = "media_scene/transient.rs"]
++mod transient;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -0,0 +1,181 @@
++//! Exercise the actual scene tick, pending packet and current policy callbacks.
++use super::*;
++use std::sync::atomic::AtomicU8;
++
++struct TransientPolicy {
++    inner: Arc<Policy>,
++    blocked: Arc<AtomicU8>,
++    source_expiry: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
++}
++struct ExpiringLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    until: chrono::DateTime<chrono::Utc>,
++}
++impl MediaAuthorityLease for ExpiringLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        Some(self.until)
++    }
++}
++impl MediaPolicy for TransientPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let blocked = self.blocked.load(Ordering::Acquire);
++        if (blocked == 1 && matches!(scope.purpose, MediaPurpose::Publish))
++            || (blocked == 2 && matches!(scope.purpose, MediaPurpose::Receive { .. }))
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let lease = self.inner.current(scope)?;
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            if let Some(until) = *self.source_expiry.lock().unwrap() {
++                return Ok(Box::new(ExpiringLease {
++                    inner: lease,
++                    until,
++                }));
++            }
++        }
++        Ok(lease)
++    }
++}
++async fn setup() -> (
++    Scene,
++    Arc<AtomicU8>,
++    Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
++) {
++    let blocked = Arc::new(AtomicU8::new(0));
++    let expiry = Arc::new(Mutex::new(None));
++    let f = Fixture::with_policy(
++        16,
++        Some(Box::new({
++            let blocked = blocked.clone();
++            let source_expiry = expiry.clone();
++            move |inner| {
++                Arc::new(TransientPolicy {
++                    inner,
++                    blocked,
++                    source_expiry,
++                })
++            }
++        })),
++    );
++    f.start_unsubscribed(&[Medium::Video]).await;
++    let scene = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.a.policy.clone(),
++        8000,
++    );
++    for c in [&f.a, &f.b] {
++        let mut member = scene.prepare(c.clone()).unwrap();
++        member
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        assert!(member.ready());
++        scene.insert(c.connection.clone(), member, true);
++    }
++    let s = Scene { f, scene };
++    s.subscribe(Medium::Video).await;
++    (s, blocked, expiry)
++}
++
++#[tokio::test]
++async fn scene_video_recovers_original_source_and_receiver_not_ready_without_republication() {
++    for purpose in [1, 2] {
++        let (s, blocked, _) = setup().await;
++        let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++        s.publish(Medium::Video, 9000);
++        blocked.store(purpose, Ordering::Release);
++        s.scene.tick();
++        assert!(out.try_recv().is_err());
++        s.f.policy
++            .0
++            .try_write()
++            .expect("pending video retained a policy reader");
++        blocked.store(0, Ordering::Release);
++        s.scene.tick();
++        let packet = out
++            .try_recv()
++            .expect("transient video admission discarded the original packet");
++        packet
++            .deliver(|frame| async move {
++                assert_eq!(frame.timestamp_rtp, 9000);
++                Ok(())
++            })
++            .await
++            .unwrap();
++        s.scene.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "original packet was delivered twice"
++        );
++    }
++}
++
++#[tokio::test]
++async fn scene_video_retry_keeps_original_age_and_earliest_observed_authority_expiry() {
++    for expiry_limited in [false, true] {
++        let (s, blocked, expiry) = setup().await;
++        let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++        s.publish(Medium::Video, 9000);
++        if expiry_limited {
++            *expiry.lock().unwrap() = Some(chrono::Utc::now() + chrono::Duration::milliseconds(40));
++        }
++        blocked.store(2, Ordering::Release);
++        s.scene.tick();
++        assert!(out.try_recv().is_err());
++        *expiry.lock().unwrap() = None;
++        tokio::time::sleep(Duration::from_millis(if expiry_limited { 60 } else { 210 })).await;
++        blocked.store(0, Ordering::Release);
++        s.scene.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "retry refreshed original age or authority expiry"
++        );
++        s.publish(Medium::Video, 18000);
++        s.scene.tick();
++        out.try_recv()
++            .unwrap()
++            .deliver(|f| async move {
++                assert_eq!(f.timestamp_rtp, 18000);
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++}
++
++#[tokio::test]
++async fn scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch() {
++    for revoke in [false, true] {
++        let (s, blocked, _) = setup().await;
++        let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++        s.publish(Medium::Video, 9000);
++        blocked.store(2, Ordering::Release);
++        s.scene.tick();
++        if revoke {
++            s.f.policy.0.write().await.revoked.insert("bob".into());
++        } else {
++            s.scene
++                .change_direct_subscriptions(
++                    &s.f.b.connection,
++                    s.f.b.revision(),
++                    DirectSubscriptionChange::Clear,
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++            s.subscribe(Medium::Video).await;
++        }
++        blocked.store(0, Ordering::Release);
++        s.scene.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "pending video crossed an authorization/subscription boundary"
++        );
++    }
++}
