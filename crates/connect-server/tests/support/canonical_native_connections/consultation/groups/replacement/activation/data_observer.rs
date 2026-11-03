@@ -40,10 +40,26 @@ pub(in super::super) async fn setup() -> codecs::Running {
     let cid = session_with_media(
         &f,
         &mut target,
-        "voice",
+        "mixed",
         json!({"audio":["g.711-mu"],"data":["reliable-ordered"]}),
     )
     .await;
+    let database = rusqlite::Connection::open(&f.config.database).unwrap();
+    let media: String = database
+        .query_row(
+            "SELECT media FROM sessions WHERE id='native-session'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        serde_json::from_str::<Vec<String>>(&media)
+            .unwrap()
+            .iter()
+            .any(|kind| kind == "data"),
+        "Data capability alone does not enable Session Data"
+    );
+    drop(database);
     let t = negotiate_media(&mut target, &cid, "codec-target-offer", "codec-target", json!([{"id":"codec-monitor","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]), capabilities()).await;
     let s = negotiate_media(&mut source, &cid, "codec-source-offer", "codec-source", json!([{"id":"codec-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]), capabilities()).await;
     wait_native_operation(&f, &f.client.credential, &cid, "codec-target-offer").await;
