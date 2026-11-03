@@ -401,7 +401,12 @@ impl Runtime {
                     id: retired,
                     generation: attempt.generation(),
                 };
-                store.try_settle_native_offer_cleanup(&attempt, &absent)
+                // The original SQL/authority attempt must have a chance to
+                // finish while current snapshot readers overlap. The one wait
+                // remains bounded through every metadata admission, and never
+                // replays Core termination or waits on a SQLite busy timeout.
+                let wait = connect_store::AuthorityWait::new(Duration::from_millis(500));
+                store.settle_native_offer_cleanup_with_wait(&attempt, &absent, &wait)
             })
             .await;
             match settled {

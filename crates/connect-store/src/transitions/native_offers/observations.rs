@@ -223,23 +223,40 @@ impl Store {
         if lease.runtime != self.runtime_epoch() {
             return Err(Error::forbidden());
         }
-        self.settle_native_offer_cleanup_with(lease, observation, true)
+        self.settle_native_offer_cleanup_with(lease, observation, true, None)
+    }
+    /// Bounded metadata-only custody while ordinary snapshot readers overlap.
+    /// The same wait covers SQL and authority admission; SQLite stays immediate.
+    pub fn settle_native_offer_cleanup_with_wait(
+        &self,
+        lease: &NativeOfferLease,
+        observation: &dyn NativeOfferRuntimeObservation,
+        wait: &crate::AuthorityWait,
+    ) -> Result<()> {
+        if lease.runtime != self.runtime_epoch() {
+            return Err(Error::forbidden());
+        }
+        wait.check()?;
+        self.settle_native_offer_cleanup_with(lease, observation, true, Some(wait))
     }
     pub(super) fn settle_native_offer_cleanup_at(
         &self,
         lease: &NativeOfferLease,
         observation: &dyn NativeOfferRuntimeObservation,
     ) -> Result<()> {
-        self.settle_native_offer_cleanup_with(lease, observation, false)
+        self.settle_native_offer_cleanup_with(lease, observation, false, None)
     }
     fn settle_native_offer_cleanup_with(
         &self,
         lease: &NativeOfferLease,
         observation: &dyn NativeOfferRuntimeObservation,
         immediate: bool,
+        wait: Option<&crate::AuthorityWait>,
     ) -> Result<()> {
         let connection = || {
-            if immediate {
+            if let Some(wait) = wait {
+                self.try_connection_with_wait(wait)
+            } else if immediate {
                 self.try_connection()
             } else {
                 self.connection()
@@ -257,7 +274,11 @@ impl Store {
         // fresh custody. Its immutable claim outlives the public mapping CAS;
         // repeated old cleanup must not read or modify the successor slot.
         {
-            let c = self.try_connection()?;
+            let c = if let Some(wait) = wait {
+                self.try_connection_with_wait(wait)?
+            } else {
+                self.try_connection()?
+            };
             if super::super::native_replacements::candidate::retired_original(
                 &c,
                 &lease.record,
@@ -277,7 +298,9 @@ impl Store {
             let c = connection()?;
             admission::row_scopes(&bound(&c, lease)?)?
         };
-        let held = if immediate {
+        let held = if let Some(wait) = wait {
+            self.acquire_authority(&scopes, wait)?
+        } else if immediate {
             self.try_acquire_authority(&scopes)?
         } else {
             self.acquire_authority(
@@ -345,6 +368,9 @@ impl Store {
         }
         if observation.observe()? != expected || !owner.current() {
             return Err(Error::forbidden());
+        }
+        if let Some(wait) = wait {
+            wait.check()?;
         }
         workers::invalidate(&tx, &lease.record)?;
         tx.commit().map_err(|_| Error::storage())?;

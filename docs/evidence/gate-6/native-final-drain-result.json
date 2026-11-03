@@ -1,0 +1,51 @@
+{
+  "format": "connect/gate6-native-final-drain-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "4548990453a6ed346744e9119ae76c883a030700",
+  "binary_sha256": "8d5d082a2222fa70e8b0e1699bb4dce24f6bc27dd34d0940415ca55d169018f9",
+  "peer_binary_sha256": "eea29ad5a6c1680e82b10ec904e2a6c6f4174f249b911b64fdc9549e816d48ec",
+  "report_sha256": "45ec5e65de676d6c9ed396b89422308fded230d5331d249103b13c03f3f65773",
+  "elapsed_seconds": 137.95569849599997,
+  "passed": false,
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "original_moves_completed": 4,
+  "all_four_original_roots_completed_revision16": true,
+  "original_forward_effects_confirmed_once": 28,
+  "physical_stages_passed": 4,
+  "physical_final_end_observed_ms": [
+    51,
+    71
+  ],
+  "retained_end_references": 4,
+  "retained_retirement_receipts": 0,
+  "original_media_tasks_joined": true,
+  "all_observed_helpers_joined": true,
+  "target_join_validation_failures": 0,
+  "failure": "Original media programme owners did not join within five seconds",
+  "programme_elapsed_ms": 67052.794009,
+  "cleanup_stage_counts": {
+    "durable-retirement-recorded": 10,
+    "durable-retirement-retry": 122,
+    "durable-retirement-join": 0
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "unretired_native_lifetimes": 0,
+  "original_db_wal_unchanged": true,
+  "retained_durable_retirement_time_seconds_after_programme_start": 67.027,
+  "interpretation": "Original retained ends completed at programme62.027s or earlier by second-resolution journal stamps, but durable retirement appeared at67.027s after observer cutoff/helper closure. All122 cleanup metadata retries reported authority-busy. Immediate cleanup has multiple nonblocking SQL and authority admissions; overlapping metadata readers can starve these attempts. Exact refusing admission was not labeled, so SQL-versus-file authority contention is not proven by these logs alone. No whole decoded-quality pass is claimed.",
+  "next_implementation": "Bound the same cleanup lease across SQL mutex and authority admission with one500ms AuthorityWait; retain immediate SQLite busy policy, current runtime/mapping/actual absence checks, rollback on cancellation or expiry, and no Core mutation replay.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

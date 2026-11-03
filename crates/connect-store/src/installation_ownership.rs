@@ -410,6 +410,26 @@ impl Store {
             _timing: timing,
         })
     }
+    /// Owned metadata work may wait briefly for the in-process SQL reader,
+    /// without inheriting SQLite's ordinary busy timeout or renewing custody.
+    pub(crate) fn try_connection_with_wait(
+        &self,
+        wait: &crate::AuthorityWait,
+    ) -> Result<ConnectionGuard<'_>> {
+        loop {
+            wait.check()?;
+            match self.try_connection() {
+                Ok(connection) => {
+                    wait.check()?;
+                    return Ok(connection);
+                }
+                Err(error) if error.code == "authority-busy" => {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+                Err(error) => return Err(error),
+            }
+        }
+    }
     pub(crate) fn require_runtime_owner(&self) -> Result<Arc<InstallationOwnership>> {
         self.runtime_ownership
             .permit(&self.path)?

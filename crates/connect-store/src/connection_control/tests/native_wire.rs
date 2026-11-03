@@ -27,6 +27,117 @@ fn status(f: &Fixture) -> OperationRecord {
         .unwrap()
 }
 #[test]
+fn native_cleanup_bounded_metadata_wait_preserves_original_custody() {
+    struct Absent(String, u64);
+    impl crate::NativeOfferRuntimeObservation for Absent {
+        fn observe(&self) -> connect_protocol::Result<crate::NativeOfferObservation> {
+            Ok(crate::NativeOfferObservation::Retired {
+                runtime_connection_id: self.0.clone(),
+                generation: self.1,
+            })
+        }
+    }
+    for mode in ["release", "cancel", "expire"] {
+        let f = Fixture::new();
+        let (_, proof) = prepared(&f, 600);
+        f.store
+            .accept_native_offer_with_peer(&f.keys[0], &proof)
+            .unwrap();
+        let (lease, _) = f
+            .store
+            .begin_native_offer_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .unwrap();
+        drop(proof);
+        let absent = Absent(lease.runtime_connection_id().into(), lease.generation());
+        let sql = f.store.connection().unwrap();
+        assert_eq!(
+            f.store
+                .try_settle_native_offer_cleanup(&lease, &absent)
+                .unwrap_err()
+                .code,
+            "authority-busy"
+        );
+        let wait = AuthorityWait::new(Duration::from_millis(if mode == "expire" {
+            30
+        } else {
+            1000
+        }));
+        std::thread::scope(|scope| {
+            let (started, ready) = std::sync::mpsc::channel();
+            let (store, lease, absent, waiting) = (&f.store, &lease, &absent, &wait);
+            let task = scope.spawn(move || {
+                started.send(()).unwrap();
+                store.settle_native_offer_cleanup_with_wait(lease, absent, waiting)
+            });
+            ready.recv().unwrap();
+            std::thread::sleep(Duration::from_millis(10));
+            if mode != "expire" {
+                assert!(
+                    !task.is_finished(),
+                    "metadata attempt must retain its original wait"
+                );
+            }
+            if mode == "release" {
+                drop(sql);
+                task.join().unwrap().unwrap();
+            } else {
+                if mode == "cancel" {
+                    wait.cancel();
+                }
+                let error = task.join().unwrap().unwrap_err();
+                assert_eq!(
+                    error.code,
+                    if mode == "cancel" {
+                        "cancelled"
+                    } else {
+                        "authority-busy"
+                    }
+                );
+                drop(sql);
+            }
+        });
+        let state: (String, u64) = f
+            .store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT state,generation FROM connections WHERE id=?1",
+                [lease.connection_id()],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        if mode == "release" {
+            assert_eq!(state, ("retired".into(), lease.generation() + 1));
+            let count = || {
+                f.store
+                    .connection()
+                    .unwrap()
+                    .query_row(
+                        "SELECT COUNT(*) FROM journal WHERE kind='connection_retired'",
+                        [],
+                        |r| r.get::<_, u64>(0),
+                    )
+                    .unwrap()
+            };
+            let before = count();
+            f.store
+                .settle_native_offer_cleanup_with_wait(
+                    &lease,
+                    &absent,
+                    &AuthorityWait::new(Duration::from_secs(1)),
+                )
+                .unwrap();
+            // One immutable retirement fanout; replaying custody adds no event.
+            assert!(before > 0);
+            assert_eq!(count(), before);
+        } else {
+            assert_ne!(state.0, "retired");
+            assert_eq!(state.1, lease.generation());
+        }
+    }
+}
+#[test]
 fn native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_ids() {
     let mut f = Fixture::new();
     for actor in 0..2 {
