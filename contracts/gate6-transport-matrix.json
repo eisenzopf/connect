@@ -9,18 +9,42 @@
     "contracts/openapi-application-http.json"
   ],
   "dimensions": {
-    "server": ["macos-arm64", "ubuntu24-x86_64"],
-    "network": ["local", "remote-profile-fixture"],
-    "transport": ["native-quic", "chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"],
-    "signing": ["EdDSA", "ES256"]
+    "server": [
+      "macos-arm64",
+      "ubuntu24-x86_64"
+    ],
+    "network": [
+      "local",
+      "remote-profile-fixture"
+    ],
+    "transport": [
+      "native-quic",
+      "chrome-webtransport",
+      "chrome-wss-webrtc",
+      "firefox-wss-webrtc"
+    ],
+    "signing": [
+      "EdDSA",
+      "ES256"
+    ]
   },
   "required_cell_count": 32,
   "signing_profile": "Each cohort uses its named algorithm for client and server signing. Record every actual peer/key algorithm; do not infer one from a TLS certificate.",
   "expected_browsers_by_client_platform": {
-    "macos-arm64": {"chrome": "156.0.8078.48", "firefox": "158.0.1"},
-    "ubuntu24-x86_64": {"chrome": "156.0.8078.4", "firefox": "158.0.1"}
+    "macos-arm64": {
+      "chrome": "156.0.8078.80",
+      "firefox": "158.0.1"
+    },
+    "ubuntu24-x86_64": {
+      "chrome": "156.0.8078.4",
+      "firefox": "158.0.1"
+    }
   },
-  "workload": {"participants": 4, "connections": 6, "concurrent_sessions": 2},
+  "workload": {
+    "participants": 4,
+    "connections": 6,
+    "concurrent_sessions": 2
+  },
   "required_checks": [
     "identified-candidate-client-server-versions",
     "normal-tls-and-current-device-key-authority",

@@ -146,6 +146,16 @@ combined10second process-exit observation; retain it as a failure. Upstream's
 five-second listener dispatch also runs after drain completion. Freeze this
 version2 observation before rerunning; no media/profile threshold changes.
 
+November 2 local Mac browser target update, before its next affected run:
+installed Google Chrome now reports156.0.8078.80. Its application signature
+passes strict/deep verification with Google LLC teamEQHXZ8M8AV. Freeze that
+exact patch for the next owned macOS profile and reference-app rehearsal.
+Earlier156.0.8078.48 results retain their original failures and source scope.
+Linux x86_64 and local ARM64 Chromium remain156.0.8078.4; Firefox remains
+158.0.1. The32cells, source programmes, observers, deadlines, AV limits,
+recovery and cleanup checks are unchanged. This records an installed version,
+not a browser/media pass or evidence that ARM fixes any Mac failure.
+
 ## Default bounds
 
 November1 native six-Connection marker source update, before its first affected
