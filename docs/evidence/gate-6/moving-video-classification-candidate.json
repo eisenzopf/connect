@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-03",
+  "candidate_script_sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9",
+  "change": "Keep existing source_pixels classifications for selected decoded pixels and SHA256 of exact RGB bytes read. Aggregate identified-other versus unclassified separately. Existing wrong_source and all acceptance limits unchanged.",
+  "scope": "Host-only follow-up, not in current frozen f837 runtime. Existing classifier has distinct outputs; moving decoder previously discarded distinction. Saved v18 RGB has no original RGB hash, so current classification is diagnostic only and cannot independently prove historical byte custody or change quality verdict.",
+  "focused_or_runtime_verification": "Not executed; observational fields only, no old suite rerun.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "format": "connect/gate6-moving-video-classification-candidate/1",
+  "task": "G6-058",
+  "frozen_runtime_source_excludes_followup": "f8377c44c0670bbac3c1ca1a4b24d00176872648",
+  "whole_gate_qualified": false
+}

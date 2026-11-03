@@ -213,9 +213,13 @@ def video_decode(directory,name,history,peer):
         if first+at in selected:
             classified=source_pixels(rgb[at*3:at*3+3],peer)
             measured.append(dict(row=row,level=gray[at],hash=line.split(',')[-1].strip(),
-                wrong_source=classified['wrong_source_pixel_frames']))
+                wrong_source=classified['wrong_source_pixel_frames'],
+                other_source=classified['other_identified_source_frames'],
+                unclassified=classified['unclassified_pixel_frames'],
+                marker_color_counts=classified['source_marker_counts']))
     return dict(measurements=measured,undecodable_frames=sum(i<first for i in selected),decoder_started=True,
-        ivf_sha256=checksum(ivf),framemd5_sha256=checksum(hashes),pulse_pixels_sha256=checksum(pulses))
+        ivf_sha256=checksum(ivf),framemd5_sha256=checksum(hashes),pulse_pixels_sha256=checksum(pulses),
+        source_pixels_sha256=hashlib.sha256(rgb).hexdigest())
 
 
 def arrival_marker_edges(levels, times, *, low, high, max_gap):
@@ -288,6 +292,14 @@ def summarize(route, audio, video):
         raise ValueError('moving original programme video frame counted twice')
     bins=[sum(second*1000<=m['row']['elapsed_ms']<(second+1)*1000 for m in v) for second in range(2,62)]
     changing=sum(left['hash']!=right['hash'] for left,right in zip(v,v[1:]));wrong=sum(m['wrong_source'] for m in v)
+    # Retain the classifier's distinction without relaxing the existing wrong==0
+    # quality limit. Older controlled measurements without these observations
+    # remain explicitly unavailable rather than becoming zero other-source data.
+    classification=(dict(expected_source_index=route['peer_index'],
+        source_marker_counts=[sum(m['marker_color_counts'][index] for m in v) for index in range(6)],
+        other_identified_source_frames=sum(m['other_source'] for m in v),
+        unclassified_pixel_frames=sum(m['unclassified'] for m in v))
+        if v and all('marker_color_counts' in m and 'other_source' in m and 'unclassified' in m for m in v) else None)
     gaps=[b['row']['elapsed_ms']-a['row']['elapsed_ms'] for a,b in zip(a,a[1:])]
     sync=marker_alignment(audio,video);bad=sum(h['bad_identity_blocks'] for h in audio)
     samples=sum(h['measured_samples'] for h in audio)
@@ -300,6 +312,7 @@ def summarize(route, audio, video):
             original_window_packets=len(a),maximum_arrival_gap_ms=max(gaps,default=None)),
         video=dict(decoded_window_frames=len(v),changing_window_frames=changing,changing_fps=changing/60,
             frames_by_observation_second=bins,wrong_source_pixel_frames=wrong,
+            source_marker_classification=classification,
             undecodable_frames=sum(h['undecodable_frames'] for h in video)),
         excluded_rows=route['excluded_rows'],received_clocks=route['received_clocks'],independently_decoded_receive_marker_alignment=sync)
 
