@@ -127,6 +127,8 @@
     "passes_private_JWK_to_existing_browser_SDK": true,
     "production_protocol_or_authorization_changed": false,
     "media_limits_or_deadlines_changed": false,
-    "corrected_runtime_pending": true
+    "corrected_runtime_pending": false,
+    "corrected_startup_verified": true,
+    "runtime_result": "docs/evidence/gate-6/browser-relay-arm-retest.json"
   }
 }

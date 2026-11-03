@@ -1,0 +1,272 @@
+{
+  "format": "connect/gate6-arm-relay-retest/1",
+  "date": "2026-11-03",
+  "task": "G6-054",
+  "source_revision": "980b57a3a9eabdcbd42a12c86cc366a2e3297bb5",
+  "passed": false,
+  "selected_case": "Original UDP EdDSA distinct-network browser relay, original-peer ICE and five-second RTC route drain.",
+  "source_count": 6132,
+  "source_inputs_unchanged_before": true,
+  "source_inputs_unchanged_after": true,
+  "binary_unchanged": true,
+  "tools_unchanged": true,
+  "binary_sha256": "217d661217174967304180f6f5d0b4e4607747e62c5f4a5e4db912d1b1e05017",
+  "runtime_library_profiles": {
+    "completed_artifacts": 521,
+    "profiles": {
+      "connect_client": [
+        "3"
+      ],
+      "connect_server": [
+        "3"
+      ],
+      "connect_service": [
+        "3"
+      ],
+      "connect_store": [
+        "3"
+      ],
+      "rtc": [
+        "3"
+      ],
+      "rtc_dtls": [
+        "3"
+      ],
+      "rtc_ice": [
+        "3"
+      ],
+      "rvoip_core": [
+        "3"
+      ],
+      "rvoip_media_core": [
+        "3"
+      ],
+      "rvoip_rtp_core": [
+        "3"
+      ],
+      "rvoip_webrtc": [
+        "3"
+      ]
+    },
+    "missing": [],
+    "passed": true
+  },
+  "warm_producer_seconds": 19.733225669000603,
+  "report_sha256": "854026a3756e60402611cf3155bd388f5c5d50205b46d75fa714d9226b6eb15a",
+  "browser_image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+  "turn_image": "sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068",
+  "architecture": "native Ubuntu24.04 ARM64",
+  "browser_version": "Google Chrome for Testing 156.0.8078.4",
+  "same_enrolled_JWK_fixture_worked": true,
+  "normal_trust": {
+    "unconfigured_ca_refused": true,
+    "configured_private_ca_import": true
+  },
+  "software_clock": {
+    "startup_audio_seconds": 0.2786394557823129,
+    "wall_seconds": 1.2015999999996274,
+    "audio_seconds": 1.195827664399093,
+    "ratio": 0.995196125498888,
+    "passed": true
+  },
+  "decoded_receive_observations": [
+    {
+      "decoded_fps": 26.940750306253786,
+      "changing_fps": 24.474930241117384,
+      "av_sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 15.0999999996273,
+        "p95_abs_skew_ms": 103.09999999962827
+      },
+      "audio": "passed",
+      "motion": "passed",
+      "source_identity": "passed",
+      "av_acceptance": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "decoded_fps": 27.2573536543186,
+      "changing_fps": 24.791529485101513,
+      "av_sync": {
+        "status": "failed",
+        "median_abs_skew_ms": 35.400000000372245,
+        "p95_abs_skew_ms": 136.3000000007446
+      },
+      "audio": "passed",
+      "motion": "passed",
+      "source_identity": "passed",
+      "av_acceptance": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    }
+  ],
+  "whole_observation_seconds": 60,
+  "ice_restart_status": "passed",
+  "ice_restarts": [
+    {
+      "participant": 0,
+      "ice_generation": 1,
+      "signed_requests": 2,
+      "original_media_unchanged": true,
+      "original_video_workers_unchanged": true,
+      "decoded_recovery": [
+        {
+          "status": "passed",
+          "seconds": 0.4808000000007451,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 1,
+          "maximum_audio_gap_seconds": 0.0996999740600586
+        },
+        {
+          "status": "passed",
+          "seconds": 0.2788999999985099,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 9,
+          "maximum_audio_gap_seconds": 0.10050010681152344
+        }
+      ]
+    },
+    {
+      "participant": 1,
+      "ice_generation": 1,
+      "signed_requests": 2,
+      "original_media_unchanged": true,
+      "original_video_workers_unchanged": true,
+      "decoded_recovery": [
+        {
+          "status": "passed",
+          "seconds": 0.229,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 7,
+          "maximum_audio_gap_seconds": 0.10090017318725586
+        },
+        {
+          "status": "passed",
+          "seconds": 0.7355,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 1,
+          "maximum_audio_gap_seconds": 0.10030007362365723
+        }
+      ]
+    },
+    {
+      "participant": 0,
+      "ice_generation": 2,
+      "signed_requests": 1,
+      "original_media_unchanged": true,
+      "original_video_workers_unchanged": true,
+      "decoded_recovery": [
+        {
+          "status": "passed",
+          "seconds": 0.5876000000014902,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 1,
+          "maximum_audio_gap_seconds": 0.09999990463256836
+        },
+        {
+          "status": "passed",
+          "seconds": 0.2042999999988824,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 7,
+          "maximum_audio_gap_seconds": 0.10119986534118652
+        }
+      ]
+    },
+    {
+      "participant": 1,
+      "ice_generation": 2,
+      "signed_requests": 1,
+      "original_media_unchanged": true,
+      "original_video_workers_unchanged": true,
+      "decoded_recovery": [
+        {
+          "status": "passed",
+          "seconds": 0.7360999999996275,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 2,
+          "maximum_audio_gap_seconds": 0.10029983520507812
+        },
+        {
+          "status": "passed",
+          "seconds": 0.6836999999992549,
+          "limit_seconds": 2,
+          "fresh_audio_samples": 3,
+          "fresh_changing_frames": 1,
+          "maximum_audio_gap_seconds": 0.10039997100830078
+        }
+      ]
+    }
+  ],
+  "relay_path_types": {
+    "before": [
+      "relay",
+      "relay"
+    ],
+    "after": [
+      "relay",
+      "relay"
+    ],
+    "final": [
+      "relay",
+      "relay"
+    ]
+  },
+  "nominated_udp_duplex": true,
+  "original_five_second_RTC_route_drain_passed": true,
+  "original_server_exit_code": 0,
+  "original_browser_exit_code": 1,
+  "turn": {
+    "passed": true,
+    "transport": "udp",
+    "image_id": "sha256:0a583c17085e1629e3a4ebe6c505aba82cbdd1733557f6932857e3327f5f3068",
+    "architecture": "arm64",
+    "version": "4.18.0",
+    "binary_sha256": "25bd7874d5b655ba5dff52eef8905627e8305898e0d10e67abd01f87d6d70e92",
+    "startup_stage": "control-binding",
+    "control_binding_ready": true,
+    "zero_allocations_before_exit": true,
+    "drain_seconds": 2.903720615000566,
+    "original_exit_code": 0,
+    "allocation_successes": 10,
+    "log_sha256": "a98fdca90a4f5d5b375d27cd2941d2b8925591247779781cf3bdaeec1f244539",
+    "original_container_joined": true,
+    "owned_container_removed": true,
+    "forced_cleanup": false
+  },
+  "cleanup": {
+    "original_server_joined": true,
+    "original_container_joined": true,
+    "bridge_containers_drained": true,
+    "owned_bridge_removed": true,
+    "forced_cleanup": false
+  },
+  "elapsed_seconds": 87.83262009600003,
+  "remaining_failure": {
+    "receiver": 1,
+    "requirement": "p95 absolute independently observed A/V skew",
+    "actual_ms": 136.3000000007446,
+    "limit_ms": 120,
+    "limits_changed": false
+  },
+  "other_cells_executed": false,
+  "broader_regression_suites_executed": false,
+  "whole_task_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Actual original60s relay/recovery/drain case on the local native ARM VM. Both receivers pass audio/motion/source identity; one passes complete quality and the other fails p95 A/V sync. Original two-generation ICE recovery, retained media, five-second host route/capacity reclamation, ten TURN allocations draining tozero and all original process/container/bridge joins pass without force. This clears the prior route-drain check for this exact case, not the wholeG054 task, other algorithms/transports/topologies or any matrix/gate acceptance. No causal claim from architecture alone. Owner directs return to remaining Gate6 work after this retest; retain unresolved AV sync without relaxing limits."
+}

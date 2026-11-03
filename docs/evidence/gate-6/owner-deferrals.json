@@ -67,10 +67,12 @@
     "user_instruction": "after this you can go back and retest the deferred test, can't remember the name",
     "task": "G6-054",
     "order": "After the fresh four-move ARM rehearsal completes.",
-    "status": "in-progress",
+    "status": "requested-retest-completed-with-quality-failure",
     "execution_scope": "Local ARM Linux owned fixtures; no GitHub-hosted media VM, external cloud provisioning or provider call implied.",
     "verification_waived": false,
     "local_only_reaffirmed": "2026-11-02: and make sure we continue to use local resources not github for testing",
-    "preceding_rehearsal": "docs/evidence/gate-6/native-realistic-movement-result.json"
+    "preceding_rehearsal": "docs/evidence/gate-6/native-realistic-movement-result.json",
+    "result": "docs/evidence/gate-6/browser-relay-arm-retest.json",
+    "next": "Continue remaining Gate6 plan; preserve G054 incomplete status and unchanged quality requirements."
   }
 }
