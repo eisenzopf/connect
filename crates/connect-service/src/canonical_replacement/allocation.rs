@@ -43,7 +43,6 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
-        let _roles = self.role_projection.lock().await;
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
@@ -52,19 +51,28 @@ impl Runtime {
         let record = intent.offer["replacement_preparation"]["operation_record_id"]
             .as_str()
             .ok_or_else(Error::forbidden)?;
-        let saved = {
-            self.replacements
-                .lock()
-                .map_err(|_| Error::storage())?
-                .get(record)
-                .cloned()
-                .ok_or_else(|| {
-                    Error::new(
-                        "not-ready",
-                        "Original owned replacement preparation is not live",
-                    )
-                })?
-        };
+        // The public Preparing state precedes both the Core call and its
+        // durable capture. Wait under the existing metadata bound without
+        // holding the projection lock needed by that original preparation.
+        let saved = super::readiness::wait(
+            tokio::time::Instant::now() + Duration::from_secs(5),
+            &self.stop,
+            &a.invocation_cancellation(),
+            &physical.lifetime,
+            || {
+                physical.validate(&a, authority)?;
+                Ok(self
+                    .replacements
+                    .lock()
+                    .map_err(|_| Error::storage())?
+                    .get(record)
+                    .cloned()
+                    .filter(|saved| saved.recorded.load(Ordering::Acquire)))
+            },
+        )
+        .await?;
+        let _roles = self.role_projection.lock().await;
+        physical.validate(&a, authority)?;
         let previous = {
             saved
                 .allocated

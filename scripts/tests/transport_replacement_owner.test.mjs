@@ -7,12 +7,12 @@ import { startPhysicalReplacementTarget } from "../lib/transport_replacement_tar
 
 // A real separately owned process exercises controller lifecycle only. It is
 // explicitly synthetic and performs no native negotiation or media IO.
-async function fixture(body) {
+async function fixture(body, failBeforeCompletion = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const root = await mkdtemp(join(parent, "replacement-owner-test-"));
     const executable = join(root, "synthetic-target"), config = join(root, "client.toml");
     await writeFile(config, "synthetic-config", { mode: 0o600 });
-    await writeFile(executable, `#!${process.execPath}\n` + String.raw`
+    await writeFile(executable, `#!${process.execPath}\nif (${failBeforeCompletion}) process.exit(23);\n` + String.raw`
 const fs = require("node:fs");
 const input = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 if (input.media.owner_control !== true) process.exit(9);
@@ -35,13 +35,21 @@ const poll = setInterval(() => {
   owner_control: true, owner_ready: true, stop_requested: true }), { mode: 0o600 });
 }, 10);
 `, { mode: 0o700 });
-    let submitted = 0, retired = 0, restored = 0;
+    let submitted = 0, retired = 0, restored = 0, waitAborted = false;
     const reference = { command: "connection.replace", operation_id: "original",
         scope: { conversation_id: "conversation", session_id: "session", connection_id: "source" } };
     const moved = { connection: { id: "destination" }, admitted: [{ id: "destination" }], retired: ["source"],
         retained: [{ id: "retained", refresh: async () => ({ id: "retained", generation: 1 }) }],
         topologyRevision: 2, conversationRevision: 3, binding: { deviceId: "device" } };
-    const operation = { referenceJson: () => reference, wait: async () => ({ snapshot: { state: "completed" }, value: moved }) };
+    const operation = { referenceJson: () => reference, wait: async options => {
+        if (!failBeforeCompletion) return { snapshot: { state: "completed" }, value: moved };
+        return new Promise((_, reject) => {
+            const timer = setTimeout(() => reject(Error("synthetic-read-deadline")), 1000);
+            options.signal?.addEventListener("abort", () => {
+                clearTimeout(timer); waitAborted = true; reject(Error("synthetic-read-cancelled"));
+            }, { once: true });
+        });
+    } };
     const controller = { conversations: { byId: () => ({ sessions: { byId: () => ({ connections: { byId: () => ({
         replaceDevice: async () => { submitted++; return operation; },
         refresh: async () => ({ id: "source", state: "retired", generation: 2 }),
@@ -61,12 +69,31 @@ const poll = setInterval(() => {
             retainedConnectionId: "retained", expectedTopologyRevision: 1, originalGeneration: 1, retainedGeneration: 1,
             streamId: "target-audio", target: { endpointId: "endpoint", deviceId: "device", nativeConfig: config },
             source: { seconds: 1, ssrc: 7, audioPackets: Array.from({ length: 50 }, () => [1]) } });
+        assert.equal(failBeforeCompletion, false, "failed target unexpectedly admitted");
         await body({ owner, directory, counters: () => ({ submitted, retired, restored }) });
+    } catch (error) {
+        if (!failBeforeCompletion) throw error;
+        await body({ error, directory, waitAborted, counters: () => ({ submitted, retired, restored }) });
     } finally {
         await owner?.stopAndJoin().catch(() => {});
         await rm(root, { recursive: true, force: true });
     }
 }
+
+test("early physical failure cancels only the original read wait and preserves the target cause", async () => {
+    await fixture(async ({ error, directory, waitAborted, counters }) => {
+        assert.equal(error.message, "original-physical-target-exited-before-completion");
+        assert.equal(waitAborted, true);
+        const stage = JSON.parse(await readFile(join(directory, "stage.json"), "utf8"));
+        assert.equal(stage.failure.phase, "independent-physical-target");
+        assert.deepEqual(stage.target_early_exit, { code: 23, signal: null, error: null });
+        assert.equal(stage.target_worker_joined, true);
+        assert.equal(stage.target_worker_forced, false);
+        assert.equal(stage.original_root_completed, false);
+        assert.equal(stage.passed, false);
+        assert.deepEqual(counters(), { submitted: 1, retired: 0, restored: 0 });
+    }, true);
+});
 
 test("admission retains a live owner; concurrent join and repeated stop share one physical cleanup", async () => {
     await fixture(async ({ owner, directory, counters }) => {

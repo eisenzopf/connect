@@ -367,7 +367,28 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             worker.once("close", (code, signal) => done({ code, signal }));
         }).then(exit => { exited = exit; return exit; });
         phase = "original-completion";
-        const done = await operation.wait({ timeoutMs: remaining() });
+        const waiting = new AbortController();
+        let targetFailed = false;
+        let observingCompletion = true;
+        let done;
+        try {
+            done = await Promise.race([
+                operation.wait({ timeoutMs: remaining(), signal: waiting.signal }),
+                completed.then(exit => {
+                    // A failed physical target cannot finish this original
+                    // operation. Preserve that first cause, cancel only the
+                    // read-only wait, and join the original worker in cleanup.
+                    if (observingCompletion && (live || exit.code !== 0 || exit.signal !== null || exit.error !== undefined)) {
+                        targetFailed = true;
+                        phase = "independent-physical-target";
+                        report.target_early_exit = { code: exit.code ?? null, signal: exit.signal ?? null,
+                            error: exit.error ?? null };
+                        throw Error("original-physical-target-exited-before-completion");
+                    }
+                    return new Promise(() => {});
+                }),
+            ]);
+        } finally { observingCompletion = false; if (targetFailed) waiting.abort(); }
         assert.equal(done.snapshot.state, "completed");
         const moved = done.value;
         admittedConnectionId = moved.connection.id;

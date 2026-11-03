@@ -409,3 +409,9 @@ inherited flag unless its named diagnostic is selected. Queue capacity, original
 timeouts, cancellation/fencing, uncertainty and mutation behavior are unchanged.
 These diagnostics do not qualify media or prove the deadline cause by themselves.
 See [the timing candidate](../evidence/gate-6/sdk-helper-timing-candidate.json).
+
+### Original preparation readiness
+
+The `preparing` operation state includes reservation and the once-only Core preparation call. It does not establish that the owned ticket has been installed and durably recorded. Target allocation waits for that original capture under the existing five-second metadata bound, current physical/peer authority and invocation cancellation. The wait holds no role projection lock, and cannot repeat Core preparation or target allocation. Allocation still validates the exact original intent, target and source under current authority before its once-only durable begin.
+
+The workload controller observes a failed physical target while waiting for the original operation. An early worker failure cancels only that read-only wait, preserves the physical failure as the first cause, and joins the original worker. It never resubmits or cancels the logical mutation. The original reference remains available for recovery. See [the negative timing diagnostic](../evidence/gate-6/native-helper-timing-result.json); the changes require fresh local ARM verification.

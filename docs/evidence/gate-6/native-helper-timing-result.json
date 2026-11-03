@@ -1,0 +1,237 @@
+{
+  "format": "connect/gate6-native-helper-timing-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "fb9197ab290940710535c9c1a70b39c2992c632a",
+  "host": {
+    "os": "linux",
+    "architecture": "aarch64",
+    "kernel_release": "6.8.0-117-generic",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-arm64"
+  },
+  "profile": "gate6-realistic-device-roundtrip-v1",
+  "scheduled_moves": 4,
+  "completed_moves": 3,
+  "original_programme_seconds": 62,
+  "full_programme_completed": false,
+  "report_sha256": "d709ecd159067eddac7a00918dce7a1e54d1c7932a65dbfb5efb270c77d67e9e",
+  "normal_cli_sha256": "e3c9a7aa2d57b17f5dac957461701c814fa0a4378d11a85c053b3b4d843e9969",
+  "physical_peer_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "helper_timing": {
+    "records": 897,
+    "scope": "Local helper stdin dispatch is not server acceptance.",
+    "root_wait": {
+      "actor": "controller-1",
+      "request": 17,
+      "action": "operation.wait",
+      "queue_ms": 0.158,
+      "active_ms": 7790.133,
+      "original_timeout_ms": 7791
+    },
+    "derivative_session_refresh": {
+      "actor": "controller-1",
+      "request": 18,
+      "sent": false,
+      "fenced_after_ms": 5734.778
+    }
+  },
+  "physical_failure": {
+    "move": "source-0-return",
+    "phase": "allocation",
+    "client_code": "invalid-request",
+    "server_stage": "source",
+    "server_code": "not-ready",
+    "sent_audio_packets": 0,
+    "cause_inference": "Preparing is published when the reservation is written, before the owned Core ticket is installed and durably recorded. The target starts against that state; allocation refuses absent/unrecorded custody. The protocol maps not-ready through its default 400 and the client masks it as invalid-request. The queued Session refresh was never dispatched."
+  },
+  "stopped_original_journal": {
+    "roots": [
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "failed",
+        "revision": 4,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired": 0,
+    "original_db_wal_unchanged": true
+  },
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "next": "Wait for original recorded preparation without a projection lock, then cross allocation begin once; preserve early physical-worker failure over derivative read deadline. Focused local ARM verification only."
+}
