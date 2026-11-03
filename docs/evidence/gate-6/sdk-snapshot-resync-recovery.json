@@ -19,7 +19,8 @@
     "problem": "409 state/resync_required",
     "source_unchanged": true,
     "reader_sha256": "ec05f8be4d6923b98921e3b3becea50962e6dc190eccfffe63d6df12e9250b1f",
-    "log_sha256": "e1e4c35169d067a96715d14f5293f9569f7ac1a3d3ba45925d9445e186a7e03a"
+    "log_sha256": "e1e4c35169d067a96715d14f5293f9569f7ac1a3d3ba45925d9445e186a7e03a",
+    "source_guard_scope": "Tracked/prepared inputs including the unchanged production reader. The newly created regression fixture was untracked at this initial counterexample run; it was subsequently committed and fully guarded for the positive verification."
   },
   "after": {
     "targeted_tests_passed": 5,
@@ -27,12 +28,16 @@
     "targeted_tests_are_subset_of_full_suite": true,
     "failed": 0,
     "ignored": 0,
-    "elapsed_seconds": 93.9696824583225,
+    "elapsed_seconds": 27.61517025018111,
     "source_unchanged": true,
     "logs_sha256": {
-      "recovery-cases": "4fa2515e5235d533b9cc7ecb84edf3f44e607cf251c93227ce019c39e8f977ac",
-      "full-client-library": "9a98a155ba2a150f9b943f0e9fc302dbc68b6ead893569fc3f5e5288b8eccb0d"
-    }
+      "recovery-cases": "0682a51191a61d4778c406d90b7022f816be2ea2b6c1e27694ffff537d56c38b",
+      "full-client-library": "41836cbac46bd191f1c166cc9aabe8080b3329aa1fc79ec9d7f998e9b82ca3c3"
+    },
+    "source_revision": "388f31eeee4cfd7e2f9c4ced9695af70f7e66e09",
+    "all_regression_and_implementation_files_globally_guarded": true,
+    "committed_source_inputs_sha256": "2be5aaa1cfac2d9bf5fc1d4a2d8ffaf8c3124dfadb410c8acca3ef09442aa13e",
+    "repeat_does_not_increase_distinct_test_count": true
   },
   "cases": [
     "evicted continuation starts fresh and discards all partial facts",
