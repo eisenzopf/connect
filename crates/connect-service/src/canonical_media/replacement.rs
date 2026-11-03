@@ -416,6 +416,19 @@ impl ReplacementAdoption {
         if !installed {
             return Ok(None);
         }
+        // Adapter registry presence can survive controller cancellation while
+        // cleanup drains. Check the original sealed resources, not only its ID.
+        // This try-read cannot wait under the Store publication transaction.
+        let generation = self
+            .target
+            .activation
+            .get()
+            .ok_or_else(connect_protocol::Error::forbidden)?
+            .try_confirmed_generation()
+            .map_err(super::packet_authority_error)?;
+        if generation != Some(expected.origin().generation()) {
+            return Err(connect_protocol::Error::forbidden());
+        }
         Ok(Some(Box::new(InstalledEntry {
             _entries: entries,
             _provisional: provisional,

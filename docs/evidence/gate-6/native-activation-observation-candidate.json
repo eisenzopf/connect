@@ -1,0 +1,21 @@
+{
+  "format": "connect/gate6-native-activation-observation-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Final Service installation observation also requires the expected generation from the original sealed NativeMediaActivation via a nonblocking metadata read. Busy maps to temporary refusal; missing/cancelled/wrong-generation or poison cannot publish Ready.",
+  "patch": "patches/rvoip/gate6-native-activation-observation.patch",
+  "checks_pending": [
+    "New native activation metadata contention/missing/poison unit case.",
+    "New actual signed local QUIC resource cancellation while adapter route remains.",
+    "Service library compile against the pinned patched dependency."
+  ],
+  "limitations": [
+    "No actual replacement Store/Service end-race or process restart proof yet.",
+    "Resource check is an observation at publication, not a guard against future network loss; current packet checks remain mandatory.",
+    "P0/P1 writer-drain, P3/P5 and all complete transport-cell qualification remain."
+  ],
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

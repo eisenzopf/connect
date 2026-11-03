@@ -220,6 +220,10 @@ closed. Final Store publication requires custody of that exact installed entry
 through commit. `connection_ready` and the completed original operation cannot
 precede this installation. Current credentials, lifetime, generation and media
 policy still gate each packet; an installed entry is not an authorization grant.
+The final runtime observation also checks the original sealed native resource
+generation without waiting on busy activation metadata. Cancelled resources do
+not qualify merely because their adapter entry remains during cleanup. This is
+an observation at publication, not a promise of future network liveness.
 
 The original operation's result follows `NativeReplacementActivationCompletion`
 in [the canonical OpenAPI reference](../../contracts/openapi-canonical-http.json).

@@ -1,0 +1,93 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -114,6 +114,16 @@
+             .ok_or(StreamControlError::NotReady)?
+             .current_replacement_resources(current, source, pending)
+     }
++    /// Nonblocking current resource observation for host publication metadata.
++    /// Busy metadata is retryable; missing, aborted or cancelled resources have
++    /// no confirmed generation. This returns no current permission or IO lease.
++    pub fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
++        let prepared = self.prepared.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
++    }
+     pub fn confirmed_generation(&self) -> Option<u64> {
+         self.prepared
+             .lock()
+@@ -155,3 +165,41 @@
+         NativeMediaActivation::current_replacement(self, o, s, r)
+     }
+ }
++
++#[cfg(test)]
++mod publication_tests {
++    use super::*;
++
++    #[test]
++    fn publication_observation_never_waits_for_busy_metadata_or_accepts_poison() {
++        let activation = Arc::new(NativeMediaActivation {
++            controller: Weak::new(),
++            broker: Weak::new(),
++            source: "controlled-publication-observation".into(),
++            prepared: Mutex::new(None),
++        });
++        assert_eq!(activation.try_confirmed_generation().unwrap(), None);
++        let held = activation.prepared.lock().unwrap();
++        let began = std::time::Instant::now();
++        for _ in 0..16 {
++            assert!(matches!(
++                activation.try_confirmed_generation(),
++                Err(StreamControlError::NotReady)
++            ));
++        }
++        assert!(began.elapsed() < std::time::Duration::from_millis(50));
++        drop(held);
++        assert_eq!(activation.try_confirmed_generation().unwrap(), None);
++        let other = activation.clone();
++        assert!(std::thread::spawn(move || {
++            let _held = other.prepared.lock().unwrap();
++            panic!("controlled activation metadata poison");
++        })
++        .join()
++        .is_err());
++        assert!(matches!(
++            activation.try_confirmed_generation(),
++            Err(StreamControlError::Authority)
++        ));
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
+@@ -340,3 +340,27 @@
+     assert_eq!(activation(&s).await.confirmed_generation(), Some(1));
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++#[tokio::test]
++async fn cancelled_native_resources_have_no_publication_generation_while_adapter_route_is_retained()
++{
++    use rvoip_core::adapter::ConnectionAdapter;
++    let mut s = Scene::new_bootstrap("quic").await;
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    let proof = activation(&s).await;
++    assert_eq!(proof.try_confirmed_generation().unwrap(), None);
++    s.confirm(&callback).await;
++    admitted(&s).await;
++    assert_eq!(proof.try_confirmed_generation().unwrap(), Some(1));
++    let controller = s.controller();
++    let adapter = &s.native.adapters[&s.kind];
++    assert!(adapter.is_connection_live(&s.id));
++    // Actual Core resource cancellation precedes the adapter's asynchronous
++    // route removal. Presence alone cannot authorize Ready publication here.
++    controller.retire();
++    assert!(adapter.is_connection_live(&s.id));
++    assert!(controller.active_bindings().is_empty());
++    assert_eq!(proof.try_confirmed_generation().unwrap(), None);
++    s.wire.server.shutdown().await.unwrap();
++    assert_eq!(proof.try_confirmed_generation().unwrap(), None);
++}

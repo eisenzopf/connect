@@ -1509,6 +1509,11 @@
       "path": "patches/rvoip/gate6-queued-source-owner-admission.patch",
       "sha256": "b0672108ea132ea2a863112aa9797055496da92f469c1e13efab255b3c2a88e1",
       "source": "G6-058 P1: retained realtime admission without active packet custody uses current_queued; Service performs one fresh current check and returns contention to the original bounded owner. Fresh ingress pacing, active packet custody, Data admission, current authorization, original age and expiry remain unchanged. Actual Service before case reproduced 160.01854ms synchronous callback occupancy. Focused Service/Core after checks and actual mixer writer-drain proof required; no full runtime qualification implied."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-activation-observation.patch",
+      "sha256": "30829a335394799d7eca0e5a1a04b212483e8bd0a0cec8d38ab60a78fd39e6cc",
+      "source": "G6-058 P2: nonblocking observation of original native activation generation; cancelled/aborted resources report no generation even while adapter cleanup retains its route. New isolated metadata contention/poison and actual signed QUIC cancellation cases; no media permission or native replacement qualification implied."
     }
   ]
 }
