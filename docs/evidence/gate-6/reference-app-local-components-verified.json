@@ -1,0 +1,318 @@
+{
+  "format": "connect/reference-app-local-components/1",
+  "task": "G6-072",
+  "passed": true,
+  "shell_implementation_verified_locally": true,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "complete_sdk_candidate_qualified": false,
+  "linux_x86_64_qualified": false,
+  "full_parley_scenario_qualified": false,
+  "profiles": {
+    "ubuntu24-arm64": {
+      "passed": true,
+      "source_revision": "636e07aca23554082fd7a5a66f2b8c4f5c6aee4f",
+      "app_report_sha256": "8b92cf1f7cbfc6c20607f7727c0ac80ae83b5d3826eb6d66464a4c4880bfefae",
+      "runtime_proof_sha256": "e4a795fe96389e5a47b104b970a8fba352f96d4474568cd63f3765e56f22eb90",
+      "node_proof_sha256": "d4e3c97da1c3bdfd9053a7f2cf031b5d6cd0970e38b1f102f20c2c07e5a44c96",
+      "runtime_archive_sha256": "d32bb25b9c88cacac81826655890f7f114d8dbc008cf12bddb9932efc45d85d0",
+      "node_archive_sha256": "e4ad98e1ce9c3f137bc441446a5fff44ccef9066cc7621befb5e224e0544dff9",
+      "binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+      "tracked_git_blob_and_executable_modes_verified": 5033,
+      "prepared_source_bytes_and_executable_modes_verified": 4098,
+      "runtime_files_verified": 747,
+      "installed_node_payload_files_verified": 195,
+      "node_source_input_files_verified": 197,
+      "dependency_archives_verified": [
+        "@types/node",
+        "undici-types"
+      ],
+      "browser": "156.0.8078.4",
+      "browser_launcher_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+      "checks_passed": 37,
+      "all_four_diagnostic_observers_off": true,
+      "all_source_runtime_browser_guards_pass": true,
+      "sustained_windows": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.3999999999069,
+          "completed_audio_frames": 85,
+          "painted_video_frames": 58,
+          "audio_energy": 0.3678853954769261,
+          "desired_tone": 0.18376346554449907,
+          "excluded_tone": 0.00011035034379076577
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001,
+          "completed_audio_frames": 98,
+          "painted_video_frames": 58,
+          "audio_energy": 0.3961033155928933,
+          "desired_tone": 0.1981107100593296,
+          "excluded_tone": 0.00012049748652429062
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2002.1000000000931,
+          "completed_audio_frames": 95,
+          "painted_video_frames": 58,
+          "audio_energy": 0.048737053612742276,
+          "desired_tone": 0.024336694891542887,
+          "excluded_tone": 1.4130611239038336e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2002.3999999999069,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 59,
+          "audio_energy": 0.05415504348428546,
+          "desired_tone": 0.027084834459341456,
+          "excluded_tone": 1.634005830201916e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2000.8999999999069,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 59,
+          "audio_energy": 0.050770195832119835,
+          "desired_tone": 0.025383077365935147,
+          "excluded_tone": 1.4683455696821676e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 58,
+          "audio_energy": 0.05386279739792388,
+          "desired_tone": 0.026931949109683773,
+          "excluded_tone": 1.583931582781084e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2000.7000000001863,
+          "completed_audio_frames": 93,
+          "painted_video_frames": 58,
+          "audio_energy": 0.04765182289026537,
+          "desired_tone": 0.02381995383376867,
+          "excluded_tone": 1.4078587077167204e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2000.6999999997206,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 59,
+          "audio_energy": 0.05335328854354637,
+          "desired_tone": 0.026686328284268257,
+          "excluded_tone": 1.587941665244009e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2003.7999999998137,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 58,
+          "audio_energy": 0.05081214969216985,
+          "desired_tone": 0.02540573067238583,
+          "excluded_tone": 1.4513788327788859e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2003.7000000001863,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 57,
+          "audio_energy": 0.05387199320381342,
+          "desired_tone": 0.026936772755906002,
+          "excluded_tone": 1.614718480978173e-05
+        }
+      ],
+      "native_video_playout": {
+        "painted": 3,
+        "dropped": 0,
+        "queued": 0
+      },
+      "screenshots": {
+        "native-controls-narrow.png": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+        "desktop.png": "1c54d4f26803b85bb8c145216977cf1f47cbea80fd8f4e8384fa69ae90cd97af",
+        "video-controls.png": "293924215b7332b8807f7caeef912bb81ebf71a4fc5e168752c3f0c5537401e1",
+        "narrow.png": "50dbd37ce3cf47d588fbf1c008167aed4c34869834a2bdf23a490a6d9aeb0228",
+        "video-controls-narrow.png": "555b4dbd7a3959f4204a53720bfc8ad19d0130edf0e62597f3e9123540b9766b",
+        "capture-controls-narrow.png": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+        "native-controls.png": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+        "capture-controls.png": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc"
+      }
+    },
+    "macos-arm64": {
+      "passed": true,
+      "source_revision": "ff709334b2db4a2100c54992a58f741bd9934558",
+      "app_report_sha256": "84d53c984340efb2a30d59e9cd295a0b4993c947de3827678817b121559da2a4",
+      "runtime_proof_sha256": "9db9cbe5b55f354ef5304dfe316c64354db130dcb17412d58d0cccdaa9e5f077",
+      "node_proof_sha256": "9b0c9230854aa2923bd22f3fa50abd5a7241aba7e3fcce3571ec50ae4ceaa281",
+      "runtime_archive_sha256": "cc3f58abbe01fb47218d3820b890f705c3f2e864df2f84ba228b7b5b3f9ff607",
+      "node_archive_sha256": "f714b966120f3977bd9ec7e4c1887f2f7ed545d68d1191257c50e4cf0fe278b9",
+      "binary_sha256": "a814407caa9b52cad470cf519496e947c9795881457ae125aa30ace5a7d03b5d",
+      "tracked_git_blob_and_executable_modes_verified": 5033,
+      "prepared_source_bytes_and_executable_modes_verified": 4098,
+      "runtime_files_verified": 755,
+      "installed_node_payload_files_verified": 195,
+      "node_source_input_files_verified": 197,
+      "dependency_archives_verified": [
+        "@types/node",
+        "undici-types"
+      ],
+      "browser": "156.0.8078.80",
+      "browser_launcher_sha256": "3f0acaf1e585195596d73ffa1824baa72c3c3ac115b5cfc43d789030a3f23d93",
+      "checks_passed": 37,
+      "all_four_diagnostic_observers_off": true,
+      "all_source_runtime_browser_guards_pass": true,
+      "sustained_windows": [
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.7000002861023,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 58,
+          "audio_energy": 0.19189207639986394,
+          "desired_tone": 0.09592685000405332,
+          "excluded_tone": 5.510831137881217e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001.7000002861023,
+          "completed_audio_frames": 91,
+          "painted_video_frames": 58,
+          "audio_energy": 0.2015634088328967,
+          "desired_tone": 0.10049738604299624,
+          "excluded_tone": 6.106001958372891e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2001.7999997138977,
+          "completed_audio_frames": 99,
+          "painted_video_frames": 58,
+          "audio_energy": 0.05128016372947819,
+          "desired_tone": 0.02563686817719235,
+          "excluded_tone": 1.4808716606524823e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001.6999998092651,
+          "completed_audio_frames": 96,
+          "painted_video_frames": 59,
+          "audio_energy": 0.05158509997256666,
+          "desired_tone": 0.0257941626992087,
+          "excluded_tone": 1.5761328605685618e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2002,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 59,
+          "audio_energy": 0.0519104546391671,
+          "desired_tone": 0.02595161589628514,
+          "excluded_tone": 1.5097718445992092e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2002,
+          "completed_audio_frames": 92,
+          "painted_video_frames": 58,
+          "audio_energy": 0.049503624572347804,
+          "desired_tone": 0.024758752807464923,
+          "excluded_tone": 1.4556399532834484e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2001,
+          "completed_audio_frames": 100,
+          "painted_video_frames": 58,
+          "audio_energy": 0.051844516952102904,
+          "desired_tone": 0.025919052228375872,
+          "excluded_tone": 1.5043969062409051e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2001.0999999046326,
+          "completed_audio_frames": 94,
+          "painted_video_frames": 58,
+          "audio_energy": 0.05049945205600004,
+          "desired_tone": 0.025253632466674114,
+          "excluded_tone": 1.4917497467811878e-05
+        },
+        {
+          "role": "owner",
+          "elapsed_ms": 2002.2000002861023,
+          "completed_audio_frames": 101,
+          "painted_video_frames": 58,
+          "audio_energy": 0.0523248456791654,
+          "desired_tone": 0.026160265872225752,
+          "excluded_tone": 1.507943559802649e-05
+        },
+        {
+          "role": "organizer",
+          "elapsed_ms": 2002.2000002861023,
+          "completed_audio_frames": 97,
+          "painted_video_frames": 58,
+          "audio_energy": 0.052144376323244535,
+          "desired_tone": 0.026079129717467064,
+          "excluded_tone": 1.519733964258364e-05
+        }
+      ],
+      "native_video_playout": {
+        "painted": 3,
+        "dropped": 0,
+        "queued": 0
+      },
+      "screenshots": {
+        "native-controls-narrow.png": "2ee5ef0d20934c550abe8de4e021f16a068375a577f3e5e181af561b4feb0d95",
+        "desktop.png": "15ceafbee68006acfe7c3745587a052b53150d430c9139bcc24374f2688b28bb",
+        "video-controls.png": "00b12d39cc6e6b23d7edd41cb8c5338212f349ff45f39ebe2e4d4a8bcc4dcd7b",
+        "narrow.png": "470d2c3aadf0c766914e7b605fe9c40c4d1f0cd46fe56ad1c4de3108ffea3b5a",
+        "video-controls-narrow.png": "46325cd0962148fed74bb5c33439cddbb0df157898413d6bb3f12647868b5afa",
+        "capture-controls-narrow.png": "0d03b66d33e087b2193226609f8728a9b2f32fcce5dfdff0cc7d527d8f78a2ea",
+        "native-controls.png": "5615d8da8c2527909cffc91f4760c40ba302a18eed0442471a950abc8b7619df",
+        "capture-controls.png": "98a54994063bb58f6640949825b962da85806156066d217a49fef266cfe7253b"
+      }
+    }
+  },
+  "independent_audit_sha256": "678605e4ac29956272d6797a65cf756824f5715f2a50c6fb8360e75160db1702",
+  "audit_script_sha256": "415317b5b9a030b19c947488b38b2833e01822ea447a7a771b924b64bd50a685",
+  "app_unit_cases": {
+    "unique_cases": 100,
+    "executed_on": [
+      "macos-arm64",
+      "ubuntu24-arm64"
+    ],
+    "failed": 0,
+    "skipped": 0,
+    "mac_log_sha256": "081fc129cbb2e1843690e405f84a9b2c13ef742508601e54744efb6a2fca1ed3",
+    "arm_log_sha256": "27cffcbf1ca0739bab948bc3ab8e9509400cf24f6af62f77fff9cc9ca013697f"
+  },
+  "node_payload_files_match_across_platforms": true,
+  "node_source_checkout_modes": {
+    "macos": "0644",
+    "arm": "0600 private umask077; Git executable bits and all bytes verified"
+  },
+  "source_boundary": {
+    "connect_storage_access": "Only public installed @rudeless/connect SDKs and documented production CLI commands. The app owns a separate app-intents.sqlite3 journal; it does not open the Connect server database.",
+    "backend_credentials_private": true,
+    "manual_database_edits_required": false,
+    "repository_specific_paths_in_user_flow": false
+  },
+  "requirements_verified": {
+    "one_command_scoped_setup": true,
+    "participant_selection_timeline_and_invitations": true,
+    "desktop_and_320px_keyboard_flows": true,
+    "original_operation_and_offline_recovery": true,
+    "actual_denied_microphone_and_camera": true,
+    "native_audio_video_controls_and_identified_duplex_output": true,
+    "permission_revocation_late_result_and_actor_change_cleanup": true,
+    "same_command_restart_and_owned_shutdown": true,
+    "ordinary_installed_public_archives": true
+  },
+  "visual_review": {
+    "narrow_width_pngs_reviewed": [
+      "ubuntu24-arm64/video-controls-narrow.png",
+      "macos-arm64/video-controls-narrow.png"
+    ],
+    "observed": "Readable ordered controls and timeline, red local/green remote identified video, original operation states, no horizontal overflow."
+  },
+  "scope": "Each local source-bound app run passes all37 checks with unchanged thresholds and all4 diagnostic observers OFF. Ten paired2second AV observations per platform each require50completed audio frames and6video paints. These are app component checks, not G6-05824fps/60second transport qualification. Mac sourceff709334 uses Chrome156.0.8078.80; ARM source636e07ac uses full Chromium156.0.8078.4. The two source revisions differ in profile/docs only for this comparison; no controlled architecture-only performance claim. Required Ubuntu x86_64 app qualification remains unexecuted locally, so G6-072 remains in progress. Three-developer onboarding, full Parley/provider scenario and whole acceptance remain open."
+}

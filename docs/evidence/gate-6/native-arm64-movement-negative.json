@@ -1,0 +1,176 @@
+{
+  "format": "connect/native-arm64-movement-negative/1",
+  "task": "G6-058",
+  "passed": false,
+  "source_revision": "53e1dbd3296b900f5dff8fe943a189e751925209",
+  "platform": {
+    "os": "linux",
+    "architecture": "aarch64",
+    "kernel_release": "6.8.0-117-generic",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-arm64"
+  },
+  "binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "e778cdd0c1b614eb93891af049c45a856a6b9d92921ad4ea872b2f3fb83a00e9",
+  "elapsed_seconds_including_cold_builds": 1552.090681216,
+  "media_observation_elapsed_ms": 44278.138415,
+  "normal_production_cli_and_peer": true,
+  "stages": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "90ead1be25ccff7f38d7a0c0391b96cfaafc2691b2d3a563fc0573b698b815b3"
+    },
+    {
+      "slot": "0-1",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "46b4fb5d36d1dc1f5771212e99d2767656c02cf38bebb4e80ff13a2fed14662f"
+    },
+    {
+      "slot": "0-2",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "0b2c1760ed7ce1721bb9fcd4ff94835e29a949b966bcaed7e796ffb05ae7fb20"
+    },
+    {
+      "slot": "0-3",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "dd41a9858d208fca1ccc2d1844e33f1d2f71674ef823336d5320cf009a665770"
+    },
+    {
+      "slot": "0-4",
+      "passed": false,
+      "original_root_completed": false,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": {
+        "phase": "original-completion",
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 12,
+          "problem_code_unrecognized": true
+        }
+      },
+      "report_sha256": "f43dc16c20fce87ae009c0a4eb7832fd1832615f52eb8d29c6c42dd77f8dcab2"
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "8ef48b7eca68ed9143ff0dee1e3c90ab7cdb7b4ffe1ab287c14aa7f15f2f49df"
+    },
+    {
+      "slot": "4-1",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "c15a1ecb3af0d0a5624556a282fe6cdfc8bd70a90aa1e2d120a2b9854ba1b966"
+    },
+    {
+      "slot": "4-2",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "f4c94e7124d3e11e6d6ae4bab5c8e379cb80230f8690bb3614d82233d1a75993"
+    },
+    {
+      "slot": "4-3",
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": null,
+      "report_sha256": "1df4342b702d3183cf333957edae60afb6544f84f32e4839b3791c06a20d5f54"
+    },
+    {
+      "slot": "4-4",
+      "passed": false,
+      "original_root_completed": false,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "failure": {
+        "phase": "original-completion",
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 12,
+          "problem_code_unrecognized": true
+        }
+      },
+      "report_sha256": "2c0741fc258574de71f3db85e030e4f8173b6ed069a60f9041664a1f736b7674"
+    }
+  ],
+  "journal_roots": {
+    "completed_revision16": 8,
+    "failed_revision12": 2,
+    "failure_codes": [
+      "native-target-stopped"
+    ],
+    "forward_activation_unknown_effects": 1
+  },
+  "original_db_wal_unchanged": true,
+  "unretired_native_lifetime_rows": 0,
+  "all_target_workers_joined_unforced": true,
+  "original_servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+      "original_joined": true,
+      "managed_by_systemd": false
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+      "original_joined": true,
+      "managed_by_systemd": false
+    }
+  ],
+  "all_observed_helpers_joined": true,
+  "native_original_tasks_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "inner_standard_source_content_and_mode_guard": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "outer_controller_timestamp_inclusive_guard": false,
+  "outer_guard_limit": "Enclosing controller snapshots before SDK setup, including source mtimes; this strict guard reportsfalse. Its initial map was not persisted, so exact changed entries are not independently recoverable. Inner standard full source bytes/modes plus executable/SDK guards pass. Retain the false outer result; move the enclosing baseline after setup for a future fresh run.",
+  "host_capture_requested": false,
+  "full_20_moves_passed": false,
+  "independent_complete_decode_executed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Fresh native ARM64 Ubuntu local production workload, same6AVData Connections/4participants/2Sessions/20plannedmoves/62sprogramme/60s observation and8sreadwait. Eight physical stages pass, then both fifth moves durably failnative-target-stopped; one activation effect remainsunknown with recorded compensation. No original resubmission. This progress does not prove the Mac timeout fixed or a hardware cause. No complete programme, capture, cell or x86 qualification."
+}

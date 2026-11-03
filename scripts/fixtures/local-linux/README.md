@@ -50,3 +50,12 @@ Run `scripts/check-reference-app-installed.mjs` against that installation with
 and prerequisites must complete before measuring media. All 37 app checks and
 their audio/video deadlines remain unchanged. ARM reports identify the actual
 architecture and cannot inherit an x86_64 or macOS browser result.
+
+On a cold guest, fetch the complete locked target dependency metadata before
+packaging: `cargo fetch --locked --target aarch64-unknown-linux-gnu`. A production
+build alone may not populate workspace development dependencies needed by the
+packager's later offline metadata check. Keep the ordinary consumer installation
+offline. Give `check_node_installation.py` an owned temporary directory outside
+the source checkout: its empty-cache consumer intentionally refuses an in-repo
+`TMPDIR`. Use a new proof-directory leaf on each attempt; its Node archive lives
+under `dist/sdk/typescript/<proof-directory-leaf>/`.

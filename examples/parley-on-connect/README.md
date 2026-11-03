@@ -6,16 +6,17 @@ recovery and native media controls through the installed public Node SDK.
 Run `npm run test:app` here for component checks with simulated SDK clients;
 installed execution has separate evidence.
 
-The production package at `21b4de99` uses verified bundled static Opus. A fresh
-offline installation on macOS arm64, Node22.16 and the frozen full Chrome
-156.0.8078.48 passes all37 installed app checks. They cover desktop and320px
-keyboard flows, denied microphone/camera, message recovery, native audio/video
-capture and identified playback, original Connection restart, media cancellation,
-permission revocation, offline retirement, same-command restart and owned shutdown.
-Source, archive and installed-file hashes, raw observer replays and all eight
-screenshots were independently audited. See
-[the bundled macOS result](../../docs/evidence/gate-6/reference-app-bundled-macos-verified.json).
-Current Linux and CI qualification remain open; G6-072 is still in progress.
+The current source-bound local runs pass all37 installed app checks on macOS
+arm64 with Chrome156.0.8078.80 and on Ubuntu24.04 ARM64 with full
+Chromium156.0.8078.4. All100 application component cases also pass on both hosts.
+These runs cover desktop and320px keyboard flows, denied microphone/camera,
+message recovery, identified duplex audio/video, original Connection restart,
+permission revocation, offline recovery, same-command restart and owned shutdown.
+The original archives, installed files, source bindings and paired AV windows
+were independently audited. See [the local results](../../docs/evidence/gate-6/reference-app-local-components-verified.json).
+Required Ubuntu x86_64 app qualification remains open, so G6-072 stays in progress.
+The earlier bundled macOS21b4de99 result remains in
+[its original evidence](../../docs/evidence/gate-6/reference-app-bundled-macos-verified.json).
 
 The earlier `cc45db42` app run also passed37 behavior checks, but its producer
 reused Homebrew static Opus despite the requested bundled build flags. Its native
@@ -69,8 +70,8 @@ IDs are saved before SDK submission. “Listen to” selects a present peer's au
 the local camera publication. Consented Sessions remain live as they progress
 from accepted through ready and active; a view refresh retains their original
 capture binding. Ending, closed, absent or changed scopes still stop media.
-The current bundled macOS installed run verifies these controls and identified
-VP8 capture/render. Current Linux verification remains pending.
+Both current local macOS and native ARM64 Linux runs verify these controls
+and identified VP8 capture/render; required x86_64 qualification remains open.
 
 Joining negotiates native resources. Explicit “Start microphone” or “Start
 microphone and camera” begins browser permission, capture, encoding and playback.
@@ -110,8 +111,8 @@ The installed rehearsal additionally checks actual tracks after explicit stop,
 a controlled late device result after cancellation, real microphone permission
 revocation, offline retirement and participant switching. The delayed result
 uses a real owned synthetic browser stream; it models promise delivery rather
-than claiming an OS permission dialog was exercised. The current macOS installed
-run passes actual ended-event and stop-cause checks; current Linux remains open. The
+than claiming an OS permission dialog was exercised. Both current local profiles
+pass actual ended-event and stop-cause checks; required Linux x86_64 remains open. The
 old fake permission-UI bypass is removed; explicit browser permission grants
 remain limited to owned synthetic devices.
 The rehearsal explicitly launches the installed full Chromium browser in headless
@@ -130,7 +131,7 @@ command preserves the original ports, identities, issuance IDs, absolute expiry
 and application state. Interrupted child installations use `connect issue-resume`;
 changed assets, a different runtime, expiry or an unsealed initial bootstrap
 refuse and retain the original state for inspection. This is the local synthetic
-profile. Its current macOS video and lifecycle checks pass; current Linux
+profile. Both local profiles pass video and lifecycle checks. Required Linux x86_64
 qualification and the later full Parley scenario remain unfinished.
 
 G6-071 defines the reusable example in [scenario.json](scenario.json). It has
