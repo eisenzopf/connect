@@ -1,0 +1,559 @@
+{
+  "format": "connect/gate6-packet-policy-trace-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "71dcfde82eb15eec59bee6dcf1c5635ef1b8debd",
+    "binary_sha256": "9883ab8daee0b6fc269bf8dca7fdb68f3251e083159e9925d3ac259947897ee5",
+    "peer_binary_sha256": "034bce8281db0f716112d2d0407387f034f2ef66cdbae6153b41010d84aa3927",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 120.02629721399717,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "diagnostic_only": true,
+  "control_scenario_passed": false,
+  "movement_failure": {
+    "original_moves_completed": 2,
+    "failure": {
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "certainty": "read-only",
+      "observation": {
+        "stage": "media-workload"
+      }
+    },
+    "target_joins_failed": 0
+  },
+  "conversation_failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1680,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 39,
+      "packet_events_during_control": 326,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": false,
+      "sent_audio_packets": 421,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 253,
+      "packet_events_during_control": 391,
+      "owner_ready": false,
+      "stop_requested": true,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1674,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 65,
+      "packet_events_during_control": 274,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": false,
+      "sent_audio_packets": 438,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 264,
+      "packet_events_during_control": 418,
+      "owner_ready": false,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 55480352,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 77701,
+      "to_server_packets": 42958,
+      "from_server_packets": 34743,
+      "captured_bytes": 54237112,
+      "udp_payload_bytes": 50973670,
+      "to_server_udp_bytes": 23891200,
+      "from_server_udp_bytes": 27082470
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793716746008,
+    "elapsed_seconds": 57.84254228799546,
+    "sample_count": 59,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 161476608,
+        "observed_cpu_seconds": 51.47,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 56,
+        "peak_sampled_threads": 20,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 915775488,
+        "observed_cpu_seconds": 16.78,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 98,
+        "open_resource_unavailable_samples": 0
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": true,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "native_media_diagnostics_after": {
+    "forwarding": [
+      {
+        "handoff_timeouts": 0,
+        "max_us": 85288,
+        "missing_ingress_observations": 0,
+        "p50_us": 16383,
+        "p95_us": 32767,
+        "percentile_method": "log2-bucket-upper-bound",
+        "samples": 17360,
+        "stage": "canonical-native-video-fanout"
+      }
+    ],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 15,
+        "frame_age_boundary": null,
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 12537,
+        "sampled_high_water_packets": 10,
+        "stage": "quic-audio-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": 174,
+        "observations": 12290,
+        "sampled_high_water_packets": 1,
+        "stage": "quic-audio-egress",
+        "stale_forwarding_discards": 4,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": null,
+        "kind": "video",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 17629,
+        "sampled_high_water_packets": 22,
+        "stage": "quic-video-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "video",
+        "max_forwarded_frame_age_ms": 101,
+        "observations": 34739,
+        "sampled_high_water_packets": 22,
+        "stage": "quic-video-egress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      }
+    ],
+    "scope": "server-process"
+  },
+  "packet_policy": {
+    "format": "connect/current-packet-policy-trace-summary/1",
+    "source_revision": "71dcfde82eb15eec59bee6dcf1c5635ef1b8debd",
+    "log_sha256": "7230783b9b651ceb622b2a80fbe7eb5990353a2b42ad81d11f800a6ddd0661e4",
+    "log_bytes": 69483462,
+    "log_unchanged": true,
+    "unparsed_matching_events": 0,
+    "all_events": {
+      "events": 168719,
+      "store_reads": 168719,
+      "store_read_results": {
+        "ok": 165981,
+        "authority-busy": 2738
+      },
+      "special_refusals": {},
+      "maximum_store_stage_us": 11481,
+      "p95_store_stage_us": 423,
+      "publishing_reads": 109246,
+      "receiving_reads": 59473,
+      "held_source_reads": 42112
+    },
+    "programme": {
+      "events": 160787,
+      "store_reads": 160787,
+      "store_read_results": {
+        "ok": 158049,
+        "authority-busy": 2738
+      },
+      "special_refusals": {},
+      "maximum_store_stage_us": 11481,
+      "p95_store_stage_us": 431,
+      "publishing_reads": 104160,
+      "receiving_reads": 56627,
+      "held_source_reads": 40087
+    },
+    "windows": [
+      {
+        "start_second": 2,
+        "end_second": 15,
+        "events": 52405,
+        "store_reads": 52405,
+        "store_read_results": {
+          "ok": 52405
+        },
+        "special_refusals": {},
+        "maximum_store_stage_us": 1906,
+        "p95_store_stage_us": 205,
+        "publishing_reads": 33617,
+        "receiving_reads": 18788,
+        "held_source_reads": 13329
+      },
+      {
+        "start_second": 15,
+        "end_second": 20,
+        "events": 17903,
+        "store_reads": 17903,
+        "store_read_results": {
+          "ok": 17698,
+          "authority-busy": 205
+        },
+        "special_refusals": {},
+        "maximum_store_stage_us": 11481,
+        "p95_store_stage_us": 596,
+        "publishing_reads": 11642,
+        "receiving_reads": 6261,
+        "held_source_reads": 4462
+      },
+      {
+        "start_second": 20,
+        "end_second": 40,
+        "events": 80497,
+        "store_reads": 80497,
+        "store_read_results": {
+          "ok": 80497
+        },
+        "special_refusals": {},
+        "maximum_store_stage_us": 2875,
+        "p95_store_stage_us": 205,
+        "publishing_reads": 51471,
+        "receiving_reads": 29026,
+        "held_source_reads": 20553
+      },
+      {
+        "start_second": 40,
+        "end_second": 45,
+        "events": 8046,
+        "store_reads": 8046,
+        "store_read_results": {
+          "ok": 6998,
+          "authority-busy": 1048
+        },
+        "special_refusals": {},
+        "maximum_store_stage_us": 10798,
+        "p95_store_stage_us": 10245,
+        "publishing_reads": 5581,
+        "receiving_reads": 2465,
+        "held_source_reads": 1692
+      },
+      {
+        "start_second": 45,
+        "end_second": 62,
+        "events": 1936,
+        "store_reads": 1936,
+        "store_read_results": {
+          "authority-busy": 1485,
+          "ok": 451
+        },
+        "special_refusals": {},
+        "maximum_store_stage_us": 10711,
+        "p95_store_stage_us": 10390,
+        "publishing_reads": 1849,
+        "receiving_reads": 87,
+        "held_source_reads": 51
+      }
+    ],
+    "scope": "Existing packet Store-read stage outcomes and three specifically emitted refusal sites only; early special-target and later lease/gate/transport branches can be absent. Elapsed time excludes earlier metadata lookup. Logging can perturb timing. No identities, packet bodies, arbitrary error text or per-event arrays published; no quality/cell/task qualification."
+  },
+  "authority_busy_detail_counts": [
+    {
+      "message": "Current authority is busy",
+      "count": 2709,
+      "source": "crates/connect-store/src/authority_fences.rs"
+    },
+    {
+      "message": "Current packet observers are busy",
+      "count": 29,
+      "source": "crates/connect-store/src/installation_ownership.rs"
+    }
+  ],
+  "busy_direction_counts": {
+    "publishing_without_held_source": 2737,
+    "receiving_without_held_source": 1
+  },
+  "stopped_journal": {
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite",
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "preparing",
+        "revision": 15,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ]
+  },
+  "quality_executed": false,
+  "quality_passed": false,
+  "interpretation": "Existing trace confirms current Store authority admission refusals, mostly fresh publishing. One return has all seven physical forward effects confirmed once but its public root remains Preparing15 at read-only timeout; three roots Completed16. Metadata projection pending is observed; the exact queued writer/long reader behind every refusal is not independently identified. Existing captured audience/commit/domain projection writers use DEFAULT_WAIT2s, close fresh packet admission while waiting and then can wait for the ordinary SQL mutex. Prepare a no-wait metadata-only candidate preserving the complete writer footprint and all current exact transaction checks. Live tracing may perturb timing; no quality or causal claim from this diagnostic.",
+  "G054_deferred": true,
+  "general_suites_rerun": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

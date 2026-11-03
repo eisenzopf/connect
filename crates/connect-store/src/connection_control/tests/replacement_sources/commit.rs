@@ -21,6 +21,106 @@ fn fixture_scoped(ready: bool, extra_operations: &[&str]) -> Movement {
 }
 
 #[test]
+fn captured_projection_refuses_contention_without_parking_packet_readers() {
+    let m = fixture(true);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let expected = attempt.expected().unwrap();
+    let observed = ready(&read, &expected);
+    let captured = attempt.committed(expected, &observed).unwrap();
+    drop(read);
+    m.f.store
+        .record_native_replacement_committed(&captured)
+        .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let effects = m.f.count("operation_effects");
+
+    // An existing valid packet read must cause immediate metadata deferral,
+    // rather than closing fresh packet admission for DEFAULT_WAIT's two seconds.
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    assert!(held.current());
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], None)
+        .unwrap()
+        .current());
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    drop(held);
+
+    // Nor may an already acquired writer wait on either the local SQL mutex
+    // or a foreign SQLite transaction. Both failures release its whole scope.
+    let sql = m.f.store.connection().unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    drop(sql);
+    let foreign = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    foreign.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap_err()
+            .code,
+        "storage-unavailable"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], None)
+        .unwrap()
+        .current());
+    foreign.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+
+    let established =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let repeated =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    assert_eq!(
+        repeated.runtime_connection_id(),
+        established.runtime_connection_id()
+    );
+    assert_eq!(repeated.generation(), established.generation());
+    assert_eq!(m.f.count("operation_effects"), effects);
+    assert_eq!(
+        Store::inspect_snapshot(m.f.store.path()).unwrap(),
+        completed
+    );
+}
+
+#[test]
 fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor() {
     let (f, key, command, prepared, request, sources, old) = super::candidate::prepared_scene();
     let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
