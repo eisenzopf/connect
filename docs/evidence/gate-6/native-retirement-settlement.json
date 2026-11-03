@@ -228,5 +228,51 @@
     "signed-case-0.log": "065e1dc778ae2a5bba0a290f2e427a007ecffa8e2e36176b2cecdc4406ff4d25",
     "signed-case-1.log": "fe9a0d1ece67283b665ee4667a903c9a18ec19a4cdf5c0008caf0624d09f49cf",
     "signed-case-2.log": "4768abbfb023122e8ab3b58e903c1261b190f3ce5faa77c8ea9a8f3d93bb0110"
+  },
+  "normal_production_followup": {
+    "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+    "production_build_passed": true,
+    "opt_level": "3",
+    "test_support": false,
+    "same_verified_rust_sources": true,
+    "binary_sha256": "4adfadf03d2facdbb83d21db2a4d181704e62fef63f7552ef97b8534a7dd4757",
+    "peer_sha256": "8e54cbb7000172a33dadfb4eabdc40d1122711017a34ecc01d23ca638486e62b",
+    "source_inputs_unchanged": true,
+    "ordinary_full_programme": {
+      "passed": false,
+      "intended_moves": 20,
+      "original_roots_executed": 6,
+      "original_roots_completed": 5,
+      "movement_stages_passed": 4,
+      "failed_original_state": "failed",
+      "failed_original_problem": {
+        "code": "native-target-stopped",
+        "source": "native-replacement"
+      },
+      "failed_original_commit_started": false,
+      "forward_effects_confirmed_once": 41,
+      "compensation_effects_confirmed_once": 6,
+      "all_effects_confirmed_attempt_one": true,
+      "unretired_native_lifetimes": 0,
+      "both_servers_joined": true,
+      "failure_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_target_workers_joined_unforced": true,
+      "original_source_owner_join_flags_complete": false,
+      "original_db_wal_unchanged": true,
+      "executables_unchanged": true,
+      "sdk_dist_inputs_unchanged": true,
+      "report_sha256": "8028acb4bd0ebf7631307f29426276720ca12531ccbdac160e45e6a59b3726fb",
+      "private_stopped_journal_audit_sha256": "36b952094adaf12f4d4258d64a10e12b0f85606233fa0370507d1ba74c875bb2",
+      "host_capture": false,
+      "whole_window_decode_completed": false,
+      "cell_qualified": false,
+      "task_complete": false,
+      "remaining_failure": "Third movement pair: video target input arrived about 5.6 seconds after the original command; the original eight-second observation deadline then stopped the target before commit. The other stage has a collateral target-worker exit failure. File times are observations, not causal CPU proof."
+    },
+    "scope": "Normal production verification and specific stopped native-lifetime recovery only. Full programme/media/resource/transport-cell acceptance remains open."
   }
 }

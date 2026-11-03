@@ -1,0 +1,42 @@
+{
+  "format": "connect/reference-app-consumer-pinned-candidate-negative/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "run_id": 41549381456,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41549381456",
+  "checkout_source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+  "runtime_candidate_source_revision": "d9928b1d07aaef13fc0e2b3ddbd7d05611863753",
+  "dispatch_lane": "reference-app",
+  "scope": "Consumer-only lane selected the separately recorded older G6-069 candidate, not the newly built664bf592 runtime. This mistaken dispatch is retained as an installation/application negative; it supplies no evidence about current runtime media or cleanup. Correct current producer+App lane is41549564631.",
+  "passed": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "macos": {
+    "job_id": 125632857440,
+    "failed_step": "Install exact verified production candidate in a cold ordinary consumer",
+    "error": "ValueError: macOS runtime lacks verified bundled Opus provenance",
+    "browser_executed": false,
+    "original_job_log_sha256": "ff2541053ccc35c019bb43a6f606c1f6867e0b8c9f9a4c0c5444d32692b3f300"
+  },
+  "linux": {
+    "job_id": 125632857964,
+    "checks_passed_before_failure": 4,
+    "failure": {
+      "stage": "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+      "name": "TimeoutError",
+      "source_stack": [
+        {
+          "line": 252,
+          "column": 41
+        }
+      ]
+    },
+    "original_job_log_sha256": "dc1e4f5d689b113a6e57abffee5db96ac2afc49ed0df08d952de89246d34adda"
+  },
+  "candidate_selection_source_sha256": "7e767601c79707315e850e6529661b0982e6d2fd9154460c9d0fa86297c3c450",
+  "pinned_candidate_proof_sha256": "d75788143d623fd74e11088bc4bb207d3398046d5625896762f083323e1aacbe",
+  "corrected_current_source_run_id": 41549564631,
+  "artifact_audit_performed": false,
+  "qualification_claimed": false
+}
