@@ -4,7 +4,7 @@
   "task": "G6-058",
   "basis": "V26 physical-to-adopt499.650ms includes449.373ms capture recording, alongside worstaudio gap545.317ms. Source audit finds retained-source Publish fallback with no active weak packet context still receives Service fresh-ingress10ms retry; mixer can already own other source readers while invoking it. No claim this proves every live gap cause.",
   "before_prerequisite": "Patch278 adds MediaPolicy.current_queued with default delegation to current. Core routing and Service implementation remain unchanged before the controlled case; default callback is therefore the exact existing current path. Adds one actual Service held-registry/current-thread callback occupancy case.",
-  "before_check_pending": true,
+  "before_check_pending": false,
   "product_routing_change_applied": false,
   "planned_change": "Tag retained realtime fresh fallback through Core current_queued; Service makes one current read and returns temporary refusal to original bounded Core owner. Preserve fresh ingress10ms callback, existing active-context checks, all current authorization and original frame/gate/scene/expiry/age bounds.",
   "normal_runtime_pending": true,
@@ -12,5 +12,28 @@
   "G054_deferred": true,
   "cell_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 102501,
+    "source_revision": "6252a914d5e6af7d8d4f6646e2cdbadeb97efc3e",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "a0e34b766818b58025bebfe38cd3288876f8cd564713c84469b59d450371db19",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.29s"
+    ],
+    "test_log_sha256": "78b14264cad04b5a904e0a95638fe95e702a912f21ffc79d6b776b9a0449a763",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 824.2266409929944
+  },
+  "measured_callback_batch_ms": 160.01854,
+  "owner_requested_root_cause_proposal": "docs/developer/g6-058-root-cause-proposal.html",
+  "followup": "Investigation/proposal requested while this original diagnostic was running. Diagnostic finished; further product fixes remain proposed."
 }

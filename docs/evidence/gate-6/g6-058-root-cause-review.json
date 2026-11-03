@@ -1,0 +1,553 @@
+{
+  "format": "connect/gate6-058-root-cause-review/1",
+  "date": "2026-11-03",
+  "investigated_source": "6252a914d5e6af7d8d4f6646e2cdbadeb97efc3e",
+  "latest_full_workload_source": "5688c4c61a20fe51f3cc9f154ef3b511fa582249",
+  "qualification": "Not complete. Proposal and diagnosis only; no further product routing/timing fix applied in this review.",
+  "scope": "Saved original local native Ubuntu24 ARM runs, current source and one already-running focused Service diagnostic. No new full workload, decoder rerun, G6-054 test, GitHub/cloud/x86/provider execution.",
+  "trends": [
+    {
+      "evidence": "captured-projection-immediate-result.json",
+      "sha256": "cc7a8e9d0576e85921c32b206d9a4ed92c47c503828fc0e77882e1b94a084f69",
+      "source": "c830a2cf4c2dad4e530c9fefd94b3fea31ab3491",
+      "control_passed": true,
+      "audio_seconds_min": 58.94,
+      "audio_seconds_max": 59.58,
+      "max_audio_gap_ms": 598.422423,
+      "bad_video_markers": 328,
+      "sync_passes": 6
+    },
+    {
+      "evidence": "queued-packet-owner-result.json",
+      "sha256": "806e84b09e725ec1930f4266a2a8286f8ccb69a0cea3b739a48479cabb66826f",
+      "source": "ce3af8d174260b2ba2ec77ef205d8169f121780b",
+      "control_passed": true,
+      "audio_seconds_min": 58.28,
+      "audio_seconds_max": 59.38,
+      "max_audio_gap_ms": 1015.3640000000014,
+      "bad_video_markers": 1122,
+      "sync_passes": 6
+    },
+    {
+      "evidence": "captured-writer-drain-result.json",
+      "sha256": "d27ee18ee24df6a1373fe85cc82cda6bc83f62f9c637f150dfeb42b4cdaa3e4c",
+      "source": "e3300603b16970386021e775db4d34e04fc01d7a",
+      "control_passed": true,
+      "audio_seconds_min": 59.08,
+      "audio_seconds_max": 59.52,
+      "max_audio_gap_ms": 395.5060000000012,
+      "bad_video_markers": 1793,
+      "sync_passes": 6
+    },
+    {
+      "evidence": "scene-video-admission-result.json",
+      "sha256": "df28b230f5a436130385df0937f6ac10c9b61e8157d4001d4a1d6aac22c17413",
+      "source": "5688c4c61a20fe51f3cc9f154ef3b511fa582249",
+      "control_passed": true,
+      "audio_seconds_min": 58.76,
+      "audio_seconds_max": 59.24,
+      "max_audio_gap_ms": 545.317207,
+      "bad_video_markers": 26,
+      "sync_passes": 6
+    }
+  ],
+  "latest_gap_decomposition": {
+    "route": 0,
+    "last_audio_ms": 42075.235,
+    "physical_complete_ms": 42085.969970703125,
+    "service_adopted_ms": 42585.619873046875,
+    "first_audio_ms": 42619.562,
+    "gap_ms": 544.3269999999975,
+    "pre_physical_ms": 10.734970703124418,
+    "physical_to_adoption_ms": 499.64990234375,
+    "post_adoption_ms": 33.94212695312308,
+    "postphysical_fraction_of_gap": 0.9179223193847674,
+    "interpretation": "The numerical decomposition is based on original receive rows and six stage markers. Code independently requires provisional policy refusal after Core committed and before ordinary entry adoption. It is not a per-packet trace of every refusal."
+  },
+  "latest_precommit_content_gaps": [
+    {
+      "route": 0,
+      "start_ms": 41716.475,
+      "end_ms": 42031.403,
+      "gap_ms": 314.9279999999999,
+      "same_physical": true,
+      "rtp_distance_samples": 11520
+    },
+    {
+      "route": 1,
+      "start_ms": 41682.306775000005,
+      "end_ms": 42055.406040999995,
+      "gap_ms": 373.09926599999017,
+      "same_physical": true,
+      "rtp_distance_samples": 18240
+    },
+    {
+      "route": 2,
+      "start_ms": 41722.027386999995,
+      "end_ms": 42020.123246999996,
+      "gap_ms": 298.09586000000127,
+      "same_physical": true,
+      "rtp_distance_samples": 9600
+    },
+    {
+      "route": 3,
+      "start_ms": 41715.912475000005,
+      "end_ms": 42019.006782,
+      "gap_ms": 303.0943069999921,
+      "same_physical": true,
+      "rtp_distance_samples": 13440
+    },
+    {
+      "route": 5,
+      "start_ms": 41716.253769,
+      "end_ms": 42026.176575000005,
+      "gap_ms": 309.9228060000023,
+      "same_physical": true,
+      "rtp_distance_samples": 14400
+    }
+  ],
+  "latest_phase_observations": {
+    "format": "connect/selected-replacement-commit-phase-summary/1",
+    "source_revision": "5688c4c61a20fe51f3cc9f154ef3b511fa582249",
+    "server_log_sha256": "b358e5c55445b4f9cc4c3dd3c56301604800c814808b93db9a6464232ebed6e5",
+    "server_log_unchanged": true,
+    "source_bundle_sha256": "c7e04a750c6b129fb0497badc0c1eba3db36e02c122ccb36203ea8328ad95492",
+    "movements": [
+      {
+        "slot": "0-0",
+        "stages_observed": 6,
+        "complete": true,
+        "physical_commit_us": 1147,
+        "capture_recording_us": 51269,
+        "established_projection_us": 7644,
+        "adoption_us": 22083,
+        "data_observer_recording_us": 1027,
+        "adoption_authority_wait_us": 21002,
+        "confirmation_and_entry_adoption_us": 54,
+        "physical_complete_to_adopted_us": 80996,
+        "physical_complete_programme_ms": 16666.012939453125,
+        "adopted_programme_ms": 16747.009033203125,
+        "root_observed_programme_ms": 16751.176
+      },
+      {
+        "slot": "0-1",
+        "stages_observed": 6,
+        "complete": true,
+        "physical_commit_us": 3681,
+        "capture_recording_us": 449373,
+        "established_projection_us": 28196,
+        "adoption_us": 22081,
+        "data_observer_recording_us": 293,
+        "adoption_authority_wait_us": 21730,
+        "confirmation_and_entry_adoption_us": 58,
+        "physical_complete_to_adopted_us": 499650,
+        "physical_complete_programme_ms": 42085.969970703125,
+        "adopted_programme_ms": 42585.619873046875,
+        "root_observed_programme_ms": 42600.53
+      },
+      {
+        "slot": "4-0",
+        "stages_observed": 6,
+        "complete": true,
+        "physical_commit_us": 288,
+        "capture_recording_us": 6170,
+        "established_projection_us": 10699,
+        "adoption_us": 43381,
+        "data_observer_recording_us": 42962,
+        "adoption_authority_wait_us": 388,
+        "confirmation_and_entry_adoption_us": 31,
+        "physical_complete_to_adopted_us": 60250,
+        "physical_complete_programme_ms": 16234.330078125,
+        "adopted_programme_ms": 16294.578125,
+        "root_observed_programme_ms": 16263.947
+      },
+      {
+        "slot": "4-1",
+        "stages_observed": 6,
+        "complete": true,
+        "physical_commit_us": 5246,
+        "capture_recording_us": 4586,
+        "established_projection_us": 26640,
+        "adoption_us": 21848,
+        "data_observer_recording_us": 254,
+        "adoption_authority_wait_us": 21542,
+        "confirmation_and_entry_adoption_us": 52,
+        "physical_complete_to_adopted_us": 53074,
+        "physical_complete_programme_ms": 41641.028076171875,
+        "adopted_programme_ms": 41694.100830078125,
+        "root_observed_programme_ms": 41709.9
+      }
+    ],
+    "unparsed_events": 0,
+    "unbound_events": 0,
+    "duplicate_events": 0,
+    "collection_complete": true,
+    "scope": "Six fixed commit/adoption stages per original movement only, observed on one original monotonic clock. Runtime connection IDs used for private exact journal/segment binding and omitted here. No packet replay, source retiming, guessed missing stages or independent quality/authorization proof."
+  },
+  "video_bootstrap_histories": [
+    {
+      "route_index": 0,
+      "owner_start_ms": 16751.176,
+      "first_row_ms": 16820.091,
+      "first_key_ms": 17016.701,
+      "keyless_selected_rows": 6,
+      "rtp_holes": 1,
+      "wrong_pixels_after_hole_before_next_key": 2
+    },
+    {
+      "route_index": 0,
+      "owner_start_ms": 42600.53,
+      "first_row_ms": 44374.697,
+      "first_key_ms": 45020.174,
+      "keyless_selected_rows": 19,
+      "rtp_holes": 0,
+      "wrong_pixels_after_hole_before_next_key": 0
+    },
+    {
+      "route_index": 1,
+      "owner_start_ms": 0,
+      "first_row_ms": 18116.536005,
+      "first_key_ms": 19023.732125,
+      "keyless_selected_rows": 27,
+      "rtp_holes": 1,
+      "wrong_pixels_after_hole_before_next_key": 1
+    },
+    {
+      "route_index": 1,
+      "owner_start_ms": 0,
+      "first_row_ms": 45214.633105999994,
+      "first_key_ms": 46025.427014999994,
+      "keyless_selected_rows": 24,
+      "rtp_holes": 0,
+      "wrong_pixels_after_hole_before_next_key": 0
+    },
+    {
+      "route_index": 4,
+      "owner_start_ms": 16263.947,
+      "first_row_ms": 16677.343,
+      "first_key_ms": 17018.561,
+      "keyless_selected_rows": 10,
+      "rtp_holes": 0,
+      "wrong_pixels_after_hole_before_next_key": 0
+    },
+    {
+      "route_index": 4,
+      "owner_start_ms": 41709.9,
+      "first_row_ms": 42025.58,
+      "first_key_ms": 42038.523,
+      "keyless_selected_rows": 4,
+      "rtp_holes": 1,
+      "wrong_pixels_after_hole_before_next_key": 9
+    },
+    {
+      "route_index": 5,
+      "owner_start_ms": 0,
+      "first_row_ms": 17727.825251000002,
+      "first_key_ms": 18071.960320000002,
+      "keyless_selected_rows": 10,
+      "rtp_holes": 0,
+      "wrong_pixels_after_hole_before_next_key": 0
+    }
+  ],
+  "saved_video_inspection": {
+    "decoded_rgb_hashes_verified": 14,
+    "wrong_pixels_after_hole_before_next_key": 26,
+    "wrong_pixels_without_prior_same_history_hole": 0,
+    "keyless_selected_rows": 100,
+    "histories_with_keyless_prefix": 7,
+    "inspection_sha256": "9ae509808eb908e56d7a5bb44f450ccab2b9d79ea18077d8d0b486fd16473e4e",
+    "scope": "Read-only saved v26 VP8 row/key flags and exact originally decoded RGB. No encoder/decoder/transport rerun or changed quality verdict. A same-history RTP hole preceding pixels is correlation, not proof of where the packet was lost. Physical histories and original source clocks stay separate."
+  },
+  "postcompletion_video_control_times": [
+    {
+      "slot": "0-0",
+      "root_observed_programme_ms": 16751.176,
+      "operations": [
+        {
+          "operation": "root",
+          "state": "completed",
+          "created_programme_second_floor": 15.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "unmute",
+          "state": "completed",
+          "created_programme_second_floor": 16.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "subscribe",
+          "state": "completed",
+          "created_programme_second_floor": 16.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        }
+      ]
+    },
+    {
+      "slot": "0-1",
+      "root_observed_programme_ms": 42600.53,
+      "operations": [
+        {
+          "operation": "root",
+          "state": "completed",
+          "created_programme_second_floor": 40.15499997138977,
+          "updated_programme_second_floor": 42.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "unmute",
+          "state": "completed",
+          "created_programme_second_floor": 42.15499997138977,
+          "updated_programme_second_floor": 42.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "subscribe",
+          "state": "completed",
+          "created_programme_second_floor": 42.15499997138977,
+          "updated_programme_second_floor": 44.15499997138977,
+          "timestamp_resolution_seconds": 1
+        }
+      ]
+    },
+    {
+      "slot": "4-0",
+      "root_observed_programme_ms": 16263.947,
+      "operations": [
+        {
+          "operation": "root",
+          "state": "completed",
+          "created_programme_second_floor": 15.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "unmute",
+          "state": "completed",
+          "created_programme_second_floor": 16.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "subscribe",
+          "state": "completed",
+          "created_programme_second_floor": 16.15499997138977,
+          "updated_programme_second_floor": 16.15499997138977,
+          "timestamp_resolution_seconds": 1
+        }
+      ]
+    },
+    {
+      "slot": "4-1",
+      "root_observed_programme_ms": 41709.9,
+      "operations": [
+        {
+          "operation": "root",
+          "state": "completed",
+          "created_programme_second_floor": 40.15499997138977,
+          "updated_programme_second_floor": 41.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "unmute",
+          "state": "completed",
+          "created_programme_second_floor": 41.15499997138977,
+          "updated_programme_second_floor": 41.15499997138977,
+          "timestamp_resolution_seconds": 1
+        },
+        {
+          "operation": "subscribe",
+          "state": "completed",
+          "created_programme_second_floor": 41.15499997138977,
+          "updated_programme_second_floor": 41.15499997138977,
+          "timestamp_resolution_seconds": 1
+        }
+      ]
+    }
+  ],
+  "callback_counterexample": {
+    "state": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 102501,
+      "source_revision": "6252a914d5e6af7d8d4f6646e2cdbadeb97efc3e",
+      "product_case_passed": false,
+      "counterexample_reproduced": true,
+      "general_suites_rerun": false,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "a0e34b766818b58025bebfe38cd3288876f8cd564713c84469b59d450371db19",
+      "test_exit_code": 101,
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 78 filtered out; finished in 0.29s"
+      ],
+      "test_log_sha256": "78b14264cad04b5a904e0a95638fe95e702a912f21ffc79d6b776b9a0449a763",
+      "executable_unchanged": true,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 824.2266409929944
+    },
+    "callbacks": 16,
+    "measured_batch_ms": 160.01854,
+    "interpretation": "Confirmed synchronous callback occupancy with actual Service policy and held leaf registry. Writer starvation amplification in the full workload is supported by lock order/source but is not proven by this isolated case alone."
+  },
+  "resources": {
+    "observed_seconds": 76.85733099099889,
+    "samples": 78,
+    "average_observed_cpu_cores": 1.0783616726126808,
+    "sum_of_group_peak_rss_bytes": 1100935168,
+    "configured_container_cpu_quota": 6,
+    "configured_container_memory_bytes": 10737418240,
+    "limitation": "One-second process samples and average CPU do not exclude short bursts; sum of group peaks is not a simultaneous-peak measurement. No idle-restoration qualification."
+  },
+  "latest_cleanup": {
+    "moves_completed": 4,
+    "current_owner_ends": 6,
+    "maximum_retirement_ms": 3100.2812609999964,
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "packet_capture_packets": 103731,
+    "packet_capture_kernel_drops": 0
+  },
+  "source_anchors": [
+    {
+      "file": "crates/connect-service/src/canonical_replacement/media.rs",
+      "line": 61,
+      "sha256": "f3a079635fb0ce363fa73141a184ce0ced4b75db947f37006c73c2aa932e6209"
+    },
+    {
+      "file": "crates/connect-service/src/canonical_replacement/movement.rs",
+      "line": 53,
+      "sha256": "8103f47e0e0e1d5651413ce130aff0cb61a7256a72c22af4f874ada34c5dbce5"
+    },
+    {
+      "file": "crates/connect-service/src/canonical_media/replacement.rs",
+      "line": 241,
+      "sha256": "bb09c8c9708563fd07aaeb7241293925462da3de3afae0830c1edd6de6a13cd1"
+    },
+    {
+      "file": "crates/connect-service/src/canonical_media/packets.rs",
+      "line": 48,
+      "sha256": "8345ec17ebbc659fd9502d857f3fcb7596472fd403490b507fe13774ea4a6db2"
+    },
+    {
+      "file": "crates/connect-service/src/canonical_media/packet_metadata.rs",
+      "line": 6,
+      "sha256": "a90563a02307bbeaeffff846bd2e95177342d0587b6074eb3b7e0a44799be358"
+    },
+    {
+      "file": "crates/connect-service/src/canonical_consultation.rs",
+      "line": 570,
+      "sha256": "9c364de797203e096063263b9fa32ea0673d6407e1025950974f1314cfe32836"
+    },
+    {
+      "file": "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs",
+      "line": 13,
+      "sha256": "271f88b36689930a825cba038d637019261d4d4304dd295629f9d2047015b498"
+    },
+    {
+      "file": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs",
+      "line": 431,
+      "sha256": "e9d8cdf7e1abcc4f922eec356b483dfec90c3e9390542d7f551b9cda81c1353e"
+    },
+    {
+      "file": "crates/connect-store/src/peer_authority/connection_media/admission.rs",
+      "line": 38,
+      "sha256": "4ea9155ae611309e72f337a205b66d45317765c4fa4d8120f0f552d61eb62ed7"
+    },
+    {
+      "file": "crates/connect-store/src/authority_fences.rs",
+      "line": 415,
+      "sha256": "8f090b2f3f9a75174001c44ef818d76fa2d2469232244090116b81a4ef57e241"
+    },
+    {
+      "file": "examples/rust-sdk-journey/src/replacement_peer.rs",
+      "line": 409,
+      "sha256": "da65ec043f6b36ed613e9b3cde5bdc67cbfead533156744e866619f8b1edb0e1"
+    },
+    {
+      "file": "examples/rust-sdk-journey/src/replacement_peer/controls.rs",
+      "line": 262,
+      "sha256": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9"
+    },
+    {
+      "file": "examples/rust-sdk-journey/src/replacement_peer/media.rs",
+      "line": 212,
+      "sha256": "912c05c97b5e7825c8d25f1169a04f34f17c44606f09cf101f8b19a4d6141983"
+    },
+    {
+      "file": "examples/native-video/src/main.rs",
+      "line": 163,
+      "sha256": "7d3cd0c28ccd8baee95d1dcc01a6b167894c424799efec53e7e09e199ae14aff"
+    },
+    {
+      "file": "examples/native-video/src/decode_continuity.rs",
+      "line": 9,
+      "sha256": "651ec3cdd05dede012fc82c07d4af12b359f0c3a7a420ca1c508501c79a199e6"
+    },
+    {
+      "file": "scripts/lib/transport_moving_av.py",
+      "line": 285,
+      "sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9"
+    },
+    {
+      "file": "scripts/lib/transport_resources.py",
+      "line": 113,
+      "sha256": "ef685e28f6c038b7293ab9040723f9750168c355bb2fe1fb0832528e720b33fb"
+    },
+    {
+      "file": "scripts/check-gate-6-transports.py",
+      "line": 63,
+      "sha256": "416cdd7236334db48106a2e128372fa55bdd0fc947a3556942b6e861601a7da0"
+    },
+    {
+      "file": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+      "line": 2186,
+      "sha256": "e9fd72c1419561d05a1c049cb59996f10fa6661bd7858a1784af37870ed9f220"
+    },
+    {
+      "file": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+      "line": 869,
+      "sha256": "398f6b0b6026e76b59a504979fb4fa3636fd08603f847792fd09bae14dd15f1e"
+    },
+    {
+      "file": ".deps/rvoip/crates/uctp/rvoip-uctp/src/staged_media.rs",
+      "line": 280,
+      "sha256": "ca80a7f13d9291d8b6d3c9a7adb27f10244de2f7cd580f43489a9f24f92da84f"
+    },
+    {
+      "file": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_media.rs",
+      "line": 143,
+      "sha256": "acd061a5fdfafd2d9821b58d4d798a2c9bef7ef9c11287e3527b6956a92e20f2"
+    },
+    {
+      "file": ".deps/rvoip/crates/uctp/rvoip-quic/src/canonical.rs",
+      "line": 76,
+      "sha256": "d7b44e686c3f8b8dac37175b121db359c9022dbd29a47db377ac0c27e77f55ba"
+    },
+    {
+      "file": ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs",
+      "line": 835,
+      "sha256": "2933064398b19ba1773ca8f6a982949ab56393ecf5e13571b8bc341e7d6212d6"
+    },
+    {
+      "file": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+      "line": 440,
+      "sha256": "4ba6104b2b988cf134256e03c16c6fe14307e699aee3ebf33c92938d24d4a46e"
+    }
+  ],
+  "implementation_constraints": [
+    "G6-054 deferred.",
+    "All test execution local ARM.",
+    "Preserve current thresholds and all32 active cells.",
+    "No replay of uncertain physical effects or new logical mutation IDs.",
+    "No cached authority, narrowed writer scopes or pre-completion ordinary-media permission as a shortcut."
+  ],
+  "complete_cells": 0,
+  "required_cells": 32,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "driver_polling_source_finding": "Native QUIC media_reader is polled alongside peer.run signaling. Synchronous packet-policy retries can still occupy that shared cooperative worker; an awaited command alone is not evidence that the reader was unpolled."
+}
