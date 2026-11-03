@@ -95,9 +95,11 @@ diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/p
 new file mode 100644
 --- /dev/null
 +++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/publication_mixer.rs
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,138 @@
 +//! Acquire only mixer metadata before the one compound replacement publication.
 +use crate::staged_streams::{ControlResult, StreamControlError};
++use std::future::{poll_fn, Future};
++use std::task::Poll;
 +use tokio::sync::{Mutex, MutexGuard};
 +use tokio::time::Instant;
 +use tokio_util::sync::CancellationToken;
@@ -110,7 +112,18 @@ new file mode 100644
 +    if tokens.is_empty() {
 +        return Err(StreamControlError::Authority);
 +    }
-+    let cancelled = futures::future::select_all(tokens.iter().map(|t| Box::pin(t.cancelled())));
++    let mut waiting = tokens
++        .iter()
++        .map(|t| Box::pin(t.cancelled()))
++        .collect::<Vec<_>>();
++    let cancelled = poll_fn(move |context| {
++        for token in &mut waiting {
++            if token.as_mut().poll(context).is_ready() {
++                return Poll::Ready(());
++            }
++        }
++        Poll::Pending
++    });
 +    let guard = tokio::select! {
 +        biased;
 +        _ = cancelled => return Err(StreamControlError::Cancelled),

@@ -1481,7 +1481,7 @@
     },
     {
       "path": "patches/rvoip/gate6-replacement-mixer-publication-wait.patch",
-      "sha256": "dcdf6e7bd549ecc288d37c156054bde4226a7b6be606e210fbb885a98c550358",
+      "sha256": "ac3566f74b40cd92a14c70a1dfdffbb01b473f243e56dbbbf9fbb8ff71c4eb42",
       "source": "G6-058: wait for the existing owned Tokio mixer metadata mutex at the final compound replacement publication fence, after original roles/ports/tickets are prepared and drained. Use the earliest original cutoff and every original cancellation token; revalidate all current authority, model, lifecycle and readiness under the acquired fence. Never rerun preparation, reopen ports, replay a mutation or renew a deadline. Handoff lock path remains unchanged. Actual ARM trace proves managed-mixer-lock immediate conflict before publication at programme16.600s; focused component and fresh production/runtime verification required."
     }
   ]

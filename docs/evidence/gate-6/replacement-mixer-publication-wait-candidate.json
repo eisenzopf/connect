@@ -1,19 +1,19 @@
 {
   "passed": true,
   "component_tests": 4,
-  "source_sha256": "13b0a6d035d328eb9a713982544fccdcd43bc526307e39d3ccf9b72cb518e81f",
-  "elapsed_seconds": 3.8445239090033283,
-  "scope": "Four exact helper-source checks with actual Tokio/futures synchronization and existing unchanged Core error types. Full Core managed integration and actual optimized runtime remain unverified.",
+  "source_sha256": "e6b7fab1dceaed0dca7cbad010edc1a3dee622076f5266bad0eb1b551fcd743a",
+  "elapsed_seconds": 2.431141730998206,
+  "scope": "Exact recorded new helper source linked to the existing Core public error types and real Tokio mutex/runtime and standard-library cancellation polling. This does not type-check the full managed Core integration or qualify media.",
   "task_complete": false,
   "format": "connect/gate6-replacement-mixer-publication-wait-candidate/1",
   "date": "2026-11-03",
   "task": "G6-058",
-  "source_parent": "accd2c30",
+  "source_parent": "450fa65c52c5eed99649a740d13e0760b347c565",
   "patch": {
     "path": "patches/rvoip/gate6-replacement-mixer-publication-wait.patch",
-    "sha256": "dcdf6e7bd549ecc288d37c156054bde4226a7b6be606e210fbb885a98c550358"
+    "sha256": "ac3566f74b40cd92a14c70a1dfdffbb01b473f243e56dbbbf9fbb8ff71c4eb42"
   },
-  "source_lock_sha256": "6eab076b2aa8e28f30df9e675784fb2c5a07c740f84876a4a9f8db82caaddf89",
+  "source_lock_sha256": "fe6336f1ea9bed96a44a4d7a5aa6f1ca2df8584f9c6d15152902b7bc380618dc",
   "recorded_patch_count": 273,
   "prepared_sources_verified": true,
   "behaviors": [
@@ -39,5 +39,15 @@
   "normal_production_build_pending": true,
   "G054_deferred": true,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "new_dependencies_added": false,
+  "superseded_core_integration": {
+    "source_revision": "450fa65c52c5eed99649a740d13e0760b347c565",
+    "exit_code": 101,
+    "error": "E0433: Core has no futures dependency",
+    "runtime_executed": false,
+    "log_sha256": "2b35ccbfdd2075098f6f73b889c503c7a36cca058b7a4fcbbb733a0e6c75385b",
+    "correction": "Use the existing std::future::poll_fn cancellation pattern with the original token futures; no new dependency."
+  },
+  "full_core_integration_pending": true
 }
