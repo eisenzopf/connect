@@ -1,10 +1,10 @@
 {
   "format": "connect/gate6-transport-matrix-report/1",
   "task": "G6-058",
-  "source_revision": "95c3fd0e76c98e3c87dfcc980516ed1b6256bcc5",
+  "source_revision": "07fd9c4220e22fd3e0bedde876006285a45b23b1",
   "contract_inputs": {
     "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
-    "docs/decisions/015-gate-6-operating-profile.md": "5b7c0469f7b284b6729e11e418ffc81ca0168070fa2994e5472de1e2073fec10",
+    "docs/decisions/015-gate-6-operating-profile.md": "f10e20b7eb4ce8300c9bd3bc3f9b228bd3aa68cd2167ef2ba41da2398315cc2c",
     "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
     "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
     "contracts/openapi-canonical-http.json": "d900c38507301824445568a3b72204354ccf5c2f4c212c27b7227697afb9c652",
@@ -1038,12 +1038,13 @@
   "historical_component_results_inherited": false,
   "publication_authorized": false,
   "full_cell_materializers_implemented": false,
-  "execution_phase": "owner-realistic-movement-inventory",
+  "execution_phase": "local-arm-runner-requirement-migration",
   "owner_movement_amendment": "docs/evidence/gate-6/owner-movement-amendment.json",
   "remaining": [
     "Finish four scheduled physical device moves and independent 60-second media/decode budgets.",
     "Execute complete Local/Remote native, Chrome WT, Chrome WSS/WebRTC and Firefox WSS/WebRTC cells on both active ARM platforms/signing cohorts.",
     "Capture each actual topology and encrypted wire, verify current-authorization/failure/recovery/resource checks independently.",
     "Retain owner-deferred G6-054 qualification and all unchanged declared budgets."
-  ]
+  ],
+  "runner_requirement_amendment": "docs/evidence/gate-6/local-arm-runner-requirements.json"
 }

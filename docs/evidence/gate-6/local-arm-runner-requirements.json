@@ -158,5 +158,6 @@
   "runtime_qualified": false,
   "task_complete": false,
   "whole_gate_qualified": false,
-  "scope": "Runner requirement/source migration only. Old dated evidence, quoted protocol examples and negative foreign-architecture controls retain their original facts. No new ARM task pass follows from these edits. G054 is the single requested next retest; continue the remaining Gate6 plan afterward."
+  "scope": "Runner requirement/source migration only. Old dated evidence, quoted protocol examples and negative foreign-architecture controls retain their original facts. No new ARM task pass follows from these edits. G054 is the single requested next retest; continue the remaining Gate6 plan afterward.",
+  "source_migration_revision": "07fd9c4220e22fd3e0bedde876006285a45b23b1"
 }
