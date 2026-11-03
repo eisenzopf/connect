@@ -9,12 +9,41 @@
   ],
   "planned_change": "Retry only transient realtime NotReady at a later normal scene tick, retaining original packet/arrival/source stamps, exact receiver port and route ticket, and earliest observed source/target grant deadline. No synchronous wait, republish, new recipient, relaxed age or cached grant.",
   "before_exact_case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
-  "before_check_pending": true,
-  "product_change_applied": false,
+  "before_check_pending": false,
+  "product_change_applied": true,
   "normal_runtime_pending": true,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 98196,
+    "source_revision": "fa54a791563bbe4252d031a750ac066c3fbdb01a",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "c3b0cf14569b906e79639bd283e5af221fc16e75a658aefebf1a0349d4ab1144",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 596 filtered out; finished in 0.00s"
+    ],
+    "test_log_sha256": "fb3895352d9a8df8d37cda45334ba98221ed96f1bd7e01a2bb53e84ca84178f7",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 107.89841097199678
+  },
+  "after_check_pending": true,
+  "change": "Actual scene retains only temporarily NotReady realtime destinations until a later normal tick. Freeze weak exact receiver port and ticket at original dequeue and carry earliest observed source/target authorization bound through retry and subsequent queued delivery. Keep original packet/scene/source stamps and200ms age; reacquire current policy each attempt. One bounded pending packet per input; delivered destinations removed exactly once. Data behavior, queue-pressure/permanent refusals and wire formats unchanged.",
+  "after_exact_cases": [
+    "scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
+    "scene_video_retry_keeps_original_age_and_earliest_observed_authority_expiry",
+    "scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
+    "scene_video_retry_cannot_follow_a_replaced_receiver_port",
+    "scene_video_retry_carries_earliest_authority_expiry_into_queued_delivery"
+  ]
 }

@@ -1,0 +1,302 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -980,6 +980,29 @@
+         destination: &Arc<StreamController>,
+         logical: &StreamId,
+     ) -> ControlResult<()> {
++        self.forward_to(destination, logical, None)
++    }
++    fn try_forward_to_pending(
++        &self,
++        destination: &Arc<StreamController>,
++        logical: &StreamId,
++        target: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        deadline: &mut tokio::time::Instant,
++    ) -> ControlResult<()> {
++        self.forward_to(destination, logical, Some((target, ticket, deadline)))
++    }
++    fn forward_to(
++        &self,
++        destination: &Arc<StreamController>,
++        logical: &StreamId,
++        mut pending: Option<(&Arc<Port>, &PeerRouteTicket, &mut tokio::time::Instant)>,
++    ) -> ControlResult<()> {
++        if pending.as_ref().is_some_and(|(_, ticket, until)| {
++            !ticket.is_current() || tokio::time::Instant::now() >= **until
++        }) {
++            return Err(StreamControlError::Deadline);
++        }
+         if self.source.kind() != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
+@@ -1004,6 +1027,12 @@
+                 .cloned()
+                 .ok_or(StreamControlError::NotReady)?
+         };
++        if pending
++            .as_ref()
++            .is_some_and(|(expected, _, _)| !Arc::ptr_eq(expected, &target))
++        {
++            return Err(StreamControlError::Authority);
++        }
+         if self.source.binding.negotiated.requested.medium
+             != target.binding.negotiated.requested.medium
+             || self.source.binding.negotiated.format != target.binding.negotiated.format
+@@ -1040,7 +1069,7 @@
+         {
+             return Err(StreamControlError::Unsupported);
+         }
+-        let (_source_lease, _source_guard, source_deadline) = source.admit_with_data(
++        let (_source_lease, _source_guard, source_deadline) = source.admit_with_deadline(
+             &self.source,
+             &self.ticket,
+             false,
+@@ -1056,6 +1085,7 @@
+                 .map(Arc::downgrade)
+                 .as_ref()
+                 .map(|weak| weak as &(dyn Any + Send + Sync)),
++            pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
+         )?;
+         if self.source.kind() == StreamKind::Audio {
+             self.custody.observe(_source_lease.as_ref());
+@@ -1072,8 +1102,10 @@
+             transport_id: self.source.binding.transport_id.clone(),
+             stream_generation: self.source.binding.generation,
+         };
+-        let ticket = target.ticket();
+-        let (_target_lease, target_admission, target_deadline) = destination.admit_with_data(
++        let ticket = pending
++            .as_ref()
++            .map_or_else(|| target.ticket(), |(_, ticket, _)| (*ticket).clone());
++        let (_target_lease, target_admission, target_deadline) = destination.admit_with_deadline(
+             &target,
+             &ticket,
+             true,
+@@ -1084,6 +1116,7 @@
+             self.data.as_ref(),
+             None,
+             None,
++            pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
+         )?;
+         if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -1105,6 +1138,7 @@
+                     scene: self.scene.clone(),
+                     custody: self.custody.clone(),
+                     descriptor,
++                    admission_deadline: pending.as_ref().map(|(_, _, until)| **until),
+                 }],
+                 target: target.clone(),
+                 target_ticket: ticket,
+@@ -1130,6 +1164,8 @@
+     scene: Option<scene_consumer::SceneStamp>,
+     descriptor: MediaSource,
+     custody: PacketCustody,
++    // Only pending realtime fanout has this earlier, immutable metadata bound.
++    admission_deadline: Option<tokio::time::Instant>,
+ }
+ /// Source binding observed under the same current guards as local delivery.
+ /// This metadata is not an authority grant and is never put on the wire.
+@@ -1427,6 +1463,16 @@
+         if self.frame.kind != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
++            return Err(StreamControlError::Deadline);
++        }
++        for earlier in self
++            .sources
++            .iter()
++            .filter_map(|source| source.admission_deadline)
++        {
++            *deadline = (*deadline).min(earlier);
++        }
++        if tokio::time::Instant::now() >= *deadline {
+             return Err(StreamControlError::Deadline);
+         }
+         let target = self
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -9,6 +9,12 @@
+ struct Destination {
+     owner: Weak<StreamController>,
+     logical: StreamId,
++    realtime: Option<RealtimeDestination>,
++}
++struct RealtimeDestination {
++    port: Weak<Port>,
++    ticket: PeerRouteTicket,
++    deadline: tokio::time::Instant,
+ }
+ struct Pending {
+     packet: MediaPacket,
+@@ -604,9 +610,28 @@
+                                     .direct_subscriptions
+                                     .receivers(&member.controller, logical, packet.admitted_at)
+                                     .into_iter()
+-                                    .map(|logical| Destination {
+-                                        owner: Arc::downgrade(target),
+-                                        logical,
++                                    .filter_map(|logical| {
++                                        let realtime = if packet.frame.kind == StreamKind::Data {
++                                            None
++                                        } else {
++                                            let state = target
++                                                .state
++                                                .lock()
++                                                .unwrap_or_else(|p| p.into_inner());
++                                            let port = state.active.get(&logical)?;
++                                            Some(RealtimeDestination {
++                                                port: Arc::downgrade(port),
++                                                ticket: port.ticket(),
++                                                deadline: tokio::time::Instant::from_std(
++                                                    packet.admitted_at,
++                                                ) + Duration::from_millis(200),
++                                            })
++                                        };
++                                        Some(Destination {
++                                            owner: Arc::downgrade(target),
++                                            logical,
++                                            realtime,
++                                        })
+                                     })
+                             })
+                             .collect();
+@@ -630,7 +655,7 @@
+                         input.pending = None;
+                         continue;
+                     }
+-                    pending.remaining.retain(|destination| {
++                    pending.remaining.retain_mut(|destination| {
+                         let Some(target) = destination.owner.upgrade() else {
+                             return false;
+                         };
+@@ -668,8 +693,38 @@
+                         {
+                             return false;
+                         }
+-                        match pending.packet.try_forward_to(&target, &destination.logical) {
++                        let result = if data {
++                            pending.packet.try_forward_to(&target, &destination.logical)
++                        } else {
++                            let Some(original) = destination.realtime.as_mut() else {
++                                return false;
++                            };
++                            let Some(port) = original.port.upgrade() else {
++                                return false;
++                            };
++                            pending.packet.try_forward_to_pending(
++                                &target,
++                                &destination.logical,
++                                &port,
++                                &original.ticket,
++                                &mut original.deadline,
++                            )
++                        };
++                        match result {
+                             Ok(()) | Err(StreamControlError::NotRecipient) => false,
++                            // Retry only temporary metadata refusal at a later normal
++                            // scene tick. No grant or payload is duplicated: the same
++                            // packet, source stamps, receiver port/ticket and earliest
++                            // observed authority deadline remain fixed. Queue pressure
++                            // and permanent refusal keep their existing drop behavior.
++                            Err(StreamControlError::NotReady) if !data => {
++                                destination.realtime.as_ref().is_some_and(|original| {
++                                    original.ticket.is_current()
++                                        && tokio::time::Instant::now() < original.deadline
++                                        && pending.packet.admitted_at.elapsed()
++                                            < Duration::from_millis(200)
++                                })
++                            }
+                             Err(_) => data,
+                         }
+                     });
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -597,7 +597,11 @@
+         // Larger backlogs and a playing long original keep the prior trimming
+         // rule, so steady fresh input does not sit behind an initial burst.
+         let partial = self.pending.front().is_some_and(|chunk| chunk.started);
+-        let unplayed = self.pending.iter().map(|chunk| chunk.samples.len()).sum::<usize>();
++        let unplayed = self
++            .pending
++            .iter()
++            .map(|chunk| chunk.samples.len())
++            .sum::<usize>();
+         if !partial && unplayed <= self.consumer.mix_rate as usize / 10 {
+             return;
+         }
+@@ -718,6 +722,7 @@
+                     scene: chunk.packet.scene.clone(),
+                     custody: chunk.packet.custody.clone(),
+                     descriptor,
++                    admission_deadline: None,
+                 },
+                 admitted_at: chunk.packet.admitted_at,
+                 deadline,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -179,3 +179,63 @@
+         );
+     }
+ }
++
++#[tokio::test]
++async fn scene_video_retry_cannot_follow_a_replaced_receiver_port() {
++    let (s, blocked, _) = setup().await;
++    let mut old = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    s.publish(Medium::Video, 9000);
++    blocked.store(2, Ordering::Release);
++    s.scene.tick();
++    s.f.b
++        .change(
++            s.f.b.revision(),
++            &[desired(Medium::Video)],
++            &[desired(Medium::Video).logical_id].into_iter().collect(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    let mut new = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    blocked.store(0, Ordering::Release);
++    s.scene.tick();
++    assert!(old.try_recv().is_err());
++    assert!(
++        new.try_recv().is_err(),
++        "pending packet followed a new receiver generation"
++    );
++    s.publish(Medium::Video, 18000);
++    s.scene.tick();
++    new.try_recv()
++        .unwrap()
++        .deliver(|f| async move {
++            assert_eq!(f.timestamp_rtp, 18000);
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn scene_video_retry_carries_earliest_authority_expiry_into_queued_delivery() {
++    let (s, blocked, expiry) = setup().await;
++    let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    s.publish(Medium::Video, 9000);
++    *expiry.lock().unwrap() = Some(chrono::Utc::now() + chrono::Duration::milliseconds(120));
++    blocked.store(2, Ordering::Release);
++    s.scene.tick();
++    *expiry.lock().unwrap() = None;
++    blocked.store(0, Ordering::Release);
++    s.scene.tick();
++    let packet = out
++        .try_recv()
++        .expect("original current video did not recover");
++    tokio::time::sleep(Duration::from_millis(140)).await;
++    assert!(matches!(
++        packet
++            .deliver(|_| async { panic!("queued retry refreshed earlier authority expiry") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++}
