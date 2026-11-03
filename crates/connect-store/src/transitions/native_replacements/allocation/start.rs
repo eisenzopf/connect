@@ -5,6 +5,7 @@ mod audience;
 pub use audience::NativeReplacementAudienceCapture;
 mod commit;
 mod phase;
+mod projection;
 use crate::{AuthorityGuardSet, AuthorityScope, PeerConnectionProjection};
 pub use commit::{
     NativeReplacementCommitAttempt, NativeReplacementCommitUncertain, NativeReplacementCommitted,

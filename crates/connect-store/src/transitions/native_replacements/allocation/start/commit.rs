@@ -230,23 +230,18 @@ impl Store {
     ) -> Result<OperationRecord> {
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &p.record)?;
-                let mut scopes = admission::row_scopes(&row)?;
-                if audience.is_some() {
-                    scopes.extend(crate::authority_admission::conversation_scopes(
-                        &c,
-                        &row.record.conversation_id.clone().ok_or_else(invalid)?,
-                        crate::AuthorityMode::Write,
-                    )?);
-                }
-                AuthorityScope::merged(&scopes)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.try_replacement_capture_projection(|c| {
+            let row = rows::by_record(c, &p.record)?;
+            let mut scopes = admission::row_scopes(&row)?;
+            if audience.is_some() {
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    c,
+                    &row.record.conversation_id.clone().ok_or_else(invalid)?,
+                    crate::AuthorityMode::Write,
+                )?);
+            }
+            AuthorityScope::merged(&scopes)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -303,21 +298,16 @@ impl Store {
         let start = &a.origin.started.attempt;
         let p = &start.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &p.record)?;
-                let mut scopes = admission::row_scopes(&row)?;
-                scopes.extend(crate::authority_admission::conversation_scopes(
-                    &c,
-                    &a.target.connection.conversation_id,
-                    crate::AuthorityMode::Write,
-                )?);
-                AuthorityScope::merged(&scopes)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.try_replacement_capture_projection(|c| {
+            let row = rows::by_record(c, &p.record)?;
+            let mut scopes = admission::row_scopes(&row)?;
+            scopes.extend(crate::authority_admission::conversation_scopes(
+                c,
+                &a.target.connection.conversation_id,
+                crate::AuthorityMode::Write,
+            )?);
+            AuthorityScope::merged(&scopes)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

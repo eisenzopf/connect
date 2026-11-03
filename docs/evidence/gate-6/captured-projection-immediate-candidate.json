@@ -1,0 +1,32 @@
+{
+  "format": "connect/gate6-captured-projection-immediate-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "v22 trace confirms2738current authority-busy outcomes, mostly fresh publishing; one original return remains Preparing15 with physical commit confirmed. Captured audience/commit/projection metadata uses DEFAULT_WAIT2s writer admission and ordinary SQL acquisition. This identifies a concrete blocking path; it does not establish every gap or queued writer cause.",
+  "change": "Only already captured replacement phase/commit/established metadata uses immediate admission. Derive the same complete original scope set under try_connection, release SQL, try_acquire_authority, reacquire zero-busy-timeout SQL and rederive/covers before returning that same SQL guard to original exact transaction. All write scopes and native/runtime/ID/receipt/generation/role/current checks retained. Contention releases partial authority/SQL and returns existing busy/storage errors to original bounded metadata-only retry. No physical commit, decoder preparation, mutation or source clock replay.",
+  "preserved": [
+    "Actual prepare/allocation/begin-commit permissions and custody are unchanged.",
+    "Historical capture remains immutable; exact original effect attempt and SQL atomicity/uniqueness checks unchanged.",
+    "Real authorization writers remain exclusive; current packet authorization is not bypassed.",
+    "Current service metadata retry/cancellation bounds unchanged; no new timeout or grace."
+  ],
+  "risk_to_verify": "Immediate retries can contend with sustained live readers; actual workload must prove successful metadata projection and unchanged authorization/media/drain behavior. Components alone cannot establish quality or task completion.",
+  "new_controlled_case": "connection_control::tests::replacement_sources::commit::captured_projection_refuses_contention_without_parking_packet_readers",
+  "new_case_scope": "Actual Store immutable captured commit: held packet read, held local SQL mutex, foreign SQLite writer, unchanged state on refusal, later original projection and duplicate without new effects. No native IO.",
+  "before_source_revision": "f7d82d40212e4fc448238ba6e390f01d31a88214",
+  "before_check_pending": true,
+  "after_check_pending": true,
+  "normal_runtime_pending": true,
+  "source_sha256": {
+    "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "77c51fe2201eb5035c062040b3c31beac8ac7041b8539717ddd67ca3c6955075",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs": "0e36ce49611c85e3be4d9b794fffbfda65803dbeeba85081dd06697bde46bb16",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/phase.rs": "298ca45ab6a8c6b570956fdcbeafe2b1f929d7335ab3aedf5e2193ee09370a9a",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs": "e9d8cdf7e1abcc4f922eec356b483dfec90c3e9390542d7f551b9cda81c1353e",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit.rs": "3a44d2aaf9cbd5faf6c1e697af304442a5a1626797644f8bf717bd775b3abf99"
+  },
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
