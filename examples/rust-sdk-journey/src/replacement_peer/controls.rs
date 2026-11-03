@@ -88,7 +88,10 @@ fn observed(
     }
     *minimum_revision = revision;
     match value["state"].as_str() {
-        Some("accepted" | "preparing" | "ready" | "committing") => Ok(None),
+        // Uncertainty is not admission and cannot authorize another mutation.
+        // Keep this original physical owner and observe only the same root
+        // under the caller's unchanged programme/poll/cancellation bounds.
+        Some("accepted" | "preparing" | "ready" | "committing" | "unknown") => Ok(None),
         Some("completed") => {
             let result = &value["result"];
             if result["connection_id"] != candidate
@@ -369,6 +372,88 @@ fn publication_gate(
 mod tests {
     use super::*;
     #[test]
+    fn unknown_original_root_stays_closed_until_same_root_completes() {
+        let (command, root, own, pending) = fixture();
+        let mut unknown = completed(pending.clone());
+        unknown["state"] = json!("unknown");
+        let mut revision = 3;
+        assert!(observed(
+            &unknown,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut revision
+        )
+        .unwrap()
+        .is_none());
+        assert_eq!(revision, 4);
+        unknown["revision"] = json!(5);
+        assert!(observed(
+            &unknown,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut revision
+        )
+        .unwrap()
+        .is_none());
+        let mut wrong = unknown.clone();
+        wrong["record_id"] = json!("different-root");
+        assert!(observed(
+            &wrong,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut revision
+        )
+        .is_err());
+        for state in ["failed", "cancelled"] {
+            let mut terminal = unknown.clone();
+            terminal["state"] = json!(state);
+            assert!(observed(
+                &terminal,
+                &command,
+                &root,
+                "candidate",
+                "target-device",
+                &own,
+                &mut revision
+            )
+            .is_err());
+        }
+        let mut completed = completed(pending);
+        assert!(observed(
+            &completed,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut revision
+        )
+        .is_err());
+        completed["revision"] = json!(6);
+        let admitted = observed(
+            &completed,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut revision,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(admitted.generation, 2);
+        assert_eq!(revision, 6);
+    }
+    #[test]
     fn completed_root_and_publication_gate_cannot_drop_or_rebind_data() {
         let (command, root, mut own, pending) = fixture();
         own.push(selected::Binding {
@@ -568,7 +653,7 @@ mod tests {
                 7 => changed["result"]["replaces"] = json!("other-source"),
                 8 => changed["result"]["readiness"]["streams"] = json!(["audio"]),
                 9 => changed["result"]["readiness"]["streams"] = json!(["audio", "audio"]),
-                _ => changed["state"] = json!("unknown"),
+                _ => changed["state"] = json!("invalid-state"),
             }
             assert!(
                 observed(

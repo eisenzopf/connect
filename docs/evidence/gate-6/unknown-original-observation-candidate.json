@@ -1,0 +1,20 @@
+{
+  "format": "connect/gate6-unknown-original-observation-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "v20 physical owners terminate on an original unknown root, closing a once-attempted uncertain target. Unknown is not a terminal state or video admission. The concrete Core commit refusal is still unknown because its debug target was disabled.",
+  "change": "Physical owner keeps video closed and continues read-only observation of the exact original root under unchanged existing programme/poll/cancellation limits. Identity, monotonic revision, exact completion resources and failed/cancelled refusal preserved. No command or native effect replay.",
+  "counterexample": "One new actual controls observer case covers unknown-with-result still closed, repeated unknown, wrong root, stale completion, failed/cancelled and exact later completion. Focused ARM execution pending.",
+  "commit_diagnostic": "New explicit media-only commit trace includes only existing canonical_replacement and Core replacement_commit debug events. Expensive authority/backtrace/SQL custody/helper timing stays disabled; run report records exact option.",
+  "source_sha256": {
+    "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
+    "scripts/check-transport-fixtures.py": "0ec3f99a13d1ce1188b86e7c3f273ae862770318a32b92628e8bf0aefee28137"
+  },
+  "focused_arm_check_pending": true,
+  "runtime_pending": true,
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
