@@ -49,5 +49,27 @@
     "log_sha256": "2b35ccbfdd2075098f6f73b889c503c7a36cca058b7a4fcbbb733a0e6c75385b",
     "correction": "Use the existing std::future::poll_fn cancellation pattern with the original token futures; no new dependency."
   },
-  "full_core_integration_pending": true
+  "full_core_integration_pending": false,
+  "integration_typecheck": {
+    "source_revision": "e3caa3ec560019287d204a56fc05e28cf1fa387b",
+    "command": [
+      "cargo",
+      "check",
+      "--release",
+      "--locked",
+      "-p",
+      "connect-service",
+      "--lib"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 629.123881380001,
+    "prepared_source_digests_verified_before_and_after": true,
+    "tracked_worktree_clean_after_check": true,
+    "logs_sha256": {
+      "source-confirmed-after-check.log": "66faf33969f4e41822383cb09723edcf4db30f38883c84530f12027ff406b187",
+      "dependencies-confirmed.log": "66faf33969f4e41822383cb09723edcf4db30f38883c84530f12027ff406b187",
+      "typecheck.log": "f4c118f2dd0ed33f7f1b5639f7792167eaeaf8a26959fe4855fdf7143f250210"
+    },
+    "scope": "Actual corrected Core/transport/service release integration type-check; no test suite, normal executable, media, packet capture or full cell qualification."
+  }
 }
