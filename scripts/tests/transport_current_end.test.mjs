@@ -42,6 +42,36 @@ test("four retained current owners end after original media; moved0/4 and shared
     assert.deepEqual(s.waits, [1, 2, 3, 5]); assert.equal(s.saved.filter(v => v.kind === "receipt").length, 4);
     assert.ok(result.receipts.every(v => v.mutation_submissions === 1 && v.original_cutoff_monotonic_ms === 67000));
 });
+test("early programme timer wake waits for the original boundary before any end", async () => {
+    const s = scenario();
+    let sleeps = 0;
+    const advance = s.args.wait;
+    // Model the timer returning just before a fractional monotonic deadline.
+    s.args.wait = async ms => {
+        assert.equal(s.sends.length, 0);
+        assert.equal(s.stops.length, 0);
+        sleeps++;
+        await advance(sleeps === 1 ? 61999.25 : ms);
+    };
+    const result = await endRetainedConnections(s.args);
+    assert.equal(sleeps, 2);
+    assert.deepEqual(s.sends, [1, 2, 3, 5]);
+    assert.ok(result.receipts.every(v => v.original_cutoff_monotonic_ms === 67000));
+});
+test("early programme timer wake retains cancellation before every end", async () => {
+    const s = scenario();
+    let sleeps = 0;
+    const advance = s.args.wait;
+    s.args.wait = async () => {
+        if (++sleeps === 1) { await advance(61999.25); return; }
+        s.controller.abort(s.uncertain);
+        throw s.uncertain;
+    };
+    await assert.rejects(endRetainedConnections(s.args), failure => failure === s.uncertain);
+    assert.equal(sleeps, 2);
+    assert.equal(s.sends.length, 0);
+    assert.equal(s.stops.length, 0);
+});
 test("uncertain original is never submitted twice and all sibling originals settle", async () => {
     const s = scenario("unknown"); await assert.rejects(endRetainedConnections(s.args), error => error === s.uncertain);
     assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual(s.waits, [2, 3, 5]);

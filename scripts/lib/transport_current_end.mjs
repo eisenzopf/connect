@@ -41,7 +41,16 @@ export async function endRetainedConnections({ routes, ends, conversationId, ses
     });
     // Save all original keys/scopes before any possible submission or wait.
     for (const { end, intent } of originals) await persist(end.index, "intent", intent);
-    await wait(Math.max(0, endAt - now()), signal);
+    // Timers may wake before a fractional monotonic deadline. Recheck the
+    // same programme boundary; no Connection may end early or gain more time.
+    while (now() < endAt) {
+        current();
+        const before = now();
+        await wait(Math.max(1, Math.ceil(endAt - before)), signal);
+        current();
+        assert.ok(now() > before, "original-current-end-wait-must-advance-clock");
+    }
+    current();
     assert.ok(now() >= endAt, "original-media-programme-ended-before-current-end");
     const results = await Promise.allSettled(originals.map(async ({ end, route, intent }) => {
         // Cleanup remains owned even if a sibling consumes the original budget.

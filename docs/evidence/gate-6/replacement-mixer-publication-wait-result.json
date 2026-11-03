@@ -1,0 +1,361 @@
+{
+  "format": "connect/gate6-replacement-mixer-publication-wait-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "e3caa3ec560019287d204a56fc05e28cf1fa387b",
+  "binary_sha256": "8d5d082a2222fa70e8b0e1699bb4dce24f6bc27dd34d0940415ca55d169018f9",
+  "peer_binary_sha256": "eea29ad5a6c1680e82b10ec904e2a6c6f4174f249b911b64fdc9549e816d48ec",
+  "report_sha256": "d2af7558ab10c47691d96999e139909fddd3eb694a5c6fade880e4bf822c5d59",
+  "elapsed_seconds": 1273.4653756219996,
+  "passed": false,
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "movement_profile": "gate6-realistic-device-roundtrip-v1",
+  "original_moves_completed": 4,
+  "moves": [
+    {
+      "source_index": 0,
+      "session_index": 0,
+      "ordinal": 0,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "elapsed_ms": 2882.071953999999,
+      "scheduled_start_ms": 15000,
+      "actual_start_ms": 15413.618224,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 4,
+      "session_index": 1,
+      "ordinal": 0,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "elapsed_ms": 2732.3050539999967,
+      "scheduled_start_ms": 15000,
+      "actual_start_ms": 15587.458240000002,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 4,
+      "session_index": 1,
+      "ordinal": 1,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "elapsed_ms": 4674.4218550000005,
+      "scheduled_start_ms": 40000,
+      "actual_start_ms": 40879.861462,
+      "data_exchange_verified": true
+    },
+    {
+      "source_index": 0,
+      "session_index": 0,
+      "ordinal": 1,
+      "original_reference_preserved": true,
+      "original_retired": true,
+      "camera_subscription_completed": true,
+      "elapsed_ms": 4840.252940999999,
+      "scheduled_start_ms": 40000,
+      "actual_start_ms": 40702.211881999996,
+      "data_exchange_verified": true
+    }
+  ],
+  "original_journal": {
+    "roots": [
+      {
+        "record_id": "opr_f4423622-87ef-445d-a950-672a2194c5cb",
+        "state": "completed",
+        "revision": 16,
+        "problem_json": null,
+        "slot": "0-0",
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "record_id": "opr_f782b83c-7c2a-4f4f-b5b8-babfff42acbe",
+        "state": "completed",
+        "revision": 16,
+        "problem_json": null,
+        "slot": "0-1",
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "record_id": "opr_b1e184d1-833f-45fc-a8f2-b7bc42ffe413",
+        "state": "completed",
+        "revision": 16,
+        "problem_json": null,
+        "slot": "4-0",
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "record_id": "opr_d128c2cf-f169-4277-9f4b-735987302272",
+        "state": "completed",
+        "revision": 16,
+        "problem_json": null,
+        "slot": "4-1",
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired": 0,
+    "original_db_wal_unchanged": true
+  },
+  "core_commit_refusals": [],
+  "authority_diagnostic": {
+    "command_intervals": 74,
+    "maximum_post_admission_hold_ms": 1327,
+    "lifetime_records": 0
+  },
+  "actual_failure": {
+    "name": "AssertionError",
+    "kind": null,
+    "certainty": null,
+    "observation": {
+      "stage": "retained-current-end"
+    }
+  },
+  "retained_end_references": 0,
+  "physical_final_end_receipts": 2,
+  "physical_stages": {
+    "4-0": {
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    },
+    "0-1": {
+      "passed": false,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": {
+        "phase": "target-worker-join",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 315,
+          "column": 58
+        }
+      }
+    },
+    "4-1": {
+      "passed": false,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": {
+        "phase": "target-worker-join",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 315,
+          "column": 58
+        }
+      }
+    },
+    "0-0": {
+      "passed": true,
+      "original_root_completed": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    }
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "all_observed_helpers_joined": true,
+  "observed_helpers": 7,
+  "programme_observation_elapsed_ms": 62334.920922000005,
+  "interpretation": "All four original replacements completed with all seven phases confirmed once; the previously observed managed mixer conflict did not recur. The first failure was in retained-current-end before any retained end reference was saved. The programme wait assumes timers cannot wake early; a focused counterexample reproduces that assertion. The physical final peers completed their own original ends, but sibling cleanup requested stop after their natural completion and the final stage validation failed. No passing full media/quality result is claimed.",
+  "next_fix": "Recheck the unchanged programme boundary after early timer wake; preserve cancellation, once-only end mutations and the existing 67-second final cutoff.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -36,7 +36,7 @@
     "tests.log": "ba5106e857f9060ce65c533b5e416d19dfe7a555de135c64d411b2ea17f7d097"
   },
   "general_regression_suites_rerun": false,
-  "normal_production_build_pending": true,
+  "normal_production_build_pending": false,
   "G054_deferred": true,
   "cell_qualified": false,
   "whole_gate_qualified": false,
@@ -71,5 +71,15 @@
       "typecheck.log": "f4c118f2dd0ed33f7f1b5639f7792167eaeaf8a26959fe4855fdf7143f250210"
     },
     "scope": "Actual corrected Core/transport/service release integration type-check; no test suite, normal executable, media, packet capture or full cell qualification."
+  },
+  "production_build": {
+    "source_revision": "e3caa3ec560019287d204a56fc05e28cf1fa387b",
+    "binary_sha256": "8d5d082a2222fa70e8b0e1699bb4dce24f6bc27dd34d0940415ca55d169018f9",
+    "peer_binary_sha256": "eea29ad5a6c1680e82b10ec904e2a6c6f4174f249b911b64fdc9549e816d48ec",
+    "normal_cli_opt_level": "3",
+    "test_binary": false,
+    "runtime_result": "docs/evidence/gate-6/replacement-mixer-publication-wait-result.json",
+    "all_four_original_replacements_completed": true,
+    "overall_runtime_passed": false
   }
 }
