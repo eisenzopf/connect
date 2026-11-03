@@ -18,7 +18,7 @@
     "source_inputs_unchanged": true,
     "elapsed_seconds": 80.76824996000141
   },
-  "scope": "Exact controlled Store case holding current native packet authority while attempting immutable original preparation metadata. Before source compiles, then the case fails authority-busy with all other1328 cases filtered. This is not native media or full service proof. Three exact corrected Store cases now pass on the same ARM guest; full normal production media remains pending.",
+  "scope": "Exact controlled Store case holding current native packet authority while attempting immutable original preparation metadata. Before source compiles, then the case fails authority-busy with all other1328 cases filtered. This is not native media or full service proof. Three exact corrected Store cases now pass on the same ARM guest; normal production builds, then fourth original completion status read refuses current authority; no full media/quality qualification.",
   "change": "Reservation reacquires the complete current source Read union, instead of Identity/Conversation Write admission. It creates only immutable reservation/plan and one unstarted effect; SQLite still serializes current validation and uniqueness. No graph, binding, participant, capability or authority change occurs at this phase.",
   "preserved": [
     "Input readers dropped before fresh admission; real queued authorization writers cannot be bypassed.",
@@ -33,7 +33,7 @@
   ],
   "test_maintenance": "Obsolete reservation-writer scheduling assertions are replaced with live packet coexistence, genuine queued revocation, SQL contention and original duplicate-custody cases. Actual authorization writer fairness remains required.",
   "after_checks_pending": false,
-  "normal_production_rehearsal_pending": true,
+  "normal_production_rehearsal_pending": false,
   "source_sha256": {
     "crates/connect-store/src/transitions/native_replacements.rs": "4f0fb736673fa5d8da6f18e13783971e398cebafc41940d45a1093373ddd39db",
     "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs": "316d2584b34b7569464b61205912bd826a09bf4516d1eef0bf64b13271d2bff7"
@@ -80,5 +80,7 @@
     "executable_unchanged": true,
     "source_inputs_unchanged": true,
     "elapsed_seconds": 80.02779493500202
-  }
+  },
+  "normal_production_rehearsal_passed": false,
+  "runtime_result": "docs/evidence/gate-6/reservation-source-read-result.json"
 }

@@ -1,0 +1,205 @@
+{
+  "format": "connect/gate6-reservation-source-read-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "f0391352b276c62b345b6e7cbae4a5d940f26819",
+    "binary_sha256": "8afa574c2e317109df26a4159e5cfc45dd142fb4ec15571222e6963be8091372",
+    "peer_binary_sha256": "a507b457e9d0b2e760ae57b985b289c513fcb3c3cb8595ea7c0a92b8d7af94f7",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 901.7076654299999,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "authority_backtrace_sql_and_helper_diagnostics_enabled": false,
+  "control_scenario_passed": false,
+  "original_moves_completed": 3,
+  "first_failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "application",
+    "certainty": "refused",
+    "protocol_problem_code": 503,
+    "problem": {
+      "code": 503,
+      "category": "authorization",
+      "reason": "authority_unavailable"
+    },
+    "source_stack": []
+  },
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1471,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 68,
+      "packet_events_during_control": 406,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": false,
+      "sent_audio_packets": 240,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 143,
+      "packet_events_during_control": 171,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1462,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 33,
+      "packet_events_during_control": 283,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": false,
+      "sent_audio_packets": 196,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 118,
+      "packet_events_during_control": 184,
+      "owner_ready": false,
+      "stop_requested": true,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 53758359,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 73728,
+      "to_server_packets": 40280,
+      "from_server_packets": 33448,
+      "captured_bytes": 52578687,
+      "udp_payload_bytes": 49482111,
+      "to_server_udp_bytes": 22070373,
+      "from_server_udp_bytes": 27411738
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793712657550,
+    "elapsed_seconds": 54.59671035599604,
+    "sample_count": 55,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 170291200,
+        "observed_cpu_seconds": 50.87,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 54,
+        "peak_sampled_threads": 22,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 1051955200,
+        "observed_cpu_seconds": 17.59,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 95,
+        "open_resource_unavailable_samples": 1
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": false,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "media_diagnostics_before": {
+    "forwarding": [],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [],
+    "scope": "server-process"
+  },
+  "media_diagnostics_after": {
+    "forwarding": [],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [],
+    "scope": "server-process"
+  },
+  "stopped_journal": {
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite",
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effect_count": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "0-1",
+        "state": "completed",
+        "revision": 16,
+        "effect_count": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effect_count": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effect_count": 7,
+        "all_forward_effects_confirmed_once": true
+      }
+    ]
+  },
+  "quality_executed": false,
+  "quality_passed": false,
+  "interpretation": "Production builds successfully. Three original moves finish controller observation; fourth original completion status read refuses authority_unavailable. All four stopped roots Completed16 with seven original forward effects confirmed once. No completed whole-programme media/quality result, and descriptor collection has one unavailable sample. Cannot conclude the source-Read change fixed or worsened quality. Empty native queue observations remain a collection gap. Current authorization refusals remain enforced.",
+  "private_result_hashes": {
+    "state.json": "93ef4f693358e494a1b5492e7f6f62c6bc77d7f2d68185a92ae6c4d2bc4944a9",
+    "bounded-summary.json": "15586623e6642a663bc7be542fe9a6beb5e0ad964da2bea5de4ee01d6ee8b450",
+    "stopped-journal-audit-v1.json": "87663f212e7f6692db662ee023a9aa03bf1226958ad5d8e3c1ac10c1b500d4f1"
+  },
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
