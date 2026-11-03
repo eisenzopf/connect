@@ -1,0 +1,141 @@
+{
+  "format": "connect/gate6-058-current-source-review/1",
+  "date": "2026-11-03",
+  "source_revision": "538ad29a05a03cb91968c52810fde631e1675f88",
+  "scope": "Read-only source/evidence investigation and proposal update. No new build, test, decoder or transport run. Existing original v37 terminal compile result inspected.",
+  "baseline_full_workload_source": "5688c4c61a20fe51f3cc9f154ef3b511fa582249",
+  "source_lock_sha256": "9610186ce870f776c18af334d163ce02ff27950b13795235f58d18b3b93a3c3c",
+  "findings": [
+    {
+      "id": "R1",
+      "confidence": "confirmed at workload baseline; current partial correction",
+      "finding": "Physical-to-adoption gap499.650ms accounts for91.8% of selected544.327ms audio gap. New inactive installation barrier fixes ordering at component scope; full continuity remains unproved."
+    },
+    {
+      "id": "R2",
+      "confidence": "confirmed callback blocking; full-workload amplification not quantified",
+      "finding": "Original16callbacks160.01854ms; queued path correction passes focused components. Actual mixer/Store composition remains unexecuted after compile error; original449.373ms capture delay is not fully attributed."
+    },
+    {
+      "id": "R4",
+      "confidence": "confirmed current source and baseline timing",
+      "finding": "Audio-only transfer, post-completion video/Data controls and periodic keyframe wait remain. Root42600.53ms to first usable key45020.174ms is2419.644ms."
+    },
+    {
+      "id": "P2-cancellation",
+      "confidence": "source-confirmed missing serialization; runtime race not reproduced",
+      "finding": "Service publication guard does not retain native cancellation custody. Prepared generation check returns before SQL commit; parent token or retire can cancel independently. Do not claim this caused original media gap."
+    },
+    {
+      "id": "P2-precommit",
+      "confidence": "source-confirmed error classification; runtime fault not injected",
+      "finding": "prepare_replacement_adoption error becomes Capture::Unknown after durable reservation but before any Core commit invocation. Pending Data writer can refuse expired/noncurrent ownership. Introduce exact known-not-submitted settlement or move preparation before started reservation, retaining uncertainty after actual submission/crash."
+    },
+    {
+      "id": "P5",
+      "confidence": "confirmed observer limitation",
+      "finding": "Observed root polling time is not authenticated media activation. It can exclude legitimate bootstrap but cannot account for retained-route RTP gaps or entire measured activation delay."
+    }
+  ],
+  "sources": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/movement.rs",
+      "line": 52,
+      "anchor": "let adoption = match",
+      "sha256": "671e607cb46057b85768848618a4fde28bf5cf7ff0faddf1f8059d3b8d87f9f7",
+      "finding": "Adoption preparation failure is classified Unknown before Core physical commit is called."
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs",
+      "line": 664,
+      "anchor": "let installation = observation.require(",
+      "sha256": "6ebdb30a7a9f2e8b1c9eb148851423083e819cf93a45350d635f315760882ccd",
+      "finding": "Final Service installation custody is retained through SQLite commit."
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media/replacement.rs",
+      "line": 365,
+      "anchor": "pub(crate) fn hold_installed(",
+      "sha256": "2c4b632ef4cbd156b0f3b63d15071a4d6355d652c59b7c2e1d1e95f15aa2f996",
+      "finding": "Guard holds Service registries, binding and activation metadata; native confirmed generation is a point observation."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs",
+      "line": 120,
+      "anchor": "pub fn try_confirmed_generation(",
+      "sha256": "44d253c226cfdd72fc945b1a314a61d48846def1127c2a46dc8c53c462d8f177",
+      "finding": "Prepared metadata mutex is released when generation observation returns."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/activation.rs",
+      "line": 46,
+      "anchor": "fn controller(&self)",
+      "sha256": "b0e80ec774ccc39d3c348cbf94ca454f2865732064628c3bc44c22cf713e7fed",
+      "finding": "Observation checks cancellation tokens without retaining a cancellation/publication guard."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+      "line": 3471,
+      "anchor": "pub fn retire(&self)",
+      "sha256": "ca62587359f691a4927a660e5c23f0b6bcffb379bc6dd673459c05d66cdb0fea",
+      "finding": "Native cancellation precedes acquiring controller state; externally supplied lifetime also fences packets."
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/replacement_activation.rs",
+      "line": 137,
+      "anchor": "pub fn pending_native_replacement_data_writer(",
+      "sha256": "e5f793cfd40a4a7a309f4e162e59876175068a3a2091275432e21399958e664e",
+      "finding": "Pending writer construction can refuse expired or noncurrent runtime ownership; no media grant is returned."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+      "line": 9,
+      "anchor": "pub struct AudioDeviceReplacementRequest",
+      "sha256": "4ba6104b2b988cf134256e03c16c6fe14307e699aee3ebf33c92938d24d4a46e",
+      "finding": "Replacement carries SavedAudioProgram; no equivalent typed video transfer is present."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer.rs",
+      "line": 407,
+      "anchor": "phase = \"original-post-commit-video-controls\"",
+      "sha256": "da65ec043f6b36ed613e9b3cde5bdc67cbfead533156744e866619f8b1edb0e1",
+      "finding": "Video opening follows observed root completion and additional control commands."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/controls.rs",
+      "line": 262,
+      "anchor": "pub(super) async fn open(",
+      "sha256": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
+      "finding": "Late commands also unmute and subscribe Data, whose independent authority must survive the redesign."
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/media.rs",
+      "line": 208,
+      "anchor": "let frame = &video.frames[self.video_index];",
+      "sha256": "912c05c97b5e7825c8d25f1169a04f34f17c44606f09cf101f8b19a4d6141983",
+      "finding": "Preencoded source skips closed/old/non-key bootstrap frames; no request-driven encoder."
+    },
+    {
+      "path": "scripts/lib/transport_moving_av.py",
+      "line": 94,
+      "anchor": "cut = capture['root_completed_observed_programme_us'] / 1000",
+      "sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9",
+      "finding": "Verifier uses observed completion instead of authenticated activation epoch."
+    }
+  ],
+  "mixer_writer_compile": {
+    "source_revision": "896d1764e061a566c71206ab616962fa0f06fa08",
+    "compile_exit_code": 101,
+    "test_executed": false,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 560.1843749449981,
+    "diagnostic": "E0624: Store-private AuthorityWait::poll_every called by new Service test fixture",
+    "correction_source": "538ad29a05a03cb91968c52810fde631e1675f88",
+    "correction_executed": false
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true,
+  "tests_started_in_this_review": false
+}

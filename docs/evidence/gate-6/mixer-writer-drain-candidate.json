@@ -16,7 +16,7 @@
     "Run only the one new exact case; no existing suite or full media workload."
   ],
   "limitations": [
-    "Not compiled or executed yet.",
+    "Original candidate compile failed with E0624 before any case executed; corrected source538ad29a remains uncompiled/unexecuted.",
     "Core relationship facts and adapter resources are synthetic. Store fences and Service refusal callback are actual, but the positive lease is not a NativeMediaRead and the writer does not run captured replacement SQL.",
     "A pass establishes the controlled mixer/Store contention mechanism; it cannot attribute all449ms in the original workload or qualify native media quality.",
     "No native cancellation/Data observer fault, video bootstrap, authenticated epoch or full transport cell proof."
@@ -32,7 +32,8 @@
   "G054_deferred": true,
   "compile_issue": {
     "source_revision": "896d1764e061a566c71206ab616962fa0f06fa08",
-    "diagnostic": "E0624: new Service fixture calls Store-private AuthorityWait::poll_every. The original compile is still completing its other target; no case executed.",
-    "correction": "Factor the unchanged production5ms/100us wait into a private helper; expose only its construction through Store::replacement_projection_wait_for_test under test-support. The Service case now uses this exact production wait, without exposing the private generic poll method or changing runtime timing."
+    "diagnostic": "E0624: new Service fixture calls Store-private AuthorityWait::poll_every. Original compile finished exit101; no case executed; source/prepared guards unchanged.",
+    "correction": "Factor the unchanged production5ms/100us wait into a private helper; expose only its construction through Store::replacement_projection_wait_for_test under test-support. The Service case now uses this exact production wait, without exposing the private generic poll method or changing runtime timing.",
+    "correction_source": "538ad29a05a03cb91968c52810fde631e1675f88"
   }
 }
