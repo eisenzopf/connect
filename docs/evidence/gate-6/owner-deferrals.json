@@ -67,12 +67,22 @@
     "user_instruction": "after this you can go back and retest the deferred test, can't remember the name",
     "task": "G6-054",
     "order": "After the fresh four-move ARM rehearsal completes.",
-    "status": "requested-retest-completed-with-quality-failure",
+    "status": "retest-completed-returned-to-holding-pen",
     "execution_scope": "Local ARM Linux owned fixtures; no GitHub-hosted media VM, external cloud provisioning or provider call implied.",
     "verification_waived": false,
     "local_only_reaffirmed": "2026-11-02: and make sure we continue to use local resources not github for testing",
     "preceding_rehearsal": "docs/evidence/gate-6/native-realistic-movement-result.json",
     "result": "docs/evidence/gate-6/browser-relay-arm-retest.json",
     "next": "Continue remaining Gate6 plan; preserve G054 incomplete status and unchanged quality requirements."
+  },
+  "repark_request": {
+    "date": "2026-11-03",
+    "user_instruction": "ok put G6-054 back in the holding pen then go back to finishing the rest o the gate 6 tasks",
+    "deferred_task": "G6-054",
+    "status": "deferred-incomplete",
+    "current_result": "docs/evidence/gate-6/browser-relay-arm-retest.json",
+    "remaining_failure": "One receiver p95 A/V skew136.3ms exceeds unchanged120ms limit; other required cells remain unqualified.",
+    "disposition": "No further G054 runs or investigation now. Continue remaining Gate6 tasks in dependency order. Final reconciliation still requires the deferred task; no verification waived.",
+    "verification_waived": false
   }
 }
