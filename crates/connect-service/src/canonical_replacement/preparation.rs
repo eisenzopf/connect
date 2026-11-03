@@ -38,20 +38,29 @@ impl Runtime {
         started: &Arc<StartedReplacement>,
         phase: Phase,
     ) -> Result<Invocation> {
-        let read = retry_metadata(&self.stop, || {
-            let sources = self
-                .media
-                .scene_origins(&root.origin.request().session_id)
-                .map_err(|_| Error::forbidden());
-            let store = self.media.store.clone();
-            let origin = started.policy.origin.get().cloned();
-            async move {
-                let sources = sources?;
-                let origin = origin.ok_or_else(Error::forbidden)?;
-                store_call(move || store.try_native_replacement_scene_read(&origin, &sources)).await.map_err(|error| {tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,detail=%error.message,"Replacement scene read deferred");error})
-            }
+        retry_metadata(&self.stop, || {
+            self.continuation_read_once(root, started, phase.clone())
         })
-        .await?;
+        .await
+    }
+    pub(super) async fn continuation_read_once(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<StartedReplacement>,
+        phase: Phase,
+    ) -> Result<Invocation> {
+        let sources = self
+            .media
+            .scene_origins(&root.origin.request().session_id)
+            .map_err(|_| Error::forbidden())?;
+        let store = self.media.store.clone();
+        let origin = started
+            .policy
+            .origin
+            .get()
+            .cloned()
+            .ok_or_else(Error::forbidden)?;
+        let read = store_call(move || store.try_native_replacement_scene_read(&origin, &sources)).await.map_err(|error| {tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,detail=%error.message,"Replacement scene read deferred");error})?;
         let deadline = tokio::time::Instant::now()
             + Duration::from_secs(
                 (read.media().source().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
@@ -128,9 +137,14 @@ impl Runtime {
     ) -> Result<()> {
         {
             tracing::debug!(target:"connect_service::canonical_replacement",stage="attach-fence","Replacement continuation");
-            let _roles = self.role_projection.lock().await;
-            tracing::debug!(target:"connect_service::canonical_replacement",stage="attach-read","Replacement continuation");
-            let i = self.continuation_read(root, started, Phase::Attach).await?;
+            let (roles, i) = super::projection::read(
+                &self.role_projection,
+                &self.stop,
+                root.deadline
+                    .min(tokio::time::Instant::now() + Duration::from_secs(5)),
+                || self.continuation_read_once(root, started, Phase::Attach),
+            )
+            .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="attach-begin","Replacement continuation");
             let attempt = self.begin_continuation(started, &i, Step::Attach).await?;
             let expected = attempt.expected()?;
@@ -144,19 +158,32 @@ impl Runtime {
             } else {
                 attempt.uncertain()
             };
-            self.save_continuation(root, started, Step::Attach, capture)
-                .await?;
+            super::projection::record(
+                roles,
+                self.save_continuation(root, started, Step::Attach, capture),
+            )
+            .await?;
             result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement attach refused");Error::forbidden()})?;
         }
         let (context, source_phone) = {
-            let _roles = self.role_projection.lock().await;
-            let plan = self
-                .core
-                .plan_staged_device_replacement_muted_activation(&root.handle)
-                .map_err(|_| Error::forbidden())?;
-            let i = self
-                .continuation_read(root, started, Phase::Activate(plan.clone()))
-                .await?;
+            let (roles, i) = super::projection::read(
+                &self.role_projection,
+                &self.stop,
+                root.deadline
+                    .min(tokio::time::Instant::now() + Duration::from_secs(5)),
+                || async {
+                    let plan = self
+                        .core
+                        .plan_staged_device_replacement_muted_activation(&root.handle)
+                        .map_err(|_| Error::forbidden())?;
+                    self.continuation_read_once(root, started, Phase::Activate(plan))
+                        .await
+                },
+            )
+            .await?;
+            let Phase::Activate(plan) = i.phase.clone() else {
+                return Err(Error::forbidden());
+            };
             let attempt = self.begin_continuation(started, &i, Step::Activate).await?;
             let expected = attempt.expected()?;
             let result = self
@@ -204,8 +231,11 @@ impl Runtime {
             } else {
                 attempt.uncertain()
             };
-            self.save_continuation(root, started, Step::Activate, capture)
-                .await?;
+            super::projection::record(
+                roles,
+                self.save_continuation(root, started, Step::Activate, capture),
+            )
+            .await?;
             let context=result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement private activation refused");Error::forbidden()})?;
             (context, source_phone)
         };

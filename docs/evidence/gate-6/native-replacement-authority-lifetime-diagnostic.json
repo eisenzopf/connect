@@ -1,0 +1,114 @@
+{
+  "format": "connect/native-replacement-authority-lifetime-diagnostic/1",
+  "task": "G6-058",
+  "source_revision": "a2b0e4ca0da7e8a0dce57038e1a2a09ef4cefcad",
+  "passed": false,
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "binary_sha256": "bcbbf9ef0262cdfddfce49aa85775aea245ad3bcb5c1763f4cb9fbc5b52a95e8",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "73f99db719d250dad15c912096321795bdf52e80ec49e4aba354c4a19bf620d2",
+  "phase_durations": [
+    {
+      "slot": "0-0",
+      "phase": "Attach",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 5.373,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Attach",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 5.849,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Activate",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 4.797,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Activate",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 6045.095,
+      "error": "authority-busy"
+    },
+    {
+      "slot": "4-0",
+      "phase": "Attach",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 26.869,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Attach",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 2.324,
+      "error": null
+    }
+  ],
+  "roots": [
+    {
+      "slot": "4-0",
+      "state": "failed",
+      "revision": 10,
+      "problem": {
+        "code": "native-target-stopped",
+        "source": "native-replacement"
+      }
+    },
+    {
+      "slot": "0-0",
+      "state": "failed",
+      "revision": 12,
+      "problem": {
+        "code": "native-target-stopped",
+        "source": "native-replacement"
+      }
+    }
+  ],
+  "unretired_native_lifetime_rows": 0,
+  "original_db_wal_unchanged": true,
+  "original_servers_joined": true,
+  "original_native_tasks_joined": true,
+  "all_observed_helpers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "observation_elapsed_ms": 14440.298028,
+  "root_cause_proven": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Original unchanged6AVData/4participants/2Sessions/20moves/62sprogramme/60sobservation/8sreadwait. This explicitly instrumented run fails before any completed move. Long live signed-command authority readers overlap activation recording and release after its6sbusywait; source inspection shows the opposing coordinator/file-lock order. This is diagnostic evidence and supports the deterministic regression, not a complete transport or sole-cause claim. All strict guards and stopped cleanup pass; no original replay or budget/workload change.",
+  "long_authority_intervals": [
+    {
+      "elapsed_ms": 5078,
+      "admission": "Store.admit_peer_authority via StorePeerAuthority.admit",
+      "file": "crates/connect-store/src/peer_authority.rs",
+      "line": 774
+    },
+    {
+      "elapsed_ms": 6118,
+      "admission": "Store.admit_peer_authority via StorePeerAuthority.admit",
+      "file": "crates/connect-store/src/peer_authority.rs",
+      "line": 774
+    }
+  ],
+  "resource_samples_during_partial_media_run": {
+    "samples": 5,
+    "cpu_quota_cores": 6,
+    "memory_limit_gib": 10,
+    "maximum_sampled_cpu_percent": 207.86,
+    "maximum_sampled_memory_percent": 24.75,
+    "scope": "Approximately3second samples only; not a saturation/quality qualification or proof that short spikes never occurred."
+  }
+}

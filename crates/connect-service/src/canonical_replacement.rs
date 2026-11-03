@@ -6,6 +6,7 @@ pub(crate) use media::TargetPolicy;
 mod movement;
 mod preflight;
 mod preparation;
+mod projection;
 mod start;
 use crate::{
     authentication::StoreValidator,
@@ -169,7 +170,6 @@ impl Runtime {
                 .cloned()
         };
         if let Some(saved) = saved {
-            let _roles = self.role_projection.lock().await;
             return self.record_replacement(&saved).await;
         }
         let origin = retry_metadata(&self.stop, || {
@@ -266,9 +266,8 @@ impl Runtime {
                 lane.release()?;
             }
         }
-        // Joining the old worker must not hold this mutex: its role reconciler
-        // can need the same lock. Freeze the fresh Core revision only afterwards.
-        let _roles = self.role_projection.lock().await;
+        // The Core revision is an optimistic input, checked again by its
+        // once-only preparation. No coordinator may span fresh Store admission.
         let sid = SessionId::from_string(command.session_id.clone());
         let candidate = match &command.intent {
             TransitionIntent::Replace {
@@ -383,6 +382,7 @@ impl Runtime {
         };
         // Begin is never retried. Core owns only a capacity/binding ticket here;
         // all allocation/target IO phases remain independently default-denied.
+        let roles = self.role_projection.lock().await;
         let actual = self.core.prepare_staged_device_replacement_with_held(
             &sid,
             principal.clone(),
@@ -391,6 +391,7 @@ impl Runtime {
             invocation.cancel.clone(),
             &invocation,
         );
+        drop(roles);
         drop(invocation);
         let handle = match actual {
             Ok(handle) => handle,
@@ -430,7 +431,6 @@ impl Runtime {
             .map_err(|_| Error::storage())?
             .insert(record, saved.clone());
         self.record_replacement(&saved).await?;
-        drop(_roles);
         if let Some(route) = telephone_route {
             let leg = self.allocate_telephone_replacement(&saved, route).await?;
             let runtime = self.clone();

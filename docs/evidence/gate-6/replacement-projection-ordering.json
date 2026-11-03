@@ -1,0 +1,74 @@
+{
+  "format": "connect/replacement-projection-ordering/1",
+  "task": "G6-058",
+  "source_parent": "a2b0e4ca0da7e8a0dce57038e1a2a09ef4cefcad",
+  "candidate_files_sha256": {
+    "crates/connect-service/src/canonical_replacement.rs": "ac657f6e50189740c7a98685d9286af247d468474204a8c5a2ed06746f4114cc",
+    "crates/connect-service/src/canonical_replacement/media.rs": "f3a079635fb0ce363fa73141a184ce0ced4b75db947f37006c73c2aa932e6209",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "f3de90ab9f4d174656e16bcff64e5b370d27c2395f52f062fb32455bb4915f1c",
+    "crates/connect-service/src/canonical_replacement/preparation.rs": "12c7584b0e9d65af5e6662c9707957c36a6e29ea4228abc05a7be046423f4a17",
+    "crates/connect-service/src/canonical_replacement/projection.rs": "dacec37bbec040ed1e5fb097224009e874fdabb2c773fe02215d98133408db03"
+  },
+  "passed": false,
+  "ordering_regression_passed": true,
+  "checks": [
+    {
+      "name": "actual-Store-kernel-writer-drains-admitted-reader-waiting-for-role-coordinator",
+      "before_exit_code": 101,
+      "after_exit_code": 0
+    },
+    {
+      "name": "busy-read-releases-coordinator-before-next-poll",
+      "passed": true
+    },
+    {
+      "name": "refusal-cancellation-and-original-deadline-never-lend-projection",
+      "passed": true
+    }
+  ],
+  "regression_execution": {
+    "method": "rustc --test includes the exact production projection.rs module, links hashed existing Store/protocol/Tokio libraries; all3 tests selected",
+    "before_changes_only_release_order": true,
+    "tests_passed": 3,
+    "source_sha256": "dacec37bbec040ed1e5fb097224009e874fdabb2c773fe02215d98133408db03",
+    "runs": [
+      {
+        "name": "before-v3",
+        "exit_code": 101,
+        "binary_sha256": "6386826e660f9ace0b074d7294e28f70888b14f164690bb3f77132990d28d248",
+        "log_sha256": "662479c83627ca3644e06fa5efb0473711903c683feb044f51a3422f41f1e92b"
+      },
+      {
+        "name": "after-v3",
+        "exit_code": 0,
+        "binary_sha256": "9ffbaf0f218b7561958138068c9c5946639b7a1d96103038ac3ce494cd2ac17e",
+        "log_sha256": "f04e400719a047decb447fd47ad72c204bb4e8ee0d778418220263075a6f7f30"
+      }
+    ]
+  },
+  "classification_existing_test": {
+    "name": "canonical_media::tests::packet_authority_only_temporary_contention_is_retryable",
+    "selected_tests_passed": 1,
+    "initial_short_exact_filter_selected_zero": true
+  },
+  "full_service_check_pending": true,
+  "signed_av_case_pending": true,
+  "full_native_programme_pending": true,
+  "initial_attempts": [
+    "Standalone compile initially chose a different cached protocol metadata version; resolved from the selected Store Cargo dependency fingerprint. This setup error is not the counterexample.",
+    "The first after test caught an expired read entering before Tokio timer readiness. Explicit deadline checks before admission/current read now refuse it; final3selected tests pass."
+  ],
+  "invariants": {
+    "authority_fences_preserved": true,
+    "original_mutation_ids_preserved": true,
+    "actual_core_phases_once_only": true,
+    "captured_results_recorded_without_coordinator": true,
+    "busy_metadata_retry_releases_coordinator": true,
+    "original_workload_and_deadlines_unchanged": true,
+    "publication_authorized": false
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Fix the observed opposing coordinator/authority lock order in preparation, attach, activation, movement recording and adoption. Core mutations keep coordinator plus current owned invocation; fresh metadata retries release it, and immutable historical records release it before file admission. The initial Core ticket still checks its optimistic participant revision under the coordinator. Reuse ordinary packet_authority_error for temporary replacement media contention. Three deterministic component tests and one existing classifier test do not qualify the full20move/62sprogramme, AV quality, matrix, app packages or completeGate6."
+}

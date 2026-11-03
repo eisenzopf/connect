@@ -14,20 +14,20 @@ impl Runtime {
         root: &Arc<PreparedReplacement>,
         started: &Arc<StartedReplacement>,
     ) -> Result<()> {
-        let _roles = self.role_projection.lock().await;
-        let plan = self
-            .core
-            .plan_staged_device_replacement(&root.handle)
-            .map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
-                Error::forbidden()
-            })?;
-        let i = self
-            .continuation_read(root, started, Phase::Commit(plan.clone()))
-            .await.map_err(|error| {
+        let (roles, i) = super::projection::read(&self.role_projection, &self.stop,
+            root.deadline.min(tokio::time::Instant::now() + Duration::from_secs(5)), || async {
+                let plan = self.core.plan_staged_device_replacement(&root.handle).map_err(|error| {
+                    tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
+                    Error::forbidden()
+                })?;
+                self.continuation_read_once(root, started, Phase::Commit(plan)).await
+            }).await.map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement",stage="scene-read",code=%error.code,"Replacement pre-commit refused");
                 error
             })?;
+        let Phase::Commit(plan) = i.phase.clone() else {
+            return Err(Error::forbidden());
+        };
         let owner = started
             .policy
             .current_owner(i.read.media())
@@ -60,11 +60,14 @@ impl Runtime {
                 let capture = Arc::new(attempt.uncertain());
                 *started.commit.lock().map_err(|_| Error::storage())? =
                     Some(Capture::Unknown(capture.clone()));
-                retry_metadata(&self.stop, || {
-                    let store = self.media.store.clone();
-                    let capture = capture.clone();
-                    store_call(move || store.native_replacement_commit_uncertain(&capture))
-                })
+                super::projection::record(
+                    roles,
+                    retry_metadata(&self.stop, || {
+                        let store = self.media.store.clone();
+                        let capture = capture.clone();
+                        store_call(move || store.native_replacement_commit_uncertain(&capture))
+                    }),
+                )
                 .await?;
                 tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement movement outcome uncertain");
                 return Err(Error::forbidden());
@@ -126,11 +129,14 @@ impl Runtime {
         );
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
-        retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let capture = capture.clone();
-            store_call(move || store.record_native_replacement_committed(&capture))
-        })
+        super::projection::record(
+            roles,
+            retry_metadata(&self.stop, || {
+                let store = self.media.store.clone();
+                let capture = capture.clone();
+                store_call(move || store.record_native_replacement_committed(&capture))
+            }),
+        )
         .await?;
         let origin = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
@@ -138,27 +144,6 @@ impl Runtime {
             store_call(move || store.project_native_replacement_committed(&capture))
         })
         .await?;
-        // Preserve the known movement before any later confirmation failure.
-        // Failure here ends only this new route; it cannot roll back the commit.
-        let mut confirmed = true;
-        for id in handle.audience().commit().connections() {
-            if id != &outcome.replaced
-                && self.native_connection_live(id)
-                && self
-                    .observe_native_audio_audience_commit(id, handle.audience().commit())
-                    .is_err()
-            {
-                confirmed = false;
-            }
-        }
-        if !confirmed || !self.native_connection_live(&outcome.admitted) {
-            drop(_roles);
-            self.retire_moved_replacement(origin).await;
-            return Err(Error::new(
-                "reconciliation-required",
-                "Known movement lost native confirmation",
-            ));
-        }
         // Create historical write custody before acquiring the adoption reader
         // and before making the ordinary Data route visible. This is metadata
         // only; no publication, delivery, or original effect is repeated.
@@ -176,7 +161,6 @@ impl Runtime {
             match result {
                 Ok(writer) => Some(writer),
                 Err(error) => {
-                    drop(_roles);
                     self.retire_moved_replacement(origin).await;
                     return Err(error);
                 }
@@ -184,20 +168,47 @@ impl Runtime {
         } else {
             None
         };
-        let read = retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let origin = origin.clone();
-            store_call(move || store.try_native_media_read(&origin, None))
-        })
+        let read = super::projection::read(
+            &self.role_projection,
+            &self.stop,
+            root.deadline
+                .min(tokio::time::Instant::now() + Duration::from_secs(5)),
+            || {
+                let store = self.media.store.clone();
+                let origin = origin.clone();
+                store_call(move || store.try_native_media_read(&origin, None))
+            },
+        )
         .await;
-        let read = match read {
-            Ok(read) => read,
+        let (_roles, read) = match read {
+            Ok(value) => value,
             Err(error) => {
-                drop(_roles);
                 self.retire_moved_replacement(origin).await;
                 return Err(error);
             }
         };
+        // Preserve the known movement before any later confirmation failure.
+        // Failure here ends only this new route; it cannot roll back the commit.
+        let mut confirmed = true;
+        for id in handle.audience().commit().connections() {
+            if id != &outcome.replaced
+                && self.native_connection_live(id)
+                && self
+                    .observe_native_audio_audience_commit(id, handle.audience().commit())
+                    .is_err()
+            {
+                confirmed = false;
+            }
+        }
+        if !confirmed || !self.native_connection_live(&outcome.admitted) {
+            drop(read);
+            drop(_roles);
+            self.retire_moved_replacement(origin).await;
+            return Err(Error::new(
+                "reconciliation-required",
+                "Known movement lost native confirmation",
+            ));
+        }
         let adopted = self.media.adopt_replacement(
             &started.policy,
             origin.clone(),

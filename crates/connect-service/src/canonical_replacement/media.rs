@@ -162,7 +162,10 @@ impl TargetPolicy {
             .try_native_replacement_media_read(
                 self.origin.get().ok_or(StreamControlError::NotReady)?,
             )
-            .map_err(|error|{tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,"Private replacement media read deferred");deny(error)})?;
+            .map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,"Private replacement media read deferred");
+                crate::canonical_media::packet_authority_error(error)
+            })?;
         let mut owner = self.current_owner(&read)?;
         owner.may_route_source = output;
         Ok(Box::new(Fresh { owner, _read: read }))
@@ -251,7 +254,7 @@ impl MediaPolicy for TargetPolicy {
             .base
             .store
             .try_native_replacement_media_read(origin)
-            .map_err(deny)?;
+            .map_err(crate::canonical_media::packet_authority_error)?;
         let (owner, old) = self.owners(read.source(), read.target())?;
         let owner = self
             .activation
