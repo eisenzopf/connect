@@ -1,0 +1,24 @@
+{
+  "format": "connect/gate6-replacement-activation-barrier-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "changes": [
+    "Preallocate ordinary entry and Data observer without ordinary permission; install after known physical capture and before public Ready.",
+    "Hold exact Service registry, binding and activation metadata through final Store transaction commit; acquire only by try_lock after writer/SQL work.",
+    "Revalidate current target authority before activation; keep known physical movement historical on failure, retire only exact new target without false Ready.",
+    "Classify only exact durably captured and currently authorized activation-pending media as temporary refusal.",
+    "Publish explicit native activation_state and physical_readiness with corresponding HTTP/OpenAPI contract."
+  ],
+  "verification_pending": [
+    "Four new Store barrier cases on local native ARM.",
+    "Service library compile.",
+    "Actual Service/native termination races, restart reconciliation and Data observer failure.",
+    "Actual mixer/Store writer-drain case and detailed refusal counters.",
+    "P3 video bootstrap, P5 authenticated epoch, integrated workload and complete matrix."
+  ],
+  "tests_executed": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}

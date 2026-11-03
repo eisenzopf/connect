@@ -211,3 +211,34 @@ See [the physical replacement contract](native-physical-replacement-peer.md) and
 Temporary storage/authority unavailability refuses fresh operations and packet grants. A background lifetime observation defers unavailable metadata without treating it as permanent revocation. Definite current refusal and the independent credential/key expiry deadline still retire the physical peer. This distinction creates no cached authorization grant.
 
 A pending replacement may wait for its final mixer metadata fence under the original cutoff and cancellation. Its original `operation.get` reference remains authoritative. This wait creates no new operation, media grant or permission and does not assert completed movement. A recorded unknown effect still requires recovery through the original reference.
+
+### Native replacement activation outcome
+
+A known physical native replacement is recorded once, then its ordinary Service
+entry and Data observer are installed while ordinary media admission remains
+closed. Final Store publication requires custody of that exact installed entry
+through commit. `connection_ready` and the completed original operation cannot
+precede this installation. Current credentials, lifetime, generation and media
+policy still gate each packet; an installed entry is not an authorization grant.
+
+The original operation's result follows `NativeReplacementActivationCompletion`
+in [the canonical OpenAPI reference](../../contracts/openapi-canonical-http.json).
+`activation_state: "ready"` records installation and durable activation.
+`activation_state: "stopped"` records a known physical move whose target was
+retired before activation. The stopped result has `readiness: null`, emits no
+`connection_ready`, and includes that target in both `admitted_connection_ids`
+and `retired_connection_ids`: physical admission preceded retirement. The
+retained route is unchanged. `physical_readiness` and `generation` are historical
+commit observations; the retired Connection itself has an incremented generation.
+
+`completed` therefore identifies the known movement outcome, not continuing
+connectivity or decoded video readiness. Read or reconcile the same original
+operation after uncertainty; never submit a second physical move to recover a
+lost response. A captured but not yet activated exact current target may receive
+an internal temporary admission refusal. Revoked credentials, foreign generations
+and uncertain effects remain permanent refusals. Telephone replacement retains
+its separately implemented `NativeReplacementCompletion` result.
+
+Verification of the installation barrier is in progress under G6-058. The
+metadata prerequisite's Store cases do not qualify Service installation, physical
+termination races, process restart recovery or uninterrupted media.

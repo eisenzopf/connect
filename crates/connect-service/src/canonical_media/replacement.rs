@@ -237,26 +237,29 @@ impl Policy {
     }
 }
 
+/// Allocated before physical movement. Its origin cannot admit packets until
+/// the exact durable completion, and it retains no current Store reader.
+pub(crate) struct ReplacementAdoption {
+    target: Arc<crate::canonical_replacement::TargetPolicy>,
+    metadata: Arc<connect_store::NativeReplacementActivation>,
+    entry: Arc<super::Connection>,
+    writer: std::sync::Mutex<Option<super::data_writes::Observer>>,
+}
 impl super::Policy {
-    pub(crate) fn adopt_replacement(
+    pub(crate) fn prepare_replacement_adoption(
         self: &Arc<Self>,
         target: &Arc<crate::canonical_replacement::TargetPolicy>,
-        origin: Arc<connect_store::NativeMediaOrigin>,
+        metadata: Arc<connect_store::NativeReplacementActivation>,
         binding: rvoip_core::relationships::ConnectionBinding,
-        read: &connect_store::NativeMediaRead,
-        data_writer: Option<super::data_writes::Observer>,
-    ) -> ControlResult<Arc<super::Connection>> {
+    ) -> ControlResult<Arc<ReplacementAdoption>> {
+        let origin = metadata.origin().clone();
         if !std::ptr::eq(self.as_ref(), Arc::as_ptr(&target.base))
-            || target
-                .root
-                .upgrade()
-                .is_none_or(|r| !r.handle.is_committed())
             || !binding.same_incarnation(target.pending.binding())
             || binding.state() != rvoip_core::relationships::BindingState::Active
             || origin.generation() != binding.generation()
             || origin.runtime_connection_id() != binding.connection().as_str()
-            || read.target().runtime_connection_id != origin.runtime_connection_id()
-            || !read.current()
+            || origin.offer_record_id() != target.pending.intent().operation_id
+            || metadata.target().runtime_connection_id != origin.runtime_connection_id()
         {
             return Err(StreamControlError::Authority);
         }
@@ -265,6 +268,18 @@ impl super::Policy {
             .get()
             .cloned()
             .ok_or(StreamControlError::NotReady)?;
+        let writer = target
+            .data_observer
+            .as_ref()
+            .map(|observer| {
+                super::data_writes::Observer::pending_replacement(
+                    self.store.clone(),
+                    &metadata,
+                    observer.scope().clone(),
+                )
+                .map_err(super::packet_authority_error)
+            })
+            .transpose()?;
         let entry = Arc::new(super::Connection {
             domain: Arc::downgrade(self),
             origin,
@@ -272,39 +287,155 @@ impl super::Policy {
             profile: target.profile.clone(),
             plan: target.plan.clone(),
             negotiated_remote: std::sync::Mutex::new(target.plan.remote_capabilities().clone()),
-            activation: std::sync::Mutex::new(Some(activation.clone())),
+            activation: std::sync::Mutex::new(Some(activation)),
             binding: std::sync::Mutex::new(Some(binding)),
             preparation: Default::default(),
         });
-        activation.current(entry.owner(read.target(), &entry.principal, false)?)?;
-        let id = entry.origin.runtime_connection_id().to_owned();
-        let mut entries = self.entries.lock().map_err(super::denied)?;
-        if let Some(existing) = entries.get(&ConnectionId::from_string(id.clone())) {
-            if existing.origin.offer_record_id() != entry.origin.offer_record_id() {
-                return Err(StreamControlError::Authority);
-            }
-            return Ok(existing.clone());
-        }
-        // The actual committed candidate inherits the old route's slot.
-        entries.remove(&target.pending.intent().source);
-        if entries.len() >= self.capacity {
+        Ok(Arc::new(ReplacementAdoption {
+            target: target.clone(),
+            metadata,
+            entry,
+            writer: std::sync::Mutex::new(writer),
+        }))
+    }
+}
+impl ReplacementAdoption {
+    pub(crate) fn install(&self) -> ControlResult<()> {
+        let target = &self.target;
+        if target
+            .root
+            .upgrade()
+            .is_none_or(|root| !root.handle.is_committed())
+        {
             return Err(StreamControlError::Authority);
         }
-        let mut provisional = self.replacement_targets.lock().map_err(super::denied)?;
+        target
+            .activation
+            .get()
+            .ok_or(StreamControlError::NotReady)?
+            .current(
+                self.entry
+                    .owner(self.metadata.target(), &self.entry.principal, false)?,
+            )?;
+        let id = target.pending.binding().connection();
+        let mut entries = target
+            .base
+            .entries
+            .try_lock()
+            .map_err(super::metadata_contention)?;
+        if let Some(existing) = entries.get(id) {
+            return if Arc::ptr_eq(existing, &self.entry) {
+                Ok(())
+            } else {
+                Err(StreamControlError::Authority)
+            };
+        }
+        let mut provisional = target
+            .base
+            .replacement_targets
+            .try_lock()
+            .map_err(super::metadata_contention)?;
         if provisional
-            .get(target.pending.binding().connection())
+            .get(id)
             .and_then(std::sync::Weak::upgrade)
             .is_none_or(|p| !Arc::ptr_eq(&p, target))
         {
             return Err(StreamControlError::Authority);
         }
-        match (&target.data_observer, data_writer) {
+        let replacing = usize::from(entries.contains_key(&target.pending.intent().source));
+        if entries.len().saturating_sub(replacing) >= target.base.capacity {
+            return Err(StreamControlError::Authority);
+        }
+        let mut writer = self.writer.try_lock().map_err(super::metadata_contention)?;
+        match (&target.data_observer, writer.take()) {
             (Some(observer), Some(writer)) => observer.activate(writer)?,
             (None, None) => {}
             _ => return Err(StreamControlError::Authority),
         }
-        entries.insert(ConnectionId::from_string(id), entry.clone());
-        provisional.remove(target.pending.binding().connection());
-        Ok(entry)
+        // No fallible operation follows the registry changes. The original
+        // physical source has already gone; its slot transfers exactly once.
+        entries.remove(&target.pending.intent().source);
+        entries.insert(id.clone(), self.entry.clone());
+        provisional.remove(id);
+        Ok(())
+    }
+
+    /// Called while Store may own a transaction. Inspect only local leaf
+    /// metadata with try_lock; never acquire Store authority or role coordination.
+    pub(crate) fn hold_installed(
+        &self,
+        expected: &connect_store::NativeReplacementActivation,
+    ) -> connect_protocol::Result<
+        Option<Box<dyn connect_store::NativeReplacementInstallationGuard + '_>>,
+    > {
+        if !std::ptr::eq(Arc::as_ptr(&self.metadata), expected)
+            || !Arc::ptr_eq(&self.entry.origin, expected.origin())
+        {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        fn busy<T>(error: std::sync::TryLockError<T>) -> connect_protocol::Error {
+            match error {
+                std::sync::TryLockError::WouldBlock => connect_protocol::Error::new(
+                    "authority-busy",
+                    "Replacement installation metadata is busy",
+                ),
+                std::sync::TryLockError::Poisoned(_) => connect_protocol::Error::forbidden(),
+            }
+        }
+        let entries = self.target.base.entries.try_lock().map_err(busy)?;
+        let provisional = self
+            .target
+            .base
+            .replacement_targets
+            .try_lock()
+            .map_err(busy)?;
+        let id = self.target.pending.binding().connection();
+        let activation = self.entry.activation.try_lock().map_err(busy)?;
+        let binding = self.entry.binding.try_lock().map_err(busy)?;
+        let installed = entries
+            .get(id)
+            .is_some_and(|entry| Arc::ptr_eq(entry, &self.entry))
+            && !provisional.contains_key(id)
+            && self
+                .target
+                .data_observer
+                .as_ref()
+                .is_none_or(|observer| observer.installed())
+            && activation
+                .as_ref()
+                .zip(self.target.activation.get())
+                .is_some_and(|(installed, original)| Arc::ptr_eq(installed, original))
+            && binding.as_ref().is_some_and(|binding| {
+                binding.connection() == id
+                    && binding.generation() == expected.origin().generation()
+                    && binding.state() == rvoip_core::relationships::BindingState::Active
+            });
+        if !installed {
+            return Ok(None);
+        }
+        Ok(Some(Box::new(InstalledEntry {
+            _entries: entries,
+            _provisional: provisional,
+            _activation: activation,
+            _binding: binding,
+        })))
     }
 }
+
+/// Service removal takes the same registry mutex. Keep both registries stable
+/// only for the short final SQL commit, after all fallible Store work is done.
+struct InstalledEntry<'a> {
+    _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
+    _binding: std::sync::MutexGuard<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
+
+    _entries:
+        std::sync::MutexGuard<'a, std::collections::BTreeMap<ConnectionId, Arc<super::Connection>>>,
+    _provisional: std::sync::MutexGuard<
+        'a,
+        std::collections::BTreeMap<
+            ConnectionId,
+            std::sync::Weak<crate::canonical_replacement::TargetPolicy>,
+        >,
+    >,
+}
+impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {}

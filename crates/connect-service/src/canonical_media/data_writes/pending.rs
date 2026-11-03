@@ -24,6 +24,9 @@ impl PendingObserver {
     pub(crate) fn scope(&self) -> &StagedRtpScope {
         &self.scope
     }
+    pub(crate) fn installed(&self) -> bool {
+        self.writer.get().is_some()
+    }
     pub(crate) fn activate(&self, writer: Observer) -> ControlResult<()> {
         let scope = writer.scope.clone();
         self.install(&scope, Arc::new(writer))

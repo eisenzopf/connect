@@ -50,7 +50,7 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let started = std::time::Instant::now();
     assert_eq!(
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap_err()
             .code,
         "authority-busy"
@@ -72,7 +72,7 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let started = std::time::Instant::now();
     assert_eq!(
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap_err()
             .code,
         "authority-busy"
@@ -84,7 +84,7 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let started = std::time::Instant::now();
     assert_eq!(
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap_err()
             .code,
         "storage-unavailable"
@@ -101,12 +101,12 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
 
     let established =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let repeated =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(
         repeated.runtime_connection_id(),
@@ -148,7 +148,9 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
             .try_native_media_read(&m.sources[1], None)
             .unwrap();
     let began = std::time::Instant::now();
-    let refused = m.f.store.project_native_replacement_committed(&captured);
+    let refused =
+        m.f.store
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled);
     assert_eq!(refused.unwrap_err().code, "authority-busy");
     assert!(began.elapsed() < std::time::Duration::from_millis(50));
     assert!(held.current());
@@ -183,14 +185,16 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
             drop(held);
         });
         release.send(()).unwrap();
-        let result = m.f.store.project_native_replacement_committed(&captured);
+        let result =
+            m.f.store
+                .project_native_replacement_committed(&captured, &MetadataOnlyInstalled);
         reader.join().unwrap();
         result.expect("captured projection did not drain the short-lived packet reader")
     });
     let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let duplicate =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(
         duplicate.runtime_connection_id(),
@@ -225,7 +229,7 @@ fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_r
         .unwrap();
     let established =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(established.connection_id(), old.connection_id());
     assert_ne!(
@@ -244,7 +248,7 @@ fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_r
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
     let repeated =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(
         repeated.runtime_connection_id(),
@@ -285,7 +289,7 @@ fn candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_m
         .unwrap();
     let established =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     let fresh_runtime = established.runtime_connection_id().to_owned();
     let path = m.f.store.path().to_owned();
@@ -670,7 +674,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         assert!(m
             .f
             .store
-            .project_native_replacement_committed(&capture)
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
             .is_err());
         assert_eq!(m.f.count("connections"), 2);
         assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
@@ -692,7 +696,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
             .unwrap();
         let origin =
             m.f.store
-                .project_native_replacement_committed(&capture)
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
                 .unwrap();
         assert_eq!(origin.generation(), 2);
         assert_eq!(origin.participant_id(), m.sources[0].participant_id());
@@ -729,7 +733,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         let journal = m.f.count("journal");
         let again =
             m.f.store
-                .project_native_replacement_committed(&capture)
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
                 .unwrap();
         assert_eq!(
             again.runtime_connection_id(),
@@ -866,7 +870,7 @@ fn replacement_established_stream_commands_use_candidate_parent_and_independent_
             .unwrap();
         let origin =
             m.f.store
-                .project_native_replacement_committed(&capture)
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
                 .unwrap();
         let mut request = m.target_request.clone();
         request.command = crate::PeerCommand::NativeStream(Intent {
@@ -967,7 +971,7 @@ fn replacement_actual_absence_cleanup_is_exact_historical_and_idempotent_after_t
         .unwrap();
     let origin =
         m.f.store
-            .project_native_replacement_committed(&capture)
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
             .unwrap();
     struct Gone(String, u64);
     impl crate::NativeOfferRuntimeObservation for Gone {
@@ -1127,7 +1131,7 @@ fn replacement_audience_revisions_are_atomic_historical_and_keep_surviving_nativ
         .unwrap();
     let origin =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(m.f.count("native_replacement_audiences"), 2);
     let c = m.f.store.connection().unwrap();
@@ -1192,7 +1196,7 @@ fn replacement_known_commit_projection_preserves_later_topology_without_replayin
         .unwrap();
     let origin =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     let record =
         m.f.store
@@ -1203,7 +1207,7 @@ fn replacement_known_commit_projection_preserves_later_topology_without_replayin
     assert!(record.effects.iter().all(|e| e.attempt == 1));
     let journal = m.f.count("journal");
     m.f.store
-        .project_native_replacement_committed(&captured)
+        .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
         .unwrap();
     assert_eq!(m.f.count("journal"), journal);
     assert!(m
@@ -1256,3 +1260,19 @@ fn replacement_av_commit_capture_requires_every_original_negotiated_resource_ide
 }
 
 mod activation;
+
+// These fixtures verify Store projections only; no Service installation is claimed.
+struct MetadataOnlyInstalled;
+impl crate::NativeReplacementInstallationObservation for MetadataOnlyInstalled {
+    fn hold_installed(
+        &self,
+        _: &crate::NativeReplacementActivation,
+    ) -> crate::Result<Option<Box<dyn crate::NativeReplacementInstallationGuard + '_>>> {
+        Ok(Some(Box::new(MetadataOnlyInstallationGuard)))
+    }
+}
+
+mod activation_barrier;
+
+struct MetadataOnlyInstallationGuard;
+impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard {}

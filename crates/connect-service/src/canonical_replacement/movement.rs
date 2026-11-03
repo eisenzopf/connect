@@ -49,6 +49,29 @@ impl Runtime {
                 error
             })?
         };
+        let adoption = match self.media.prepare_replacement_adoption(
+            &started.policy,
+            attempt.activation().clone(),
+            owner.connection.clone(),
+        ) {
+            Ok(adoption) => adoption,
+            Err(_) => {
+                drop(i);
+                let capture = Arc::new(attempt.uncertain());
+                *started.commit.lock().map_err(|_| Error::storage())? =
+                    Some(Capture::Unknown(capture.clone()));
+                super::projection::record(
+                    roles,
+                    retry_metadata(&self.stop, || {
+                        let store = self.media.store.clone();
+                        let capture = capture.clone();
+                        store_call(move || store.native_replacement_commit_uncertain(&capture))
+                    }),
+                )
+                .await?;
+                return Err(Error::forbidden());
+            }
+        };
         let commit_began = std::time::Instant::now();
         let result = self
             .core
@@ -134,7 +157,7 @@ impl Runtime {
         );
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
-        super::projection::record(
+        let recorded = super::projection::record(
             roles,
             retry_metadata(&self.stop, || {
                 let store = self.media.store.clone();
@@ -142,115 +165,125 @@ impl Runtime {
                 store_call(move || store.record_native_replacement_committed(&capture))
             }),
         )
-        .await?;
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            connection=%outcome.admitted, stage="capture-recorded",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
+        .await;
+        if let Err(error) = recorded {
+            self.stop_unactivated_replacement(&capture).await;
+            return Err(error);
+        }
+        tracing::debug!(target:"connect_service::canonical_replacement", connection=%outcome.admitted,
+            stage="capture-recorded", elapsed_us=commit_began.elapsed().as_micros() as u64,
             "Replacement commit phase observed");
-        let origin = retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let capture = capture.clone();
-            store_call(move || store.project_native_replacement_committed(&capture))
-        })
-        .await?;
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            connection=%outcome.admitted, stage="established-projected",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
-            "Replacement commit phase observed");
-        // Create historical write custody before acquiring the adoption reader
-        // and before making the ordinary Data route visible. This is metadata
-        // only; no publication, delivery, or original effect is repeated.
-        let data_writer = if let Some(observer) = &started.policy.data_observer {
-            let scope = observer.scope().clone();
-            let result = retry_metadata(&self.stop, || {
-                let store = self.media.store.clone();
-                let origin = origin.clone();
-                let scope = scope.clone();
-                store_call(move || {
-                    crate::canonical_media::data_writes::Observer::new(store, &origin, scope)
-                })
-            })
-            .await;
-            match result {
-                Ok(writer) => Some(writer),
-                Err(error) => {
-                    self.retire_moved_replacement(origin).await;
-                    return Err(error);
-                }
-            }
-        } else {
-            None
-        };
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            connection=%outcome.admitted, stage="data-observer-recorded",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
-            "Replacement commit phase observed");
-        let read = super::projection::read(
+        // Install metadata under the role coordinator, with no Store reader or
+        // writer. The candidate's ordinary origin remains unusable until the
+        // following exact completion transaction commits.
+        let installed = super::projection::read(
             &self.role_projection,
             &self.stop,
             root.deadline
                 .min(tokio::time::Instant::now() + Duration::from_secs(5)),
-            || {
-                let store = self.media.store.clone();
-                let origin = origin.clone();
-                store_call(move || store.try_native_media_read(&origin, None))
+            || async {
+                for id in handle.audience().commit().connections() {
+                    if id != &outcome.replaced
+                        && self.native_connection_live(id)
+                        && self
+                            .observe_native_audio_audience_commit(id, handle.audience().commit())
+                            .is_err()
+                    {
+                        return Err(Error::new(
+                            "reconciliation-required",
+                            "Known movement lost native audience confirmation",
+                        ));
+                    }
+                }
+                if !self.native_connection_live(&outcome.admitted) {
+                    return Err(Error::forbidden());
+                }
+                adoption.install().map_err(|error| match error {
+                    rvoip_core::staged_streams::StreamControlError::NotReady => Error::new(
+                        "authority-busy",
+                        "Replacement installation metadata is busy",
+                    ),
+                    _ => Error::forbidden(),
+                })
             },
         )
         .await;
-        let (_roles, read) = match read {
-            Ok(value) => value,
+        match installed {
+            Ok((roles, ())) => drop(roles),
             Err(error) => {
-                self.retire_moved_replacement(origin).await;
+                self.stop_unactivated_replacement(&capture).await;
+                return Err(error);
+            }
+        }
+        tracing::debug!(target:"connect_service::canonical_replacement", connection=%outcome.admitted,
+            stage="installed-inactive", elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement commit phase observed");
+        let installed = Arc::new(Installed {
+            runtime: self.clone(),
+            adoption,
+        });
+        let projected = retry_metadata(&self.stop, || {
+            let store = self.media.store.clone();
+            let capture = capture.clone();
+            let installed = installed.clone();
+            store_call(move || {
+                store.project_native_replacement_committed(&capture, installed.as_ref())
+            })
+        })
+        .await;
+        let origin = match projected {
+            Ok(origin) => origin,
+            Err(error) => {
+                self.stop_unactivated_replacement(&capture).await;
                 return Err(error);
             }
         };
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            connection=%outcome.admitted, stage="adoption-authority-read",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
-            "Replacement commit phase observed");
-        // Preserve the known movement before any later confirmation failure.
-        // Failure here ends only this new route; it cannot roll back the commit.
-        let mut confirmed = true;
-        for id in handle.audience().commit().connections() {
-            if id != &outcome.replaced
-                && self.native_connection_live(id)
-                && self
-                    .observe_native_audio_audience_commit(id, handle.audience().commit())
-                    .is_err()
-            {
-                confirmed = false;
-            }
-        }
-        if !confirmed || !self.native_connection_live(&outcome.admitted) {
-            drop(read);
-            drop(_roles);
-            self.retire_moved_replacement(origin).await;
-            return Err(Error::new(
-                "reconciliation-required",
-                "Known movement lost native confirmation",
-            ));
-        }
-        let adopted = self.media.adopt_replacement(
-            &started.policy,
-            origin.clone(),
-            owner.connection,
-            &read,
-            data_writer,
-        );
-        drop(read);
-        if adopted.is_err() {
-            drop(_roles);
-            self.retire_moved_replacement(origin).await;
-            return Err(Error::forbidden());
-        }
-        tracing::debug!(target:"connect_service::canonical_replacement",generation=origin.generation(),
-            connection=%outcome.admitted, stage="adopted",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
-            "Replacement actual managed movement committed");
-        drop(_roles);
+        tracing::debug!(target:"connect_service::canonical_replacement", generation=origin.generation(),
+            connection=%outcome.admitted, stage="adopted", elapsed_us=commit_began.elapsed().as_micros() as u64,
+            "Replacement actual managed movement activated");
         self.watch_moved_replacement(origin).await;
         Ok(())
     }
+    async fn stop_unactivated_replacement(&self, capture: &Arc<NativeReplacementCommitted>) {
+        let origin = capture.activation().origin().clone();
+        let id = ConnectionId::from_string(origin.runtime_connection_id());
+        loop {
+            if self.native_connection_live(&id) {
+                let _ = self
+                    .core
+                    .end_connection(id.clone(), EndReason::Normal)
+                    .await;
+            }
+            let store = self.media.store.clone();
+            let capture = capture.clone();
+            let origin = origin.clone();
+            let absent = crate::canonical_native::Absent {
+                natives: self.native_adapters(),
+                id: id.clone(),
+                generation: origin.generation(),
+            };
+            let settled = store_call(move || {
+                store.record_native_replacement_committed(&capture)?;
+                // A final transaction may have committed despite an uncertain
+                // return. Settle that exact lifetime first; otherwise project
+                // the known move directly as stopped, without a Ready event.
+                match store.settle_native_replacement_cleanup(&origin, &absent) {
+                    Ok(()) => Ok(()),
+                    Err(error) if error.code == "forbidden" => store
+                        .project_native_replacement_stopped(&capture, &absent)
+                        .map(|_| ()),
+                    Err(error) => Err(error),
+                }
+            })
+            .await;
+            if settled.is_ok() || self.stop.is_cancelled() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+        self.media.remove(&id);
+    }
+
     async fn watch_moved_replacement(&self, origin: Arc<connect_store::NativeMediaOrigin>) {
         let id = ConnectionId::from_string(origin.runtime_connection_id());
         loop {
@@ -299,5 +332,27 @@ impl Runtime {
             tokio::time::sleep(Duration::from_millis(200)).await;
         }
         self.media.remove(&id);
+    }
+}
+
+struct Installed {
+    runtime: Arc<Runtime>,
+    adoption: Arc<crate::canonical_media::replacement::ReplacementAdoption>,
+}
+impl connect_store::NativeReplacementInstallationObservation for Installed {
+    fn hold_installed(
+        &self,
+        expected: &connect_store::NativeReplacementActivation,
+    ) -> Result<Option<Box<dyn connect_store::NativeReplacementInstallationGuard + '_>>> {
+        let installed = self.adoption.hold_installed(expected)?;
+        if !self
+            .runtime
+            .native_connection_live(&ConnectionId::from_string(
+                expected.origin().runtime_connection_id(),
+            ))
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(installed)
     }
 }

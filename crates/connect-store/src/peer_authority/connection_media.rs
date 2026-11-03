@@ -28,8 +28,11 @@ mod handoff;
 mod handoff_lifetime;
 mod replacement;
 mod replacement_activation;
-pub use replacement_activation::NativeReplacementActivation;
 pub(crate) use replacement_activation::ReplacementActivationInput;
+pub use replacement_activation::{
+    NativeReplacementActivation, NativeReplacementInstallationGuard,
+    NativeReplacementInstallationObservation,
+};
 mod roles;
 pub use roles::SessionRoleMediaRead;
 mod returns;
@@ -219,6 +222,14 @@ fn facts_for(
             view,
             AuthorityScope::merged(&scopes)?,
             expiry.min(life.expires_at),
+        ));
+    }
+    if matches!(purpose, ReadPurpose::Media)
+        && replacement_activation::pending_current(store, c, origin)?
+    {
+        return Err(Error::new(
+            "authority-busy",
+            "Exact replacement activation is awaiting durable projection",
         ));
     }
     let attempt_expiry = origin

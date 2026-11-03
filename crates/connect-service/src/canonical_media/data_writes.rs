@@ -14,6 +14,18 @@ pub(crate) struct Observer {
     scope: StagedRtpScope,
 }
 impl Observer {
+    pub(crate) fn pending_replacement(
+        store: Arc<Store>,
+        activation: &connect_store::NativeReplacementActivation,
+        scope: StagedRtpScope,
+    ) -> connect_protocol::Result<Self> {
+        let writer = store.pending_native_replacement_data_writer(activation)?;
+        Ok(Self {
+            store,
+            writer,
+            scope,
+        })
+    }
     pub fn new(
         store: Arc<Store>,
         origin: &NativeMediaOrigin,

@@ -26,6 +26,21 @@ impl NativeReplacementActivation {
     }
 }
 
+/// Holds the exact installed Service entry against removal through publication.
+/// This is local resource custody, never permission to read or write media.
+pub trait NativeReplacementInstallationGuard {}
+
+/// Trusted runtime observation of the exact inactive ordinary entry and its
+/// observer installation. Acquisition must be nonblocking local metadata only:
+/// never call Store, await, or perform native IO. A successful guard must prevent
+/// entry removal until dropped; an instantaneous boolean check is insufficient.
+pub trait NativeReplacementInstallationObservation: Send + Sync {
+    fn hold_installed(
+        &self,
+        expected: &NativeReplacementActivation,
+    ) -> Result<Option<Box<dyn NativeReplacementInstallationGuard + '_>>>;
+}
+
 pub(crate) struct ReplacementActivationInput {
     pub record: String,
     pub attempt: String,
@@ -102,6 +117,20 @@ impl Store {
         Ok(Arc::new(NativeReplacementActivation { origin, target }))
     }
 
+    /// Final activation uses current target authority, unlike historical stopped
+    /// projection. The caller owns the complete writer scope and SQL transaction.
+    pub(crate) fn require_native_replacement_activation(
+        &self,
+        c: &Connection,
+        activation: &NativeReplacementActivation,
+    ) -> Result<()> {
+        current_owner(self, activation.origin())?;
+        if !pending_current(self, c, activation.origin())? {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
+
     /// Allocate exact historical writer attribution before activation. This
     /// cannot reserve a write or authorize IO: both existing writer paths still
     /// validate the exact durable attempt and current/historical lifetime.
@@ -112,4 +141,56 @@ impl Store {
         current_owner(self, &activation.origin)?;
         Ok(NativeDataWriter::from_origin(&activation.origin))
     }
+}
+
+/// Classify only a durably captured exact move awaiting its final projection.
+/// This returns no grant. Credentials, membership, session and endpoint are
+/// checked anew; revocation and wrong/unknown attempts stay permanent refusals.
+pub(super) fn pending_current(
+    store: &Store,
+    c: &Connection,
+    origin: &NativeMediaOrigin,
+) -> Result<bool> {
+    let NativeMediaAdmission::Replacement {
+        record,
+        attempt,
+        effect,
+        runtime,
+        connection,
+        core,
+        generation,
+    } = &origin.attempt
+    else {
+        return Ok(false);
+    };
+    let pending: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements r JOIN operations o ON o.record_id=r.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE o.record_id=?1 AND s.attempt_id=?2 AND s.effect_id=?3 AND r.runtime_epoch=?4 AND r.candidate_connection_id=?5 AND r.candidate_runtime_id=?6 AND s.started=1 AND s.observation_json IS NOT NULL AND json_extract(s.observation_json,'$.movement.generation')=?7 AND o.state IN ('preparing','unknown') AND NOT EXISTS(SELECT 1 FROM native_replacement_lifetimes l WHERE l.operation_record_id=o.record_id))", params![record,attempt,effect,runtime,connection,core,generation], |r|r.get(0)).map_err(|_|Error::storage())?;
+    if !pending {
+        return Ok(false);
+    }
+    let (meta, key, _, _) = checked(store, c, &origin.binding)?;
+    if key.public_key != origin.public_key {
+        return Err(Error::forbidden());
+    }
+    meta.actor.require("connection.offer")?;
+    let recipients = crate::connection_control::intent_resources(c, &meta.actor, &origin.intent)?;
+    if recipients
+        .iter()
+        .any(|id| !meta.actor.permits_recipient(id))
+    {
+        return Err(Error::forbidden());
+    }
+    let member =
+        crate::audience::member(c, &meta.actor.identity_id, origin.conversation_id(), true)?;
+    let session = crate::session_control::view(c, origin.conversation_id(), origin.session_id())?;
+    if member.participant_id != origin.participant_id
+        || member.membership_epoch != origin.membership_epoch
+        || !matches!(session.state.as_str(), "accepted" | "ready" | "active")
+    {
+        return Err(Error::forbidden());
+    }
+    let present: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 JOIN session_participants sp ON sp.session_id=?1 AND sp.participant_id=?2 AND sp.membership_epoch=?3 AND sp.state='present' WHERE e.id=?4 AND e.device_id=?5 AND e.identity_id=?6 AND e.verification_state='verified' AND e.transport IN ('quic','webtransport','webrtc'))",params![origin.session_id(),origin.participant_id(),origin.membership_epoch(),origin.endpoint_id,origin.binding.device.id,meta.actor.identity_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+    if !present {
+        return Err(Error::forbidden());
+    }
+    Ok(true)
 }

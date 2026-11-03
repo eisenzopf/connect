@@ -194,9 +194,6 @@ impl Store {
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch(&tx, &p.record, self)?;
-        if !read.current() {
-            return Err(Error::forbidden());
-        }
         let activation = self.replacement_activation_metadata(
             crate::peer_authority::ReplacementActivationInput {
                 record: p.record.clone(),
@@ -209,6 +206,9 @@ impl Store {
                 expires_at: source_expires_at,
             },
         )?;
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
         tx.commit().map_err(|_| Error::storage())?;
         Ok(NativeReplacementCommitAttempt {
             origin,
@@ -304,17 +304,73 @@ impl Store {
     }
 }
 
+enum ActivationObservation<'a> {
+    Installed(&'a dyn crate::NativeReplacementInstallationObservation),
+    Stopped(&'a dyn crate::NativeOfferRuntimeObservation),
+}
+impl ActivationObservation<'_> {
+    fn stopped(&self) -> bool {
+        matches!(self, Self::Stopped(_))
+    }
+    fn require(
+        &self,
+        activation: &crate::NativeReplacementActivation,
+    ) -> Result<Option<Box<dyn crate::NativeReplacementInstallationGuard + '_>>> {
+        match self {
+            Self::Installed(observation) => {
+                return observation
+                    .hold_installed(activation)?
+                    .map(Some)
+                    .ok_or_else(|| {
+                        Error::new("authority-busy", "Exact replacement entry is not installed")
+                    });
+            }
+            Self::Stopped(observation) => {
+                let expected = crate::NativeOfferObservation::Retired {
+                    runtime_connection_id: activation.origin().runtime_connection_id().into(),
+                    generation: activation.origin().generation(),
+                };
+                if observation.observe()? != expected {
+                    return Err(Error::forbidden());
+                }
+            }
+        }
+        Ok(None)
+    }
+}
+
 impl Store {
     /// Project a captured physical commit atomically. Retries write metadata
     /// only, even after the old route's cleanup, cancellation or revocation.
     pub fn project_native_replacement_committed(
         &self,
         captured: &NativeReplacementCommitted,
+        installed: &dyn crate::NativeReplacementInstallationObservation,
     ) -> Result<Arc<crate::NativeMediaOrigin>> {
+        self.project_replacement_activation(captured, ActivationObservation::Installed(installed))
+    }
+
+    /// A known physical move whose new route stopped before activation is still
+    /// recorded exactly once. Emit retirement, never false public readiness.
+    pub fn project_native_replacement_stopped(
+        &self,
+        captured: &NativeReplacementCommitted,
+        absent: &dyn crate::NativeOfferRuntimeObservation,
+    ) -> Result<Arc<crate::NativeMediaOrigin>> {
+        self.project_replacement_activation(captured, ActivationObservation::Stopped(absent))
+    }
+
+    fn project_replacement_activation(
+        &self,
+        captured: &NativeReplacementCommitted,
+        observation: ActivationObservation<'_>,
+    ) -> Result<Arc<crate::NativeMediaOrigin>> {
+        let stopped = observation.stopped();
         let a = &captured.attempt;
         let start = &a.origin.started.attempt;
         let p = &start.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
+        drop(observation.require(captured.activation())?);
         let (held, mut c) = self.try_replacement_capture_projection(|c| {
             let row = rows::by_record(c, &p.record)?;
             let mut scopes = admission::row_scopes(&row)?;
@@ -341,6 +397,18 @@ impl Store {
         let public_key = serde_json::from_value(descriptor["public_key"].clone())
             .map_err(|_| Error::storage())?;
         if row.record.state == OperationState::Completed {
+            if row
+                .record
+                .result
+                .as_ref()
+                .and_then(|r| r["activation_state"].as_str())
+                != Some(if stopped { "stopped" } else { "ready" })
+            {
+                return Err(conflict());
+            }
+            if stopped {
+                return Ok(captured.activation().origin().clone());
+            }
             return self.replacement_established_origin(
                 &tx,
                 &p.record,
@@ -355,6 +423,9 @@ impl Store {
         ) {
             return Err(conflict());
         }
+        if !stopped {
+            self.require_native_replacement_activation(&tx, captured.activation())?;
+        }
         let saved: serde_json::Value = tx
             .query_row(
                 "SELECT plan_json FROM native_replacements WHERE operation_record_id=?1",
@@ -365,8 +436,17 @@ impl Store {
             .and_then(|v| serde_json::from_str(&v).map_err(|_| Error::storage()))?;
         let source = row.record.connection_id.as_ref().ok_or_else(invalid)?;
         let target = &a.target;
+        let state = if stopped { "retired" } else { "ready" };
+        let generation = target
+            .connection
+            .generation
+            .checked_add(u64::from(stopped))
+            .ok_or_else(conflict)?;
+        let observed_runtime = (!stopped).then_some(p.runtime.as_str());
+        let observed_at = (!stopped).then(crate::now);
         let ready: serde_json::Value =
             serde_json::from_str(&captured.observation).map_err(|_| Error::storage())?;
+        let readiness = (!stopped).then(|| ready["readiness"].to_string());
         let mut offer = intent.offer.clone();
         offer
             .as_object_mut()
@@ -391,7 +471,7 @@ impl Store {
         if let Some(claim) = claim {
             let claim: serde_json::Value =
                 serde_json::from_str(&claim).map_err(|_| Error::storage())?;
-            let changed=tx.execute("UPDATE connections SET generation=?2,replaces=?3,state='ready',revision=revision+1,observed_runtime_id=?4,observed_at=?5,readiness_json=?6 WHERE id=?1 AND session_id=?7 AND participant_id=?8 AND membership_epoch=?9 AND identity_id=?10 AND endpoint_id=?11 AND state='retired' AND generation=?12+1 AND observed_runtime_id IS NULL AND readiness_json IS NULL",params![target.connection.connection_id,target.connection.generation,source,p.runtime,crate::now(),ready["readiness"].to_string(),target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,claim["generation"].as_u64().ok_or_else(invalid)?]).map_err(|_|Error::storage())?;
+            let changed=tx.execute("UPDATE connections SET generation=?2,replaces=?3,state=?13,revision=revision+1,observed_runtime_id=?4,observed_at=?5,readiness_json=?6 WHERE id=?1 AND session_id=?7 AND participant_id=?8 AND membership_epoch=?9 AND identity_id=?10 AND endpoint_id=?11 AND state='retired' AND generation=?12+1 AND observed_runtime_id IS NULL AND readiness_json IS NULL",params![target.connection.connection_id,generation,source,observed_runtime,observed_at,readiness,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,claim["generation"].as_u64().ok_or_else(invalid)?,state]).map_err(|_|Error::storage())?;
             if changed != 1 {
                 return Err(conflict());
             }
@@ -400,7 +480,7 @@ impl Store {
                 return Err(conflict());
             }
         } else {
-            tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,replaces,state,revision,observed_runtime_id,observed_at,readiness_json) SELECT ?1,?2,?3,?4,?5,tenant_id,?6,?7,id,'ready',1,?8,?9,?10 FROM connections WHERE id=?11 AND generation BETWEEN ?12 AND ?12+1",params![target.connection.connection_id,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,target.connection.generation,p.runtime,crate::now(),ready["readiness"].to_string(),source,saved["source_generation"].as_u64().ok_or_else(invalid)?]).map_err(|_| Error::storage())?;
+            tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,replaces,state,revision,observed_runtime_id,observed_at,readiness_json) SELECT ?1,?2,?3,?4,?5,tenant_id,?6,?7,id,?13,1,?8,?9,?10 FROM connections WHERE id=?11 AND generation BETWEEN ?12 AND ?12+1",params![target.connection.connection_id,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.session.actor.identity_id,target.connection.endpoint_id,generation,observed_runtime,observed_at,readiness,source,saved["source_generation"].as_u64().ok_or_else(invalid)?,state]).map_err(|_| Error::storage())?;
             tx.execute("INSERT INTO connection_offers(connection_id,runtime_connection_id,operation_id,credential_id,offer_json,created_at) VALUES(?1,?2,?3,?4,?5,?6)",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now()]).map_err(|_| Error::storage())?;
         }
         let old_retired: bool = tx
@@ -443,14 +523,19 @@ impl Store {
             .map_err(|_| Error::storage())?;
         }
         let retained_connection_id = rows::request(&row)?.intent.retained().to_owned();
-        let result = serde_json::json!({"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":[source],"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":ready["readiness"],"session_revision":topology_revision});
+        let retired = if stopped {
+            vec![source.clone(), target.connection.connection_id.clone()]
+        } else {
+            vec![source.clone()]
+        };
+        let result = serde_json::json!({"activation_state":if stopped { "stopped" } else { "ready" },"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":retired,"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":if stopped { serde_json::Value::Null } else { ready["readiness"].clone() },"physical_readiness":ready["readiness"],"session_revision":topology_revision});
         tx.execute(
             "UPDATE operations SET state='completed',result_json=?2 WHERE record_id=?1",
             params![p.record, result.to_string()],
         )
         .map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_replacement_lifetimes(operation_record_id,credential_id,key_id,device_id,endpoint_id,participant_id,membership_epoch,generation,resources_json,source_expires_at,attempt_runtime,attempt_id,effect_id) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![p.record,descriptor["credential_id"].as_str().ok_or_else(invalid)?,descriptor["key_id"].as_str().ok_or_else(invalid)?,target.device_id,target.connection.endpoint_id,target.connection.participant_id,target.connection.membership_epoch,target.connection.generation,a.resources,a.source_expires_at,p.runtime,a.attempt,a.effect]).map_err(|_| Error::storage())?;
-        tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![p.record,target.connection.connection_id,p.runtime,target.connection.generation]).map_err(|_| Error::storage())?;
+        tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation,retired) VALUES(?1,?2,?3,?4,?5)",params![p.record,target.connection.connection_id,p.runtime,target.connection.generation,stopped]).map_err(|_| Error::storage())?;
         workers::invalidate(&tx, &p.record)?;
         native_handoffs::touch(&tx, &p.record, self)?;
         for connection in [source.as_str(), target.connection.connection_id.as_str()] {
@@ -463,17 +548,34 @@ impl Store {
                 if recipient == &row.owner {
                     data["operation_id"] = serde_json::json!(row.record.operation_id);
                 }
-                tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,row.record.conversation_id,if connection==source{"connection_retired"}else{"connection_ready"},p.record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
+                tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,row.record.conversation_id,if connection==source || stopped {"connection_retired"}else{"connection_ready"},p.record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
             }
         }
-        let origin = self.replacement_established_origin(
-            &tx,
-            &p.record,
-            start.request.clone(),
-            intent,
-            public_key,
-        )?;
+        let origin = if stopped {
+            captured.activation().origin().clone()
+        } else {
+            self.replacement_established_origin(
+                &tx,
+                &p.record,
+                start.request.clone(),
+                intent,
+                public_key,
+            )?
+        };
+        if stopped {
+            crate::session_participant_lifecycle::reconcile(
+                &tx,
+                self,
+                origin.conversation_id(),
+                origin.session_id(),
+                None,
+            )?;
+        }
+        // Acquire only after Store authority/SQL work. Keep this local entry
+        // custody through commit; no await or authority acquisition follows it.
+        let installation = observation.require(captured.activation())?;
         tx.commit().map_err(|_| Error::storage())?;
+        drop(installation);
         Ok(origin)
     }
 }

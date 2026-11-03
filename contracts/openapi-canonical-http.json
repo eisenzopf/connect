@@ -473,7 +473,14 @@
             "$ref": "#/components/schemas/NativeHandoffCompletion"
           },
           "replacement-schema": {
-            "$ref": "#/components/schemas/NativeReplacementCompletion"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NativeReplacementCompletion"
+              },
+              {
+                "$ref": "#/components/schemas/NativeReplacementActivationCompletion"
+              }
+            ]
           },
           "authority": "Current-authorized original operation reads expose captured local results. Actual preparation, confirmed resources, movement, recording and media remain separate boundaries. Historical completion never adopts another peer or revives a retired target.",
           "scope": "Native/telephone movement records exact retained/admitted/retired topology alongside actual target and original source. Physical media still requires current route custody."
@@ -3269,10 +3276,6 @@
           "result": {},
           "problem": {
             "type": "object"
-          },
-          "native_replacement_prepared": {
-            "type": "boolean",
-            "description": "Current-authorized connection.replace operation.get projection only. True exactly when the original unique native-replacement-prepare effect is confirmed at attempt one without compensation. False before capture. Journal observation only; grants no native target allocation, current authority or media readiness. Preparing/revision alone are insufficient."
           }
         },
         "required": [
@@ -5997,6 +6000,142 @@
         ],
         "additionalProperties": false,
         "description": "Captured committed native/telephone replacement. Retained/admitted/retired IDs are recorded with the move, never inferred from readiness or SDK input. The replaced source is retired, the admitted ID equals connection_id, and all IDs across the three sets are distinct. Generation and membership epoch are observations, not media grants or resource revisions."
+      },
+      "NativeReplacementActivationCompletion": {
+        "type": "object",
+        "properties": {
+          "retained_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "admitted_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "retired_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "session_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "conversation_revision": {
+            "type": "null"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "replaces": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "activation_state": {
+            "enum": [
+              "ready",
+              "stopped"
+            ]
+          },
+          "readiness": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "physical_readiness": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "retained_connection_ids",
+          "admitted_connection_ids",
+          "retired_connection_ids",
+          "session_revision",
+          "conversation_revision",
+          "connection_id",
+          "replaces",
+          "generation",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "device_id",
+          "activation_state",
+          "readiness",
+          "physical_readiness"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "activation_state": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "readiness": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "activation_state": {
+                  "const": "stopped"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "readiness": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ],
+        "description": "Known once-only native movement and its activation outcome. Ready requires the exact ordinary Service entry and Data observer to be installed before publication; local entry custody spans final commit. Stopped records a physically committed target retired before activation: no connection_ready event, readiness null, and connection_id appears in both admitted and retired sets because these are ordered historical facts. Physical_readiness and generation describe the original physical commit, not the incremented retired Connection generation. Retained peers are untouched. Completed reports known movement, not continuing connectivity or permission; every packet and original-operation read still requires current authority."
       },
       "NativeCodecBinding": {
         "type": "object",

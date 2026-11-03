@@ -25,6 +25,7 @@ pub use connection_media::{
     NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan, NativeCredentialRefreshTarget,
     NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin,
     NativeMediaRead, NativeReconciliationRead, NativeReplacementActivation,
+    NativeReplacementInstallationGuard, NativeReplacementInstallationObservation,
     NativeReplacementPreparationRead, NativeReplacementSelection, NativeReplacementSourceOrigin,
     NativeReplacementSourceRead, NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead,
     NativeSignalRead, SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,

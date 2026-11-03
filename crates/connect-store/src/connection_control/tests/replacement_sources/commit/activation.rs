@@ -59,7 +59,7 @@ fn reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_r
     // is installed. Both origins must resolve the same actual completed lifetime.
     let established =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(origin.offer_record_id(), established.offer_record_id());
     assert_eq!(
@@ -80,7 +80,7 @@ fn reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_r
     let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let duplicate =
         m.f.store
-            .project_native_replacement_committed(&captured)
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
     assert_eq!(
         duplicate.runtime_connection_id(),
