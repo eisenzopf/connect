@@ -1,0 +1,51 @@
+{
+  "format": "connect/local-arm64-component-setup/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "setup_verified": true,
+  "media_result_pending": true,
+  "owner_direction": "Native ARM64 Linux on local Mac Studio; no GitHub-hosted media qualification.",
+  "vm": {
+    "profile": "connect-gate6",
+    "virtualization": "VZ",
+    "architecture": "aarch64",
+    "cpus": 6,
+    "memory_gib": 12,
+    "disk_gib": 60
+  },
+  "container": {
+    "context": "colima-connect-gate6",
+    "image_id": "sha256:9cf94d4f7a0a61b6fd55a0e7c27ed1a40edbe8120d4cc73de9ed5d843cfef4d2",
+    "architecture": "arm64",
+    "ordinary_uid": 1001,
+    "memory_gib": 10,
+    "cpus": 6,
+    "build_jobs": 2,
+    "host_mounts": []
+  },
+  "native_source_revision": "53e1dbd3296b900f5dff8fe943a189e751925209",
+  "verified_checks": {
+    "python_fixture_and_matrix_host": 19,
+    "python_fixture_and_matrix_guest": 19,
+    "node_native_host_mac": 2,
+    "node_native_host_arm_linux": 2,
+    "reference_app_provenance_cases_mac": 8
+  },
+  "guest_check_logs_sha256": {
+    "guest-python-boundaries.log": "fadf303e08c0ce9c5fbca1675900107e42b070f237ca5a4bd9d944f9ace1019a",
+    "guest-native-host-boundaries.log": "6706f776f1f53b1a566d3fadde95d8ec2b0865f96627648bd8dbf4fe198a882d"
+  },
+  "rust": "1.97.1",
+  "node": "22.16.0",
+  "python": "3.12.3",
+  "default_docker_context_preserved": "colima",
+  "existing_postgres_vm_untouched": true,
+  "required_matrix_cells": 32,
+  "matrix_changed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Setup, actual native architecture and fixture/source/provenance boundaries only. Full ARM native media and37-check app runs are pending. Required x86_64/Mac cells and all media limits remain unchanged."
+}

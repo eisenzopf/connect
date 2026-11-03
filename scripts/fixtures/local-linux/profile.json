@@ -1,0 +1,10 @@
+{
+  "format": "connect/local-linux-component-profile/1",
+  "platform": "ubuntu24-arm64",
+  "rust_target": "aarch64-unknown-linux-gnu",
+  "browser": "chromium",
+  "browser_version": "156.0.8078.4",
+  "playwright_revision": "1248",
+  "component_only": true,
+  "cell_qualified": false
+}

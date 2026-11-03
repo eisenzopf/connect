@@ -36,7 +36,7 @@ def git(*arguments):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target', choices=('aarch64-apple-darwin', 'x86_64-unknown-linux-gnu'), required=True)
+    parser.add_argument('--target', choices=('aarch64-apple-darwin', 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
@@ -45,8 +45,9 @@ def main():
             parser.error('Native macOS arm64 host required')
     else:
         release = platform.freedesktop_os_release()
-        if platform.system() != 'Linux' or platform.machine() != 'x86_64' or release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
-            parser.error('Native Ubuntu24.04 x86_64 host required')
+        machine = 'aarch64' if args.target == 'aarch64-unknown-linux-gnu' else 'x86_64'
+        if platform.system() != 'Linux' or platform.machine() != machine or release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
+            parser.error('Native Ubuntu24.04 ' + machine + ' host required')
     output = args.output.resolve(); evidence = args.evidence.resolve()
     if not output.is_relative_to((ROOT / 'dist').resolve()) or not evidence.is_relative_to((ROOT / '.local').resolve()):
         parser.error('Use dist/ assets and ignored .local/ evidence')
@@ -76,6 +77,7 @@ def main():
                       '-p', 'connect-server', '--bin', 'connect'], log, environment, 5400)
     record = {'format': 'connect/sdk-native-runtime-candidate/1', 'source_revision': revision,
               'target': args.target, 'version': version, 'build_exit_code': status,
+              'arm64_component_only': args.target == 'aarch64-unknown-linux-gnu',
               'build_settings': build_settings, 'platform': platform.platform(), 'passed': False,
               'sdk_installation_qualified': False, 'task_complete': False,
               'whole_gate_qualified': False, 'publication_authorized': False}
@@ -121,8 +123,9 @@ def main():
             if any(not name.startswith(('/System/Library/', '/usr/lib/')) for name in libraries):
                 raise ValueError('Native asset retains a build-host library path')
         else:
-            if header[:6] != b'\x7fELF\x02\x01' or int.from_bytes(header[18:20], 'little') != 62:
-                raise ValueError('Native asset is not an x86_64 ELF executable')
+            machine = 183 if args.target == 'aarch64-unknown-linux-gnu' else 62
+            if header[:6] != b'\x7fELF\x02\x01' or int.from_bytes(header[18:20], 'little') != machine:
+                raise ValueError('Native ELF architecture differs from the selected target')
             linkage = subprocess.check_output(['ldd', str(copied)], text=True)
             if 'not found' in linkage:
                 raise ValueError('Native runtime library missing')

@@ -35,3 +35,18 @@ SQLite/WAL, media and credentials in ignored `.local`. Retain failed outcomes.
 Builds and tests use guest disk storage, without a mounted host checkout. Run
 timing observations after other owned compilation has finished. ARM results
 remain separate from the required native x86_64 qualification.
+
+For the reference app, package the native production runtime with
+`scripts/package-sdk-runtime.py --target aarch64-unknown-linux-gnu` and the
+required owned `--output`/`--evidence` directories. Produce the normal Node
+installation proof with `sdk/tests/check_node_installation.py`, then install both
+archives through `scripts/install-reference-app-components.py`. The runtime
+producer verifies an AArch64 ELF executable and records ARM component scope;
+the ordinary offline installer retains all archive and source checks.
+
+Run `scripts/check-reference-app-installed.mjs` against that installation with
+`--arm64-component`. The owned Playwright1.64.1 Chromium1248 target is frozen to
+156.0.8078.4 in `profile.json` before its first execution. Browser installation
+and prerequisites must complete before measuring media. All 37 app checks and
+their audio/video deadlines remain unchanged. ARM reports identify the actual
+architecture and cannot inherit an x86_64 or macOS browser result.

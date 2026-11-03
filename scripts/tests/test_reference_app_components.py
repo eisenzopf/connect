@@ -76,6 +76,31 @@ class ComponentRefusals(unittest.TestCase):
             self.attempt(native=native)
         self.assertFalse(self.output.exists())
 
+    def test_arm_component_requires_explicit_producer_scope_and_actual_arm_host(self):
+        native = dict(self.native, target='aarch64-unknown-linux-gnu')
+        with patch.object(module.platform, 'system', return_value='Linux'), \
+                patch.object(module.platform, 'machine', return_value='aarch64'), \
+                patch.object(module.platform, 'freedesktop_os_release', return_value={'ID':'ubuntu','VERSION_ID':'24.04'}):
+            with self.assertRaisesRegex(ValueError, 'Explicit ARM64 component provenance'):
+                self.attempt(native=native)
+            native['arm64_component_only'] = True
+            with patch.object(module.platform, 'machine', return_value='x86_64'):
+                with self.assertRaisesRegex(ValueError, 'Native producer, host'):
+                    self.attempt(native=native)
+        self.assertFalse(self.output.exists())
+
+    def test_actual_arm_component_keeps_full_source_validation_before_extraction(self):
+        native = dict(self.native, target='aarch64-unknown-linux-gnu', arm64_component_only=True)
+        body, inputs = self.inputs()
+        with patch.object(module.platform, 'system', return_value='Linux'), \
+                patch.object(module.platform, 'machine', return_value='aarch64'), \
+                patch.object(module.platform, 'freedesktop_os_release', return_value={'ID':'ubuntu','VERSION_ID':'24.04'}), \
+                patch.object(module.runpy, 'run_path', return_value={'inputs':lambda:inputs}), \
+                patch.object(module.subprocess, 'check_output', return_value=b'different source'):
+            with self.assertRaisesRegex(ValueError, 'different source inputs'):
+                self.attempt(native=native)
+        self.assertFalse(self.output.exists())
+
     def test_linked_component_or_private_proof_refuses_without_overwriting_original(self):
         for original, parent in [(self.runtime,self.dist),(self.node_proof,self.private)]:
             if not original.exists(): original.write_bytes(b'original')

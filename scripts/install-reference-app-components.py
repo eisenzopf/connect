@@ -41,11 +41,15 @@ def install(runtime_path, runtime_proof_path, node_path, node_proof_path, output
     revision = runtime['source_revision']
     target = runtime['target']
     expected_host = {'aarch64-apple-darwin': ('Darwin', 'arm64'),
+                     'aarch64-unknown-linux-gnu': ('Linux', 'aarch64'),
                      'x86_64-unknown-linux-gnu': ('Linux', 'x86_64')}
-    if target == 'x86_64-unknown-linux-gnu':
+    if target in ('x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu'):
         release = platform.freedesktop_os_release()
         if release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '24.04':
             raise ValueError('Native Ubuntu24.04 component consumer required')
+    arm64_component = target == 'aarch64-unknown-linux-gnu'
+    if arm64_component and runtime.get('arm64_component_only') is not True:
+        raise ValueError('Explicit ARM64 component provenance required')
     if (target not in expected_host or (platform.system(), platform.machine()) != expected_host[target]
             or not re.fullmatch('[0-9a-f]{40}', revision)
             or runtime.get('format') != 'connect/sdk-native-runtime-candidate/1'
@@ -103,6 +107,7 @@ def install(runtime_path, runtime_proof_path, node_path, node_proof_path, output
         subprocess.run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'],
                        cwd=consumer, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=90, check=True)
     result = dict(format='connect/reference-app-local-components/1', target=target, source_revision=revision,
+        arm64_component_only=arm64_component,
         runtime_proof_sha256=digest(runtime_proof_path), runtime_archive_sha256=digest(runtime_path),
         node_proof_sha256=digest(node_proof_path), node_inputs_sha256=digest(node_inputs_path),
         manifest_sha256=runtime['manifest_sha256'], binary_sha256=runtime['binary_sha256'],

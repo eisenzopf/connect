@@ -32,6 +32,11 @@ It cannot qualify an x86_64 acceptance cell. The original 32-cell inventory and
 hosting targets remain unchanged. Stop GitHub-hosted media qualification;
 run41574727724 was cancelled before any media result. Any cloud resources need
 owner discussion. See the [local procedure](../../scripts/fixtures/local-linux/README.md).
+For the ARM app component, select the owned Playwright1.64.1 Chromium1248
+156.0.8078.4 browser before its first execution, with AArch64 production runtime
+archives and the ordinary source-bound offline Node installer. Record actual
+browser availability/version and keep all37 app checks unchanged. Installation
+or a component profile alone establishes no media pass.
 
 October 25 local WT measurement update: the installed Chrome runner is now
 155.0.8059.85. Pin that patch version for the explicit 60-second capture/render

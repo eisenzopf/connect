@@ -15,7 +15,8 @@ import { collectNativeAudioTrace } from "./lib/app_native_audio_trace.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const base = resolve(process.argv[2] ?? ""), output = resolve(process.argv[3] ?? "");
 const flags = process.argv.slice(4);
-assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server", "--trace-media-clock", "--trace-native-audio"].includes(flag)) && new Set(flags).size === flags.length);
+assert.ok(flags.every(flag => ["--profile-app-cpu", "--sample-native-server", "--trace-media-clock", "--trace-native-audio", "--arm64-component"].includes(flag)) && new Set(flags).size === flags.length);
+const arm64Component = flags.includes("--arm64-component");
 const cpuProfile = flags.includes("--profile-app-cpu"), sampleNative = flags.includes("--sample-native-server");
 const clockTrace = flags.includes("--trace-media-clock") ? new AppMediaClockTrace() : null;
 const traceNativeAudio = flags.includes("--trace-native-audio");
@@ -24,6 +25,16 @@ assert.ok(base.startsWith(join(root, ".local") + "/") && output.startsWith(join(
 await mkdir(output, { recursive: false, mode: 0o700 });
 const installation = JSON.parse(await readFile(join(base, "installation.json"), "utf8"));
 assert.equal(installation.passed, true);
+let componentProfile;
+if (arm64Component) {
+    assert.equal(process.platform, "linux"); assert.equal(process.arch, "arm64");
+    assert.equal(installation.target, "aarch64-unknown-linux-gnu");
+    assert.equal(installation.arm64_component_only, true);
+    componentProfile = JSON.parse(await readFile(join(root, "scripts/fixtures/local-linux/profile.json"), "utf8"));
+    assert.equal(componentProfile.format, "connect/local-linux-component-profile/1");
+    assert.equal(componentProfile.component_only, true);
+    assert.equal(componentProfile.rust_target, installation.target);
+} else assert.notEqual(installation.target, "aarch64-unknown-linux-gnu", "explicit-arm64-component-required");
 const producers = {
     "connect/reference-app-candidate-installation/1": { kind: "sealed-sdk-candidate", installer: "scripts/install-reference-app-candidate.py" },
     "connect/reference-app-local-components/1": { kind: "verified-local-components", installer: "scripts/install-reference-app-components.py" },
@@ -59,6 +70,7 @@ const sourceInputs = { app: await tree(join(root, "examples/parley-on-connect/ap
     native_audio_trace: sha(await readFile(join(root, "scripts/lib/app_native_audio_trace.mjs"))),
     installer: sha(await readFile(join(root, producer.installer))) };
 if (producer.kind === "verified-local-components") assert.equal(installation.installer_sha256, sourceInputs.installer);
+if (arm64Component) sourceInputs.arm64_component_profile = sha(await readFile(join(root, "scripts/fixtures/local-linux/profile.json")));
 assert.deepEqual(await tree(join(consumer, "app")), sourceInputs.app);
 assert.equal(sourceInputs.runtime, installation.binary_sha256);
 const report = { format: "connect/reference-app-installed-control/1", passed: false, checks: [],
@@ -68,6 +80,7 @@ const report = { format: "connect/reference-app-installed-control/1", passed: fa
     installation_proof_sha256: sha(await readFile(join(base, "installation.json"))),
     binary_sha256: installation.binary_sha256, node_archive_sha256: installation.node_archive_sha256,
     node: process.version, platform: process.platform, cpu_profile_requested: cpuProfile,
+    architecture: process.arch, arm64_component_only: arm64Component, cell_qualified: false,
     native_server_sample_requested: sampleNative, task_complete: false, whole_gate_qualified: false,
     media_clock_trace_requested: Boolean(clockTrace), native_audio_trace_requested: traceNativeAudio,
     scope: (producer.kind === "sealed-sdk-candidate" ? "Actual production G6-069 installed runtime/Node SDK." :
@@ -227,12 +240,13 @@ try {
         executablePath: chrome,
         viewport: { width: 1440, height: 1100 }, args: ["--disable-background-networking", "--disable-component-update", "--no-first-run", "--disable-sync", "--disable-extensions"] });
     browser = context.browser(); report.browser = browser.version(); page = context.pages()[0];
-    const browserPlatform = process.platform === "darwin" ? "macos-arm64" : "ubuntu24-x86_64";
+    const browserPlatform = arm64Component ? componentProfile.platform : process.platform === "darwin" ? "macos-arm64" : "ubuntu24-x86_64";
     const frozenBrowsers = JSON.parse(await readFile(join(root, "contracts/gate6-transport-matrix.json"), "utf8"));
-    assert.equal(report.browser, frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome,
+    const expectedBrowser = arm64Component ? componentProfile.browser_version : frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome;
+    assert.equal(report.browser, expectedBrowser,
         "exact-frozen-client-browser-required");
     report.frozen_browser_profile_verified = browserPlatform;
-    report.expected_browser_version = frozenBrowsers.expected_browsers_by_client_platform[browserPlatform].chrome;
+    report.expected_browser_version = expectedBrowser;
     await context.grantPermissions([], { origin });
     const errors = []; page.on("pageerror", error => errors.push(error.name));
     report.api_observations = [];
