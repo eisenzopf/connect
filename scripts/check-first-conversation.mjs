@@ -80,7 +80,7 @@ try {
     const manifest = JSON.parse(await readFile(join(consumer, "quickstart-manifest.json"), "utf8"));
     const deps = Object.keys(manifest.files).filter(name => /^sdk\/dependencies\/[^/]+\.tgz$/.test(name)).sort();
     assert.equal(deps.length, 2);
-    await run(["npm", "install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--cache", ".local/npm-cache", "./sdk/rudeless-connect-0.1.0.tgz", ...deps.map(name => "./" + name)]);
+    await run(["npm", "install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--no-save", "--cache", ".local/npm-cache", "./sdk/rudeless-connect-0.1.0.tgz", ...deps.map(name => "./" + name)]);
     check("cold-offline-public-SDK-install");
     env.PATH = join(consumer, "runtime/bin") + ":" + env.PATH;
     report.commands.push({ action: 'export PATH="$PWD/runtime/bin:$PATH"', cwd_outside_checkout: true });

@@ -28,7 +28,7 @@ mkdir connect-first
 cd connect-first
 tar -xzf /path/to/your-kit.tar.gz --strip-components=1
 node verify.mjs
-npm install --offline --ignore-scripts --no-audit --no-fund --cache .local/npm-cache ./sdk/rudeless-connect-0.1.0.tgz ./sdk/dependencies/*.tgz
+npm install --offline --ignore-scripts --no-audit --no-fund --no-save --cache .local/npm-cache ./sdk/rudeless-connect-0.1.0.tgz ./sdk/dependencies/*.tgz
 export PATH="$PWD/runtime/bin:$PATH"
 node app/run.mjs
 ```
