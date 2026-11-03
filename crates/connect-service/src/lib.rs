@@ -218,6 +218,20 @@ impl Service {
         let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
         Ok(runtime.role_projection.lock().await)
     }
+    /// Inject one adoption-preparation refusal for an exact original record.
+    /// The returned flag becomes false only when the injection is consumed.
+    /// Test-support only: this cannot grant permission or invoke movement.
+    #[cfg(feature = "test-support")]
+    pub fn refuse_canonical_replacement_adoption_once_for_test(
+        &self,
+        record: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .refuse_replacement_adoption_once_for_test(record)
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {

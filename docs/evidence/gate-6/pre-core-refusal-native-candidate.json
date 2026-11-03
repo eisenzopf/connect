@@ -1,0 +1,26 @@
+{
+  "format": "connect/gate6-pre-core-refusal-native-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Add opt-in exact-record one-shot refusal at actual Service adoption preparation, before Core movement. Drive the existing signed native preparation and actual duplex fixture through that failure branch. Test-support adds no positive permission and is absent from default production builds.",
+  "new_case": "canonical_native_connections::consultation::groups::replacement::activation::pre_core::production_pre_core_adoption_refusal_keeps_original_duplex_and_never_replays_movement",
+  "execution": "Local Ubuntu24 ARM64 VM only; one new exact native case capped at120seconds after isolated compilation. No old suites, full media workload, cloud, provider or G6-054.",
+  "checks_pending": [
+    "Compile connect-server gate6_canonical_runtime with test-support after current original work ends.",
+    "Execute only the new exact case and preserve source/dependency/executable guards."
+  ],
+  "intended_coverage": [
+    "Exact injected refusal is consumed after actual signed native resource preparation and readiness input.",
+    "Original root fails with one failed commit reservation, no Unknown or Ready, six known preparation compensations, no candidate public lifetime/Connection.",
+    "Exact original source and retained connection bindings remain unchanged; both directions pass the existing real native marked-audio probe after failure.",
+    "Original public signed replay preserves record/revision/effects/result; candidate slot drains, both original slots remain, final shutdown drains all."
+  ],
+  "limitations": [
+    "Uncompiled/unexecuted candidate; intended assertions are not evidence of a pass.",
+    "Injected adoption-preparation refusal, not a genuine storage outage, Data observer-specific fault or final publication/cancellation race.",
+    "Marked PCMU duplex probe is not full decoded AV quality, ten-second idle proof or complete transport-cell qualification."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

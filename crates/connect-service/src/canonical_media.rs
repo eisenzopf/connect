@@ -69,6 +69,8 @@ pub(crate) struct Policy {
         Mutex<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
     initial_targets: Mutex<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
+    #[cfg(feature = "test-support")]
+    replacement_adoption_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
 }
 /// One bounded original native invocation, never retained by a packet port.
 // The protocol dispatcher owns the actual signature/physical exchange proof.
@@ -410,6 +412,23 @@ impl Connection {
     }
 }
 impl Policy {
+    /// One exact pre-Core negative injection; it cannot grant or run media.
+    #[cfg(feature = "test-support")]
+    pub(crate) fn refuse_replacement_adoption_once_for_test(
+        &self,
+        record: &str,
+    ) -> connect_protocol::Result<Arc<std::sync::atomic::AtomicBool>> {
+        let mut refusals = self
+            .replacement_adoption_refusals
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if refusals.contains_key(record) {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let armed = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        refusals.insert(record.into(), armed.clone());
+        Ok(armed)
+    }
     #[cfg(feature = "test-support")]
     pub(crate) fn with_registry_for_test(
         &self,
@@ -624,6 +643,8 @@ impl Policy {
             telephone_targets: Mutex::new(BTreeMap::new()),
             initial_targets: Mutex::new(BTreeMap::new()),
             capacity,
+            #[cfg(feature = "test-support")]
+            replacement_adoption_refusals: Default::default(),
         })
     }
     pub fn register(

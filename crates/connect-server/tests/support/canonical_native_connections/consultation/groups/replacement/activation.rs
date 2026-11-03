@@ -3,6 +3,9 @@
 use super::*;
 #[path = "activation/crash.rs"]
 pub(super) mod crash;
+#[cfg(feature = "test-support")]
+#[path = "activation/pre_core.rs"]
+pub(super) mod pre_core;
 
 #[tokio::test]
 async fn production_captured_replacement_revocation_never_publishes_ready_or_replays_movement() {
@@ -21,7 +24,7 @@ pub(super) async fn exercise() {
         Some((false, false, false)),
         false,
         false,
-        true,
+        ActivationAudit::RevokeBeforeReady,
     )
     .await;
 }

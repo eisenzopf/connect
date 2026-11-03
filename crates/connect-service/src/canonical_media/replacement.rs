@@ -253,6 +253,17 @@ impl super::Policy {
         binding: rvoip_core::relationships::ConnectionBinding,
     ) -> ControlResult<Arc<ReplacementAdoption>> {
         let origin = metadata.origin().clone();
+        #[cfg(feature = "test-support")]
+        if let Some(armed) = self
+            .replacement_adoption_refusals
+            .try_lock()
+            .map_err(super::metadata_contention)?
+            .remove(origin.offer_record_id())
+        {
+            armed.store(false, std::sync::atomic::Ordering::Release);
+            return Err(StreamControlError::Authority);
+        }
+
         if !std::ptr::eq(self.as_ref(), Arc::as_ptr(&target.base))
             || !binding.same_incarnation(target.pending.binding())
             || binding.state() != rvoip_core::relationships::BindingState::Active

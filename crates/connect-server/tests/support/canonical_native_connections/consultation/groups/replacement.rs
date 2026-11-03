@@ -178,9 +178,16 @@ async fn exercise_replacement_with_control(
         selected_case,
         candidate_target,
         false,
-        false,
+        ActivationAudit::None,
     )
     .await;
+}
+#[derive(Clone, Copy)]
+enum ActivationAudit {
+    None,
+    RevokeBeforeReady,
+    #[cfg(feature = "test-support")]
+    RefuseBeforeCore,
 }
 async fn exercise_replacement_with_av_control(
     allocate: bool,
@@ -193,8 +200,9 @@ async fn exercise_replacement_with_av_control(
     selected_case: Option<(bool, bool, bool)>,
     candidate_target: bool,
     av: bool,
-    activation_barrier_audit: bool,
+    activation_audit: ActivationAudit,
 ) {
+    let activation_barrier_audit = matches!(activation_audit, ActivationAudit::RevokeBeforeReady);
     if candidate_target {
         assert!(
             allocate
@@ -803,7 +811,51 @@ async fn exercise_replacement_with_av_control(
             if deferred_projection {
                 rusqlite::Connection::open(&f.config.database).unwrap().execute_batch("CREATE TRIGGER fixture_projection_block BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
             }
+            #[cfg(feature = "test-support")]
+            let pre_core_audit = if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
+                assert!(!deferred_projection && !candidate_target && !observer);
+                let record = status(&f, &key.id, &command.operation_id).await;
+                Some((
+                    f.server
+                        .service
+                        .refuse_canonical_replacement_adoption_once_for_test(&record.record_id)
+                        .unwrap(),
+                    activation::pre_core::original_bindings(&f),
+                ))
+            } else {
+                None
+            };
+            #[cfg(feature = "test-support")]
+            if let Some((armed, _)) = &pre_core_audit {
+                activation::pre_core::send_until_refusal(&mut peers[2], armed).await;
+            } else {
+                send_readiness(&mut peers[2]).await;
+            }
+            #[cfg(not(feature = "test-support"))]
             send_readiness(&mut peers[2]).await;
+            #[cfg(feature = "test-support")]
+            if let Some((armed, original_bindings)) = pre_core_audit {
+                activation::pre_core::verify(
+                    &f,
+                    &key.id,
+                    &command,
+                    candidate,
+                    &mut controller,
+                    &mut peers,
+                    armed,
+                    original_bindings,
+                )
+                .await;
+                for peer in peers {
+                    let _ = peer.client.shutdown().await;
+                }
+                wait_slots(&f, 0).await;
+                let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                f.server.shutdown().await.unwrap();
+                super::sdk_movements::shutdown_joined(movement_controller);
+                continue;
+            }
+
             if deferred_projection {
                 let until = tokio::time::Instant::now() + Duration::from_secs(5);
                 let captured_effects = loop {
