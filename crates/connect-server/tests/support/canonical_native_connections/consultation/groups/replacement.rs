@@ -195,6 +195,18 @@ enum ActivationAudit {
     #[cfg(feature = "test-support")]
     RefuseDataObserver,
 }
+impl ActivationAudit {
+    fn data_observer(self) -> bool {
+        #[cfg(feature = "test-support")]
+        {
+            matches!(self, Self::RefuseDataObserver)
+        }
+        #[cfg(not(feature = "test-support"))]
+        {
+            false
+        }
+    }
+}
 async fn exercise_replacement_with_av_control(
     allocate: bool,
     start_media: bool,
@@ -250,7 +262,17 @@ async fn exercise_replacement_with_av_control(
         .into_iter()
         .filter(|case| selected_case.is_none_or(|selected| *case == selected))
     {
-        let (running, source_video_handle) = if av {
+        #[cfg(feature = "test-support")]
+        let data_running = if activation_audit.data_observer() {
+            Some(activation::data_observer::setup().await)
+        } else {
+            None
+        };
+        #[cfg(not(feature = "test-support"))]
+        let data_running: Option<codecs::Running> = None;
+        let (running, source_video_handle) = if let Some(running) = data_running {
+            (running, None)
+        } else if av {
             let (running, handle) = av::setup().await;
             (running, Some(handle))
         } else {
@@ -327,7 +349,9 @@ async fn exercise_replacement_with_av_control(
             &f,
             &f.client.identity_id,
             281,
-            if av {
+            if activation_audit.data_observer() {
+                vec!["audio".into(), "data".into()]
+            } else if av {
                 vec!["audio".into(), "video".into()]
             } else {
                 vec!["audio".into()]
@@ -580,6 +604,11 @@ async fn exercise_replacement_with_av_control(
                 offer["capabilities"] = av_capabilities();
                 offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
             }
+            #[cfg(feature = "test-support")]
+            if activation_audit.data_observer() {
+                offer["capabilities"] = activation::data_observer::capabilities();
+                offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-data","kind":"data","direction":"sendrecv","codec_preferences":["json"]}));
+            }
             let offer_scope = CommandScope {
                 conversation_id: Some(cid.clone()),
                 session_id: Some("native-session".into()),
@@ -673,7 +702,7 @@ async fn exercise_replacement_with_av_control(
                 );
                 assert_eq!(answer.original()["in_reply_to"], request_id);
                 if !reject_answer {
-                    replacement_handle = Some(if av {
+                    replacement_handle = Some(if av || activation_audit.data_observer() {
                         av::stream_handle(&answer, "replacement-voice")
                     } else {
                         handle(&answer)
@@ -682,6 +711,9 @@ async fn exercise_replacement_with_av_control(
                         replacement_video_handle =
                             Some(av::stream_handle(&answer, "replacement-camera"));
                     }
+                }
+                if activation_audit.data_observer() {
+                    assert!(av::stream_handle(&answer, "replacement-data") > 0);
                 }
                 let callback = client.receive_control().await.unwrap();
                 assert_eq!(
@@ -711,7 +743,7 @@ async fn exercise_replacement_with_av_control(
                 }
                 let payload = &callback.original()["payload"];
                 let streams=payload["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
-                let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":if av {av_capabilities()} else {capabilities()},"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
+                let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":offer["capabilities"],"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
                 if reject_answer {
                     response["substrate_setup"]["revision"] = json!(999);
                 }
