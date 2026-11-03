@@ -960,3 +960,46 @@ fn replacement_reservation_keeps_writer_admission_until_original_sql_is_availabl
         .unwrap();
     assert_eq!((steps, effects), (1, 1));
 }
+
+#[test]
+fn reservation_metadata_can_coexist_with_live_packet_authority() {
+    let (f, key, command, origin, sources) = setup();
+    let live_packet = f.store.try_native_media_read(&sources[0], None).unwrap();
+    let input = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let connections = f.count("connections");
+    // This reservation changes only original operation metadata. It must not
+    // require retiring an otherwise current packet reader to make progress.
+    let lease = f
+        .store
+        .prepare_native_replacement(input, request())
+        .unwrap()
+        .unwrap();
+    assert!(live_packet.current());
+    assert!(f
+        .store
+        .try_native_media_read(&sources[0], None)
+        .unwrap()
+        .current());
+    assert!(f
+        .store
+        .try_native_media_read(&sources[1], None)
+        .unwrap()
+        .current());
+    let duplicate = prepare(&f, &origin, &sources);
+    assert_eq!(duplicate.plan().unwrap(), lease.plan().unwrap());
+    assert_eq!(duplicate.expires_at(), lease.expires_at());
+    assert_eq!(f.count("connections"), connections);
+    assert_eq!(f.count("native_replacements"), 1);
+    let record = status(&f, &key, &command);
+    assert_eq!(record.state, OperationState::Preparing);
+    assert_eq!(record.effects.len(), 1);
+    assert_eq!(record.effects[0].state, EffectState::Prepared);
+    assert_eq!(record.effects[0].attempt, 0);
+}

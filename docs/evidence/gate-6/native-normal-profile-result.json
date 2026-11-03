@@ -1,0 +1,513 @@
+{
+  "format": "connect/gate6-native-normal-profile-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "local_platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "e48ff5b3d5f76560c15b1ca32727e137993714c7",
+    "binary_sha256": "a00c6cbdfd649d9d22ebd61925eaaa054193e6e55290ee58e4dda848738a0a71",
+    "peer_binary_sha256": "a507b457e9d0b2e760ae57b985b289c513fcb3c3cb8595ea7c0a92b8d7af94f7",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 148.88333765100106,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "authority_backtrace_sql_and_helper_diagnostics_enabled": false,
+  "control_scenario_passed": true,
+  "original_moves_completed": 4,
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 79820879,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 102364,
+      "to_server_packets": 54820,
+      "from_server_packets": 47544,
+      "captured_bytes": 78183031,
+      "udp_payload_bytes": 73883743,
+      "to_server_udp_bytes": 29899363,
+      "from_server_udp_bytes": 43984380
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "current_owner_ends": 6,
+  "maximum_retirement_ms": 3565.248390000008,
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1346,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 67,
+      "packet_events_during_control": 316,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": true,
+      "sent_audio_packets": 1041,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 55,
+      "packet_events_during_control": 277,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1311,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 33,
+      "packet_events_during_control": 246,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": true,
+      "sent_audio_packets": 1048,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 59,
+      "packet_events_during_control": 262,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "quality_passed": false,
+  "routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.92,
+        "samples": 2780160,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2896,
+        "maximum_arrival_gap_ms": 1520.3847619999979
+      },
+      "video": {
+        "decoded_window_frames": 1712,
+        "changing_window_frames": 1711,
+        "wrong_source_pixel_frames": 98,
+        "undecodable_frames": 12
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 70,
+        "median_abs_skew_ms": 41.10299999999967,
+        "p95_abs_skew_ms": 63.10200000000776,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.72,
+        "samples": 2770560,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2886,
+        "maximum_arrival_gap_ms": 1522.2723759999972
+      },
+      "video": {
+        "decoded_window_frames": 1619,
+        "changing_window_frames": 1618,
+        "wrong_source_pixel_frames": 121,
+        "undecodable_frames": 42
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 70,
+        "median_abs_skew_ms": 20.83805100000191,
+        "p95_abs_skew_ms": 42.596912000000486,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.06,
+        "samples": 2834880,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2953,
+        "maximum_arrival_gap_ms": 469.72716800000126
+      },
+      "video": {
+        "decoded_window_frames": 1782,
+        "changing_window_frames": 1781,
+        "wrong_source_pixel_frames": 141,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 24,
+      "sync": {
+        "status": "passed",
+        "paired": 74,
+        "median_abs_skew_ms": 17.316749499997286,
+        "p95_abs_skew_ms": 42.9177999999979,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.04,
+        "samples": 2833920,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2952,
+        "maximum_arrival_gap_ms": 471.555386
+      },
+      "video": {
+        "decoded_window_frames": 1763,
+        "changing_window_frames": 1762,
+        "wrong_source_pixel_frames": 103,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 21,
+      "sync": {
+        "status": "passed",
+        "paired": 67,
+        "median_abs_skew_ms": 40.78145600000482,
+        "p95_abs_skew_ms": 81.1134960000075,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.92,
+        "samples": 2828160,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2946,
+        "maximum_arrival_gap_ms": 469.6890000000003
+      },
+      "video": {
+        "decoded_window_frames": 1721,
+        "changing_window_frames": 1720,
+        "wrong_source_pixel_frames": 67,
+        "undecodable_frames": 39
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 73,
+        "median_abs_skew_ms": 2.188999999997776,
+        "p95_abs_skew_ms": 42.79499999999814,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.98,
+        "samples": 2831040,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2949,
+        "maximum_arrival_gap_ms": 467.4001439999993
+      },
+      "video": {
+        "decoded_window_frames": 1639,
+        "changing_window_frames": 1638,
+        "wrong_source_pixel_frames": 8,
+        "undecodable_frames": 25
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 75,
+        "median_abs_skew_ms": 2.4530700000013894,
+        "p95_abs_skew_ms": 20.295634999996537,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    }
+  ],
+  "process_resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793710608356,
+    "elapsed_seconds": 76.91618808099884,
+    "sample_count": 77,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 184578048,
+        "observed_cpu_seconds": 61.71,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 54,
+        "peak_sampled_threads": 21,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 908996608,
+        "observed_cpu_seconds": 22.17,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 96,
+        "open_resource_unavailable_samples": 0
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": true,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "queue_diagnostics": "Health still returns empty queue/forwarding lists; no queue-coverage or zero-pressure claim.",
+  "stopped_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true
+  },
+  "comparison": "Same source and exact normal release binaries as v17 with high-cost diagnostics off; control/capture/drain remain positive and quality remains negative. The observer overhead hypothesis does not explain all remaining loss.",
+  "next_action": "Metadata-only replacement reservation currently upgrades current source Identity/Conversation readers to writers, deliberately closing fresh packet admission while it waits. Reproduce a current packet reader preventing reservation, then use source read fences for immutable reservation metadata, retaining actual graph/authorization write fencing and all SQL/current-source/once-only checks.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
