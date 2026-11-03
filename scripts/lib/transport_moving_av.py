@@ -7,6 +7,7 @@ never cross physical receiver, stream or SSRC boundaries.
 import array
 import base64
 import hashlib
+import itertools
 import json
 import math
 import os
@@ -217,16 +218,58 @@ def video_decode(directory,name,history,peer):
         ivf_sha256=checksum(ivf),framemd5_sha256=checksum(hashes),pulse_pixels_sha256=checksum(pulses))
 
 
+def arrival_marker_edges(levels, times, *, low, high, max_gap):
+    """Interpret simultaneous arrivals without inventing sub-clock ordering.
+
+    RTP uniqueness/order is checked separately by timeline(). A same-time group
+    can establish one observed level only if every decoded value agrees on its
+    region. Mixed regions break onset custody and require a fresh low rearm.
+    These groups do not change decoded sample/frame coverage or timestamps.
+    """
+    if len(levels) != len(times) or len(levels) > 3200:
+        raise ValueError('Decoded native marker observation bound')
+    previous = None
+    for level, at in zip(levels, times):
+        if not math.isfinite(level) or level < 0 or not math.isfinite(at) or (previous is not None and at < previous):
+            raise ValueError('Decoded native marker value/order')
+        previous = at
+    result = dict(edges_seconds=[], missing_intervals=0, unproven_onsets=0,
+        tied_arrival_groups=0, ambiguous_arrival_groups=0)
+    run_levels = []; run_times = []
+    def flush():
+        observed = marker_edges(run_levels, run_times, low=low, high=high, max_gap=max_gap)
+        result['edges_seconds'].extend(observed['edges_seconds'])
+        for key in ('missing_intervals', 'unproven_onsets'):
+            result[key] += observed[key]
+        run_levels.clear(); run_times.clear()
+    for at, grouped in itertools.groupby(zip(times, levels), key=lambda row:row[0]):
+        values = [row[1] for row in grouped]
+        result['tied_arrival_groups'] += int(len(values) > 1)
+        regions = {'low' if value <= low else 'high' if value > high else 'band' for value in values}
+        if len(regions) != 1:
+            flush()
+            result['ambiguous_arrival_groups'] += 1
+            result['missing_intervals'] += 1
+            result['unproven_onsets'] += int('high' in regions)
+            continue
+        run_times.append(at); run_levels.append(values[0])
+    flush()
+    result.update(continuous_low_rearm_seconds=.2, maximum_observation_gap_seconds=max_gap)
+    return result
+
+
 def marker_alignment(audio,video):
     observed={}
     for medium,histories in [('audio',audio),('video',video)]:
-        edges=[];missing=unproven=0
+        edges=[];missing=unproven=tied=ambiguous=0
         for history in histories:
             measurements=history['measurements']
-            signal=marker_edges([m['level'] for m in measurements],[m['row']['elapsed_ms']/1000 for m in measurements],
+            signal=arrival_marker_edges([m['level'] for m in measurements],[m['row']['elapsed_ms']/1000 for m in measurements],
                 low=.045 if medium=='audio' else 16,high=.055 if medium=='audio' else 240,max_gap=.05 if medium=='audio' else .1)
             edges.extend(signal['edges_seconds']);missing+=signal['missing_intervals'];unproven+=signal['unproven_onsets']
+            tied+=signal['tied_arrival_groups'];ambiguous+=signal['ambiguous_arrival_groups']
         observed[medium]=dict(edges_seconds=sorted(edges),missing_intervals=missing,unproven_onsets=unproven,
+            tied_arrival_groups=tied,ambiguous_arrival_groups=ambiguous,
             decoder_and_onset_state_crossed_history_boundary=False)
     result=ordinal_sync(observed['video']['edges_seconds'],observed['audio']['edges_seconds'],60)
     result.update(audio_observation=observed['audio'],video_observation=observed['video'],

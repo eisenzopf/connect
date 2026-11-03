@@ -36,7 +36,7 @@
     "No Core termination replay added",
     "No deadline extension or media threshold changes"
   ],
-  "scope": "One exact optimized Store unit function with controlled actual ledger custody and held SQL mutex; no physical Core/media proof. Normal service integration and selected workload pending.",
+  "scope": "One exact optimized Store unit function with controlled ledger custody. Normal44ac production CLI integration and actual control/drain behavior now pass; independent decoded media remains negative. See linked runtime result.",
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -49,5 +49,8 @@
     "format_and_diff_check_passed": true,
     "compile_pending": true,
     "scope": "Host follow-up after44ac. The live production job remains frozen on44ac and does not verify this follow-up."
-  }
+  },
+  "production_result": "docs/evidence/gate-6/native-cleanup-metadata-wait-result.json",
+  "control_scenario_passed": true,
+  "overall_rehearsal_passed": false
 }

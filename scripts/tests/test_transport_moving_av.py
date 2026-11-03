@@ -14,8 +14,32 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'scripts'))
 from lib.package_environment import fixture_environment
 from lib.transport_av import opus_packets, ivf_frames, decode_completed, marker_profile
-from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment
+from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment, arrival_marker_edges
 from lib.transport_movement_profile import MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256
+
+
+class MovingArrivalGroups(unittest.TestCase):
+    def test_equal_arrivals_establish_one_onset_without_retiming(self):
+        times=[i*.02 for i in range(12)]+[.24,.24]
+        result=arrival_marker_edges([.03]*12+[.7,.7],times,low=.045,high=.055,max_gap=.05)
+        self.assertEqual(result['edges_seconds'],[.24])
+        self.assertEqual(result['tied_arrival_groups'],1)
+        self.assertEqual(result['ambiguous_arrival_groups'],0)
+        self.assertEqual(times[-2:],[.24,.24])
+
+    def test_mixed_simultaneous_regions_cannot_prove_onset_or_carry_rearm(self):
+        times=[i*.02 for i in range(12)]+[.24,.24,.26]+[.28+i*.02 for i in range(12)]+[.52]
+        result=arrival_marker_edges([.03]*12+[.03,.7,.7]+[.03]*12+[.7],times,
+            low=.045,high=.055,max_gap=.05)
+        self.assertEqual(result['edges_seconds'],[.52])
+        self.assertEqual(result['ambiguous_arrival_groups'],1)
+        self.assertGreaterEqual(result['unproven_onsets'],2)
+
+    def test_regression_nonfinite_and_invalid_hidden_group_values_still_refuse(self):
+        for levels,times in [([.03,.7],[.1,.09]),([.03,float('nan')],[.1,.1]),
+                ([.03,-1],[.1,.1]),([.03],[float('inf')])]:
+            with self.subTest(levels=levels,times=times),self.assertRaises(ValueError):
+                arrival_marker_edges(levels,times,low=.045,high=.055,max_gap=.05)
 
 
 class MovingCustody(unittest.TestCase):
