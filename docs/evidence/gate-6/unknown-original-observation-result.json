@@ -1,0 +1,716 @@
+{
+  "format": "connect/gate6-unknown-original-observation-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "9bb5a8ce485966397a108a4db34b976298a05c46",
+    "binary_sha256": "9883ab8daee0b6fc269bf8dca7fdb68f3251e083159e9925d3ac259947897ee5",
+    "peer_binary_sha256": "034bce8281db0f716112d2d0407387f034f2ef66cdbae6153b41010d84aa3927",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 165.25058778400125,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "commit_phase_diagnostics": true,
+  "authority_backtrace_sql_and_helper_diagnostics_enabled": false,
+  "control_scenario_passed": true,
+  "original_moves_completed": 4,
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1319,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 38,
+      "packet_events_during_control": 207,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": true,
+      "sent_audio_packets": 1042,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 25,
+      "packet_events_during_control": 226,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1359,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 127,
+      "packet_events_during_control": 421,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": true,
+      "sent_audio_packets": 1045,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 57,
+      "packet_events_during_control": 254,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 79344401,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 102409,
+      "to_server_packets": 54983,
+      "from_server_packets": 47426,
+      "captured_bytes": 77705833,
+      "udp_payload_bytes": 73404655,
+      "to_server_udp_bytes": 30179172,
+      "from_server_udp_bytes": 43225483
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "current_owner_ends": 6,
+  "maximum_retirement_ms": 1967.8679859999975,
+  "resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793715873759,
+    "elapsed_seconds": 75.29411180999887,
+    "sample_count": 76,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 180457472,
+        "observed_cpu_seconds": 63.32,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 54,
+        "peak_sampled_threads": 21,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 892190720,
+        "observed_cpu_seconds": 21.64,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 97,
+        "open_resource_unavailable_samples": 0
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": true,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "native_media_diagnostics_before": {
+    "forwarding": [],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [],
+    "scope": "server-process"
+  },
+  "native_media_diagnostics_after": {
+    "forwarding": [
+      {
+        "handoff_timeouts": 0,
+        "max_us": 76939,
+        "missing_ingress_observations": 0,
+        "p50_us": 16383,
+        "p95_us": 32767,
+        "percentile_method": "log2-bucket-upper-bound",
+        "samples": 24775,
+        "stage": "canonical-native-video-fanout"
+      }
+    ],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 65,
+        "frame_age_boundary": null,
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 17908,
+        "sampled_high_water_packets": 10,
+        "stage": "quic-audio-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": 191,
+        "observations": 17646,
+        "sampled_high_water_packets": 2,
+        "stage": "quic-audio-egress",
+        "stale_forwarding_discards": 7,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": null,
+        "kind": "video",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 25162,
+        "sampled_high_water_packets": 34,
+        "stage": "quic-video-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "video",
+        "max_forwarded_frame_age_ms": 89,
+        "observations": 49574,
+        "sampled_high_water_packets": 35,
+        "stage": "quic-video-egress",
+        "stale_forwarding_discards": 4,
+        "unit": "frame-packets"
+      }
+    ],
+    "scope": "server-process"
+  },
+  "quality_passed": false,
+  "routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.74,
+        "samples": 2723520,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2837,
+        "maximum_arrival_gap_ms": 2035.1490000000013
+      },
+      "video": {
+        "decoded_window_frames": 1692,
+        "changing_window_frames": 1691,
+        "wrong_source_pixel_frames": 17,
+        "source_marker_classification": {
+          "expected_source_index": 3,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            1675,
+            0,
+            0
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 17
+        },
+        "undecodable_frames": 25
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 76,
+        "median_abs_skew_ms": 19.47250000000267,
+        "p95_abs_skew_ms": 81.54700000000048,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.6,
+        "samples": 2716800,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2830,
+        "maximum_arrival_gap_ms": 2025.2113070000014
+      },
+      "video": {
+        "decoded_window_frames": 1639,
+        "changing_window_frames": 1638,
+        "wrong_source_pixel_frames": 34,
+        "source_marker_classification": {
+          "expected_source_index": 0,
+          "source_marker_counts": [
+            1605,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 34
+        },
+        "undecodable_frames": 11
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 72,
+        "median_abs_skew_ms": 4.154410999998248,
+        "p95_abs_skew_ms": 81.33647599999705,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.7,
+        "samples": 2721600,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2835,
+        "maximum_arrival_gap_ms": 2131.6044589999983
+      },
+      "video": {
+        "decoded_window_frames": 1722,
+        "changing_window_frames": 1721,
+        "wrong_source_pixel_frames": 280,
+        "source_marker_classification": {
+          "expected_source_index": 1,
+          "source_marker_counts": [
+            0,
+            1442,
+            0,
+            0,
+            0,
+            0
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 280
+        },
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 67,
+        "median_abs_skew_ms": 9.290069999998707,
+        "p95_abs_skew_ms": 22.51654900000233,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.74,
+        "samples": 2723520,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2837,
+        "maximum_arrival_gap_ms": 2085.037014999998
+      },
+      "video": {
+        "decoded_window_frames": 1724,
+        "changing_window_frames": 1723,
+        "wrong_source_pixel_frames": 47,
+        "source_marker_classification": {
+          "expected_source_index": 2,
+          "source_marker_counts": [
+            0,
+            0,
+            1677,
+            0,
+            0,
+            0
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 47
+        },
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 75,
+        "median_abs_skew_ms": 19.70087399999798,
+        "p95_abs_skew_ms": 80.29877700000299,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.74,
+        "samples": 2723520,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2837,
+        "maximum_arrival_gap_ms": 2081.297770000001
+      },
+      "video": {
+        "decoded_window_frames": 1655,
+        "changing_window_frames": 1654,
+        "wrong_source_pixel_frames": 54,
+        "source_marker_classification": {
+          "expected_source_index": 5,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1601
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 54
+        },
+        "undecodable_frames": 31
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 70,
+        "median_abs_skew_ms": 19.67281249999786,
+        "p95_abs_skew_ms": 42.53300000000593,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 56.68,
+        "samples": 2720640,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2834,
+        "maximum_arrival_gap_ms": 2099.903735
+      },
+      "video": {
+        "decoded_window_frames": 1600,
+        "changing_window_frames": 1599,
+        "wrong_source_pixel_frames": 35,
+        "source_marker_classification": {
+          "expected_source_index": 4,
+          "source_marker_counts": [
+            0,
+            0,
+            0,
+            0,
+            1565,
+            0
+          ],
+          "other_identified_source_frames": 0,
+          "unclassified_pixel_frames": 35
+        },
+        "undecodable_frames": 40
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 69,
+        "median_abs_skew_ms": 18.357461000000797,
+        "p95_abs_skew_ms": 39.679617999993866,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    }
+  ],
+  "decoded_rgb_histories_hash_verified": 14,
+  "stopped_journal": {
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite",
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "0-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": 7,
+        "all_forward_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": 7,
+        "all_forward_effects_confirmed_once": true
+      }
+    ]
+  },
+  "wire_observation": {
+    "scope": "Existing original encrypted UDP capture only. Packet-size bins do not identify RTP/audio/video, delivery or authorization. Same owned Linux guest wall clock as original programme. No packet bodies, peers, addresses or per-packet array published.",
+    "pcap_sha256": "d21bf2f0006ec74432b40e682b5ab4bacb99ef8f68b048d4db5b4b272a61c5c2",
+    "unchanged": true,
+    "capture_packets": 102409,
+    "windows": [
+      {
+        "start_second": 14,
+        "end_second": 15,
+        "to_server": {
+          "packets": 951,
+          "udp_payload_bytes": 468177,
+          "payload_at_most200bytes": 539
+        },
+        "from_server": {
+          "packets": 807,
+          "udp_payload_bytes": 473276,
+          "payload_at_most200bytes": 579
+        }
+      },
+      {
+        "start_second": 15,
+        "end_second": 16,
+        "to_server": {
+          "packets": 1012,
+          "udp_payload_bytes": 513042,
+          "payload_at_most200bytes": 555
+        },
+        "from_server": {
+          "packets": 763,
+          "udp_payload_bytes": 788480,
+          "payload_at_most200bytes": 514
+        }
+      },
+      {
+        "start_second": 16,
+        "end_second": 16.3,
+        "to_server": {
+          "packets": 335,
+          "udp_payload_bytes": 168459,
+          "payload_at_most200bytes": 187
+        },
+        "from_server": {
+          "packets": 272,
+          "udp_payload_bytes": 201088,
+          "payload_at_most200bytes": 160
+        }
+      },
+      {
+        "start_second": 16.4,
+        "end_second": 18.4,
+        "to_server": {
+          "packets": 1658,
+          "udp_payload_bytes": 1067381,
+          "payload_at_most200bytes": 765
+        },
+        "from_server": {
+          "packets": 763,
+          "udp_payload_bytes": 42923,
+          "payload_at_most200bytes": 756
+        }
+      },
+      {
+        "start_second": 18.4,
+        "end_second": 18.5,
+        "to_server": {
+          "packets": 87,
+          "udp_payload_bytes": 47960,
+          "payload_at_most200bytes": 49
+        },
+        "from_server": {
+          "packets": 96,
+          "udp_payload_bytes": 109343,
+          "payload_at_most200bytes": 38
+        }
+      },
+      {
+        "start_second": 18.5,
+        "end_second": 18.9,
+        "to_server": {
+          "packets": 344,
+          "udp_payload_bytes": 213637,
+          "payload_at_most200bytes": 166
+        },
+        "from_server": {
+          "packets": 149,
+          "udp_payload_bytes": 228156,
+          "payload_at_most200bytes": 130
+        }
+      },
+      {
+        "start_second": 19,
+        "end_second": 20,
+        "to_server": {
+          "packets": 968,
+          "udp_payload_bytes": 676865,
+          "payload_at_most200bytes": 547
+        },
+        "from_server": {
+          "packets": 784,
+          "udp_payload_bytes": 1017401,
+          "payload_at_most200bytes": 580
+        }
+      },
+      {
+        "start_second": 40,
+        "end_second": 41,
+        "to_server": {
+          "packets": 859,
+          "udp_payload_bytes": 468175,
+          "payload_at_most200bytes": 514
+        },
+        "from_server": {
+          "packets": 773,
+          "udp_payload_bytes": 908756,
+          "payload_at_most200bytes": 515
+        }
+      },
+      {
+        "start_second": 41,
+        "end_second": 42,
+        "to_server": {
+          "packets": 967,
+          "udp_payload_bytes": 508108,
+          "payload_at_most200bytes": 576
+        },
+        "from_server": {
+          "packets": 747,
+          "udp_payload_bytes": 546974,
+          "payload_at_most200bytes": 497
+        }
+      },
+      {
+        "start_second": 42.3,
+        "end_second": 42.5,
+        "to_server": {
+          "packets": 130,
+          "udp_payload_bytes": 78586,
+          "payload_at_most200bytes": 67
+        },
+        "from_server": {
+          "packets": 43,
+          "udp_payload_bytes": 85221,
+          "payload_at_most200bytes": 36
+        }
+      },
+      {
+        "start_second": 43,
+        "end_second": 44,
+        "to_server": {
+          "packets": 890,
+          "udp_payload_bytes": 812215,
+          "payload_at_most200bytes": 509
+        },
+        "from_server": {
+          "packets": 794,
+          "udp_payload_bytes": 1078052,
+          "payload_at_most200bytes": 532
+        }
+      }
+    ],
+    "largest_wire_gaps_ms": {
+      "to_server": [
+        {
+          "gap_ms": 21.659,
+          "start_ms": 10079.709,
+          "end_ms": 10101.368
+        },
+        {
+          "gap_ms": 20.213,
+          "start_ms": 5479.77,
+          "end_ms": 5499.983
+        },
+        {
+          "gap_ms": 20.17,
+          "start_ms": 9679.746,
+          "end_ms": 9699.916
+        },
+        {
+          "gap_ms": 20.113,
+          "start_ms": 10679.85,
+          "end_ms": 10699.963
+        },
+        {
+          "gap_ms": 20.011,
+          "start_ms": 14779.812,
+          "end_ms": 14799.823
+        }
+      ],
+      "from_server": [
+        {
+          "gap_ms": 44.356,
+          "start_ms": 42240.812,
+          "end_ms": 42285.168
+        },
+        {
+          "gap_ms": 42.254,
+          "start_ms": 15947.589,
+          "end_ms": 15989.843
+        },
+        {
+          "gap_ms": 39.925,
+          "start_ms": 16505.699,
+          "end_ms": 16545.624
+        },
+        {
+          "gap_ms": 32.763,
+          "start_ms": 18641.295,
+          "end_ms": 18674.058
+        },
+        {
+          "gap_ms": 30.538,
+          "start_ms": 42325.875,
+          "end_ms": 42356.413
+        }
+      ]
+    }
+  },
+  "interpretation": "All four original roots and control/ownership/drain pass; no prior Core commit refusal reproduces with this same server binary. This cannot establish that the historical intermittent refusal is fixed or that unknown was exercised by a physical owner. All six whole-quality routes fail audio coverage/gaps and video coverage/unclassified pixels; AV alignment passes6/6. All retained original senders submit3100audio frames with0late Node frames and maximum local-queue completion delay below50ms. These are local queue submissions, not remote receipt. Actual original encrypted capture shows inbound traffic continues while server outbound UDP payload collapses during16.4-18.4s; sizes alone cannot identify media, authorization refusal or a specific lock. Next distinguish current packet policy refusal from transport/output/mixer stalls using bounded failure-only diagnostics. No threshold, source-clock, history or acceptance change.",
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

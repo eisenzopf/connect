@@ -9,5 +9,9 @@
   "format": "connect/gate6-moving-video-classification-candidate/1",
   "task": "G6-058",
   "frozen_runtime_source_excludes_followup": "f8377c44c0670bbac3c1ca1a4b24d00176872648",
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "actual_runtime": "docs/evidence/gate-6/unknown-original-observation-result.json",
+  "decoded_rgb_histories_hash_verified": 14,
+  "actual_classification_observed": true,
+  "interpretation": "All six routes show zero identified-other-source colors, but unclassified frames and other quality failures persist. Existing wrong_source==0 limit unchanged; no quality/cell pass."
 }

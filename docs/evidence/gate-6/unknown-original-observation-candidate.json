@@ -11,7 +11,7 @@
     "scripts/check-transport-fixtures.py": "0ec3f99a13d1ce1188b86e7c3f273ae862770318a32b92628e8bf0aefee28137"
   },
   "focused_arm_check_pending": false,
-  "runtime_pending": true,
+  "runtime_pending": false,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -41,5 +41,9 @@
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 3.658815634997154
   },
-  "focused_scope": "One exact new actual independent peer observer case,47others filtered; no network IO or full runtime conclusion."
+  "focused_scope": "One exact new actual independent peer observer case,47others filtered; no network IO or full runtime conclusion.",
+  "runtime_passed": false,
+  "runtime_control_passed": true,
+  "runtime_result": "docs/evidence/gate-6/unknown-original-observation-result.json",
+  "historical_Core_refusal_reproduced": false
 }
