@@ -24,5 +24,6 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "signed_native_submission": "Use the actual Rust SDK replace_device with explicit video mapping and EdDSA native wire control. Node/external consumer overrides refused. Shared SDK probe restores the saved original operation in a fresh client and checks current revocation."
 }

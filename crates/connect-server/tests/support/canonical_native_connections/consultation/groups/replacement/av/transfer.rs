@@ -4,13 +4,15 @@ use connect_protocol::replacement_video::{ReplacementVideo, ReplacementVideoStre
 
 #[tokio::test]
 async fn production_native_video_transfer_activates_both_directions_without_post_commit_controls() {
+    assert!(!super::super::super::super::sdk_controls::NodeMovementProbe::enabled());
+    assert!(!crate::external_sdk_consumer::enabled());
     exercise_replacement_with_av_transfer(
         true,
         true,
         false,
         true,
         false,
-        None,
+        Some("EdDSA"),
         false,
         Some((false, false, false)),
         false,
