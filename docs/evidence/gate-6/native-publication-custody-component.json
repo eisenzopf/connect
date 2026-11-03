@@ -1,0 +1,75 @@
+{
+  "format": "connect/gate6-native-publication-custody-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "result": "Two new exact Core/Store publication cases and changed default Service library compile pass.",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 110877,
+    "source_revision": "cf82b5f6dfefddaee7e9cadb075ee2944aff06a0",
+    "passed": true,
+    "steps": [
+      {
+        "group": "store",
+        "case": "connection_control::tests::replacement_sources::commit::activation_barrier::final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1345 filtered out; finished in 0.25s"
+        ],
+        "log_sha256": "6e1d8bedb3ea6d20f8ebe21873e728422f2746bd0e9dff7022b28e40a0a39f7f"
+      },
+      {
+        "group": "core",
+        "case": "staged_streams::tests::replacement_activation::installed_publication_orders_retirement_but_never_defers_packet_cancellation",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 585 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "efecafc9d8d6eb1a5abcb3a77e0ef9c07467ab0aa8516662ee1a541dfceba18e"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_custody_candidate": true,
+    "builds": [
+      {
+        "group": "store",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "5b3b118b08b9aea8c6e19f5bc06d6a915148609445db8b15f45cb80c496f6a6d",
+        "test_executable_sha256": "44467f962146ff9d59d6dbb5df973445bb319dfc314d0822724751a9027cd8f2",
+        "executable_unchanged": true
+      },
+      {
+        "group": "core",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "f3ee598325a48518f23e64bd99f7f77c3f418f61d6f39307a969486104ac5791",
+        "test_executable_sha256": "cb2f8d336e0672416122266eb65cdf4f2c45167362cbc1b0afd8c540ee7bc3ce",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "service_check_exit_code": 0,
+    "service_check_log_sha256": "431ce6e015e6e18c5454f462ae6d1c63ce292312ef43a3e5f996ed42a5d8863b",
+    "standalone_service_check_rerun": false,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1070.5544177019983
+  },
+  "coverage": [
+    "Actual Core controllers/ports: cancellation before ordering refuses callback; overlapping real retirement waits on installation metadata while cancellation immediately closes packet ingress.",
+    "Core callback rollback releases retirement, external token cancellation stays immediate, wrong generation/busy observations refuse without callback.",
+    "Store final callback refusal rolls back Ready/completion; original retry commits once and completed replay preserves effects and events without invoking publication again.",
+    "Changed native/Service production wiring compiles without opt-in test support."
+  ],
+  "limits": [
+    "Core authority/adapter facts and Store installation observation are controlled fixtures; no signed native publication race is qualified by these two cases.",
+    "No full media continuity, video bootstrap, authenticated epoch, Data exchange, idle, twenty-transition or complete matrix cell proof.",
+    "Original candidate1747e783 failed Store compilation with E0525 before tests. Correctioncf82b5f6 explicitly types the consuming callback. Original failed result is preserved."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
