@@ -359,7 +359,23 @@ impl ReplacementAdoption {
         }
         let mut writer = self.writer.try_lock().map_err(super::metadata_contention)?;
         match (&target.data_observer, writer.take()) {
-            (Some(observer), Some(writer)) => observer.activate(writer)?,
+            (Some(observer), Some(writer)) => {
+                #[cfg(feature = "test-support")]
+                let writer = if let Some(armed) = target
+                    .base
+                    .replacement_data_observer_refusals
+                    .try_lock()
+                    .map_err(super::metadata_contention)?
+                    .remove(self.metadata.origin().offer_record_id())
+                {
+                    armed.store(false, std::sync::atomic::Ordering::Release);
+                    writer.with_mismatched_scope_for_test()
+                } else {
+                    writer
+                };
+                observer.activate(writer)?;
+            }
+
             (None, None) => {}
             _ => return Err(StreamControlError::Authority),
         }

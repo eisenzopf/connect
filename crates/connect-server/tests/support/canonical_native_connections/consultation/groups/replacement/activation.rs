@@ -4,6 +4,9 @@ use super::*;
 #[path = "activation/crash.rs"]
 pub(super) mod crash;
 #[cfg(feature = "test-support")]
+#[path = "activation/data_observer.rs"]
+mod data_observer;
+#[cfg(feature = "test-support")]
 #[path = "activation/pre_core.rs"]
 pub(super) mod pre_core;
 #[cfg(feature = "test-support")]

@@ -14,6 +14,14 @@ pub(crate) struct Observer {
     scope: StagedRtpScope,
 }
 impl Observer {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn with_mismatched_scope_for_test(mut self) -> Self {
+        self.scope.connection = ConnectionId::from_string(format!(
+            "{}-fixture-mismatch",
+            self.scope.connection.as_str()
+        ));
+        self
+    }
     pub(crate) fn pending_replacement(
         store: Arc<Store>,
         activation: &connect_store::NativeReplacementActivation,

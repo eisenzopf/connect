@@ -232,6 +232,18 @@ impl Service {
             .media
             .refuse_replacement_adoption_once_for_test(record)
     }
+    /// Negative-only Data observer installation fault for one original record.
+    #[cfg(feature = "test-support")]
+    pub fn refuse_canonical_replacement_data_observer_once_for_test(
+        &self,
+        record: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .refuse_data_observer_once_for_test(record)
+    }
     /// Retire one actual native controller at the final publication boundary.
     /// Negative-only test support; no wire caller can request this injection.
     #[cfg(feature = "test-support")]

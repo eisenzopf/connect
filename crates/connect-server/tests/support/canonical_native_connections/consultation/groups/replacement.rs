@@ -192,6 +192,8 @@ enum ActivationAudit {
     RetireAtPublication,
     #[cfg(feature = "test-support")]
     RetireDuringPublication,
+    #[cfg(feature = "test-support")]
+    RefuseDataObserver,
 }
 async fn exercise_replacement_with_av_control(
     allocate: bool,
@@ -821,6 +823,7 @@ async fn exercise_replacement_with_av_control(
                 ActivationAudit::RefuseBeforeCore
                     | ActivationAudit::RetireAtPublication
                     | ActivationAudit::RetireDuringPublication
+                    | ActivationAudit::RefuseDataObserver
             ) {
                 assert!(!deferred_projection && !candidate_target && !observer);
                 let record = status(&f, &key.id, &command.operation_id).await;
@@ -828,6 +831,11 @@ async fn exercise_replacement_with_av_control(
                     f.server
                         .service
                         .refuse_canonical_replacement_adoption_once_for_test(&record.record_id)
+                        .unwrap()
+                } else if matches!(activation_audit, ActivationAudit::RefuseDataObserver) {
+                    f.server
+                        .service
+                        .refuse_canonical_replacement_data_observer_once_for_test(&record.record_id)
                         .unwrap()
                 } else if matches!(activation_audit, ActivationAudit::RetireDuringPublication) {
                     activation::publication::arm_during(&f, &record.record_id)

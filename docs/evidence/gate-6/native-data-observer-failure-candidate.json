@@ -1,0 +1,21 @@
+{
+  "format": "connect/gate6-native-data-observer-failure-candidate/1",
+  "task": "G6-058",
+  "case": "canonical_native_connections::consultation::groups::replacement::activation::data_observer::production_native_data_observer_scope_failure_stops_known_move_without_ready_or_replay",
+  "injection": "Opt-in test-support changes only the exact pending writer scope before actual PendingObserver::activate. Its real scope validation refuses after durable capture and before ordinary entry installation. No synthetic permission or successful observer install.",
+  "required": [
+    "Original movement remains durably known and confirmed once, with seven original effects and no compensating replay.",
+    "No Ready or ordinary candidate lifetime; exact candidate retired and retained binding unchanged.",
+    "Signed original replay preserves record/revision/effects/result; final peer/server shutdown joins and zero native slots remain."
+  ],
+  "limits": [
+    "Not compiled or executed.",
+    "Synthetic scope mismatch, not a storage outage, real network fault or Data exchange qualification.",
+    "Uses shared known-movement failure audit; retained send is not duplex or full AV quality."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

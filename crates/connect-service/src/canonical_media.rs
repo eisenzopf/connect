@@ -74,6 +74,8 @@ pub(crate) struct Policy {
     #[cfg(feature = "test-support")]
     replacement_adoption_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
     #[cfg(feature = "test-support")]
+    replacement_data_observer_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
+    #[cfg(feature = "test-support")]
     replacement_publication_retirements: Mutex<BTreeMap<String, publication_fixture::Retirement>>,
 }
 /// One bounded original native invocation, never retained by a packet port.
@@ -433,6 +435,23 @@ impl Policy {
         refusals.insert(record.into(), armed.clone());
         Ok(armed)
     }
+    /// Make the exact pending Data writer fail its real scope validation.
+    #[cfg(feature = "test-support")]
+    pub(crate) fn refuse_data_observer_once_for_test(
+        &self,
+        record: &str,
+    ) -> connect_protocol::Result<Arc<std::sync::atomic::AtomicBool>> {
+        let mut refusals = self
+            .replacement_data_observer_refusals
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if refusals.contains_key(record) {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let armed = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        refusals.insert(record.into(), armed.clone());
+        Ok(armed)
+    }
     #[cfg(feature = "test-support")]
     pub(crate) fn with_registry_for_test(
         &self,
@@ -649,6 +668,8 @@ impl Policy {
             capacity,
             #[cfg(feature = "test-support")]
             replacement_adoption_refusals: Default::default(),
+            #[cfg(feature = "test-support")]
+            replacement_data_observer_refusals: Default::default(),
             #[cfg(feature = "test-support")]
             replacement_publication_retirements: Default::default(),
         })
