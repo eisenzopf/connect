@@ -24,6 +24,7 @@ impl Store {
     }
     /// Protected backend composition. A guard is not admission by itself:
     /// recheck the principal, exact resource and signed intent while it is held.
+    #[track_caller]
     pub fn acquire_authority(
         &self,
         scopes: &[AuthorityScope],
@@ -34,6 +35,7 @@ impl Store {
     /// Immediate admission for packet-path policy. A contended scope or local
     /// reader map refuses the read; this never queues behind an authority writer.
     /// The caller still resolves current facts under the returned owned guard.
+    #[track_caller]
     pub fn try_acquire_authority(
         &self,
         scopes: &[AuthorityScope],
@@ -43,6 +45,7 @@ impl Store {
     pub fn authority_covers(&self, guard: &AuthorityGuardSet, scopes: &[AuthorityScope]) -> bool {
         self.authority.owns(guard) && guard.covers(scopes)
     }
+    #[track_caller]
     pub(crate) fn stable_authority(
         &self,
         wait: &AuthorityWait,
@@ -60,6 +63,7 @@ impl Store {
     }
     /// Reuse an exact owned proof without upgrading or entering a reader again
     /// behind a queued writer. An insufficient/foreign proof never falls back.
+    #[track_caller]
     pub(crate) fn stable_authority_with(
         &self,
         held: Option<&Arc<AuthorityGuardSet>>,

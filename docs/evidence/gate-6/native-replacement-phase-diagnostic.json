@@ -1,0 +1,179 @@
+{
+  "format": "connect/native-replacement-phase-diagnostic/1",
+  "task": "G6-058",
+  "source_revision": "15c34e391a566e3394c4e8f94e64b3cdf69f1fad",
+  "passed": false,
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "binary_sha256": "51093590069be101e6e393170546e7fbf03396b8d65fc29435167d072b94814a",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "b733ef1412a4ea41a98d9276f84012ee0d3a8b7f896ebbd8a190a216e7cbc2d8",
+  "phase_durations": [
+    {
+      "slot": "4-0",
+      "phase": "Attach",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 4.589,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Attach",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 5.609,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Attach",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 7.91,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Attach",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 2.435,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Activate",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 4.415,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Activate",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 6.568,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": null,
+      "action": "Replacement decoder preparation",
+      "elapsed_ms": 52.4,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Activate",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 7.52,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Activate",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 14.634,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": null,
+      "action": "Replacement decoder preparation",
+      "elapsed_ms": 26.053,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Readiness",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 4.36,
+      "error": null
+    },
+    {
+      "slot": "0-0",
+      "phase": "Readiness",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 2.617,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Readiness",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 6.943,
+      "error": null
+    },
+    {
+      "slot": "4-0",
+      "phase": "Readiness",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 8.677,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Attach",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 8.43,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Attach",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 41.578,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Activate",
+      "action": "Replacement phase begin",
+      "elapsed_ms": 24.846,
+      "error": null
+    },
+    {
+      "slot": "0-1",
+      "phase": "Activate",
+      "action": "Replacement phase recording",
+      "elapsed_ms": 6046.047,
+      "error": "authority-busy"
+    }
+  ],
+  "roots": [
+    {
+      "slot": "4-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    },
+    {
+      "slot": "0-1",
+      "state": "failed",
+      "revision": 12,
+      "problem": {
+        "code": "native-target-stopped",
+        "source": "native-replacement"
+      }
+    },
+    {
+      "slot": "0-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null
+    }
+  ],
+  "unretired_native_lifetime_rows": 0,
+  "original_db_wal_unchanged": true,
+  "original_servers_joined": true,
+  "original_native_tasks_joined": true,
+  "all_observed_helpers_joined": true,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "observation_elapsed_ms": 11795.76443,
+  "root_cause_proven": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Original unchanged6AVData/4participants/2Sessions/20moves/62sprogramme/60sobservation/8sreadwait. First two roots complete16; source0 second move fails after activation-result recording spends6046ms and returnsauthority-busy. Earlier local Attach/Activate/Readiness phases and decoder preparation complete in milliseconds. Timing identifies the waiting phase, not which authority reader delayed it. All strict guards and stopped cleanup pass; one successful-root target worker reports a collection assertion after sibling failure, retained as failed. No replay, workload/deadline change, host capture or complete quality qualification."
+}

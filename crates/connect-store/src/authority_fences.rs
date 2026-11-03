@@ -249,6 +249,39 @@ pub struct AuthorityGuardSet {
     manager: Arc<Manager>,
     scopes: BTreeMap<(Kind, String), AuthorityMode>,
     _held: Vec<Held>,
+    // Report only after the original file guards have been released. Disabled
+    // in normal operation; this owns no resource, permission or extra reader.
+    _timing: Option<AuthorityTiming>,
+}
+struct AuthorityTiming {
+    started: Instant,
+    caller: &'static std::panic::Location<'static>,
+    admission: Option<std::backtrace::Backtrace>,
+}
+impl AuthorityTiming {
+    #[track_caller]
+    fn capture(waited: bool) -> Option<Self> {
+        if tracing::enabled!(target: "connect_store::authority_lifetime", tracing::Level::DEBUG) {
+            Some(Self {
+                started: Instant::now(),
+                caller: std::panic::Location::caller(),
+                // Packet admission must not unwind a stack on every frame.
+                admission: waited.then(std::backtrace::Backtrace::force_capture),
+            })
+        } else {
+            None
+        }
+    }
+}
+impl Drop for AuthorityTiming {
+    fn drop(&mut self) {
+        let elapsed_ms = self.started.elapsed().as_millis() as u64;
+        if elapsed_ms >= 100 {
+            tracing::debug!(target: "connect_store::authority_lifetime", elapsed_ms,
+                file=self.caller.file(), line=self.caller.line(),
+                admission=?self.admission, "Long authority interval released");
+        }
+    }
 }
 impl AuthorityGuardSet {
     /// Validate reuse without reacquiring a fair reader behind a queued writer.
@@ -346,6 +379,7 @@ impl Manager {
     pub(crate) fn owns(&self, guards: &AuthorityGuardSet) -> bool {
         std::ptr::eq(self, Arc::as_ptr(&guards.manager))
     }
+    #[track_caller]
     pub(crate) fn acquire(
         self: &Arc<Self>,
         scopes: &[AuthorityScope],
@@ -353,12 +387,14 @@ impl Manager {
     ) -> Result<Arc<AuthorityGuardSet>> {
         self.acquire_with(scopes, Some(wait))
     }
+    #[track_caller]
     pub(crate) fn try_acquire(
         self: &Arc<Self>,
         scopes: &[AuthorityScope],
     ) -> Result<Arc<AuthorityGuardSet>> {
         self.acquire_with(scopes, None)
     }
+    #[track_caller]
     fn acquire_with(
         self: &Arc<Self>,
         scopes: &[AuthorityScope],
@@ -420,6 +456,7 @@ impl Manager {
             manager: self.clone(),
             scopes: ordered,
             _held: held,
+            _timing: AuthorityTiming::capture(wait.is_some()),
         }))
     }
     // The caller owns this scope's exclusive admission description. The
