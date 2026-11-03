@@ -69,9 +69,95 @@
     "v19_preparation_forbidden_resolved": false,
     "mac_app_zero_audio_resolved": false
   },
-  "normal_production_runtime_and_peer_rebuild_pending": true,
+  "normal_production_runtime_and_peer_rebuild_pending": false,
   "fresh_full_programme_pending": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "production_rehearsal_v21": {
+    "source_revision": "0cb2ff2f4a6a3526469ecbe915696e0c085f132d",
+    "passed": false,
+    "controller_elapsed_seconds_including_builds": 460.2344026248902,
+    "cli_sha256": "e512b1df352a9d6bed6ca1e4c5d239c69cfd1fcc544e9b2ceadcbcf6a410239d",
+    "independent_peer_sha256": "712a32ee7a76cb64437b0157e6c7c804e57b4bc5a5ac059cd077361f0b12b680",
+    "build_profiles": {
+      "connect": {
+        "opt_level": "3",
+        "test": false,
+        "test_support": false,
+        "build_log_sha256": "b46284ae0d4ca81ab456f437ad0fb44539d814f561133b70f54a65a3d8d7b222"
+      },
+      "connect-external-rust-journey": {
+        "opt_level": "3",
+        "test": false,
+        "test_support": false,
+        "build_log_sha256": "f8f90494e5f23f3bd839a65d0b98d485d134c32489819fca801669ff79b16090"
+      }
+    },
+    "all_tracked_prepared_executable_and_sdk_guards_unchanged": true,
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "problem": null,
+        "forward_effects": 7,
+        "compensations": 0,
+        "all_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "problem": null,
+        "forward_effects": 7,
+        "compensations": 0,
+        "all_effects_confirmed_once": true
+      },
+      {
+        "slot": "4-1",
+        "state": "failed",
+        "revision": 12,
+        "problem": {
+          "code": "native-target-stopped",
+          "source": "native-replacement"
+        },
+        "forward_effects": 5,
+        "compensations": 5,
+        "all_effects_confirmed_once": true
+      },
+      {
+        "slot": "0-1",
+        "state": "failed",
+        "revision": 4,
+        "problem": {
+          "code": "preparation-stopped",
+          "source": "native-replacement"
+        },
+        "forward_effects": 1,
+        "compensations": 1,
+        "all_effects_confirmed_once": true
+      }
+    ],
+    "primary_failure": {
+      "phase": "six-native-opus-vp8-sixty-second-workload",
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "certainty": "read-only",
+      "source_stack": []
+    },
+    "snapshot_resync_failure_observed": false,
+    "first_two_physical_stages_with_exact_data_receipts_passed": true,
+    "both_second_waits_hit_original_deadline": true,
+    "both_second_target_workers_joined_unforced": true,
+    "failed_roots_not_replayed": true,
+    "source_owner_cleanup_qualification_incomplete": true,
+    "both_servers_joined_normally": true,
+    "unretired_native_lifetimes": 0,
+    "stopped_original_db_wal_unchanged": true,
+    "stopped_audit_sha256": "d5f9eac994fc3f088435abf8389e8c205a464dbecec5bdf8b3feded3ef4f449f",
+    "one_second_target_input_delay_ms": 5290,
+    "other_second_target_input_delay_ms": 137,
+    "full_programme_decode_and_capture_qualified": false
+  }
 }
