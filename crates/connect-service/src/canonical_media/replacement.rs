@@ -425,7 +425,13 @@ impl ReplacementAdoption {
             .get()
             .ok_or_else(connect_protocol::Error::forbidden)?
             .try_confirmed_generation()
-            .map_err(super::packet_authority_error)?;
+            .map_err(|error| match error {
+                StreamControlError::NotReady => connect_protocol::Error::new(
+                    "authority-busy",
+                    "Native activation metadata is busy",
+                ),
+                _ => connect_protocol::Error::forbidden(),
+            })?;
         if generation != Some(expected.origin().generation()) {
             return Err(connect_protocol::Error::forbidden());
         }
