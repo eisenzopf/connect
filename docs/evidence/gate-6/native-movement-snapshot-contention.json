@@ -1,0 +1,438 @@
+{
+  "format": "connect/native-movement-phase-diagnostic/1",
+  "tasks": [
+    "G6-058"
+  ],
+  "source_revision": "46869057c067ecb4a5509fb21cc0b4e5145f37a1",
+  "passed": false,
+  "cli_sha256": "e512b1df352a9d6bed6ca1e4c5d239c69cfd1fcc544e9b2ceadcbcf6a410239d",
+  "peer_sha256": "712a32ee7a76cb64437b0157e6c7c804e57b4bc5a5ac059cd077361f0b12b680",
+  "same_binaries_as_ordinary_v21": true,
+  "all_tracked_prepared_sdk_and_executables_unchanged": true,
+  "elapsed_seconds": 101.97816620767117,
+  "primary_failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "roots": [
+    {
+      "slot": "0-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null,
+      "forward_effects": 7,
+      "compensations": 0,
+      "all_effects_confirmed_once": true
+    },
+    {
+      "slot": "4-0",
+      "state": "completed",
+      "revision": 16,
+      "problem": null,
+      "forward_effects": 7,
+      "compensations": 0,
+      "all_effects_confirmed_once": true
+    },
+    {
+      "slot": "4-1",
+      "state": "completed",
+      "revision": 16,
+      "problem": null,
+      "forward_effects": 7,
+      "compensations": 0,
+      "all_effects_confirmed_once": true
+    },
+    {
+      "slot": "0-1",
+      "state": "completed",
+      "revision": 16,
+      "problem": null,
+      "forward_effects": 7,
+      "compensations": 0,
+      "all_effects_confirmed_once": true
+    },
+    {
+      "slot": "4-2",
+      "state": "preparing",
+      "revision": 15,
+      "problem": null,
+      "forward_effects": 7,
+      "compensations": 0,
+      "all_effects_confirmed_once": true
+    },
+    {
+      "slot": "0-2",
+      "state": "failed",
+      "revision": 10,
+      "problem": {
+        "code": "native-target-stopped",
+        "source": "native-replacement"
+      },
+      "forward_effects": 4,
+      "compensations": 4,
+      "all_effects_confirmed_once": true
+    }
+  ],
+  "known_commit_root": {
+    "slot": "4-2",
+    "journal_state": "preparing",
+    "journal_revision": 15,
+    "commit_started": true,
+    "commit_observation_present": true,
+    "commit_effect_state": "confirmed",
+    "commit_effect_attempt": 1,
+    "original_must_not_be_replayed": true
+  },
+  "observed_sample": {
+    "samples": 1,
+    "seconds": 1,
+    "trigger_slot": "4-1",
+    "target_input_present": true,
+    "completed_root_absent": true,
+    "exact_owned_server_before_and_after": true,
+    "exit_code": 0,
+    "bytes": 2053391,
+    "sha256": "8dc5dd5329d1265675d4ab9e0fc2680af301afc5b44d81cb5aea3c15d6944e2f",
+    "observer_joined": true,
+    "errors": []
+  },
+  "diagnostic": {
+    "sample_sha256": "8dc5dd5329d1265675d4ab9e0fc2680af301afc5b44d81cb5aea3c15d6944e2f",
+    "owned_before_and_after": true,
+    "observer_joined": true,
+    "observer_errors": [],
+    "rust_symbols_demangled": 567,
+    "top_of_stack": [
+      {
+        "symbol": "__psynch_cvwait",
+        "top_of_stack_samples": 8013
+      },
+      {
+        "symbol": "__psynch_mutexwait",
+        "top_of_stack_samples": 2989
+      },
+      {
+        "symbol": "kevent",
+        "top_of_stack_samples": 385
+      },
+      {
+        "symbol": "faccessat",
+        "top_of_stack_samples": 242
+      },
+      {
+        "symbol": "lstat",
+        "top_of_stack_samples": 175
+      },
+      {
+        "symbol": "sqlite3VdbeExec",
+        "top_of_stack_samples": 82
+      },
+      {
+        "symbol": "_platform_memmove",
+        "top_of_stack_samples": 63
+      },
+      {
+        "symbol": "__semwait_signal",
+        "top_of_stack_samples": 54
+      },
+      {
+        "symbol": "jsonTranslateTextToBlob",
+        "top_of_stack_samples": 43
+      },
+      {
+        "symbol": "__open",
+        "top_of_stack_samples": 39
+      },
+      {
+        "symbol": "_platform_memcmp",
+        "top_of_stack_samples": 27
+      },
+      {
+        "symbol": "sqlite3BtreeTableMoveto",
+        "top_of_stack_samples": 19
+      },
+      {
+        "symbol": "__psynch_mutexdrop",
+        "top_of_stack_samples": 18
+      },
+      {
+        "symbol": "jsonbPayloadSize",
+        "top_of_stack_samples": 12
+      },
+      {
+        "symbol": "jsonLookupStep",
+        "top_of_stack_samples": 11
+      },
+      {
+        "symbol": "xzm_malloc_zone_size",
+        "top_of_stack_samples": 11
+      },
+      {
+        "symbol": "flock",
+        "top_of_stack_samples": 10
+      },
+      {
+        "symbol": "sqlite3DbMallocRawNN",
+        "top_of_stack_samples": 10
+      },
+      {
+        "symbol": "DYLD-STUB$$memcpy",
+        "top_of_stack_samples": 9
+      },
+      {
+        "symbol": "sqlite3BtreeCursor",
+        "top_of_stack_samples": 9
+      }
+    ],
+    "snapshot_planning_present": true,
+    "packet_current_present": true,
+    "sqlite_preparation_observed": false,
+    "phase_durations": [
+      {
+        "slot": "4-0",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 3.729
+      },
+      {
+        "slot": "4-0",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 3.271
+      },
+      {
+        "slot": "0-0",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 3.985
+      },
+      {
+        "slot": "0-0",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 3.638
+      },
+      {
+        "slot": "4-0",
+        "phase": "Activate",
+        "event": "Replacement phase begin",
+        "milliseconds": 4.536
+      },
+      {
+        "slot": "4-0",
+        "phase": "Activate",
+        "event": "Replacement phase recording",
+        "milliseconds": 21.603
+      },
+      {
+        "slot": "0-0",
+        "phase": "Activate",
+        "event": "Replacement phase begin",
+        "milliseconds": 4.827
+      },
+      {
+        "slot": "0-0",
+        "phase": "Activate",
+        "event": "Replacement phase recording",
+        "milliseconds": 9.75
+      },
+      {
+        "slot": "4-0",
+        "phase": null,
+        "event": "Replacement decoder preparation",
+        "milliseconds": 70.105
+      },
+      {
+        "slot": "0-0",
+        "phase": null,
+        "event": "Replacement decoder preparation",
+        "milliseconds": 26.559
+      },
+      {
+        "slot": "4-0",
+        "phase": "Readiness",
+        "event": "Replacement phase begin",
+        "milliseconds": 4.606
+      },
+      {
+        "slot": "4-0",
+        "phase": "Readiness",
+        "event": "Replacement phase recording",
+        "milliseconds": 2.67
+      },
+      {
+        "slot": "0-0",
+        "phase": "Readiness",
+        "event": "Replacement phase begin",
+        "milliseconds": 26.732
+      },
+      {
+        "slot": "0-0",
+        "phase": "Readiness",
+        "event": "Replacement phase recording",
+        "milliseconds": 59.674
+      },
+      {
+        "slot": "4-1",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 13.74
+      },
+      {
+        "slot": "4-1",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 81.712
+      },
+      {
+        "slot": "4-1",
+        "phase": "Activate",
+        "event": "Replacement phase begin",
+        "milliseconds": 103.672
+      },
+      {
+        "slot": "4-1",
+        "phase": "Activate",
+        "event": "Replacement phase recording",
+        "milliseconds": 67.255
+      },
+      {
+        "slot": "4-1",
+        "phase": null,
+        "event": "Replacement decoder preparation",
+        "milliseconds": 29.484
+      },
+      {
+        "slot": "4-1",
+        "phase": "Readiness",
+        "event": "Replacement phase begin",
+        "milliseconds": 18.355
+      },
+      {
+        "slot": "4-1",
+        "phase": "Readiness",
+        "event": "Replacement phase recording",
+        "milliseconds": 59.081
+      },
+      {
+        "slot": "0-1",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 52.55
+      },
+      {
+        "slot": "0-1",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 378.175
+      },
+      {
+        "slot": "0-1",
+        "phase": "Activate",
+        "event": "Replacement phase begin",
+        "milliseconds": 37.85
+      },
+      {
+        "slot": "0-1",
+        "phase": "Activate",
+        "event": "Replacement phase recording",
+        "milliseconds": 414.303
+      },
+      {
+        "slot": "0-1",
+        "phase": null,
+        "event": "Replacement decoder preparation",
+        "milliseconds": 33.7
+      },
+      {
+        "slot": "0-1",
+        "phase": "Readiness",
+        "event": "Replacement phase begin",
+        "milliseconds": 36.928
+      },
+      {
+        "slot": "0-1",
+        "phase": "Readiness",
+        "event": "Replacement phase recording",
+        "milliseconds": 6.082
+      },
+      {
+        "slot": "4-2",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 7.384
+      },
+      {
+        "slot": "4-2",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 3.033
+      },
+      {
+        "slot": "4-2",
+        "phase": "Activate",
+        "event": "Replacement phase begin",
+        "milliseconds": 5.919
+      },
+      {
+        "slot": "4-2",
+        "phase": "Activate",
+        "event": "Replacement phase recording",
+        "milliseconds": 3.451
+      },
+      {
+        "slot": "4-2",
+        "phase": null,
+        "event": "Replacement decoder preparation",
+        "milliseconds": 5.897
+      },
+      {
+        "slot": "4-2",
+        "phase": "Readiness",
+        "event": "Replacement phase begin",
+        "milliseconds": 6.237
+      },
+      {
+        "slot": "4-2",
+        "phase": "Readiness",
+        "event": "Replacement phase recording",
+        "milliseconds": 3.516
+      },
+      {
+        "slot": "0-2",
+        "phase": "Attach",
+        "event": "Replacement phase begin",
+        "milliseconds": 23.408
+      },
+      {
+        "slot": "0-2",
+        "phase": "Attach",
+        "event": "Replacement phase recording",
+        "milliseconds": 194.64
+      }
+    ],
+    "maximum_logged_phase_duration_ms": 414.303,
+    "scope": "One one-second inclusive stack sample and logged wall-timestamp phase differences; logging/sampling affect overhead. Counts overlap across threads/callers and are not CPU percentages, lock-holder attribution, paired packet latency or causal proof.",
+    "cause_established": false,
+    "task_complete": false,
+    "cell_qualified": false
+  },
+  "unretired_native_lifetimes": 0,
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "both_original_servers_joined": true,
+  "stopped_original_db_wal_unchanged": true,
+  "stopped_audit_sha256": "b312a91aead8071dca621667e35931312f2dfd9cd094d6a66100260bb14a490c",
+  "single_capture_optimization_included": false,
+  "full_programme_decode_and_capture_qualified": false,
+  "scope": "Original phase-logged native run plus one owned one-second stack sample. Four roots complete; next control deadline aborts. A later known commit remains preparing15 and must not be replayed. Logged wall-time durations and overlapping stack counts do not establish CPU shares, a lock holder, causal speedup, or ordinary media quality.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

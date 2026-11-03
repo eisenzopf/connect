@@ -1,0 +1,231 @@
+{
+  "format": "connect/reference-app-clock-audio-diagnostic/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "passed": false,
+  "run_id": 41562576477,
+  "job_id": 125676384546,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41562576477",
+  "source_revision": "cfe69850be7ff3ad7e32a3b73192c2660a6a959a",
+  "platform": "macos",
+  "checks_passed": 17,
+  "failure": {
+    "stage": "synthetic-browser-audio-capture-playback",
+    "name": "TimeoutError",
+    "code": null,
+    "source_stack": [
+      {
+        "line": 595,
+        "column": 47
+      }
+    ]
+  },
+  "closed_app_failures": [
+    {
+      "code": null,
+      "name": "NodeSdkError",
+      "kind": "deadline",
+      "location": null,
+      "sdk_location": {
+        "file": "node_media_channel.js",
+        "line": 11,
+        "column": 12
+      }
+    }
+  ],
+  "failure_media_pages": [
+    {
+      "role": "owner",
+      "state": "active",
+      "metrics": {
+        "phase": "active",
+        "stopped": false,
+        "capturedAudioFrames": 1392,
+        "decodedAudioFrames": 9,
+        "playedAudioFrames": 3,
+        "sentRtp": 1385,
+        "receivedRtp": 9,
+        "clockReportsSent": 28,
+        "clockReportsReceived": 1,
+        "audioLateDrops": 6,
+        "lastAudioCaptureOffsetMs": -789
+      }
+    },
+    {
+      "role": "organizer",
+      "state": "app-media-network",
+      "metrics": {
+        "phase": "stopped",
+        "stopped": true,
+        "capturedAudioFrames": 29,
+        "decodedAudioFrames": 4,
+        "playedAudioFrames": 3,
+        "sentRtp": 14,
+        "receivedRtp": 4,
+        "clockReportsSent": 1,
+        "clockReportsReceived": 1,
+        "audioLateDrops": 1,
+        "lastAudioCaptureOffsetMs": -662
+      }
+    }
+  ],
+  "observer_flags": {
+    "app_clock_trace": true,
+    "app_native_audio_trace": true,
+    "app_cpu_profile": false,
+    "native_server_sample": false
+  },
+  "runtime_sha256": "5b71a1f00054dd4cf4732cab9a36dfe808f91384c35d228cdd89ae4b528d5da8",
+  "browser": "156.0.8078.48",
+  "native_audio_producer_summary": {
+    "observed": true,
+    "files": [
+      {
+        "server_slot": 0,
+        "private_log_sha256": "79cdd465905b83ad85fb6d818bf8a21234ee4144bb37b0cdf210e41fc4d77125",
+        "format": "connect/private-native-audio-trace-summary/1",
+        "observed": true,
+        "mixer_queued_age": {
+          "samples": 1425,
+          "p50_us": 42446,
+          "p95_us": 83265,
+          "max_us": 120169
+        },
+        "entering_io_age": {
+          "samples": 1425,
+          "p50_us": 45771,
+          "p95_us": 87113,
+          "max_us": 141441
+        },
+        "targets": [
+          {
+            "target_slot": 0,
+            "mixer_queued_age": {
+              "samples": 1409,
+              "p50_us": 42542,
+              "p95_us": 83282,
+              "max_us": 120169
+            },
+            "entering_io_age": {
+              "samples": 1409,
+              "p50_us": 45812,
+              "p95_us": 87113,
+              "max_us": 141441
+            }
+          },
+          {
+            "target_slot": 1,
+            "mixer_queued_age": {
+              "samples": 16,
+              "p50_us": 20628,
+              "p95_us": 75681,
+              "max_us": 75681
+            },
+            "entering_io_age": {
+              "samples": 16,
+              "p50_us": 40538,
+              "p95_us": 98673,
+              "max_us": 98673
+            }
+          }
+        ],
+        "refused_events": 5,
+        "discarded_chunks": 0,
+        "malformed_events": 0,
+        "omitted_target_events": 0,
+        "input_bytes": 625914,
+        "raw_logs_published": false,
+        "scope": "Existing Core trace ages from original source admission to mixer queue and guarded local IO. Samples are independent distributions, not paired packet transit, remote receive/decode/presentation, network loss, or latency qualification. Logging changes observation overhead; ordinary media verification remains separate."
+      }
+    ],
+    "raw_logs_published": false,
+    "scope": "Post-join numeric summaries of this fixture's private server logs. No identifiers, absolute paths or raw log lines. Diagnostic logging affects overhead and does not qualify ordinary media latency."
+  },
+  "native_raw_log_replay_performed": false,
+  "retained_clock_replay_audit": {
+    "passed": true,
+    "exact_observer_and_mapper_source_verified": true,
+    "retained_replay_matches": true,
+    "pending_reads": 0,
+    "pages": [
+      {
+        "label": "owner-audio",
+        "observed_responses": 1294,
+        "observed_open_responses": 0,
+        "skipped_pending": 2,
+        "observation_failures": 167
+      },
+      {
+        "label": "organizer-audio",
+        "observed_responses": 11,
+        "observed_open_responses": 1,
+        "skipped_pending": 1,
+        "observation_failures": 1
+      }
+    ],
+    "scope": "Incomplete retained observer samples; owner audio negotiation response was unobserved. No inferred rate from payload types, native raw log replay, matched packet latency, or causal/quality qualification."
+  },
+  "artifact_audit": {
+    "platform": "macos",
+    "target": "aarch64-apple-darwin",
+    "source_revision": "cfe69850be7ff3ad7e32a3b73192c2660a6a959a",
+    "git_source_files_verified": 5019,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 755,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "5b71a1f00054dd4cf4732cab9a36dfe808f91384c35d228cdd89ae4b528d5da8",
+    "native": {
+      "integer_sample_codec_source_verified": true,
+      "bundled_static_opus_symbols": [
+        "_opus_encoder_create",
+        "_opus_encode",
+        "_opus_decoder_create",
+        "_opus_decode"
+      ],
+      "no_external_homebrew_opus_dependency": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 17,
+    "original_app_passed": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifact_audit_sha256": "83dcae272dbd32d787fdcd99e59493013db187425ff36e018bf85024b4c17ac6",
+  "browser_report_sha256": "2d8ed1ddce8447171f5cae37dae8a842c00f3e66f35e57bfa3c5e48c202e8e10",
+  "artifacts": [
+    {
+      "id": 13199828091,
+      "name": "gate6-runtime-candidate-evidence-aarch64-apple-darwin",
+      "size_in_bytes": 449044,
+      "digest": "sha256:0199c7553375e3166b332fc7035373c14b6c625125aaf410e7a8cda4d35786e5"
+    },
+    {
+      "id": 13198988591,
+      "name": "gate6-runtime-candidate-package-aarch64-apple-darwin",
+      "size_in_bytes": 57288409,
+      "digest": "sha256:4a61c44176f46e8608463d4f94cdfaf932a53670e160df13a379dc284a2ed444"
+    },
+    {
+      "id": 13198988580,
+      "name": "gate6-reference-app-components-aarch64-apple-darwin",
+      "size_in_bytes": 428627,
+      "digest": "sha256:5d1a50e1aec8f77bc13a555acd92f9dac17771d9732bc64c743658feacc03587"
+    },
+    {
+      "id": 13198918670,
+      "name": "gate6-reference-app-node-package-aarch64-apple-darwin",
+      "size_in_bytes": 737274,
+      "digest": "sha256:bbb211003e613f69e5abb753fcf4f9da43c9504b1d4bc6a419436b3c3b767917"
+    }
+  ],
+  "sdk_snapshot_recovery_and_single_capture_optimization_included": false,
+  "causal_bottleneck_established": false,
+  "scope": "Original Mac diagnostic withclock/native-audio observers,30s audio-only waittimeout beforecombinedAV. Organizerstops app-media-network afterNodeSdkError deadline;ownerremainsactive butonly3audioframesplayed. Allfour originalZIP/source/runtime/Node/install-proof auditsPASS. Ages areproducer-reported unpaired distributions;rawlogs unavailable for independentreplay. RetainedHTTPclock replay matches butnegotiation andresponses incomplete. Noordinaryquality/transport qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

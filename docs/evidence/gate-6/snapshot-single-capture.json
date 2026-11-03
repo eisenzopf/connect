@@ -1,0 +1,99 @@
+{
+  "format": "connect/snapshot-single-capture/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+  "source_files_sha256": {
+    "crates/connect-store/src/events/admission.rs": "8a56fe01b5924cab581d1b867af92832f5d2b990e23d842b1fed360372c918ff",
+    "crates/connect-store/src/events/snapshots.rs": "1b997311c4d1b74b58810a0471ec2563760307d4e4ab3f7178f12bc729ab6269",
+    "crates/connect-store/src/events/mod.rs": "94cbd359c2e949479b7fc9ca9deac3d70e8012cbcc61890bede00b4e5fa2eab1",
+    "crates/connect-store/src/peer_authority/tests.rs": "b6041a1ef54b6b2b8ed4a3f6b24682c1eb01007dc68e1503b342e90a4c4cf2a5"
+  },
+  "passed": true,
+  "scope": "Transaction-local metadata projection reuse verified by existing source/capture checks and complete default Store library suite. No production media improvement or complete transport-cell qualification is established.",
+  "before": {
+    "targeted_tests_passed": 2,
+    "single_credential_captures": 3,
+    "multi_credential_captures": 7,
+    "source_inputs_unchanged": true,
+    "log_sha256": "d98cabefb7a825d97117c3c96dcf363c8879c2575a4fc17f0639b6a98ed27adf"
+  },
+  "after": {
+    "targeted_tests_passed": 2,
+    "full_store_tests_passed": 1325,
+    "targeted_tests_are_subset_of_full_suite": true,
+    "failed": 0,
+    "top_level_ignored": 3,
+    "ignored_worker_entrypoint_audit": {
+      "top_level_ignored": 3,
+      "reason": "Dedicated subprocess entrypoints require configured parent fixture environment; not standalone missing qualification.",
+      "passing_parent_tests": [
+        "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+        "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+        "installation_ownership::tests::actual_child_cannot_adopt_live_parent_but_administration_remains_non_adopting",
+        "installation_ownership::tests::actual_owner_process_death_releases_kernel_ownership_despite_stale_file",
+        "transitions::tests::administration_child_get_retry_and_claim_preserve_live_transition_worker",
+        "transitions::tests::process_crashes_cover_durable_boundaries_without_duplicate_callbacks_or_partial_local_commit",
+        "transitions::tests::process_crashes_keep_cancellation_evidence_reconciliation_and_cleanup_atomic"
+      ],
+      "all_parent_outcomes_verified_in_original_log": true
+    },
+    "single_credential_captures": 1,
+    "multi_credential_captures": 5,
+    "all_tracked_prepared_inputs_unchanged": true,
+    "elapsed_seconds_including_build": 451.7893079589121,
+    "logs_sha256": {
+      "capture-cost-and-source-cases": "8567ddbcde2223904e6f43f72dad6f80af9d5fffa06bd09f42c66207626bd911",
+      "full-store-library": "3cc9feb5d99642735e2105f0e36b9e6af98426d97eca9e512a9215b3c194c293"
+    }
+  },
+  "mechanism": {
+    "result_projection_captured_once_in_same_immediate_sql_transaction": true,
+    "source_coverage_checked_before_result_and_after": true,
+    "final_current_actor_and_peer_key_checks_retained": true,
+    "all_credentials_projection_revalidation_retained": true,
+    "paging_cache_contains_frozen_data_not_authority": true,
+    "paging_visibility_and_scope_checks_retained": true,
+    "authority_cached_between_invocations": false,
+    "snapshot_limits_quotas_and_deadlines_changed": false,
+    "schema_or_api_changed": false,
+    "mutation_replay": false
+  },
+  "production_runtime_pending": false,
+  "full_ordinary_media_performance_pending": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "production_runtime": {
+    "source_base_revision": "46869057c067ecb4a5509fb21cc0b4e5145f37a1",
+    "equivalent_committed_source": {
+      "committed_source_revision": "473ddc8b6324c314be245d1ea9e9a2e48f753521",
+      "all_tracked_and_prepared_source_bytes_modes_unchanged": true,
+      "unit_cases_passed": 1325,
+      "top_level_ignored_worker_entries": 3,
+      "source_map_sha256": "a6f45c681f3878588ef13dd3ef21fd1559d8f3e386b80dcbdd2cb5497683b909"
+    },
+    "profiles": {
+      "cli": {
+        "opt_level": "3",
+        "test": false,
+        "test_support": false,
+        "build_log_sha256": "172a1c742afc8a209225e65db86ea3e8b0ca930ec43eaff9f7872cd49f371e92"
+      },
+      "peer": {
+        "opt_level": "3",
+        "test": false,
+        "test_support": false,
+        "build_log_sha256": "05d96acb81f83b1c77443d51e4209c47ea08bca25c0445ead3a5909ac1294f26"
+      }
+    },
+    "cli_sha256": "faa5fbde8397b4a98a39dea663b6013de0cada27d97f9cb17e16a2d23ee6ce4c",
+    "peer_sha256": "712a32ee7a76cb64437b0157e6c7c804e57b4bc5a5ac059cd077361f0b12b680",
+    "all_tracked_prepared_bytes_modes_unchanged": true,
+    "source_inputs_sha256": "a6f45c681f3878588ef13dd3ef21fd1559d8f3e386b80dcbdd2cb5497683b909",
+    "compile_jobs": 1,
+    "elapsed_seconds": 1306.006227124948
+  }
+}

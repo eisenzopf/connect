@@ -1,0 +1,237 @@
+{
+  "format": "connect/reference-app-clock-audio-diagnostic/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "passed": false,
+  "run_id": 41562576477,
+  "job_id": 125676384766,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41562576477",
+  "source_revision": "cfe69850be7ff3ad7e32a3b73192c2660a6a959a",
+  "platform": "linux",
+  "checks_passed": 25,
+  "failure": {
+    "stage": "sustained-combined-browser-audio-video",
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "source_stack": [
+      {
+        "line": 762,
+        "column": 20
+      }
+    ]
+  },
+  "observer_flags": {
+    "app_clock_trace": true,
+    "app_native_audio_trace": true,
+    "app_cpu_profile": false,
+    "native_server_sample": false
+  },
+  "browser": "156.0.8078.4",
+  "browser_product": "full-chromium",
+  "runtime_sha256": "fff72a56ad7acb87893c88c5d57856c32646d7aa9b5c13d9f5e848b01a0194bb",
+  "first_combined_window": [
+    {
+      "role": "owner",
+      "completed_audio_frames": 0,
+      "painted_video_frames": 5
+    },
+    {
+      "role": "organizer",
+      "completed_audio_frames": 0,
+      "painted_video_frames": 15
+    }
+  ],
+  "native_audio_producer_summary": {
+    "observed": true,
+    "files": [
+      {
+        "server_slot": 0,
+        "private_log_sha256": "82fbedf16f8ed3afff508c75031440ad30795e4b19067b705fc90d5320e37779",
+        "format": "connect/private-native-audio-trace-summary/1",
+        "observed": true,
+        "mixer_queued_age": {
+          "samples": 1127,
+          "p50_us": 38801,
+          "p95_us": 72271,
+          "max_us": 105469
+        },
+        "entering_io_age": {
+          "samples": 1339,
+          "p50_us": 39848,
+          "p95_us": 76238,
+          "max_us": 108887
+        },
+        "targets": [
+          {
+            "target_slot": 0,
+            "mixer_queued_age": {
+              "samples": 353,
+              "p50_us": 39416,
+              "p95_us": 44375,
+              "max_us": 62021
+            },
+            "entering_io_age": {
+              "samples": 353,
+              "p50_us": 42930,
+              "p95_us": 48974,
+              "max_us": 64528
+            }
+          },
+          {
+            "target_slot": 1,
+            "mixer_queued_age": {
+              "samples": 406,
+              "p50_us": 23591,
+              "p95_us": 45641,
+              "max_us": 105469
+            },
+            "entering_io_age": {
+              "samples": 406,
+              "p50_us": 26748,
+              "p95_us": 48676,
+              "max_us": 108887
+            }
+          },
+          {
+            "target_slot": 2,
+            "mixer_queued_age": {
+              "samples": 191,
+              "p50_us": 48455,
+              "p95_us": 80138,
+              "max_us": 96821
+            },
+            "entering_io_age": {
+              "samples": 299,
+              "p50_us": 35311,
+              "p95_us": 83955,
+              "max_us": 104513
+            }
+          },
+          {
+            "target_slot": 3,
+            "mixer_queued_age": {
+              "samples": 177,
+              "p50_us": 51541,
+              "p95_us": 78348,
+              "max_us": 86395
+            },
+            "entering_io_age": {
+              "samples": 281,
+              "p50_us": 33914,
+              "p95_us": 80263,
+              "max_us": 98134
+            }
+          }
+        ],
+        "refused_events": 28,
+        "discarded_chunks": 0,
+        "malformed_events": 0,
+        "omitted_target_events": 0,
+        "input_bytes": 546345,
+        "raw_logs_published": false,
+        "scope": "Existing Core trace ages from original source admission to mixer queue and guarded local IO. Samples are independent distributions, not paired packet transit, remote receive/decode/presentation, network loss, or latency qualification. Logging changes observation overhead; ordinary media verification remains separate."
+      }
+    ],
+    "raw_logs_published": false,
+    "scope": "Post-join numeric summaries of this fixture's private server logs. No identifiers, absolute paths or raw log lines. Diagnostic logging affects overhead and does not qualify ordinary media latency."
+  },
+  "native_raw_log_replay_performed": false,
+  "retained_clock_replay_audit": {
+    "passed": true,
+    "exact_observer_and_mapper_source_verified": true,
+    "retained_replay_matches": true,
+    "pending_reads": 0,
+    "pages": [
+      {
+        "label": "owner-audio",
+        "observed_responses": 445,
+        "observed_open_responses": 2,
+        "skipped_pending": 7,
+        "observation_failures": 234,
+        "routes": 2
+      },
+      {
+        "label": "organizer-audio",
+        "observed_responses": 454,
+        "observed_open_responses": 2,
+        "skipped_pending": 3,
+        "observation_failures": 181,
+        "routes": 2
+      },
+      {
+        "label": "owner-av",
+        "observed_responses": 186,
+        "observed_open_responses": 1,
+        "skipped_pending": 100,
+        "observation_failures": 129,
+        "routes": 3
+      },
+      {
+        "label": "organizer-av",
+        "observed_responses": 210,
+        "observed_open_responses": 1,
+        "skipped_pending": 89,
+        "observation_failures": 114,
+        "routes": 3
+      }
+    ],
+    "scope": "Retained observer samples only; native raw logs are not present for independent age-summary replay; no matched packet/decode/presentation latency or causal qualification."
+  },
+  "artifact_audit": {
+    "platform": "linux",
+    "target": "x86_64-unknown-linux-gnu",
+    "source_revision": "cfe69850be7ff3ad7e32a3b73192c2660a6a959a",
+    "git_source_files_verified": 5019,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 753,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "fff72a56ad7acb87893c88c5d57856c32646d7aa9b5c13d9f5e848b01a0194bb",
+    "native": {
+      "elf_header_verified": true,
+      "system_opus_license_present": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 25,
+    "original_app_passed": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifact_audit_sha256": "03b59219978644f9cc7a015b72d2ca792ae4b0b4a5e7f17b5b3abb695072ace6",
+  "browser_report_sha256": "1efa22e7b922cea01f9def5a5871cbf4fb985d0ecb69df35437fa86f1d7ea418",
+  "artifacts": [
+    {
+      "id": 13199567085,
+      "name": "gate6-runtime-candidate-evidence-x86_64-unknown-linux-gnu",
+      "size_in_bytes": 448493,
+      "digest": "sha256:1bbb21d6846ff0adc5636f3add698c42e02b891d1fd3309ce038776796256c44"
+    },
+    {
+      "id": 13199212309,
+      "name": "gate6-runtime-candidate-package-x86_64-unknown-linux-gnu",
+      "size_in_bytes": 61902784,
+      "digest": "sha256:86d16c2315080e82a21f024ac6943187b8412ec44d93a0d6fc2b0933f5afa6f5"
+    },
+    {
+      "id": 13198747936,
+      "name": "gate6-reference-app-node-package-x86_64-unknown-linux-gnu",
+      "size_in_bytes": 737274,
+      "digest": "sha256:5d2fb29481cfe49fbacbbcff01d478c0f84741c6a46af8d05e834554b8cac9b7"
+    },
+    {
+      "id": 13198663105,
+      "name": "gate6-reference-app-components-x86_64-unknown-linux-gnu",
+      "size_in_bytes": 847005,
+      "digest": "sha256:5060a17b099f2b467602199690b1407aa34bcd261553c23b7ef1096c7d1e2407"
+    }
+  ],
+  "sdk_snapshot_recovery_and_single_capture_optimization_included": false,
+  "causal_bottleneck_established": false,
+  "scope": "Linux diagnostic with observers enabled; allfour original ZIP digests/CRC and source/runtime/Node/install-proof bindings verify. Native queue/IO ages are producer summaries, independent distributions over stages; rawlogs unavailable for independent replay. HTTPclock retained replay matches but samples are incomplete and use observer clocks, not actual browser decode/presentation. Not ordinary media quality or transport qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
