@@ -1,0 +1,462 @@
+{
+  "format": "connect/gate6-canonical-native-media-diagnostics-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "f8377c44c0670bbac3c1ca1a4b24d00176872648",
+    "binary_sha256": "9883ab8daee0b6fc269bf8dca7fdb68f3251e083159e9925d3ac259947897ee5",
+    "peer_binary_sha256": "e18b2f955b5ae50acd249105e438d1cd589f9ae44ed3717947cad51c08e2731f",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 1272.433485001995,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "authority_backtrace_sql_and_helper_diagnostics_enabled": false,
+  "control_scenario_passed": false,
+  "original_moves_completed": 2,
+  "movement_failure": {
+    "original_moves_completed": 2,
+    "failure": {
+      "name": "Error",
+      "kind": null,
+      "certainty": null,
+      "observation": {
+        "source_index": 4,
+        "session_index": 1,
+        "ordinal": 1,
+        "stage": "physical-target"
+      }
+    },
+    "target_joins_failed": 0
+  },
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1293,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 37,
+      "packet_events_during_control": 248,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": false,
+      "sent_audio_packets": 30,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 19,
+      "packet_events_during_control": 8,
+      "owner_ready": false,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1284,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 92,
+      "packet_events_during_control": 374,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": false,
+      "sent_audio_packets": 20,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 12,
+      "packet_events_during_control": 3,
+      "owner_ready": false,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 50700421,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 69094,
+      "to_server_packets": 37275,
+      "from_server_packets": 31819,
+      "captured_bytes": 49594893,
+      "udp_payload_bytes": 46692945,
+      "to_server_udp_bytes": 20325814,
+      "from_server_udp_bytes": 26367131
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793715262431,
+    "elapsed_seconds": 49.92484800300008,
+    "sample_count": 51,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 165982208,
+        "observed_cpu_seconds": 38.46,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 56,
+        "peak_sampled_threads": 21,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 930623488,
+        "observed_cpu_seconds": 16.33,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 96,
+        "open_resource_unavailable_samples": 0
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": true,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "native_media_diagnostics_before": {
+    "forwarding": [],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [],
+    "scope": "server-process"
+  },
+  "native_media_diagnostics_after": {
+    "forwarding": [
+      {
+        "handoff_timeouts": 0,
+        "max_us": 29300,
+        "missing_ingress_observations": 0,
+        "p50_us": 16383,
+        "p95_us": 32767,
+        "percentile_method": "log2-bucket-upper-bound",
+        "samples": 16986,
+        "stage": "canonical-native-video-fanout"
+      }
+    ],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 22,
+        "frame_age_boundary": null,
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 12270,
+        "sampled_high_water_packets": 10,
+        "stage": "quic-audio-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": 136,
+        "observations": 12131,
+        "sampled_high_water_packets": 2,
+        "stage": "quic-audio-egress",
+        "stale_forwarding_discards": 3,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": null,
+        "kind": "video",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 17205,
+        "sampled_high_water_packets": 31,
+        "stage": "quic-video-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "video",
+        "max_forwarded_frame_age_ms": 77,
+        "observations": 33992,
+        "sampled_high_water_packets": 31,
+        "stage": "quic-video-egress",
+        "stale_forwarding_discards": 2,
+        "unit": "frame-packets"
+      }
+    ],
+    "scope": "server-process"
+  },
+  "stopped_journal": {
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite",
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "problem": null,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "failed",
+        "revision": 12,
+        "problem": {
+          "code": "native-target-stopped",
+          "source": "native-replacement"
+        },
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "problem": null,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "unknown",
+        "revision": 15,
+        "problem": null,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "unknown",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ]
+  },
+  "quality_executed": false,
+  "quality_passed": false,
+  "interpretation": "Actual canonical native Health collection gap closed: four real Audio/Video port stages and source-correlated video handoff are observed. Audio ingress10-packet queue fills22times; this is actual pressure, not proof of a specific quality cause. Return0-1 fails native-target-stopped and compensates five original started phases; return4-1 records once-attempted commit unknown. Commit debug disabled, so concrete Core refusal remains unproven. Physical owner currently treats an unknown original-root observation as terminal; preserve uncertainty without granting video and add only low-volume original commit-stage diagnostics under unchanged bounds. Full programme/quality unrun; no cell or task promotion.",
+  "snapshot_recovery_runtime_scope": "All new exact signed recovery cases passed earlier. This different return-operation failure does not prove causation or a full runtime pass for snapshot recovery.",
+  "pixel_classification_followup_in_runtime": false,
+  "result_hashes": {
+    "state.json": "1ab6d33f9d32d9fcc0ea4ad10cc5dac7237d6d04b08cc6f1a315f38bf40a136a",
+    "bounded-summary.json": "4018b625d928d3598262ce87ffdbdf4b7dedba645f977cec0c1ce4d37dec3660",
+    "stopped-journal-audit-v1.json": "f274d2fafd68fbbe9a21712e913ecfe12d4bb3ae7b0564d6271184126fe10a4c"
+  },
+  "G054_deferred": true,
+  "general_suites_rerun": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

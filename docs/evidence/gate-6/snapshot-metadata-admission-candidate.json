@@ -11,7 +11,7 @@
     "metadata_recovery_preserves_original_deadline_and_cancellation"
   ],
   "focused_arm_checks_pending": false,
-  "runtime_pending": true,
+  "runtime_pending": false,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -69,5 +69,8 @@
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 54.074547434000124
   },
-  "focused_scope": "Three new exact cases only, each271other functions filtered. Actual signed QUIC initial+continuation recovery, terminal403/unrelated503, original deadline and cancellation. No application service, media quality or whole-cell qualification."
+  "focused_scope": "Three new exact cases only, each271other functions filtered. Actual signed QUIC initial+continuation recovery, terminal403/unrelated503, original deadline and cancellation. No application service, media quality or whole-cell qualification.",
+  "runtime_passed": false,
+  "runtime_result": "docs/evidence/gate-6/canonical-native-media-diagnostics-result.json",
+  "runtime_scope": "Negative different return-operation failure; no full programme or causal snapshot-recovery claim."
 }
