@@ -234,7 +234,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             if native_replacement_metadata_trace:
                 # Private existing phase/error logs; preserve the original
                 # mutation, current authorization and media/deadline budgets.
-                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"
+                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug,rvoip_core::replacement_commit=debug"
             command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,

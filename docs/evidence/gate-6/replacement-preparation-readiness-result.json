@@ -1,0 +1,308 @@
+{
+  "format": "connect/gate6-replacement-preparation-readiness-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "ee3b20b3e426c83f7ef69a5d85f9dd295714a0a4",
+  "host": {
+    "os": "linux",
+    "architecture": "aarch64",
+    "kernel_release": "6.8.0-117-generic",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+    "platform": "ubuntu24-arm64"
+  },
+  "production_cli_sha256": "4cde6dd1f3a7ea2d08a138fb97ea41e7a328442d11b1548bff0db277aa5a334c",
+  "independent_peer_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "72cf59c1d719b2cee2e1b8626626b30d80dc1f8deed89c046d2b005335d6a9cb",
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "elapsed_seconds": 888.1849189620007,
+  "profile": "gate6-realistic-device-roundtrip-v1",
+  "profile_sha256": "9ba8a512a75796bd5facbf6c00bc257bb9d85d7b7317e390a31796cd958cc060",
+  "scheduled_moves": 4,
+  "completed_moves": 2,
+  "original_programme_seconds": 62,
+  "scheduled_start_offsets_ms": [
+    15000,
+    40000
+  ],
+  "preparation_race_result": {
+    "all_four_targets_allocated_once": true,
+    "both_return_targets_negotiated": true,
+    "previous_not_ready_allocation_failure_observed": false,
+    "scope": "The preceding no-custody target allocation failure was not observed. All four originals reached separately confirmed allocation and media start. This is not full workload qualification."
+  },
+  "original_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "failed",
+        "revision": 12,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 1
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "unknown",
+        "revision": 15,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "unknown",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired": 0,
+    "original_db_wal_unchanged": true,
+    "read_mode": "WAL-aware mode=ro against a private copy; originals were never opened by SQLite."
+  },
+  "new_frontier": {
+    "source_0_return": {
+      "state": "failed",
+      "revision": 12,
+      "problem_code": "native-target-stopped",
+      "confirmed_forward_phases": [
+        "prepare",
+        "allocate",
+        "start",
+        "attach",
+        "activate"
+      ],
+      "confirmed_compensations": 5,
+      "audio_packets_sent": 43,
+      "video_packets_sent": 0
+    },
+    "source_4_return": {
+      "state": "unknown",
+      "revision": 15,
+      "confirmed_forward_phases": [
+        "prepare",
+        "allocate",
+        "start",
+        "attach",
+        "activate",
+        "readiness"
+      ],
+      "commit": "unknown, attempted once",
+      "error": "Media(Model(Conflict))",
+      "audio_packets_sent": 22,
+      "video_packets_sent": 0
+    },
+    "scope": "A commit conflict and target lifetime cancellation occur during the return preparation interval. Their ordering/cause is unresolved; no mutation is replayed or unknown outcome promoted. The prior generic allocation refusal and timeout masking are no longer the observed frontier."
+  },
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "all_source_target_joins_failed": 0,
+  "full_programme_completed": false,
+  "decoded_media_qualified": false,
+  "packet_capture_qualified": false,
+  "G054_deferred": true,
+  "general_regression_suites_rerun": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "next": "Enable the two existing Core prepublication conflict stage labels only in the explicit metadata diagnostic lane. Use the unchanged optimized candidate binary for a fresh local ARM original workload; preserve all IDs/effect uncertainty and deadlines."
+}
