@@ -41,5 +41,13 @@
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "shutdown_budget_follow_up": {
+    "runtime_attempt_wait_created_before_blocking_queue": true,
+    "wait_narrows_existing_runtime_stop_cutoff": true,
+    "store_component_sources_unchanged": true,
+    "format_and_diff_check_passed": true,
+    "compile_pending": true,
+    "scope": "Host follow-up after44ac. The live production job remains frozen on44ac and does not verify this follow-up."
+  }
 }
