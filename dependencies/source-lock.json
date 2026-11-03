@@ -1473,6 +1473,11 @@
       "path": "patches/rvoip/gate6-subscription-preflight-diagnostics.patch",
       "sha256": "07aa6daa655d84244a3b10b98b4087661ee04e011ce9efeae216a4c54e36e640",
       "source": "G6-058 diagnostic-only: distinguish missing receiver installation, exact receiver flow confirmation, and Core source-catalog refusal during the original signed subscription preflight. Missing explicit logical source is logged only to private debug output. No outcome, authorization, mutation, retry, deadline, stream binding or quality threshold changes. Original v4 NotReady cause remains unproven; current release verification and fresh actual runtime evidence required. V23 ordinary production narrows NotReady to Core catalog; add static target-member versus participant-source branches with counts only, no identities or media data. Exact current cause remains unresolved until an original runtime observes it."
+    },
+    {
+      "path": "patches/rvoip/gate6-resource-subscription-metadata-recovery.patch",
+      "sha256": "05fa1911c8649b7943155e40b85262712d3c16e2c3e9f4d9d3cc6e6a8b879635",
+      "source": "G6-058 resource-changing subscription pre-IO metadata recovery: after four actual Core counterexamples, retry only PreparedRoutes::prepare Backpressure before the first adapter.prepare poll. Retain the original candidate ports/inflight slot, credential snapshot, held invocation, cutoff and cancellation; reacquire and recheck current source authorization each attempt after dropping all metadata guards. Use existing bounded2ms wait; no native Capacity retry, post-IO replay, age refresh, quota or acceptance change. Four controlled recovery/cancel/deadline/source-refusal cases remain; fresh current after execution and normal runtime performance required. Original live Capacity cause is still unproven."
     }
   ]
 }

@@ -1,0 +1,233 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -339,9 +339,17 @@
+     change: MediaSubscriptionChange,
+     selected: Option<Vec<NegotiatedStream>>,
+ }
++#[derive(Default)]
++struct ResourceMetadataCollision {
++    remaining: AtomicUsize,
++    checks: AtomicUsize,
++    denied: AtomicBool,
++    seen: tokio::sync::Notify,
++}
+ struct HeldLease {
+     held: Arc<Held>,
+     owner: MediaOwner,
++    collision: Arc<ResourceMetadataCollision>,
+ }
+ impl MediaAuthorityLease for HeldLease {
+     fn control_participant_receive(
+@@ -355,6 +363,19 @@
+         &self.owner
+     }
+     fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        self.collision.checks.fetch_add(1, Ordering::AcqRel);
++        if self.collision.denied.load(Ordering::Acquire) {
++            return Err(StreamControlError::Authority);
++        }
++        if self
++            .collision
++            .remaining
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
++            .is_ok()
++        {
++            self.collision.seen.notify_one();
++            return Err(StreamControlError::Backpressure);
++        }
+         let guard = &self.held.guard;
+         let original = guard
+             .owners
+@@ -384,6 +405,7 @@
+ struct HeldPolicy {
+     base: Arc<Policy>,
+     fresh: AtomicUsize,
++    collision: Arc<ResourceMetadataCollision>,
+ }
+ impl MediaPolicy for HeldPolicy {
+     fn current_participant_receive(
+@@ -448,6 +470,7 @@
+             Box::new(HeldLease {
+                 held: held.clone(),
+                 owner,
++                collision: self.collision.clone(),
+             }),
+             CancellationToken::new(),
+             deadline(),
+@@ -526,6 +549,7 @@
+     let policy = Arc::new(HeldPolicy {
+         base: f.policy.clone(),
+         fresh: AtomicUsize::new(0),
++        collision: Arc::new(ResourceMetadataCollision::default()),
+     });
+     for (name, controller, adapter) in [
+         ("alice", &mut f.a, f.aa.clone()),
+@@ -1918,3 +1942,103 @@
+     s.scene.tick();
+     assert!(out.try_recv().is_err(), "expired intent installed a route");
+ }
++
++async fn resource_subscription_metadata_case(mode: &str) {
++    let (s, policy) = held_scene(&[Medium::Audio]).await;
++    let before = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let old = s.f.b.active_bindings()[0].clone();
++    let held = held_resources(&s, receiver_plan(&s)).await;
++    policy.collision.remaining.store(
++        if mode == "recover" { 1 } else { usize::MAX },
++        Ordering::Release,
++    );
++    let cancel = CancellationToken::new();
++    let until = if mode == "deadline" {
++        tokio::time::Instant::now() + Duration::from_millis(40)
++    } else {
++        deadline()
++    };
++    let update = tokio::spawn({
++        let controller = s.f.b.clone();
++        let scene = s.scene.clone();
++        let held = held.clone();
++        let cancel = cancel.clone();
++        async move {
++            controller
++                .change_selected_and_subscriptions(
++                    held.expected,
++                    held.selected.as_ref().unwrap(),
++                    &BTreeSet::new(),
++                    scene,
++                    &held.change,
++                    until,
++                    cancel,
++                    Arc::new(held.clone()),
++                )
++                .await
++        }
++    });
++    tokio::time::timeout(Duration::from_secs(1), policy.collision.seen.notified())
++        .await
++        .expect("controlled source metadata collision must be reached");
++    if mode == "cancel" {
++        cancel.cancel();
++    }
++    if mode == "revoke" {
++        policy.collision.denied.store(true, Ordering::Release);
++    }
++    let outcome = tokio::time::timeout(Duration::from_secs(3), update)
++        .await
++        .unwrap()
++        .unwrap();
++    eprintln!("resource-subscription-metadata mode={mode} outcome={outcome:?} revision={} opens={} adapter_ports={} source_checks={}", s.f.b.revision(), s.f.b.stream_open_budget().0, s.f.ba.outstanding.load(Ordering::Acquire), policy.collision.checks.load(Ordering::Acquire));
++    if mode == "recover" {
++        assert!(
++            outcome.is_ok(),
++            "one pre-IO metadata collision must recover under the original invocation: {outcome:?}"
++        );
++        assert_eq!(s.f.b.revision(), before + 1);
++        assert_eq!(s.f.b.stream_open_budget(), (budget.0 + 3, budget.1));
++        assert_eq!(s.f.ba.outstanding.load(Ordering::Acquire), 4);
++        assert!(policy.collision.checks.load(Ordering::Acquire) >= 2);
++    } else {
++        assert!(match mode {
++            "cancel" => matches!(outcome, Err(StreamControlError::Cancelled)),
++            "deadline" => matches!(outcome, Err(StreamControlError::Deadline)),
++            "revoke" => matches!(outcome, Err(StreamControlError::Authority)),
++            _ => false,
++        }, "original cancellation, cutoff and current source authorization must remain decisive: {outcome:?}");
++        assert_eq!(s.f.b.revision(), before);
++        assert_eq!(s.f.b.stream_open_budget(), budget);
++        assert_eq!(
++            s.f.ba.outstanding.load(Ordering::Acquire),
++            1,
++            "no adapter IO may precede successful source metadata preparation"
++        );
++        assert_eq!(s.f.b.active_bindings().len(), 1);
++    }
++    assert!(s
++        .f
++        .b
++        .active_bindings()
++        .iter()
++        .any(|binding| binding.transport_id == old.transport_id
++            && binding.stream_local_id == old.stream_local_id));
++}
++#[tokio::test]
++async fn resource_subscription_metadata_collision_recovers_before_single_adapter_prepare() {
++    resource_subscription_metadata_case("recover").await;
++}
++#[tokio::test]
++async fn resource_subscription_metadata_collision_preserves_original_cancellation() {
++    resource_subscription_metadata_case("cancel").await;
++}
++#[tokio::test]
++async fn resource_subscription_metadata_collision_preserves_original_deadline() {
++    resource_subscription_metadata_case("deadline").await;
++}
++#[tokio::test]
++async fn resource_subscription_metadata_collision_rechecks_current_source_authorization() {
++    resource_subscription_metadata_case("revoke").await;
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2693,18 +2693,44 @@
+             .iter()
+             .map(|p| p.port.0.binding.clone())
+             .collect::<Vec<_>>();
+-        let mut routes = routing
+-            .map(|(scene, change)| {
+-                media_subscriptions::PreparedRoutes::prepare(
+-                    scene,
++        let mut routes = if let Some((scene, change)) = routing {
++            loop {
++                if cancellation.is_cancelled() || self.shutdown.is_cancelled() {
++                    return Err(StreamControlError::Cancelled);
++                }
++                if tokio::time::Instant::now() >= deadline {
++                    return Err(StreamControlError::Deadline);
++                }
++                self.check_credential_snapshot(&credential)?;
++                if let Some(control) = &control {
++                    control.valid()?;
++                }
++                match media_subscriptions::PreparedRoutes::prepare(
++                    scene.clone(),
+                     self,
+                     change,
+                     &credential,
+                     control.as_ref(),
+                     &bindings,
+-                )
+-            })
+-            .transpose()?;
++                ) {
++                    Err(StreamControlError::Backpressure) => {
++                        // All scene/state/source grants from this failed metadata
++                        // preparation are gone. Keep this original candidate's
++                        // ports and cutoff; adapter IO has not been polled yet.
++                        media_subscriptions::metadata_wait(
++                            self.shutdown.clone(),
++                            cancellation.clone(),
++                            control_cancel.clone(),
++                            deadline,
++                        )
++                        .await?;
++                    }
++                    result => break Some(result?),
++                }
++            }
++        } else {
++            None
++        };
+         // One prepare call may partially open its batch even when it fails or
+         // is cancelled. Consume its new-port budget before polling adapter I/O;
+         // cleanup never refunds cumulative opens or lets reoffers reset it.
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -99,7 +99,7 @@
+ // Wait only after a definite precommit metadata collision. Callers have
+ // released scene/state/policy guards and still own the original inflight slot,
+ // plan, credentials and cutoff. No authority lease is shared across the wait.
+-async fn metadata_wait(
++pub(super) async fn metadata_wait(
+     shutdown: CancellationToken,
+     cancel: CancellationToken,
+     control_cancel: CancellationToken,

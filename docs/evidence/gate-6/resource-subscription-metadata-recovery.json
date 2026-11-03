@@ -1,0 +1,129 @@
+{
+  "format": "connect/resource-subscription-metadata-recovery/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "passed": true,
+  "implementation_parent_revision": "88828569578dd8a98ca81d3fedcdc2d1baa70b0e",
+  "patch": "patches/rvoip/gate6-resource-subscription-metadata-recovery.patch",
+  "patch_sha256": "05fa1911c8649b7943155e40b85262712d3c16e2c3e9f4d9d3cc6e6a8b879635",
+  "source_lock_sha256": "f5ef1fa90c41a4050f1cb6a56e53bb385717060eacf5520646a62d88751656e6",
+  "recorded_patch_count": 272,
+  "upstream_source_files_sha256": {
+    "crates/foundation/rvoip-core/src/staged_streams.rs": "c43a277bfbdf0762b6c548dc4261e62810f15d2edc838fcb8296cc28d06f2cf1",
+    "crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs": "130229a8826c02dfbfe894b60598268e7ca4ce29ab5bc6874fc55899d67da5d9",
+    "crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs": "3dfee75ccd06b34ac63ebeb63435e8d451a9cd5c658ccc8ccdea35322ab03e6e"
+  },
+  "before": {
+    "format": "connect/resource-subscription-original-before-audit/1",
+    "counterexamples_reproduced": true,
+    "actual_core_test_summary": {
+      "outcome": "FAILED",
+      "passed": 0,
+      "failed": 4,
+      "ignored": 0
+    },
+    "actual_core_test_exit_code": 101,
+    "original_reporter_exit_failed": true,
+    "reporter_failure_reason": "Observation parser required beginning-of-line text; libtest writes its test name before each inline diagnostic. Actual compiler/test execution and original source guards passed their respective checks. Original state is preserved unchanged; this audit parses the original complete log.",
+    "source_inputs_unchanged": true,
+    "test_binary_sha256": "b6755ba79825b64e08a4955bf561af8c48f3881717b6d741782c02748dcc0b07",
+    "original_log_sha256": "7060dbd906d48c96e431827b6db240997f3f29fd4508e71edb2309580e014dd9",
+    "cases": [
+      {
+        "mode": "cancel",
+        "outcome": "Err(Backpressure)",
+        "revision": 1,
+        "attempted_stream_opens": 1,
+        "adapter_ports": 1,
+        "source_metadata_checks": 1
+      },
+      {
+        "mode": "deadline",
+        "outcome": "Err(Backpressure)",
+        "revision": 1,
+        "attempted_stream_opens": 1,
+        "adapter_ports": 1,
+        "source_metadata_checks": 1
+      },
+      {
+        "mode": "revoke",
+        "outcome": "Err(Backpressure)",
+        "revision": 1,
+        "attempted_stream_opens": 1,
+        "adapter_ports": 1,
+        "source_metadata_checks": 1
+      },
+      {
+        "mode": "recover",
+        "outcome": "Err(Backpressure)",
+        "revision": 1,
+        "attempted_stream_opens": 1,
+        "adapter_ports": 1,
+        "source_metadata_checks": 1
+      }
+    ],
+    "new_adapter_io_observed": false,
+    "known_live_capacity_cause_proven": false,
+    "scope": "Four actual Core resource-changing subscription cases with held current source hook collisions before adapter preparation; test-only patch272, production implementation unchanged. Not live failure-cause or codec/transport quality proof."
+  },
+  "after": {
+    "four_targeted_cases_passed": 4,
+    "full_core_library_cases_passed": 588,
+    "targeted_cases_subset_of_full_suite": true,
+    "failed": 0,
+    "ignored": 0,
+    "all_tracked_prepared_inputs_unchanged": true,
+    "same_test_binary_for_targeted_and_full_suite": true,
+    "test_binary_sha256": "62552bcf8b15fad21f7df422c94de96a2144d29669ac1548eb7a417052f0ce3e",
+    "cohorts": [
+      {
+        "name": "four-controlled-cases",
+        "exit_code": 0,
+        "outcome": "ok",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "3f3d1da16ca9eca54973fc510b9b4ecb31e1aebcb4b5244bc616992d985f3b6b"
+      },
+      {
+        "name": "full-core-library",
+        "exit_code": 0,
+        "outcome": "ok",
+        "passed": 588,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "72789fcdd3e29c3aca3eb4c3e57950640c7115bfdb484d5d8eddc7754f62a2bb"
+      }
+    ],
+    "controlled_observations": [
+      "resource-subscription-metadata mode=cancel outcome=Err(Cancelled) revision=1 opens=1 adapter_ports=1 source_checks=1",
+      "resource-subscription-metadata mode=deadline outcome=Err(Deadline) revision=1 opens=1 adapter_ports=1 source_checks=11",
+      "resource-subscription-metadata mode=revoke outcome=Err(Authority) revision=1 opens=1 adapter_ports=1 source_checks=2",
+      "resource-subscription-metadata mode=recover outcome=Ok(()) revision=2 opens=4 adapter_ports=4 source_checks=9"
+    ],
+    "elapsed_seconds_including_compilation": 293.825672457926,
+    "source_inputs_sha256": "be9671210eabf354c20a25ea90468abe717ae12857a6a01dffa9dc7c41e9d99f"
+  },
+  "mechanism": {
+    "boundary": "PreparedRoutes metadata before first adapter.prepare poll and before new-open budget consumption",
+    "retry_only": "StreamControlError::Backpressure from metadata preparation",
+    "wait_ms": 2,
+    "original_candidate_ports_and_inflight_slot_retained": true,
+    "original_credential_and_control_cutoff_retained": true,
+    "current_source_authorization_rechecked_each_attempt": true,
+    "all_metadata_grants_and_locks_dropped_before_wait": true,
+    "cancellation_shutdown_and_original_deadline_rechecked": true,
+    "no_generic_native_capacity_retry": true,
+    "no_retry_after_possible_adapter_io": true,
+    "no_journal_original_replay": true,
+    "stream_quotas_source_clocks_and_quality_limits_unchanged": true
+  },
+  "production_runtime_verification_pending": true,
+  "live_capacity_failure_cause_proven": false,
+  "scope": "Actual Core staged resource and routing transaction tests with controlled held current-source hooks and owned adapter fixtures, then complete default Core library (opus,vcon-signing). Four before cases fail with pre-IO Backpressure; after recovery/cancel/deadline/current source denial passes. No complete media programme, real codec quality, App, provider or transport-cell qualification.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
