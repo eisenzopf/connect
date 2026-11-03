@@ -1,0 +1,53 @@
+{
+  "format": "connect/gate6-captured-writer-drain-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "v24 actual physical commits take306-7410us, followed by up to995.124ms capture/projection/adoption. This suggests immediate writer refusal plus20ms retry can miss short packet readers. The new controlled before case confirms refusal of a reader released shortly after admission starts, not the exact cause of every live gap.",
+  "change": "Captured replacement phase/commit/established metadata admits its unchanged complete scope with a five-millisecond fair acquisition budget,100us polling, SQL released before waiting. Reacquire SQL with try/zero SQLite busy timeout and rederive scopes under that same returned guard before unchanged exact transaction. Long-held readers still refuse without state change; no physical effect, mutation, packet or source-clock replay.",
+  "authority_wait_details": "Per-wait polling is clamped50us-2ms; ordinary waits retain2ms polling and existing deadlines. Bounded clones retain the earlier deadline, cancellation owner and cadence. Local reader-registry acquisition now try-locks with the same deadline/cancellation instead of unbounded mutex lock. Immediate packet admission remains one nonwaiting try.",
+  "preserved": [
+    "Original service metadata-only retry/cancellation bounds, current file/credential/membership/runtime/target/effect/generation/transaction checks.",
+    "Full writer scopes and fair refusal to new packet readers while a real writer is reserved.",
+    "No SQL mutex held across authority wait; no SQLite busy wait.",
+    "All media quality, programme, source-age, decoded-content, cleanup and full-cell requirements."
+  ],
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "06f374b35d8f10e08bde470f1a8a660825b6fec5",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "4d4ad70a606f3aa635f5bfba47c08bbf897f035b37062ab3ed2ce04abace131a",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1329 filtered out; finished in 0.25s"
+    ],
+    "test_log_sha256": "575a2c74239c775766f77c802b93173594d20c0aec9c581497015f2383011623",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 81.64535135099868
+  },
+  "before_check_pending": false,
+  "after_source_revision": "0e92ce39b5b38b46c219e2a6ce161de2baadf323",
+  "after_cases": [
+    "connection_control::tests::replacement_sources::commit::captured_projection_drains_short_packet_readers_without_long_writer_parking",
+    "authority_fences::tests::brief_metadata_wait_bounds_local_registry_and_preserves_original_owner"
+  ],
+  "after_check_pending": true,
+  "normal_runtime_pending": true,
+  "risks_and_remaining": "Brief writer admission still briefly closes fresh readers and SQL/capture work follows acquisition. Actual workload must verify progress and quality. Adoption order/public completion and video bootstrap remain separate unresolved requirements. No full-cell promotion from components.",
+  "source_sha256": {
+    "crates/connect-store/src/authority_fences.rs": "8f090b2f3f9a75174001c44ef818d76fa2d2469232244090116b81a4ef57e241",
+    "crates/connect-store/src/authority_fences/tests.rs": "4cd8a29803c3ef380b9539d74af5465d96aaa68b1496736a6dd3539e9c1f6a86",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs": "271f88b36689930a825cba038d637019261d4d4304dd295629f9d2047015b498",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit.rs": "75124a8f6275cc2358c0ae05ee492cf0e1ef92a6b0977a2bc49383b6a1798c9e"
+  },
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
