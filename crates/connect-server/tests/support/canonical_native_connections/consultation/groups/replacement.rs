@@ -825,6 +825,10 @@ async fn exercise_replacement_with_av_control(
                     );
                     tokio::time::sleep(Duration::from_millis(20)).await;
                 };
+                if activation_barrier_audit {
+                    activation::crash::pause_after_capture(&f, candidate, &command, &key.token)
+                        .await;
+                }
                 let admin = f.server.store.authenticate(&f.admin).unwrap();
                 let credential = f
                     .server

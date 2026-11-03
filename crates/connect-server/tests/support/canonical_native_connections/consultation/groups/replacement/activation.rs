@@ -1,9 +1,15 @@
 //! Actual signed native replacement under a blocked final Store transaction.
 //! Scope: target revocation before public activation, not process-crash recovery.
 use super::*;
+#[path = "activation/crash.rs"]
+pub(super) mod crash;
 
 #[tokio::test]
 async fn production_captured_replacement_revocation_never_publishes_ready_or_replays_movement() {
+    exercise().await;
+}
+
+pub(super) async fn exercise() {
     exercise_replacement_with_av_control(
         true,
         true,

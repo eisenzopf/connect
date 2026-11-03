@@ -1,0 +1,21 @@
+{
+  "format": "connect/gate6-replacement-activation-crash-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Add one actual SIGKILL recovery case after original signed native movement is durably captured and an isolated SQL trigger blocks final replacement activation. Parent verifies SIGKILL, removes only the fixture trigger after death, restarts the real server and requires stopped historical completion, retired original generation, no Ready event or live lifetimes, unchanged effects, public original-command replay and zero recreated native peers.",
+  "new_case": "canonical_native_connections::consultation::groups::replacement::activation::crash::production_sigkill_captured_replacement_recovers_stopped_without_ready_or_replay",
+  "checks_pending": [
+    "Compile the canonical runtime integration target on local Ubuntu 24.04 ARM64 after the preceding guarded jobs finish.",
+    "Run only the new exact crash case; it invokes one ignored child entry point and requires an actual SIGKILL."
+  ],
+  "limitations": [
+    "Candidate is not compiled or executed yet.",
+    "The crash marker proves durable physical capture before Ready; it does not assert a particular inactive adapter installation subphase.",
+    "No crash after already-published Ready, final native cancellation/SQL race, Data observer allocation fault or media-quality qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
