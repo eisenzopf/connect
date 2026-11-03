@@ -30,10 +30,6 @@ async fn write(
     kind: &str,
     payload: Value,
 ) {
-    if let Case::Metadata(mode) = case {
-        metadata::emit(mode, request, writer, reader, signer, signal).await;
-        return;
-    }
     assert_eq!(request.kind(), "conversation.get");
     let mut frame = envelope(kind, payload);
     frame["cid"] = request.original()["cid"].clone();
@@ -65,6 +61,10 @@ pub(super) async fn emit(
     signer: &Sig9421Signer,
     signal: &Notify,
 ) {
+    if let Case::Metadata(mode) = case {
+        metadata::emit(mode, request, writer, reader, signer, signal).await;
+        return;
+    }
     if matches!(case, Case::InitialResync) {
         write(
             writer,

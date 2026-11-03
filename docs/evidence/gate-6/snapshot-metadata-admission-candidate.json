@@ -16,5 +16,18 @@
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "first_focused_compile": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "cabc8b945d44e1e827708452e2d98d9d5a7db1cf",
+    "passed": false,
+    "general_suites_rerun": false,
+    "steps": [],
+    "compile_exit_code": 101,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 63.914901504002046,
+    "failure": "Test dispatcher inserted in write instead of emit helper, four compile errors, no tests executed. Move dispatcher into actual emit; production snapshot reader unchanged. Corrected focused checks pending."
+  }
 }
