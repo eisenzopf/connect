@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "component_tests": 2,
+  "source_sha256": "bfe4087b2a71f29f155fe8b31eee615f6b63255f83dd406bc26a92f95bf2f0b1",
+  "elapsed_seconds": 0.6100219450017903,
+  "scope": "Exact new production lifetime.rs source; standalone component harness, not a full service libtest run.",
+  "task_complete": false,
+  "format": "connect/gate6-peer-lifetime-availability-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_parent": "1e8f5576d74980b93488494f7d20b3418725f079",
+  "files_sha256": {
+    "crates/connect-service/src/peer_authority.rs": "4b28d8892f4978d887cf7e158be8dd5a76e1431c8739596c022224a82fc50269",
+    "crates/connect-service/src/peer_authority/lifetime.rs": "bfe4087b2a71f29f155fe8b31eee615f6b63255f83dd406bc26a92f95bf2f0b1",
+    "crates/connect-service/src/peer_authority/credential_refresh.rs": "aaea3507673df7c7e0b88d351d2245e20b6199c1ed50a42a01bca5dba531fc16",
+    "scripts/check-transport-fixtures.py": "d334b98135b92bc0ccc0a1489a16cae03f244269b419dbceb70ec9485f085e99"
+  },
+  "component_only": true,
+  "runtime_qualified": false,
+  "defect": "Background credential/key lifetime watch previously retired physical peers on every metadata read error, including transient storage/authority unavailability.",
+  "change": "Only definite refusal retires the peer. Unavailable metadata defers the negative hint; current operation/packet authorization and the independent credential/key expiry timer remain required.",
+  "causation_limit": "Source-level correctness defect and signal failure/recovery sequence verified; causality to the preceding runtime failures is not yet established.",
+  "diagnostics": {
+    "default_enabled": false,
+    "lane": "Only explicit native_replacement_metadata_trace enables the debug target.",
+    "maximum_records_per_policy": 2048,
+    "fields": [
+      "closed static Payload kind",
+      "admission duration",
+      "post-admission retained-grant duration",
+      "admitted boolean",
+      "fixed current refusal/unavailable code"
+    ],
+    "not_logged": [
+      "request or logical operation IDs",
+      "scopes",
+      "payloads",
+      "credentials",
+      "configuration"
+    ],
+    "refresh_grant_timing": "Successor credential refresh grant is not included in command hold attribution."
+  },
+  "validation": {
+    "exact_source_component_tests_passed": 2,
+    "failed": 0,
+    "Rust_format_check_pending": true,
+    "Python_syntax": true,
+    "general_regression_suites_rerun": false,
+    "normal_production_build_pending": true
+  },
+  "log_sha256": {
+    "compile.log": "b27c237ba3519346f9ed619fd575723bcf8f0fb8845773896e5b0f2d38ca20d9",
+    "tests.log": "f62bacf6a9fc852c734ffb8f759804dbd212b0d4f5d4b07e72ece550f4e80868"
+  },
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

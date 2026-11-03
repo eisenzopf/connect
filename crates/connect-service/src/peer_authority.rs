@@ -32,6 +32,7 @@ struct Watch {
 struct Registry {
     watches: Mutex<Vec<Weak<Watch>>>,
     capacity: usize,
+    command_timings: Arc<std::sync::atomic::AtomicUsize>,
 }
 pub(crate) struct Grant {
     policy: String,
@@ -42,9 +43,11 @@ pub(crate) struct Grant {
     native_stream_plan: Mutex<Option<native_streams::Planned>>,
     webrtc_answer: Mutex<Option<serde_json::Value>>,
     native_data: Mutex<Weak<crate::canonical_media::data::DataInvocation>>,
+    _timing: Option<lifetime::CommandTiming>,
 }
 mod credential_refresh;
 mod invitations;
+mod lifetime;
 mod native_data;
 pub(crate) use native_data::{bind as bind_native_data, invocation as native_data_invocation};
 mod native_streams;
@@ -110,10 +113,12 @@ impl StorePeerAuthority {
         let registry = Arc::new(Registry {
             watches: Mutex::new(vec![]),
             capacity,
+            command_timings: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         });
         let weak = Arc::downgrade(&registry);
         let shutdown = stop.clone();
         let observed_store = store.clone();
+        let command_timings = registry.command_timings.clone();
         tokio::spawn(async move {
             loop {
                 tokio::select! {biased; _=shutdown.cancelled()=>break,_=tokio::time::sleep(Duration::from_millis(100))=>{}}
@@ -135,14 +140,13 @@ impl StorePeerAuthority {
                     continue;
                 }
                 let store = observed_store.clone();
+                let command_timings = command_timings.clone();
                 let check = tokio::task::spawn_blocking(move || {
                     for watch in watches {
-                        if StoreCredentialBinding::from_validated(&store, &watch.credential)
-                            .is_err()
-                            || store.check_peer_authority(&watch.request).is_err()
-                        {
-                            watch.signal.cancel();
-                        }
+                        let current =
+                            StoreCredentialBinding::from_validated(&store, &watch.credential)
+                                .and_then(|_| store.check_peer_authority(&watch.request));
+                        lifetime::observe(&watch.signal, current, &command_timings);
                     }
                 })
                 .await;
@@ -417,6 +421,10 @@ impl StorePeerAuthority {
         }
         let invocation_id = e.id().to_owned();
         let policy = self.id.clone();
+        let mut timing = lifetime::CommandTiming::start(
+            e.payload().kind(),
+            self.registry.command_timings.clone(),
+        );
         let store = self.store.clone();
         let lifetime = self.stop.clone();
         let wait = AuthorityWait::new(Duration::from_secs(2));
@@ -470,6 +478,9 @@ impl StorePeerAuthority {
             let duration = (end - chrono::Utc::now())
                 .to_std()
                 .map_err(|_| DispatchError::Authority)?;
+            if let Some(timing) = &mut timing {
+                timing.admitted();
+            }
             let grant = Arc::new(Grant {
                 policy,
                 invocation_id,
@@ -479,6 +490,7 @@ impl StorePeerAuthority {
                 native_stream_plan: Mutex::new(None),
                 webrtc_answer: Mutex::new(None),
                 native_data: Mutex::new(Weak::new()),
+                _timing: timing,
             });
             let current = grant.clone();
             Ok(AuthorityLease::checking(

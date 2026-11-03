@@ -1,0 +1,152 @@
+{
+  "format": "connect/gate6-return-commit-metadata-trace-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "1e8f5576d74980b93488494f7d20b3418725f079",
+  "binary_sha256": "4cde6dd1f3a7ea2d08a138fb97ea41e7a328442d11b1548bff0db277aa5a334c",
+  "binary_unchanged_from_previous_run": true,
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "elapsed_seconds": 95.677434731002,
+  "report_sha256": "bfef829d67322d0f3ca813678f239b32dda4c31a27a7ee0c253cfb2606cd23e3",
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "movement_profile": "gate6-realistic-device-roundtrip-v1",
+  "scheduled_moves": 4,
+  "original_moves_completed": 0,
+  "failure": {
+    "name": "NodeSdkError",
+    "kind": "application",
+    "certainty": "refused",
+    "observation": {
+      "stage": "media-workload"
+    },
+    "protocol_problem_code": 503
+  },
+  "core_conflict_labels_observed": false,
+  "scope": "The run stopped during the first pair before reproducing a return commit conflict. Added Core labels therefore supply no conflict-cause proof. One root completed; the second last journal state is Preparing14 with a submitting once-attempted commit. No original is replayed or promoted.",
+  "authority_hold_observations": {
+    "emitted_intervals": 20,
+    "maximum_ms": 8011,
+    "maximum_callsite": "connect-store/src/peer_authority.rs:774",
+    "command_type_unattributed": true,
+    "scope": "These are emitted held intervals, not a complete census of every wait/hold."
+  },
+  "original_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "preparing",
+        "revision": 14,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "submitting",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired": 0,
+    "original_db_wal_unchanged": true
+  },
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "target_joins_failed": 0,
+  "G054_deferred": true,
+  "general_regression_suites_rerun": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

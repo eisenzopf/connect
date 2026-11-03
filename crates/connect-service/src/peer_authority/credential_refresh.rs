@@ -205,6 +205,7 @@ async fn worker(
     proof.limit_expiry(expiry).map_err(store_error)?;
     let plan = Arc::new(plan);
     let grant = Arc::new(Grant {
+        _timing: None,
         policy,
         invocation_id: refresh.refresh_id().into(),
         proof,
