@@ -14,7 +14,7 @@
   "new_controlled_case": "connection_control::tests::replacement_sources::commit::captured_projection_refuses_contention_without_parking_packet_readers",
   "new_case_scope": "Actual Store immutable captured commit: held packet read, held local SQL mutex, foreign SQLite writer, unchanged state on refusal, later original projection and duplicate without new effects. No native IO.",
   "before_source_revision": "f7d82d40212e4fc448238ba6e390f01d31a88214",
-  "before_check_pending": true,
+  "before_check_pending": false,
   "after_check_pending": true,
   "normal_runtime_pending": true,
   "source_sha256": {
@@ -28,5 +28,25 @@
   "G054_deferred": true,
   "cell_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "f7d82d40212e4fc448238ba6e390f01d31a88214",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "b5cc3ebf9efca497db260244cba261a9b29c7b1e404b9f74b3111c15cd037f03",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1328 filtered out; finished in 2.24s"
+    ],
+    "test_log_sha256": "f67a9954721806531d1a66e3e5fb83c5fd30a812e1387568fe10ff02ed1f9e27",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 82.92762214600225
+  },
+  "after_source_revision": "95471636826b1fa4d2dbce9b79a44dfb49dd5e21"
 }
