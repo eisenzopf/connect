@@ -1,0 +1,153 @@
+{
+  "format": "connect/packet-authority-busy-backoff/1",
+  "tasks": [
+    "G6-058",
+    "G6-072"
+  ],
+  "passed": true,
+  "scope": "Current macOS arm64 debug component checks only; normal production media performance remains unproven.",
+  "implementation_parent_revision": "c2fc73b4e6c3420fee9955bee171bcc89745c7a6",
+  "source_files_sha256": {
+    "crates/connect-service/src/canonical_media/packets.rs": "d72fd6830669db7ef6e312408079dca76cb1dd625d389ad71e5bbb5ffe35a4b7"
+  },
+  "busy_only_pause_microseconds": 100,
+  "original_packet_retry_budget_milliseconds": 10,
+  "budget_renewed": false,
+  "positive_grants_or_rows_cached": false,
+  "original_packet_or_mutation_replayed": false,
+  "diagnostic": {
+    "source_revision": "c2fc73b4e6c3420fee9955bee171bcc89745c7a6",
+    "normal_cli_sha256": "4adfadf03d2facdbb83d21db2a4d181704e62fef63f7552ef97b8534a7dd4757",
+    "sample_count": 1,
+    "sample_seconds_each": 1,
+    "original_owned_before_and_after": true,
+    "raw_sample_sha256": "a3b7f7d96284e622b12e7e5d822698049b1303cadc979502a8f4e3f0261b4e52",
+    "observer_joined": true,
+    "observer_errors": [],
+    "sampled_component_callers": [
+      {
+        "symbol": "<rvoip_core::staged_streams::StreamController>::admit_with_deadline",
+        "stack_samples": 1280
+      },
+      {
+        "symbol": "<connect_service::canonical_media::Policy>::packet_current",
+        "stack_samples": 1255
+      },
+      {
+        "symbol": "<connect_store::authority_fences::Manager>::acquire_with",
+        "stack_samples": 1253
+      },
+      {
+        "symbol": "connect_service::canonical_media::packets::packet_read_until::<connect_store::peer_authority::connection_media::NativeMediaRead, <connect_service::canonical_media::Policy>::packet_current::{closure#8}>",
+        "stack_samples": 1241
+      },
+      {
+        "symbol": "<connect_store::Store>::native_media_read_at",
+        "stack_samples": 1226
+      },
+      {
+        "symbol": "connect_store::peer_authority::connection_media::snapshot::cached::<(connect_store::peer_authority::connection_projection::PeerConnectionProjection, core::option::Option<connect_store::peer_authority::connection_projection::PeerConnectionProjection>, i64, bool), <connect_store::Store>::native_media_read_at::{closure#0}, <connect_store::Store>::native_media_read_at::{closure#1}>",
+        "stack_samples": 1117
+      },
+      {
+        "symbol": "<connect_store::authority_fences::Manager>::lock_file",
+        "stack_samples": 751
+      },
+      {
+        "symbol": "<rvoip_uctp::v2::native_media::NativePeerMedia>::reader::{closure#0}",
+        "stack_samples": 708
+      }
+    ],
+    "activation_metadata_recording_wait_seconds": 6.044822,
+    "cause_established": false,
+    "limits": "Inclusive stack counts are not CPU seconds or proof of a lock owner. The sampled diagnostic is not transport acceptance. Isolated filesystem stat/flock costs did not establish an external-drive penalty."
+  },
+  "after": {
+    "unit_suites": [
+      {
+        "name": "existing fresh/permanent/budget packet policy cases",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "signed_cases": [
+      {
+        "name": "canonical_native_connections::cleanup::production_native_server_drop_releases_custodians_before_successor_metadata_recovery",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_shutdown_settles_exact_lifetimes_after_a_refused_authority_attempt",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_shutdown_reports_unsettled_custody_instead_of_success",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_native_connections::cleanup::production_native_cleanup_wait_keeps_unrelated_signed_commands_running_and_retains_unsettled_custody",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_native_connections::consultation::groups::replacement::av::production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_native_connections::consultation::groups::replacement::production_replacement_known_commit_metadata_failure_and_target_loss_retire_without_replay",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::admission::original_rtc_primary_media_admits_once_and_joins_core_after_remote_close",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    ],
+    "distinct_cases_passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "component_binary_sha256": {
+      "connect_service": "a7afaeaf5f73cf0dfbfcc0b4fc5c11709c4708d4127d00e4e91f92355b79ce8d",
+      "gate6_canonical_webtransport": "caac387d5b1a10ddd9040146d705b91c17a69a74c833e5ee5d0abb50ba6b4c67",
+      "gate6_canonical_runtime": "401c7a6efa9b0e3e4295ebbff15872503d7fc7222923e081f1d0b375c7a7a320"
+    },
+    "source_inputs_sha256": "b3f3c2adddef2fdf3c8a91180f2ae7e19055205e0d2dfd2405c0ba4246273c2b",
+    "source_inputs_unchanged": true
+  },
+  "unchanged_store_source_prior_verification": {
+    "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+    "cases_passed": 448,
+    "store_files_unchanged": true,
+    "rerun_for_this_service_change": false
+  },
+  "normal_production_runtime_pending": true,
+  "full_programme_pending": true,
+  "performance_improvement_proven": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

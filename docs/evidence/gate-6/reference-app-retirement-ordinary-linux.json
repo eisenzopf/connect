@@ -1,0 +1,252 @@
+{
+  "format": "connect/reference-app-retirement-ordinary-linux/1",
+  "tasks": [
+    "G6-072"
+  ],
+  "passed": true,
+  "scope": "Original ordinary installed Linux App component at source664bf592 only. Mac, complete SDK installation qualification, G058 full transport media and the later packet-backoff runtime are not qualified by this result.",
+  "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+  "run_id": 41549564631,
+  "job_id": 125633505563,
+  "url": "https://github.com/eisenzopf/connect/actions/runs/41549564631/job/125633505563",
+  "node": "v22.23.4",
+  "browser": "156.0.8078.4",
+  "browser_product": "full-chromium",
+  "frozen_browser_profile_verified": "ubuntu24-x86_64",
+  "optional_observers_requested": false,
+  "checks_passed": 37,
+  "checks": [
+    "actual-public-helper-validates-all-generated-identity-intents",
+    "actual-public-helper-refuses-128-and-accepts-127-and-server-default-pages",
+    "one-command-four-actor-scoped-setup-ready",
+    "four-installed-native-devices-have-verified-media-endpoints-with-original-decision-recovery",
+    "actual-installed-native-SDK-control-connected",
+    "actual-browser-native-timers-present-owned-video-clones-after-original-frames-close",
+    "keyboard-participant-selection-and-conversation-creation",
+    "actual-authorized-text-safe-timeline",
+    "keyboard-incoming-invitation-and-actual-acceptance",
+    "actual-browser-microphone-and-camera-refusal",
+    "320px-no-horizontal-overflow",
+    "actual-accepted-original-survives-lost-response-and-offline",
+    "keyboard-original-status-recovery-one-visible-message",
+    "keyboard-two-participants-open-distinct-native-audio-connections-in-the-accepted-session",
+    "keyboard-current-peer-stream-subscribe-and-unsubscribe-with-negotiated-revisions",
+    "keyboard-native-mute-unmute-hold-resume-complete-through-public-sdk",
+    "negotiated-connection-controls-fit-320px-without-horizontal-overflow",
+    "keyboard-synthetic-microphones-publish-and-identified-opus-audio-plays-in-both-directions",
+    "current-active-session-snapshots-preserve-original-browser-media-capture",
+    "original-connection-local-restart-does-not-play-queued-audio-from-the-stopped-peer",
+    "keyboard-media-stop-joins-owned-browser-capture-render-and-packet-work",
+    "additional-owned-synthetic-media-browser-owners-close",
+    "keyboard-both-original-native-audio-connections-end-with-the-original-session-scope",
+    "keyboard-separate-accepted-av-session-and-two-original-native-connections",
+    "keyboard-synthetic-cameras-publish-and-identified-vp8-video-paints-in-both-directions",
+    "both-original-av-connections-sustain-identified-audio-and-video-in-every-observation-window",
+    "keyboard-av-stop-joins-all-capture-render-and-packet-work-and-removes-only-incoming-video",
+    "keyboard-cancellation-stops-a-late-actual-browser-device-result-before-publication",
+    "actual-microphone-permission-revocation-ends-tracks-and-joins-media",
+    "keyboard-participant-switch-joins-the-old-actors-actual-device-and-media-work",
+    "actual-browser-offline-transition-stops-capture-render-and-packet-work",
+    "keyboard-explicit-offline-reconnect-observes-original-av-end-without-resuming-capture",
+    "both-original-av-connections-and-additional-owned-browsers-join",
+    "original-app-server-and-all-native-helper-processes-joined",
+    "same-command-restart-preserves-original-setup-and-conversation",
+    "original-owned-browser-joined",
+    "restarted-app-server-and-all-native-helper-processes-joined"
+  ],
+  "source_runtime_browser_guards_unchanged": true,
+  "runtime_sha256": "125bfd159d14d6e94d3d84fce4310ceefac245e1846e4f599bfde475d088c7a8",
+  "node_archive_sha256": "f714b966120f3977bd9ec7e4c1887f2f7ed545d68d1191257c50e4cf0fe278b9",
+  "installation": {
+    "passed": true,
+    "regular_offline_install": true,
+    "source_inputs_matched": true,
+    "complete_sdk_candidate_qualified": false,
+    "independently_reexecuted_install": false
+  },
+  "independent_artifact_audit": {
+    "platform": "linux",
+    "target": "x86_64-unknown-linux-gnu",
+    "source_revision": "664bf592627ea739ece30ba9d13e2a564130751b",
+    "git_source_files_verified": 5011,
+    "prepared_source_files_verified": 4098,
+    "runtime_files_verified": 753,
+    "all_runtime_bytes_modes_and_manifest_bound": true,
+    "node_files_verified": 195,
+    "node_dependency_archives_and_license_text_verified": 2,
+    "runtime_sha256": "125bfd159d14d6e94d3d84fce4310ceefac245e1846e4f599bfde475d088c7a8",
+    "native": {
+      "elf_header_verified": true,
+      "system_opus_license_present": true
+    },
+    "producer_reported_regular_offline_install": true,
+    "independently_executed_install": false,
+    "original_browser_checks_passed": 37,
+    "original_app_passed": true,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "artifacts": [
+    {
+      "id": 13193657904,
+      "name": "gate6-reference-app-components-x86_64-unknown-linux-gnu",
+      "bytes": 1273953,
+      "sha256": "c6b4114b3391366db9955382d7f8cdee6b4a41dd248b193fc2d2e1f7b52eea47",
+      "zip_crc_verified": true,
+      "members": 10
+    },
+    {
+      "id": 13193672700,
+      "name": "gate6-runtime-candidate-evidence-x86_64-unknown-linux-gnu",
+      "bytes": 448099,
+      "sha256": "585b1ee169ed85a204e2e14a6b468c914a70306118c5c4b8843594d13cb048e8",
+      "zip_crc_verified": true,
+      "members": 2
+    },
+    {
+      "id": 13193342948,
+      "name": "gate6-runtime-candidate-package-x86_64-unknown-linux-gnu",
+      "bytes": 61900611,
+      "sha256": "80f723b6db4d0db3461aaca08ae2fbc2d743af3109f78a5ee8d96512eb486f43",
+      "zip_crc_verified": true,
+      "members": 1
+    },
+    {
+      "id": 13192972949,
+      "name": "gate6-reference-app-node-package-x86_64-unknown-linux-gnu",
+      "bytes": 737274,
+      "sha256": "57ec6590be69541bca2f6bbbd197d3fae8e332d76c13d4cf73ba026cacc07f0e",
+      "zip_crc_verified": true,
+      "members": 5
+    }
+  ],
+  "browser_report_sha256": "852c8e4f7b5648354020c4e9f08244c271b4d25920130c93dedf8649771b4e94",
+  "installation_report_sha256": "5e320ea4bf63863704148d6b8d52f24baa7755ca92b63e10b33ed6416f555ce3",
+  "paired_two_second_av_windows": [
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 94,
+        "painted_video_frames": 59
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 99,
+        "painted_video_frames": 59
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 96,
+        "painted_video_frames": 58
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 96,
+        "painted_video_frames": 58
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 89,
+        "painted_video_frames": 58
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 96,
+        "painted_video_frames": 58
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 94,
+        "painted_video_frames": 44
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 93,
+        "painted_video_frames": 59
+      }
+    ],
+    [
+      {
+        "role": "owner",
+        "completed_audio_frames": 97,
+        "painted_video_frames": 58
+      },
+      {
+        "role": "organizer",
+        "completed_audio_frames": 97,
+        "painted_video_frames": 57
+      }
+    ]
+  ],
+  "audio_minimum_per_window": 50,
+  "video_minimum_per_window": 6,
+  "lifecycle_cases": [
+    "late_device_result",
+    "permission_revocation",
+    "participant_switch",
+    "offline",
+    "offline_original_recovery"
+  ],
+  "original_pngs_reviewed": [
+    {
+      "name": "capture-controls-narrow.png",
+      "sha256": "a45ebaa76a6f31c06b486f7813b7959ea6911eeccd974ee456d7682959abbb8a",
+      "width": 320,
+      "height": 3921,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    },
+    {
+      "name": "capture-controls.png",
+      "sha256": "88fb4eaebe367537c6f8b152ac90aa26303a7b07098c08674a60b2aa7ba87bfc",
+      "width": 1440,
+      "height": 2389,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    },
+    {
+      "name": "native-controls-narrow.png",
+      "sha256": "2002c64da5f8708d0ab4a4af041bad8e6b1591265e80612be7206581acec708c",
+      "width": 320,
+      "height": 4012,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    },
+    {
+      "name": "native-controls.png",
+      "sha256": "7d39a8bb730e505a4f31cec788e6ec7b633c9f2f5815332bb6524598027398c1",
+      "width": 1440,
+      "height": 2559,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    },
+    {
+      "name": "video-controls-narrow.png",
+      "sha256": "c73fe97b382beffc7f5c0010907d1297a85da297b2385d137db8e1040592c69c",
+      "width": 320,
+      "height": 4856,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    },
+    {
+      "name": "video-controls.png",
+      "sha256": "bb221c60c92c15a74514ce36984f3499d73167e88b4e374453f132e8fb72c40d",
+      "width": 1440,
+      "height": 3587,
+      "png_crc_and_deflate_verified": true,
+      "visually_reviewed": true
+    }
+  ],
+  "png_and_source_binding_audit_sha256": "3f456550266d670d8d83ffed2c33cd9d5f7eefa28553e64caae7a3a9a3b1692f",
+  "screenshots_establish_temporal_media_quality": false,
+  "later_packet_backoff_candidate_tested": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -22,7 +22,12 @@ fn packet_read_until<T>(
     loop {
         match read() {
             Err(error) if error.code == "authority-busy" && std::time::Instant::now() < until => {
-                std::thread::yield_now()
+                // Busy packet readers otherwise repeatedly contend for the
+                // same admission files while metadata writers try to finish.
+                // Pause inside the original budget, then construct a fresh
+                // read; no prior permission or failed partial custody survives.
+                let remaining = until.saturating_duration_since(std::time::Instant::now());
+                std::thread::sleep(remaining.min(std::time::Duration::from_micros(100)));
             }
             result => return result,
         }
