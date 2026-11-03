@@ -17,6 +17,7 @@ pub(super) async fn read(
     options.validate()?;
     let deadline = tokio::time::Instant::now() + options.timeout;
     let mut page = None;
+    let mut resyncs = 0;
     let mut revision = None;
     let mut cursor = None;
     let mut state = None;
@@ -35,7 +36,7 @@ pub(super) async fn read(
         if let Some(page) = &page {
             query["page"] = serde_json::json!(page);
         }
-        let batch = client
+        let batch = match client
             .request(
                 "conversation.get",
                 query,
@@ -49,7 +50,40 @@ pub(super) async fn read(
                     signal: options.signal.clone(),
                 },
             )
-            .await?;
+            .await
+        {
+            Ok(batch) => batch,
+            Err(error)
+                if page.is_some()
+                    && resyncs < 2
+                    && error.kind == ErrorKind::Conflict
+                    && error.certainty == Certainty::Refused
+                    && error.operation.is_none()
+                    && error.observation.is_none()
+                    && error.problem.as_ref().is_some_and(|problem| {
+                        problem.code == 409
+                            && problem.category == "state"
+                            && problem.reason == "resync_required"
+                    }) =>
+            {
+                // Another authorized reader can evict this bounded page cache.
+                // Restart only this read, under its original deadline, signal,
+                // total request count and cumulative byte limit. Partial facts
+                // belong to the evicted snapshot and cannot be carried forward.
+                resyncs += 1;
+                page = None;
+                revision = None;
+                cursor = None;
+                state = None;
+                participants.clear();
+                facts.clear();
+                streams.clear();
+                connections.clear();
+                sessions.clear();
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
         let frames: Vec<_> = batch
             .frames
             .iter()

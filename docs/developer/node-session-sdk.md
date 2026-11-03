@@ -41,6 +41,11 @@ const original = client.operations.restore(saved, client.operationKinds.session_
 await original.status({ timeoutMs: 3000 });
 ```
 
+`session.refresh()` uses the Rust helper's [bounded snapshot recovery](rust-sdk.md).
+An expired or evicted continuation can restart the read within the original
+timeout and cancellation signal, discarding earlier partial results.
+Authorization refusals still propagate, and no mutation is resubmitted.
+
 Session snapshots distinguish `revision: SdkRevision<'session'>` from
 `topologyRevision: SdkRevision<'topology'>`. Session mutations take the topology
 revision. The declaration checks reject a state revision in that position; the

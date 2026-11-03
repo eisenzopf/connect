@@ -18,6 +18,7 @@ mod sdk_multiplex;
 mod sdk_native;
 mod sdk_raw;
 mod sdk_receipts;
+mod sdk_snapshots;
 mod sdk_worker;
 mod step_up;
 use auth_refresh::RefreshReply;
@@ -76,6 +77,7 @@ pub(super) enum Fault {
     SdkRaw,
     SdkAdministration(sdk_administration::Case),
     SdkEvents(sdk_events::Case),
+    SdkSnapshot(sdk_snapshots::Case),
     SdkInvitation(sdk_invitations::Case),
     SdkMultiplex(sdk_multiplex::Case),
     SdkNative(sdk_native::Case),
@@ -142,6 +144,12 @@ pub(super) async fn controlled(
         let mut bytes = vec![0; u32::from_be_bytes(prefix) as usize];
         reader.read_exact(&mut bytes).await.unwrap();
         let request = Envelope::parse(&bytes).unwrap();
+        if let Fault::SdkSnapshot(case) = fault {
+            sdk_snapshots::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
+            connection.closed().await;
+            server.close(0u32.into(), b"SDK snapshot fixture complete");
+            return;
+        }
         if let Fault::SdkMovement(case) = fault {
             sdk_movements::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
             connection.closed().await;

@@ -1,0 +1,72 @@
+{
+  "format": "connect/sdk-snapshot-resync-recovery/1",
+  "tasks": [
+    "G6-058"
+  ],
+  "source_base_revision": "cfe69850be7ff3ad7e32a3b73192c2660a6a959a",
+  "source_files_sha256": {
+    "crates/connect-client/src/sdk/snapshot.rs": "47bd68b22a12fce4f7c17c7f46e84294f334e5c99e0e5c56aef0007c6c1dbd00",
+    "crates/connect-client/src/canonical/tests.rs": "6a2df589db54569e299c85e5a7750b2fb7de0cbade4e49e78f749fdf25e4f7d5",
+    "crates/connect-client/src/canonical/tests/sdk_snapshots.rs": "0f289321583e91d12a254f376b098bd41e849a9f6f1adf7024e5558afe9b3ce8"
+  },
+  "passed": true,
+  "scope": "Signed post-authentication localhost control fixtures exercise the public Rust SDK snapshot reader used by native Node helper Session.refresh. This verifies read recovery; no fresh installed Node/runtime/full-media qualification is claimed.",
+  "before": {
+    "expected_failure_reproduced": true,
+    "failed_tests": 1,
+    "error_kind": "Conflict",
+    "certainty": "Refused",
+    "problem": "409 state/resync_required",
+    "source_unchanged": true,
+    "reader_sha256": "ec05f8be4d6923b98921e3b3becea50962e6dc190eccfffe63d6df12e9250b1f",
+    "log_sha256": "e1e4c35169d067a96715d14f5293f9569f7ac1a3d3ba45925d9445e186a7e03a"
+  },
+  "after": {
+    "targeted_tests_passed": 5,
+    "full_client_library_tests_passed": 266,
+    "targeted_tests_are_subset_of_full_suite": true,
+    "failed": 0,
+    "ignored": 0,
+    "elapsed_seconds": 93.9696824583225,
+    "source_unchanged": true,
+    "logs_sha256": {
+      "recovery-cases": "4fa2515e5235d533b9cc7ecb84edf3f44e607cf251c93227ce019c39e8f977ac",
+      "full-client-library": "9a98a155ba2a150f9b943f0e9fc302dbc68b6ead893569fc3f5e5288b8eccb0d"
+    }
+  },
+  "cases": [
+    "evicted continuation starts fresh and discards all partial facts",
+    "repeated eviction stops after two fresh read restarts",
+    "initial read409resync/current403/unrelated409 propagate without retry",
+    "original500ms deadline retained across recovery",
+    "original cancellation signal retained across recovery"
+  ],
+  "recovery": {
+    "only_command": "conversation.get",
+    "only_continuation": true,
+    "only_problem": {
+      "code": 409,
+      "category": "state",
+      "reason": "resync_required"
+    },
+    "maximum_fresh_restarts": 2,
+    "original_deadline_retained": true,
+    "original_cancellation_retained": true,
+    "total_request_limit_unchanged": 256,
+    "cumulative_byte_limit_unchanged": 2097152,
+    "all_partial_aggregates_discarded": true,
+    "server_snapshot_quota_changed": false,
+    "mutation_submissions": 0
+  },
+  "production_context": {
+    "v20_primary_failure": "409 state/resync_required on current Session snapshot read; exact expiry-versus-eviction cause not logged",
+    "concurrent_eviction_inference": "Four parallel primary/controller Session reads can exceed the server two-snapshot identity quota; signed fixture directly reproduces the continuation response and recovery behavior.",
+    "v19_preparation_forbidden_resolved": false,
+    "mac_app_zero_audio_resolved": false
+  },
+  "normal_production_runtime_and_peer_rebuild_pending": true,
+  "fresh_full_programme_pending": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

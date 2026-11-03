@@ -54,7 +54,13 @@ Membership receipt reads project currently authorized metadata. A valid same-ID
 replay can observe a later role and Conversation revision, while a new membership
 epoch refuses the old receipt. `receipt_snapshot` is an observation from the
 receipt read, not a permission grant. Fresh reads use a shared bounded snapshot
-reader with fixed page/byte ceilings and explicit resync refusal.
+reader with fixed page/byte ceilings. An expired or evicted continuation returning
+`409 state/resync_required` permits at most two fresh read attempts under the
+original deadline and cancellation signal. Each attempt discards the previous
+snapshot's partial facts; all attempts share the 256-request and 2 MiB limits.
+Initial-read refusals, authorization errors and unrelated conflicts propagate.
+This recovery never resubmits a mutation. The [signed recovery evidence](../evidence/gate-6/sdk-snapshot-resync-recovery.json)
+records the original counterexample and all 266 passing client library tests.
 
 Saved references contain original operation ID, command and scope, without
 credentials. Restoration validates schema, command kind and scope locally; it
