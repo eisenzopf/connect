@@ -26,5 +26,34 @@
   ],
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "compile_issue": {
+    "run": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 109019,
+      "source_revision": "9658507267602360ea0f9e8502eff3c781767caf",
+      "passed": false,
+      "steps": [],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "mixer_writer_candidate": true,
+      "pre_core_refusal_candidate": true,
+      "builds": [
+        {
+          "group": "store",
+          "compile_exit_code": 101,
+          "compile_log_sha256": "5a1d913397e7d3ca08b7ad8d5f92d7b08953f11fda7c1343c7c9b6ac263cdf5c"
+        }
+      ],
+      "executable_unchanged": true,
+      "failure_class": "AssertionError",
+      "message": "",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 7.295899517994258
+    },
+    "diagnostic": "E0432: new NativeReplacementCommitNotSubmitted type was not re-exported through transitions/mod.rs. No test executed.",
+    "correction": "Add the missing internal re-export; retain original compile failure and unchanged source/prepared guards."
+  }
 }
