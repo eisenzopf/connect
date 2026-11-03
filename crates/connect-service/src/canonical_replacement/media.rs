@@ -304,6 +304,10 @@ impl MediaPolicy for TargetPolicy {
                             .plan
                             .selected()
                             .iter()
+                            .filter(|s| {
+                                s.requested.direction
+                                    != rvoip_core::stream_lifecycle::StreamDirection::Send
+                            })
                             .map(|s| s.requested.logical_id.clone())
                             .collect()
             }

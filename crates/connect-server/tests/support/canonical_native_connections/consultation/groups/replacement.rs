@@ -220,6 +220,36 @@ async fn exercise_replacement_with_av_control(
     av: bool,
     activation_audit: ActivationAudit,
 ) {
+    exercise_replacement_with_av_transfer(
+        allocate,
+        start_media,
+        reject_answer,
+        movement,
+        deferred_projection,
+        sdk_algorithm,
+        mcp,
+        selected_case,
+        candidate_target,
+        av,
+        activation_audit,
+        false,
+    )
+    .await;
+}
+async fn exercise_replacement_with_av_transfer(
+    allocate: bool,
+    start_media: bool,
+    reject_answer: bool,
+    movement: bool,
+    deferred_projection: bool,
+    sdk_algorithm: Option<&'static str>,
+    mcp: bool,
+    selected_case: Option<(bool, bool, bool)>,
+    candidate_target: bool,
+    av: bool,
+    activation_audit: ActivationAudit,
+    transfer_video: bool,
+) {
     let activation_barrier_audit = matches!(activation_audit, ActivationAudit::RevokeBeforeReady);
     if candidate_target {
         assert!(
@@ -303,6 +333,15 @@ async fn exercise_replacement_with_av_control(
             sh,
             th,
         } = running;
+        let retained_video = if transfer_video {
+            assert!(av && movement && !candidate_target && !observer);
+            Some(
+                av::transfer::select_original(&f, &mut clients, &cid, source_video_handle.unwrap())
+                    .await,
+            )
+        } else {
+            None
+        };
         let room = clients[1]
             .list_conversations(Default::default())
             .await
@@ -459,7 +498,7 @@ async fn exercise_replacement_with_av_control(
                 endpoint_id: (!candidate_target).then(|| endpoint.clone()),
                 candidate_connid: candidate_target.then(|| candidate_id.to_owned()),
                 retained_connid: "codec-source".into(),
-                video: None,
+                video: transfer_video.then(av::transfer::intent),
             },
             payload_extensions: Default::default(),
         };
@@ -594,6 +633,7 @@ async fn exercise_replacement_with_av_control(
         );
         let mut replacement_handle = None;
         let mut replacement_video_handle = None;
+        let mut replacement_incoming_video_handle = None;
         let mut allocated_target = if allocate {
             let mut client = if let Some(client) = preparing_target.take() {
                 client
@@ -603,7 +643,10 @@ async fn exercise_replacement_with_av_control(
             let mut offer = json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}],"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}});
             if av {
                 offer["capabilities"] = av_capabilities();
-                offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
+                offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-camera","kind":"video","direction":if transfer_video {"sendonly"} else {"sendrecv"},"codec_preferences":["vp8"]}));
+                if transfer_video {
+                    offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-incoming-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}));
+                }
             }
             #[cfg(feature = "test-support")]
             if activation_audit.data_observer() {
@@ -711,6 +754,10 @@ async fn exercise_replacement_with_av_control(
                     if av {
                         replacement_video_handle =
                             Some(av::stream_handle(&answer, "replacement-camera"));
+                        if transfer_video {
+                            replacement_incoming_video_handle =
+                                Some(av::stream_handle(&answer, "replacement-incoming-camera"));
+                        }
                     }
                 }
                 if activation_audit.data_observer() {
@@ -1107,7 +1154,19 @@ async fn exercise_replacement_with_av_control(
                 "replace-moved-target-preserves-original-role",
             )
             .await;
-            if av {
+            if transfer_video {
+                av::transfer::after_commit(
+                    &f,
+                    &mut peers,
+                    &cid,
+                    candidate,
+                    source_video_handle.unwrap(),
+                    replacement_video_handle.unwrap(),
+                    retained_video.unwrap(),
+                    replacement_incoming_video_handle.unwrap(),
+                )
+                .await;
+            } else if av {
                 av::after_commit(
                     &f,
                     &mut peers,

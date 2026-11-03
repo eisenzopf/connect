@@ -1,0 +1,28 @@
+{
+  "format": "connect/gate6-replacement-video-direction-candidate/1",
+  "task": "G6-058",
+  "phase": "P3 directional resources and signed native activation",
+  "patch": "patches/rvoip/gate6-replacement-video-directional-preparation.patch",
+  "patch_sha256": "196caec211634fc2e74fb16d89299cce0a643e251b0ccf0b223924115234b98c",
+  "changes": [
+    "Native private admission mutes only Core input-capable streams. Service held Gate intent requires exactly that input set. Output-only ports remain subject to closed scene routing, current authority, exact physical-resource readiness and retirement.",
+    "Private auxiliary readiness does not require a source-mute flag for output-only resources; every actual input still must be muted. No Data route or permission is opened.",
+    "New directional Core case uses distinct input-only camera and output-only receiver; verifies current authority, stale gates/packets, unchanged negotiated bindings, audio/direct video commit and no receiver ingress.",
+    "New signed native fixture captures original video selections, requests explicit mapping in the original public operation, negotiates endpoint sendonly/recvonly video, and requires VP8 both ways on the original retained/negotiated replacement handles before any post-commit control. Shared fixture retains audio, current revocation, replay and shutdown checks."
+  ],
+  "cases": [
+    "staged_streams::tests::private_consult::replacement::video::replacement_video_directional_ports_prepare_and_transfer_without_opening_receiver_ingress",
+    "canonical_native_connections::consultation::groups::replacement::av::transfer::production_native_video_transfer_activates_both_directions_without_post_commit_controls"
+  ],
+  "verification": "Prepared patch digests and formatting verified. Cases not compiled/executed. Previous8f52f376/patch288 remains frozen in local ARM v50 build; this candidate has not entered guest.",
+  "limits": [
+    "Core case uses synthetic adapter/authority fixtures. Signed native fixture is written but unrun.",
+    "VP8 fixture forwarding does not qualify decoded quality, bootstrap timing or full transport acceptance.",
+    "Fresh request-driven keyframes, authenticated operation/connection/stream activation epochs, native Data exchange conservation and full media programme remain to verify."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

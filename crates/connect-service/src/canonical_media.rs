@@ -1126,6 +1126,10 @@ impl MediaPolicy for Policy {
                         .plan
                         .selected()
                         .iter()
+                        .filter(|s| {
+                            s.requested.direction
+                                != rvoip_core::stream_lifecycle::StreamDirection::Send
+                        })
                         .map(|s| s.requested.logical_id.clone())
                         .collect::<BTreeSet<_>>() =>
             {

@@ -1,5 +1,7 @@
 //! Signed native AV resources and explicit post-commit video gates, not quality qualification.
 use super::*;
+#[path = "av/transfer.rs"]
+pub(super) mod transfer;
 
 #[tokio::test]
 async fn production_replacement_av_retains_resources_and_opens_video_only_after_known_audio_commit()

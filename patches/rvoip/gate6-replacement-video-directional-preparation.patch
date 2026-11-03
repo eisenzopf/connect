@@ -1,0 +1,101 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -18,7 +18,8 @@
+             .get(logical)
+             .ok_or(StreamControlError::NotReady)?;
+         if stream.state != LogicalStreamState::Active
+-            || !stream.source_muted
++            || (stream.negotiated.requested.direction != StreamDirection::Send
++                && !stream.source_muted)
+             || stream.hold_direction.is_some()
+         {
+             return Err(StreamControlError::NotReady);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+@@ -37,7 +37,22 @@
+ #[tokio::test]
+ async fn replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences(
+ ) {
++    video_transfer(false).await;
++}
++#[tokio::test]
++async fn replacement_video_directional_ports_prepare_and_transfer_without_opening_receiver_ingress()
++{
++    video_transfer(true).await;
++}
++async fn video_transfer(directional: bool) {
++    let mut camera = desired(Medium::Video);
++    if directional {
++        camera.direction = StreamDirection::Receive;
++    }
+     let mut incoming = desired(Medium::Video);
++    if directional {
++        incoming.direction = StreamDirection::Send;
++    }
+     incoming.logical_id = StreamId::from_string("incoming-video");
+     let mut f = Move::with_media(
+         false,
+@@ -45,7 +60,7 @@
+         false,
+         vec![
+             desired(Medium::Audio),
+-            desired(Medium::Video),
++            camera,
+             incoming.clone(),
+             desired(Medium::Data),
+         ],
+@@ -108,6 +123,25 @@
+         public.revision(),
+     ];
+     let before_bindings = [bindings(&new), bindings(&bob), bindings(&public)];
++    if directional {
++        let state = new.state.lock().unwrap();
++        assert_eq!(
++            state.model.streams()[&incoming.logical_id]
++                .negotiated
++                .requested
++                .direction,
++            StreamDirection::Send
++        );
++        assert!(
++            !state.model.streams()[&incoming.logical_id].source_muted,
++            "output-only preparation must not fabricate input mute"
++        );
++        drop(state);
++        assert!(incoming_port
++            .try_publish(&frame(&incoming_port, 2))
++            .is_err());
++    }
++
+     let mut invalid = request();
+     invalid.receivers[0].replacement = desired(Medium::Data).logical_id;
+     assert!(f.plan_with_video(Some(invalid)).is_err());
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -559,7 +559,11 @@
+         let grant = if private {
+             c.set_media_gate(
+                 c.revision(),
+-                &media.iter().map(|s| s.logical_id.clone()).collect(),
++                &media
++                    .iter()
++                    .filter(|s| s.direction != StreamDirection::Send)
++                    .map(|s| s.logical_id.clone())
++                    .collect(),
+                 StreamGateAction::Mute,
+                 deadline(),
+             )
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -215,6 +215,7 @@
+                 installed.backend.flow.clone(),
+                 bindings
+                     .iter()
++                    .filter(|b| b.negotiated.requested.direction != StreamDirection::Send)
+                     .map(|b| b.negotiated.requested.logical_id.clone())
+                     .collect(),
+             )
