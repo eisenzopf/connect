@@ -1,6 +1,6 @@
 # Your first Connect conversation
 
-This guide uses the current Gate 6 review kit for **macOS ARM64 or Ubuntu 24.04
+This guide uses the current Gate 6 review kit for **macOS 15+ ARM64 or Ubuntu 24.04
 ARM64**. The kit contains the runtime, public Node SDK archives and local reference
 app. It is an unpublished review artifact; the published v0.1 demo has a different
 API. Use one matching kit throughout this guide.
@@ -80,7 +80,7 @@ A local preview alone does not prove that another participant received media.
 - **Setup stops during `installed-sdk`:** run the offline npm command first and
   export the runtime path in that same terminal. Use the SDK and runtime from
   the same kit; do not add repository-relative dependencies.
-- **`private-app-state-required` or a write-permission error:** use an owned,
+- **Private state is refused or cannot be written:** use an owned,
   writable private `.local` directory. Do not run as root or modify another
   installation's state. Preserve an interrupted setup and its private logs.
 - **A pending action appears:** use **Recover original action**. After going

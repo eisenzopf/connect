@@ -17,8 +17,9 @@ the authorized communications boundary.
 The [developer documentation](docs/index.html) separates the published local
 release from current development source. The [Parley progression](docs/tutorials/parley.html)
 shows how chat, calls, consultation, human takeover and follow-up fit together.
-Its shared scenario and deterministic fixtures are available; the installed app
-and runnable tutorial checkpoints remain under implementation.
+Its shared scenario and local installed app are available; the complete tutorial
+journey remains under implementation. The current [first-conversation review kit](docs/start/quickstart.md)
+provides a source-checkout-free install/run path on Mac ARM64 and Ubuntu24.04 ARM64.
 
 ## Choose the matching version
 
@@ -31,9 +32,10 @@ Read its [release notes and disclosed exceptions](docs/releases/v0.1.md) and
 [matching installation guide](docs/LOCAL_RELEASE.md). No remote-server deployment
 or live provider operation is part of this release.
 
-Current Gate 6 source has a breaking pre-alpha API. The typed Rust SDK has local
-source qualification; unified browser/Node/Python packages, remote hosting and
-the full application journey remain in progress. Browser and native private-audio
+Current Gate 6 source has a breaking pre-alpha API. The [local reference app](examples/parley-on-connect/README.md)
+has audited Mac/ARM execution evidence. Use the matching [review-kit quickstart](docs/start/quickstart.md)
+for messages and retained history. Full transport, remote/provider and application-journey
+qualification remain in progress. Browser and native private-audio
 findings remain open. Use [current source references](docs/reference/index.html)
 and their named scopes; published v0.1 instructions do not qualify this source.
 Plans, historical releases and proof are in [Engineering](docs/engineering/index.html).

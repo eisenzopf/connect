@@ -1,0 +1,138 @@
+{
+  "format": "connect/first-conversation-quickstart/1",
+  "task": "G6-082",
+  "passed": true,
+  "task_complete": true,
+  "whole_gate_qualified": false,
+  "publication_authorized": false,
+  "profiles": {
+    "macos-arm64": {
+      "passed": true,
+      "kit_source_revision": "219f31e4e3bfb540954031dfc554856253a02d07",
+      "checker_source_revision": "219f31e4e3bfb540954031dfc554856253a02d07",
+      "archive_name": "connect-first-conversation-0.1.0-darwin-arm64-219f31e4e3bf.tar.gz",
+      "archive_sha256": "0530c63c5c827090b7c6631efe23a5610d4fb72838cc69a45b9d5b8e4b402957",
+      "manifest_sha256": "70297c2ca2311c2780f6dbccf617aa4f8b04a3d6b27525c434346c83a95c7426",
+      "kit_payload_files_verified": 785,
+      "kit_proof_sha256": "55b4031ebc4e2a036252fa710a3a8c592e5b1137b6fde1068fdcfa85edd2529a",
+      "consumer_report_sha256": "42e73c180af6722508e1eee858d7e84b0841be26e0ec38f32ee477e2d2d8e636",
+      "refusal_report_sha256": "9d3727aba01d1da2f692ae9b25c66e24e3d86117386e78d9c6266b085105dc72",
+      "checks": [
+        "reviewed-kit-and-native-ABI-verified",
+        "cold-offline-public-SDK-install",
+        "visible-Owner-Organizer-message-reply-without-copied-IDs",
+        "same-command-restart-retains-one-message-and-one-reply",
+        "kit-bytes-unchanged-after-complete-journey"
+      ],
+      "first_ready_ms": 4615.388916,
+      "message_and_reply_ms": 9717.440583,
+      "complete_rehearsal_ms": 12887.985666,
+      "browser": "156.0.8078.80",
+      "browser_launcher_sha256": "3f0acaf1e585195596d73ffa1824baa72c3c3ac115b5cfc43d789030a3f23d93",
+      "node": "v22.16.0",
+      "consumer_outside_source_checkout": true,
+      "empty_home": true,
+      "empty_npm_cache": true,
+      "ctrl_c_original_groups_joined": 2,
+      "negatives": [
+        {
+          "name": "missing-sdk",
+          "exit_code": 1
+        },
+        {
+          "name": "missing-runtime",
+          "exit_code": 1
+        },
+        {
+          "name": "non-private-state",
+          "exit_code": 1
+        },
+        {
+          "name": "unwritable-state",
+          "exit_code": 1
+        },
+        {
+          "name": "corrupt-kit",
+          "exit_code": 1
+        }
+      ],
+      "negative_setup_created_server_state": false
+    },
+    "ubuntu24-arm64": {
+      "passed": true,
+      "kit_source_revision": "219f31e4e3bfb540954031dfc554856253a02d07",
+      "checker_source_revision": "219f31e4e3bfb540954031dfc554856253a02d07",
+      "archive_name": "connect-first-conversation-0.1.0-linux-arm64-219f31e4e3bf.tar.gz",
+      "archive_sha256": "5839963de16455cfdfd2d83b40b9aac5d316143eeda6ead28ee03f3ad8509a71",
+      "manifest_sha256": "d642bf1268aef0a9e4b38c249ff24e14ae74182a64f0faccc37de3180f727a15",
+      "kit_payload_files_verified": 777,
+      "kit_proof_sha256": "da50ca5bcff851e927d2ca798ab6baa527b1fa3cc6965f65ac073808a19e25a3",
+      "consumer_report_sha256": "190aa91a923b7a17884589a680dd84115bd4f9c295f4b952d7441d82975ed4b9",
+      "refusal_report_sha256": "3e859f3d081c6ebc683e4db006197292537843abbf4eb2fd19826c33ee57b485",
+      "checks": [
+        "reviewed-kit-and-native-ABI-verified",
+        "cold-offline-public-SDK-install",
+        "visible-Owner-Organizer-message-reply-without-copied-IDs",
+        "same-command-restart-retains-one-message-and-one-reply",
+        "kit-bytes-unchanged-after-complete-journey"
+      ],
+      "first_ready_ms": 3328.3625859999997,
+      "message_and_reply_ms": 4677.714897000001,
+      "complete_rehearsal_ms": 7196.046515,
+      "browser": "156.0.8078.4",
+      "browser_launcher_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+      "node": "v22.16.0",
+      "consumer_outside_source_checkout": true,
+      "empty_home": true,
+      "empty_npm_cache": true,
+      "ctrl_c_original_groups_joined": 2,
+      "negatives": [
+        {
+          "name": "missing-sdk",
+          "exit_code": 1
+        },
+        {
+          "name": "missing-runtime",
+          "exit_code": 1
+        },
+        {
+          "name": "non-private-state",
+          "exit_code": 1
+        },
+        {
+          "name": "unwritable-state",
+          "exit_code": 1
+        },
+        {
+          "name": "corrupt-kit",
+          "exit_code": 1
+        }
+      ],
+      "negative_setup_created_server_state": false
+    }
+  },
+  "documented_command_blocks_sha256": "ce3aaf82292dad208ad521b9c4c0e44625e7581cf14fe19c7ac2b60da3d9a569",
+  "command_blocks_in_both_kits_match_current_guide": true,
+  "refusal_probe_source_sha256": "847e59803db12228bf7717da721b441c84f5bb304bd1b3d3fd09938e3761b8f1",
+  "source_checkout_used_by_consumer": false,
+  "repository_relative_sdk_dependencies": false,
+  "manual_database_edits": false,
+  "internal_ids_copied": false,
+  "model_or_provider_accounts_used": false,
+  "unfamiliar_developers_measured": 0,
+  "requirements_verified": {
+    "one_supported_review_kit_install_run_path": true,
+    "scoped_identity_setup_via_public_CLI_and_installed_SDK": true,
+    "message_reply_and_retained_history": true,
+    "all_commands_executed_outside_checkout": true,
+    "prerequisites_and_runtime_helpers_explained": true,
+    "permission_and_missing_prerequisite_refusals_observed": true,
+    "voice_and_video_reference_link": true
+  },
+  "initial_attempts_retained": {
+    "private_umask_verifier_refusal": "Original56583c66 kit rejected owner-only executable permissions;7e372129 accepts owner execute while retaining payload hashes and no group/world writes.",
+    "visible_text_locator": "Initial observer looked for un-attributed exact text, but UI includes the author. b366463e reads visible timeline entries, without changing product behavior.",
+    "post_install_integrity": "v2 actual message/reply and restart passed, then final integrity found npm had changed package.json;219f31e4 adds --no-save to guide and driver. Freshv3 complete consumers pass."
+  },
+  "scope": "Unpublished source-bound review kits executed in new ordinary-user directories and empty homes/caches on MacARM and Ubuntu24ARM. Timer starts with listed installed prerequisites and available archive, including extraction/verification/offline install and visible user flow. Original app/server/helper groups join after both Ctrl-C stops; immutable kit payloads remain unchanged. This completes the quickstart task, not the three-unfamiliar-developer A6-20 trial, full Parley/provider journey or complete transport/media matrix."
+}
