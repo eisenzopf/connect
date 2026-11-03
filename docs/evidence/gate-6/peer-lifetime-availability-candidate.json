@@ -43,10 +43,11 @@
   "validation": {
     "exact_source_component_tests_passed": 2,
     "failed": 0,
-    "Rust_format_check_pending": true,
+    "Rust_format_check_pending": false,
     "Python_syntax": true,
     "general_regression_suites_rerun": false,
-    "normal_production_build_pending": true
+    "normal_production_build_pending": true,
+    "Rust_format_check": true
   },
   "log_sha256": {
     "compile.log": "b27c237ba3519346f9ed619fd575723bcf8f0fb8845773896e5b0f2d38ca20d9",

@@ -67,8 +67,10 @@ counts, fixed source coordinates, hashes and outcomes. Existing result directori
 refuse replacement. A successful control component leaves every full matrix cell
 `not-run` and `matrix_qualified: false`.
 
-The `transport-control` lane of `gate6-linux-fixtures.yml` runs this component on
-native Ubuntu24.04 x86_64/Node22. Other platforms, actual Chrome/Firefox, remote
+The `transport-control` definition selects the owned local Ubuntu24.04 ARM64/
+Node22 runner through `gate6-transport-matrix.yml`. Execute the commands above
+on the Mac Studio's local ARM VM; do not dispatch a GitHub-hosted test job.
+Other platforms, actual Chrome/Firefox, remote
 profiles, captures and decoded media still need their explicit cell producers and
 source-bound results. G6-058 stays open until every required cell verifies.
 
@@ -367,8 +369,8 @@ python3 scripts/check-transport-fixtures.py --media-workload --signing-algorithm
 ```
 
 This requires FFmpeg/libopus/libvpx and the same private packet-capture access
-as the data workload. CI supplies the scoped tcpdump prerequisite on its owned
-runner. It generates six distinguishable 48 kHz mono/32 kbit/s Opus sources in
+as the data workload. Use the scoped tcpdump prerequisite on the owned local ARM
+VM and record its actual capture access. It generates six distinguishable 48 kHz mono/32 kbit/s Opus sources in
 20 ms frames and six moving 640×360/30 fps VP8 sources at a 500 kbit/s target,
 1 Mbit/s encoder maximum and at most one second between keyframes. Each source
 has a distinct tone and colored pixel marker. Files and raw observations stay
@@ -388,7 +390,7 @@ stops only its original packet owners at the unchanged62.2second cutoff. Final
 control/capture owners join by the original programme end plus five seconds.
 An earlier failure narrows cleanup to five seconds from that failure; later
 events cannot renew either deadline. Parent cancellation remains a failure even
-when twenty control roots have already completed. A deadline failure retains
+when all scheduled control roots have already completed. A deadline failure retains
 ownership until original control and physical owners join; it cannot abandon or
 replay an uncertain mutation. These joins add no packets to the measured window.
 
