@@ -106,7 +106,7 @@ fn successor_retires_established_replacement_without_rewriting_receipt_or_revivi
             .unwrap()
             .current());
         let target:String=m.f.store.connection().unwrap().query_row("SELECT credential_id FROM native_replacement_lifetimes WHERE operation_record_id=?1",[&record],|r|r.get(0)).unwrap();
-        let admin = m.f.store.authenticate(&m.f.admin).unwrap();
+        let admin = m.f.store.revalidate(&m.f.admin).unwrap();
         m.f.store.revoke(&admin, &target).unwrap();
         assert!(m.f.store.try_native_media_read(&origin, None).is_err());
         let path = m.f.store.path().to_owned();

@@ -34,12 +34,13 @@
     "Real signed native target negotiation and once-only Core physical movement with final Store lifetime publication aborted by an isolated SQL trigger.",
     "Before target credential revocation, captured physical movement has no completed root, durable replacement lifetime or Ready journal event.",
     "Actual target credential revocation followed by trigger removal settles the captured move as completed/stopped, readiness null, historical physical readiness retained, exact target lifetime retired and no Ready event.",
-    "Original effect vector remains unchanged with all seven effects confirmed at attempt one. The retained decoded peer probe and duplicate original command pass, followed by native slot cleanup and joined server shutdown."
+    "Original effect vector remains unchanged with all seven effects confirmed at attempt one. The retained native slot remains live and its client submits the original packet programme without self-echo; duplicate original command, final slot cleanup and joined shutdown pass. Positive audio probes occurred before cutover."
   ],
   "limitations": [
     "One normal native QUIC signed-identity case; no complete media workload or transport cell.",
     "No deterministic cancellation between final native observation and SQL commit, actual process SIGKILL or Data observer allocation fault.",
-    "P0/P1 writer-drain attribution, P3 video bootstrap and P5 authenticated observation remain unfinished."
+    "P0/P1 writer-drain attribution, P3 video bootstrap and P5 authenticated observation remain unfinished.",
+    "After target revocation only the retained peer is live. The post-failure probe has no authorized receiver, so it does not prove post-failure duplex audio continuity."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,

@@ -4,8 +4,8 @@
   "date": "2026-11-03",
   "change": "Exclusive successor startup settles already-activated replacement lifetimes separately from initial offers and captured unactivated moves. It verifies immutable effect/lifetime/current mapping and actual original-route absence, retires only the interrupted/retiring predecessor incarnation, preserves completed result/effects and emits retirement without recreating media origin.",
   "checks_pending": [
-    "New focused Store restart case for fresh/claimed candidates, revoked original credentials, same-runtime exclusion, wrong early/final absence rollback, immutable receipt/effect conservation, exact retirement, no new Ready event and duplicate-recovery idempotence.",
-    "Service library compile for the startup cleanup integration."
+    "Rerun only the failed new Store case after fixing administrator fixture identity handling.",
+    "Actual Service startup wiring compilation in the subsequent new crash integration target; standalone cargo check intentionally omitted."
   ],
   "limitations": [
     "Controlled native absence in Store case; not an actual SIGKILL/adapter restart proof.",
@@ -16,5 +16,34 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "initial_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 107179,
+    "source_revision": "9a475515404c0211bc963327af9305ee1d5291e7",
+    "passed": false,
+    "steps": [
+      {
+        "case": "connection_control::tests::replacement_sources::commit::active_recovery::successor_retires_established_replacement_without_rewriting_receipt_or_reviving_authority",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1339 filtered out; finished in 0.25s"
+        ],
+        "log_sha256": "f16ce3e7e47df115445810af17e80218e75fb9591e8f37786665cdc88a089b14"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "active_replacement_recovery_candidate": true,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "8fbdc77fd07bed9354868fd6a170ee60e7d90788f24d783774193d77b336ca7e",
+    "executable_unchanged": true,
+    "service_check_rerun": false,
+    "service_compile_deferred_to": "activation-crash-v34 canonical runtime integration build at f0a1ae3e (contains 9a475515 unchanged product code)",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 80.54456494199985
+  },
+  "initial_failure": "The new case failed at fixture admin authentication before revocation or successor recovery. Fixture.admin is a credential ID; authenticate expects a token. Correct the test to use the existing revalidate(ID) path before exercising real Store revoke. Product recovery code is unchanged."
 }
