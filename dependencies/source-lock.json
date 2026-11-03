@@ -1496,6 +1496,10 @@
     {
       "path": "patches/rvoip/gate6-scene-video-admission-retry.patch",
       "sha256": "7c03891ddd7589a482fd8ab4c493205cb5f2c2e2a4445a56f491c9724f172ad9"
+    },
+    {
+      "path": "patches/rvoip/gate6-scene-video-retry-test-control.patch",
+      "sha256": "2dc7e4902201fbc928364dd6dfad594a639c61dc97315761477913659a59e798"
     }
   ]
 }

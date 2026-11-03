@@ -45,5 +45,51 @@
     "scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
     "scene_video_retry_cannot_follow_a_replaced_receiver_port",
     "scene_video_retry_carries_earliest_authority_expiry_into_queued_delivery"
-  ]
+  ],
+  "first_after_attempt": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 98358,
+    "source_revision": "7e88395364d9e950dac09584ad8a46ad1d1bc425",
+    "passed": false,
+    "steps": [
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "43610796923575008cdad458ec9e6c7e7c46a192161d10c3b77c060332fddafe",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_keeps_original_age_and_earliest_observed_authority_expiry",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.29s"
+        ],
+        "log_sha256": "96409c75db011f79a8ae16d5e9cca8b63fd39b172d003dbbcf64850a2a99dff3",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "0e41355299d24980889c11c5dcd5f25b22ffbd1cf34a70ea40e5aeb597334d97",
+        "passed": false
+      }
+    ],
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "40f532141036f6f49875ea98ac5d0732fb86bebda811cc2368dbfd61c881af59",
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 369.720101429004
+  },
+  "first_after_limitation": "Recovery and original age/earliest authority expiry cases pass. Third case fails in subscription-control setup because fixture still forces Receive NotReady. No revocation/epoch verdict and two later functions unrun. Patch277 clears only simulated busy before control, with no intermediate scene tick; all original refusal assertions remain. Product unchanged.",
+  "next_after_cases": "Corrected third function plus the two previously unrun receiver-generation/queued-expiry functions only; first two passing functions are not rerun."
 }
