@@ -1478,6 +1478,11 @@
       "path": "patches/rvoip/gate6-resource-subscription-metadata-recovery.patch",
       "sha256": "05fa1911c8649b7943155e40b85262712d3c16e2c3e9f4d9d3cc6e6a8b879635",
       "source": "G6-058 resource-changing subscription pre-IO metadata recovery: after four actual Core counterexamples, retry only PreparedRoutes::prepare Backpressure before the first adapter.prepare poll. Retain the original candidate ports/inflight slot, credential snapshot, held invocation, cutoff and cancellation; reacquire and recheck current source authorization each attempt after dropping all metadata guards. Use existing bounded2ms wait; no native Capacity retry, post-IO replay, age refresh, quota or acceptance change. Four controlled recovery/cancel/deadline/source-refusal cases remain; fresh current after execution and normal runtime performance required. Original live Capacity cause is still unproven."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-mixer-publication-wait.patch",
+      "sha256": "dcdf6e7bd549ecc288d37c156054bde4226a7b6be606e210fbb885a98c550358",
+      "source": "G6-058: wait for the existing owned Tokio mixer metadata mutex at the final compound replacement publication fence, after original roles/ports/tickets are prepared and drained. Use the earliest original cutoff and every original cancellation token; revalidate all current authority, model, lifecycle and readiness under the acquired fence. Never rerun preparation, reopen ports, replay a mutation or renew a deadline. Handoff lock path remains unchanged. Actual ARM trace proves managed-mixer-lock immediate conflict before publication at programme16.600s; focused component and fresh production/runtime verification required."
     }
   ]
 }

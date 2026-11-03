@@ -209,3 +209,5 @@ For native device replacement, `preparing` includes reservation and the original
 See [the physical replacement contract](native-physical-replacement-peer.md) and [focused readiness checks](../evidence/gate-6/replacement-preparation-readiness-checks.json). These checks do not qualify a transport cell.
 
 Temporary storage/authority unavailability refuses fresh operations and packet grants. A background lifetime observation defers unavailable metadata without treating it as permanent revocation. Definite current refusal and the independent credential/key expiry deadline still retire the physical peer. This distinction creates no cached authorization grant.
+
+A pending replacement may wait for its final mixer metadata fence under the original cutoff and cancellation. Its original `operation.get` reference remains authoritative. This wait creates no new operation, media grant or permission and does not assert completed movement. A recorded unknown effect still requires recovery through the original reference.

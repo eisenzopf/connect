@@ -1,0 +1,223 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -2317,6 +2317,7 @@
+ 
+ pub(crate) mod replacement;
+ pub(crate) use replacement::ManagedAudienceContext;
++mod publication_mixer;
+ pub use replacement::{
+     DeviceReplacementAdapterRequest, DeviceReplacementAdapterRoute, DeviceReplacementEndpointEvent,
+     DeviceReplacementEvent, DeviceReplacementPreparation, DeviceReplacementSignalScope,
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -896,19 +896,21 @@
+         }
+         Ok(())
+     }
+-    fn lock<'a>(
++    async fn lock<'a>(
+         &'a self,
+         plan: &AudioAudiencePlan,
++        deadline: tokio::time::Instant,
++        tokens: &[CancellationToken],
+     ) -> std::result::Result<ManagedReplacementGuard<'a>, StreamControlError> {
+-        let mixer = self
+-            .runtime
+-            .mixer
+-            .members
+-            .try_lock()
+-            .map_err(|_| {
+-                tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-mixer-lock", "Replacement commit metadata lock busy before publication");
+-                crate::stream_lifecycle::MediaTransitionError::Conflict
+-            })?;
++        // No model, registry, lifecycle or connection lock is held here. Keep
++        // the already prepared/quiesced transaction and its original cutoff;
++        // ordinary mixer activity is not a failed or repeated publication.
++        let mixer = super::publication_mixer::acquire(
++            &self.runtime.mixer.members,
++            deadline.min(self.deadline()),
++            tokens,
++        )
++        .await?;
+         let state = self.runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+         let registry = self
+             .owner
+@@ -1180,13 +1182,18 @@
+             Self::Replacement(v) => v.check(plan),
+         }
+     }
+-    pub(crate) fn lock<'a>(
++    pub(crate) async fn lock<'a>(
+         &'a self,
+         plan: &AudioAudiencePlan,
++        deadline: tokio::time::Instant,
++        tokens: &[CancellationToken],
+     ) -> std::result::Result<ManagedAudienceGuard<'a>, StreamControlError> {
+         match self {
+             Self::Handoff(v) => v.lock(plan).map(ManagedAudienceGuard::Handoff),
+-            Self::Replacement(v) => v.lock(plan).map(ManagedAudienceGuard::Replacement),
++            Self::Replacement(v) => v
++                .lock(plan, deadline, tokens)
++                .await
++                .map(ManagedAudienceGuard::Replacement),
+         }
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1185,12 +1185,16 @@
+         });
+         }
+         let (outcome, commit, committed_at) = {
+-            let mut logical = managed.as_ref().map(|m| m.lock(&plan)).transpose().map_err(|error| {
+-                if plan.replacement.is_some() {
+-                    tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-fence", ?error, "Replacement commit refused before publication");
+-                }
+-                error
+-            })?;
++            let mut logical = if let Some(managed) = &managed {
++                Some(managed.lock(&plan, deadline, &tokens).await.map_err(|error| {
++                    if plan.replacement.is_some() {
++                        tracing::debug!(target: "rvoip_core::replacement_commit", stage="managed-fence", ?error, "Replacement commit refused before publication");
++                    }
++                    error
++                })?)
++            } else {
++                None
++            };
+             let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+             let mut registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+             if !exact_members(&members, &plan)
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/publication_mixer.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/publication_mixer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/publication_mixer.rs
+@@ -0,0 +1,125 @@
++//! Acquire only mixer metadata before the one compound replacement publication.
++use crate::staged_streams::{ControlResult, StreamControlError};
++use tokio::sync::{Mutex, MutexGuard};
++use tokio::time::Instant;
++use tokio_util::sync::CancellationToken;
++
++pub(super) async fn acquire<'a, T: Send>(
++    mixer: &'a Mutex<T>,
++    deadline: Instant,
++    tokens: &[CancellationToken],
++) -> ControlResult<MutexGuard<'a, T>> {
++    if tokens.is_empty() {
++        return Err(StreamControlError::Authority);
++    }
++    let cancelled = futures::future::select_all(tokens.iter().map(|t| Box::pin(t.cancelled())));
++    let guard = tokio::select! {
++        biased;
++        _ = cancelled => return Err(StreamControlError::Cancelled),
++        _ = tokio::time::sleep_until(deadline) => return Err(StreamControlError::Deadline),
++        guard = mixer.lock() => guard,
++    };
++    if tokens.iter().any(CancellationToken::is_cancelled) {
++        return Err(StreamControlError::Cancelled);
++    }
++    if Instant::now() >= deadline {
++        return Err(StreamControlError::Deadline);
++    }
++    Ok(guard)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::Arc;
++    use std::time::Duration;
++
++    #[tokio::test]
++    async fn busy_mixer_waits_for_original_owner_and_returns_one_guard() {
++        let mixer = Arc::new(Mutex::new(0u64));
++        let held = mixer.lock().await;
++        let queued = mixer.clone();
++        let (started, ready) = tokio::sync::oneshot::channel();
++        let worker = tokio::spawn(async move {
++            started.send(()).unwrap();
++            let mut guard = acquire(
++                &queued,
++                Instant::now() + Duration::from_secs(1),
++                &[CancellationToken::new()],
++            )
++            .await
++            .unwrap();
++            *guard += 1;
++        });
++        ready.await.unwrap();
++        tokio::time::sleep(Duration::from_millis(10)).await;
++        assert!(!worker.is_finished());
++        assert_eq!(*held, 0);
++        drop(held);
++        worker.await.unwrap();
++        assert_eq!(*mixer.lock().await, 1);
++    }
++
++    #[tokio::test]
++    async fn busy_mixer_keeps_original_cutoff_without_publication() {
++        let mixer = Mutex::new(0u64);
++        let held = mixer.lock().await;
++        let result = acquire(
++            &mixer,
++            Instant::now() + Duration::from_millis(20),
++            &[CancellationToken::new()],
++        )
++        .await;
++        assert!(matches!(result, Err(StreamControlError::Deadline)));
++        assert_eq!(*held, 0);
++    }
++
++    #[tokio::test]
++    async fn secondary_cancellation_stops_original_wait() {
++        let mixer = Arc::new(Mutex::new(0u64));
++        let held = mixer.lock().await;
++        let queued = mixer.clone();
++        let stop = CancellationToken::new();
++        let cancelled = stop.clone();
++        let (started, ready) = tokio::sync::oneshot::channel();
++        let worker = tokio::spawn(async move {
++            started.send(()).unwrap();
++            let result = acquire(
++                &queued,
++                Instant::now() + Duration::from_secs(1),
++                &[CancellationToken::new(), cancelled],
++            )
++            .await;
++            assert!(matches!(result, Err(StreamControlError::Cancelled)));
++        });
++        ready.await.unwrap();
++        stop.cancel();
++        worker.await.unwrap();
++        assert_eq!(*held, 0);
++    }
++
++    #[tokio::test]
++    async fn ready_mixer_cannot_bypass_expiry_or_cancellation() {
++        let mixer = Mutex::new(0u64);
++        assert!(matches!(
++            acquire(&mixer, Instant::now(), &[CancellationToken::new()]).await,
++            Err(StreamControlError::Deadline)
++        ));
++        let cancelled = CancellationToken::new();
++        cancelled.cancel();
++        assert!(matches!(
++            acquire(
++                &mixer,
++                Instant::now() + Duration::from_secs(1),
++                &[cancelled]
++            )
++            .await,
++            Err(StreamControlError::Cancelled)
++        ));
++        assert!(matches!(
++            acquire(&mixer, Instant::now() + Duration::from_secs(1), &[]).await,
++            Err(StreamControlError::Authority)
++        ));
++        assert_eq!(*mixer.lock().await, 0);
++    }
++}

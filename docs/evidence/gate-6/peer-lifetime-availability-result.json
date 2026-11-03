@@ -1,0 +1,157 @@
+{
+  "format": "connect/gate6-peer-lifetime-availability-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_revision": "2297d8b10a777d9216727dcb24397c65915be833",
+  "binary_sha256": "a2c0dc13ab8eeb5550ec34949d9df14b6beb2b29141b6e05b1e4b25c2b8d5ca4",
+  "peer_binary_sha256": "b60d2e0366e984648f5c98800951d94ce648afe8c8997387c27bb9b17a681613",
+  "report_sha256": "0da3e1bcc11df58a12d4d3790cbf70d69f38e565604dfb42de7413161bbca9e5",
+  "guards": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "elapsed_seconds": 867.1104746460005,
+  "movement_profile": "gate6-realistic-device-roundtrip-v1",
+  "scheduled_moves": 4,
+  "original_moves_completed": 1,
+  "actual_core_refusal": [
+    {
+      "programme_ms": 16599.884,
+      "event": "core-commit-refused",
+      "stage": "managed-mixer-lock"
+    },
+    {
+      "programme_ms": 16599.904,
+      "event": "core-commit-refused",
+      "stage": "managed-fence"
+    }
+  ],
+  "root_cause_evidence": "At programme16.600s the existing managed-mixer-lock and managed-fence labels identify the source4 first-move rejection. The synchronous final Core fence uses Tokio Mutex::try_lock and maps ordinary mixer contention to Model(Conflict) before model/media publication. The service correctly preserves the once-attempted effect as Unknown; no original is replayed.",
+  "authority_diagnostic": {
+    "command_intervals": 18,
+    "maximum_post_admission_hold_ms": 231,
+    "lifetime_deferred_records": 0,
+    "lifetime_retired_records": 0,
+    "scope": "No eight-second command hold reproduced in this original run. No unavailable lifetime branch was exercised, so this run cannot establish that fix as the cause of any timing change."
+  },
+  "original_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "unknown",
+        "revision": 15,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "unknown",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired": 0,
+    "original_db_wal_unchanged": true
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "all_observed_helpers_joined": true,
+  "observed_helpers": 7,
+  "target_join_validation_failures": 1,
+  "scope": "All original processes joined without force, but source0 physical capture failed its original Data-exchange completion during sibling failure. This is not a passing physical-owner/media/complete-cell result.",
+  "G054_deferred": true,
+  "general_regression_suites_rerun": false,
+  "full_programme_completed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
