@@ -443,6 +443,16 @@ separate captured `physical_readiness`. The retained peer is unchanged. Complete
 means the movement outcome is known; it does not promise continuing connectivity.
 Never replay the physical effect to repair activation or a lost response.
 
+The immutable commit capture also retains the original target projection,
+recipient scope and source expiry as historical facts. Before successor intake,
+exclusive installation ownership plus exact native target absence can settle a
+captured but unactivated move through that same atomic stopped projection. This
+path constructs no media origin or activation context and cannot run Core. A
+missing durable physical result stays unknown even when the target is absent.
+Whole-runtime recovery can separately retire the other native connections lost
+with the predecessor; the replacement projection itself never retires the
+retained peer. A second recovery finds no pending activation and emits no event.
+
 A failed projection rolls back all of these writes. Retrying it creates no
 second connection, operation or lifecycle event. Old native cleanup may arrive
 before or after projection. Lineage compares immutable native admission

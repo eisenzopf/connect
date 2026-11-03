@@ -1,0 +1,68 @@
+{
+  "format": "connect/gate6-native-activation-observation-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio native Ubuntu 24.04 ARM64 VM",
+  "source_revision": "76b35fd925b128b9334f43088f2e06660afebf7c",
+  "result": "Both new native activation cases pass. Service library compile fails on an error-conversion type mismatch; correction 6759c2c1 awaits its compile check.",
+  "coverage": [
+    "Original activation metadata try-read returns temporary refusal under real mutex contention, rejects poison and does not manufacture a generation from missing preparation.",
+    "An actual signed local QUIC initial resource admission confirms generation one; synchronous retirement clears original resource confirmation while its adapter entry still remains."
+  ],
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 104458,
+    "source_revision": "76b35fd925b128b9334f43088f2e06660afebf7c",
+    "passed": false,
+    "steps": [
+      {
+        "name": "metadata",
+        "case": "v2::native_negotiation::activation::publication_tests::publication_observation_never_waits_for_busy_metadata_or_accepts_poison",
+        "test_executable_sha256": "d18383e4712f778e1fdf899d8e5adac2deed8dffbbf4ea02c9b522f2873b08b9",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 139 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "149c8d5723b88f7b8a069f63d2eca104c532a278ec37acd99d808cb0c2955d53",
+        "executable_unchanged": true
+      },
+      {
+        "name": "native-quic",
+        "case": "peer_native::canonical_media::native_offers::bootstrap::cancelled_native_resources_have_no_publication_generation_while_adapter_route_is_retained",
+        "test_executable_sha256": "c1ad189d2f25d483477286363e303d9fd5eb5494c3aa587f3b6282a93431d75b",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 182 filtered out; finished in 0.01s"
+        ],
+        "log_sha256": "65a6b22909201c356ea9ffc1ef35e78179c8857e483b8a61dd60739157406464",
+        "executable_unchanged": true
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "service_activation_barrier_candidate": true,
+    "compile_exit_code": 0,
+    "service_check_exit_code": 101,
+    "service_check_log_sha256": "4290cb2059597dac9dc202043124bef4b2fcd20467a9231e1350f73eaa12f3ef",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 790.4818531159981
+  },
+  "setup_failure": {
+    "compile_exit_code": 101,
+    "tests_executed": 0,
+    "reason": "Pinned ref-cast 1.0.26 was absent from offline cache; locked aarch64 dependency fetch completed without Cargo.lock changes before the second run."
+  },
+  "limitations": [
+    "Native case covers actual initial generation-one resource cancellation, not a Connect generation-two replacement or Store publication race.",
+    "Native resource confirmation is a point-in-time observation, not a cancellation lock through SQL commit. Ordinary current packet checks remain required.",
+    "Service build correction remains unverified until the subsequent exact-source check.",
+    "No full media workload, P1 writer-drain/P3/P5 proof or transport-cell qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "G054_deferred": true
+}

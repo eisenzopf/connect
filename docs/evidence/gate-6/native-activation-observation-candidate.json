@@ -5,9 +5,7 @@
   "change": "Final Service installation observation also requires the expected generation from the original sealed NativeMediaActivation via a nonblocking metadata read. Busy maps to temporary refusal; missing/cancelled/wrong-generation or poison cannot publish Ready.",
   "patch": "patches/rvoip/gate6-native-activation-observation.patch",
   "checks_pending": [
-    "New native activation metadata contention/missing/poison unit case.",
-    "New actual signed local QUIC resource cancellation while adapter route remains.",
-    "Service library compile against the pinned patched dependency."
+    "Service library compile after error-conversion correction 6759c2c1."
   ],
   "limitations": [
     "No actual replacement Store/Service end-race or process restart proof yet.",
@@ -17,5 +15,6 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "component_evidence": "docs/evidence/gate-6/native-activation-observation-component.json"
 }
