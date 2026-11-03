@@ -1,0 +1,179 @@
+{
+  "format": "connect/gate6-scene-video-admission-component/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "platform": "ubuntu24-arm64",
+  "passed": true,
+  "scope": "Actual Core scene tick and current-policy/queue delivery component only. No transport/capture/media-quality/full-cell promotion. First two checks are not rerun after the test-only setup repair.",
+  "before": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 98196,
+    "source_revision": "fa54a791563bbe4252d031a750ac066c3fbdb01a",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "c3b0cf14569b906e79639bd283e5af221fc16e75a658aefebf1a0349d4ab1144",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 596 filtered out; finished in 0.00s"
+    ],
+    "test_log_sha256": "fb3895352d9a8df8d37cda45334ba98221ed96f1bd7e01a2bb53e84ca84178f7",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 107.89841097199678
+  },
+  "first_after_attempt": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 98358,
+    "source_revision": "7e88395364d9e950dac09584ad8a46ad1d1bc425",
+    "passed": false,
+    "steps": [
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "43610796923575008cdad458ec9e6c7e7c46a192161d10c3b77c060332fddafe",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_keeps_original_age_and_earliest_observed_authority_expiry",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.29s"
+        ],
+        "log_sha256": "96409c75db011f79a8ae16d5e9cca8b63fd39b172d003dbbcf64850a2a99dff3",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "0e41355299d24980889c11c5dcd5f25b22ffbd1cf34a70ea40e5aeb597334d97",
+        "passed": false
+      }
+    ],
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "40f532141036f6f49875ea98ac5d0732fb86bebda811cc2368dbfd61c881af59",
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 369.720101429004
+  },
+  "corrected_remaining_after": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 98600,
+    "source_revision": "7b9cf2ee044d9eb84b817497fd19a6e193cf1b47",
+    "passed": true,
+    "steps": [
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "78120f21ab00cecd96f3e72600b6fe8a512721844ab596ad45ed4be105ac55b5",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_cannot_follow_a_replaced_receiver_port",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "4490f61988676fad3bd7f5829f772c77f519a2e7e7eea95e9f26624121814bc9",
+        "passed": true
+      },
+      {
+        "case": "staged_streams::tests::media_scene::transient::scene_video_retry_carries_earliest_authority_expiry_into_queued_delivery",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.14s"
+        ],
+        "log_sha256": "7b20fdb89f95c14ed841a9a089d1e87dd1c6cf2eb681c25b20b1774c623c648f",
+        "passed": true
+      }
+    ],
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "1a936bfc9f334b3804724212b02a13f92a2c9805a4bb0684f3ada31013117cff",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 107.7758429079986
+  },
+  "passing_exact_functions": [
+    {
+      "case": "staged_streams::tests::media_scene::transient::scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "43610796923575008cdad458ec9e6c7e7c46a192161d10c3b77c060332fddafe",
+      "passed": true
+    },
+    {
+      "case": "staged_streams::tests::media_scene::transient::scene_video_retry_keeps_original_age_and_earliest_observed_authority_expiry",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.29s"
+      ],
+      "log_sha256": "96409c75db011f79a8ae16d5e9cca8b63fd39b172d003dbbcf64850a2a99dff3",
+      "passed": true
+    },
+    {
+      "case": "staged_streams::tests::media_scene::transient::scene_video_retry_refuses_revocation_and_new_receiver_subscription_epoch",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "78120f21ab00cecd96f3e72600b6fe8a512721844ab596ad45ed4be105ac55b5",
+      "passed": true
+    },
+    {
+      "case": "staged_streams::tests::media_scene::transient::scene_video_retry_cannot_follow_a_replaced_receiver_port",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "4490f61988676fad3bd7f5829f772c77f519a2e7e7eea95e9f26624121814bc9",
+      "passed": true
+    },
+    {
+      "case": "staged_streams::tests::media_scene::transient::scene_video_retry_carries_earliest_authority_expiry_into_queued_delivery",
+      "exit_code": 0,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 598 filtered out; finished in 0.14s"
+      ],
+      "log_sha256": "7b20fdb89f95c14ed841a9a089d1e87dd1c6cf2eb681c25b20b1774c623c648f",
+      "passed": true
+    }
+  ],
+  "passing_exact_function_count": 5,
+  "product_sources_unchanged_across_after_attempts": true,
+  "only_prepared_input_changed_between_after_attempts": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs",
+  "initial_after_failure": "Third function failed during subscription-control setup while simulated Receive NotReady was still armed. Patch277 clears the fixture refusal before authorized control with no intervening scene tick. Original media assertions remain. Last two functions had not run.",
+  "preserved": [
+    "Original packet contents, source RTP clock and admitted-at instant;200ms realtime age.",
+    "Exact receiver port and route ticket captured before first forwarding attempt; no new-generation retry.",
+    "Earliest observed source/target authority expiry retained through retry and queued IO.",
+    "Current authorization and original source/scene/subscription checks on each attempt; no retained policy reader between ticks.",
+    "Data behavior and Backpressure/permanent-refusal behavior unchanged."
+  ],
+  "general_suites_rerun": false,
+  "normal_runtime_pending": true,
+  "G054_deferred": true,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

@@ -37,7 +37,7 @@
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 107.89841097199678
   },
-  "after_check_pending": true,
+  "after_check_pending": false,
   "change": "Actual scene retains only temporarily NotReady realtime destinations until a later normal tick. Freeze weak exact receiver port and ticket at original dequeue and carry earliest observed source/target authorization bound through retry and subsequent queued delivery. Keep original packet/scene/source stamps and200ms age; reacquire current policy each attempt. One bounded pending packet per input; delivered destinations removed exactly once. Data behavior, queue-pressure/permanent refusals and wire formats unchanged.",
   "after_exact_cases": [
     "scene_video_recovers_original_source_and_receiver_not_ready_without_republication",
@@ -91,5 +91,9 @@
     "elapsed_seconds": 369.720101429004
   },
   "first_after_limitation": "Recovery and original age/earliest authority expiry cases pass. Third case fails in subscription-control setup because fixture still forces Receive NotReady. No revocation/epoch verdict and two later functions unrun. Patch277 clears only simulated busy before control, with no intermediate scene tick; all original refusal assertions remain. Product unchanged.",
-  "next_after_cases": "Corrected third function plus the two previously unrun receiver-generation/queued-expiry functions only; first two passing functions are not rerun."
+  "next_after_cases": "Corrected third function plus the two previously unrun receiver-generation/queued-expiry functions only; first two passing functions are not rerun.",
+  "after_component_passed": true,
+  "after_component_evidence": "docs/evidence/gate-6/scene-video-admission-component.json",
+  "after_product_source": "7e88395364d9e950dac09584ad8a46ad1d1bc425",
+  "after_test_repair_source": "7b9cf2ee044d9eb84b817497fd19a6e193cf1b47"
 }
