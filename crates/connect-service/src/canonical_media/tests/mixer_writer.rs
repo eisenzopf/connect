@@ -313,18 +313,6 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
         let (start, requested) = sync_channel(1);
         let (started, ready) = sync_channel(1);
         let (finished, result) = sync_channel(1);
-        let writer_store = store.clone();
-        let writes = scopes(AuthorityMode::Write);
-        let writer = std::thread::spawn(move || {
-            requested.recv_timeout(Duration::from_secs(5)).unwrap();
-            let began = std::time::Instant::now();
-            let wait = Store::replacement_projection_wait_for_test();
-            started.send(()).unwrap();
-            let acquired = writer_store.acquire_authority(&writes, &wait);
-            let outcome = acquired.as_ref().map(|_| ()).map_err(|e| e.code.clone());
-            drop(acquired);
-            finished.send((outcome, began.elapsed())).unwrap();
-        });
         let probe = Arc::new(Probe {
             service: Policy::new(store.clone(), 8),
             owners: [
@@ -394,6 +382,19 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
             controllers.push(controller);
             adapters.push(adapter);
         }
+        for (index, controller) in controllers.iter().enumerate() {
+            scene
+                .change_subscriptions(
+                    &ids[index],
+                    controller.revision(),
+                    audio_subscriptions::AudioSubscriptionChange::Subscribe(vec![
+                        audio_subscriptions::AudioSubscription::Connection(ids[1 - index].clone()),
+                    ]),
+                    tokio::time::Instant::now() + Duration::from_secs(2),
+                )
+                .await
+                .unwrap();
+        }
         // Establish actual decoded mixer output before introducing contention.
         for adapter in &adapters {
             publish(adapter, 0);
@@ -414,6 +415,18 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
         for adapter in &adapters {
             publish(adapter, 160);
         }
+        let writer_store = store.clone();
+        let writes = scopes(AuthorityMode::Write);
+        let writer = std::thread::spawn(move || {
+            requested.recv_timeout(Duration::from_secs(5)).unwrap();
+            let began = std::time::Instant::now();
+            let wait = Store::replacement_projection_wait_for_test();
+            started.send(()).unwrap();
+            let acquired = writer_store.acquire_authority(&writes, &wait);
+            let outcome = acquired.as_ref().map(|_| ()).map_err(|e| e.code.clone());
+            drop(acquired);
+            finished.send((outcome, began.elapsed())).unwrap();
+        });
         probe.armed.store(true, Ordering::Release);
         let began = std::time::Instant::now();
         scene.tick();

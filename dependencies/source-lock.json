@@ -1519,6 +1519,11 @@
       "path": "patches/rvoip/gate6-controlled-mixer-conformance.patch",
       "sha256": "21f9c5e7171da8ff3b9a3f5611c4b3ce8d3e727cedee801cc0a3f43eedc3aa1f",
       "source": "G6-058 P1 controlled composition: opt-in test-support exposes the existing guarded scene attach/tick/clear for a host test with real Store fences and Service contention. No synthetic grant or production-path change; feature absent by default. Actual mixer/Store writer-drain result pending."
+    },
+    {
+      "path": "patches/rvoip/gate6-controlled-mixer-subscriptions.patch",
+      "sha256": "15aa95fc26631a189f911253019ecf96d8f29b6aeeedec7ec73c37d92ff5804d",
+      "source": "G6-058 P1 composition fixture correction: opt-in helper exposes actual guarded audio subscription control. The original test failed its positive output prerequisite because attachment alone creates no receiver subscriptions. No production default, permission or runtime scheduling change."
     }
   ]
 }

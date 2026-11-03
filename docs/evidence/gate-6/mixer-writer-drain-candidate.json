@@ -12,11 +12,11 @@
     "Join the writer, clear the scene, shut down actual controllers and require complete Store writer acquisition after cleanup."
   ],
   "checks_pending": [
-    "Compile on the local Ubuntu24 ARM VM with pinned patch281 sources and connect-service/test-support.",
-    "Run only the one new exact case; no existing suite or full media workload."
+    "Compile corrected mixer and new Store refusal cases on local ARM with pinned patch282.",
+    "Run only the failed mixer case and three new pre-Core refusal Store cases; no broad/full workload."
   ],
   "limitations": [
-    "Original candidate compile failed with E0624 before any case executed; corrected source538ad29a remains uncompiled/unexecuted.",
+    "Corrected compile passed at538ad29a; case failed before contention because fixture had no subscriptions. Subscription correction pending verification.",
     "Core relationship facts and adapter resources are synthetic. Store fences and Service refusal callback are actual, but the positive lease is not a NativeMediaRead and the writer does not run captured replacement SQL.",
     "A pass establishes the controlled mixer/Store contention mechanism; it cannot attribute all449ms in the original workload or qualify native media quality.",
     "No native cancellation/Data observer fault, video bootstrap, authenticated epoch or full transport cell proof."
@@ -35,5 +35,36 @@
     "diagnostic": "E0624: new Service fixture calls Store-private AuthorityWait::poll_every. Original compile finished exit101; no case executed; source/prepared guards unchanged.",
     "correction": "Factor the unchanged production5ms/100us wait into a private helper; expose only its construction through Store::replacement_projection_wait_for_test under test-support. The Service case now uses this exact production wait, without exposing the private generic poll method or changing runtime timing.",
     "correction_source": "538ad29a05a03cb91968c52810fde631e1675f88"
+  },
+  "runtime_setup_failure": {
+    "run": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 108775,
+      "source_revision": "538ad29a05a03cb91968c52810fde631e1675f88",
+      "passed": false,
+      "steps": [
+        {
+          "case": "canonical_media::tests::mixer_writer::actual_mixer_releases_store_reader_before_writer_budget_when_retained_service_callback_is_queued",
+          "exit_code": 101,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.11s"
+          ],
+          "log_sha256": "4af47652bc9fe628de1a0cedc4d9d0b9012752d722baf3015e8050bb822dd32a"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "mixer_writer_candidate": true,
+      "compile_exit_code": 0,
+      "test_executable_sha256": "125731c8d2054c5e9dcbd485973af55bfbfeaa5f19391aab204fa35b4c236dcc",
+      "executable_unchanged": true,
+      "standalone_service_check_rerun": false,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 560.5643767130023
+    },
+    "failure": "Positive mixer output prerequisite failed: no audio subscriptions were installed. Contention arms were never reached.",
+    "correction": "Expose actual subscription control through opt-in helper patch282 and subscribe each receiver to the other exact controller. Keep actual output assertion; create writer thread only after setup passes."
   }
 }

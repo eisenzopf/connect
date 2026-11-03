@@ -5,7 +5,7 @@
   "change": "Separate a known adoption preparation refusal before Core invocation from uncertain physical movement. Consume the original reservation into a typed negative capture, atomically record its exact not-started observation and failed effect, and retire only the candidate under actual native absence. Keep the source/retained programme and original attempt; no Ready and no movement replay.",
   "checks_pending": [
     "Compile Store and run only three new exact cases in commit::not_submitted on local Ubuntu24 ARM.",
-    "Compile changed Service wiring; an actual native adoption-preparation fault remains a separate unproved integration case."
+    "Compile changed Service wiring as part of the corrected mixer libtest; an actual native adoption-preparation fault remains a separate unproved integration case."
   ],
   "new_cases": [
     "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",

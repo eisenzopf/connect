@@ -1,0 +1,22 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+@@ -31,6 +31,19 @@
+         self.0.insert(id, member, true);
+         Ok(())
+     }
++    /// Use the actual subscription control path; fixture attachment alone
++    /// intentionally grants no receiver access to another source.
++    pub async fn change_subscriptions(
++        &self,
++        target: &ConnectionId,
++        expected: u64,
++        change: audio_subscriptions::AudioSubscriptionChange,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<u64> {
++        self.0
++            .change_subscriptions(target, expected, change, deadline, CancellationToken::new(), None)
++            .await
++    }
+     /// Same production scene tick, including current admission, decoding,
+     /// source leases, receiver policy, and bounded queued output ownership.
+     pub fn tick(&self) {
