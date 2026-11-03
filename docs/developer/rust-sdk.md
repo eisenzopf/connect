@@ -58,7 +58,7 @@ reader with fixed page/byte ceilings. An expired or evicted continuation returni
 `409 state/resync_required` permits at most two fresh read attempts under the
 original deadline and cancellation signal. Each attempt discards the previous
 snapshot's partial facts; all attempts share the 256-request and 2 MiB limits.
-Initial-read refusals, authorization errors and unrelated conflicts propagate.
+Initial-read resync refusals, current policy denials and unrelated conflicts propagate.
 This recovery never resubmits a mutation. The [signed recovery evidence](../evidence/gate-6/sdk-snapshot-resync-recovery.json)
 records the original counterexample and all 266 passing client library tests.
 

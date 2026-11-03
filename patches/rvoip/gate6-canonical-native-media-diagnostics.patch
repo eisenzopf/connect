@@ -218,7 +218,7 @@ new file mode 100644
 +    source.try_publish(&original).unwrap();
 +    receive(&mut input)
 +        .await
-+        .forward(&f.b, &desired(Medium::Video).logical_id)
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
 +        .unwrap();
 +    target.observe_egress_queue();
 +    outgoing(&mut output)
@@ -286,7 +286,7 @@ new file mode 100644
 +    let mut output = target.take_egress().unwrap();
 +    receive(&mut input)
 +        .await
-+        .forward(&f.b, &desired(Medium::Video).logical_id)
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
 +        .unwrap();
 +    let queued = outgoing(&mut output).await;
 +    tokio::time::sleep(Duration::from_millis(210)).await;

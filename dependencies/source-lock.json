@@ -1486,7 +1486,7 @@
     },
     {
       "path": "patches/rvoip/gate6-canonical-native-media-diagnostics.patch",
-      "sha256": "f37fac745774ef204332d4cff567ab5bfd0bf199d04a5a44fc5df32073e5a78f",
+      "sha256": "5c3ea100c93c9c4f67eb859f5577c4d690fff59c19ec9988b57609e0c54d4657",
       "source": "G6-058: attach the owning Core numeric MediaDiagnostics collector to actual canonical native RTP ports. Observe bounded ingress/egress queue occupancy, exact mpsc-full refusals, original-age expiry and age before guarded local IO; correlate successful native video target-queue handoff with its original source receipt despite local Stream relabeling. Count observations only, with no new authority, readiness, IO, retries, clock reset or changed media limits. Data queues stay outside realtime sampling. Two new controlled Core cases cover actual queue/handoff, full/expired/refused media and conflicting collector configuration; focused and actual native runtime verification pending."
     }
   ]

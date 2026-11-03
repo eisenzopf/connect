@@ -12,7 +12,7 @@
     "Data queues not sampled; no new Data refusal path.",
     "Native QUIC and WebTransport staged RTP wiring only; no browser/legacy path or whole-cell qualification inferred."
   ],
-  "patch_sha256": "f37fac745774ef204332d4cff567ab5bfd0bf199d04a5a44fc5df32073e5a78f",
+  "patch_sha256": "5c3ea100c93c9c4f67eb859f5577c4d690fff59c19ec9988b57609e0c54d4657",
   "preparation": "274 recorded patch digests apply to fresh pinned source tree; old273 snapshot preserved.",
   "focused_cases": [
     "native_video_records_actual_queues_and_original_source_handoff",
@@ -25,5 +25,23 @@
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "focused_attempts": [
+    {
+      "outcome": "dependency preflight refused before compilation/test",
+      "reason": "offline crate index lacks upstream workspace serial_test",
+      "tests_executed": 0,
+      "source_inputs_unchanged": true,
+      "passed": false
+    },
+    {
+      "outcome": "Actual full Core libtest compilation fails E0599 in both new test calls to absent MediaPacket.forward; zero cases executed.",
+      "source_revision": "98f6de1a87a4085fd1bac8dbb5eb7977e81a9720",
+      "execution": "Local Ubuntu24 ARM64; allow pinned build dependency downloads, no remote execution. Build full Core libtest artifact, execute only two exact new cases; no old suite.",
+      "elapsed_seconds": 334.58761788799893,
+      "source_inputs_unchanged": true,
+      "passed": false
+    }
+  ],
+  "correction": "Use existing MediaPacket.try_forward_to in both new cases. Production observer code unchanged. Fresh verified preparation, focused compilation and actual runtime pending."
 }
