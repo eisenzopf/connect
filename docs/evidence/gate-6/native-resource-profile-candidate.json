@@ -1,0 +1,64 @@
+{
+  "format": "connect/gate6-native-resource-profile-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "focused_arm_checks": {
+    "platform": "ubuntu24-arm64",
+    "general_suites_rerun": false,
+    "steps": [
+      {
+        "name": "metadata",
+        "exit_code": 0,
+        "log_sha256": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881"
+      },
+      {
+        "name": "ownership",
+        "exit_code": 0,
+        "log_sha256": "19d9195f65a60c38e71f2de75203b3757421d1a278393f56816e69de69dc4607"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "source_sha256": {
+      "scripts/tests/test_operational_process_resources.py": "47cae40f78301c28a9c9f8bc5506cf92dc8a05eb4760b9bc483fdf7bdf404104",
+      "scripts/tests/test_transport_resources.py": "72a2058beda597f95ac89f291f85b43db2d3d948bb04f74289a1e6ea897b15bb",
+      "scripts/lib/phase_supervisor.py": "6f2f4c94e13c34d6d2c4ff413bcbe9c3c058945e9b308d91ead33b0dfae75684",
+      "scripts/lib/native_process_owner.py": "e3433c616b0df5c57940347ce45a299ceb20d878de60696ab9aaba249803764e",
+      "scripts/lib/transport_resources.py": "ef685e28f6c038b7293ab9040723f9750168c355bb2fe1fb0832528e720b33fb",
+      "scripts/lib/operational_process_resources.py": "7030aea1e1415790f95751b7869bcd10b7ca041f0a61aaffae196adc86c5673e"
+    },
+    "elapsed_seconds": 3.6221605769969756,
+    "passed": true
+  },
+  "new_exact_cases": 3,
+  "scope": "One new two-role numeric metadata case and two new synthetic real-process ownership cases on Ubuntu24.04 ARM64. No communication, provider, browser or complete media workload is executed by these checks. Native fixture integration and full workload observations remain pending.",
+  "behaviors": [
+    "Existing process sampler accepts exactly declared server/helper roles for native collection, retaining its default three-role behavior for existing callers.",
+    "One-second sampled RSS, observed lifetime CPU, thread and open-descriptor counts are attributed separately to server and helper trees; no process names, commands, file targets, credentials or media enter reports.",
+    "Missing descriptor metadata remains null/unavailable while an otherwise current process remains live. PID start-time mismatch cannot adopt a reused process or its descendants.",
+    "The command supervisor stays unreaped through all original group decisions. A successful early controller exit with an unsampled live worker fails collection and retires its original group.",
+    "Resource collection failure cannot discard completed independent decode results. Parent cancellation preserves original cleanup and rethrows."
+  ],
+  "frozen_collection_bounds": {
+    "cadence_seconds": 1,
+    "original_command_seconds": 300,
+    "original_post_exit_cleanup_seconds": 5,
+    "max_sampled_processes": 128,
+    "max_descriptors_per_process": 4096,
+    "max_samples": 310
+  },
+  "limits": "Observed lifetime CPU includes prior server setup; this is not media-window-only CPU. RSS may double-count shared pages; samples may miss short-lived descendants. Collection does not prove idle-resource restoration or qualify a transport cell. macOS and Remote-profile native collection are explicitly unrun.",
+  "source_sha256": {
+    "scripts/lib/transport_resources.py": "ef685e28f6c038b7293ab9040723f9750168c355bb2fe1fb0832528e720b33fb",
+    "scripts/lib/operational_process_resources.py": "7030aea1e1415790f95751b7869bcd10b7ca041f0a61aaffae196adc86c5673e",
+    "scripts/tests/test_transport_resources.py": "72a2058beda597f95ac89f291f85b43db2d3d948bb04f74289a1e6ea897b15bb",
+    "scripts/tests/test_operational_process_resources.py": "47cae40f78301c28a9c9f8bc5506cf92dc8a05eb4760b9bc483fdf7bdf404104",
+    "scripts/check-transport-fixtures.py": "2657750e5c4174475766d5e7483f6094a486d01ce641ee547ab344ab6bc7ccb8"
+  },
+  "integration_syntax_parsed": true,
+  "normal_arm_runtime_pending": true,
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -80,4 +80,33 @@ class ProcessBoundary(unittest.TestCase):
         self.write(300,0,300,1,2,3,"200")
         with self.assertRaisesRegex(ValueError,"overlap"):sample.sample()
 
+    def test_native_two_roles_preserve_descriptor_unavailability_and_pid_identity(self):
+        for pid, count in [(100, 2), (200, 3)]:
+            directory = self.proc / str(pid) / "fd"
+            directory.mkdir()
+            for index in range(count): (directory / str(index)).touch()
+        sampler = module.ProcessResources(dict(server=100,helper=200),self.proc,100,4096,
+            roles=("server","helper"),open_resources=True,max_samples=3)
+        groups = sampler.sample()["groups"]
+        self.assertEqual(set(groups),{"server","helper"})
+        self.assertEqual(groups["server"]["sampled_open_descriptors"],2)
+        self.assertEqual(groups["helper"]["sampled_open_descriptors"],3)
+        for p in (self.proc / "200/fd").iterdir(): p.unlink()
+        (self.proc / "200/fd").rmdir()
+        helper = sampler.sample()["groups"]["helper"]
+        self.assertEqual(helper["root_state"],"available")
+        self.assertIsNone(helper["sampled_open_descriptors"])
+        self.assertEqual(helper["open_resource_unavailable_processes"],1)
+        self.write(200,0,200,99,999,999,"201")
+        self.write(201,200,200,99,999,999)
+        helper = sampler.sample()["groups"]["helper"]
+        self.assertEqual(helper["root_state"],"retired")
+        self.assertEqual(helper["live_processes"],0)
+        self.assertFalse(any(key[0]==201 for key in sampler.known))
+        self.assertEqual(sampler.summary()["groups"]["helper"]["open_resource_unavailable_samples"],1)
+        with self.assertRaisesRegex(ValueError,"sample budget"): sampler.sample()
+        observed=json.dumps(sampler.summary())
+        self.assertNotIn("private name",observed)
+        self.assertNotIn(str(self.proc),observed)
+
 if __name__=="__main__":unittest.main()

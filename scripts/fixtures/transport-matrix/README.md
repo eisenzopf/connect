@@ -429,3 +429,29 @@ This is a required component of complete cells. Paired decoded AV alignment,
 source-age measurements, live upgrade/replacement, impairment, resource profile
 and all browser paths still require their own observations. A green component
 retains `cell_qualified: false` and cannot promote any of the 32 matrix cells.
+
+## Local Linux native process observations
+
+The native media component now collects one-second numeric observations of its
+original server and helper process trees on local ARM Linux. Helpers include the
+Node controller, SDK helpers, independent physical peers and their small Python
+supervisor. CPU is the maximum observed lifetime counter per known process;
+the server counter also includes its earlier setup. RSS can double-count shared
+pages. Thread and open-descriptor counts expose no names, commands or targets.
+Samples can miss very short-lived children. Descriptor metadata that cannot be
+read remains unavailable rather than zero.
+
+The original command retains its 300-second bound. Its supervisor stays unreaped
+through worker cleanup, with one fixed five-second post-exit cutoff capped by
+the original command deadline. An early successful controller exit with live
+workers fails collection and retires the original group. PID start-time checks
+prevent reuse from adopting unrelated processes. Collection is bounded to 128
+known processes, 4,096 descriptors per process and 310 samples. These are
+collector bounds, not advertised application capacity.
+
+Full numeric samples stay in the private `process-profile/process-resources.json`;
+the rehearsal records its hash and per-role aggregates. Resource collection
+failures retain completed media decoding. The observations do not establish
+idle-resource restoration or complete-cell qualification. The macOS and isolated
+Remote-profile native collectors remain unrun. See
+[the focused candidate evidence](../../../docs/evidence/gate-6/native-resource-profile-candidate.json).

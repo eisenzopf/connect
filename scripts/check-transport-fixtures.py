@@ -22,6 +22,7 @@ from lib.transport_av import prepare as prepare_av, decode_completed as decode_c
 from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
+from lib.transport_resources import run_profiled
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / ".local/gate6-transports"
@@ -513,8 +514,18 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     command.append("--media-workload")
                 elif data_workload:
                     command.append("--data-workload")
-                code = (bounded(command, PRIVATE / "conversation-control.log", env, 300 if media_workload else 180) if namespace is None else
-                    namespace.run_client(command, PRIVATE / "conversation-control.log", 300 if media_workload else 180))
+                if media_workload and namespace is None and platform.system() == "Linux":
+                    code, resources = run_profiled(command, PRIVATE / "conversation-control.log", env, 300,
+                        server_pid=server_pid, directory=PRIVATE / "process-profile", cwd=ROOT)
+                    report["native_process_profile"] = resources
+                    report["native_process_profile_sha256"] = digest(PRIVATE / "process-profile/process-resources.json")
+                else:
+                    code = (bounded(command, PRIVATE / "conversation-control.log", env, 300 if media_workload else 180) if namespace is None else
+                        namespace.run_client(command, PRIVATE / "conversation-control.log", 300 if media_workload else 180))
+                    if media_workload:
+                        report["native_process_profile"] = dict(executed=False,
+                            reason="local-linux-native-process-collector-not-selected",
+                            resource_reclamation_qualified=False, cell_qualified=False)
                 report["conversation_exit_code"] = code
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
@@ -531,6 +542,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         (PRIVATE / "native-av-decoder-failure.log").write_text(traceback.format_exc())
                         report["native_av_decoder_failure"] = dict(name=type(decode_error).__name__,
                             line=traceback.extract_tb(decode_error.__traceback__)[-1].lineno)
+                if media_workload and namespace is None and platform.system() == "Linux":
+                    assert report["native_process_profile"]["collection_complete"]
                 assert code == 0
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2

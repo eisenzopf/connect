@@ -21,13 +21,20 @@ def stat_fields(raw):
         raise ValueError("Incomplete process metadata")
     return dict(state=tail[0], parent=int(tail[1]), group=int(tail[2]),
         cpu_ticks=int(tail[11]) + int(tail[12]), start_ticks=int(tail[19]),
-        rss_pages=max(0, int(tail[21])))
+        rss_pages=max(0, int(tail[21])), threads=max(0, int(tail[17])))
 
 
 class ProcessResources:
-    def __init__(self, roots, proc=Path("/proc"), clock_ticks=None, page_size=None):
-        if set(roots) != set(ROLES) or len(set(roots.values())) != 3:
-            raise ValueError("Three distinct owned process roots required")
+    def __init__(self, roots, proc=Path("/proc"), clock_ticks=None, page_size=None,
+                 *, roles=ROLES, open_resources=False, max_samples=MAX_SAMPLES):
+        if (not roles or len(set(roles)) != len(roles) or not set(roles) <= set(ROLES)
+                or set(roots) != set(roles) or len(set(roots.values())) != len(roles)):
+            raise ValueError("Distinct roots for the exact declared process roles required")
+        if type(open_resources) is not bool or type(max_samples) is not int or not 1 <= max_samples <= 600:
+            raise ValueError("Invalid process observation bounds")
+        self.roles = tuple(roles)
+        self.open_resources = open_resources
+        self.max_samples = max_samples
         self.proc = Path(proc)
         self.clock_ticks = clock_ticks or os.sysconf("SC_CLK_TCK")
         self.page_size = page_size or os.sysconf("SC_PAGE_SIZE")
@@ -49,11 +56,12 @@ class ProcessResources:
         return stat_fields((self.proc / str(pid) / "stat").read_text())
 
     def sample(self):
-        if len(self.samples) >= MAX_SAMPLES:
+        if len(self.samples) >= self.max_samples:
             raise ValueError("Process observation sample budget exceeded")
         values = {}
         unavailable = set()
         retired = set()
+        resource_unavailable = set()
         # Revalidate start time before reading children; PID reuse cannot adopt a
         # later unrelated process as this profile's root or a known descendant.
         pending = list(self.known)
@@ -78,6 +86,36 @@ class ProcessResources:
                 continue
             values[key] = value
             self.max_cpu[key] = max(self.max_cpu.get(key, 0), value["cpu_ticks"])
+            if self.open_resources:
+                try:
+                    # Count numeric handles only; never inspect targets, paths
+                    # or socket endpoints. Refuse an unbounded enumeration.
+                    with os.scandir(self.proc / str(pid) / "fd") as entries:
+                        count = 0
+                        for _ in entries:
+                            count += 1
+                            if count > 4096:
+                                raise ValueError("Process descriptor observation budget exceeded")
+                    if self._stat(pid)["start_ticks"] != started:
+                        values.pop(key)
+                        retired.add(key)
+                        continue
+                    value["open_descriptors"] = count
+                except FileNotFoundError:
+                    try:
+                        still_current = self._stat(pid)["start_ticks"] == started
+                    except FileNotFoundError:
+                        still_current = False
+                    except OSError:
+                        # Unavailable identity metadata is not retirement.
+                        still_current = True
+                    if not still_current:
+                        values.pop(key)
+                        retired.add(key)
+                        continue
+                    resource_unavailable.add(key)
+                except OSError:
+                    resource_unavailable.add(key)
             try:
                 children = (self.proc / str(pid) / "task" / str(pid) / "children").read_text().split()
                 for child in children:
@@ -99,7 +137,7 @@ class ProcessResources:
             except OSError:
                 unavailable.add(key)
         groups = {}
-        for role in ROLES:
+        for role in self.roles:
             keys = {k for k, r in self.known.items() if r == role}
             groups[role] = dict(
                 live_processes=len(keys & values.keys()),
@@ -109,18 +147,35 @@ class ProcessResources:
                 observed_cpu_seconds=sum(self.max_cpu.get(k, 0) for k in keys) / self.clock_ticks,
                 root_state="available" if self.roots[role] in values else
                     "unavailable" if self.roots[role] in unavailable else "retired")
+            if self.open_resources:
+                groups[role].update(
+                    open_resource_unavailable_processes=len(keys & resource_unavailable),
+                    sampled_open_descriptors=None if keys & resource_unavailable else
+                        sum(v["open_descriptors"] for k, v in values.items() if k in keys),
+                    sampled_threads=sum(v["threads"] for k, v in values.items() if k in keys))
         sample = dict(elapsed_seconds=round(time.monotonic() - self.started, 6), groups=groups)
         self.samples.append(sample)
         return sample
 
     def summary(self):
-        return dict(
-            scope="Sampled RSS and observed lifetime CPU for three explicitly owned Linux process trees. Browser includes its owned Node control driver. RSS sums may double-count shared pages; short-lived descendants between samples can be missed. No command lines, environment, names, keys, paths or media.",
+        result = dict(
+            scope="Sampled RSS and observed lifetime CPU for the exact declared owned Linux process trees. Browser includes its owned Node control driver when present. RSS sums may double-count shared pages; short-lived descendants between samples can be missed. No command lines, environment, names, keys, paths or media.",
             sample_count=len(self.samples),
             groups={role: dict(
                 peak_sampled_rss_bytes=max((s["groups"][role]["sampled_rss_bytes"] for s in self.samples), default=None),
                 observed_cpu_seconds=max((s["groups"][role]["observed_cpu_seconds"] for s in self.samples), default=None),
                 peak_live_processes=max((s["groups"][role]["live_processes"] for s in self.samples), default=None),
                 unavailable_samples=sum(s["groups"][role]["unavailable_processes"] > 0 for s in self.samples),
-            ) for role in ROLES},
+            ) for role in self.roles},
             samples=self.samples)
+        if self.open_resources:
+            for role in self.roles:
+                group = result["groups"][role]
+                observed = [s["groups"][role] for s in self.samples]
+                group.update(
+                    peak_sampled_open_descriptors=max((s["sampled_open_descriptors"] for s in observed
+                        if s["sampled_open_descriptors"] is not None), default=None),
+                    peak_sampled_threads=max((s["sampled_threads"] for s in observed), default=None),
+                    open_resource_unavailable_samples=sum(s["open_resource_unavailable_processes"] > 0
+                        for s in observed))
+        return result
