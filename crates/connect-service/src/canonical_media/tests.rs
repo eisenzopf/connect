@@ -460,3 +460,55 @@ fn packet_authority_only_temporary_contention_is_retryable() {
         ));
     }
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn queued_receive_registry_contention_returns_to_the_async_packet_owner() {
+    use rvoip_core::ids::{ConversationId, ParticipantId, StreamId};
+    let dir = tempfile::tempdir().unwrap();
+    let store =
+        Arc::new(Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap());
+    let policy = Policy::new(store, 8);
+    let source = MediaSource {
+        conversation: ConversationId::from_string("conversation".to_owned()),
+        session: SessionId::from_string("session".to_owned()),
+        connection: ConnectionId::from_string("source".to_owned()),
+        participant: ParticipantId::from_string("participant".to_owned()),
+        membership_epoch: 1,
+        connection_generation: 1,
+        logical_id: StreamId::from_string("logical".to_owned()),
+        transport_id: StreamId::from_string("transport".to_owned()),
+        stream_generation: 1,
+    };
+    let receiver = ConnectionId::from_string("receiver".to_owned());
+    let principal = actor();
+    let scope = MediaScope {
+        conversation: &source.conversation,
+        session: &source.session,
+        connection: &receiver,
+        principal: &principal,
+        purpose: MediaPurpose::Receive { source: &source },
+    };
+    // Actual leaf-registry contention must return to Core's async retry owner,
+    // without turning sixteen synchronous callbacks into a 160 ms executor
+    // stall. No current permission or packet IO exists in these refusals.
+    let held = policy.entries.lock().unwrap();
+    let began = std::time::Instant::now();
+    for _ in 0..16 {
+        assert!(matches!(
+            policy.current(&scope),
+            Err(StreamControlError::NotReady)
+        ));
+    }
+    assert!(
+        began.elapsed() < Duration::from_millis(50),
+        "queued packet callbacks occupied the executor instead of returning contention: {:?}",
+        began.elapsed()
+    );
+    drop(held);
+    tokio::task::yield_now().await;
+    // Releasing contention cannot manufacture the absent source/receiver.
+    assert!(matches!(
+        policy.current(&scope),
+        Err(StreamControlError::Authority)
+    ));
+}
