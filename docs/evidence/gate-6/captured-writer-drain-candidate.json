@@ -37,8 +37,8 @@
     "authority_fences::tests::brief_metadata_wait_bounds_local_registry_and_preserves_original_owner"
   ],
   "after_check_pending": false,
-  "normal_runtime_pending": true,
-  "risks_and_remaining": "Brief writer admission still briefly closes fresh readers and SQL/capture work follows acquisition. Actual workload must verify progress and quality. Adoption order/public completion and video bootstrap remain separate unresolved requirements. No full-cell promotion from components.",
+  "normal_runtime_pending": false,
+  "risks_and_remaining": "Actual selected normal ARM workload completes four roots and all once-only effects and cleanup, but fails quality on six routes. Worst physical-to-adopt delay231.291ms (previous995.124ms); capture-record step202.996ms remains. Data observer under1ms and current-read at most22.628ms. Video packet loss/corruption and keyless startup remain unresolved. No full-cell promotion.",
   "source_sha256": {
     "crates/connect-store/src/authority_fences.rs": "8f090b2f3f9a75174001c44ef818d76fa2d2469232244090116b81a4ef57e241",
     "crates/connect-store/src/authority_fences/tests.rs": "4cd8a29803c3ef380b9539d74af5465d96aaa68b1496736a6dd3539e9c1f6a86",
@@ -89,7 +89,9 @@
       "adoption-authority-read"
     ],
     "existing_four_stages_retained": true,
-    "runtime_verified": false,
+    "runtime_verified": true,
     "scope": "Two low-volume fixed stage timestamps per actual movement, using original monotonic commit origin. Separate data-observer construction, role/current-read wait, and confirmation/entry adoption. No control, grant, IO, timeout or retry changes."
-  }
+  },
+  "normal_runtime_passed": false,
+  "normal_runtime_evidence": "docs/evidence/gate-6/captured-writer-drain-result.json"
 }
