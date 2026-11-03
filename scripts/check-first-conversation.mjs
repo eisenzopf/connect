@@ -24,9 +24,9 @@ const report = { format: "connect/first-conversation-rehearsal/1", passed: false
     platform: process.platform, architecture: process.arch, node: process.version,
     consumer_outside_source_checkout: true, empty_home: true, empty_npm_cache: true,
     commands: [], checks: [], task_complete: false, whole_gate_qualified: false };
-let child, joined, browser, context, stage = "create-project", sequence = 0;
+let child, joined, browser, context, page, stage = "create-project", sequence = 0;
 const began = performance.now();
-function check(name) { report.checks.push(name); stage = name; }
+function check(name) { report.checks.push(name); stage = name; console.log(JSON.stringify({ check: name })); }
 async function bounded(promise, ms) {
     let timer;
     try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(Error("quickstart-deadline")), ms); })]); }
@@ -63,7 +63,8 @@ async function start() {
 }
 async function stop() {
     if (!child) return;
-    const original = child; process.kill(-original.pid, "SIGINT");
+    const original = child;
+    try { process.kill(-original.pid, "SIGINT"); } catch (error) { if (error.code !== "ESRCH") throw error; }
     const exit = await bounded(joined, 15000);
     assert.ok(exit.code === 0 || exit.code === 130 || exit.signal === "SIGINT");
     const until = Date.now() + 10000;
@@ -87,23 +88,26 @@ try {
     const { chromium } = await import(pathToFileURL(join(root, "scripts/video/observer-tools/node_modules/playwright/index.mjs")).href);
     const chrome = process.env.CONNECT_GATE6_CHROME ?? chromium.executablePath(); report.browser_launcher_sha256 = sha(await readFile(chrome));
     browser = await chromium.launch({ executablePath: chrome, headless: true }); report.browser = browser.version();
-    context = await browser.newContext({ viewport: { width: 1440, height: 1100 } }); const page = await context.newPage();
+    context = await browser.newContext({ viewport: { width: 1440, height: 1100 } }); page = await context.newPage();
     await page.goto(origin); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     await page.getByRole("checkbox", { name: "Assistant (simulated)", exact: true }).uncheck();
     await page.getByRole("checkbox", { name: "Organizer", exact: true }).check();
     await page.getByRole("button", { name: "Create conversation", exact: true }).click();
     await page.waitForFunction(() => !document.querySelector("#message-form button").disabled);
+    stage = "owner-message-send";
     await page.locator("#message").fill("Hello Connect"); await page.getByRole("button", { name: "Send message", exact: true }).click();
-    await page.getByText("Hello Connect", { exact: true }).waitFor();
+    await page.locator("#timeline li").filter({ hasText: "Hello Connect" }).waitFor();
+    stage = "organizer-reply";
     await page.getByRole("radio", { name: "Organizer", exact: true }).check();
     await page.getByRole("button", { name: "Conversation 1", exact: true }).click();
-    await page.getByText("Hello Connect", { exact: true }).waitFor();
+    await page.locator("#timeline li").filter({ hasText: "Hello Connect" }).waitFor();
     await page.locator("#message").fill("Hello back"); await page.getByRole("button", { name: "Send message", exact: true }).click();
-    await page.getByText("Hello back", { exact: true }).waitFor();
+    await page.locator("#timeline li").filter({ hasText: "Hello back" }).waitFor();
+    stage = "owner-receives-reply";
     await page.getByRole("radio", { name: "Owner", exact: true }).check();
     await page.getByRole("button", { name: "Conversation 1", exact: true }).click();
     for (const text of ["Hello Connect", "Hello back"]) {
-        await page.getByText(text, { exact: true }).waitFor();
+        await page.locator("#timeline li").filter({ hasText: text }).waitFor();
         assert.equal(await page.locator("#timeline li").filter({ hasText: text }).count(), 1);
     }
     report.message_and_reply_elapsed_ms = performance.now() - began; assert.ok(report.message_and_reply_elapsed_ms < 600000);
@@ -112,7 +116,7 @@ try {
     await page.reload(); await page.waitForFunction(() => document.querySelector("#notice").textContent.startsWith("Connected"));
     await page.getByRole("button", { name: "Conversation 1", exact: true }).click();
     for (const text of ["Hello Connect", "Hello back"]) {
-        await page.getByText(text, { exact: true }).waitFor(); assert.equal(await page.locator("#timeline li").filter({ hasText: text }).count(), 1);
+        await page.locator("#timeline li").filter({ hasText: text }).waitFor(); assert.equal(await page.locator("#timeline li").filter({ hasText: text }).count(), 1);
     }
     check("same-command-restart-retains-one-message-and-one-reply");
     await stop(); await context.close(); context = null; await browser.close(); browser = null;
@@ -121,9 +125,15 @@ try {
     report.passed = true;
 } catch (error) {
     report.failure = { stage, name: error.name, message: String(error.message).slice(0, 500) }; report.failed_consumer = consumer; process.exitCode = 1;
+    if (page && !page.isClosed()) await writeFile(join(output, "failure-visible.txt"), (await page.locator("body").innerText().catch(() => "unavailable")).slice(0, 32768), { mode: 0o600 });
 } finally {
     if (context) await context.close().catch(() => {}); if (browser) await browser.close().catch(() => {});
-    if (child) await stop().catch(() => { report.forced_cleanup = true; process.kill(-child.pid, "SIGKILL"); report.passed = false; });
+    if (child) await stop().catch(async () => {
+        report.forced_cleanup = true; report.passed = false;
+        try { process.kill(-child.pid, "SIGKILL"); } catch (error) { if (error.code !== "ESRCH") throw error; }
+        await bounded(joined, 5000).catch(() => {}); child = null;
+    });
+    if (!report.passed) await cp(join(consumer, ".local/parley"), join(output, "private-state"), { recursive: true }).catch(() => {});
     report.elapsed_ms = performance.now() - began;
     await writeFile(join(output, "summary.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
     if (report.passed) await rm(temporary, { recursive: true });
