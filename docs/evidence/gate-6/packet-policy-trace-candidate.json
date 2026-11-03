@@ -1,0 +1,16 @@
+{
+  "format": "connect/gate6-packet-policy-trace-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "basis": "v21 all control/current-end/drain passes but all six media routes fail. Original capture has continued inbound encrypted UDP while outbound payload collapses16.4-18.4s; retained senders3100local queue submissions/0late/max50ms. Packets alone cannot identify media/authorization/cause.",
+  "change": "Explicit media-only fixture option enables existing connect_service::canonical_packet trace of current packet read outcomes. No product Rust, grant, retry, IO, clock, deadline or quality threshold change. Commit-stage diagnostics remain separate; authority stack/backtrace, SQL custody and helper timing stay disabled.",
+  "interpretation_limit": "This logs current-read successes/refusals, not every later lease/current/gate/transport refusal. Early special target branches may return before this existing event. Logging can perturb timing; diagnostic only, no complete quality/cell qualification or causal conclusion from a changed gap. Raw logs stay ignored; derive bounded numeric/static-code aggregates.",
+  "retest_scope": "Only selected four-move captured local ARM workload; no old broad suites or G054 run.",
+  "runtime_pending": true,
+  "source_script_sha256": "7e15abd3a37ef257adb652c5a16060dfb2e80f84a2d04b1d609fa7b4814b32d8",
+  "general_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

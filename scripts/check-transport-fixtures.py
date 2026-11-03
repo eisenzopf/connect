@@ -41,7 +41,7 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False):
     global PRIVATE, OUTPUT
     assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
     assert native_port is None or (type(native_port) is int and 1024 <= native_port <= 65535 and media_workload and network_profile == "local")
@@ -49,6 +49,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     assert not native_replacement_metadata_trace or media_workload
     assert type(native_replacement_commit_trace) is bool
     assert not native_replacement_commit_trace or media_workload
+    assert type(native_packet_policy_trace) is bool
+    assert not native_packet_policy_trace or media_workload
     if media_workload:
         data_workload = actors = conversation = True
         PRIVATE, OUTPUT = BASE / "private/media", BASE / "evidence/media"
@@ -106,6 +108,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report["arm64_component_only"] = arm64_component
     report["native_replacement_metadata_trace_requested"] = native_replacement_metadata_trace
     report["native_replacement_commit_trace_requested"] = native_replacement_commit_trace or native_replacement_metadata_trace
+    report["native_packet_policy_trace_requested"] = native_packet_policy_trace
     report["sdk_helper_timing_trace_requested"] = native_replacement_metadata_trace
     report["host_capture_requested"] = host_capture
     report["requested_native_port"] = native_port
@@ -239,6 +242,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 # Original phase/error events only. No per-frame observer,
                 # authority backtrace, SQL custody or helper timing trace.
                 server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug"
+            if native_packet_policy_trace:
+                # Existing current-read outcomes only. Keep this explicit:
+                # packet logging can perturb timing and cannot qualify quality.
+                server_env["RUST_LOG"] += ",connect_service::canonical_packet=trace"
             if native_replacement_metadata_trace:
                 # Private existing phase/error logs; preserve the original
                 # mutation, current authorization and media/deadline budgets.
@@ -720,6 +727,7 @@ if __name__ == "__main__":
     parser.add_argument("--arm64-component", action="store_true", help="Native Ubuntu24.04 ARM64 local component workload; separate diagnostic identity, never a complete matrix cell")
     parser.add_argument("--trace-replacement-metadata", action="store_true", help="Media diagnostic only: enable existing private replacement phase and metadata diagnostics")
     parser.add_argument("--trace-replacement-commit", action="store_true", help="Media diagnostic only: original replacement phase/error events without authority backtraces, SQL custody or helper timing")
+    parser.add_argument("--trace-packet-policy", action="store_true", help="Media diagnostic only: existing current-packet policy outcomes; logging can perturb timing and does not qualify quality")
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
@@ -733,10 +741,12 @@ if __name__ == "__main__":
         parser.error("--trace-replacement-metadata requires --media-workload")
     if args.trace_replacement_commit and not args.media_workload:
         parser.error("--trace-replacement-commit requires --media-workload")
+    if args.trace_packet_policy and not args.media_workload:
+        parser.error("--trace-packet-policy requires --media-workload")
     if args.arm64_component and args.network_profile != "local":
         parser.error("--arm64-component requires the local component profile")
     if args.without_host_capture and (not args.media_workload or args.network_profile != "local"):
         parser.error("--without-host-capture requires the explicit local --media-workload component")
     if args.native_port is not None and (not args.media_workload or args.network_profile != "local" or not 1024 <= args.native_port <= 65535):
         parser.error("--native-port requires an explicit local media fixture port in1024..65535")
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port, args.arm64_component, args.trace_replacement_metadata, args.trace_replacement_commit))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port, args.arm64_component, args.trace_replacement_metadata, args.trace_replacement_commit, args.trace_packet_policy))
