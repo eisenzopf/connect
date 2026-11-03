@@ -82,6 +82,19 @@ fn successor_settles_only_exact_captured_move_as_stopped_without_replay_or_ready
         // offers are absent. This can already retire the source/retained legs.
         successor.recover_native_offer_cleanup(&good).unwrap();
         successor.recover_native_candidate_claims(&good).unwrap();
+        let source_generation: u64 = successor
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT generation FROM connections WHERE id=?1 AND state='retired'",
+                [m.sources[0].connection_id()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            source_generation > m.sources[0].generation() + 1,
+            "exercise both epoch fencing and physical retirement before projection"
+        );
         let before = Store::inspect_snapshot(&path).unwrap();
         for wrong_at in [1, 2] {
             let wrong = Recovery {
@@ -93,7 +106,8 @@ fn successor_settles_only_exact_captured_move_as_stopped_without_replay_or_ready
                     .recover_native_replacement_activations(&wrong)
                     .unwrap_err()
                     .code,
-                "forbidden"
+                "forbidden",
+                "claimed={claimed}, wrong_at={wrong_at}"
             );
             assert_eq!(wrong.calls.load(Ordering::SeqCst), wrong_at);
             assert_eq!(Store::inspect_snapshot(&path).unwrap(), before);
