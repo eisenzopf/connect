@@ -1,0 +1,19 @@
+{
+  "format": "connect/gate6-replacement-activation-recovery-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Persist exact historical target/projection facts with the immutable physical capture. Exclusive successor startup settles durably captured unactivated moves as stopped after exact native absence, using the existing atomic projection path without reconstructing media origin or replaying physical effect. Uncaptured attempts remain Unknown.",
+  "checks_pending": [
+    "Two new Store restart cases covering fresh and adopted candidates, same-runtime exclusion, wrong early/final absence rollback, original effect identity/attempt conservation, no Ready journal, idempotence, and uncaptured uncertainty.",
+    "Service library compile with startup recovery integration."
+  ],
+  "limitations": [
+    "Store cases use fixture absence observations; actual native process crash and Connect replacement cancellation/publication races remain unproved.",
+    "Already-activated replacement lifetime successor cleanup is a separate remaining audit.",
+    "No P3/P5 proof or full media workload/transport cell qualification."
+  ],
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

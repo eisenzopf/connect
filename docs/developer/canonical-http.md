@@ -214,6 +214,14 @@ A pending replacement may wait for its final mixer metadata fence under the orig
 
 ### Native replacement activation outcome
 
+Before accepting successor-runtime traffic, a durably captured native movement
+that never reached ordinary activation is reconciled against the exact original
+target's local absence. Exclusive installation ownership is required. Recovery
+uses the original capture's historical projection facts and completes that same
+operation as stopped, without publishing Ready, replaying movement or rebuilding
+an ordinary media grant. If the physical result was never durably captured, the
+attempt remains unknown; absence alone does not prove that movement succeeded.
+
 A known physical native replacement is recorded once, then its ordinary Service
 entry and Data observer are installed while ordinary media admission remains
 closed. Final Store publication requires custody of that exact installed entry
@@ -232,7 +240,9 @@ in [the canonical OpenAPI reference](../../contracts/openapi-canonical-http.json
 retired before activation. The stopped result has `readiness: null`, emits no
 `connection_ready`, and includes that target in both `admitted_connection_ids`
 and `retired_connection_ids`: physical admission preceded retirement. The
-retained route is unchanged. `physical_readiness` and `generation` are historical
+replacement projection leaves the retained route unchanged; whole-runtime
+recovery separately retires other native connections lost with the predecessor.
+`physical_readiness` and `generation` are historical
 commit observations; the retired Connection itself has an incremented generation.
 
 `completed` therefore identifies the known movement outcome, not continuing
