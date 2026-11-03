@@ -33,5 +33,7 @@
     "patch_sha256": "1015c5d706f0cad06904b3334fdf8c872b91b6fe24a4ec1c7a2d7f03e0c2b4bd",
     "status": "Implemented, not compiled or executed. Only opt-in test-support observes cancellation; production default unchanged."
   },
-  "execution_plan": "After corrected v42 component checks and Service compile pass with guards, build one server integration executable and execute only the two new signed publication cases. Preserve original failed compile and all prior scoped passes."
+  "execution_plan": "After corrected v42 component checks and Service compile pass with guards, build one server integration executable and execute only the two new signed publication cases. Preserve original failed compile and all prior scoped passes.",
+  "lifecycle_build_correction": "docs/evidence/gate-6/native-publication-lifecycle-build-correction.json",
+  "latest_verification": "Original7b1e91ba integration build failed E0508 before tests with unchanged source/dependency guards. Test-only close-by-reference correction9563bd8a is running the same three new cases locally; outcomes pending."
 }

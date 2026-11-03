@@ -1,0 +1,38 @@
+{
+  "format": "connect/gate6-native-publication-lifecycle-build-correction/1",
+  "task": "G6-058",
+  "original_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 111258,
+    "source_revision": "7b1e91babf7236ab77df4f0462aff0a23c3e0229",
+    "passed": false,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_retirement_candidate": true,
+    "compile_exit_code": 101,
+    "compile_log_sha256": "836d9af32d9307d09dd8d8e4097f054b377b5e6ae44cbf35f80cb2dd0d916c62",
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1102.8681765759975
+  },
+  "diagnostic": {
+    "code": "E0508",
+    "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/activation/publication.rs",
+    "line": 234,
+    "reason": "CanonicalClient::shutdown consumes self; a borrowed Peer slice cannot move out its client."
+  },
+  "correction": "Close the exact peer by shared reference during the audit; existing owner cleanup consumes and drains every client afterward. No production behavior changed.",
+  "frozen_corrected_source": "9563bd8aa0ecffa9a97f305d6fe0200d875d3dd5",
+  "integration_commit": "199955b7",
+  "prepared_patch_count": 284,
+  "verification": "Corrected run started on owner local ARM VM. No new case has a terminal result yet.",
+  "tests_executed_original": 0,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

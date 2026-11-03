@@ -17,5 +17,7 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "lifecycle_build_correction": "docs/evidence/gate-6/native-publication-lifecycle-build-correction.json",
+  "latest_verification": "Original7b1e91ba integration build failed E0508 before tests with unchanged source/dependency guards. Test-only close-by-reference correction9563bd8a is running the same three new cases locally; outcomes pending."
 }
