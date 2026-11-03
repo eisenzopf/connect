@@ -1,0 +1,51 @@
+{
+  "format": "connect/gate6-sdk-helper-timing-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "source_parent": "8a145af01f69a854ada8f9e3143801667c8650a5",
+  "candidate_files_sha256": {
+    "sdk/typescript/src/sdk_helper.ts": "1277fbba6e3b845ba03747ad091fa99ed97ba11687bfac6391da39ee3dae9bce",
+    "sdk/typescript/src/sdk_helper_timing.ts": "8cefa7354d90161d10f6b3251810b35b7e79169e9292edc60a5c051b7e206cff",
+    "scripts/check-transport-fixtures.py": "c5de2185371d34b336a08a0113650c8bf412f9a188ac62be15edcd217ca64032"
+  },
+  "diagnostic_only": true,
+  "default_enabled": false,
+  "enablement": "Only the explicit native_replacement_metadata_trace fixture lane sets CONNECT_SDK_HELPER_TIMING=1.",
+  "maximum_events_per_helper": 2048,
+  "one_truncation_record": true,
+  "fields": [
+    "hashed configuration path identifier",
+    "helper PID",
+    "local request sequence",
+    "fixed action/nested-action labels",
+    "queue/dispatched/reply/cancel/fence phase",
+    "queue/active/original timeout durations",
+    "bounded fixed error kind"
+  ],
+  "not_logged": [
+    "configuration contents",
+    "credentials or key bytes",
+    "raw configuration paths",
+    "logical mutation IDs",
+    "request/response payloads"
+  ],
+  "invariants": {
+    "request_budgets_unchanged": true,
+    "wire_requests_unchanged": true,
+    "queue_capacity_unchanged": true,
+    "fence_uncertainty_policy_unchanged": true,
+    "no_mutation_replay_added": true,
+    "RTP_packet_path_unchanged": true,
+    "G054_held_by_owner": true
+  },
+  "validation": {
+    "typescript_typecheck_no_emit": true,
+    "fixture_Python_syntax": true,
+    "runtime_executed": false,
+    "general_regression_suites_rerun": false
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "scope": "Source/type-checked timing diagnostic to attribute the next original current-Session deadline. Dispatched means local helper-stdin submission attempt, not server acceptance. This candidate supplies no cause proof or runtime/media/matrix pass."
+}

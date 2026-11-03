@@ -90,6 +90,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
+    env.pop("CONNECT_SDK_HELPER_TIMING", None)
+    if native_replacement_metadata_trace:
+        env["CONNECT_SDK_HELPER_TIMING"] = "1"
     if target == "aarch64-apple-darwin":
         env.update(MACOSX_DEPLOYMENT_TARGET="15.0", OPUS_STATIC="1",
             LIBOPUS_NO_PKG="1", CMAKE_POLICY_VERSION_MINIMUM="3.5")
@@ -99,6 +102,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         scope="Native macOS-arm64 or Ubuntu24.04 ARM64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     report["arm64_component_only"] = arm64_component
     report["native_replacement_metadata_trace_requested"] = native_replacement_metadata_trace
+    report["sdk_helper_timing_trace_requested"] = native_replacement_metadata_trace
     report["host_capture_requested"] = host_capture
     report["requested_native_port"] = native_port
     report["host_capture_required_for_complete_cell"] = True

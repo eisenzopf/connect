@@ -396,3 +396,16 @@ V22 completed four original moves before another read deadline. Its third video 
 The media rehearsal reports a first control failure before stopping its physical owners. The AV coordinator retains that original cause while all control and packet tasks join, so a later missing publisher during cleanup cannot replace it. V23 first retained an unknown video subscription with engine `Capacity`; its later camera404 followed the owner-stop request. Unknown effects remain uncertain and are never replayed. The coordinator regression and normal lifetime check are recorded in `../evidence/gate-6/media-first-control-failure.json`.
 
 Resource-changing subscriptions now recover a PreparedRoutes metadata Backpressure before the first adapter preparation poll. Each attempt drops its metadata grants and locks before the existing two-millisecond wait, keeps the original candidate ports and credential/cutoff, and rechecks cancellation, expiry and current source authorization. This adds no retry after possible adapter I/O and no general native Capacity retry. Four controlled before failures and the current full 588-case Core result are recorded in ../evidence/gate-6/resource-subscription-metadata-recovery.json; the live failure cause and production quality still require fresh verification.
+
+The explicit native replacement metadata diagnostic also enables bounded Node
+helper timing (`CONNECT_SDK_HELPER_TIMING=1`). Its private stderr records at most
+2048 control events per helper, then one truncation marker. Fixed action/phase
+labels and original queue/active/deadline durations distinguish a locally queued
+read from one dispatched to helper stdin. Dispatch is not server acceptance.
+Only a hashed configuration-path identifier, helper PID and local sequence bind
+records; no configuration contents, credentials, logical IDs or payloads enter
+this trace. Default execution leaves it disabled, and the producer clears an
+inherited flag unless its named diagnostic is selected. Queue capacity, original
+timeouts, cancellation/fencing, uncertainty and mutation behavior are unchanged.
+These diagnostics do not qualify media or prove the deadline cause by themselves.
+See [the timing candidate](../evidence/gate-6/sdk-helper-timing-candidate.json).
