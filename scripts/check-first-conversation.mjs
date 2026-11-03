@@ -33,6 +33,7 @@ async function bounded(promise, ms) {
     finally { clearTimeout(timer); }
 }
 async function run(argv, cwd = consumer, expected = 0) {
+    stage = argv.includes("verify.mjs") ? "kit-verification" : argv[0] === "npm" ? "offline-sdk-install" : argv[0] === "tar" ? "kit-extraction" : "documented-command";
     const processChild = spawn(argv[0], argv.slice(1), { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
     let bytes = Buffer.alloc(0);
     for (const stream of [processChild.stdout, processChild.stderr]) stream.on("data", body => {
@@ -40,7 +41,7 @@ async function run(argv, cwd = consumer, expected = 0) {
     });
     const exit = await bounded(new Promise((done, reject) => { processChild.once("error", reject); processChild.once("close", code => done(code)); }), 120000);
     await writeFile(join(output, "command-" + sequence++ + ".log"), bytes, { mode: 0o600 });
-    report.commands.push({ argv: argv.map(value => value === archive ? "<reviewed-kit.tar.gz>" : value), cwd_outside_checkout: true, exit_code: exit });
+    report.commands.push({ argv: argv.map(value => value === archive ? "<reviewed-kit.tar.gz>" : value === process.execPath ? "node" : value), cwd_outside_checkout: true, exit_code: exit });
     assert.equal(exit, expected); return bytes.toString();
 }
 const groupMembers = pid => execFileSync("ps", ["-Ao", "pid=,pgid="], { encoding: "utf8" }).trim().split("\n")

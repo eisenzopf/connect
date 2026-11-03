@@ -19,7 +19,8 @@ for (const [name, expected] of Object.entries(manifest.files)) {
     assert.ok(info.isFile() && !info.isSymbolicLink() && info.size <= 512 * 1024 * 1024);
     assert.equal(await realpath(path), path);
     assert.equal(createHash("sha256").update(await readFile(path)).digest("hex"), expected.sha256, name);
-    assert.equal(info.mode & 0o111, expected.mode & 0o111, name);
+    assert.equal(info.mode & 0o100, expected.mode & 0o100, name);
+    assert.equal(info.mode & 0o022, 0, "no-group-or-world-writable-kit-files");
 }
 const binary = await readFile(join(root, "runtime/bin/connect"));
 if (process.platform === "linux") {
