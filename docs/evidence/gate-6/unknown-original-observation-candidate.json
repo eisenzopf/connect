@@ -10,11 +10,36 @@
     "examples/rust-sdk-journey/src/replacement_peer/controls.rs": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
     "scripts/check-transport-fixtures.py": "0ec3f99a13d1ce1188b86e7c3f273ae862770318a32b92628e8bf0aefee28137"
   },
-  "focused_arm_check_pending": true,
+  "focused_arm_check_pending": false,
   "runtime_pending": true,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "focused_arm_check": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 81658,
+    "source_revision": "9bb5a8ce485966397a108a4db34b976298a05c46",
+    "passed": true,
+    "general_suites_rerun": false,
+    "steps": [
+      {
+        "case": "replacement_peer::controls::tests::unknown_original_root_stays_closed_until_same_root_completes",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "cf7c9e58597077b18dfbc972f66032702f71be9493a10eca76294e6ecf95bc82"
+      }
+    ],
+    "compile_exit_code": 0,
+    "test_executable_sha256": "e265630694684b8d1bf2a78b2c0b9c795145fe2fb47c9e50c4844b00003060c5",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 3.658815634997154
+  },
+  "focused_scope": "One exact new actual independent peer observer case,47others filtered; no network IO or full runtime conclusion."
 }
