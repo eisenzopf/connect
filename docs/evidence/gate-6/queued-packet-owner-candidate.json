@@ -4,17 +4,56 @@
   "task": "G6-058",
   "basis": "Actual v23 clears four-root control and all queue-full/stale observations, but whole decoded quality remains negative. Saved unchanged RTP rows show short common gaps during both movement windows and a separate555ms source0/peer gap. Synchronous leaf registry yield and Store sleep loops can occupy each callback for10ms; this is a concrete scheduling risk, not yet the proven cause of all residual gaps.",
   "proposed_change": "Only callbacks with original packet context or Receive purpose use a single immediate current registry/Store attempt. Core existing queued realtime NotReady recovery yields asynchronously, releases all failed partial readers, and retains original200ms source-age/earlier-lease/cancellation/generation checks. Fresh ingress and all other policy purposes retain original10ms admission behavior. No grant caching, physical/mutation replay, source retiming, deadline extension or quality threshold changes.",
-  "source_change_applied": false,
+  "source_change_applied": true,
   "before_source_revision": "6777d863a9f7b75b52eddad8ecfe49c7200ab0d0",
   "private_candidate_patch_sha256": "95f6bfe0aa8796bafe3e62c213e254bd706d900ddde710781dcd8f8e0593d17c",
   "new_controlled_case": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
   "case_scope": "Actual Policy.current Receive callback under held real entries registry on a current-thread Tokio runtime. Sixteen callbacks must return NotReady under50ms combined, then release and fresh missing receiver/source must refuse Authority. This proves callback scheduling behavior only, not native delivery, authorization-positive recovery, whole media quality or any cell.",
-  "before_check_pending": true,
+  "before_check_pending": false,
   "after_check_pending": true,
   "normal_runtime_pending": true,
   "general_suites_rerun": false,
   "G054_deferred": true,
   "cell_qualified": false,
   "task_complete": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "6777d863a9f7b75b52eddad8ecfe49c7200ab0d0",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "aec6bad27a49606caa6a0e6ac65610118a130e3bbdbc8d15bd53b98171c3611c",
+    "test_exit_code": 101,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.27s"
+    ],
+    "test_log_sha256": "37a613359c2f85a56e6ee12781f23703fcbc3681e974dd718959978d556f593e",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 877.113814504999
+  },
+  "before_callback_batch_ms": 160.003707,
+  "after_source_revision": "15256344b9bf99c14fc3da9ccb067f3bece75be5",
+  "artifact_copy_corrected_before_publishing": true,
+  "original_case_rerun": false,
+  "phase_observer": {
+    "stages": [
+      "physical-complete",
+      "capture-recorded",
+      "established-projected",
+      "adopted"
+    ],
+    "boundary": "One original monotonic clock starting immediately before physical commit; four low-volume existing-target debug events per successful movement. Exact connection correlation stays private.",
+    "runtime_verified": false,
+    "scope": "Distinguish future physical commit, metadata capture/public projection and adoption delay. No per-packet logging, backtrace, new waits, grants or source clocks."
+  },
+  "source_sha256": {
+    "crates/connect-service/src/canonical_media/packets.rs": "8345ec17ebbc659fd9502d857f3fcb7596472fd403490b507fe13774ea4a6db2",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "c05bdd8a19e9df800e696f3b5e54585f79e02011df1d8e65c75bc66e5cc04f26",
+    "crates/connect-service/src/canonical_media/tests.rs": "cd2e1e6966fc96b90062c768f9e6398181594887d37c36ac6ed4426db0df6d08"
+  }
 }
