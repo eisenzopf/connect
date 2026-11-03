@@ -38,10 +38,11 @@
     "scripts/lib/transport_replacement_target.mjs": "81926fc56a318ffd45846d21b0ce5bd958a7490bc1f2f996cb989e9b24e2df46",
     "scripts/tests/transport_replacement_owner.test.mjs": "4359502989390ac2843b4912265a81577a9a80ef8ebb3d7c65e930cbb2bae56b"
   },
-  "normal_arm_runtime_pending": true,
+  "normal_arm_runtime_pending": false,
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "normal_arm_runtime_result": "preparation-projection-result.json: all4roots/28once-onlyeffects/controlanddrain pass; full quality fails. Captured actual programme, not complete-cell qualification."
 }

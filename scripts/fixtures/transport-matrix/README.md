@@ -455,3 +455,12 @@ failures retain completed media decoding. The observations do not establish
 idle-resource restoration or complete-cell qualification. The macOS and isolated
 Remote-profile native collectors remain unrun. See
 [the focused candidate evidence](../../../docs/evidence/gate-6/native-resource-profile-candidate.json).
+
+The selected media fixture also saves existing administrator Health media counters
+before and after the programme: queue observations, forwarding timings and QUIC
+counters. Those reads add no periodic network/SQL observer during the measured
+programme. The explicit replacement metadata diagnostic enables numeric SQL
+custody records lasting at least 500 microseconds, alongside its existing phase
+and authority logs. All raw logs and Health responses remain private. A failed
+post-workload diagnostic retains completed independent media decoding and still
+fails the overall component.

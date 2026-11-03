@@ -60,5 +60,11 @@
   "G054_deferred": true,
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "integration_follow_up": {
+    "source_sha256": "c0719d923de6becc6886010cbefc4dbd925182e004b6e9dc8416fab9a55b2bf5",
+    "status": "normal selected runtime pending",
+    "observers": "Existing public numeric media/queue/QUIC snapshots before/after the programme; explicit metadata diagnostic enables numeric slow SQL custody records at >=500us. No periodic network observer during the programme.",
+    "failure_custody": "Post-workload health observation failure is recorded separately and cannot prevent completed independent media decoding."
+  }
 }

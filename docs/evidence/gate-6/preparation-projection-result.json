@@ -1,0 +1,478 @@
+{
+  "format": "connect/gate6-preparation-projection-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "local_platform": "ubuntu-24.04-linux-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "ed105a5303f2ea89d9a2399cab368e89e1fdcf31",
+    "binary_sha256": "a00c6cbdfd649d9d22ebd61925eaaa054193e6e55290ee58e4dda848738a0a71",
+    "peer_binary_sha256": "a507b457e9d0b2e760ae57b985b289c513fcb3c3cb8595ea7c0a92b8d7af94f7",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 920.6100108579994,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "control_scenario_passed": true,
+  "original_moves_completed": 4,
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 76703057,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 100035,
+      "to_server_packets": 54779,
+      "from_server_packets": 45256,
+      "captured_bytes": 75102473,
+      "udp_payload_bytes": 70901003,
+      "to_server_udp_bytes": 30121763,
+      "from_server_udp_bytes": 40779240
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "current_owner_ends": 6,
+  "maximum_retirement_ms": 1360.8311560000002,
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1405,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 243,
+      "packet_events_during_control": 589,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": true,
+      "sent_audio_packets": 1029,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 77,
+      "packet_events_during_control": 226,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1377,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 157,
+      "packet_events_during_control": 418,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": true,
+      "sent_audio_packets": 1014,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 39,
+      "packet_events_during_control": 231,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "quality_passed": false,
+  "routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.76,
+        "samples": 2532480,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2638,
+        "maximum_arrival_gap_ms": 2019.9304819999998
+      },
+      "video": {
+        "decoded_window_frames": 1563,
+        "changing_window_frames": 1562,
+        "wrong_source_pixel_frames": 31,
+        "undecodable_frames": 46
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 68,
+        "median_abs_skew_ms": 18.87566250000061,
+        "p95_abs_skew_ms": 39.632893000002056,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.38,
+        "samples": 2514240,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2619,
+        "maximum_arrival_gap_ms": 2030.4993209999993
+      },
+      "video": {
+        "decoded_window_frames": 1500,
+        "changing_window_frames": 1499,
+        "wrong_source_pixel_frames": 23,
+        "undecodable_frames": 37
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 67,
+        "median_abs_skew_ms": 1.2523719999961713,
+        "p95_abs_skew_ms": 6.286815999999362,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.98,
+        "samples": 2543040,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2649,
+        "maximum_arrival_gap_ms": 2023.5416509999995
+      },
+      "video": {
+        "decoded_window_frames": 1638,
+        "changing_window_frames": 1637,
+        "wrong_source_pixel_frames": 107,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 67,
+        "median_abs_skew_ms": 21.33458200000149,
+        "p95_abs_skew_ms": 80.05737999999951,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.94,
+        "samples": 2541120,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2647,
+        "maximum_arrival_gap_ms": 2025.3974039999994
+      },
+      "video": {
+        "decoded_window_frames": 1603,
+        "changing_window_frames": 1602,
+        "wrong_source_pixel_frames": 175,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 56,
+        "median_abs_skew_ms": 21.462117000001335,
+        "p95_abs_skew_ms": 60.42433900000077,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.92,
+        "samples": 2540160,
+        "bad_identity_blocks": 1,
+        "original_window_packets": 2646,
+        "maximum_arrival_gap_ms": 2141.7431019999967
+      },
+      "video": {
+        "decoded_window_frames": 1593,
+        "changing_window_frames": 1592,
+        "wrong_source_pixel_frames": 26,
+        "undecodable_frames": 6
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "failed",
+        "paired": 0,
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 52.76,
+        "samples": 2532480,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2638,
+        "maximum_arrival_gap_ms": 2141.397118000001
+      },
+      "video": {
+        "decoded_window_frames": 1510,
+        "changing_window_frames": 1509,
+        "wrong_source_pixel_frames": 10,
+        "undecodable_frames": 25
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 69,
+        "median_abs_skew_ms": 20.502157000002796,
+        "p95_abs_skew_ms": 102.40408700000359,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    }
+  ],
+  "stopped_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true,
+    "copy_read_mode": "WAL-aware mode=ro; original files never opened by SQLite"
+  },
+  "observed_failure": "All six decoded routes fail audio coverage/gap and video coverage/identity limits. Five AV alignments pass; route4 cannot establish valid pairing. Failures remain failures.",
+  "read_only_correlation": "Unmoved receivers share approximately two-second gaps ending near18.23s,20.26s,22.28s and a later gap near43.27s. All four retained original senders submit3100audio packets; all six original senders report0late frames. Physical pump also skips0audio frames. Current command grants include2.577s connection.update and3.688s conversation.get holds. This does not prove a specific SQL, authority or CPU cause.",
+  "next_action": "Run the same selected localARM workload with new attributed process resources, existing public numeric queue/forwarding/QUIC snapshots before and after, and slow SQL custody trace. No media threshold/source-clock weakening or mutation replay.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

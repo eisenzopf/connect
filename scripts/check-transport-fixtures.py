@@ -235,7 +235,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             if native_replacement_metadata_trace:
                 # Private existing phase/error logs; preserve the original
                 # mutation, current authorization and media/deadline budgets.
-                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug,rvoip_core::replacement_commit=debug,connect_service::peer_authority_lifetime=debug"
+                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug,rvoip_core::replacement_commit=debug,connect_service::peer_authority_lifetime=debug,connect_store::sql_custody=trace"
             command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,
@@ -514,6 +514,16 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     command.append("--media-workload")
                 elif data_workload:
                     command.append("--data-workload")
+                if media_workload:
+                    # Observe existing public numeric counters outside the
+                    # programme. No periodic observer adds control/SQL load
+                    # while the original packet schedule is being measured.
+                    health = json.loads(run("native-profile-health-before",
+                        ["health", "--config", state / "operator.application.toml"]))["result"]
+                    assert health["kind"] == "health"
+                    report["native_media_diagnostics_before"] = health["data"]["readiness"]["media"]
+                    assert isinstance(report["native_media_diagnostics_before"], dict)
+                    phase = "public-sdk-conversation-control"
                 if media_workload and namespace is None and platform.system() == "Linux":
                     code, resources = run_profiled(command, PRIVATE / "conversation-control.log", env, 300,
                         server_pid=server_pid, directory=PRIVATE / "process-profile", cwd=ROOT)
@@ -527,6 +537,17 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                             reason="local-linux-native-process-collector-not-selected",
                             resource_reclamation_qualified=False, cell_qualified=False)
                 report["conversation_exit_code"] = code
+                if media_workload:
+                    try:
+                        health = json.loads(run("native-profile-health-after",
+                            ["health", "--config", state / "operator.application.toml"]))["result"]
+                        assert health["kind"] == "health"
+                        report["native_media_diagnostics_after"] = health["data"]["readiness"]["media"]
+                        assert isinstance(report["native_media_diagnostics_after"], dict)
+                    except Exception as diagnostic_error:
+                        (PRIVATE / "native-profile-health-after-failure.log").write_text(traceback.format_exc())
+                        report["native_media_diagnostics_after_failure"] = dict(name=type(diagnostic_error).__name__)
+                    phase = "public-sdk-conversation-control"
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
@@ -544,6 +565,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                             line=traceback.extract_tb(decode_error.__traceback__)[-1].lineno)
                 if media_workload and namespace is None and platform.system() == "Linux":
                     assert report["native_process_profile"]["collection_complete"]
+                if media_workload:
+                    assert "native_media_diagnostics_after_failure" not in report
                 assert code == 0
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
