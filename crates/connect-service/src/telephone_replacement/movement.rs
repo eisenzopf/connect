@@ -24,7 +24,7 @@ impl Runtime {
         started: &Arc<media::Started>,
     ) -> Result<()> {
         let roles = self.role_projection.lock().await;
-        let plan=self.core.plan_staged_device_replacement(&root.handle).map_err(|error|{tracing::debug!(target:"connect_service::telephone_replacement",?error,"Telephone compound plan refused");Error::forbidden()})?;
+        let plan=self.core.plan_staged_device_replacement(&root.handle, None).map_err(|error|{tracing::debug!(target:"connect_service::telephone_replacement",?error,"Telephone compound plan refused");Error::forbidden()})?;
         let i = self
             .telephone_scene(root, started, Phase::Commit(plan.clone()))
             .await?;

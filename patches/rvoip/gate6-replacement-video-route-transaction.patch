@@ -1,0 +1,879 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -755,6 +755,7 @@
+     pub fn plan_staged_device_replacement(
+         &self,
+         p: &Arc<DeviceReplacementPreparation>,
++        video: Option<crate::staged_streams::device_replacement::ReplacementVideoRequest>,
+     ) -> ControlResult<ManagedAudioDeviceReplacementPlan> {
+         self.owns_replacement(p)?;
+         p.check()?;
+@@ -780,6 +781,7 @@
+                 source: p.intent.source.clone(),
+                 admitted: p.intent.replacement.clone(),
+                 retained: p.intent.retained.clone(),
++                video,
+             },
+         )?;
+         Ok(ManagedAudioDeviceReplacementPlan {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -4,6 +4,7 @@
+ //! A host must authorize the complete audience operation under its current
+ //! domain grant. These local outcomes are not durable operation receipts.
+ use super::audio_subscriptions::AudioPlan;
++use super::direct_subscriptions::DirectPlan;
+ use super::{audio_subscriptions::*, media_scene::*, *};
+ 
+ #[derive(Clone, Debug, PartialEq, Eq)]
+@@ -791,7 +792,8 @@
+     audio: AudioPlan,
+     ports: Vec<(Arc<Port>, PeerRouteTicket, PeerRouteTicket)>,
+     gate: Option<StreamGateAction>,
+-    inherited_gate: Option<(StreamId, LogicalStream)>,
++    inherited_gates: Vec<(StreamId, LogicalStream)>,
++    direct: Option<DirectPlan>,
+     role: Option<(Arc<audio_consumer::AudioConsumer>, bool)>,
+ }
+ fn exact_members(
+@@ -1050,6 +1052,17 @@
+                     &control,
+                     plan.replacement.is_some(),
+                 )?;
++                let direct = plan
++                    .replacement
++                    .as_ref()
++                    .and_then(|r| r.video.as_ref())
++                    .map(|video| video.direct_change(controller))
++                    .transpose()?
++                    .flatten()
++                    .map(|change| {
++                        controller.prepare_direct(&state, &scope, &change, Some(&control), None)
++                    })
++                    .transpose()?;
+                 let gate = muted_source
+                     .as_ref()
+                     .filter(|source| source.matches(controller))
+@@ -1089,26 +1102,32 @@
+                         ports.push((port, old, next));
+                     }
+                 }
+-                let inherited_gate = plan
++                let mut inherited_gates = Vec::new();
++                if let Some(r) = plan
+                     .replacement
+                     .as_ref()
+                     .filter(|r| r.request.admitted == *id)
+-                    .map(|r| (r.new_logical.clone(), r.old_gate.clone()));
+-                if let Some((logical, source)) = &inherited_gate {
++                {
++                    inherited_gates.push((r.new_logical.clone(), r.old_gate.clone()));
++                    if let Some(video) = &r.video {
++                        inherited_gates.extend_from_slice(video.gates());
++                    }
++                }
++                if !inherited_gates.is_empty() {
+                     let mut candidate = state
+                         .model
+                         .routing_candidate(&owner.current(), plan.expected[id])?;
+                     candidate.inherit_replacement_gates(
+                         &owner.current(),
+                         plan.expected[id],
+-                        &[(logical.clone(), source.clone())],
+-                        audio.changed(),
++                        &inherited_gates,
++                        audio.changed() || direct.as_ref().is_some_and(DirectPlan::changed),
+                     )?;
+-                    for port in state
+-                        .active
+-                        .values()
+-                        .filter(|p| &p.binding.negotiated.requested.logical_id == logical)
+-                    {
++                    for port in state.active.values().filter(|p| {
++                        inherited_gates.iter().any(|(logical, _)| {
++                            &p.binding.negotiated.requested.logical_id == logical
++                        })
++                    }) {
+                         let old = port.ticket();
+                         let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+                         ports.push((port.clone(), old, next));
+@@ -1122,7 +1141,8 @@
+                     audio,
+                     ports,
+                     gate,
+-                    inherited_gate,
++                    inherited_gates,
++                    direct,
+                     role: if let Some(r) = plan
+                         .replacement
+                         .as_ref()
+@@ -1160,6 +1180,9 @@
+             tokens.push(target.controller.shutdown.clone());
+             tokens.push(target.audio.cancellation());
+             tickets.extend(target.audio.tickets());
++            if let Some(direct) = &target.direct {
++                tickets.extend(direct.tickets());
++            }
+             tickets.extend(target.ports.iter().map(|(_, old, _)| old.clone()));
+         }
+         let requested_roles = targets
+@@ -1242,6 +1265,15 @@
+                     Some(&target.control),
+                     None,
+                 )?);
++                if let Some(direct) = &target.direct {
++                    receive.extend(direct.validate(
++                        &target.controller,
++                        &state,
++                        &scope,
++                        Some(&target.control),
++                        None,
++                    )?);
++                }
+                 owners.push(owner);
+             }
+             for (role, _) in &roles {
+@@ -1262,12 +1294,14 @@
+                 let mut next = state
+                     .model
+                     .routing_candidate(&owner.current(), plan.expected[id])?;
+-                if let Some((id, source)) = &target.inherited_gate {
++                let routing_changed = target.audio.changed()
++                    || target.direct.as_ref().is_some_and(DirectPlan::changed);
++                if !target.inherited_gates.is_empty() {
+                     next.inherit_replacement_gates(
+                         &owner.current(),
+                         plan.expected[&target.controller.connection],
+-                        &[(id.clone(), source.clone())],
+-                        target.audio.changed(),
++                        &target.inherited_gates,
++                        routing_changed,
+                     )?;
+                 } else if let Some(action) = target.gate {
+                     let ids = target
+@@ -1277,11 +1311,7 @@
+                         .collect();
+                     next.set_gates(&owner.current(), plan.expected[id], &ids, action)?;
+                 } else {
+-                    next.commit_routing(
+-                        &owner.current(),
+-                        plan.expected[id],
+-                        target.audio.changed(),
+-                    )?;
++                    next.commit_routing(&owner.current(), plan.expected[id], routing_changed)?;
+                 }
+                 revisions.insert(id.clone(), next.revision());
+                 models.push(next);
+@@ -1289,6 +1319,10 @@
+             let mut commits = targets
+                 .iter()
+                 .map(|t| t.audio.lock())
++                .collect::<ControlResult<Vec<_>>>()?;
++            let mut direct_commits = targets
++                .iter()
++                .map(|t| t.direct.as_ref().map(|d| d.lock(&t.controller)).transpose())
+                 .collect::<ControlResult<Vec<_>>>()?;
+             for (target, state) in targets.iter().zip(&states) {
+                 current(target, deadline, &cancel)?;
+@@ -1306,11 +1340,12 @@
+                 logical.check(&plan)?;
+             }
+             // No fallible work after the first model or programme is published.
+-            for (((target, state), model), commit) in targets
++            for ((((target, state), model), commit), direct_commit) in targets
+                 .iter()
+                 .zip(states.iter_mut())
+                 .zip(models)
+                 .zip(commits.iter_mut())
++                .zip(direct_commits.iter_mut())
+             {
+                 state.model = model;
+                 for (port, old, next) in &target.ports {
+@@ -1318,6 +1353,9 @@
+                     *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next.clone();
+                 }
+                 commit.commit(&target.audio);
++                if let Some(commit) = direct_commit.as_mut() {
++                    commit.commit(target.direct.as_ref().expect("staged direct replacement"));
++                }
+             }
+             for (role, speaks) in roles {
+                 role.commit(speaks);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+@@ -0,0 +1,220 @@
++//! Explicit replacement video intent. Snapshots contain no permission lease.
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ReplacementVideoStream {
++    pub previous: StreamId,
++    pub replacement: StreamId,
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ReplacementVideoRequest {
++    /// Old endpoint publications and their exact new negotiated logical IDs.
++    pub publications: Vec<ReplacementVideoStream>,
++    /// Old receiver ports and their exact new negotiated receiver logical IDs.
++    /// This transfers only existing selections, never selects a new publisher.
++    pub receivers: Vec<ReplacementVideoStream>,
++}
++
++pub(crate) struct VideoPlan {
++    old: Weak<StreamController>,
++    new: Weak<StreamController>,
++    old_revision: u64,
++    new_revision: u64,
++    publications: BTreeMap<StreamId, StreamId>,
++    old_video_ids: BTreeSet<StreamId>,
++    incoming: Vec<DirectSubscription>,
++    gates: Vec<(StreamId, LogicalStream)>,
++}
++
++impl VideoPlan {
++    pub(super) fn prepare(
++        old: &Arc<StreamController>,
++        new: &Arc<StreamController>,
++        request: &ReplacementVideoRequest,
++    ) -> ControlResult<Self> {
++        let count = request.publications.len() + request.receivers.len();
++        if count == 0 || count > 32 {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        let mut target_ids = BTreeSet::new();
++        for group in [&request.publications, &request.receivers] {
++            let mut previous = BTreeSet::new();
++            for mapping in group {
++                if mapping.previous.as_str().is_empty()
++                    || mapping.replacement.as_str().is_empty()
++                    || !previous.insert(mapping.previous.clone())
++                    || !target_ids.insert(mapping.replacement.clone())
++                {
++                    return Err(MediaTransitionError::Invalid.into());
++                }
++            }
++        }
++        // Both are try-locks: a caller never waits while owning the other state.
++        let old_state = old
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let new_state = new
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        if old_state.closed
++            || new_state.closed
++            || old.shutdown.is_cancelled()
++            || new.shutdown.is_cancelled()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        let previous_routes = old.direct_subscriptions.saved_selections();
++        // Private preparation must not smuggle in an ordinary receive program.
++        if !new.direct_subscriptions.saved_selections().is_empty() {
++            return Err(StreamControlError::Authority);
++        }
++        let mut gates = Vec::new();
++        let mut publications = BTreeMap::new();
++        let mut incoming = Vec::new();
++        for (publish, group) in [(true, &request.publications), (false, &request.receivers)] {
++            for mapping in group {
++                let source = Self::video_stream(&old_state, &mapping.previous)?;
++                let target = Self::video_stream(&new_state, &mapping.replacement)?;
++                let source_direction = source.negotiated.requested.direction;
++                let target_direction = target.negotiated.requested.direction;
++                if if publish {
++                    !source_direction.receives() || !target_direction.receives()
++                } else {
++                    !source_direction.sends() || !target_direction.sends()
++                } {
++                    return Err(StreamControlError::Unsupported);
++                }
++                if target_direction.receives() && !target.source_muted {
++                    return Err(StreamControlError::Authority);
++                }
++                let mut gate = source.clone();
++                if publish {
++                    publications.insert(mapping.previous.clone(), mapping.replacement.clone());
++                } else {
++                    let selected = previous_routes
++                        .iter()
++                        .find(|route| route.receiver == mapping.previous)
++                        .ok_or(StreamControlError::NotReady)?;
++                    let publisher = selected.publisher().ok_or(StreamControlError::NotReady)?;
++                    incoming.push(DirectSubscription::new(
++                        &publisher,
++                        selected.source.logical.clone(),
++                        mapping.replacement.clone(),
++                    ));
++                    // A receiver transfer never opens an extra endpoint input,
++                    // even if the negotiated target happens to be duplex.
++                    gate.source_muted = true;
++                }
++                gates.push((mapping.replacement.clone(), gate));
++            }
++        }
++        Ok(Self {
++            old: Arc::downgrade(old),
++            new: Arc::downgrade(new),
++            old_revision: old_state.model.revision(),
++            new_revision: new_state.model.revision(),
++            publications,
++            incoming,
++            gates,
++            old_video_ids: old_state
++                .model
++                .streams()
++                .iter()
++                .filter(|(_, s)| s.negotiated.requested.medium == Medium::Video)
++                .map(|(id, _)| id.clone())
++                .collect(),
++        })
++    }
++
++    fn video_stream<'a>(state: &'a State, id: &StreamId) -> ControlResult<&'a LogicalStream> {
++        let stream = state
++            .model
++            .streams()
++            .get(id)
++            .filter(|s| {
++                s.state != LogicalStreamState::Ended
++                    && s.negotiated.requested.medium == Medium::Video
++            })
++            .ok_or(StreamControlError::NotReady)?;
++        let port = state.active.get(id).ok_or(StreamControlError::NotReady)?;
++        if port.binding.negotiated != stream.negotiated
++            || port.binding.transport_id != stream.transport_id
++            || port.binding.stream_local_id != stream.stream_local_id
++            || port.binding.generation != stream.generation
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        Ok(stream)
++    }
++
++    pub(crate) fn validate(
++        &self,
++        controller: &StreamController,
++        state: &State,
++    ) -> ControlResult<()> {
++        for (owner, revision) in [
++            (&self.old, self.old_revision),
++            (&self.new, self.new_revision),
++        ] {
++            let owner = owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++            if std::ptr::eq(owner.as_ref(), controller) && state.model.revision() != revision {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++        }
++        Ok(())
++    }
++
++    pub(crate) fn gates(&self) -> &[(StreamId, LogicalStream)] {
++        &self.gates
++    }
++
++    pub(crate) fn direct_change(
++        &self,
++        controller: &Arc<StreamController>,
++    ) -> ControlResult<Option<DirectSubscriptionChange>> {
++        let old = self.old.upgrade().ok_or(StreamControlError::Cancelled)?;
++        let new = self.new.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if Arc::ptr_eq(controller, &old) {
++            return Ok(None); // The old lifetime is retired by the compound commit.
++        }
++        let mut changes = BTreeMap::new();
++        if Arc::ptr_eq(controller, &new) {
++            for route in &self.incoming {
++                changes.insert(route.receiver.clone(), route.clone());
++            }
++        }
++        for route in controller
++            .direct_subscriptions
++            .saved_selections()
++            .into_iter()
++            .chain(changes.values().cloned().collect::<Vec<_>>())
++        {
++            if route
++                .publisher()
++                .is_some_and(|publisher| Arc::ptr_eq(&publisher, &old))
++            {
++                if let Some(logical) = self.publications.get(&route.source.logical) {
++                    changes.insert(
++                        route.receiver.clone(),
++                        DirectSubscription::new(&new, logical.clone(), route.receiver),
++                    );
++                } else if self.old_video_ids.contains(&route.source.logical) {
++                    // Explicit preservation cannot silently leave a selected
++                    // old camera behind on the retiring publisher.
++                    return Err(StreamControlError::Authority);
++                }
++            }
++        }
++        if changes.is_empty() {
++            Ok(None)
++        } else {
++            Ok(Some(DirectSubscriptionChange::Subscribe(
++                changes.into_values().collect(),
++            )))
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -5,6 +5,8 @@
+     media_scene::GuardedMediaScene, *,
+ };
+ use crate::participant_transitions::PreparedParticipantReplacement;
++mod video;
++pub use video::{ReplacementVideoRequest, ReplacementVideoStream};
+ #[derive(Clone, Debug, PartialEq, Eq)]
+ pub struct AudioDeviceReplacementRequest {
+     pub operation_id: String,
+@@ -12,6 +14,7 @@
+     pub source: ConnectionId,
+     pub admitted: ConnectionId,
+     pub retained: ConnectionId,
++    pub video: Option<ReplacementVideoRequest>,
+ }
+ pub(super) struct ReplacementIntent {
+     pub(super) request: AudioDeviceReplacementRequest,
+@@ -25,6 +28,7 @@
+     pub(super) old_logical: StreamId,
+     pub(super) new_logical: StreamId,
+     pub(super) old_gate: LogicalStream,
++    pub(super) video: Option<video::VideoPlan>,
+     pending: PreparedParticipantReplacement,
+ }
+ impl ReplacementIntent {
+@@ -39,6 +43,9 @@
+             .is_some_and(|o| !o.matches(controller))
+         {
+             return Err(StreamControlError::Authority);
++        }
++        if let Some(video) = &self.video {
++            video.validate(controller, state)?;
+         }
+         if !self.old_role.is_current() {
+             return Err(MediaTransitionError::Conflict.into());
+@@ -281,6 +288,11 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
++        let video = request
++            .video
++            .as_ref()
++            .map(|request| video::VideoPlan::prepare(old, new, request))
++            .transpose()?;
+         let old_logical = members[&request.source]
+             .current_logical()
+             .ok_or(StreamControlError::NotReady)?;
+@@ -381,6 +393,7 @@
+             old_logical,
+             new_logical,
+             old_gate,
++            video,
+             pending: pending.clone(),
+         });
+         Ok(AudioDeviceReplacementPlan {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -76,6 +76,17 @@
+             }),
+             cancel,
+         })
++    }
++    /// Intent snapshot only; the enclosing controller revision and actual
++    /// current receive authority must still be checked by the managed commit.
++    pub(super) fn saved_selections(&self) -> Vec<DirectSubscription> {
++        self.routing
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .program
++            .values()
++            .map(|route| route.selection.clone())
++            .collect()
+     }
+     pub(super) fn receivers_for_sources(&self, sources: &[StreamId]) -> Vec<StreamId> {
+         let state = self.routing.lock().unwrap_or_else(|p| p.into_inner());
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video.rs
+@@ -0,0 +1,221 @@
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++
++fn bindings(
++    controller: &StreamController,
++) -> Vec<(NegotiatedStream, StreamId, u16, u64, u64, bool, bool)> {
++    controller
++        .active_bindings()
++        .into_iter()
++        .map(|b| {
++            (
++                b.negotiated,
++                b.transport_id,
++                b.stream_local_id,
++                b.generation,
++                b.connection_generation,
++                b.source_ready,
++                b.sink_ready,
++            )
++        })
++        .collect()
++}
++
++fn request() -> ReplacementVideoRequest {
++    ReplacementVideoRequest {
++        publications: vec![ReplacementVideoStream {
++            previous: desired(Medium::Video).logical_id,
++            replacement: desired(Medium::Video).logical_id,
++        }],
++        receivers: vec![ReplacementVideoStream {
++            previous: desired(Medium::Video).logical_id,
++            replacement: StreamId::from_string("incoming-video"),
++        }],
++    }
++}
++
++#[tokio::test]
++async fn replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences(
++) {
++    let mut incoming = desired(Medium::Video);
++    incoming.logical_id = StreamId::from_string("incoming-video");
++    let mut f = Move::with_media(
++        false,
++        "alice",
++        false,
++        vec![
++            desired(Medium::Audio),
++            desired(Medium::Video),
++            incoming.clone(),
++            desired(Medium::Data),
++        ],
++    )
++    .await;
++    let video_id = desired(Medium::Video).logical_id;
++    for name in ["alice", "bob", "public"] {
++        let c = &f.room.nodes[name].controller;
++        c.change(
++            c.revision(),
++            &[desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    }
++    let old = f.room.nodes["alice"].controller.clone();
++    let new = f.room.nodes["device"].controller.clone();
++    let bob = f.room.nodes["bob"].controller.clone();
++    let public = f.room.nodes["public"].controller.clone();
++    for (receiver, publisher) in [(&old, &bob), (&bob, &old), (&public, &old)] {
++        receiver
++            .change_direct_subscriptions(
++                receiver.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    publisher,
++                    video_id.clone(),
++                    video_id.clone(),
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++    }
++    let old_port = f.room.nodes["alice"].adapter.port(Medium::Video);
++    let new_port = f.room.nodes["device"].adapter.port(Medium::Video);
++    let bob_port = f.room.nodes["bob"].adapter.port(Medium::Video);
++    let incoming_port =
++        f.room.nodes["device"].adapter.ports.lock().unwrap()[&incoming.logical_id].clone();
++    let mut old_input = old.take_ingress(&video_id).unwrap();
++    let mut new_input = new.take_ingress(&video_id).unwrap();
++    let mut bob_input = bob.take_ingress(&video_id).unwrap();
++    let mut bob_output = bob_port.take_egress().unwrap();
++    let mut public_output = f.room.nodes["public"]
++        .adapter
++        .port(Medium::Video)
++        .take_egress()
++        .unwrap();
++    let mut incoming_output = incoming_port.take_egress().unwrap();
++    f.io().await;
++    f.confirm().await;
++    let revisions = [
++        old.revision(),
++        new.revision(),
++        bob.revision(),
++        public.revision(),
++    ];
++    let before_bindings = [bindings(&new), bindings(&bob), bindings(&public)];
++    let mut invalid = request();
++    invalid.receivers[0].replacement = desired(Medium::Data).logical_id;
++    assert!(f.plan_with_video(Some(invalid)).is_err());
++    let mut omitted = request();
++    omitted.publications.clear();
++    assert!(f
++        .commit(f.plan_with_video(Some(omitted)).unwrap())
++        .await
++        .is_err());
++    f.room.domain.base.0.write().await.private = true;
++    assert!(f
++        .commit(f.plan_with_video(Some(request())).unwrap())
++        .await
++        .is_err());
++    f.room.domain.base.0.write().await.private = false;
++    assert_eq!(
++        [
++            old.revision(),
++            new.revision(),
++            bob.revision(),
++            public.revision()
++        ],
++        revisions
++    );
++    assert!(new_port.try_publish(&frame(&new_port, 1)).is_err());
++    // The plan pins old gate facts; a later mute invalidates the whole move.
++    let stale = f.plan_with_video(Some(request())).unwrap();
++    old.set_media_gate(
++        old.revision(),
++        &BTreeSet::from([video_id.clone()]),
++        StreamGateAction::Mute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    assert!(f.commit(stale).await.is_err());
++    assert_eq!(new.revision(), revisions[1]);
++    old.set_media_gate(
++        old.revision(),
++        &BTreeSet::from([video_id.clone()]),
++        StreamGateAction::Unmute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    // A real queued old-camera frame must lose its route at the atomic cutover.
++    old_port.try_publish(&frame(&old_port, 20)).unwrap();
++    let queued = receive(&mut old_input).await;
++    queued.try_forward_to(&bob, &video_id).unwrap();
++    let queued_egress = outgoing(&mut bob_output).await;
++    let plan = f.plan_with_video(Some(request())).unwrap();
++    let (_, handle) = f.commit(plan).await.unwrap();
++    assert!(old.shutdown.is_cancelled());
++    assert!(queued.try_forward_to(&bob, &video_id).is_err());
++    assert!(queued_egress
++        .deliver(|_| async {
++            panic!("old route reached sink after cutover");
++        })
++        .await
++        .is_err());
++    assert_eq!(new.revision(), revisions[1] + 1);
++    assert_eq!(bob.revision(), revisions[2] + 1);
++    assert_eq!(public.revision(), revisions[3] + 1);
++    assert_eq!(
++        [bindings(&new), bindings(&bob), bindings(&public)],
++        before_bindings
++    );
++    assert!(
++        incoming_port
++            .try_publish(&frame(&incoming_port, 21))
++            .is_err(),
++        "receiver-only transfer opened another camera"
++    );
++    let data = f.room.nodes["device"].adapter.port(Medium::Data);
++    assert!(data.try_publish(&frame(&data, 21)).is_err());
++    // Both selected directions work without a post-completion subscribe/unmute.
++    new_port.try_publish(&frame(&new_port, 30)).unwrap();
++    let packet = receive(&mut new_input).await;
++    packet.try_forward_to(&bob, &video_id).unwrap();
++    packet.try_forward_to(&public, &video_id).unwrap();
++    for output in [&mut bob_output, &mut public_output] {
++        outgoing(output)
++            .await
++            .deliver(|v| async move {
++                assert_eq!(v.timestamp_rtp, 30);
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++    bob_port.try_publish(&frame(&bob_port, 40)).unwrap();
++    let packet = receive(&mut bob_input).await;
++    packet.try_forward_to(&new, &incoming.logical_id).unwrap();
++    assert!(packet.try_forward_to(&new, &video_id).is_err());
++    outgoing(&mut incoming_output)
++        .await
++        .deliver(|v| async move {
++            assert_eq!(v.timestamp_rtp, 40);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    f.room.publish("device", 5200).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 5200).await;
++    f.room.heard("public", 5200).await;
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        ReplacementCleanupOutcome::LocalMediaClosed
++    );
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -282,6 +282,12 @@
+         }
+     }
+     fn plan(&self) -> ControlResult<AudioDeviceReplacementPlan> {
++        self.plan_with_video(None)
++    }
++    fn plan_with_video(
++        &self,
++        video: Option<ReplacementVideoRequest>,
++    ) -> ControlResult<AudioDeviceReplacementPlan> {
+         self.room.scene.plan_audio_device_replacement(
+             &self.context,
+             &self.pending,
+@@ -299,6 +305,7 @@
+                 source: self.pending.intent().source.clone(),
+                 admitted: self.pending.intent().replacement.clone(),
+                 retained: self.pending.intent().retained.clone(),
++                video,
+             },
+         )
+     }
+@@ -834,3 +841,5 @@
+         assert!(video.try_publish(&frame(&video, 3)).is_err());
+     }
+ }
++
++mod video;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -86,6 +86,12 @@
+             .owners
+             .get(source.connection.as_str())
+             .ok_or(StreamControlError::Authority)?;
++        // A prepared replacement source is checked through its actual committed
++        // resource proof; the pending participant is not yet ordinarily admitted.
++        let old = self
++            .grant
++            .domain
++            .resource_owner(&self.grant.guard, old.clone())?;
+         old.connection
+             .require_current(&old.member, &old.presence)
+             .map_err(|_| StreamControlError::Authority)?;
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -1369,22 +1369,31 @@
+     let before = state.streams()[&id].clone();
+     let mut closing = f.authority();
+     closing.send_media.clear();
+-    state.set_gates(&closing, 1, &ids, StreamGateAction::Mute).unwrap();
++    state
++        .set_gates(&closing, 1, &ids, StreamGateAction::Mute)
++        .unwrap();
+     let muted = &state.streams()[&id];
+     assert!(muted.source_muted && !muted.permits(false));
+     assert_eq!(muted.transport_id, before.transport_id);
+     assert_eq!(muted.stream_local_id, before.stream_local_id);
+     assert_eq!(muted.generation, before.generation);
+     assert_eq!(state.revision(), 2);
+-    assert_eq!(state.set_gates(&closing, 2, &ids, StreamGateAction::Unmute), Err(MediaTransitionError::Authority));
++    assert_eq!(
++        state.set_gates(&closing, 2, &ids, StreamGateAction::Unmute),
++        Err(MediaTransitionError::Authority)
++    );
+     assert!(state.streams()[&id].source_muted);
+     assert_eq!(state.revision(), 2);
+     closing.may_negotiate = false;
+-    assert_eq!(state.set_gates(&closing, 2, &ids, StreamGateAction::Mute), Err(MediaTransitionError::Authority));
+-    state.set_gates(&f.authority(), 2, &ids, StreamGateAction::Unmute).unwrap();
++    assert_eq!(
++        state.set_gates(&closing, 2, &ids, StreamGateAction::Mute),
++        Err(MediaTransitionError::Authority)
++    );
++    state
++        .set_gates(&f.authority(), 2, &ids, StreamGateAction::Unmute)
++        .unwrap();
+     assert!(!state.streams()[&id].source_muted);
+ }
+-
+ 
+ #[test]
+ fn replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches() {
+@@ -1392,6 +1401,8 @@
+     let mut state = StreamLifecycle::new(&f.authority()).unwrap();
+     let now = Instant::now();
+     let p = profile();
++    let mut receiver = desired("video-receiver", Medium::Video);
++    receiver.direction = StreamDirection::Send;
+     let prepared = state
+         .prepare(
+             &f.authority(),
+@@ -1403,6 +1414,7 @@
+                 desired("camera", Medium::Video),
+                 desired("data", Medium::Data),
+                 desired("screen", Medium::Screen),
++                receiver,
+             ],
+             now,
+             now + Duration::from_secs(10),
+@@ -1429,6 +1441,7 @@
+     let intended = vec![
+         (audio_id.clone(), old_audio.clone()),
+         (video_id.clone(), old_video.clone()),
++        (StreamId::from_string("video-receiver"), old_video.clone()),
+     ];
+     let mut ended_video = old_video.clone();
+     ended_video.state = LogicalStreamState::Ended;
+@@ -1463,11 +1476,9 @@
+         )],
+     ];
+     for batch in invalid {
+-        assert!(
+-            state
+-                .inherit_replacement_gates(&f.authority(), 1, &batch, true)
+-                .is_err()
+-        );
++        assert!(state
++            .inherit_replacement_gates(&f.authority(), 1, &batch, true)
++            .is_err());
+         assert_eq!(state.revision(), 1);
+         assert_eq!(
+             state.streams(),
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -810,8 +810,15 @@
+         if ids.len() != sources.len() || ids.is_empty() {
+             return Err(MediaTransitionError::Invalid);
+         }
+-        self.validate_gate(authority, expected, &ids, StreamGateAction::Mute)?;
+         self.validate_gate(authority, expected, &ids, StreamGateAction::Resume)?;
++        let input_ids = ids
++            .iter()
++            .filter(|id| self.streams[*id].negotiated.requested.direction.receives())
++            .cloned()
++            .collect::<BTreeSet<_>>();
++        if !input_ids.is_empty() {
++            self.validate_gate(authority, expected, &input_ids, StreamGateAction::Mute)?;
++        }
+         if self.revision == u64::MAX {
+             return Err(MediaTransitionError::Capacity);
+         }

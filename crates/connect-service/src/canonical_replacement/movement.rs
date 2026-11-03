@@ -20,7 +20,7 @@ impl Runtime {
     ) -> Result<()> {
         let (roles, i) = super::projection::read(&self.role_projection, &self.stop,
             root.deadline.min(tokio::time::Instant::now() + Duration::from_secs(5)), || async {
-                let plan = self.core.plan_staged_device_replacement(&root.handle).map_err(|error| {
+                let plan = self.core.plan_staged_device_replacement(&root.handle, None).map_err(|error| {
                     tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
                     Error::forbidden()
                 })?;

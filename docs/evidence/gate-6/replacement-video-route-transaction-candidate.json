@@ -1,0 +1,29 @@
+{
+  "format": "connect/gate6-replacement-video-route-transaction-candidate/1",
+  "task": "G6-058",
+  "phase": "P3 Core transaction candidate",
+  "patch": "patches/rvoip/gate6-replacement-video-route-transaction.patch",
+  "patch_sha256": "bfaa98dfbf124f9d8462f99dad8575e51ac056347ae894a544661a5d2e67976f",
+  "changes": [
+    "Explicit sealed previous/replacement video publication and receiver mappings. Only existing receiver selections transfer; exact negotiated bindings, generations, medium, direction, quarantine and current authorization must agree.",
+    "Retarget receivers selected on the old camera to the new actual publisher; transfer selected incoming video to distinct negotiated receiver ports. Unmapped selected old cameras refuse the compound commit.",
+    "Validate receive permissions one controller at a time, then fence physical and direct tickets and commit models/audio/video/direct routes in the same no-failure section. All media changes share one controller revision.",
+    "Retain deliberate publication mute/hold/pause, keep receiver endpoint input muted and leave independent Data untouched.",
+    "Existing native/telephone Service callers explicitly pass no video intent; public protocol/SDK/HTTP wiring is still required."
+  ],
+  "new_cases": [
+    "stream_lifecycle::tests::replacement_audio_video_gates_commit_once_and_refuse_whole_invalid_batches",
+    "staged_streams::tests::private_consult::replacement::video::replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences"
+  ],
+  "verification": "Prepared dependencies and patch digests verified; code and both new cases not compiled/executed. Original v44 signed lifecycle run remains frozen at7b1e91ba/patch284.",
+  "limits": [
+    "Core scene uses synthetic adapter/authority fixtures; even a pass would not qualify native video quality.",
+    "Public video intent, fresh keyframe feedback/source, authenticated epochs and complete media workload remain pending.",
+    "General receive-only private preparation is not covered by duplex receive-port fixture. Model gate batch supports output-only ports."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "G054_deferred": true
+}
