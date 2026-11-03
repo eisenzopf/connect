@@ -2,7 +2,7 @@
 FROM ubuntu:24.04@sha256:18b33ff3829707f31ada654a963b9ee35f2e6f0241b964bd17a22a9b330cb63d
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates curl xz-utils git python3 build-essential clang cmake pkg-config \
-    libopus-dev libssl-dev ffmpeg procps iproute2 tcpdump sudo \
+    libopus-dev libssl-dev libvpx-dev ffmpeg procps iproute2 tcpdump sudo \
     && dpkg-query -W > /usr/local/share/connect-build-packages.tsv \
     && rm -rf /var/lib/apt/lists/*
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo
