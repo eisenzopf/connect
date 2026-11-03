@@ -1,0 +1,157 @@
+{
+  "format": "connect/g6-058-current-diagnosis/1",
+  "date": "2026-11-03",
+  "reviewed_head": "648acf429e4f99dbb1677827b01f8944c1c39eaf",
+  "scope": "Current source review, original evidence hash checks and terminal focused results. Owner subsequently authorized implementation. No new workload launched during diagnosis.",
+  "source_hashes": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/movement.rs",
+      "sha256": "679b7222e7fc07f975d7a5d094848f2726a45f8707f6c54ba75836c06493786a",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/media.rs",
+      "sha256": "f3a079635fb0ce363fa73141a184ce0ced4b75db947f37006c73c2aa932e6209",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media/packets.rs",
+      "sha256": "ecee0cfeeb23e434f9de9cd5e79d332853da710cd03d7576da30901335f57ad1",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media/replacement.rs",
+      "sha256": "5c23a30f763bcd447179713e19236343bd4ca57d9f4989977dfce30d6ccc227b",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs",
+      "sha256": "0dde9098e43b7d131585a6e2d31d8225562b50c37cb5860464f3cd7952a16090",
+      "includes_current_FnOnce_correction": true
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/activation.rs",
+      "sha256": "483c7811c7372cb6e9ca7d6cb073dafb4e69a1cb210ba8fa54b43fa001fde59f",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+      "sha256": "ca62587359f691a4927a660e5c23f0b6bcffb379bc6dd673459c05d66cdb0fea",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+      "sha256": "4ba6104b2b988cf134256e03c16c6fe14307e699aee3ebf33c92938d24d4a46e",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer.rs",
+      "sha256": "da65ec043f6b36ed613e9b3cde5bdc67cbfead533156744e866619f8b1edb0e1",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/controls.rs",
+      "sha256": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/media.rs",
+      "sha256": "912c05c97b5e7825c8d25f1169a04f34f17c44606f09cf101f8b19a4d6141983",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "scripts/lib/transport_moving_av.py",
+      "sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9",
+      "includes_current_FnOnce_correction": false
+    },
+    {
+      "path": "scripts/lib/transport_av.py",
+      "sha256": "566281caeac196ebb9771e181cf4850717d1f24860b8b8d7b36220769b01800a",
+      "includes_current_FnOnce_correction": false
+    }
+  ],
+  "historical_result_checks": [
+    {
+      "path": "docs/evidence/gate-6/captured-projection-immediate-result.json",
+      "sha256": "cc7a8e9d0576e85921c32b206d9a4ed92c47c503828fc0e77882e1b94a084f69",
+      "matches_original": true
+    },
+    {
+      "path": "docs/evidence/gate-6/queued-packet-owner-result.json",
+      "sha256": "806e84b09e725ec1930f4266a2a8286f8ccb69a0cea3b739a48479cabb66826f",
+      "matches_original": true
+    },
+    {
+      "path": "docs/evidence/gate-6/captured-writer-drain-result.json",
+      "sha256": "d27ee18ee24df6a1373fe85cc82cda6bc83f62f9c637f150dfeb42b4cdaa3e4c",
+      "matches_original": true
+    },
+    {
+      "path": "docs/evidence/gate-6/scene-video-admission-result.json",
+      "sha256": "df28b230f5a436130385df0937f6ac10c9b61e8157d4001d4a1d6aac22c17413",
+      "matches_original": true
+    }
+  ],
+  "pre_core_native_result": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 109845,
+    "source_revision": "685773d1d15bf052f3198f366e525bcde9a001ea",
+    "passed": true,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::pre_core::production_pre_core_adoption_refusal_keeps_original_duplex_and_never_replays_movement",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 435 filtered out; finished in 15.03s"
+        ],
+        "log_sha256": "0fd07aef1b7c81182ab45977d8f2e80b687df332f4a213d21be19f27d8a4b297"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_pre_core_refusal_candidate": true,
+    "compile_exit_code": 0,
+    "compile_log_sha256": "b362f85e7a399797e4ca46b37630f2a8670ddef91e3fac05b11ebbac6ef76a1a",
+    "test_executable_sha256": "d8c18710292c6569f48efddd32494a74d5d1ef3fc1b42a328e4ba46b7d5de82f",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1330.4003980089983
+  },
+  "publication_candidate_result": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 110730,
+    "source_revision": "1747e783a9c36d3d0617c6e2e42ba084fc4a1388",
+    "passed": false,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_custody_candidate": true,
+    "builds": [
+      {
+        "group": "store",
+        "compile_exit_code": 101,
+        "compile_log_sha256": "9631a837b87e8c9aa01e59bccabffc0f970c097085ae613bad86711486713708"
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 7.309826748998603
+  },
+  "unresolved": [
+    "Original capture-recording delay subphase attribution",
+    "Exact remaining video loss boundary",
+    "Current integrated continuity",
+    "Signed final-publication cancellation ordering and Data observer-specific failures",
+    "Explicit video transfer, fresh bootstrap and authenticated epoch mapping",
+    "Complete matrix qualification"
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

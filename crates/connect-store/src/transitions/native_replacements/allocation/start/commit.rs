@@ -668,7 +668,7 @@ impl Store {
             &target.runtime_connection_id,
             target.connection.generation,
         )?;
-        let commit = Box::new(|| {
+        let commit: Box<dyn FnOnce() -> Result<()> + '_> = Box::new(|| {
             if !owner.current() {
                 return Err(Error::forbidden());
             }

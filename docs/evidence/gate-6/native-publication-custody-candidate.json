@@ -17,11 +17,11 @@
     "connection_control::tests::replacement_sources::commit::activation_barrier::final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once"
   ],
   "checks_pending": [
-    "Compile and run only the two new exact Core/Store cases on local ARM after original v41 terminates with source guards.",
+    "Compile corrected Store case, then execute only the two new exact Core/Store cases on local ARM with unchanged guards.",
     "Compile changed native/Service wiring; an actual signed cancellation versus publication integration case remains required before lifecycle closure."
   ],
   "limits": [
-    "Uncompiled and unexecuted candidate. New test assertions are not evidence of a pass.",
+    "First build failed before test execution; corrected callback typing remains unverified.",
     "Core fixture has actual staged controllers/ports but synthetic authority/adapter facts; Store callback fixture has no native resource observation.",
     "External token cancellation is checked directly; continued connectivity is not asserted. Complete signed transport-loss/publication and Data observer fault cases remain unqualified.",
     "No video bootstrap, epoch, full media-quality, complete transport-cell, idle or G6-054 evidence."
@@ -30,5 +30,36 @@
   "full_media_rehearsal_run": false,
   "task_complete": false,
   "cell_qualified": false,
-  "G054_deferred": true
+  "G054_deferred": true,
+  "first_verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 110730,
+    "source_revision": "1747e783a9c36d3d0617c6e2e42ba084fc4a1388",
+    "passed": false,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_publication_custody_candidate": true,
+    "builds": [
+      {
+        "group": "store",
+        "compile_exit_code": 101,
+        "compile_log_sha256": "9631a837b87e8c9aa01e59bccabffc0f970c097085ae613bad86711486713708"
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 7.309826748998603
+  },
+  "compile_failure": {
+    "code": "E0525",
+    "file": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs",
+    "line": 671,
+    "cause": "Boxed closure consumes the SQLite transaction but lacked an explicit FnOnce trait-object type at its alternate direct call.",
+    "correction": "Explicit Box<dyn FnOnce() -> Result<()> + '_>; not yet compiled."
+  }
 }

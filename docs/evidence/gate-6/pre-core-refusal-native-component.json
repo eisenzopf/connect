@@ -1,0 +1,52 @@
+{
+  "format": "connect/gate6-pre-core-refusal-native-component/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "result": "One new exact signed native adoption-preparation refusal case passes at685773d1.",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 109845,
+    "source_revision": "685773d1d15bf052f3198f366e525bcde9a001ea",
+    "passed": true,
+    "steps": [
+      {
+        "case": "canonical_native_connections::consultation::groups::replacement::activation::pre_core::production_pre_core_adoption_refusal_keeps_original_duplex_and_never_replays_movement",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 435 filtered out; finished in 15.03s"
+        ],
+        "log_sha256": "0fd07aef1b7c81182ab45977d8f2e80b687df332f4a213d21be19f27d8a4b297"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_pre_core_refusal_candidate": true,
+    "compile_exit_code": 0,
+    "compile_log_sha256": "b362f85e7a399797e4ca46b37630f2a8670ddef91e3fac05b11ebbac6ef76a1a",
+    "test_executable_sha256": "d8c18710292c6569f48efddd32494a74d5d1ef3fc1b42a328e4ba46b7d5de82f",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1330.4003980089983
+  },
+  "coverage": [
+    "Actual signed native preparation receives real readiness input and consumes the one-shot negative hook at adoption preparation before Core movement.",
+    "Original operation fails with one failed movement reservation and six confirmed preparation compensations, preserving attempt/submission generation one and no Unknown outcome.",
+    "Durable exact not-started marker exists; no candidate public Connection or ordinary lifetime and no Ready journal event exists.",
+    "Original source and retained connection states/generations/runtime bindings remain identical. Both directions pass actual marked PCMU native probes after failure.",
+    "Public signed original-command replay preserves record/revision/effects/result, with two original native slots and no candidate recreation.",
+    "Final peer and server shutdown drain all native slots and join the owned fixture controller."
+  ],
+  "limits": [
+    "Negative adoption-preparation injection, not a real storage outage or Data observer-specific failure.",
+    "No final cancellation/publication ordering proof; source predates patch283 and its final-commit callback.",
+    "Marked PCMU duplex probe is not full decoded AV quality, ten-second idle qualification,20transitions or any complete matrix cell."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

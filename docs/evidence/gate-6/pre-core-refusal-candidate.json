@@ -3,9 +3,7 @@
   "task": "G6-058",
   "date": "2026-11-03",
   "change": "Separate a known adoption preparation refusal before Core invocation from uncertain physical movement. Consume the original reservation into a typed negative capture, atomically record its exact not-started observation and failed effect, and retire only the candidate under actual native absence. Keep the source/retained programme and original attempt; no Ready and no movement replay.",
-  "checks_pending": [
-    "Finish the separately committed actual native injection/duplex case at685773d1; no Store case rerun needed."
-  ],
+  "checks_pending": [],
   "new_cases": [
     "pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
     "pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement",
@@ -168,5 +166,6 @@
     "source_inputs_unchanged": true,
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 81.85990654900525
-  }
+  },
+  "native_component_evidence": "docs/evidence/gate-6/pre-core-refusal-native-component.json"
 }
