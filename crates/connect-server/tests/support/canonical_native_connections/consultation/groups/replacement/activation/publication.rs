@@ -231,7 +231,8 @@ pub(in super::super) async fn verify_during(
     );
     peers[1].live = false;
     peers[2].live = false;
-    let _ = peers[2].client.shutdown().await;
+    // Close by reference; the owner drains every client after this audit.
+    peers[2].client.close();
     wait_slots(f, 1).await;
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
