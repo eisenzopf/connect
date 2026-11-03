@@ -1,0 +1,129 @@
+{
+  "format": "connect/g6-058-proposal-refresh/1",
+  "date": "2026-11-03",
+  "committed_source": "3f34950f7c039d7664412ea3089566121a801a11",
+  "baseline_full_workload_source": "5688c4c61a20fe51f3cc9f154ef3b511fa582249",
+  "scope": "Read-only diagnosis of original evidence and current source; HTML proposal refreshed. Existing native fault-injection edits remain unverified. No new build or test started.",
+  "sources": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/movement.rs",
+      "sha256": "679b7222e7fc07f975d7a5d094848f2726a45f8707f6c54ba75836c06493786a",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs",
+      "sha256": "8c3b07c1813d4de1979e4e3054369c6d2ffc7a7bc5b49295039a49a8559bfdb6",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media/replacement.rs",
+      "sha256": "c890f767004abac7d170f53a8a4ec57d5e35044827d3688d3432e424df25c822",
+      "uncommitted_changes": true
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs",
+      "sha256": "44d253c226cfdd72fc945b1a314a61d48846def1127c2a46dc8c53c462d8f177",
+      "uncommitted_changes": false
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/activation.rs",
+      "sha256": "b0e80ec774ccc39d3c348cbf94ca454f2865732064628c3bc44c22cf713e7fed",
+      "uncommitted_changes": false
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+      "sha256": "ca62587359f691a4927a660e5c23f0b6bcffb379bc6dd673459c05d66cdb0fea",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/replacement_activation.rs",
+      "sha256": "e5f793cfd40a4a7a309f4e162e59876175068a3a2091275432e21399958e664e",
+      "uncommitted_changes": false
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+      "sha256": "4ba6104b2b988cf134256e03c16c6fe14307e699aee3ebf33c92938d24d4a46e",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer.rs",
+      "sha256": "da65ec043f6b36ed613e9b3cde5bdc67cbfead533156744e866619f8b1edb0e1",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/controls.rs",
+      "sha256": "762426ce2c788e9d1854e16772f16f903f57ff424fdff4c309b5582f7d9d53e9",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "examples/rust-sdk-journey/src/replacement_peer/media.rs",
+      "sha256": "912c05c97b5e7825c8d25f1169a04f34f17c44606f09cf101f8b19a4d6141983",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "scripts/lib/transport_moving_av.py",
+      "sha256": "7718b231aeee0909a4a0344f8a4ab7d663a6e17d962662f994f7af22b9c2d4a9",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media/packets.rs",
+      "sha256": "ecee0cfeeb23e434f9de9cd5e79d332853da710cd03d7576da30901335f57ad1",
+      "uncommitted_changes": false
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start/commit/not_submitted.rs",
+      "sha256": "463c33eaa7bb8c8545b063d79e4eb3f5d4ab01e2c8a25371078dd776550a9476",
+      "uncommitted_changes": false
+    }
+  ],
+  "historical_result_checks": [
+    {
+      "path": "captured-projection-immediate-result.json",
+      "sha256": "cc7a8e9d0576e85921c32b206d9a4ed92c47c503828fc0e77882e1b94a084f69",
+      "matches_original": true
+    },
+    {
+      "path": "queued-packet-owner-result.json",
+      "sha256": "806e84b09e725ec1930f4266a2a8286f8ccb69a0cea3b739a48479cabb66826f",
+      "matches_original": true
+    },
+    {
+      "path": "captured-writer-drain-result.json",
+      "sha256": "d27ee18ee24df6a1373fe85cc82cda6bc83f62f9c637f150dfeb42b4cdaa3e4c",
+      "matches_original": true
+    },
+    {
+      "path": "scene-video-admission-result.json",
+      "sha256": "df28b230f5a436130385df0937f6ac10c9b61e8157d4001d4a1d6aac22c17413",
+      "matches_original": true
+    }
+  ],
+  "existing_run_observation": {
+    "source": "8806dca32a17692d69a17468d6e98fb2b68bee7f",
+    "stage": "compile-service",
+    "source_guard_active": true,
+    "store_case_exit_codes": [
+      101,
+      0,
+      0
+    ],
+    "terminal_guards_pending": true
+  },
+  "delivery_order": [
+    "P0/P1 scheduling proof and bounded attribution",
+    "P2 cancellation/publication lifecycle and pre-Core failure recovery",
+    "P3 explicit video transfer",
+    "P3/P5 fresh keyframe and authenticated epoch",
+    "P4 only demonstrated residual loss",
+    "P6 one integrated native ARM cell then complete matrix"
+  ],
+  "unresolved_causal_attribution": [
+    "Breakdown of original 449.373 ms capture-recording delay",
+    "Exact loss site preceding 26 corrupted video markers",
+    "Current-source integrated continuity after partial fixes"
+  ],
+  "new_tests_started": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}
