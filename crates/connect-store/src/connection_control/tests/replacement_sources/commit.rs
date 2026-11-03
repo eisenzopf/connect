@@ -165,10 +165,20 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
         m.f.store
             .try_native_media_read(&m.sources[1], None)
             .unwrap();
+    let authority = m.f.store.authority.clone();
+    let admissions = authority.test_admission_attempts();
     let established = std::thread::scope(|workers| {
         let (release, ready) = std::sync::mpsc::sync_channel(0);
         let reader = workers.spawn(move || {
             ready.recv().unwrap();
+            let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+            while authority.test_admission_attempts() == admissions {
+                assert!(
+                    std::time::Instant::now() < until,
+                    "projection never attempted authority"
+                );
+                std::thread::sleep(std::time::Duration::from_micros(10));
+            }
             std::thread::sleep(std::time::Duration::from_micros(500));
             drop(held);
         });
