@@ -104,9 +104,10 @@ pub(super) fn cancel(f: &Fixture, key: &str, command: &TransitionCommand) {
         .unwrap();
 }
 #[test]
-fn reservation_queues_writer_outside_sql_and_finishes_after_the_original_reader_releases() {
-    let (f, key, command, origin, sources) = setup();
-    let read = f
+fn reservation_metadata_respects_a_real_queued_revocation() {
+    let (f, key, _, origin, sources) = setup();
+    let effects_before = f.count("operation_effects");
+    let input = f
         .store
         .try_native_replacement_preparation_read(
             &origin,
@@ -116,41 +117,54 @@ fn reservation_queues_writer_outside_sql_and_finishes_after_the_original_reader_
         .unwrap();
     let identity = f.store.revalidate(&key).unwrap().identity_id;
     let scope = crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Read).unwrap();
-    let held = f.store.try_acquire_authority(&[scope.clone()]).unwrap();
+    let blocker = f
+        .store
+        .try_acquire_authority(std::slice::from_ref(&scope))
+        .unwrap();
+    let admin = f.store.revalidate(&f.admin).unwrap();
     std::thread::scope(|threads| {
         let store = &f.store;
-        let worker = threads.spawn(move || store.prepare_native_replacement(read, request()));
+        let credential = key.clone();
+        let writer = threads.spawn(move || store.revoke(&admin, &credential));
         let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
         loop {
-            match f.store.try_acquire_authority(&[scope.clone()]) {
+            match f.store.try_acquire_authority(std::slice::from_ref(&scope)) {
                 Err(error) if error.code == "authority-busy" => break,
-                Ok(guard) => drop(guard),
+                Ok(reader) => drop(reader),
                 Err(error) => panic!("unexpected packet admission refusal: {error:?}"),
             }
-            assert!(
-                std::time::Instant::now() < until,
-                "reservation never queued writer admission"
-            );
+            assert!(std::time::Instant::now() < until, "revocation never queued");
             std::thread::yield_now();
         }
-        assert!(!worker.is_finished(), "writer bypassed the original reader");
-        // A file wait must never retain the shared SQL mutex. Original status
-        // reads remain available and cannot observe an effect before admission.
-        let before: (String, i64) = f.store.try_connection().unwrap().query_row(
-            "SELECT state,(SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=operations.record_id) FROM operations WHERE record_id=?1",
-            [origin.record_id()], |row| Ok((row.get(0)?,row.get(1)?)),
-        ).unwrap();
-        assert_eq!(before, ("accepted".into(), 0));
-        drop(held);
-        let lease = worker.join().unwrap().unwrap().unwrap();
-        assert_eq!(lease.plan().unwrap()["generation"], 2);
+        // Fresh reservation admission cannot retain/bypass its input readers
+        // once an actual authorization writer has queued. No effect can begin.
+        assert_eq!(
+            f.store
+                .prepare_native_replacement(input, request())
+                .unwrap_err()
+                .code,
+            "authority-busy"
+        );
+        assert_eq!(f.count("native_replacements"), 0);
+        assert_eq!(f.count("operation_effects"), effects_before);
+        drop(f.store.try_connection().unwrap());
+        drop(blocker);
+        writer.join().unwrap().unwrap();
     });
-    assert_eq!(f.count("native_replacements"), 1);
-    assert_eq!(status(&f, &key, &command).effects.len(), 1);
+    assert!(f.store.revalidate(&key).is_err());
+    assert!(f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .is_err());
+    assert_eq!(f.count("native_replacements"), 0);
 }
 
 #[test]
-fn endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_effect() {
+fn endpoint_reservation_refuses_contended_sql_but_accepts_current_readers() {
     let (f, key, _, origin, sources) = setup();
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     let read = || {
@@ -187,22 +201,16 @@ fn endpoint_reservation_refuses_contended_sql_or_authority_without_custody_or_ef
         )
         .unwrap()])
         .unwrap();
-    let input = read();
-    let started = std::time::Instant::now();
-    assert_eq!(
-        f.store
-            .prepare_native_replacement(input, request())
-            .unwrap_err()
-            .code,
-        "authority-busy"
-    );
-    assert!(started.elapsed() < std::time::Duration::from_millis(500));
-    drop(f.store.try_connection().unwrap());
-    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
-    drop(reader);
-    let lease = prepare(&f, &origin, &sources);
+    let lease = f
+        .store
+        .prepare_native_replacement(read(), request())
+        .unwrap()
+        .unwrap();
     assert_eq!(lease.plan().unwrap()["generation"], 2);
     assert_eq!(f.count("native_replacements"), 1);
+    drop(reader);
+    let repeated = prepare(&f, &origin, &sources);
+    assert_eq!(repeated.plan().unwrap(), lease.plan().unwrap());
 }
 
 #[test]
@@ -900,65 +908,6 @@ fn replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and
     assert_eq!(result.unwrap_err().code, "conflict");
     assert_eq!(f.count("connections"), 2);
     assert_eq!(f.count("native_replacements"), 1);
-}
-
-#[test]
-fn replacement_reservation_keeps_writer_admission_until_original_sql_is_available() {
-    let (f, key, _, origin, sources) = setup();
-    let identity = f.store.revalidate(&key).unwrap().identity_id;
-    let scope = crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Read).unwrap();
-    let blocker = f
-        .store
-        .try_acquire_authority(std::slice::from_ref(&scope))
-        .unwrap();
-    let read = f
-        .store
-        .try_native_replacement_preparation_read(
-            &origin,
-            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
-            &sources[1],
-        )
-        .unwrap();
-    std::thread::scope(|threads| {
-        let store = &f.store;
-        let reservation = threads.spawn(move || store.prepare_native_replacement(read, request()));
-        let until = std::time::Instant::now() + std::time::Duration::from_millis(200);
-        loop {
-            assert!(
-                std::time::Instant::now() < until,
-                "original reservation never requested writer admission"
-            );
-            match f.store.try_acquire_authority(std::slice::from_ref(&scope)) {
-                Ok(reader) => drop(reader),
-                Err(error) => {
-                    assert_eq!(error.code, "authority-busy");
-                    break;
-                }
-            }
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        // Let this original acquire its writer interval while another metadata
-        // unit briefly owns SQL. Releasing that interval and restarting the
-        // whole preflight would let continuous source readers overtake it.
-        let sql = f.store.connection().unwrap();
-        drop(blocker);
-        std::thread::sleep(std::time::Duration::from_millis(20));
-        drop(sql);
-        let _lease = reservation
-            .join()
-            .unwrap()
-            .expect("reservation abandoned admitted authority when SQL was briefly busy")
-            .expect("original reservation was not created");
-    });
-    let c = f.store.connection().unwrap();
-    let (steps, effects): (u64, u64) = c
-        .query_row(
-            "SELECT (SELECT COUNT(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='prepare' AND started=0),(SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='native-replacement-prepare' AND attempt=0)",
-            [origin.record_id()],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .unwrap();
-    assert_eq!((steps, effects), (1, 1));
 }
 
 #[test]

@@ -1,0 +1,46 @@
+{
+  "format": "connect/gate6-reservation-source-read-candidate/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "before_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "005cd5ad0df7650af0e2ac8c342afadec16bfe39",
+    "product_case_passed": false,
+    "counterexample_reproduced": true,
+    "general_suites_rerun": false,
+    "exit_code": 101,
+    "compilation_completed": true,
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1328 filtered out; finished in 0.42s"
+    ],
+    "log_sha256": "f13de9f37b62231e0d1ab9a29ec4a4c12a6a291131b1279d63aaa7247eddd2f7",
+    "source_inputs_unchanged": true,
+    "elapsed_seconds": 80.76824996000141
+  },
+  "scope": "Exact controlled Store case holding current native packet authority while attempting immutable original preparation metadata. Before source compiles, then the case fails authority-busy with all other1328 cases filtered. This is not native media or full service proof.",
+  "change": "Reservation reacquires the complete current source Read union, instead of Identity/Conversation Write admission. It creates only immutable reservation/plan and one unstarted effect; SQLite still serializes current validation and uniqueness. No graph, binding, participant, capability or authority change occurs at this phase.",
+  "preserved": [
+    "Input readers dropped before fresh admission; real queued authorization writers cannot be bypassed.",
+    "Original250ms metadata wait, current actor/device/source/retained/endpoint/plan validation and deadline caps.",
+    "Original IDs, one durable reservation and unstarted prepare effect; no Core/allocation effect or replay.",
+    "Separate actual graph/binding and authorization writer footprints."
+  ],
+  "changed_exact_cases": [
+    "reservation_metadata_can_coexist_with_live_packet_authority",
+    "reservation_metadata_respects_a_real_queued_revocation",
+    "endpoint_reservation_refuses_contended_sql_but_accepts_current_readers"
+  ],
+  "test_maintenance": "Obsolete reservation-writer scheduling assertions are replaced with live packet coexistence, genuine queued revocation, SQL contention and original duplicate-custody cases. Actual authorization writer fairness remains required.",
+  "after_checks_pending": true,
+  "normal_production_rehearsal_pending": true,
+  "source_sha256": {
+    "crates/connect-store/src/transitions/native_replacements.rs": "4f0fb736673fa5d8da6f18e13783971e398cebafc41940d45a1093373ddd39db",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs": "316d2584b34b7569464b61205912bd826a09bf4516d1eef0bf64b13271d2bff7"
+  },
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

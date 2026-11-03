@@ -71,13 +71,18 @@ bounds/refusal and a mismatched original root that cannot launch a physical
 target. Actual repeated transition and full matrix integration evidence remain
 separate requirements.
 
-The target stage now polls only its original operation until the journal enters
-preparation; acceptance alone does not allocate a candidate. These reads and the
+The target stage polls only its original operation until the journal reports
+`native_replacement_prepared:true`; acceptance and preparing alone do not allocate a candidate. These reads and the
 original completion wait share one eight-second budget. The source/retained
 generations and original record remain pinned throughout. The backend's metadata
-reservation briefly queues writer admission outside SQLite, then resolves every
-current scope/fact again before its once-only durable reservation. Packet
-freshness, authority and media limits remain unchanged.
+reservation reacquires the complete current source read interval outside SQLite,
+then resolves every current scope/fact again before its once-only durable
+reservation. This metadata creates no live binding or authorization change. It
+shares packet readers; an actual queued authorization writer still closes fresh
+admission. Graph, binding and authorization commits keep their separate writer
+footprints. The original bounded SQL wait, IDs, expiry and once-only effects are
+retained. The focused before/after candidate is recorded in
+[the reservation fence evidence](../evidence/gate-6/reservation-source-read-candidate.json).
 
 Two local captures through the reusable stage independently identify duplex
 Opus and original decoded-packet arrival gaps of 16.673 and 39.876 ms. The

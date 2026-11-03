@@ -212,7 +212,8 @@ fn preparation_refused(stage: &'static str, error: Error) -> Error {
 }
 impl Store {
     /// Reserve IDs and a single managed-preparation effect before Core is
-    /// called. This drops its input readers before acquiring metadata writers.
+    /// called. Source authority stays read-only: reservation changes no live
+    /// binding, participant, role, capability or authorization.
     pub fn prepare_native_replacement(
         &self,
         read: NativeReplacementPreparationRead,
@@ -220,13 +221,15 @@ impl Store {
     ) -> Result<Option<NativeReplacementPreparationLease>> {
         validate_request(&request)?;
         let selection = read.into_selection()?;
-        // Continuous packet readers can overlap every immediate writer retry.
-        // Reserve writer admission outside SQLite so fresh packets stop entering
-        // while the original readers finish. This bounded metadata wait neither
-        // retains an input grant nor performs any Core/allocation effect.
+        // Drop the input interval before fresh admission, so a queued real
+        // authorization writer cannot be bypassed. Immutable reservation
+        // metadata shares current source readers instead of queuing an
+        // Identity/Conversation writer that would close packet admission.
+        // SQL serializes the exact once-only reservation/effect below. Actual
+        // graph/binding changes retain their separate broader write footprint.
         let scopes = {
             let c = self.try_connection()?;
-            selection.scopes(self, &c, true)?
+            selection.scopes(self, &c, false)?
         };
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
         let held = self
@@ -237,10 +240,9 @@ impl Store {
             })?;
         // Reacquire SQL only after file admission, then resolve every current
         // scope/fact again before the once-only durable reservation below.
-        // Retain this admitted writer while a short metadata unit releases SQL.
-        // Dropping it on an immediate mutex miss lets fresh source readers
-        // repeatedly overtake the same unstarted reservation. Both admission
-        // and SQL use the original bounded wait; no deadline or IO is renewed.
+        // Retain this original read interval while another short metadata unit
+        // releases SQL. Both admission and SQL use the original bounded wait;
+        // no deadline or IO is renewed and packet readers may still enter.
         let mut c = loop {
             wait.check()?;
             match self.try_connection() {
@@ -257,7 +259,7 @@ impl Store {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-transaction",sqlite_code=?error.sqlite_error_code(),"Replacement metadata deferred");
                 Error::new("authority-busy", "Replacement reservation metadata is busy")
             })?;
-        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, false)?) {
             return Err(Error::forbidden());
         }
         let origin = &selection.origin;
