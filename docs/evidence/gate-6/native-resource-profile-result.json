@@ -1,0 +1,597 @@
+{
+  "format": "connect/gate6-native-resource-profile-result/1",
+  "date": "2026-11-03",
+  "task": "G6-058",
+  "local_platform": "ubuntu24-arm64",
+  "passed": false,
+  "runtime": {
+    "passed": false,
+    "source_revision": "e48ff5b3d5f76560c15b1ca32727e137993714c7",
+    "binary_sha256": "a00c6cbdfd649d9d22ebd61925eaaa054193e6e55290ee58e4dda848738a0a71",
+    "peer_binary_sha256": "a507b457e9d0b2e760ae57b985b289c513fcb3c3cb8595ea7c0a92b8d7af94f7",
+    "fixture_exit_code": 1,
+    "elapsed_seconds": 149.10813915400286,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "control_scenario_passed": true,
+  "original_moves_completed": 4,
+  "packet_capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "exit_code": 0,
+    "kernel_dropped_packets": 0,
+    "pcap_bytes": 79956461,
+    "version": "tcpdump version 4.99.4",
+    "counts": {
+      "packets": 103282,
+      "to_server_packets": 55411,
+      "from_server_packets": 47871,
+      "captured_bytes": 78303925,
+      "udp_payload_bytes": 73966081,
+      "to_server_udp_bytes": 29972137,
+      "from_server_udp_bytes": 43993944
+    }
+  },
+  "helpers_joined": true,
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "current_owner_ends": 6,
+  "maximum_retirement_ms": 2562.2618980000116,
+  "physical_peers": [
+    {
+      "slot": "0-0",
+      "passed": true,
+      "sent_audio_packets": 1323,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 68,
+      "packet_events_during_control": 286,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "0-1",
+      "passed": true,
+      "sent_audio_packets": 1045,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 57,
+      "packet_events_during_control": 211,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-0",
+      "passed": true,
+      "sent_audio_packets": 1339,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 55,
+      "packet_events_during_control": 288,
+      "owner_ready": true,
+      "stop_requested": true,
+      "terminal_end_requested": false,
+      "original_client_joined": true
+    },
+    {
+      "slot": "4-1",
+      "passed": true,
+      "sent_audio_packets": 1035,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 51,
+      "packet_events_during_control": 233,
+      "owner_ready": true,
+      "stop_requested": false,
+      "terminal_end_requested": true,
+      "original_client_joined": true
+    }
+  ],
+  "quality_passed": false,
+  "routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.96,
+        "samples": 2782080,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2898,
+        "maximum_arrival_gap_ms": 734.7289999999994
+      },
+      "video": {
+        "decoded_window_frames": 1687,
+        "changing_window_frames": 1686,
+        "wrong_source_pixel_frames": 193,
+        "undecodable_frames": 36
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 65,
+        "median_abs_skew_ms": 53.91600300000121,
+        "p95_abs_skew_ms": 62.32157300000196,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.84,
+        "samples": 2776320,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2892,
+        "maximum_arrival_gap_ms": 733.4473419999995
+      },
+      "video": {
+        "decoded_window_frames": 1625,
+        "changing_window_frames": 1624,
+        "wrong_source_pixel_frames": 189,
+        "undecodable_frames": 45
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 66,
+        "median_abs_skew_ms": 21.57853200000126,
+        "p95_abs_skew_ms": 63.01584300000229,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.0,
+        "samples": 2784000,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2900,
+        "maximum_arrival_gap_ms": 737.5722619999979
+      },
+      "video": {
+        "decoded_window_frames": 1766,
+        "changing_window_frames": 1765,
+        "wrong_source_pixel_frames": 202,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 24,
+      "sync": {
+        "status": "passed",
+        "paired": 70,
+        "median_abs_skew_ms": 41.319482500000504,
+        "p95_abs_skew_ms": 60.84662899999671,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.94,
+        "samples": 2781120,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2897,
+        "maximum_arrival_gap_ms": 727.6512040000016
+      },
+      "video": {
+        "decoded_window_frames": 1754,
+        "changing_window_frames": 1753,
+        "wrong_source_pixel_frames": 132,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_second": 15,
+      "sync": {
+        "status": "passed",
+        "paired": 74,
+        "median_abs_skew_ms": 42.62693449999766,
+        "p95_abs_skew_ms": 83.21583600000082,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.98,
+        "samples": 2783040,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2899,
+        "maximum_arrival_gap_ms": 780.6810870000008
+      },
+      "video": {
+        "decoded_window_frames": 1728,
+        "changing_window_frames": 1727,
+        "wrong_source_pixel_frames": 45,
+        "undecodable_frames": 12
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 75,
+        "median_abs_skew_ms": 77.31699999999364,
+        "p95_abs_skew_ms": 102.51000000000232,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.78,
+        "samples": 2773440,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2889,
+        "maximum_arrival_gap_ms": 781.7962279999992
+      },
+      "video": {
+        "decoded_window_frames": 1663,
+        "changing_window_frames": 1662,
+        "wrong_source_pixel_frames": 62,
+        "undecodable_frames": 24
+      },
+      "minimum_frames_per_second": 0,
+      "sync": {
+        "status": "passed",
+        "paired": 74,
+        "median_abs_skew_ms": 20.64661199999862,
+        "p95_abs_skew_ms": 100.64821899999998,
+        "limits": {
+          "median_abs_skew_ms": 80,
+          "p95_abs_skew_ms": 120
+        }
+      }
+    }
+  ],
+  "process_resources": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793710133369,
+    "elapsed_seconds": 76.80814275800003,
+    "sample_count": 77,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 207749120,
+        "observed_cpu_seconds": 66.79,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 55,
+        "peak_sampled_threads": 22,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 916332544,
+        "observed_cpu_seconds": 23.31,
+        "peak_live_processes": 12,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 155,
+        "peak_sampled_threads": 97,
+        "open_resource_unavailable_samples": 0
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": true,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "postprocessed_cpu_deltas": {
+    "server": {
+      "observed_cpu_delta_seconds": 66.55,
+      "mean_observed_cpu_cores": 0.866452,
+      "peak_one_second_interval_cpu_cores": 2.711101
+    },
+    "helper": {
+      "observed_cpu_delta_seconds": 23.31,
+      "mean_observed_cpu_cores": 0.303486,
+      "peak_one_second_interval_cpu_cores": 0.951515
+    }
+  },
+  "maximum_combined_observed_interval_cpu_cores": 2.939509,
+  "cpu_scope": "Derived from unchanged private one-second samples. Includes workload setup, media and cleanup; short-lived unobserved children can be missed. RSS sums may double-count shared pages. No media-only, throttling, capacity or idle-resource restoration claim.",
+  "slow_sql_custody": {
+    "records": 6158,
+    "longest_units": [
+      {
+        "elapsed_us": 126937,
+        "source_file": "crates/connect-store/src/events/mod.rs",
+        "source_line": 154
+      },
+      {
+        "elapsed_us": 109115,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 777
+      },
+      {
+        "elapsed_us": 99126,
+        "source_file": "crates/connect-store/src/events/mod.rs",
+        "source_line": 154
+      },
+      {
+        "elapsed_us": 85690,
+        "source_file": "crates/connect-store/src/events/mod.rs",
+        "source_line": 154
+      },
+      {
+        "elapsed_us": 82930,
+        "source_file": "crates/connect-store/src/events/mod.rs",
+        "source_line": 154
+      },
+      {
+        "elapsed_us": 80038,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 775
+      },
+      {
+        "elapsed_us": 73560,
+        "source_file": "crates/connect-store/src/events/mod.rs",
+        "source_line": 154
+      },
+      {
+        "elapsed_us": 70331,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 775
+      },
+      {
+        "elapsed_us": 69990,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 775
+      },
+      {
+        "elapsed_us": 67502,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 775
+      },
+      {
+        "elapsed_us": 64359,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 775
+      },
+      {
+        "elapsed_us": 64335,
+        "source_file": "crates/connect-store/src/peer_authority.rs",
+        "source_line": 777
+      }
+    ],
+    "original_private_log_sha256": "adef19b4335aa1d880233c60a08ceeaf429c44ba44a5126decb88bb15f4cd541"
+  },
+  "queue_diagnostics": {
+    "before_queues": 0,
+    "after_queues": 0,
+    "before_forwarding": 0,
+    "after_forwarding": 0,
+    "status": "Actual Health observations are empty before and after active native media. No queue or forwarding coverage is established; empty lists are not evidence of zero pressure."
+  },
+  "stopped_journal": {
+    "roots": [
+      {
+        "slot": "0-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "0-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-0",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      },
+      {
+        "slot": "4-1",
+        "state": "completed",
+        "revision": 16,
+        "effects": [
+          {
+            "provider": "native-replacement-prepare",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-allocate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-start",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-attach",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-activate",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-readiness",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          },
+          {
+            "provider": "native-replacement-commit",
+            "state": "confirmed",
+            "attempt": 1,
+            "compensation": 0
+          }
+        ]
+      }
+    ],
+    "unretired_native_lifetimes": 0,
+    "original_db_wal_unchanged": true
+  },
+  "next_action": "Selected native workload on the same normal release binaries/source with explicit high-cost authority/backtrace and SQL-custody diagnostics disabled; keep resource collector, captures, source clocks, original deadlines and all quality limits. Compare observer perturbation before changing authority semantics.",
+  "general_regression_suites_rerun": false,
+  "G054_deferred": true,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}

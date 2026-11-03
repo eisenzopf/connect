@@ -55,7 +55,7 @@
     "scripts/check-transport-fixtures.py": "2657750e5c4174475766d5e7483f6094a486d01ce641ee547ab344ab6bc7ccb8"
   },
   "integration_syntax_parsed": true,
-  "normal_arm_runtime_pending": true,
+  "normal_arm_runtime_pending": false,
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -66,5 +66,6 @@
     "status": "normal selected runtime pending",
     "observers": "Existing public numeric media/queue/QUIC snapshots before/after the programme; explicit metadata diagnostic enables numeric slow SQL custody records at >=500us. No periodic network observer during the programme.",
     "failure_custody": "Post-workload health observation failure is recorded separately and cannot prevent completed independent media decoding."
-  }
+  },
+  "normal_arm_runtime_result": "native-resource-profile-result.json: actual workload resource collection complete, all original workers/supervisor joined unforced. Control/capture/drain pass; decoded quality fails. Health queue/forwarding lists remain empty and establish no queue coverage."
 }
