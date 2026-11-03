@@ -27,7 +27,9 @@ The owner captures the current credential/server-key cutoff; after an explicit
 refresh, drop it and claim again to use the validated successor cutoff. It
 cannot renew itself or extend a control deadline. Server authorization still
 applies to each original packet. This changes the Rust client boundary without
-adding an HTTP or wire command. Three focused ARM checks verify signed-control/duplex concurrency, cancelled
+adding an HTTP or wire command. Keep the original control future pinned across
+packet ticks; dropping and restarting it can abandon an uncertain command and
+retire the peer. Three focused ARM checks verify signed-control/duplex concurrency, cancelled
 reads, exclusive ownership, expiry and close. Physical fixture integration
 and full media qualification remain pending.
 

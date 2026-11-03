@@ -374,10 +374,11 @@ pub(super) async fn run(
         while tokio::time::Instant::now() < until {
             if source.owner_control && tokio::time::Instant::now() >= next_owner {
                 phase = "physical-owner-control";
-                if pump.during(owner::stop(&output, &command.operation_id)).await?? {
+                if pump.joining_stop_read(owner::stop(&output, &command.operation_id)).await?? {
                     stop_requested = true;
                     break;
                 }
+                if tokio::time::Instant::now() >= until { break; }
                 if let Some(data) = &mut data_exchange {
                     phase = "physical-data-exchange";
                     let root_observed = pump.observation.root_observed;

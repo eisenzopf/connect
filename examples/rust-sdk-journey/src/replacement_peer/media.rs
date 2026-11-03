@@ -83,9 +83,24 @@ impl<'a> Pump<'a> {
     /// The original control future remains pinned and is never restarted. Its
     /// cancellation/uncertainty semantics remain the client's responsibility.
     pub async fn during<F: Future>(&mut self, control: F) -> Result<F::Output> {
+        self.during_until(control, self.until).await
+    }
+
+    /// An already-started local stop-marker read may join after packet time
+    /// ends. It cannot extend media or start another control operation.
+    pub async fn joining_stop_read<F: Future>(&mut self, read: F) -> Result<F::Output> {
+        self.during_until(read, self.until + Duration::from_secs(5))
+            .await
+    }
+
+    async fn during_until<F: Future>(
+        &mut self,
+        control: F,
+        cutoff: tokio::time::Instant,
+    ) -> Result<F::Output> {
         tokio::pin!(control);
         loop {
-            if tokio::time::Instant::now() >= self.until {
+            if tokio::time::Instant::now() >= cutoff {
                 return Err("original media programme ended during control".into());
             }
             let before = self.observation.rows.len() as u32
@@ -94,7 +109,8 @@ impl<'a> Pump<'a> {
             tokio::select! {
                 biased;
                 value = &mut control => return Ok(value),
-                result = self.step(self.until) => {
+                _ = tokio::time::sleep_until(cutoff) => return Err("original control cutoff expired".into()),
+                result = self.step(self.until), if tokio::time::Instant::now() < self.until => {
                     result?;
                     let after = self.observation.rows.len() as u32
                         + self.observation.sent + self.observation.sent_video;

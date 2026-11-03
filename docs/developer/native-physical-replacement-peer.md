@@ -438,3 +438,8 @@ remains gated until its original controls succeed. All packet futures settle
 inline and the exclusive reader drops before final control-only end. The private
 observation records packet events completed during control waits. This integration
 is implemented but its compilation and next selected rehearsal remain pending.
+
+An already-started local stop-marker read can finish within the original
+post-programme join cutoff. Packet pumping stops at the original source end,
+and the loop starts no further control work after that read crosses the end.
+Completion/publication/Data futures keep their original programme cutoffs.
