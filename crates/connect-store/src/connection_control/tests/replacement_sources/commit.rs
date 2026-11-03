@@ -121,6 +121,80 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
 }
 
 #[test]
+fn captured_projection_drains_short_packet_readers_without_long_writer_parking() {
+    let m = fixture(true);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let expected = attempt.expected().unwrap();
+    let observed = ready(&read, &expected);
+    let captured = attempt.committed(expected, &observed).unwrap();
+    drop(read);
+    m.f.store
+        .record_native_replacement_committed(&captured)
+        .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let effects = m.f.count("operation_effects");
+
+    // A reader which cannot drain must still release the pending writer soon,
+    // leave current packets authorized and make no partial metadata change.
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let began = std::time::Instant::now();
+    let refused = m.f.store.project_native_replacement_committed(&captured);
+    assert_eq!(refused.unwrap_err().code, "authority-busy");
+    assert!(began.elapsed() < std::time::Duration::from_millis(50));
+    assert!(held.current());
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], None)
+        .unwrap()
+        .current());
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    drop(held);
+
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let established = std::thread::scope(|workers| {
+        let (release, ready) = std::sync::mpsc::sync_channel(0);
+        let reader = workers.spawn(move || {
+            ready.recv().unwrap();
+            std::thread::sleep(std::time::Duration::from_micros(500));
+            drop(held);
+        });
+        release.send(()).unwrap();
+        let result = m.f.store.project_native_replacement_committed(&captured);
+        reader.join().unwrap();
+        result.expect("captured projection did not drain the short-lived packet reader")
+    });
+    let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let duplicate =
+        m.f.store
+            .project_native_replacement_committed(&captured)
+            .unwrap();
+    assert_eq!(
+        duplicate.runtime_connection_id(),
+        established.runtime_connection_id()
+    );
+    assert_eq!(duplicate.generation(), established.generation());
+    assert_eq!(m.f.count("operation_effects"), effects);
+    assert_eq!(
+        Store::inspect_snapshot(m.f.store.path()).unwrap(),
+        completed
+    );
+}
+
+#[test]
 fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor() {
     let (f, key, command, prepared, request, sources, old) = super::candidate::prepared_scene();
     let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
