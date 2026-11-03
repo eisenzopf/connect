@@ -10,7 +10,7 @@
   "new_controlled_case": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
   "case_scope": "Actual Policy.current Receive callback under held real entries registry on a current-thread Tokio runtime. Sixteen callbacks must return NotReady under50ms combined, then release and fresh missing receiver/source must refuse Authority. This proves callback scheduling behavior only, not native delivery, authorization-positive recovery, whole media quality or any cell.",
   "before_check_pending": false,
-  "after_check_pending": true,
+  "after_check_pending": false,
   "normal_runtime_pending": true,
   "general_suites_rerun": false,
   "G054_deferred": true,
@@ -55,5 +55,23 @@
     "crates/connect-service/src/canonical_media/packets.rs": "8345ec17ebbc659fd9502d857f3fcb7596472fd403490b507fe13774ea4a6db2",
     "crates/connect-service/src/canonical_replacement/movement.rs": "c05bdd8a19e9df800e696f3b5e54585f79e02011df1d8e65c75bc66e5cc04f26",
     "crates/connect-service/src/canonical_media/tests.rs": "cd2e1e6966fc96b90062c768f9e6398181594887d37c36ac6ed4426db0df6d08"
+  },
+  "after_controlled_case": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "source_revision": "15256344b9bf99c14fc3da9ccb067f3bece75be5",
+    "passed": true,
+    "general_suites_rerun": false,
+    "compile_exit_code": 0,
+    "test_executable_sha256": "1fb4d85590e2a5d152166001cb8fa850c2b9a9797ea91f065dcc9c848a78054e",
+    "test_exit_code": 0,
+    "test_results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.11s"
+    ],
+    "test_log_sha256": "f3e9703acf36d3e7d8ec3f009a67265e15a4b49f2e46c10fc5d6aad3d36d21d2",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 497.02599391900003
   }
 }
