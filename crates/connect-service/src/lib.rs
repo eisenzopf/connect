@@ -232,6 +232,27 @@ impl Service {
             .media
             .refuse_replacement_adoption_once_for_test(record)
     }
+    /// Retire one actual native controller at the final publication boundary.
+    /// Negative-only test support; no wire caller can request this injection.
+    #[cfg(feature = "test-support")]
+    pub fn retire_canonical_replacement_at_publication_once_for_test(
+        &self,
+        record: &str,
+        runtime_connection: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicBool>> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let id = rvoip_core::ids::ConnectionId::from_string(runtime_connection);
+        // The exact prepared candidate already has native resources, but need
+        // not yet be an admitted Core connection. Read the actual adapters.
+        let controller = runtime
+            .native_adapters()
+            .iter()
+            .find_map(|native| native.media_controller(&id).ok())
+            .ok_or_else(Error::forbidden)?;
+        runtime
+            .media
+            .retire_replacement_publication_once_for_test(record, controller)
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {

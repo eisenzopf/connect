@@ -188,6 +188,8 @@ enum ActivationAudit {
     RevokeBeforeReady,
     #[cfg(feature = "test-support")]
     RefuseBeforeCore,
+    #[cfg(feature = "test-support")]
+    RetireAtPublication,
 }
 async fn exercise_replacement_with_av_control(
     allocate: bool,
@@ -812,21 +814,26 @@ async fn exercise_replacement_with_av_control(
                 rusqlite::Connection::open(&f.config.database).unwrap().execute_batch("CREATE TRIGGER fixture_projection_block BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
             }
             #[cfg(feature = "test-support")]
-            let pre_core_audit = if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
+            let fault_audit = if matches!(
+                activation_audit,
+                ActivationAudit::RefuseBeforeCore | ActivationAudit::RetireAtPublication
+            ) {
                 assert!(!deferred_projection && !candidate_target && !observer);
                 let record = status(&f, &key.id, &command.operation_id).await;
-                Some((
+                let armed = if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
                     f.server
                         .service
                         .refuse_canonical_replacement_adoption_once_for_test(&record.record_id)
-                        .unwrap(),
-                    activation::pre_core::original_bindings(&f),
-                ))
+                        .unwrap()
+                } else {
+                    activation::publication::arm(&f, &record.record_id)
+                };
+                Some((armed, activation::pre_core::original_bindings(&f)))
             } else {
                 None
             };
             #[cfg(feature = "test-support")]
-            if let Some((armed, _)) = &pre_core_audit {
+            if let Some((armed, _)) = &fault_audit {
                 activation::pre_core::send_until_refusal(&mut peers[2], armed).await;
             } else {
                 send_readiness(&mut peers[2]).await;
@@ -834,18 +841,32 @@ async fn exercise_replacement_with_av_control(
             #[cfg(not(feature = "test-support"))]
             send_readiness(&mut peers[2]).await;
             #[cfg(feature = "test-support")]
-            if let Some((armed, original_bindings)) = pre_core_audit {
-                activation::pre_core::verify(
-                    &f,
-                    &key.id,
-                    &command,
-                    candidate,
-                    &mut controller,
-                    &mut peers,
-                    armed,
-                    original_bindings,
-                )
-                .await;
+            if let Some((armed, original_bindings)) = fault_audit {
+                if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
+                    activation::pre_core::verify(
+                        &f,
+                        &key.id,
+                        &command,
+                        candidate,
+                        &mut controller,
+                        &mut peers,
+                        armed,
+                        original_bindings,
+                    )
+                    .await;
+                } else {
+                    activation::publication::verify(
+                        &f,
+                        &key.id,
+                        &command,
+                        candidate,
+                        &mut controller,
+                        &mut peers,
+                        armed,
+                        original_bindings,
+                    )
+                    .await;
+                }
                 for peer in peers {
                     let _ = peer.client.shutdown().await;
                 }

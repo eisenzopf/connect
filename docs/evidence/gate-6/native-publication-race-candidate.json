@@ -1,0 +1,27 @@
+{
+  "format": "connect/gate6-native-publication-race-candidate/1",
+  "task": "G6-058",
+  "date": "2026-11-03",
+  "change": "Opt-in exact-record negative hook retires the actual native controller after Service installation/generation observation, immediately before the new native publication callback. Exercise one signed real native replacement through the stopped outcome and original public replay. Default builds contain no hook.",
+  "new_case": "canonical_native_connections::consultation::groups::replacement::activation::publication::production_native_retirement_between_observation_and_publication_never_emits_ready",
+  "execution": "One new exact case on owner local Ubuntu24 ARM64 VM,120seconds after integration compilation. Wait for original v41 and new Core/Store v42 verification; no broad/full workload.",
+  "intended_coverage": [
+    "Exact retirement injection consumed at final publication, after physical movement and durable capture.",
+    "Final publication refuses the cancelled native resource, rolls back Ready writes, then settles the known movement as stopped with historical physical readiness.",
+    "Exactly seven original effects remain confirmed at attempt/submission generation one, with one movement effect and no preparation compensations.",
+    "Exact target lifetime retires, no connection_ready event exists for the root, retained native connection binding remains unchanged and one retained slot stays live.",
+    "Original signed transition replay preserves record/revision/effects/result and cannot recreate movement; final peer/server shutdown drains owned slots."
+  ],
+  "limitations": [
+    "Uncompiled/unexecuted candidate. This does not establish a passing lifecycle result.",
+    "Deterministic synchronous retirement at the precise interleaving boundary, not a random timing stress run or physical network-disconnection proof.",
+    "Cancellation before the new publication ordering point only. Core component separately exercises overlapping retirement and immediate token cancellation; a signed overlapping-publication case is still unqualified.",
+    "After a known move and candidate termination only the retained peer survives; its probe is not positive duplex continuity.",
+    "No Data observer-specific fault, video bootstrap, authenticated epoch or complete media-cell qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

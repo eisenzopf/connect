@@ -447,6 +447,10 @@ impl ReplacementAdoption {
             return Err(connect_protocol::Error::forbidden());
         }
         Ok(Some(Box::new(InstalledEntry {
+            #[cfg(feature = "test-support")]
+            policy: &self.target.base,
+            #[cfg(feature = "test-support")]
+            record: self.metadata.origin().offer_record_id(),
             native: self
                 .target
                 .activation
@@ -464,6 +468,10 @@ impl ReplacementAdoption {
 /// Service removal takes the same registry mutex. Keep both registries stable
 /// only for the short final SQL commit, after all fallible Store work is done.
 struct InstalledEntry<'a> {
+    #[cfg(feature = "test-support")]
+    policy: &'a super::Policy,
+    #[cfg(feature = "test-support")]
+    record: &'a str,
     native: &'a rvoip_uctp::v2::native_negotiation::NativeMediaActivation,
     generation: u64,
     _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
@@ -484,6 +492,8 @@ impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {
         &self,
         commit: Box<dyn FnOnce() -> connect_protocol::Result<()> + '_>,
     ) -> connect_protocol::Result<()> {
+        #[cfg(feature = "test-support")]
+        self.policy.retire_at_publication_for_test(self.record)?;
         self.native
             .try_publish_installed(self.generation, commit)
             .map_err(|error| match error {
