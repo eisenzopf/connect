@@ -1,0 +1,39 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1443,8 +1443,11 @@
+                                     .streams()
+                                     .iter()
+                                     .filter(|(id, _)| {
+-                                        if let Some((changed, _)) = &target.inherited_gate {
+-                                            *id == changed
++                                        if !target.inherited_gates.is_empty() {
++                                            target
++                                                .inherited_gates
++                                                .iter()
++                                                .any(|(changed, _)| *id == changed)
+                                         } else {
+                                             target.gate.is_some()
+                                                 && target.ports.iter().any(|(port, _, _)| {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+@@ -82,13 +82,15 @@
+                 let source_direction = source.negotiated.requested.direction;
+                 let target_direction = target.negotiated.requested.direction;
+                 if if publish {
+-                    !source_direction.receives() || !target_direction.receives()
++                    source_direction == StreamDirection::Send
++                        || target_direction == StreamDirection::Send
+                 } else {
+-                    !source_direction.sends() || !target_direction.sends()
++                    source_direction == StreamDirection::Receive
++                        || target_direction == StreamDirection::Receive
+                 } {
+                     return Err(StreamControlError::Unsupported);
+                 }
+-                if target_direction.receives() && !target.source_muted {
++                if target_direction != StreamDirection::Send && !target.source_muted {
+                     return Err(StreamControlError::Authority);
+                 }
+                 let mut gate = source.clone();

@@ -1,0 +1,71 @@
+{
+  "format": "connect/gate6-replacement-video-build-correction/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "failed_runs": [
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 112641,
+      "source_revision": "da0c1c1235816f84bc2219ab450974f4981dd1ed",
+      "passed": false,
+      "steps": [],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "video_routing_candidate": true,
+      "builds": [
+        {
+          "group": "core",
+          "compile_exit_code": 101,
+          "compile_log_sha256": "82845c0e7c83479b713fd722c547f71e8f940933e66cffda6bb86498466b59da"
+        }
+      ],
+      "executable_unchanged": true,
+      "failure_class": "AssertionError",
+      "message": "",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 0.6898909430019557
+    },
+    {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 112739,
+      "source_revision": "da0c1c1235816f84bc2219ab450974f4981dd1ed",
+      "passed": false,
+      "steps": [],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "video_routing_candidate": true,
+      "builds": [
+        {
+          "group": "core",
+          "compile_exit_code": 101,
+          "compile_log_sha256": "6effedd428d0c86dce9f5bb106f62f29e96065fab7ac85b536c9eed6594e8775"
+        }
+      ],
+      "executable_unchanged": true,
+      "failure_class": "AssertionError",
+      "message": "",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 6.732616481007426
+    }
+  ],
+  "causes": [
+    "First command selected Core as a dependency of the Connect workspace, where Cargo refuses dependency dev tests. No Rust compilation or tests executed.",
+    "Correct upstream workspace selection found E0609 for remaining singular inherited_gate publication observation and E0624 for private direction helpers. No tests executed."
+  ],
+  "correction": {
+    "runner": "Use --manifest-path .deps/rvoip/Cargo.toml for Core test compilation.",
+    "patch": "patches/rvoip/gate6-replacement-video-build-correction.patch",
+    "patch_sha256": "25583e852069a3fcfffaeff6c1201660f6fb5ea2fdf876e70967ec54413061e4",
+    "behavior": "Observe all inherited audio/video gates in the final publication predicate; compare public StreamDirection variants without expanding helper visibility.",
+    "status": "Prepared dependency digests verified; corrected build pending."
+  },
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "G054_deferred": true
+}

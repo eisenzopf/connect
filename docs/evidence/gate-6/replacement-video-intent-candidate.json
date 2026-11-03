@@ -16,7 +16,7 @@
     "prepared_digest_verified": true,
     "http_schema_generation_log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11",
     "rust_format": "scripts/format.sh completed",
-    "core_cases": "Pending local ARM compilation and execution",
+    "core_cases": "Original build failed before tests; runner workspace and two source errors corrected. See replacement-video-build-correction.json. Corrected local ARM build pending.",
     "protocol_case": "replacement_video::tests::explicit_video_mapping_is_bounded_unambiguous_and_closed",
     "changed_service_client_compile": "Pending local ARM verification"
   },

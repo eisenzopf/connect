@@ -1549,6 +1549,11 @@
       "path": "patches/rvoip/gate6-replacement-video-wire-intent.patch",
       "sha256": "cccdf0b53f1cd90d66f35ea40c0a497abeb44760816238c1c5a05fa0a93970de",
       "source": "G6-058 P3 public wire candidate: typed optional video publication/receiver mappings in connection.replace. Connect validates bounded IDs, distinct receiver/publication targets and transfers only exact currently authorized negotiated resources. No bootstrap or quality qualification."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-video-build-correction.patch",
+      "sha256": "25583e852069a3fcfffaeff6c1201660f6fb5ea2fdf876e70967ec54413061e4",
+      "source": "G6-058 P3 compile correction: final publication observation includes every inherited audio/video gate; use public direction enum checks rather than private helper methods. Original failed local ARM build preserved; no full qualification."
     }
   ]
 }
