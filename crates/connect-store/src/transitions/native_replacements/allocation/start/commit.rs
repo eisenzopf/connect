@@ -2,7 +2,9 @@
 //! packet grant or a completed public projection. The owner must retain it
 //! before awaiting any metadata write and must never retry the physical commit.
 use super::*;
+pub(super) mod not_submitted;
 mod recovery;
+pub use not_submitted::NativeReplacementCommitNotSubmitted;
 use recovery::{Projection, ProjectionFacts};
 
 pub struct NativeReplacementCommitAttempt {

@@ -5,10 +5,11 @@ use connect_protocol::connection_control::OfferIntent;
 mod start;
 pub use start::{
     NativeReplacementAudienceCapture, NativeReplacementCommitAttempt,
-    NativeReplacementCommitUncertain, NativeReplacementCommitted, NativeReplacementMediaAttempt,
-    NativeReplacementMediaCapture, NativeReplacementMediaOrigin, NativeReplacementMediaPhase,
-    NativeReplacementMediaRead, NativeReplacementSceneRead, NativeReplacementStartAttempt,
-    NativeReplacementStartRead, NativeReplacementStartUncertain, NativeReplacementStarted,
+    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
+    NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
+    NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
+    NativeReplacementSceneRead, NativeReplacementStartAttempt, NativeReplacementStartRead,
+    NativeReplacementStartUncertain, NativeReplacementStarted,
 };
 
 pub struct NativeReplacementAllocationRead {

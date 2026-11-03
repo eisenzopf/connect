@@ -426,6 +426,17 @@ retry, including after cancellation. Historical recording remains possible
 after original controller revocation. A confirmed movement capture alone does
 not complete the public operation or create a connection.
 
+A live owner that refuses adoption preparation before invoking Core may instead
+consume the exact reservation as `not_submitted`. Its durable commit-step
+observation is `{"submission":"not-started"}` and its original effect becomes
+`failed`, preserving the one attempt and submission generation. This is a
+historical negative fact, not permission to retry the movement. Only that exact
+marker and failed effect allow candidate-only cleanup after actual target
+absence. The source and retained connections remain unchanged. Cleanup settles
+the original root as failed/cancelled without a Ready event. Repeated capture
+and cleanup are unchanged reads. An uncertain Core return, timeout, started row
+or successor-runtime absence cannot create this capture or use this exception.
+
 A separate atomic projection consumes that exact confirmed capture. Native
 Service preallocates an inactive ordinary entry and Data observer, installs them
 after capture, then supplies exact entry custody through the final transaction.

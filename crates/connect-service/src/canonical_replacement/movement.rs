@@ -1,12 +1,16 @@
 //! One actual managed switch followed only by captured metadata projection.
 use super::*;
 use super::{continuation::Phase, start::StartedReplacement};
-use connect_store::{NativeReplacementCommitUncertain, NativeReplacementCommitted};
+use connect_store::{
+    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
+    NativeReplacementCommitted,
+};
 use rvoip_core::{adapter::EndReason, participant_transitions::EndpointConfirmationPolicy};
 #[derive(Clone)]
 pub(super) enum Capture {
     Known(Arc<NativeReplacementCommitted>),
     Unknown(Arc<NativeReplacementCommitUncertain>),
+    NotSubmitted(Arc<NativeReplacementCommitNotSubmitted>),
 }
 impl Runtime {
     pub(super) async fn move_native_replacement(
@@ -57,18 +61,15 @@ impl Runtime {
             Ok(adoption) => adoption,
             Err(_) => {
                 drop(i);
-                let capture = Arc::new(attempt.uncertain());
+                let capture = Arc::new(attempt.not_submitted());
                 *started.commit.lock().map_err(|_| Error::storage())? =
-                    Some(Capture::Unknown(capture.clone()));
-                super::projection::record(
-                    roles,
-                    retry_metadata(&self.stop, || {
-                        let store = self.media.store.clone();
-                        let capture = capture.clone();
-                        store_call(move || store.native_replacement_commit_uncertain(&capture))
-                    }),
-                )
-                .await?;
+                    Some(Capture::NotSubmitted(capture.clone()));
+                // Release the role/read interval before acquiring any writer.
+                // The cleanup loop retains the definite outcome even if its
+                // first metadata write is transiently unavailable.
+                drop(roles);
+                self.stop_unsubmitted_replacement(root, started, capture)
+                    .await;
                 return Err(Error::forbidden());
             }
         };
@@ -252,6 +253,44 @@ impl Runtime {
         self.watch_moved_replacement(origin).await;
         Ok(())
     }
+    /// Retain and record a live pre-Core refusal through metadata contention.
+    /// Cancel only its prepared candidate; source and retained never moved.
+    async fn stop_unsubmitted_replacement(
+        &self,
+        root: &PreparedReplacement,
+        started: &StartedReplacement,
+        capture: Arc<NativeReplacementCommitNotSubmitted>,
+    ) {
+        root.handle.cancel();
+        let id = root.handle.intent().replacement.clone();
+        loop {
+            if self.native_connection_live(&id) {
+                let _ = self
+                    .core
+                    .end_connection(id.clone(), EndReason::Normal)
+                    .await;
+            }
+            let store = self.media.store.clone();
+            let receipt = started.receipt.clone();
+            let capture = capture.clone();
+            let absent = crate::canonical_native::Absent {
+                natives: self.native_adapters(),
+                id: id.clone(),
+                generation: root.handle.prepared_binding().generation(),
+            };
+            let settled = store_call(move || {
+                store.record_native_replacement_commit_not_submitted(&capture)?;
+                store.record_native_replacement_started_candidate_stopped(&receipt, &absent)
+            })
+            .await;
+            if settled.is_ok() || self.stop.is_cancelled() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+        self.media.remove(&id);
+    }
+
     async fn stop_unactivated_replacement(&self, capture: &Arc<NativeReplacementCommitted>) {
         let origin = capture.activation().origin().clone();
         let id = ConnectionId::from_string(origin.runtime_connection_id());

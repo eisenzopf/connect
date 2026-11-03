@@ -540,6 +540,9 @@ impl Runtime {
                         movement::Capture::Unknown(c) => {
                             store.native_replacement_commit_uncertain(&c)
                         }
+                        movement::Capture::NotSubmitted(c) => {
+                            store.record_native_replacement_commit_not_submitted(&c)
+                        }
                     })
                 })
                 .await;

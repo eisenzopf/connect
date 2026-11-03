@@ -8,7 +8,8 @@ mod phase;
 mod projection;
 use crate::{AuthorityGuardSet, AuthorityScope, PeerConnectionProjection};
 pub use commit::{
-    NativeReplacementCommitAttempt, NativeReplacementCommitUncertain, NativeReplacementCommitted,
+    NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
+    NativeReplacementCommitUncertain, NativeReplacementCommitted,
 };
 pub use phase::{
     NativeReplacementMediaAttempt, NativeReplacementMediaCapture, NativeReplacementMediaPhase,
@@ -543,8 +544,8 @@ impl Store {
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &p.record)?;
         admission::require_row(self, &held, &row)?;
-        let exact:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='start' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.observation_json IS ?7 AND e.observation_json=?8 AND s.started=1 AND ((?7 IS NOT NULL AND e.state='confirmed') OR (?7 IS NULL AND e.state='unknown'))) AND NOT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit' AND started=1)",params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,observation,a.target],|r|r.get(0)).map_err(|_|Error::storage())?;
-        if !exact {
+        let exact:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='start' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.observation_json IS ?7 AND e.observation_json=?8 AND s.started=1 AND ((?7 IS NOT NULL AND e.state='confirmed') OR (?7 IS NULL AND e.state='unknown')))",params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,observation,a.target],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !exact || !commit::not_submitted::permits_candidate_cleanup(&tx, &p.record)? {
             return Err(Error::new(
                 "reconciliation-required",
                 "Replacement may have entered movement commit",
