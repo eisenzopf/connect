@@ -28,9 +28,9 @@
     "Captured expiry refuses receive without retiring an otherwise current peer",
     "Original client close retires outstanding IO"
   ],
-  "scope": "Three exact optimized client checks on localARM controlled signed post-auth QUIC; no service admission, physical replacement, whole quality or complete-cell claim. Base physical-peer/service release integration now type-checks with source guard unchanged; the stop-read follow-up is pending normal compilation.",
+  "scope": "Three exact optimized client checks on localARM controlled signed post-auth QUIC; no service admission, physical replacement, whole quality or complete-cell claim. Base physical-peer/service release integration now type-checks with source guard unchanged; the stop-read follow-up compiled in the normal captured runtime, which failed during preparation.",
   "fixture_integration_pending": true,
-  "normal_production_rehearsal_pending": true,
+  "normal_production_rehearsal_pending": false,
   "general_regression_suites_rerun": false,
   "G054_deferred": true,
   "task_complete": false,
@@ -57,5 +57,6 @@
     ],
     "source_inputs_unchanged": true,
     "elapsed_seconds": 483.44222077499944
-  }
+  },
+  "normal_production_rehearsal_result": "native-media-pump-result.json: compilation passed; actual programme failed in preparation. Packet capture and limited pump progress only."
 }

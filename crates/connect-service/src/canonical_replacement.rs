@@ -7,7 +7,6 @@ mod movement;
 mod preflight;
 mod preparation;
 mod projection;
-mod readiness;
 mod start;
 use crate::{
     authentication::StoreValidator,

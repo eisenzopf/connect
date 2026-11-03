@@ -159,6 +159,16 @@ export function verifyPhysicalOwnerEndReceipt(receipt, intent, admittedConnectio
     });
 }
 
+// Preparing includes reservation and in-flight Core preparation. Only the
+// exact durable prepare receipt permits launching the independent target.
+// This is an observation, never authority: allocation revalidates everything.
+export function replacementPreparationRecorded(root) {
+    const prepare = root.effects?.filter(effect => effect.provider === "native-replacement-prepare");
+    return root.state === "preparing" && root.cancel_requested !== true &&
+        Array.isArray(prepare) && prepare.length === 1 && prepare[0].state === "confirmed" &&
+        prepare[0].attempt === 1 && prepare[0].compensates_effect_id == null;
+}
+
 export const physicalReplacementTarget = options => physicalTarget(options, false);
 // Admission returns a live physical owner. Its report is final only after join.
 export const startPhysicalReplacementTarget = options => physicalTarget(options, true);
@@ -351,10 +361,10 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.ok(Number.isSafeInteger(root.revision) && root.revision >= 0 && root.revision >= revision);
             revision = root.revision;
             assert.ok(["accepted", "preparing"].includes(root.state));
-            if (root.state === "preparing") break;
+            if (replacementPreparationRecorded(root)) break;
             if (!savedAccepted) { await save(join(directory, "accepted-root.json"), root); savedAccepted = true; }
-            // Read only the same root. Acceptance alone creates no candidate
-            // allocation; do not launch a target against an unprepared intent.
+            // Read only the same root under the original cutoff. Neither
+            // acceptance nor a preparation reservation grants a captured ticket.
             await new Promise(done => setTimeout(done, Math.min(20, remaining())));
         }
         input.root = root;

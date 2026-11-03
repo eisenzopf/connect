@@ -7,7 +7,7 @@ import { startPhysicalReplacementTarget } from "../lib/transport_replacement_tar
 
 // A real separately owned process exercises controller lifecycle only. It is
 // explicitly synthetic and performs no native negotiation or media IO.
-async function fixture(body, failBeforeCompletion = false) {
+async function fixture(body, failBeforeCompletion = false, preparationStates = null) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const root = await mkdtemp(join(parent, "replacement-owner-test-"));
     const executable = join(root, "synthetic-target"), config = join(root, "client.toml");
@@ -50,15 +50,30 @@ const poll = setInterval(() => {
             }, { once: true });
         });
     } };
+    let preparationReads = 0, preparationBudget = 8001;
     const controller = { conversations: { byId: () => ({ sessions: { byId: () => ({ connections: { byId: () => ({
         replaceDevice: async () => { submitted++; return operation; },
         refresh: async () => ({ id: "source", state: "retired", generation: 2 }),
     }) } }) } }) }, operationKinds: { connection_replace: "kind" }, operations: { restore: saved => {
         assert.deepEqual(saved, reference); restored++; return operation;
-    } }, raw: { validate: v => v, request: async () => [{ value: { type: "operation.updated", payload: {
-        operation_id: "original", record_id: "record", revision: 1, command_type: "connection.replace",
-        expected_revision: 1, state: "preparing",
-    } } }] } };
+    } }, raw: { validate: v => v, request: async (frame, options) => {
+        assert.equal(frame.payload.operation_id, "original");
+        assert.ok(options.timeoutMs < preparationBudget); preparationBudget = options.timeoutMs;
+        if (preparationStates) {
+            // A real target executable must not even be launched during an
+            // unconfirmed reservation or malformed confirmation observation.
+            await assert.rejects(stat(join(root, "stage/target-input.json")), { code: "ENOENT" });
+            assert.ok(preparationReads < preparationStates.length);
+        }
+        const effects = preparationStates?.[preparationReads] ?? [{
+            provider: "native-replacement-prepare", state: "confirmed", attempt: 1,
+        }];
+        preparationReads++;
+        return [{ value: { type: "operation.updated", payload: {
+            operation_id: "original", record_id: "record", revision: preparationReads,
+            command_type: "connection.replace", expected_revision: 1, state: "preparing", effects,
+        } } }];
+    } } };
     const directory = join(root, "stage");
     let owner;
     try {
@@ -70,7 +85,7 @@ const poll = setInterval(() => {
             streamId: "target-audio", target: { endpointId: "endpoint", deviceId: "device", nativeConfig: config },
             source: { seconds: 1, ssrc: 7, audioPackets: Array.from({ length: 50 }, () => [1]) } });
         assert.equal(failBeforeCompletion, false, "failed target unexpectedly admitted");
-        await body({ owner, directory, counters: () => ({ submitted, retired, restored }) });
+        await body({ owner, directory, preparationReads, counters: () => ({ submitted, retired, restored }) });
     } catch (error) {
         if (!failBeforeCompletion) throw error;
         await body({ error, directory, waitAborted, counters: () => ({ submitted, retired, restored }) });
@@ -126,4 +141,25 @@ test("a failed physical owner cannot turn completed admission into a passing fin
         assert.equal(report.failure.phase, "target-worker-join");
         assert.deepEqual(counters(), { submitted: 1, retired: 1, restored: 1 });
     });
+});
+
+// New focused counterexample: reservation is not the original captured ticket.
+test("preparation confirmation precedes target spawn without retaining allocation authority", async () => {
+    const effect = (state, attempt, extra = {}) => ({ provider: "native-replacement-prepare", state, attempt, ...extra });
+    const observations = [[], [effect("prepared", 0)], [effect("submitting", 1)],
+        [effect("confirmed", 0)], [effect("confirmed", 2)],
+        [effect("confirmed", 1), effect("confirmed", 1)],
+        [effect("confirmed", 1, { compensates_effect_id: "another-effect" })],
+        [effect("confirmed", 1)]];
+    await fixture(async ({ owner, directory, preparationReads, counters }) => {
+        assert.equal(preparationReads, observations.length);
+        assert.deepEqual(counters(), { submitted: 1, retired: 1, restored: 1 });
+        const input = JSON.parse(await readFile(join(directory, "target-input.json"), "utf8"));
+        assert.equal(input.root.revision, observations.length);
+        assert.deepEqual(input.root.effects, observations.at(-1));
+        const result = await owner.stopAndJoin();
+        assert.equal(result.passed, true);
+        assert.equal(result.target_worker_joined, true);
+        assert.equal(result.target_worker_forced, false);
+    }, false, observations);
 });

@@ -51,26 +51,18 @@ impl Runtime {
         let record = intent.offer["replacement_preparation"]["operation_record_id"]
             .as_str()
             .ok_or_else(Error::forbidden)?;
-        // The public Preparing state precedes both the Core call and its
-        // durable capture. Wait under the existing metadata bound without
-        // holding the projection lock needed by that original preparation.
-        let saved = super::readiness::wait(
-            tokio::time::Instant::now() + Duration::from_secs(5),
-            &self.stop,
-            &a.invocation_cancellation(),
-            &physical.lifetime,
-            || {
-                physical.validate(&a, authority)?;
-                Ok(self
-                    .replacements
-                    .lock()
-                    .map_err(|_| Error::storage())?
-                    .get(record)
-                    .cloned()
-                    .filter(|saved| saved.recorded.load(Ordering::Acquire)))
-            },
-        )
-        .await?;
+        // An allocation holds current peer authority. Waiting here for the
+        // preparation worker can retain a reader in front of its queued writer.
+        // Refuse before any effect instead; callers observe the original
+        // prepare effect's confirmation before submitting the target offer.
+        let saved = self
+            .replacements
+            .lock()
+            .map_err(|_| Error::storage())?
+            .get(record)
+            .cloned()
+            .filter(|saved| saved.recorded.load(Ordering::Acquire))
+            .ok_or_else(|| Error::new("not-ready", "Original preparation is not recorded"))?;
         let _roles = self.role_projection.lock().await;
         physical.validate(&a, authority)?;
         let previous = {
