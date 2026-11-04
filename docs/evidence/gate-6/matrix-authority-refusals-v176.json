@@ -1,0 +1,218 @@
+{
+  "format": "connect/g6-058-authority-refusals/1",
+  "date": "2026-11-04",
+  "attempt": "v176",
+  "source_revision": "f86622a160545114cf6d33ba252e1d81e21e5cc3",
+  "report_sha256": "4db8cd768d5bae2fc46f971bea09f5953647a43e7fa87c8f24b375a19e724973",
+  "server_log_sha256": "a4d103606a9f443a66730588a99622958be139703e42ea18d19da6198161b9e7",
+  "environment": "Owner local Ubuntu 24.04 ARM64 VM; Chrome WebTransport EdDSA",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "browser_owner_joined": true
+  },
+  "moves_completed": 4,
+  "decoded_quality_passed": false,
+  "idle_passed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "store_refusals": [
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 9
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 1273
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 654
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 457
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 1459
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 64
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 14
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 5
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 4
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 5
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 163
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 2
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 2
+    }
+  ],
+  "registry_refusals": {
+    "initial-target": 49,
+    "native-entry": 162,
+    "source-entry": 27,
+    "replacement-target": 29,
+    "telephone-target": 32,
+    "source-telephone-target": 8,
+    "source-initial-target": 1
+  },
+  "core_terminal_counters": {
+    "collect-deferred": {
+      "events": 128,
+      "samples": 0
+    },
+    "input-discontinuity": {
+      "events": 11,
+      "samples": 9600
+    },
+    "take-deferred": {
+      "events": 125,
+      "samples": 0
+    },
+    "target-before-start": {
+      "events": 188,
+      "samples": 180480
+    },
+    "subscription-refused": {
+      "events": 26772,
+      "samples": 25701120
+    },
+    "target-deferred": {
+      "events": 10,
+      "samples": 9600
+    },
+    "empty-output": {
+      "events": 713,
+      "samples": 0
+    },
+    "burst-trim": {
+      "events": 109,
+      "samples": 104640
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0
+    },
+    "refresh-refused": {
+      "events": 1,
+      "samples": 0
+    },
+    "target-refused": {
+      "events": 1,
+      "samples": 960
+    }
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio_seconds": 59.34,
+      "minimum_fps": 17,
+      "av_median_ms": 100.70000000111712,
+      "sync_status": "failed"
+    },
+    {
+      "route": 1,
+      "audio_seconds": 59.54,
+      "minimum_fps": 24,
+      "av_median_ms": 78.84999999962815,
+      "sync_status": "passed"
+    },
+    {
+      "route": 2,
+      "audio_seconds": 59.2,
+      "minimum_fps": 23,
+      "av_median_ms": 131.50000000000085,
+      "sync_status": "failed"
+    },
+    {
+      "route": 3,
+      "audio_seconds": 59.38,
+      "minimum_fps": 23,
+      "av_median_ms": 101.39999999944105,
+      "sync_status": "failed"
+    },
+    {
+      "route": 4,
+      "audio_seconds": 58.82,
+      "minimum_fps": 18,
+      "av_median_ms": 100.19999999925489,
+      "sync_status": "failed"
+    },
+    {
+      "route": 5,
+      "audio_seconds": 59.14,
+      "minimum_fps": 18,
+      "av_median_ms": 96.99999999999953,
+      "sync_status": "failed"
+    }
+  ],
+  "interpretation": [
+    "SQL observer contention and authority admission contention both occur in current per-packet policy. Registry contention also occurs.",
+    "Counters span audio/video, original-ingress retries, queued callbacks and startup/teardown. They are not counts of unique lost frames or a one-to-one attribution of mixer deferrals.",
+    "Source inspection confirms all readers currently acquire an exclusive admission turnstile. Candidate 455d6b32 changes reads to shared admission, retains exclusive writer reservation, and coalesces concurrent cold resource readers. Focused and live verification pending.",
+    "No quality limit, timestamp, queue bound, source/executable guard or authorization check was relaxed."
+  ]
+}
