@@ -1,0 +1,897 @@
+{
+  "format": "connect/g6-058-non-av-results/1",
+  "date": "2026-11-04",
+  "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+  "original_matrix_sha256": "bd8161be2c573f2cf4a17d260913ddfd7bff8099fbf0c654196e591071c88072",
+  "verifier_revision": "f48a927c",
+  "runner": "Local Ubuntu ARM64 VM on owner Mac Studio",
+  "selected_cells": 32,
+  "attempted_cells": 8,
+  "partial_workload_passes": 6,
+  "partial_workload_failures": 2,
+  "cells_without_connected_producer": 24,
+  "full_cell_passes": 0,
+  "task_complete": false,
+  "results": [
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "workload": "native-data",
+      "component": {
+        "kind": "native-data",
+        "report_sha256": "692291779a45e80867853cc0a620bccb4ac02f358996dca1a4b3ac7b8f5785c4",
+        "passed": true,
+        "exit_code": 0,
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "sdk_dist_inputs_unchanged": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "peer_binary_sha256": null,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "692291779a45e80867853cc0a620bccb4ac02f358996dca1a4b3ac7b8f5785c4"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "692291779a45e80867853cc0a620bccb4ac02f358996dca1a4b3ac7b8f5785c4"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "692291779a45e80867853cc0a620bccb4ac02f358996dca1a4b3ac7b8f5785c4",
+        "valid": true,
+        "checks": [
+          "five-independent-public-sdk-helpers-bound-to-production-executable",
+          "scoped-native-conversation-and-nonmember-current-access-refusal",
+          "four-active-participants-and-addition-does-not-expand-older-message-audience",
+          "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+          "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+          "two-current-accepted-session-intents-coexist-with-one-main-session",
+          "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+          "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+          "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+          "native-data-original-replay-recovers-receipt-without-second-delivery",
+          "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+          "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+          "both-original-session-intents-end-through-public-sdk",
+          "independent-device-recovers-original-create-and-history-after-original-helper-close"
+        ],
+        "producer_checks": [
+          "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+          "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+          "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+          "occupied-instance-refuses-without-overwrite",
+          "wrong-signing-seed-refuses-before-state-publication",
+          "incomplete-browser-seed-refuses-without-native-only-downgrade",
+          "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+          "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+          "all-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+          "participant-credential-cannot-provision-an-identity",
+          "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+          "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+          "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+          "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+          "private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+          "normal-server-and-native-client-read-original-state-through-materialized-config",
+          "seed-unchanged-and-original-server-groups-joined"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "workload": "native-data",
+      "component": {
+        "kind": "native-data",
+        "report_sha256": "b68a58c7aa0af82ab9f6924a7f50e31b2d094b2ab0a8d331443de5d5a7b32c3a",
+        "passed": true,
+        "exit_code": 0,
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "sdk_dist_inputs_unchanged": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "peer_binary_sha256": null,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "b68a58c7aa0af82ab9f6924a7f50e31b2d094b2ab0a8d331443de5d5a7b32c3a"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "b68a58c7aa0af82ab9f6924a7f50e31b2d094b2ab0a8d331443de5d5a7b32c3a"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "b68a58c7aa0af82ab9f6924a7f50e31b2d094b2ab0a8d331443de5d5a7b32c3a",
+        "valid": true,
+        "checks": [
+          "five-independent-public-sdk-helpers-bound-to-production-executable",
+          "scoped-native-conversation-and-nonmember-current-access-refusal",
+          "four-active-participants-and-addition-does-not-expand-older-message-audience",
+          "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+          "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+          "two-current-accepted-session-intents-coexist-with-one-main-session",
+          "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+          "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+          "actual-server-loopback-listener-and-original-helper-network-namespace-observed",
+          "native-data-original-replay-recovers-receipt-without-second-delivery",
+          "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+          "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+          "both-original-session-intents-end-through-public-sdk",
+          "independent-device-recovers-original-create-and-history-after-original-helper-close"
+        ],
+        "producer_checks": [
+          "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+          "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+          "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+          "occupied-instance-refuses-without-overwrite",
+          "wrong-signing-seed-refuses-before-state-publication",
+          "incomplete-browser-seed-refuses-without-native-only-downgrade",
+          "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+          "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+          "all-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+          "participant-credential-cannot-provision-an-identity",
+          "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+          "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+          "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+          "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+          "private-owned-loopback-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+          "normal-server-and-native-client-read-original-state-through-materialized-config",
+          "seed-unchanged-and-original-server-groups-joined"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "workload": "browser-admission",
+      "component": {
+        "kind": "browser-admission",
+        "passed": true,
+        "exit_code": 0,
+        "report_sha256": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e",
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executable_unchanged": true,
+          "sdk_dist_inputs_unchanged": true,
+          "browser_owner_joined": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "authenticated_owners": 7,
+        "actual_connections": 6,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e"
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "986ddb40ae4f25a218d89dbd17c430352cae39b69ca904316fae57269a80c99e",
+        "valid": true,
+        "checks": [
+          "seven-current-browser-owners-on-selected-transport",
+          "original-browser-operation-reference-recovers-same-conversation",
+          "participant-add-update-remove-rejoin-and-current-addressed-history",
+          "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+          "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-revocation-and-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "workload": "browser-admission",
+      "component": {
+        "kind": "browser-admission",
+        "passed": true,
+        "exit_code": 0,
+        "report_sha256": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7",
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executable_unchanged": true,
+          "sdk_dist_inputs_unchanged": true,
+          "browser_owner_joined": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "authenticated_owners": 7,
+        "actual_connections": 6,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7"
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "6fc1c74bc71111b2621d00c969ef97261d1c38a64811207460da1051ef1b2db7",
+        "valid": true,
+        "checks": [
+          "seven-current-browser-owners-on-selected-transport",
+          "original-browser-operation-reference-recovers-same-conversation",
+          "participant-add-update-remove-rejoin-and-current-addressed-history",
+          "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+          "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-revocation-and-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "workload": "browser-admission",
+      "component": {
+        "kind": "browser-admission",
+        "passed": false,
+        "exit_code": 1,
+        "report_sha256": "e203dfaa737fec56987c99338ebe4bbc4f11c14fb4d27560566c11e34972af28",
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executable_unchanged": true,
+          "sdk_dist_inputs_unchanged": true,
+          "browser_owner_joined": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "authenticated_owners": 7,
+        "actual_connections": null,
+        "failure": {
+          "phase": "actual-browser-admission",
+          "browser": {
+            "stage": "admission",
+            "name": "BrowserSdkError",
+            "kind": "unsupported",
+            "certainty": "read-only",
+            "problem": null
+          }
+        }
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "e203dfaa737fec56987c99338ebe4bbc4f11c14fb4d27560566c11e34972af28",
+        "valid": false,
+        "checks": [],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-revocation-and-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "workload": "browser-admission",
+      "component": {
+        "kind": "browser-admission",
+        "passed": false,
+        "exit_code": 1,
+        "report_sha256": "36222d4b9a738fde0b1dcebeca0cecf2629fac25905526fc506a48fcf848fa83",
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executable_unchanged": true,
+          "sdk_dist_inputs_unchanged": true,
+          "browser_owner_joined": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "authenticated_owners": 7,
+        "actual_connections": null,
+        "failure": {
+          "phase": "actual-browser-admission",
+          "browser": {
+            "stage": "admission",
+            "name": "BrowserSdkError",
+            "kind": "unsupported",
+            "certainty": "read-only",
+            "problem": null
+          }
+        }
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "36222d4b9a738fde0b1dcebeca0cecf2629fac25905526fc506a48fcf848fa83",
+        "valid": false,
+        "checks": [],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-revocation-and-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "workload": "native-data",
+      "component": {
+        "kind": "native-data",
+        "report_sha256": "25c59339c95a6136c7f28e0805069753cd32a6130889b0db7dc8a583617240a0",
+        "passed": true,
+        "exit_code": 0,
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "sdk_dist_inputs_unchanged": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "peer_binary_sha256": null,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "25c59339c95a6136c7f28e0805069753cd32a6130889b0db7dc8a583617240a0"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "25c59339c95a6136c7f28e0805069753cd32a6130889b0db7dc8a583617240a0"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "25c59339c95a6136c7f28e0805069753cd32a6130889b0db7dc8a583617240a0",
+        "valid": true,
+        "checks": [
+          "five-independent-public-sdk-helpers-bound-to-production-executable",
+          "actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed",
+          "scoped-native-conversation-and-nonmember-current-access-refusal",
+          "four-active-participants-and-addition-does-not-expand-older-message-audience",
+          "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+          "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+          "two-current-accepted-session-intents-coexist-with-one-main-session",
+          "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+          "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+          "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed",
+          "native-data-original-replay-recovers-receipt-without-second-delivery",
+          "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+          "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+          "both-original-session-intents-end-through-public-sdk",
+          "independent-device-recovers-original-create-and-history-after-original-helper-close"
+        ],
+        "producer_checks": [
+          "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+          "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+          "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+          "occupied-instance-refuses-without-overwrite",
+          "wrong-signing-seed-refuses-before-state-publication",
+          "incomplete-browser-seed-refuses-without-native-only-downgrade",
+          "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+          "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+          "all-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+          "participant-credential-cannot-provision-an-identity",
+          "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+          "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+          "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+          "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+          "private-owned-veth-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+          "owned-remote-profile-systemd-server-and-separate-client-namespace-originals-retired",
+          "normal-server-and-native-client-read-original-state-through-materialized-config",
+          "seed-unchanged-and-original-server-groups-joined"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "workload": "native-data",
+      "component": {
+        "kind": "native-data",
+        "report_sha256": "b37aff1e08d81a3ef4211eb1bea4977a539de924b284d1b64cd2b6b71fdd1b2b",
+        "passed": true,
+        "exit_code": 0,
+        "integrity": {
+          "source_inputs_unchanged": true,
+          "executables_unchanged": true,
+          "sdk_dist_inputs_unchanged": true
+        },
+        "source_revision": "9b9988db6f3f3bea5955816a86cbb850ec49dfd2",
+        "binary_sha256": "419506b0be670da0076d80a3963a951692bfff45234c183a715e611695d28cd0",
+        "peer_binary_sha256": null,
+        "failure": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": "b37aff1e08d81a3ef4211eb1bea4977a539de924b284d1b64cd2b6b71fdd1b2b"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": "b37aff1e08d81a3ef4211eb1bea4977a539de924b284d1b64cd2b6b71fdd1b2b"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null,
+          "reason": "outside-selected-non-av-stage; AV qualification tracked separately"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      },
+      "non_av_observations": {
+        "report_sha256": "b37aff1e08d81a3ef4211eb1bea4977a539de924b284d1b64cd2b6b71fdd1b2b",
+        "valid": true,
+        "checks": [
+          "five-independent-public-sdk-helpers-bound-to-production-executable",
+          "actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed",
+          "scoped-native-conversation-and-nonmember-current-access-refusal",
+          "four-active-participants-and-addition-does-not-expand-older-message-audience",
+          "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+          "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+          "two-current-accepted-session-intents-coexist-with-one-main-session",
+          "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+          "six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions",
+          "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed",
+          "native-data-original-replay-recovers-receipt-without-second-delivery",
+          "native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences",
+          "all-six-original-native-connections-retire-and-owned-data-queues-drain",
+          "both-original-session-intents-end-through-public-sdk",
+          "independent-device-recovers-original-create-and-history-after-original-helper-close"
+        ],
+        "producer_checks": [
+          "selected-signing-cohort-generated-with-independent-keys-and-no-existing-installation-replacement",
+          "fresh-fixture-message-limit-covers-required-full-size-native-reliable-payload",
+          "production-restore-and-private-config-preserve-original-trust-validity-and-credential",
+          "occupied-instance-refuses-without-overwrite",
+          "wrong-signing-seed-refuses-before-state-publication",
+          "incomplete-browser-seed-refuses-without-native-only-downgrade",
+          "four-identities-five-independent-scoped-devices-enrolled-through-production-cli",
+          "explicit-original-enrollment-resume-preserves-all-ids-keys-credentials-and-expiry",
+          "all-enrolled-devices-perform-signed-native-read-under-their-own-authority",
+          "participant-credential-cannot-provision-an-identity",
+          "changed-bound-issuer-refuses-before-public-calls-and-preserves-original-plan",
+          "native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification",
+          "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery",
+          "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable",
+          "private-owned-veth-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join",
+          "owned-remote-profile-systemd-server-and-separate-client-namespace-originals-retired",
+          "normal-server-and-native-client-read-original-state-through-materialized-config",
+          "seed-unchanged-and-original-server-groups-joined"
+        ],
+        "missing": [
+          "four-device-moves-and-old-owner-retirement",
+          "current-expiry-refusal",
+          "ten-second-idle-resource-restoration"
+        ]
+      },
+      "full_cell_qualified": false
+    }
+  ],
+  "browser_control_verifier_checks": {
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "log_sha256": "a6707d4eff38012da33ddc34bc6dc076a3b17151cfc9aef223c8790cbe64c3da"
+  },
+  "remaining": "All non-AV requirements remain in scope; missing host/network/browser producers and composite movement/expiry/idle clauses are not passes. AV resumed separately.",
+  "wss_failure_diagnosis": "Both WSS cohorts failed at BrowserConnection.capture before full admission. Actual installed Chrome proved requestFrame-driven native canvas clones retain frameRate=0 after max30 constraints. The SDK rejected this zero automatic sampling rate. f48a927c adds a bounded native-manual-canvas case; browser retest pending.",
+  "v170": {
+    "status": "not-run",
+    "reason": "preflight less-than-five-GiB-workload-scratch-space",
+    "media_tests_executed": false
+  },
+  "archive": {
+    "path": ".local/gate-6/verified-vm-archives/gate6-non-av-matrix-v169.tar.zst",
+    "sha256": "ba9b2860bd905a50f3c4b3cb86c19c840fa28df8b2a336a63dda18f602ac69dd",
+    "original_files_verified": 3915
+  }
+}
