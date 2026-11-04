@@ -77,6 +77,7 @@ try{
             else if(url.pathname==='/_matrix/selection.mjs')file=path.join(root,'scripts/lib/browser_matrix_selection.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');

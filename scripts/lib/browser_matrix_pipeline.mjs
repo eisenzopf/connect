@@ -1,6 +1,7 @@
 import {AudioEnvelope} from '../video/audio_envelope.mjs';
 import {calibrate} from '../video/marker_calibration.mjs';
 import {classifySourceFrame} from '../video/source_identity.mjs';
+import {MatrixAudioInput} from './browser_matrix_audio_input.mjs';
 // Match content ordinals, never nearest arrivals or expected timing offsets.
 export function pipelineLatency(sent,received){
     const a=calibrate(sent),b=calibrate(received),result={status:'missing-proof',paired:0,signed_median_ms:null,p95_ms:null};
@@ -22,7 +23,7 @@ export function pipelineEnvelopeLatency(sent,received,...envelopes){
  * pixel alteration, retries or new media. These counters cannot qualify quality. */
 export function browserMatrixPipeline(Peer,lookup){
     const audio=Peer.prototype.encodeAudio,video=Peer.prototype.encodeVideo;
-    const routes=Array.from({length:6},()=>({audio:new AudioEnvelope(),videoEdges:[],high:false,
+    const routes=Array.from({length:6},()=>({audio:new AudioEnvelope(),input:new MatrixAudioInput(),videoEdges:[],high:false,
         audioFrames:0,videoFrames:0,audioRefused:0,videoRefused:0,maxPeerDroppedPackets:0,errors:[]}));
     let origin=null,closed=false;
     const canvas=document.createElement('canvas');canvas.width=8;canvas.height=8;
@@ -35,7 +36,9 @@ export function browserMatrixPipeline(Peer,lookup){
         const observed=target(connection,'audio',stream),accepted=audio.call(this,connection,stream,samples,timestamp);
         if(observed){const {route,at}=observed;route.audioFrames++;if(!accepted)route.audioRefused++;
             try{let energy=0;for(const value of samples)energy+=value*value;
-                route.audio.sample(at,Math.sqrt(energy/samples.length));
+                const rms=Math.sqrt(energy/samples.length);
+                route.audio.sample(at,rms);
+                route.input.sample(connection,timestamp,at,rms);
                 route.maxPeerDroppedPackets=Math.max(route.maxPeerDroppedPackets,this.diagnostics.droppedPackets);
             }catch(error){failed(route,error);}}
         return accepted;
@@ -57,10 +60,12 @@ export function browserMatrixPipeline(Peer,lookup){
                 sources:routes.map((route,index)=>({index,audio_frames:route.audioFrames,video_frames:route.videoFrames,
                     audio_encoder_refusals:route.audioRefused,video_encoder_refusals:route.videoRefused,
                     maximum_peer_dropped_packets:route.maxPeerDroppedPackets,errors:route.errors,
-                    audio_envelope:route.audio.report(1),video_edges:edges(route.videoEdges),
+                    audio_envelope:route.audio.report(1),original_audio_input:route.input.report(),video_edges:edges(route.videoEdges),
+                    original_capture_audio_minus_video:pipelineEnvelopeLatency(edges(route.videoEdges),edges(route.input.edges),route.input.report()),
                     capture_audio_minus_video:pipelineEnvelopeLatency(edges(route.videoEdges),edges(route.audio.edges),route.audio.report(1))})),
                 receive_paths:receivers.map(({index,source,audio,video,audioEnvelope})=>({index,source,
                     audio_input_to_decode:pipelineEnvelopeLatency(edges(routes[source].audio.edges),edges(audio),routes[source].audio.report(1),audioEnvelope),
+                    original_audio_input_to_decode:pipelineEnvelopeLatency(edges(routes[source].input.edges),edges(audio),routes[source].input.report(),audioEnvelope),
                     video_input_to_decode:pipelineLatency(edges(routes[source].videoEdges),edges(video))}))};},
         close(){if(closed)return;closed=true;Peer.prototype.encodeAudio=audio;Peer.prototype.encodeVideo=video;}};
 }

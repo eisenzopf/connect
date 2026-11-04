@@ -1,0 +1,24 @@
+{
+  "format": "connect/g6-058-input-observation/1",
+  "date": "2026-11-04",
+  "scope": "Passive original encoder-input attribution only. No production media alteration, quality threshold change, decoded observer change or new cell qualification.",
+  "motivation": "v163 original input envelope classified distinct PCM callbacks sharing performance.now resolution as invalid. Existing observation and its failures remain recorded.",
+  "implementation": "Validate original 20ms capture PCM continuity per physical owner and qualify pulse edges on that source clock; retain untouched local arrival times for input-to-decode ordinal comparisons. New owners do not inherit pulse rearm. Report real capture gaps, backwards/overlapping timestamps, equal-resolution arrivals and bounded owner counts.",
+  "verification": {
+    "runner": "Local connect-gate6 Ubuntu ARM64 VM, isolated /tmp/gate6-input-observer-v171; active /workspace source untouched",
+    "tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "016817fbde693050fecb6827accb7aabf2f4648e7a6b30adf50666f8e89a2b3a"
+  },
+  "sources": {
+    "scripts/lib/browser_matrix_audio_input.mjs": "c42cd995f19b4bfd3a7ac777d38c1bcee33ac8eccaebc117655baf4f678d84e7",
+    "scripts/lib/browser_matrix_pipeline.mjs": "3ae5c5c21b55fc2f52f77135302b20b5a185238000602df0949c32c6f4a270ed",
+    "scripts/video/browser_matrix_admission.mjs": "be318176571a6ac3f79ac99f9a753bf486ee08ffa51d7f7cfec92d333294742e",
+    "scripts/tests/browser_matrix_audio_input.test.mjs": "387f86286070271eeabadbf39d868ea592c72fa64398b38ed6ff85a6dbcc196f"
+  },
+  "browser_workload_executed": false,
+  "cell_qualified": false,
+  "task_complete": false
+}
