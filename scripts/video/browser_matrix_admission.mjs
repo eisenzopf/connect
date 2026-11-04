@@ -11,6 +11,7 @@ import {launchOwnedChromium} from './owned_chromium.mjs';
 import {installPeerDiagnostics} from './browser_failure.mjs';
 import {openLoopbackStun} from './loopback_stun.mjs';
 import {matrixResourceBridge} from '../lib/matrix_resource_bridge.mjs';
+import {matrixUnavailableTransports} from '../lib/matrix_unavailable_transports.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -59,7 +60,7 @@ const report={format:'connect/browser-matrix-admission-observation/1',source_rev
     scope:'Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.',
     tls_trust:{https_wss:'isolated-profile-CA',webtransport:spec.transport==='chrome-webtransport'?'explicit-fresh-certificate-sha256':null,
         leaf_sha256:leafSha256,leaf_key:'ECDSA-P256',leaf_validity_seconds:(notAfter-notBefore)/1000,certificate_errors_ignored:false}};
-let owner,server,page,journal,stun,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
+let owner,server,page,journal,stun,unavailable,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
 const diagnostic=text=>{
     const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
     if(diagnosticBytes<=1024*1024)diagnostics=diagnostics.then(()=>fs.appendFile(path.join(output,'browser-private.log'),body,{mode:0o600})).catch(()=>{});
@@ -73,6 +74,7 @@ try{
             let file;
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
+            else if(url.pathname==='/_matrix/selection.mjs')file=path.join(root,'scripts/lib/browser_matrix_selection.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
@@ -109,6 +111,7 @@ try{
     // Local scope uses an owned Binding reflector so the browser can supply
     // actual IP candidates while retaining its ordinary mDNS/privacy policy.
     stun=await openLoopbackStun();spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
+    unavailable=await matrixUnavailableTransports();spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
     await page.addInitScript(installPeerDiagnostics);
     page.on('console',message=>diagnostic(message.text()));
@@ -125,7 +128,7 @@ try{
     });
     const selected=spec.transport==='chrome-webtransport'?'webtransport':'wss-webrtc';
     const result=await page.evaluate(async({spec,selected})=>{
-        const {BrowserSdkClient}=await import('/sdk/browser.js');
+        const {BrowserSdkClient,BrowserClient}=await import('/sdk/browser.js');
         // Diagnostic-only observer: retain the original low-level rejection in
         // the private browser log before the public SDK classifies it. No wire
         // bodies, credentials, retries or altered promise outcomes.
@@ -164,7 +167,8 @@ try{
             pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-        const actors={};window.matrixActors=actors;let state,sources,keepalive,observer;
+        const actors={};window.matrixActors=actors;let state,sources,keepalive,observer,selectionEnrollment;
+        const selection={};
         const programmeReport={};let resourceClock;
         try{
             if(spec.stage==='quality'){
@@ -179,7 +183,8 @@ try{
                     signing:{key,keyId:configuration.signing.keyId,algorithm:configuration.signing.algorithm},
                     server:{key:trust,keyId:configuration.server.keyId,algorithm:configuration.server.algorithm,
                         notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt},
-                    ...(selected==='webtransport'?{serverCertificateHashes:[{algorithm:'sha-256',value:pin.slice()}]}:{})};
+                    serverCertificateHashes:[{algorithm:'sha-256',value:pin.slice()}]};
+                if(name==='participant-1')selectionEnrollment=enrollment;
                 const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
                     deviceId:configuration.device.id,endpoints:spec.endpoints,preferredTransport:selected,allowFallback:false,
                     timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
@@ -195,6 +200,11 @@ try{
             }
             state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
                 startMedia:input=>sources.start(input)});
+            window.matrixPhase='transport-selection';
+            const {browserMatrixSelection}=await import('/_matrix/selection.mjs');
+            await browserMatrixSelection({Sdk:BrowserSdkClient,Client:BrowserClient,enrollment:selectionEnrollment,
+                endpoints:spec.endpoints,unavailable:spec.unavailableEndpoints,reference:state.createReference,
+                conversationId:state.conversation.id,journal:event=>window.matrixJournal(event),report:selection});
             const sourceStartup=sources.observation();
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
@@ -227,7 +237,7 @@ try{
             return {passed:retirement.passed&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
-                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,
+                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
@@ -237,7 +247,7 @@ try{
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
-                programme:programmeReport,keepalive:keepalive?.observation(),original_client_closes:closes.map(value=>value.status)};
+                programme:programmeReport,keepalive:keepalive?.observation(),selection,original_client_closes:closes.map(value=>value.status)};
         } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();BrowserMediaPeer.prototype.shutdown=originalShutdown;}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
@@ -250,6 +260,9 @@ try{
 }finally{
     if(owner)report.failure_browser=await owner.close();
     if(stun)report.owned_stun=await stun.close();
+    if(unavailable){report.unavailable_transports=await unavailable.close();
+        const sockets=report.unavailable_transports;
+        report.passed&&=sockets.original_sockets_joined&&sockets.udp_datagrams>0&&sockets.tcp_connections>0&&!sockets.errors&&!sockets.overflow;}
     await serial.catch(()=>{});await journal?.close();await diagnostics;
     if(server)await new Promise(resolve=>server.close(resolve));
     report.journal_events=events;

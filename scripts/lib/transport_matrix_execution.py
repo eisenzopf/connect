@@ -16,6 +16,33 @@ COMPLETION_GAPS = [
 ]
 
 
+def browser_selection_verified(observation):
+    """Require original recovery, real unavailable paths and joined owners."""
+    selected = observation.get("selection", {})
+    sockets = observation.get("unavailable_transports", {})
+    commands = selected.get("commands", [])
+    operation = selected.get("original_operation_id")
+    return (selected.get("format") == "connect/browser-matrix-selection/1"
+        and selected.get("passed") is True and selected.get("selected_transport") == "wss-webrtc"
+        and selected.get("fallback_reason") in {"preferred-transport-timeout", "preferred-transport-failed"}
+        and selected.get("refusal", {}).get("certainty") == "not-submitted"
+        and selected.get("refusal", {}).get("kind") in {"transport-uncertain", "deadline"}
+        and selected.get("attempts") == [dict(phase=phase, transport=transport)
+            for phase in ("fallback", "neither") for transport in ("webtransport", "wss-webrtc")]
+        and isinstance(operation, str) and bool(operation)
+        and selected.get("original_reference_recovered") == 2
+        and selected.get("application_mutations_submitted") == 0
+        and isinstance(commands, list) and 2 <= len(commands) <= 32
+        and {command.get("phase") for command in commands} == {"fallback", "recovery-after-refusal"}
+        and all(command.get("type") == "operation.get" and command.get("operation_id") == operation for command in commands)
+        and selected.get("original_physical_owners") == 4 and selected.get("original_physical_owners_joined") is True
+        and type(selected.get("cleanup_elapsed_ms")) in (int, float) and 0 <= selected["cleanup_elapsed_ms"] <= 5000
+        and sockets.get("original_sockets_joined") is True
+        and type(sockets.get("udp_datagrams")) is int and 0 < sockets["udp_datagrams"] <= 256
+        and type(sockets.get("tcp_connections")) is int and 0 < sockets["tcp_connections"] <= 16
+        and sockets.get("errors") == 0 and sockets.get("overflow") is False)
+
+
 def configure_execution(matrix, environment, stage="media"):
     if stage not in {"media", "admission", "programme", "quality"}:
         raise ValueError("Unknown execution stage")
@@ -155,6 +182,17 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
         failure=report.get("failure")))
     cell.update(status="incomplete" if passed else "failed",
                 reason=cell["execution"]["producer"] + ("-passed-full-checks-missing" if passed else "-failed"))
+    if observation.get("selection"):
+        selection_passed = (all(guards.values()) and browser_selection_verified(observation)
+            and observation.get("source_revision") == matrix["source_revision"]
+            and observation.get("transport") == cell["transport"]
+            and observation.get("signing_algorithm") == cell["signing"])
+        from .transport_matrix import SELECTION_CHECKS
+        for name in SELECTION_CHECKS:
+            cell["check_results"][name] = dict(status="passed" if selection_passed else "failed", evidence=report_sha256)
+        if selection_passed:
+            cell["execution"]["completion_blockers"] = [gap for gap in cell["execution"]["completion_blockers"]
+                if gap != "browser-fallback-and-neither-path-refusal-not-executed"]
     if report.get("idle_resources") is not None:
         from .matrix_idle import idle_verdict
         idle = report["idle_resources"]

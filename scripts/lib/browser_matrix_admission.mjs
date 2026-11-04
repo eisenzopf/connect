@@ -170,7 +170,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
             selectors: nonempty([{stream: source.audio}, {stream: source.video}])}, opts));
     }
     report.checks.push("six-real-browser-connections-with-current-session-scoped-duplex-selections");
-    return {conversation, sessions, connections, participants, report};
+    return {conversation, sessions, connections, participants, report, createReference: references.get("create")};
 }
 
 
