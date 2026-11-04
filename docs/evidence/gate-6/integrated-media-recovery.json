@@ -1779,7 +1779,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Resolve replacement pre-publication metadata Backpressure under the original operation/plan/deadline after auditing all error paths. Add deterministic actual-lock collision, cancellation/expiry/revision/current-authority coverage; retry only definitely unpublished work. Do not replay uncertain effects or widen deadlines. Audio quality/full32cell matrix remain open; G6-054 deferred; local ARM only.",
+  "next_investigation": "Run the previously failed full native workload locally on ARM with the verified pre-publication metadata retry. Inspect original operation/effect outcomes, physical Data exchange, decoded audio/video quality and cleanup. No prior passing case reruns or G6-054 execution.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
@@ -1801,5 +1801,12 @@
     "candidate_cause": "Held authority calls the packet-oriented entries.try_lock lookup, which maps contention to NotReady. This is one possible source, not yet established as the v113 trigger.",
     "next_action": "Run only the failed full native workload with failure-stage metadata at held authority and Core audience prepublication checks. No generic activation retry or deadline change.",
     "cause_proven": false
+  },
+  "replacement_precommit_regression": {
+    "run": "v124",
+    "source_revision": "4b11de7476943403cb8951c980593514b972c069",
+    "passed": true,
+    "evidence": "docs/evidence/gate-6/replacement-precommit-retry.json",
+    "scope": "One new exact Core scene regression on local Ubuntu 24.04 ARM64, with an actual publisher state mutex and the production retry helper. Controlled policy; not the signed production listener."
   }
 }

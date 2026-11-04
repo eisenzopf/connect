@@ -1,0 +1,63 @@
+{
+  "format": "connect/replacement-precommit-retry-evidence/1",
+  "run": "v124",
+  "source_revision": "4b11de7476943403cb8951c980593514b972c069",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 158703,
+    "source_revision": "4b11de7476943403cb8951c980593514b972c069",
+    "passed": true,
+    "steps": [
+      {
+        "group": "replacement-precommit",
+        "case": "staged_streams::tests::private_consult::replacement::replacement_metadata_collision_retries_original_plan_and_preserves_refusals",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 606 filtered out; finished in 0.01s"
+        ],
+        "log_sha256": "49641766338bc593f4e5c15521c66cfcd367c8d3e47810fbec9fa4c929f97d22"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "unpublished_metadata_retry_regression": true,
+    "builds": [
+      {
+        "group": "replacement-precommit",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "1189b99e3e8f53e3183c68b51a7f4a3458f4ba8bb1a1d10824226b8d3f59b8fb",
+        "test_executable_sha256": "5660ce4182312f4c51b1d3c589f82bda11bc1a966dd419f02de3907ce57bf17e",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 341.49436116100696
+  },
+  "state_sha256": "b2cf5bb99f29395bb309e892e364a9c0aabec4be0571ecb0fb31c1906d05c2bc",
+  "scope": "One new exact Core scene regression on local Ubuntu 24.04 ARM64, with an actual publisher state mutex and the production retry helper. Controlled policy; not the signed production listener.",
+  "proof": [
+    "Each of five scenarios observes exactly one real Backpressure collision while the old route remains alive.",
+    "Recovery retries the original plan once, increments the audience revision once, closes the replaced route and delivers candidate audio to the retained receiver.",
+    "Cancellation and deadline expiry prevent a second attempt.",
+    "Revoked current authority and changed source role refuse the second attempt, preserving the old route and audience revision."
+  ],
+  "implementation": [
+    "Only definite pre-publication Media(Backpressure) retries. All other errors propagate unchanged.",
+    "The managed Core entry reconstructs current controls and checks authority on each attempt; it retains the original plan, cancellation and earliest managed deadline.",
+    "Failed scene attempts drop quiescence guards before the bounded 2 ms asynchronous retry. No new journal operation or external effect submission."
+  ],
+  "limitations": [
+    "The component does not exercise the managed entry through a signed production listener; the full failed workload is next.",
+    "No full decoded media quality, complete transport cell or Gate 6 completion is claimed.",
+    "G6-054 remains deferred; no previously passing cases rerun."
+  ],
+  "patch": {
+    "path": "patches/rvoip/gate6-replacement-precommit-retry.patch",
+    "sha256": "f4dbe3b9bf60ed6a032a17b0722b95d1dc41084a17160615485ac98d8059e188"
+  },
+  "task_complete": false,
+  "transport_cells_qualified": 0
+}
