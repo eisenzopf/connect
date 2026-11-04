@@ -73,7 +73,7 @@ pub(super) fn outgoing(s: &mut State, frame: &Value) -> Result<()> {
             .streams
             .iter()
             .filter(|v| v.medium != crate::sdk::Medium::Data)
-            .map(|v| v.id.to_string())
+            .map(|v| v.id.as_str().to_owned())
             .collect(),
     };
     if targets.is_empty()
