@@ -434,6 +434,12 @@ async fn exercise_replacement_with_av_transfer(
                 th,
             ),
         ];
+        if let Some((_, old_receiver)) = retained_video {
+            // The positive VP8 prerequisite sends a finite 29-frame burst but
+            // returns after assembling its first frame. Drain only its known
+            // old video handle before the shared strict audio-only probe.
+            av::drain_exercised_video(&mut peers[1], old_receiver).await;
+        }
         probe(&mut peers, 0, &[1], "replace-before-prepare-remote").await;
         probe(
             &mut peers,
@@ -1162,7 +1168,7 @@ async fn exercise_replacement_with_av_transfer(
                     candidate,
                     source_video_handle.unwrap(),
                     replacement_video_handle.unwrap(),
-                    retained_video.unwrap(),
+                    retained_video.unwrap().0,
                     replacement_incoming_video_handle.unwrap(),
                 )
                 .await;

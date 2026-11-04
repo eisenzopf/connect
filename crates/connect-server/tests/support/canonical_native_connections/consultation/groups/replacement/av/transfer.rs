@@ -41,7 +41,7 @@ pub(in super::super) async fn select_original(
     clients: &mut [CanonicalClient],
     cid: &str,
     publisher: u16,
-) -> u16 {
+) -> (u16, u16) {
     let (_, target) = control(
         &mut clients[1],
         cid,
@@ -66,7 +66,7 @@ pub(in super::super) async fn select_original(
     let retained = stream_handle(&retained.unwrap(), "codec-camera-target");
     let (source, target) = clients.split_at_mut(1);
     assert_vp8_routes_from(&source[0], &mut target[0], publisher, old_receiver, 10).await;
-    retained
+    (retained, old_receiver)
 }
 
 pub(in super::super) async fn after_commit(

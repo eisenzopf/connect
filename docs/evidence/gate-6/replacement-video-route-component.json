@@ -1,0 +1,81 @@
+{
+  "format": "connect/gate6-replacement-video-route-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "source": "4fdbe275021ce6486d0854084b46a3552d0f1ca7",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 113866,
+    "source_revision": "4fdbe275021ce6486d0854084b46a3552d0f1ca7",
+    "passed": false,
+    "steps": [
+      {
+        "group": "core",
+        "case": "staged_streams::tests::private_consult::replacement::video::replacement_video_routes_and_audio_commit_together_with_current_authority_and_stale_packet_fences",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 588 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "9caaa9bacf5eb694fd892659167eec84ea34b54ea426bdca5412199ae26eae3e"
+      },
+      {
+        "group": "core",
+        "case": "staged_streams::tests::private_consult::replacement::video::replacement_video_directional_ports_prepare_and_transfer_without_opening_receiver_ingress",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 588 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "6bf3c359f0cb5cab573b4fe1cd4c8f4e9e77a0956d084e88f1d4308960e4c559"
+      },
+      {
+        "group": "native",
+        "case": "canonical_native_connections::consultation::groups::replacement::av::transfer::production_native_video_transfer_activates_both_directions_without_post_commit_controls",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 439 filtered out; finished in 1.52s"
+        ],
+        "log_sha256": "396aa5098ea5e067a14016e360888177385b5807200ec4dd21723f10296b2424"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "core",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "f6ff0b269bfe602c268f76838039ce24f034ec7d7a9bf391455a44b517c4c466",
+        "test_executable_sha256": "b4aa8f5462e4984f029341ba9c4ace69e70c3870e9c85030e8fe2093d29ab67f",
+        "executable_unchanged": true
+      },
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "fb31c419b7808d35c094fbfad6aad7230250376c7f474c96192e162796519040",
+        "test_executable_sha256": "b50f7e5a2f227b8ccf86c93ad087363c1b6bcf0f4aba520d5730cd363d9e7948",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Dependent native case withheld until Core routing cases pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1425.5564121839998
+  },
+  "proof": [
+    "Both actual Core routing cases pass, including exact prepared directional ports, old queued ingress/egress refusal and unchanged resource bindings.",
+    "Core and native test binaries compile; all source/prepared/executable guards pass."
+  ],
+  "native_failure": "Signed native case fails before replacement at groups.rs:626: strict audio-only reader expected handle1 and received known video handle3. Positive VP8 setup sends29 frames but consumes only first complete frame. Subsequent packets remained queued.",
+  "correction": "Preserve the exact previous video receiver handle and use the existing bounded known-audio/known-video drain before strict audio-only probes. No product or media threshold change; corrected failed native case not yet retried.",
+  "limits": [
+    "Native replacement routing remains unverified.",
+    "No decoded-quality, epoch, feedback or full-cell qualification."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

@@ -340,7 +340,7 @@ pub(super) async fn after_commit(
     eprintln!("signed AV replacement: exact resources, video muted through commit, original explicit unmute replay, VP8 both directions; no full quality qualification");
 }
 
-async fn drain_exercised_video(peer: &mut Peer, video_handle: u16) {
+pub(super) async fn drain_exercised_video(peer: &mut Peer, video_handle: u16) {
     use rvoip_uctp::substrate::observe_rtp_datagram;
     let until = tokio::time::Instant::now() + Duration::from_millis(300);
     let mut observed = 0;

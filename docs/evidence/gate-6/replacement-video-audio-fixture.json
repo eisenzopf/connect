@@ -50,7 +50,7 @@
   "cause": "Fixture change desired list contained only Video. The stream lifecycle treats this as the complete next set and ended original Audio, so replacement planning returned NotReady before routing assertions.",
   "correction": "Retain Audio alongside Video, assert original audio resources unchanged, and require a valid prepared replacement plan before negative mapping checks.",
   "patch": "patches/rvoip/gate6-replacement-video-fixture-retain-audio.patch",
-  "verification": "Prepared source and format verified; two failed Core cases awaiting retry. Dependent new signed native SDK case withheld until both pass.",
+  "verification": "Corrected patch291 Core routing and directional cases both PASS at4fdbe275 with all final guards. Native case compiled but failed before replacement on queued known video entering strict audio probe; see replacement-video-route-component.json.",
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "task_complete": false,
