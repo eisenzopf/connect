@@ -1,0 +1,72 @@
+{
+  "format": "connect/programme-clock-evidence/1",
+  "run": "v120",
+  "source_revision": "6b70dd7b453eefa308d11118f5f9cc40892c386c",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 154800,
+    "source_revision": "6b70dd7b453eefa308d11118f5f9cc40892c386c",
+    "passed": true,
+    "steps": [
+      {
+        "group": "programme-clock",
+        "case": "replacement_peer::timeline::clock::tests::original_monotonic_origin_survives_wall_steps_and_preserves_frame_cutoffs",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "23ee444bc8051bfc510a01baefa16234f9a65d723c75ba5d0d9e789effeacc85"
+      },
+      {
+        "group": "programme-clock",
+        "case": "replacement_peer::timeline::clock::tests::actual_node_anchor_joins_rust_in_the_same_boot_clock_domain",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.07s"
+        ],
+        "log_sha256": "b3f7f2f070a35ba88018be02f75f0382eb5214a239ea83a25621ad60033037c7"
+      },
+      {
+        "group": "programme-clock-node",
+        "case": "scripts/tests/transport_programme_clock.test.mjs",
+        "exit_code": 0,
+        "log_sha256": "b851b53fb62e3ba08b08f3ed299f1876818c9fe1d3137c7fbcdf9eaa84f61c13",
+        "test_results": [
+          "# pass 1",
+          "# fail 0"
+        ]
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "programme_clock_regression": true,
+    "builds": [
+      {
+        "group": "programme-clock",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "aa504760102d87f81ca7bbca8f344465e8f12f473789ae834d3e2e274a212e6d",
+        "test_executable_sha256": "c4e907067e6b0a67e697ad8e24b267dcdeb67b55a59d612af938b7a39fad2a1f",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 87.99933875798888
+  },
+  "state_sha256": "2e7247f512268c480139d22e03c44139a45ac0764526426c7caef23211e50aeb",
+  "scope": "Three new focused regressions on local Ubuntu 24.04 ARM64; example test executable compiled offline; no full workload or previous passing cases rerun.",
+  "proof": [
+    "Node and Rust join the same actual boot/time-namespace monotonic origin.",
+    "Forward/backward wall-time changes do not change programme elapsed, original frame indices, RTP/NTP epoch or Data/programme cutoffs.",
+    "Malformed, foreign, future and expired anchors are rejected."
+  ],
+  "limitations": [
+    "Cross-language runtime test qualifies this Linux clock mapping only; macOS mapping is implemented but not run in this checkpoint.",
+    "Full workload, audio quality and authority contention remain unresolved.",
+    "No complete transport cell or Gate 6 qualification."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}
