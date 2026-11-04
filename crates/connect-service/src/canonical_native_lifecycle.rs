@@ -260,3 +260,103 @@ impl NativeLifecyclePolicy for Policy {
         ))
     }
 }
+
+/// Captured during the target's original signed negotiation, without retaining
+/// its invocation or Store reader. Not attached to the physical writer until
+/// the exact replacement has installed and published its ordinary authority.
+pub(crate) struct PreparedReplacementLifecycle {
+    id: ConnectionId,
+    entry: Arc<std::sync::OnceLock<Arc<Connection>>>,
+    physical: Weak<Physical>,
+    registration: Arc<rvoip_uctp::v2::native_lifecycle::NativeLifecycleRegistration>,
+    registered: std::sync::Mutex<bool>,
+}
+struct ReplacementPolicy {
+    runtime: Weak<Runtime>,
+    entry: Arc<std::sync::OnceLock<Arc<Connection>>>,
+    physical: CancellationToken,
+}
+#[async_trait]
+impl NativeLifecyclePolicy for ReplacementPolicy {
+    async fn authorize(
+        &self,
+        scope: &NativeLifecycleScope,
+        event: &NativeLifecycleEvent,
+    ) -> Result<AuthorityLease, DispatchError> {
+        let entry = self
+            .entry
+            .get()
+            .cloned()
+            .ok_or(DispatchError::StorageUnavailable)?;
+        Policy {
+            runtime: self.runtime.clone(),
+            entry,
+            physical: self.physical.clone(),
+        }
+        .authorize(scope, event)
+        .await
+    }
+}
+impl Runtime {
+    pub(crate) fn prepare_replacement_native_lifecycle(
+        self: &Arc<Self>,
+        id: &ConnectionId,
+        a: &AuthorizedEnvelope,
+        physical: &Arc<Physical>,
+    ) -> connect_protocol::Result<PreparedReplacementLifecycle> {
+        let entry = Arc::new(std::sync::OnceLock::new());
+        let registration = self
+            .connection_native_adapter(id)?
+            .native_lifecycle_registration(
+                id,
+                a,
+                Arc::new(ReplacementPolicy {
+                    runtime: Arc::downgrade(self),
+                    entry: entry.clone(),
+                    physical: physical.lifetime.clone(),
+                }),
+            )
+            .map_err(crate::canonical_native::registration_error)?;
+        Ok(PreparedReplacementLifecycle {
+            id: id.clone(),
+            entry,
+            physical: Arc::downgrade(physical),
+            registration,
+            registered: std::sync::Mutex::new(false),
+        })
+    }
+}
+impl PreparedReplacementLifecycle {
+    pub(crate) fn activate(&self, runtime: &Runtime) -> connect_protocol::Result<()> {
+        let physical = self
+            .physical
+            .upgrade()
+            .filter(|p| !p.lifetime.is_cancelled())
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        let entry = runtime
+            .media
+            .entry(&self.id)
+            .map_err(|_| connect_protocol::Error::forbidden())?;
+        let mut registered = self
+            .registered
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if let Some(previous) = self.entry.get() {
+            if !Arc::ptr_eq(previous, &entry) {
+                return Err(connect_protocol::Error::forbidden());
+            }
+        } else {
+            self.entry
+                .set(entry)
+                .map_err(|_| connect_protocol::Error::forbidden())?;
+        }
+        if !*registered {
+            physical
+                .lifecycle
+                .register(self.id.clone(), self.registration.clone())
+                .map_err(|_| connect_protocol::Error::forbidden())?;
+            *registered = true;
+        }
+        Ok(())
+    }
+}

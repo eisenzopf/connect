@@ -11,6 +11,7 @@ pub(super) struct StartedReplacement {
     pub policy: Arc<TargetPolicy>,
     pub controller: Arc<StreamController>,
     pub resource_streams: Vec<String>,
+    pub lifecycle: crate::canonical_native_lifecycle::PreparedReplacementLifecycle,
     intent: connect_protocol::connection_control::OfferIntent,
     pub commit: std::sync::Mutex<Option<super::movement::Capture>>,
     pub phases: std::sync::Mutex<Vec<Arc<connect_store::NativeReplacementMediaCapture>>>,
@@ -194,10 +195,13 @@ impl Runtime {
             if !invocation.read.current() || activation.confirmed_generation()!=Some(policy.pending.generation()) || controller.revision()!=2 || !native.is_connection_live(&id) {return Err(Error::forbidden());}
             let resource_streams=outcome.accepted.iter().map(|s|s.as_str().to_owned()).collect::<Vec<_>>();
             let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":resource_streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
-            Ok((controller,observation,resource_streams))
+            // Seal the original authenticated writer metadata while the signed
+            // invocation exists. Keep it dormant through private preparation.
+            let lifecycle=self.prepare_replacement_native_lifecycle(&id,&a,&physical)?;
+            Ok((controller,observation,resource_streams,lifecycle))
         }.await;
         drop(invocation);
-        let (controller, observation, resource_streams) = match result {
+        let (controller, observation, resource_streams, lifecycle) = match result {
             Ok(value) => value,
             Err(error) => {
                 let uncertain = Arc::new(attempt.uncertain());
@@ -222,6 +226,7 @@ impl Runtime {
             policy,
             controller,
             resource_streams,
+            lifecycle,
             intent,
             commit: Default::default(),
             phases: Default::default(),

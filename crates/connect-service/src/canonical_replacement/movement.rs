@@ -247,6 +247,13 @@ impl Runtime {
                 return Err(error);
             }
         };
+        // Publication establishes the ordinary origin used by each fresh
+        // lifecycle authorization. The original captured writer can now emit
+        // packet epochs; cached metadata alone never publishes private media.
+        if let Err(error) = started.lifecycle.activate(self) {
+            self.stop_unactivated_replacement(&capture).await;
+            return Err(error);
+        }
         tracing::debug!(target:"connect_service::canonical_replacement", generation=origin.generation(),
             connection=%outcome.admitted, stage="adopted", elapsed_us=commit_began.elapsed().as_micros() as u64,
             "Replacement actual managed movement activated");
