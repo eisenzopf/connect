@@ -1,0 +1,861 @@
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+@@ -0,0 +1,233 @@
++//! One bounded feedback endpoint per physical stream allocation. No payload,
++//! retained permission, detached send, or global source registry.
++use super::*;
++use crate::substrate::{pack_video_feedback_datagram, VideoFeedbackDatagram};
++use rvoip_core::stream::MediaSourceClock;
++use std::time::{Duration, Instant};
++
++/// Metadata describing an actually admitted publisher or submitted receiver
++/// packet. This is not readiness or a permission to use prepared media.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct VideoFeedbackEpoch {
++    pub publisher: bool,
++    pub epoch: u128,
++    pub ssrc: u32,
++}
++/// Installed only by a profile that separately negotiated rtcp-pli-epoch/1 for
++/// this exact binding. Implementations must bind notices to the authenticated
++/// original operation, physical incarnation, logical stream and generations.
++/// The callback performs bounded nonblocking local admission of that signed
++/// notice, with no policy reentry. Success is not remote receipt. Returning an
++/// error leaves feedback disabled for the unannounced epoch; media is not retried.
++pub trait VideoFeedbackProfile: Send + Sync {
++    fn announce(&self, binding: &ReadyMediaBinding, epoch: VideoFeedbackEpoch)
++        -> ControlResult<()>;
++}
++struct Publisher {
++    epoch: VideoFeedbackEpoch,
++    current: Arc<dyn Fn() -> bool + Send + Sync>,
++    clock: (u128, u64),
++    announced: bool,
++}
++struct Receiver {
++    route: VideoFeedbackRoute,
++    ssrc: u32,
++    source_ssrc: u32,
++    announced: bool,
++}
++#[derive(Default)]
++struct SourceState {
++    publisher: Option<Publisher>,
++    next: Option<Instant>,
++    sequence: u32,
++}
++pub(super) struct Endpoint {
++    binding: ReadyMediaBinding,
++    profile: Arc<dyn VideoFeedbackProfile>,
++    transport: Arc<dyn StagedDatagramTransport>,
++    cancel: CancellationToken,
++    lifetime: CancellationToken,
++    source: Mutex<SourceState>,
++    receiver: Mutex<Option<Receiver>>,
++}
++impl Endpoint {
++    pub fn new(
++        binding: ReadyMediaBinding,
++        profile: Arc<dyn VideoFeedbackProfile>,
++        transport: Arc<dyn StagedDatagramTransport>,
++        cancel: CancellationToken,
++        lifetime: CancellationToken,
++    ) -> ControlResult<Arc<Self>> {
++        if binding.negotiated.requested.medium != Medium::Video {
++            return Err(StreamControlError::Unsupported);
++        }
++        Ok(Arc::new(Self {
++            binding,
++            profile,
++            transport,
++            cancel,
++            lifetime,
++            source: Mutex::new(SourceState::default()),
++            receiver: Mutex::new(None),
++        }))
++    }
++    fn live(&self) -> bool {
++        !self.cancel.is_cancelled() && !self.lifetime.is_cancelled() && !self.transport.is_closed()
++    }
++    // Called only after the original ingress packet was accepted, using its
++    // weak current clock/generation predicate. No packet custody is extended.
++    pub fn published(&self, ssrc: u32, clock: MediaSourceClock) -> ControlResult<()> {
++        if !self.live() || !self.binding.source_ready || ssrc == 0 || !(clock.is_current)() {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut state = self
++            .source
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?;
++        let identity = (clock.source_id, clock.generation);
++        if state
++            .publisher
++            .as_ref()
++            .is_none_or(|p| p.epoch.ssrc != ssrc || p.clock != identity || !(p.current)())
++        {
++            state.publisher = Some(Publisher {
++                epoch: VideoFeedbackEpoch {
++                    publisher: true,
++                    epoch: uuid::Uuid::new_v4().as_u128(),
++                    ssrc,
++                },
++                current: clock.is_current,
++                clock: identity,
++                announced: false,
++            });
++        }
++        let publisher = state.publisher.as_mut().unwrap();
++        if !publisher.announced {
++            self.profile.announce(&self.binding, publisher.epoch)?;
++            publisher.announced = true;
++        }
++        Ok(())
++    }
++    pub fn delivered(
++        &self,
++        route: VideoFeedbackRoute,
++        ssrc: u32,
++        source_ssrc: u32,
++    ) -> ControlResult<()> {
++        if !self.live() || !self.binding.sink_ready || ssrc == 0 || source_ssrc == 0 {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut state = self
++            .receiver
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?;
++        if state.as_ref().is_none_or(|r| {
++            r.route.epoch() != route.epoch() || r.ssrc != ssrc || r.source_ssrc != source_ssrc
++        }) {
++            *state = Some(Receiver {
++                route,
++                ssrc,
++                source_ssrc,
++                announced: false,
++            });
++        }
++        let receiver = state.as_mut().unwrap();
++        if !receiver.announced {
++            self.profile.announce(
++                &self.binding,
++                VideoFeedbackEpoch {
++                    publisher: false,
++                    epoch: receiver.route.epoch(),
++                    ssrc,
++                },
++            )?;
++            receiver.announced = true;
++        }
++        Ok(())
++    }
++    pub fn receive(&self, request: &VideoFeedbackDatagram) -> ControlResult<()> {
++        if !self.live() || request.stream_local_id != self.binding.stream_local_id {
++            return Err(StreamControlError::Authority);
++        }
++        let (route, source_ssrc) = {
++            let state = self
++                .receiver
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?;
++            let receiver = state.as_ref().ok_or(StreamControlError::NotReady)?;
++            if !receiver.announced
++                || request.media_ssrc != receiver.ssrc
++                || request.activation_epoch != receiver.route.epoch()
++            {
++                return Err(StreamControlError::Authority);
++            }
++            (receiver.route.clone(), receiver.source_ssrc)
++        };
++        route.dispatch(request.activation_epoch, request.seq, |port, _| {
++            // Resolve the source from Core's admitted physical port. Never
++            // accept a source handle, identity or transport supplied by a peer.
++            let allocation = port
++                .allocation_owner()?
++                .downcast::<RouterHandle>()
++                .map_err(|_| StreamControlError::Authority)?;
++            if allocation.id.get() != port.binding().stream_local_id
++                || allocation.cancellation.is_cancelled()
++            {
++                return Err(StreamControlError::Cancelled);
++            }
++            let source = allocation
++                .feedback
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?
++                .clone()
++                .ok_or(StreamControlError::Unsupported)?;
++            if !same_binding(&source.binding, port.binding()) {
++                return Err(StreamControlError::Authority);
++            }
++            source.dispatch(source_ssrc)
++        })
++    }
++    // Only called under Core's fresh source+receiver authority and generation
++    // guards. A shared publisher limit also bounds fan-in from many receivers.
++    fn dispatch(&self, ssrc: u32) -> ControlResult<()> {
++        if !self.live() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let mut state = self
++            .source
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?;
++        let publisher = state
++            .publisher
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?;
++        if !publisher.announced || publisher.epoch.ssrc != ssrc || !(publisher.current)() {
++            return Err(StreamControlError::Authority);
++        }
++        let epoch = publisher.epoch.epoch;
++        let now = Instant::now();
++        if state.next.is_some_and(|next| now < next) {
++            return Err(StreamControlError::Backpressure);
++        }
++        let bytes = pack_video_feedback_datagram(&VideoFeedbackDatagram {
++            stream_local_id: self.binding.stream_local_id,
++            seq: state.sequence,
++            sender_ssrc: 1,
++            media_ssrc: ssrc,
++            activation_epoch: epoch,
++        })
++        .map_err(|_| StreamControlError::NotReady)?;
++        if self
++            .transport
++            .maximum_datagram_bytes()
++            .is_none_or(|max| max < bytes.len())
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        // Consume even an uncertain local send. Never retransmit one request
++        // behind renewed policy, or pass the receiver's sequence to a source.
++        state.sequence = state.sequence.wrapping_add(1);
++        state.next = Some(now + Duration::from_millis(100));
++        self.transport.send_datagram(bytes)
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -36,7 +36,9 @@
+ mod ready_audio;
+ pub(crate) mod rtcp;
+ mod source_clock;
++mod video_feedback;
+ pub(crate) use ready_audio::ReadyAudioEgress;
++pub use video_feedback::{VideoFeedbackEpoch, VideoFeedbackProfile};
+ 
+ #[derive(Clone)]
+ pub struct StagedRtpScope {
+@@ -59,6 +61,16 @@
+ }
+ #[async_trait]
+ pub trait StagedRtpNegotiator: Send + Sync {
++    /// Separately negotiated authenticated feedback profile for this exact
++    /// prepared binding. Existing profiles fail closed until explicitly wired.
++    fn video_feedback(
++        &self,
++        _scope: &StagedRtpScope,
++        _binding: &ReadyMediaBinding,
++    ) -> ControlResult<Option<Arc<dyn VideoFeedbackProfile>>> {
++        Ok(None)
++    }
++
+     /// The installed profile must validate authenticated version, exact scope,
+     /// correlation, capabilities and actual peer readiness before returning.
+     /// Offers are provisional: cancellation must leave existing media intact.
+@@ -88,6 +100,7 @@
+ }
+ 
+ struct RouterHandle {
++    feedback: Mutex<Option<Arc<video_feedback::Endpoint>>>,
+     router: Weak<PeerMediaRouter>,
+     owner: PrincipalOwnershipKey,
+     id: NonZeroU16,
+@@ -110,6 +123,10 @@
+         Ok(())
+     }
+     fn remove(&self) -> ControlResult<()> {
++        self.feedback
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take();
+         self.reservation
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+@@ -143,6 +160,7 @@
+             StreamControlError::from(rvoip_core::stream_lifecycle::MediaTransitionError::Capacity)
+         })?;
+         let handle = Arc::new(RouterHandle {
++            feedback: Mutex::new(None),
+             router: Arc::downgrade(&self.router),
+             owner: self.owner.clone(),
+             id: reservation.local_id(),
+@@ -225,6 +243,7 @@
+     }
+ }
+ struct PortIngress {
++    feedback: Option<Arc<video_feedback::Endpoint>>,
+     clock: source_clock::Track,
+     flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     port: WeakAdapterMediaPort,
+@@ -272,13 +291,22 @@
+         ssrc: u32,
+         datagram_bytes: usize,
+     ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        let mut clock = None;
+         let result = self
+             .port
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)
+             .and_then(|p| {
+-                p.try_publish_clocked(&frame, |current| self.clock.snapshot(ssrc, current))
++                p.try_publish_clocked(&frame, |current| {
++                    clock = self.clock.snapshot(ssrc, current);
++                    clock.clone()
++                })
+             });
++        if result.is_ok() {
++            if let (Some(feedback), Some(clock)) = (&self.feedback, clock) {
++                let _ = feedback.published(ssrc, clock);
++            }
++        }
+         match result {
+             Ok(()) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+@@ -297,6 +325,11 @@
+                 }
+             }
+         }
++    }
++    fn try_video_feedback(&self, request: &crate::substrate::VideoFeedbackDatagram) -> bool {
++        self.feedback
++            .as_ref()
++            .is_some_and(|feedback| feedback.receive(request).is_ok())
+     }
+     fn try_clock(&self, bytes: &[u8]) -> bool {
+         let Some((handle, report)) = rtcp::parse(bytes) else {
+@@ -588,7 +621,7 @@
+         // it cannot interrupt a VP8 frame. Losing a published mapping still
+         // retires the SSRC so receivers cannot reuse their preceding anchor.
+         if reset_clock {
+-            self.ssrc = self.ssrc.wrapping_add(1);
++            self.ssrc = self.ssrc.wrapping_add(1).max(1);
+             self.video = Default::default();
+             self.previous_video = None;
+             self.packets = 0;
+@@ -619,7 +652,7 @@
+                 // Give it a new egress SSRC instead of treating it as duplicate
+                 // input in the preceding source's fragmentation sequence map.
+                 self.video = Default::default();
+-                self.ssrc = self.ssrc.wrapping_add(1);
++                self.ssrc = self.ssrc.wrapping_add(1).max(1);
+                 self.packets = 0;
+                 self.octets = 0;
+                 self.last_report = None;
+@@ -829,6 +862,24 @@
+                 port: port.clone(),
+                 codec: descriptor,
+             });
++            let feedback = self
++                .negotiator
++                .video_feedback(&self.scope, port.binding())?
++                .map(|profile| {
++                    video_feedback::Endpoint::new(
++                        port.binding().clone(),
++                        profile,
++                        self.transport.clone(),
++                        resources.cancel.clone(),
++                        self.lifetime.clone(),
++                    )
++                })
++                .transpose()?;
++            *resources
++                .handle
++                .feedback
++                .lock()
++                .unwrap_or_else(|p| p.into_inner()) = feedback.clone();
+             let registration = PeerMediaRegistration::checked(
+                 self.scope.owner.clone(),
+                 PeerMediaRouteKey::new(
+@@ -838,6 +889,7 @@
+                 ),
+                 stream.clone(),
+                 Arc::new(PortIngress {
++                    feedback: feedback.clone(),
+                     clock: self
+                         .clocks
+                         .track(
+@@ -898,7 +950,8 @@
+                     rtp: 0,
+                     ssrc: u32::from_be_bytes(
+                         uuid::Uuid::new_v4().as_bytes()[..4].try_into().unwrap(),
+-                    ),
++                    )
++                    .max(1),
+                     video: Default::default(),
+                     previous_video: None,
+                     clock_origin: None,
+@@ -939,25 +992,40 @@
+                             }
+                         }
+                     } else {
+-                        queued
+-                            .deliver_with_origin(|frame, origin| {
+-                                let result = packetizer.as_mut().expect("owned packetizer").send(
+-                                    frame,
+-                                    origin,
+-                                    &binding,
+-                                    pt,
+-                                    transport.as_ref(),
+-                                    |bytes| {
+-                                        counters.local_sends.fetch_add(1, Ordering::AcqRel);
+-                                        if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                            flow.sent(&port);
+-                                            flow.record_rtp(&port, false, bytes);
+-                                        }
+-                                    },
+-                                );
+-                                std::future::ready(result.map(|_| ()))
+-                            })
+-                            .await
++                        let send = |frame, origin| {
++                            let result = packetizer.as_mut().expect("owned packetizer").send(
++                                frame,
++                                origin,
++                                &binding,
++                                pt,
++                                transport.as_ref(),
++                                |bytes| {
++                                    counters.local_sends.fetch_add(1, Ordering::AcqRel);
++                                    if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
++                                        flow.sent(&port);
++                                        flow.record_rtp(&port, false, bytes);
++                                    }
++                                },
++                            );
++                            std::future::ready(result.map(|_| ()))
++                        };
++                        if let Some(feedback) = &feedback {
++                            let delivered = queued.deliver_video_with_feedback(send).await;
++                            match delivered {
++                                Ok(route) => {
++                                    let packetizer = packetizer.as_ref().expect("owned packetizer");
++                                    if let Some(source) = &packetizer.previous_video {
++                                        // Feedback metadata failure never replays media already sent.
++                                        let _ =
++                                            feedback.delivered(route, packetizer.ssrc, source.ssrc);
++                                    }
++                                    Ok(())
++                                }
++                                Err(error) => Err(error),
++                            }
++                        } else {
++                            queued.deliver_with_origin(send).await
++                        }
+                     };
+                     if let Err(problem) = &result {
+                         tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -42,6 +42,10 @@
+     }
+     /// Clock-only RTCP cannot imply readiness or enqueue a media packet.
+     fn try_clock(&self, _bytes: &[u8]) -> bool {
++        false
++    }
++    /// Feedback has its own separately negotiated current-authority path.
++    fn try_video_feedback(&self, _request: &super::VideoFeedbackDatagram) -> bool {
+         false
+     }
+     fn capacity(&self) -> usize;
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -34,6 +34,8 @@
+     rejected: AtomicU64,
+     clock_accepted: AtomicU64,
+     clock_rejected: AtomicU64,
++    feedback_accepted: AtomicU64,
++    feedback_rejected: AtomicU64,
+ }
+ #[derive(Clone, Copy, Debug)]
+ pub struct NativeMediaSnapshot {
+@@ -43,6 +45,8 @@
+     pub ingress_rejected: u64,
+     pub clock_accepted: u64,
+     pub clock_rejected: u64,
++    pub feedback_accepted: u64,
++    pub feedback_rejected: u64,
+ }
+ 
+ /// Trusted transport resource, not an authorization or readiness grant. Every
+@@ -113,6 +117,8 @@
+             ingress_rejected: self.counters.rejected.load(Ordering::Acquire),
+             clock_accepted: self.counters.clock_accepted.load(Ordering::Acquire),
+             clock_rejected: self.counters.clock_rejected.load(Ordering::Acquire),
++            feedback_accepted: self.counters.feedback_accepted.load(Ordering::Acquire),
++            feedback_rejected: self.counters.feedback_rejected.load(Ordering::Acquire),
+         }
+     }
+     /// Claim once, before passing the physical context to a handler. Dropping
+@@ -141,11 +147,20 @@
+                 tokio::task::consume_budget().await;
+                 let clock = crate::staged_media::rtcp::is_rtcp(&bytes);
+                 let accepted = owner.0.route(&bytes);
+-                let counter = match (clock, accepted) {
+-                    (false, true) => &owner.0.counters.accepted,
+-                    (false, false) => &owner.0.counters.rejected,
+-                    (true, true) => &owner.0.counters.clock_accepted,
+-                    (true, false) => &owner.0.counters.clock_rejected,
++                let feedback = crate::substrate::observe_video_feedback_datagram(&bytes).is_ok();
++                let counter = if feedback {
++                    if accepted {
++                        &owner.0.counters.feedback_accepted
++                    } else {
++                        &owner.0.counters.feedback_rejected
++                    }
++                } else {
++                    match (clock, accepted) {
++                        (false, true) => &owner.0.counters.accepted,
++                        (false, false) => &owner.0.counters.rejected,
++                        (true, true) => &owner.0.counters.clock_accepted,
++                        (true, false) => &owner.0.counters.clock_rejected,
++                    }
+                 };
+                 counter.fetch_add(1, Ordering::AcqRel);
+             }
+@@ -157,6 +172,21 @@
+         // are bounded again by the staged engine; video has its tighter cap.
+         if bytes.len() > 16 * 1024 + 20 || self.lifetime.is_cancelled() {
+             return false;
++        }
++        if let Ok(request) = crate::substrate::observe_video_feedback_datagram(bytes) {
++            let Some(local) = NonZeroU16::new(request.stream_local_id) else {
++                return false;
++            };
++            let Some(binding) = self.router.lookup(local) else {
++                return false;
++            };
++            if binding.is_cancelled() || binding.stream().kind() != StreamKind::Video {
++                return false;
++            }
++            return match binding.ingress() {
++                PeerMediaIngress::Checked(ingress) => ingress.try_video_feedback(&request),
++                PeerMediaIngress::Channel(_) => false,
++            };
+         }
+         if crate::staged_media::rtcp::is_rtcp(bytes) {
+             let Some(local) = NonZeroU16::new(u16::from_be_bytes([bytes[2], bytes[3]])) else {
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
+@@ -0,0 +1,268 @@
++//! Real canonical local QUIC driver + Core/adapter dispatch. Epoch announcement
++//! is a controlled provider: these cases do NOT prove signed epoch negotiation.
++use super::*;
++use rvoip_core::staged_streams::direct_subscriptions::*;
++#[derive(Default)]
++struct Notices {
++    values: std::sync::Mutex<Vec<(ReadyMediaBinding, VideoFeedbackEpoch)>>,
++    refuse: AtomicBool,
++}
++impl VideoFeedbackProfile for Notices {
++    fn announce(
++        &self,
++        binding: &ReadyMediaBinding,
++        epoch: VideoFeedbackEpoch,
++    ) -> ControlResult<()> {
++        if self.refuse.load(Ordering::Acquire) {
++            return Err(StreamControlError::Backpressure);
++        }
++        self.values.lock().unwrap().push((binding.clone(), epoch));
++        Ok(())
++    }
++}
++impl Notices {
++    fn latest(&self, handle: u16, publisher: bool) -> VideoFeedbackEpoch {
++        self.values
++            .lock()
++            .unwrap()
++            .iter()
++            .rev()
++            .find(|(b, e)| b.stream_local_id == handle && e.publisher == publisher)
++            .unwrap()
++            .1
++    }
++    async fn announced(&self, handle: u16, publisher: bool) {
++        core_fixture::until(|| {
++            self.values
++                .lock()
++                .unwrap()
++                .iter()
++                .any(|(b, e)| b.stream_local_id == handle && e.publisher == publisher)
++        })
++        .await;
++    }
++}
++async fn select(n: &Network, source: &Leg, receiver: &Leg) {
++    let logical = desired(Medium::Video).logical_id;
++    receiver
++        .controller
++        .change_direct_subscriptions(
++            receiver.controller.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &source.controller,
++                logical.clone(),
++                logical,
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    assert!(n.wire.quic.is_some());
++}
++fn request(handle: u16, e: VideoFeedbackEpoch, seq: u32) -> VideoFeedbackDatagram {
++    VideoFeedbackDatagram {
++        stream_local_id: handle,
++        seq,
++        sender_ssrc: 83,
++        media_ssrc: e.ssrc,
++        activation_epoch: e.epoch,
++    }
++}
++async fn rejected(n: &Network, leg: &Leg, request: &VideoFeedbackDatagram) {
++    let before = leg.media.snapshot().feedback_rejected;
++    send(&n.wire, pack_video_feedback_datagram(request).unwrap());
++    core_fixture::until(|| leg.media.snapshot().feedback_rejected > before).await;
++}
++async fn feedback(n: &Network) -> VideoFeedbackDatagram {
++    let bytes = tokio::time::timeout(
++        Duration::from_secs(2),
++        n.wire.quic.as_ref().unwrap().2.read_datagram(),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    observe_video_feedback_datagram(&bytes).unwrap()
++}
++fn source_video(handle: u16, seq: u16, ssrc: u32) -> Bytes {
++    let mut packet = vec![0x80, 0x80 | 96];
++    packet.extend_from_slice(&seq.to_be_bytes());
++    packet.extend_from_slice(&(u32::from(seq) * 3000).to_be_bytes());
++    packet.extend_from_slice(&ssrc.to_be_bytes());
++    packet.extend_from_slice(&[0x10, 1, 2, 3]);
++    pack_observed_rtp_datagram(&ObservedRtpDatagram {
++        flags: 0,
++        stream_local_id: handle,
++        seq: u32::from(seq),
++        rtp: observe_rtp(packet.into()).unwrap(),
++    })
++    .unwrap()
++}
++#[tokio::test]
++async fn native_feedback_binds_actual_handles_ssrc_epochs_authority_and_shared_publisher_rate() {
++    let mut n = Network::new("quic").await;
++    let a = n.configure(0).await;
++    let b = n.configure(1).await;
++    let c = n.configure(2).await;
++    let notices = Arc::new(Notices::default());
++    for leg in [&a, &b, &c] {
++        *leg.readiness.feedback.lock().unwrap() = Some(notices.clone());
++        n.start(leg, &[Medium::Audio, Medium::Video]).await;
++    }
++    select(&n, &a, &b).await;
++    select(&n, &a, &c).await;
++    let ah = binding(&a, Medium::Video).stream_local_id;
++    let bh = binding(&b, Medium::Video).stream_local_id;
++    let ch = binding(&c, Medium::Video).stream_local_id;
++    let mut input = a
++        .controller
++        .take_ingress(&desired(Medium::Video).logical_id)
++        .unwrap();
++    send(&n.wire, source_video(ah, 1, 7));
++    let incoming = packet(&mut input).await;
++    for leg in [&b, &c] {
++        incoming
++            .try_forward_to(&leg.controller, &desired(Medium::Video).logical_id)
++            .unwrap();
++    }
++    let outputs = [received(&n.wire).await, received(&n.wire).await];
++    for h in [bh, ch] {
++        notices.announced(h, false).await;
++    }
++    notices.announced(ah, true).await;
++    let publisher = notices.latest(ah, true);
++    let be = notices.latest(bh, false);
++    let ce = notices.latest(ch, false);
++    assert_ne!(be.epoch, ce.epoch);
++    assert_ne!(be.epoch, publisher.epoch);
++    for out in outputs {
++        let e = notices.latest(out.stream_local_id, false);
++        assert_eq!(e.ssrc, out.rtp.packet().header.ssrc);
++        assert_eq!(out.rtp.packet().header.timestamp, 3000);
++    }
++    // Echoing another stream's real epoch/SSRC is insufficient.
++    let good = request(bh, be, 900);
++    let mut wrong = good.clone();
++    wrong.stream_local_id = ch;
++    rejected(&n, &b, &wrong).await;
++    wrong = good.clone();
++    wrong.media_ssrc = wrong.media_ssrc.wrapping_add(1).max(1);
++    rejected(&n, &b, &wrong).await;
++    wrong = good.clone();
++    wrong.activation_epoch = publisher.epoch;
++    rejected(&n, &b, &wrong).await;
++    send(&n.wire, pack_video_feedback_datagram(&good).unwrap());
++    let first = feedback(&n).await;
++    assert_eq!(first.stream_local_id, ah);
++    assert_eq!(first.media_ssrc, 7);
++    assert_eq!(first.activation_epoch, publisher.epoch);
++    assert_eq!(first.seq, 0);
++    assert_ne!(first.sender_ssrc, good.sender_ssrc);
++    rejected(&n, &b, &good).await; // duplicate
++    rejected(&n, &c, &request(ch, ce, 800)).await; // separate receiver, same source limit
++    tokio::time::sleep(Duration::from_millis(110)).await;
++    send(
++        &n.wire,
++        pack_video_feedback_datagram(&request(ch, ce, 801)).unwrap(),
++    );
++    let next = feedback(&n).await;
++    assert_eq!(next.seq, 1);
++    assert_eq!(next.activation_epoch, publisher.epoch);
++    // No retained permission: either current endpoint's denial refuses dispatch.
++    for denied in [&a, &b] {
++        n.grants.0.write().await.denied.insert(denied.id.clone());
++        rejected(&n, &b, &request(bh, be, 901)).await;
++        n.grants.0.write().await.denied.remove(&denied.id);
++    }
++    n.grants.0.write().await.private = true;
++    rejected(&n, &b, &request(bh, be, 901)).await;
++    n.grants.0.write().await.private = false;
++    // Changing the actual publisher SSRC replaces both announced histories.
++    send(&n.wire, source_video(ah, 2, 19));
++    packet(&mut input)
++        .await
++        .try_forward_to(&b.controller, &desired(Medium::Video).logical_id)
++        .unwrap();
++    let out = received(&n.wire).await;
++    core_fixture::until(|| notices.latest(bh, false).ssrc != be.ssrc).await;
++    let fresh = notices.latest(bh, false);
++    let fresh_source = notices.latest(ah, true);
++    assert_eq!(fresh.ssrc, out.rtp.packet().header.ssrc);
++    assert_ne!(fresh_source.epoch, publisher.epoch);
++    rejected(&n, &b, &request(bh, be, 902)).await;
++    tokio::time::sleep(Duration::from_millis(110)).await;
++    send(
++        &n.wire,
++        pack_video_feedback_datagram(&request(bh, fresh, 902)).unwrap(),
++    );
++    let changed = feedback(&n).await;
++    assert_eq!(changed.media_ssrc, 19);
++    assert_eq!(changed.activation_epoch, fresh_source.epoch);
++    assert_eq!(changed.seq, 2);
++    b.controller
++        .change_direct_subscriptions(
++            b.controller.revision(),
++            DirectSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    rejected(&n, &b, &request(bh, fresh, 903)).await;
++    assert!(n.grants.0.try_write().is_ok());
++    assert_eq!(a.controller.shutdown(deadline()).await, 0);
++    rejected(&n, &c, &request(ch, ce, 802)).await;
++    assert_eq!(b.controller.shutdown(deadline()).await, 0);
++    assert_eq!(c.controller.shutdown(deadline()).await, 0);
++    n.stop().await;
++}
++#[tokio::test]
++async fn native_feedback_unnegotiated_and_unannounced_epochs_remain_disabled() {
++    for install in [false, true] {
++        let mut n = Network::new("quic").await;
++        let a = n.configure(0).await;
++        let b = n.configure(1).await;
++        let notices = Arc::new(Notices::default());
++        notices.refuse.store(true, Ordering::Release);
++        if install {
++            for leg in [&a, &b] {
++                *leg.readiness.feedback.lock().unwrap() = Some(notices.clone());
++            }
++        }
++        n.start(&a, &[Medium::Audio, Medium::Video]).await;
++        n.start(&b, &[Medium::Audio, Medium::Video]).await;
++        select(&n, &a, &b).await;
++        let mut input = a
++            .controller
++            .take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++        let ah = binding(&a, Medium::Video).stream_local_id;
++        let bh = binding(&b, Medium::Video).stream_local_id;
++        send(&n.wire, source_video(ah, 1, 7));
++        packet(&mut input)
++            .await
++            .try_forward_to(&b.controller, &desired(Medium::Video).logical_id)
++            .unwrap();
++        let out = received(&n.wire).await;
++        rejected(
++            &n,
++            &b,
++            &request(
++                bh,
++                VideoFeedbackEpoch {
++                    publisher: false,
++                    epoch: 1,
++                    ssrc: out.rtp.packet().header.ssrc,
++                },
++                0,
++            ),
++        )
++        .await;
++        assert!(notices.values.lock().unwrap().is_empty());
++        assert_eq!(a.controller.shutdown(deadline()).await, 0);
++        assert_eq!(b.controller.shutdown(deadline()).await, 0);
++        n.stop().await;
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -144,6 +144,7 @@
+     }
+ }
+ struct Readiness {
++    feedback: std::sync::Mutex<Option<Arc<dyn VideoFeedbackProfile>>>,
+     offers: std::sync::Mutex<Vec<ReadyMediaBinding>>,
+     hold: AtomicBool,
+     entered: Notify,
+@@ -153,6 +154,7 @@
+     fn new() -> Arc<Self> {
+         Arc::new(Self {
+             offers: Default::default(),
++            feedback: Default::default(),
+             hold: AtomicBool::new(false),
+             entered: Notify::new(),
+             release: Notify::new(),
+@@ -161,6 +163,17 @@
+ }
+ #[async_trait]
+ impl StagedRtpNegotiator for Readiness {
++    fn video_feedback(
++        &self,
++        _: &StagedRtpScope,
++        binding: &ReadyMediaBinding,
++    ) -> ControlResult<Option<Arc<dyn VideoFeedbackProfile>>> {
++        Ok(if binding.negotiated.requested.medium == Medium::Video {
++            self.feedback.lock().unwrap().clone()
++        } else {
++            None
++        })
++    }
+     async fn prepare(
+         &self,
+         _: &StagedRtpScope,
+@@ -1408,3 +1421,6 @@
+ 
+ #[path = "canonical_media/native_offers.rs"]
+ mod native_offers;
++
++#[path = "canonical_media/video_feedback.rs"]
++mod video_feedback;

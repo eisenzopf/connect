@@ -1579,6 +1579,11 @@
       "path": "patches/rvoip/gate6-current-authorized-video-feedback-route.patch",
       "sha256": "4f7dc685ed27fc67756eaedfa0e5dd87909828c78366fcd0317de96808e8bb4a",
       "source": "Gate6 metadata-only feedback route with exact direct/physical/scene epoch, fresh source and receiver admission, bounded shared rate/sequence state; native dispatch/SSRC and signed operation mapping remain unadvertised pending integration"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-video-feedback-binding.patch",
+      "sha256": "dacb36afb80af8c47fd5defddfc975d8991e2c81dacd629f71e8287c919fc514",
+      "source": "Gate 6 native per-allocation video feedback binding and current source dispatch; authenticated profile defaults disabled"
     }
   ]
 }
