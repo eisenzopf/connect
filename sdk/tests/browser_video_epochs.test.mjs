@@ -108,6 +108,7 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
  try{
   peer=new BrowserMediaPeer(c,{error:e=>assert.fail(e)});
   const opening=peer.offerConnection({conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'offer',video:'video',nativeVideoFeedback:true});
+  void opening.catch(()=>{});
   await tick();assert.equal(peer.diagnostics.activeBindings,0,'signed notice alone cannot install prepared media');releaseStatus();const connection=await opening;
   c.incoming.enqueue(packet(1,10,30000,83,false));await until(()=>peer.routeDiagnostics[0].counters.complete===1);
   assert.equal(decoded.length,0,'initial delta cannot bootstrap');await until(()=>c.writes.some(b=>b.length===48));

@@ -1236,6 +1236,8 @@ export class BrowserMediaPeer {
         const budget = new BrowserDeadline(timeout);
         if (
             !input ||
+            (input.nativeVideoFeedback !== undefined &&
+                typeof input.nativeVideoFeedback !== "boolean") ||
             (input.purpose !== undefined &&
                 (input.purpose !== "handoff-preparation" ||
                     !input.audio ||
@@ -1261,6 +1263,7 @@ export class BrowserMediaPeer {
             connectionId: input.connectionId,
             operationId: input.operationId,
             purpose: input.purpose,
+            nativeVideoFeedback: input.nativeVideoFeedback,
             audio: input.audio,
             video: input.video,
             screen: input.screen,
