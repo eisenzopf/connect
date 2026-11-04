@@ -39,7 +39,7 @@
   "proof": [
     "Actual signed native operation transfers both VP8 directions on already negotiated receiver handles before any post-commit video subscribe or unmute; resource revisions remain unchanged.",
     "Original SDK completion and fresh-operation recovery preserve the captured target, generation, topology and native activation state; observation handles acquire no native custody.",
-    "Shared fixture verifies audio before/after preparation and cutover, exact current controls, survival of old source/controller revocation, target authority loss and owned shutdown.",
+    "Shared fixture verifies audio before/after preparation and cutover, exact current controls, survival of old source/controller revocation, target end leaving only the retained peer and owned shutdown.",
     "Source, prepared-dependency and executable hashes remain unchanged through the final run."
   ],
   "limits": [
