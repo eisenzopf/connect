@@ -341,3 +341,23 @@ new unavailable-socket/evidence-boundary checks and is building the production
 CLI for one affected local ARM Chrome WT EdDSA quality workload. No prior
 passing cleanup tests are repeated. The full workload remains pending; neither
 focused check proves actual browser fallback. Its original controller is 30874.
+
+
+Latest November 4 result: v167 at 90038f24 passes both actual browser selection
+requirements (WT unavailable selects WSS with a timeout reason; neither usable
+path explicitly refuses without resubmission). Two original-operation reads
+recover the admission create receipt; four physical probe owners and fixture
+sockets join. These checks qualify only this candidate/cell. The full run then
+fails one first move at initial mute/Authority, while the other first move
+completes. No complete decoded window or ten-second terminal idle observation
+is available; v163 remains the last full quality/idle observation.
+
+Candidate 368e35b5 captures source/retained references before the once-only
+replacement start effect; original Store read/current binding/cancellation and
+deadline checks remain mandatory. A new initial-mute registry-contention case
+is compiling as v168 on the owned ARM VM. It compares old lookup refusal with
+current captured-owner success and expired-invocation refusal, then requires
+the same original replacement and decoded video. This tests a concrete
+mechanism; the original initial-mute log alone does not prove the exact
+authority subcheck responsible. No repeat of previously passing cases or
+GitHub execution is requested.

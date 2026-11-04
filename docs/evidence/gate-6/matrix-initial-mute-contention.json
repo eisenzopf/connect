@@ -29,8 +29,10 @@
     "fix": "Capture exact source/retained Connection references before begin_native_replacement_start_with_read; retain them in StartInvocation and rederive owners under the original current Store read, cancellation and deadline at each check. No retries of negotiation/mute or mutation IDs, and no packet authority bypass."
   },
   "verification": {
-    "status": "new-controlled-regression-authored-not-run",
+    "status": "new-controlled-regression-compiling",
     "case": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_retains_current_owners_under_registry_contention",
-    "expected": "Actual initial mute under the real registry mutex rejects old lookup, accepts current captured owners and rejects expired invocation; the same original replacement then carries both video directions and joins original owners."
+    "expected": "Actual initial mute under the real registry mutex rejects old lookup, accepts current captured owners and rejects expired invocation; the same original replacement then carries both video directions and joins original owners.",
+    "attempt": "v168",
+    "source_revision": "368e35b523a562c46b48f4cea7eb3c8e0f39751e"
   }
 }
