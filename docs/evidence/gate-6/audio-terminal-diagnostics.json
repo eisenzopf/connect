@@ -1,0 +1,487 @@
+{
+  "format": "connect/gate6-audio-terminal-diagnostics/1",
+  "run": "v117",
+  "source_revision": "bbaa0efdccba053d07ffd145faa960932136c6e2",
+  "state": {
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 149868,
+    "source_revision": "bbaa0efdccba053d07ffd145faa960932136c6e2",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T10:27:21.320405+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "5d7ccb03ce88f312a8e938c3058897611eb0683df5ea7bf5f09557a27525bb5e",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "e6204f580f9550e4614c179f14ceeca8038d8477e30171ea46a299414316f9ad",
+    "peer_binary_sha256": "bc62370cc38f37786d65d5d0c913931b0a3124c899fd3d2bcb2c428cfa8986a5",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1322.0175822400051
+  },
+  "report_sha256": "5d7ccb03ce88f312a8e938c3058897611eb0683df5ea7bf5f09557a27525bb5e",
+  "conversation_sha256": "c1b51e28312c1874d2b3ae3811eec6fef40ff2be3244cbb9100a992a66c2adb7",
+  "server_log_sha256": "fddaf6bb78484a35f537bef6063a04aa0f6fc022593e04c33b84f0c42a8014ff",
+  "counter_summary_sha256": "dc211887cd85877940ac38097424eb8474c0d35915036244d6d4efdf1e4d2add",
+  "aggregate_counters": {
+    "collect-deferred": {
+      "events": 320,
+      "samples": 0,
+      "members": 9
+    },
+    "burst-trim": {
+      "events": 188,
+      "samples": 180480,
+      "members": 8
+    },
+    "take-deferred": {
+      "events": 225,
+      "samples": 0,
+      "members": 9
+    },
+    "target-before-start": {
+      "events": 158,
+      "samples": 151680,
+      "members": 10
+    },
+    "subscription-refused": {
+      "events": 17313,
+      "samples": 16620480,
+      "members": 8
+    },
+    "target-deferred": {
+      "events": 15,
+      "samples": 14400,
+      "members": 6
+    },
+    "empty-output": {
+      "events": 5067,
+      "samples": 0,
+      "members": 10
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0,
+      "members": 4
+    },
+    "input-discontinuity": {
+      "events": 35,
+      "samples": 54720,
+      "members": 7
+    },
+    "collect-expired": {
+      "events": 10,
+      "samples": 0,
+      "members": 6
+    },
+    "take-expired": {
+      "events": 23,
+      "samples": 22080,
+      "members": 6
+    },
+    "target-refused": {
+      "events": 4,
+      "samples": 3840,
+      "members": 1
+    },
+    "input-budget": {
+      "events": 13,
+      "samples": 12480,
+      "members": 3
+    }
+  },
+  "mixer_rate_hz": 48000,
+  "missed_quanta_observed": 0,
+  "decode_refusals_observed": 0,
+  "mixer_output_full_observed": 0,
+  "operations": [
+    {
+      "record_id": "opr_8314b08d-a82e-4a7d-8405-d10502ec285d",
+      "operation_id": "move_467f2518-9553-4c3c-a2db-f4cc6a22c5ab",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_f90de2a7-1b78-4a79-bfa4-27a1bc87ff40",
+      "operation_id": "move_f6daf9e2-7ff3-44d5-b9ff-c92c29f209a3",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_e0e21e1e-35c8-49d6-aa64-fe330ed92fc0",
+      "operation_id": "move_7b45b962-9b71-443e-a310-605a7e8f4c22",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_56801a05-07f1-4e7c-b50e-94cf0fd702af",
+      "operation_id": "move_11b4d696-f2e6-49d3-856c-1439ebcb5bce",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    }
+  ],
+  "physical_stages": [
+    {
+      "segment": "0-0",
+      "passed": true,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    },
+    {
+      "segment": "0-1",
+      "passed": false,
+      "original_root_completed": false,
+      "original_source_owner_joined": false,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": null,
+      "failure": {
+        "phase": "original-completion",
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only"
+      }
+    },
+    {
+      "segment": "4-0",
+      "passed": true,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    },
+    {
+      "segment": "4-1",
+      "passed": false,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": null,
+      "failure": {
+        "phase": "target-worker-join",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 236,
+          "column": 20
+        }
+      }
+    }
+  ],
+  "media_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "control_task_started": true,
+    "elapsed_ms": 50173.192598999995,
+    "failure": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    },
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "late_return_projection": {
+    "segment": "0-1",
+    "phase": "capture",
+    "elapsed_us": 2140500,
+    "completed_calls": 83,
+    "authority_busy": 82,
+    "physical_complete_to_capture_recorded_us": 2152529,
+    "installed_inactive_observed": false,
+    "adopted_observed": false
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "011a2d309d11cadb48d9b3e7f6cd0faf5388ec0d654f737e588e8ac00198dd9c",
+    "pcap_bytes": 58438462,
+    "captured_seconds": 62.73632288000954,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 81901,
+      "to_server_packets": 44451,
+      "from_server_packets": 37450,
+      "captured_bytes": 57128022,
+      "udp_payload_bytes": 53688180,
+      "to_server_udp_bytes": 24438375,
+      "from_server_udp_bytes": 29249805
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "native_media_diagnostics": {
+    "forwarding": [
+      {
+        "handoff_timeouts": 0,
+        "max_us": 108929,
+        "missing_ingress_observations": 0,
+        "p50_us": 16383,
+        "p95_us": 32767,
+        "percentile_method": "log2-bucket-upper-bound",
+        "samples": 18922,
+        "stage": "canonical-native-video-fanout"
+      }
+    ],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 120,
+        "frame_age_boundary": null,
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 13366,
+        "sampled_high_water_packets": 10,
+        "stage": "quic-audio-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": 176,
+        "observations": 12894,
+        "sampled_high_water_packets": 4,
+        "stage": "quic-audio-egress",
+        "stale_forwarding_discards": 5,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": null,
+        "kind": "video",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 18974,
+        "sampled_high_water_packets": 37,
+        "stage": "quic-video-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "video",
+        "max_forwarded_frame_age_ms": 112,
+        "observations": 37864,
+        "sampled_high_water_packets": 33,
+        "stage": "quic-video-egress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      }
+    ],
+    "scope": "server-process"
+  },
+  "all_observed_helpers_joined": true,
+  "scope": "Same failed full native workload on local ARM with bounded teardown counters. Three roots are observed complete by their physical stages; all four later appear completed in the stopped journal with confirmed effects. That does not prove the final candidate was installed/adopted or its caller completed before deadline.",
+  "findings": [
+    "Bounded mixer counters directly observe deferred admission and discarded original PCM. Burst trim removes188 chunks/180480 PCM samples across eight member lifetimes; aggregate is not a per-receiver decoded-loss measure.",
+    "No missed-quanta, decode-refused or mixer-output-full counters were emitted. These do not prove absence of every possible scheduling or transport issue.",
+    "The last return physically cuts over, then waits2.14s for capture metadata. The caller reaches its original read-only deadline and cleanup begins; capture eventually records. No installed/adopted event follows for that candidate.",
+    "Subscription-refused and target-before-start counters include intentional routing/ownership exclusions and must not all be classified as defects."
+  ],
+  "full_quality_comparison_available": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

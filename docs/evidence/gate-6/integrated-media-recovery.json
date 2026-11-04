@@ -1170,6 +1170,166 @@
       "independently_decoded_codec_histories": 35,
       "quality_routes_passed": 0,
       "quality_routes_failed": 6
+    },
+    {
+      "run": "v117",
+      "state": {
+        "build_jobs": 4,
+        "audio_terminal_counters": true,
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 149868,
+        "source_revision": "bbaa0efdccba053d07ffd145faa960932136c6e2",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T10:27:21.320405+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "5d7ccb03ce88f312a8e938c3058897611eb0683df5ea7bf5f09557a27525bb5e",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "e6204f580f9550e4614c179f14ceeca8038d8477e30171ea46a299414316f9ad",
+        "peer_binary_sha256": "bc62370cc38f37786d65d5d0c913931b0a3124c899fd3d2bcb2c428cfa8986a5",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 1322.0175822400051
+      },
+      "evidence": "audio-terminal-diagnostics.json",
+      "full_media_quality_comparison_available": false,
+      "physical_stages": [
+        {
+          "segment": "0-0",
+          "passed": true,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": true,
+          "failure": null
+        },
+        {
+          "segment": "0-1",
+          "passed": false,
+          "original_root_completed": false,
+          "original_source_owner_joined": false,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": null,
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          }
+        },
+        {
+          "segment": "4-0",
+          "passed": true,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": true,
+          "failure": null
+        },
+        {
+          "segment": "4-1",
+          "passed": false,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": null,
+          "failure": {
+            "phase": "target-worker-join",
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "source": {
+              "line": 236,
+              "column": 20
+            }
+          }
+        }
+      ],
+      "aggregate_audio_counters": {
+        "collect-deferred": {
+          "events": 320,
+          "samples": 0,
+          "members": 9
+        },
+        "burst-trim": {
+          "events": 188,
+          "samples": 180480,
+          "members": 8
+        },
+        "take-deferred": {
+          "events": 225,
+          "samples": 0,
+          "members": 9
+        },
+        "target-before-start": {
+          "events": 158,
+          "samples": 151680,
+          "members": 10
+        },
+        "subscription-refused": {
+          "events": 17313,
+          "samples": 16620480,
+          "members": 8
+        },
+        "target-deferred": {
+          "events": 15,
+          "samples": 14400,
+          "members": 6
+        },
+        "empty-output": {
+          "events": 5067,
+          "samples": 0,
+          "members": 10
+        },
+        "refresh-reset": {
+          "events": 8,
+          "samples": 0,
+          "members": 4
+        },
+        "input-discontinuity": {
+          "events": 35,
+          "samples": 54720,
+          "members": 7
+        },
+        "collect-expired": {
+          "events": 10,
+          "samples": 0,
+          "members": 6
+        },
+        "take-expired": {
+          "events": 23,
+          "samples": 22080,
+          "members": 6
+        },
+        "target-refused": {
+          "events": 4,
+          "samples": 3840,
+          "members": 1
+        },
+        "input-budget": {
+          "events": 13,
+          "samples": 12480,
+          "members": 3
+        }
+      }
     }
   ],
   "diagnosis": {
@@ -1194,7 +1354,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "v116 completes all four moves and 28 original effects, each attempt1. Investigate steady audio omissions before outgoing packetization, common return-move interruption across both Sessions, and source4 video recovery; preserve all original quality limits.",
+  "next_investigation": "v117: investigate deferred packet/PCM authority and post-physical-cutover metadata writer contention. Preserve original packet budgets and operation identity. Separately align live receiver decoder bootstrap with existing post-completion capture boundary; new regression is pending.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
