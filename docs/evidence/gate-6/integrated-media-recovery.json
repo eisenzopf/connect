@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-integrated-media-recovery/1",
   "task": "G6-058",
-  "status": "failed-explicit-data-control-before-complete-media-window",
+  "status": "data-gate-regression-passes-integrated-start-refusal-open",
   "source_revision": "e0f4e92d2fdfa5c4e2d10271d22d003ab82a9528",
   "environment": {
     "runner": "Local Ubuntu 24.04 ARM64 VM on owner Mac Studio",
@@ -252,6 +252,295 @@
       },
       "scope": "Only the new component regression ran. It failed during synthetic negotiation before exercising the Data-gate correction because its Data codec omitted reliability=reliable_ordered. Full media was not started.",
       "fixture_correction": "Use the workload binary Data protocol with its required reliable_ordered parameter. Product gate validation remains unchanged."
+    },
+    {
+      "run": "integrated-media-recovery-v109",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 133131,
+        "source_revision": "7747a0215b37673a03d18efd90438fab55cfaad3",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": false,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T07:35:17.711366+00:00",
+        "regression_compile": {
+          "exit_code": 0,
+          "log_sha256": "dd7b28f657189c4056fc28ab860ddd8af20d90e36b2bfba65198e60e137f4446"
+        },
+        "regression": {
+          "case": "canonical::native_video::tests::controls::replacement_video_explicit_data_gate_preserves_video_and_checks_sealed_data_receipt",
+          "exit_code": 0,
+          "log_sha256": "a72faf93a40f16bd739645682940b1083bf2d1cfe90c48548cb37b77a049344a",
+          "binary_sha256": "c55af3a410fceb50614743d643224f6664e6c7a87b12ed711fcd7b27d2812484",
+          "binary_unchanged": true,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 295 filtered out; finished in 0.00s"
+          ]
+        },
+        "fixture_exit_code": 1,
+        "report_sha256": "88b7672f55825de63c1bcd65a64d7e7a239b782acf48837d714137aa935ecac8",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "394281c4683d691e111ea4e531e1d621a54b3314e5b1d8e713a6cd5e265b273e",
+        "peer_binary_sha256": "9743613b7f674eb1e3bb5851df48e6d3260006f7def386daa80b80fbee89c925",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 462.7240562149964
+      },
+      "state_sha256": "4db1a9b03183e8e231512d2e5135af93e229616a7cbfb8412ab080eea232f515",
+      "scope": "New Data-gate regression passes. Full native workload fails on one replacement start before a complete media window.",
+      "movement_failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 0,
+          "stage": "physical-target"
+        },
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 8,
+          "problem_code_unrecognized": true
+        }
+      },
+      "completed_workload_moves": 0,
+      "durable_original_roots": [
+        {
+          "state": "failed",
+          "revision": 8,
+          "problem": {
+            "code": "native-target-stopped",
+            "source": "native-replacement"
+          },
+          "effects": [
+            {
+              "provider": "native-replacement-prepare",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-allocate",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-start",
+              "state": "unknown",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-prepare",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": true
+            },
+            {
+              "provider": "native-replacement-allocate",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": true
+            },
+            {
+              "provider": "native-replacement-start",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": true
+            }
+          ]
+        },
+        {
+          "state": "completed",
+          "revision": 16,
+          "problem": null,
+          "effects": [
+            {
+              "provider": "native-replacement-prepare",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-allocate",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-start",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-attach",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-activate",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-readiness",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            },
+            {
+              "provider": "native-replacement-commit",
+              "state": "confirmed",
+              "attempt": 1,
+              "compensation": false
+            }
+          ]
+        }
+      ],
+      "data_gate_correction_observed": {
+        "source_ordinal": "4-0",
+        "actual_data_unmute_receipt": true,
+        "actual_data_subscribe_receipt": true,
+        "video_packets_submitted": 26,
+        "independent_full_quality_measured": false
+      },
+      "media_observation": {
+        "format": "connect/native-av-work-observation/1",
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 24,
+        "control_task_started": true,
+        "elapsed_ms": 18598.014929999998,
+        "failure": {
+          "route_index": null,
+          "medium": null,
+          "direction": "control",
+          "stage": "during-workload"
+        },
+        "routes": [
+          {
+            "index": 0,
+            "received_audio": 887,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1254
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 1,
+            "received_audio": 879,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1254
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 2,
+            "received_audio": 890,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1254
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 3,
+            "received_audio": 889,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1254
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 4,
+            "received_audio": 875,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1253
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 5,
+            "received_audio": 868,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 895,
+              "video": 1250
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          }
+        ],
+        "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "34c80243b4e757d4dbe3717ed99a9f74c9d8f1ab05056b5f6248873c14d3bc1d"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_observed_helpers_joined": true
     }
   ],
   "diagnosis": {
@@ -262,7 +551,7 @@
       "examples/rust-sdk-journey/src/replacement_peer/controls.rs"
     ],
     "candidate_fix": "Permit explicit targets matching any sealed negotiated stream, including Data. Keep implicit hold/resume target semantics unchanged. Invalidate video history only for selected video directions, and retain exact binding/generation/revision validation for every signed receipt.",
-    "verification": "One new component regression covers explicit Data controls and unchanged video history across connection generations 1/2/3, exact Data handle/generation checks, foreign targets and changed original reuse. It is pending, followed by the failed full workload."
+    "verification": "The new regression passes at7747a021 across connection generations1/2/3. One actual full-workload peer receives completed Data-unmute and Data-subscribe receipts and submits26video packets. Its sibling original replacement fails native-target-stopped during start, before attachment/commit; overall quality remains unmeasured."
   },
   "task_complete": false,
   "transport_cells_qualified": 0,
@@ -274,5 +563,10 @@
   "remaining": [
     "Rerun only the failed integrated workload after the Data-control correction and new regression.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
-  ]
+  ],
+  "next_investigation": {
+    "observed": "Saved original start effect is unknown and exact candidate absence is settled with three once-confirmed compensations. Existing log records native offer source/forbidden; it does not distinguish negotiation, initial mute, confirmation guard or dormant lifecycle preparation.",
+    "action": "Use existing sparse replacement phase/error logging on one rerun of the failed full scenario, with the same source behavior, original four-move profile, packet capture and bounds. No passed regression rerun.",
+    "cause_proven": false
+  }
 }
