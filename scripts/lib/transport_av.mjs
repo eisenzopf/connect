@@ -55,7 +55,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             const snapshot = await item.connection.refresh({ timeoutMs: 8000 });
             const ownAudio = byId(plan[item.prefix + "-audio"]), ownVideo = byId(plan[item.prefix + "-video"]);
             const incomingVideo = byId(plan[peer.prefix + "-video"]);
-            assert.equal(Boolean(ownVideo.videoFeedback), Boolean(incomingVideo.videoFeedback));
+            assert.ok(ownVideo.videoFeedback && incomingVideo.videoFeedback,
+                "full media workload requires selected native video feedback on both directions");
             const sender = (stream, codec) => {
                 assert.equal(stream.codec.name.toLowerCase(), codec);
                 return new RtpSender({ handle: stream.streamLocalId, streamId: stream.id, connectionId: item.connection.id,

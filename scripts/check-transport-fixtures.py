@@ -505,7 +505,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         native_config[key] = str(native_path.parent / native_config[key])
                     application_config = tomllib.loads((native_path.parent / "application.toml").read_text())
                     sdk_config = config_directory / (name + ".toml")
-                    publish(sdk_config, toml_bytes(dict(tenant_id="tnt_default", control=native_config, application=application_config)))
+                    sdk_settings = dict(tenant_id="tnt_default", control=native_config, application=application_config)
+                    if media_workload:
+                        # Every original publisher/receiver must negotiate the
+                        # same recovery profile exercised by replacement peers.
+                        sdk_settings["native_video_feedback"] = True
+                    publish(sdk_config, toml_bytes(sdk_settings))
                     configured_actors[name] = dict(identity_id=actor["identity_id"], config=str(sdk_config))
                     if media_workload:
                         configured_actors[name].update(device_id=actor["device_id"], native_config=str(native_path),
