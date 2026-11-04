@@ -35,7 +35,7 @@ test("unbounded sources, duplicate physical legs and invalid originals refuse be
 const avIntent = () => {
     const value = intent();
     const frame = [4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01];
-    value.source.video = { streamId: "original-target-camera", receiveAudioStreamId: "retained-audio",
+    value.source.video = { streamId: "original-target-camera", previousStreamId: "previous-camera", previousReceiveVideoStreamId: "retained-camera", receiveAudioStreamId: "retained-audio",
         receiveVideoStreamId: "retained-camera", ssrc: 8, frames: Array.from({ length: 30 }, () => [...frame]) };
     return value;
 };
@@ -70,7 +70,7 @@ test("AV target retains independent stream identities and copies originals for t
     assert.deepEqual(captured.offer.capabilities.video_codecs,
         [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }]);
     assert.deepEqual(captured.offer.streams_offered.map(s => [s.id, s.kind, s.direction]),
-        [[value.streamId, "audio", "sendrecv"], [value.source.video.streamId, "video", "sendrecv"]]);
+        [[value.streamId, "audio", "sendrecv"], [value.source.video.streamId, "video", "sendonly"], [value.source.video.receiveVideoStreamId, "video", "recvonly"]]);
     assert.equal(captured.media.video.receive_audio_stream_id, "retained-audio");
     assert.equal(captured.media.video.receive_video_stream_id, "retained-camera");
 });
@@ -81,9 +81,9 @@ test("replacement carries its distinct reliable Data offer alongside the origina
     const captured = replacementInput(value);
     assert.deepEqual(captured.offer.capabilities.data_protocols, ["binary"]);
     assert.deepEqual(captured.offer.streams_offered.map(s => [s.id, s.kind, s.direction]),
-        [[value.streamId, "audio", "sendrecv"], [value.source.video.streamId, "video", "sendrecv"],
+        [[value.streamId, "audio", "sendrecv"], [value.source.video.streamId, "video", "sendonly"], [value.source.video.receiveVideoStreamId, "video", "recvonly"],
             [value.dataStreamId, "data", "sendrecv"]]);
-    assert.deepEqual(captured.offer.streams_offered[2].codec_preferences, ["binary"]);
+    assert.deepEqual(captured.offer.streams_offered[3].codec_preferences, ["binary"]);
     assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
     assert.equal(captured.offer.capabilities.max_streams_per_connection, 8);
     assert.equal(captured.media.video.receive_data_stream_id, "retained-data");
@@ -229,4 +229,42 @@ test("final end receipt belongs to the current physical owner, one original muta
         const wrong = structuredClone(receipt); change(wrong);
         assert.throws(() => verifyPhysicalOwnerEndReceipt(wrong, value, "actual-current-owner"));
     }
+});
+
+ test("prepared video intent and both directional resources precede original replacement submission", () => {
+    const original = avIntent(), captured = replacementInput(original);
+    assert.deepEqual(captured.command.intent.video, { publications: [{ previous: "previous-camera", replacement: "original-target-camera" }],
+        receivers: [{ previous: "retained-camera", replacement: "retained-camera" }] });
+    assert.deepEqual(captured.offer.streams_offered.filter(s => s.kind === "video").map(s => [s.id, s.direction]),
+        [["original-target-camera", "sendonly"], ["retained-camera", "recvonly"]]);
+    for (const key of ["previousStreamId", "previousReceiveVideoStreamId"]) {
+        const invalid = avIntent(); delete invalid.source.video[key];
+        assert.throws(() => replacementInput(invalid));
+    }
+ });
+
+test("prepared video mapping reaches the SDK unchanged under the persisted original operation", async () => {
+    const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
+    const directory = await mkdtemp(join(parent, "prepared-video-submission-"));
+    try {
+        const config = join(directory, "client.toml"), executable = join(directory, "target");
+        await writeFile(config, "synthetic-private-config", { mode: 0o600 });
+        const bytes = Buffer.from("must-not-execute-before-accepted-original");
+        await writeFile(executable, bytes, { mode: 0o700 });
+        const value = avIntent(); value.target.nativeConfig = config;
+        const refusal = Error("original-submission-refused"), submissions = [];
+        const connection = { async replaceDevice(input, options) {
+            submissions.push({ input, options });
+            const saved = JSON.parse(await readFile(join(directory, "stage/original-command.json"), "utf8"));
+            assert.deepEqual(input.video, saved.intent.video);
+            assert.equal(options.operationId, saved.operation_id);
+            throw refusal;
+        } };
+        const controller = { conversations: { byId: () => ({ sessions: { byId: () => ({ connections: { byId: () => connection } }) } }) } };
+        await assert.rejects(physicalReplacementTarget({ ...value, controller,
+            retireOriginal: async () => assert.fail("refused move cannot retire original"), privateRoot: directory,
+            directory: join(directory, "stage"), executable, executableSha256: createHash("sha256").update(bytes).digest("hex") }), error => error === refusal);
+        assert.equal(submissions.length, 1);
+        assert.deepEqual(submissions[0].input.video, replacementInput(value).command.intent.video);
+    } finally { await rm(directory, { recursive: true, force: true }); }
 });

@@ -233,7 +233,7 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
     {
         return Err("physical Data publication differs from the actual offered resource".into());
     }
-    let maximum = (if source.video.is_some() { 2 } else { 1 }) + data.len();
+    let maximum = (if source.video.is_some() { 3 } else { 1 }) + data.len();
     let receives_data = source
         .video
         .as_ref()
@@ -241,7 +241,7 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
     if receives_data && data.is_empty() {
         return Err("replacement incoming Data requires its declared binary capability".into());
     }
-    let minimum_slots = maximum + usize::from(source.video.is_some()) + usize::from(receives_data);
+    let minimum_slots = maximum + usize::from(receives_data);
     if !offer_json["capabilities"]["max_streams_per_connection"]
         .as_u64()
         .is_some_and(|slots| (minimum_slots as u64..=8).contains(&slots))
@@ -265,10 +265,22 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
             .iter()
             .filter(|s| s["kind"] == "video")
             .collect::<Vec<_>>();
-        if v.len() != 1
-            || v[0]["id"] != video.stream_id
-            || v[0]["direction"] != "sendrecv"
-            || v[0]["codec_preferences"] != json!(["vp8"])
+        if v.len() != 2
+            || ![
+                (video.stream_id.as_str(), "sendonly"),
+                (video.receive_video_stream_id.as_str(), "recvonly"),
+            ]
+            .iter()
+            .all(|(id, direction)| {
+                v.iter()
+                    .filter(|v| {
+                        v["id"] == *id
+                            && v["direction"] == *direction
+                            && v["codec_preferences"] == json!(["vp8"])
+                    })
+                    .count()
+                    == 1
+            })
             || audio[0]["id"] == video.stream_id
             || audio[0]["id"] == video.receive_audio_stream_id
             || audio[0]["id"] == video.receive_video_stream_id
@@ -308,6 +320,22 @@ pub(super) async fn run(
     )?;
     let offer_json = serde_json::to_value(&offer)?;
     validate_offer(&offer_json, &source)?;
+    if let Some(video) = &source.video {
+        let connect_client::transitions::TransitionIntent::Replace {
+            video: Some(mapping),
+            ..
+        } = &command.intent
+        else {
+            return Err("video source requires explicit original replacement mapping".into());
+        };
+        if mapping.publications.len() != 1
+            || mapping.receivers.len() != 1
+            || mapping.publications[0].replacement != video.stream_id
+            || mapping.receivers[0].replacement != video.receive_video_stream_id
+        {
+            return Err("video source differs from original replacement mapping".into());
+        }
+    }
     let parent = output
         .parent()
         .ok_or("private output directory required")?
@@ -347,7 +375,7 @@ pub(super) async fn run(
         let selected = selected::own(&answer.original()["payload"], &offer_json)?;
         let audio = selected.iter().find(|s|s.raw["kind"]=="audio").ok_or("original audio binding missing")?.clone();
         audio.pt.ok_or("original audio RTP payload type missing")?;
-        let video_binding=selected.iter().find(|s|s.raw["kind"]=="video").cloned();
+        let video_binding=selected.iter().find(|s| source.video.as_ref().is_some_and(|v|s.id == v.stream_id)).cloned();
         phase = "parameter-callback";
         let callback = negotiation(&mut client, &scope, "connection.offer", None).await?;
         let payload = &callback.original()["payload"];
@@ -404,13 +432,15 @@ pub(super) async fn run(
                     if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
                         pump.observation.root_observed = true;
                         pump.observation.root_observed_programme_us = Some(start.elapsed().as_micros());
-                        phase = "original-post-commit-video-controls";
+                        // Video is already transferred by the original activation. Data keeps
+                        // distinct authorization and commands while the video pump progresses.
+                        pump.observation.video_open = true;
+                        phase = "original-post-commit-data-controls";
                         let incoming = pump.during(tokio::time::timeout_at(until,
                             controls::open(&mut client, &scope, &root, &admission, video,
                                 &selected, &offer_json["capabilities"], &output))).await???;
                         negotiated.extend(incoming.into_iter().map(|binding| binding.raw));
-                        pump.observation.video_open = true;
-                        pump.during(emit(json!({"phase":"target-video-controls-completed",
+                        pump.during(emit(json!({"phase":"target-video-transfer-admitted",
                             "original_root_observed":true,"decoded_media_inferred":false}))).await??;
                     }
                     next_poll = tokio::time::Instant::now() + Duration::from_millis(50);
@@ -422,7 +452,7 @@ pub(super) async fn run(
             pump.step(poll.min(owner)).await?;
         }
         if source.video.is_some() && (!pump.observation.video_open || pump.observation.sent_video == 0) {
-            return Err("replacement AV source ended without original completed video controls and original video packets".into());
+            return Err("replacement AV source ended without original admitted video transfer and original video packets".into());
         }
         // All packet futures run inline and have settled. Drop the exclusive IO
         // owner before retaining only the original final control scope.
@@ -474,7 +504,7 @@ pub(super) async fn run(
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
         "root_completed_observed_programme_us":root_observed_programme_us,
-        "video_controls_completed":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
+        "video_transfer_admitted":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
         "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
         "terminal_end_requested":source.terminal_end_operation.is_some(),
@@ -568,7 +598,7 @@ mod tests {
         av["capabilities"]["video_codecs"] =
             json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}]);
         av["capabilities"]["max_streams_per_connection"] = json!(4);
-        av["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}));
+        av["streams_offered"].as_array_mut().unwrap().extend([json!({"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}), json!({"id":"remote-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]})]);
         validate_offer(&av, &source).unwrap();
         av["capabilities"]["max_streams_per_connection"] = json!(3);
         assert!(validate_offer(&av, &source).is_err());

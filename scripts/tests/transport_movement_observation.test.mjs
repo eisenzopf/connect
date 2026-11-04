@@ -38,7 +38,7 @@ async function fixture(dataProfile = false) {
                     sample_rate: kind === "audio" ? 48000 : 90000, channels: kind === "audio" ? 1 : 0,
                     payload_type: kind === "audio" ? 111 : 96 } } });
             const streams = [binding(step.audioId, "audio", "sendrecv", 7),
-                binding(step.videoId, "video", "sendrecv", 8), binding(streamIds[peer].video, "video", "sendonly", 9)];
+                binding(step.videoId, "video", "recvonly", 8), binding(streamIds[peer].video, "video", "sendonly", 9)];
             if (dataProfile) for (const [strm_id, direction, stream_local_id] of [
                 [step.dataId, "sendrecv", 10], [streamIds[peer].data, "sendonly", 11]])
                 streams.push({ strm_id, kind: "data", direction, stream_local_id,
@@ -46,7 +46,7 @@ async function fixture(dataProfile = false) {
             const datagram = [1, 0, 0, 7, 0, 0, 0, 0, 0x80, 111, 0, 1, 0, 0, 3, 192, 0, 0, 0, 12, 1, 2];
             const observed = { format: "connect/native-replacement-peer-observation/1", passed: true,
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
-                video_controls_completed: true, operation_completed_inferred: false, decoded_media_verified: false,
+                video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
                 program_start_unix_us: program, negotiated_streams: streams,
                 root_completed_observed_programme_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000,
                 received: [{ elapsed_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000, datagram, original_root_completed_observed: true }] };
@@ -120,7 +120,7 @@ async function fixture(dataProfile = false) {
             await save(join(folder, "admission.json"), { movement: {
                 retired: [current], retained: [connectionIds[peer]], connection: next } });
             movement.moves.push({ source_index: sourceIndex, ordinal, session_index: sid, stage_directory: folder,
-                original_reference_preserved: true, original_retired: true, camera_subscription_completed: true,
+                original_reference_preserved: true, original_retired: true, camera_transfer_admitted: true,
                 scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal], actual_start_ms: MOVE_START_OFFSETS_MS[ordinal] + 100 });
             movement.physical_segments.push({ sourceIndex, observation: join(folder, "target-observation.json"), sha256: captureHash });
             current = next;

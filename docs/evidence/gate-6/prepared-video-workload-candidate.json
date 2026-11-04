@@ -1,0 +1,66 @@
+{
+  "format": "connect/gate6-prepared-video-workload-candidate/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "changes": [
+    "Original replacement intent and SDK submission carry exact old/new camera and incoming receiver mappings.",
+    "Physical peer offers endpoint send-only camera and receive-only incoming video before activation; signed negotiated directions and unchanged Data resources are checked.",
+    "After original root completion, start video immediately; only Data unmute/subscription remains separately authorized.",
+    "Retained receiver keeps its original video reader. Follow-up subscription selects only Data, waits for the same operation, and leaves original video resources intact."
+  ],
+  "component_results": {
+    "mapping": {
+      "name": "mapping",
+      "exit_code": 0,
+      "log_sha256": "540153b50a982e4702c10c6ca3d9447381fa41f09290247e6f08c3517cc6537b"
+    },
+    "workload": {
+      "exit_code": 0,
+      "source_inputs_unchanged": true,
+      "log_sha256": "0c9c08891f9a8b695e3dcda6b34583366415d8fb9bd6466a2027daa7457e836b",
+      "architecture": "aarch64"
+    },
+    "sdk_submission": {
+      "exit_code": 0,
+      "source_inputs_unchanged": true,
+      "log_sha256": "a5499211daa4d0edcce1eaedafe3a62a74aaf91d356684edf272c9a67e392f0f",
+      "architecture": "aarch64"
+    }
+  },
+  "tested_source_archives": {
+    "prepared-video-workload-v55": "6d48b3741447b7162eba2cfd4a636b1566549ad1eabc94de24aa9dc0e0b629a6",
+    "prepared-video-workload-v55-fix2": "4962d65ad908b012e3ab962274de7bfca19171defc7bf79aaf1f7d14db9cbaa3",
+    "prepared-video-sdk-submit-v55": "b3b3ffe8cdd5259e515aeebab3130c6f3ff015d88535909d1481acc0043e24d5"
+  },
+  "failures_preserved": [
+    {
+      "run": "prepared-video-workload-v55",
+      "cause": "Isolated test archive omitted contracts/gate6-transport-matrix.json; workload import refused before any case.",
+      "step": {
+        "name": "workload",
+        "exit_code": 1,
+        "log_sha256": "ee7511159486a99b0e78df5b67ba4568d9b69f0125714d171b21bbdc142e1733"
+      }
+    },
+    {
+      "run": "prepared-video-workload-v55-fix",
+      "cause": "New positive fixture modes were not listed as success scenarios; both reached success but fixture expected rejection. Only those two failed cases retried.",
+      "result": {
+        "exit_code": 1,
+        "source_inputs_unchanged": true,
+        "log_sha256": "2add0872cf77906afb6ef317bc179c948738529c0bc351641d1883e78db58664",
+        "architecture": "aarch64"
+      }
+    }
+  ],
+  "limits": [
+    "Four new Node component cases pass; controlled peers and local fixture files, no native transport or decoded-quality proof.",
+    "Rust peer changes and its new directional/Data preservation case are formatted but not compiled or run yet.",
+    "Original 4fdbe275 signed native transfer compile still owns the frozen guest; no guest source mutation.",
+    "Fresh encoder is not wired into transport feedback yet; authenticated activation epochs remain open."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

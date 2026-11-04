@@ -23,7 +23,7 @@ async function scenario(mode) {
             return { async wait() { return { snapshot: { state: "completed" } }; } };
         } } });
     const connections = roles.map((role, i) => ({ connection: connection("original-" + i, 1) }));
-    const dataProfile = ["data", "partial-data", "data-failure"].includes(mode);
+    const dataProfile = ["data", "partial-data", "data-failure", "prepared-video-data"].includes(mode);
     const streamIds = roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i,
         ...(dataProfile && !(mode === "partial-data" && i === 5) ? { data: "data-" + i } : {}) }));
     const routes = roles.map((role, i) => ({ index: i, peerIndex: peers[i], sessionIndex: Number(i >= 4), role,
@@ -32,11 +32,7 @@ async function scenario(mode) {
             assert.equal(proof.reference.operation_id, operationId); retired.push(i);
         }; },
         async stopAndJoin() { assert.ok(retired.includes(i)); },
-        async switchIncomingVideo(operationId, videoId, select) {
-            assert.ok(videoId.startsWith("video_"));
-            const operation = await select(); await operation.wait();
-            assert.equal(subscriptions.at(-1).options.operationId, operationId);
-        },
+        async switchIncomingVideo() { assert.fail("replacement must preserve the existing video reader"); },
     }));
     const sessions = [0, 1].map(i => ({ id: "session-" + i,
         async refresh() { return { state: "accepted", topologyRevision: revisions[i] }; } }));
@@ -76,6 +72,10 @@ async function scenario(mode) {
         assert.equal(saved.filter(v => v.operationId === options.operationId).length, 1);
         assert.equal(options.expectedTopologyRevision, revisions[sid]);
         assert.equal(options.source.programStartUnixUs, workload.programStartUnixUs);
+        const sourceIndex = sid === 0 ? 0 : 4;
+        const prior = starts.filter(v => v.sessionId === options.sessionId).at(-2);
+        assert.equal(options.source.video.previousStreamId, prior?.source.video.streamId ?? streamIds[sourceIndex].video);
+        assert.equal(options.source.video.previousReceiveVideoStreamId, streamIds[peers[sourceIndex]].video);
         if (dataProfile) {
             assert.ok(options.dataStreamId.startsWith("data_"));
             const sourceIndex = sid === 0 ? 0 : 4;
@@ -154,7 +154,7 @@ async function scenario(mode) {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
         }
-        if (!["normal", "data", "early-wake"].includes(mode)) {
+        if (!["normal", "data", "early-wake", "prepared-video", "prepared-video-data"].includes(mode)) {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
                 ["foreign-final-end", "no-progress-wait"].includes(mode) ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
@@ -194,9 +194,9 @@ async function scenario(mode) {
             return;
         }
         const { observation, currentConnections } = await run;
-        assert.equal(starts.length, 4); assert.equal(subscriptions.length, 4);
+        assert.equal(starts.length, 4); assert.equal(subscriptions.length, dataProfile ? 4 : 0);
         assert.equal(new Set(starts.map(v => v.operationId)).size, 4);
-        assert.equal(new Set(subscriptions.map(v => v.options.operationId)).size, 4);
+        assert.equal(new Set(subscriptions.map(v => v.options.operationId)).size, dataProfile ? 4 : 0);
         assert.equal(stopped.length, 2); assert.equal(joined.length, 2);
         assert.deepEqual(retired.sort(), [0, 4]);
         assert.equal(observation.original_moves_completed, 4);
@@ -212,10 +212,9 @@ async function scenario(mode) {
         assert.equal(observation.replacement_data_io_verified, dataProfile);
         assert.equal(observation.replacement_data_exchanges.length, dataProfile ? 4 : 0);
         if (dataProfile) for (const selected of subscriptions) {
-            assert.equal(selected.intent.selectors.rest.length, 2);
-            const original = starts.find(start => start.source.video.streamId === selected.intent.selectors.rest[0].stream);
+            assert.deepEqual(selected.intent.selectors.rest, []);
+            const original = starts.find(start => start.dataStreamId === selected.intent.selectors.first.stream);
             assert.ok(original);
-            assert.equal(selected.intent.selectors.rest[1].stream, original.dataStreamId);
         }
         assert.equal(observation.physical_segments.length, 4);
         assert.equal(observation.planned_peak_connection_slots, 8);
@@ -248,3 +247,6 @@ test("two Session chains cannot silently share one serialized ordinary control h
     await assert.rejects(deviceMovementWorkload({ workload: { routes: Array(6) }, connections: Array(6),
         sessions: Array(2), controllers: [shared, shared] }), error => error.code === "ERR_ASSERTION");
 });
+
+ test("prepared video mappings follow both original owners without a post-move video command", () => scenario("prepared-video"));
+ test("prepared video keeps its receiver while separately authorized Data subscriptions complete", () => scenario("prepared-video-data"));

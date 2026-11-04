@@ -10,7 +10,7 @@ const uint = (value, maximum) => Number.isSafeInteger(value) && value >= 0 && va
 export function physicalAvSegment(observed, expected) {
     assert.equal(observed.format, "connect/native-replacement-peer-observation/1");
     for (const key of ["passed", "original_client_joined", "video_enabled",
-        "original_root_completed_observed", "video_controls_completed"])
+        "original_root_completed_observed", "video_transfer_admitted"])
         assert.equal(observed[key], true, key);
     assert.equal(observed.operation_completed_inferred, false);
     assert.equal(observed.decoded_media_verified, false);
@@ -29,7 +29,7 @@ export function physicalAvSegment(observed, expected) {
         assert.equal(matches.length, 1, "capture must match the original negotiated stream ID");
         const stream = matches[0], medium = index === 0 ? "audio" : "video";
         assert.equal(stream.kind, medium);
-        assert.equal(stream.direction, index === 2 ? "sendonly" : "sendrecv");
+        assert.equal(stream.direction, index === 0 ? "sendrecv" : index === 1 ? "recvonly" : "sendonly");
         assert.equal(stream.codec.name, index === 0 ? "opus" : "vp8");
         assert.equal(stream.codec.params.sample_rate, index === 0 ? 48000 : 90000);
         assert.equal(stream.codec.params.channels, index === 0 ? 1 : 0);

@@ -12,11 +12,11 @@ function fixture(received) {
             payload_type: kind === "audio" ? 111 : 96 } } });
     return { format: "connect/native-replacement-peer-observation/1", passed: true,
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
-        video_controls_completed: true, operation_completed_inferred: false, decoded_media_verified: false,
+        video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
         program_start_unix_us: expected.programStartUnixUs,
         root_completed_observed_programme_us: received.find(row => row.original_root_completed_observed)?.elapsed_us ?? 0,
         negotiated_streams: [binding("remote-video", "video", "sendonly", 9),
-            binding("own-video", "video", "sendrecv", 8), binding("own-audio", "audio", "sendrecv", 7)], received };
+            binding("own-video", "video", "recvonly", 8), binding("own-audio", "audio", "sendrecv", 7)], received };
 }
 function rtp({ handle = 7, pt = 111, ssrc = 12, timestamp = 960, sequence = 1,
     marker = true, payload = [1, 2] } = {}) {

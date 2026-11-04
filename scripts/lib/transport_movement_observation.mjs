@@ -90,7 +90,7 @@ export async function physicalMovementSegments({ directory, movement, plan,
         assert.ok(Number.isFinite(move.actual_start_ms) && move.actual_start_ms >= move.scheduled_start_ms && move.actual_start_ms < 62000);
         assert.equal(move.session_index, sid);
         assert.equal(resolve(move.stage_directory), folder);
-        for (const flag of ["original_reference_preserved", "original_retired", "camera_subscription_completed"])
+        for (const flag of ["original_reference_preserved", "original_retired", "camera_transfer_admitted"])
             assert.equal(move[flag], true, flag);
         const path = join(folder, "target-observation.json");
         const captures = movement.physical_segments.filter(v => v.sourceIndex === sourceIndex && resolve(v.observation) === path);

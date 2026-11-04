@@ -77,7 +77,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     let video;
     if (source.video) {
         const v = source.video;
-        assert.ok([v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId].every(id));
+        assert.ok([v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId, v.previousStreamId, v.previousReceiveVideoStreamId].every(id));
         assert.equal(new Set([streamId, v.streamId, v.receiveAudioStreamId, v.receiveVideoStreamId]).size, 4);
         if (v.receiveDataStreamId !== undefined) {
             assert.ok(id(dataStreamId) && id(v.receiveDataStreamId));
@@ -109,7 +109,9 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     const command = { operation_id: operationId, conversation_id: conversationId,
         session_id: sessionId, connection_id: connectionId, expected_revision: expectedTopologyRevision,
         intent: { type: "connection.replace", endpoint_id: target.endpointId,
-            candidate_connid: null, retained_connid: retainedConnectionId }, payload_extensions: {} };
+            candidate_connid: null, retained_connid: retainedConnectionId,
+            ...(video ? { video: { publications: [{ previous: source.video.previousStreamId, replacement: video.stream_id }],
+                receivers: [{ previous: source.video.previousReceiveVideoStreamId, replacement: video.receive_video_stream_id }] } } : {}) }, payload_extensions: {} };
     return { mode: "replacement_peer", config_path: target.nativeConfig, command,
         offer: { substrate: "quic", capabilities: {
             audio_codecs: [{ name: "opus", params: { sample_rate: 48000, channels: 1 } }],
@@ -118,7 +120,8 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             max_streams_per_connection: video ? 8 : dataStreamId === undefined ? 1 : 2,
             identity_assurance_offered: "identified", source_clock: "rtcp-sr-sdes/1",
         }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] },
-            ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendrecv", codec_preferences: ["vp8"] }] : []),
+            ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendonly", codec_preferences: ["vp8"] },
+                { id: video.receive_video_stream_id, kind: "video", direction: "recvonly", codec_preferences: ["vp8"] }] : []),
             ...(dataStreamId === undefined ? [] : [{ id: dataStreamId, kind: "data", direction: "sendrecv", codec_preferences: ["binary"] }])] },
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
             ...(source.data === undefined ? {} : { data: structuredClone(source.data) }),
@@ -268,12 +271,13 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
             if (intent.source.video) {
                 assert.equal(observed.original_root_completed_observed, true);
-                assert.equal(observed.video_controls_completed, true);
+                assert.equal(observed.video_transfer_admitted, true);
                 const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
                 assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
                 verifyReplacementStreamIdentities(observed.negotiated_streams, intent);
                 report.video_control_files = {};
-                for (const suffix of ["completed-root", "video-unmute-intent", "video-unmute-receipt", "video-subscribe-intent", "video-subscribe-receipt"]) {
+                for (const suffix of ["completed-root", ...(intent.dataStreamId === undefined ? [] : ["data-unmute-intent", "data-unmute-receipt"]),
+                    ...(intent.source.video.receiveDataStreamId === undefined ? [] : ["data-subscribe-intent", "data-subscribe-receipt"])]) {
                     const path = output.replace(/\.json$/, "." + suffix + ".json");
                     const info = await stat(path); assert.equal(info.mode & 0o077, 0); assert.ok(info.size > 0 && info.size <= 65536);
                     report.video_control_files[suffix] = hash(await readFile(path));
@@ -333,7 +337,8 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         const connection = controller.conversations.byId(intent.conversationId).sessions.byId(intent.sessionId)
             .connections.byId(intent.connectionId);
         const operation = await connection.replaceDevice({ retain: intent.retainedConnectionId,
-            target: { endpoint: intent.target.endpointId }, expectedTopologyRevision: intent.expectedTopologyRevision },
+            target: { endpoint: intent.target.endpointId }, expectedTopologyRevision: intent.expectedTopologyRevision,
+            ...(input.command.intent.video ? { video: input.command.intent.video } : {}) },
         { timeoutMs: remaining(), operationId: intent.operationId });
         const reference = operation.referenceJson();
         assert.equal(reference.command, "connection.replace"); assert.equal(reference.operation_id, intent.operationId);

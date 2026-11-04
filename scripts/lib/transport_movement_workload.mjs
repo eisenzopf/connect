@@ -57,7 +57,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     await mkdir(directory, { mode: 0o700 });
     const plan = sources.flatMap(sourceIndex => Array.from({ length: MOVES_PER_SESSION }, (_, ordinal) => ({
         sourceIndex, ordinal, targetIndex: (ordinal + 1) % 2, scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal],
-        operationId: "move_" + randomUUID(), subscriptionId: "camera_" + randomUUID(),
+        operationId: "move_" + randomUUID(), subscriptionId: "data_subscription_" + randomUUID(),
         audioId: "audio_" + randomUUID(), videoId: "video_" + randomUUID(),
         ...(dataWorkload ? { dataId: "data_" + randomUUID() } : {}),
     })));
@@ -166,6 +166,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         assert.ok(receiver);
         const sid = route.sessionIndex, source = sourcePrograms[sourceIndex], controller = controllers[sid];
         let current = connections[sourceIndex].connection, previous, previousDirectory;
+        let currentCamera = streamIds[sourceIndex].video;
         for (const step of plan.filter(v => v.sourceIndex === sourceIndex)) {
             const stage = name => stages.set(sourceIndex, {
                 source_index: sourceIndex, session_index: sid, ordinal: step.ordinal, stage: name,
@@ -207,7 +208,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                     audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
                     ...(step.ordinal === MOVES_PER_SESSION - 1 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
                     ...(dataWorkload ? { data: step.data } : {}),
-                    video: { streamId: step.videoId, receiveAudioStreamId: streamIds[incoming].audio,
+                    video: { streamId: step.videoId, previousStreamId: currentCamera,
+                        previousReceiveVideoStreamId: streamIds[incoming].video, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
                         ...(dataWorkload ? { receiveDataStreamId: streamIds[incoming].data } : {}),
                         ssrc: 0x47000002 + sourceIndex * 256 + step.ordinal * 2, frames: source.videoFrames } },
@@ -220,29 +222,32 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             });
             owners.add(owner);
             current = owner.connection;
+            currentCamera = step.videoId;
             previous = owner; previousDirectory = moveDirectory;
             const observedMove = { source_index: sourceIndex, session_index: sid, ordinal: step.ordinal,
                 original_reference_preserved: owner.reference.operation_id === step.operationId,
                 original_retired: owner.movement.retired.includes(original.id),
-                camera_subscription_completed: false, elapsed_ms: now() - began,
+                camera_transfer_admitted: false, elapsed_ms: now() - began,
                 scheduled_start_ms: step.scheduled_start_ms, actual_start_ms: began - workload.startedAt,
                 data_exchange_verified: false,
                 stage_directory: moveDirectory };
             completed.push(observedMove);
             assertCurrent();
-            stage("incoming-video-subscription");
-            await receiver.switchIncomingVideo(step.subscriptionId, step.videoId, async () => {
+            // The receiver's original video handle was retargeted by replacement.
+            // Keep its original reader; only Data adds a separately authorized selection.
+            if (dataWorkload) {
+                stage("incoming-data-subscription");
                 const currentReceiver = await receiver.connection.refresh({ timeoutMs: 8000 });
-                return receiver.connection.streams.subscribe({ selectors: {
-                    first: { participant: participantIds[sourceIndex], kinds: { first: "audio", rest: [] } },
-                    rest: [{ stream: step.videoId }, ...(dataWorkload ? [{ stream: step.dataId }] : [])],
+                const dataSubscription = await receiver.connection.streams.subscribe({ selectors: {
+                    first: { stream: step.dataId }, rest: [],
                 }, expectedStreamRevision: currentReceiver.streamRevision },
                 { operationId: step.subscriptionId, timeoutMs: 8000 });
-            });
+                await dataSubscription.wait({ timeoutMs: 8000 });
+            }
             stage("live-session-refresh");
             const live = await sessions[sid].refresh({ timeoutMs: 8000 });
             assert.ok(!["ended", "failed", "cancelled"].includes(live.state));
-            observedMove.camera_subscription_completed = true;
+            observedMove.camera_transfer_admitted = true;
             if (dataWorkload) {
                 stage("original-physical-data-exchange");
                 const exchange = await exchangeData({ workload, owner, rootOperationId: step.operationId,
@@ -286,7 +291,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             assert.equal(dataExchanges.length, TOTAL_MOVES);
             assert.ok(completed.every(move => move.data_exchange_verified));
         }
-        assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_subscription_completed));
+        assert.ok(completed.every(v => v.original_reference_preserved && v.original_retired && v.camera_transfer_admitted));
         const observation = { original_moves_completed: TOTAL_MOVES, concurrent_session_chains: 2,
             movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
             scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS,

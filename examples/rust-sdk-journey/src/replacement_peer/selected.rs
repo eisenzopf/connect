@@ -58,7 +58,7 @@ pub(super) fn own(payload: &Value, offered: &Value) -> Result<Vec<Binding>> {
     let actual = payload["substrate_setup"]["streams"]
         .as_array()
         .ok_or("replacement negotiation omitted resources")?;
-    if actual.len() != expected.len() || !(1..=3).contains(&actual.len()) {
+    if actual.len() != expected.len() || !(1..=4).contains(&actual.len()) {
         return Err("replacement resource count changed".into());
     }
     let mut ids = std::collections::BTreeSet::new();
@@ -80,10 +80,16 @@ pub(super) fn own(payload: &Value, offered: &Value) -> Result<Vec<Binding>> {
             return Err("replacement negotiation changed original stream identity".into());
         }
         let kind = stream["kind"].as_str().ok_or("missing original medium")?;
-        if !kinds.insert(kind) {
+        let direction = match stream["direction"].as_str() {
+            Some("sendonly") => "recvonly",
+            Some("recvonly") => "sendonly",
+            Some("sendrecv") | None => "sendrecv",
+            _ => return Err("invalid original direction".into()),
+        };
+        if !kinds.insert((kind, direction)) {
             return Err("replacement offered more than one stream of the same medium".into());
         }
-        let item = binding(found[0], id, kind, "sendrecv")?;
+        let item = binding(found[0], id, kind, direction)?;
         if !handles.insert(item.handle) {
             return Err("replacement hop handle reused across streams".into());
         }
@@ -100,7 +106,12 @@ pub(super) fn subscription(
     let streams = payload["substrate_setup"]["streams"]
         .as_array()
         .ok_or("missing subscription parameters")?;
-    if streams.len() != own.len() + 1 + usize::from(remote_data.is_some()) {
+    let prepared_video = own.iter().any(|item| {
+        item.id == remote && item.raw["kind"] == "video" && item.raw["direction"] == "sendonly"
+    });
+    if streams.len()
+        != own.len() + usize::from(!prepared_video) + usize::from(remote_data.is_some())
+    {
         return Err("unexpected replacement subscription resources".into());
     }
     for item in own {
@@ -120,7 +131,10 @@ pub(super) fn subscription(
         .iter()
         .map(|binding| binding.handle)
         .collect::<std::collections::BTreeSet<_>>();
-    let requested = std::iter::once((remote, "video")).chain(remote_data.map(|id| (id, "data")));
+    let requested = (!prepared_video)
+        .then_some((remote, "video"))
+        .into_iter()
+        .chain(remote_data.map(|id| (id, "data")));
     let mut result = vec![];
     for (id, kind) in requested {
         if !ids.insert(id) {
@@ -152,6 +166,63 @@ pub(super) fn answer(payload: &Value, capabilities: &Value) -> Result<payloads::
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn prepared_directional_video_survives_separate_data_subscription_without_rebinding() {
+        let audio = json!({"strm_id":"audio","kind":"audio","direction":"sendrecv","stream_local_id":1,
+            "codec":{"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}}});
+        let camera = json!({"strm_id":"camera","kind":"video","direction":"recvonly","stream_local_id":2,
+            "codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}});
+        let mut incoming = camera.clone();
+        incoming["strm_id"] = json!("retained-camera");
+        incoming["direction"] = json!("sendonly");
+        incoming["stream_local_id"] = json!(3);
+        let data = json!({"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":4,
+            "codec":{"name":"binary","params":{"reliability":"reliable_ordered"}}});
+        let offer = json!({"streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv"},
+            {"id":"camera","kind":"video","direction":"sendonly"},
+            {"id":"retained-camera","kind":"video","direction":"recvonly"},
+            {"id":"data","kind":"data","direction":"sendrecv"}]});
+        let original = json!({"substrate_setup":{"streams":[incoming,camera,audio,data.clone()]}});
+        let selected = own(&original, &offer).unwrap();
+        assert_eq!(
+            selected.iter().map(|b| b.handle).collect::<Vec<_>>(),
+            vec![1, 2, 3, 4]
+        );
+        let mut subscribed = original.clone();
+        let mut remote_data = data;
+        remote_data["strm_id"] = json!("retained-data");
+        remote_data["direction"] = json!("sendonly");
+        remote_data["stream_local_id"] = json!(5);
+        subscribed["substrate_setup"]["streams"]
+            .as_array_mut()
+            .unwrap()
+            .push(remote_data);
+        let added = subscription(
+            &subscribed,
+            &selected,
+            "retained-camera",
+            Some("retained-data"),
+        )
+        .unwrap();
+        assert_eq!(added.len(), 1);
+        assert_eq!(added[0].id, "retained-data");
+        assert_eq!(added[0].handle, 5);
+        assert_eq!(own(&original, &offer).unwrap(), selected);
+        for field in ["direction", "stream_local_id"] {
+            let mut wrong = subscribed.clone();
+            wrong["substrate_setup"]["streams"][0][field] = if field == "direction" {
+                json!("sendrecv")
+            } else {
+                json!(6)
+            };
+            assert!(
+                subscription(&wrong, &selected, "retained-camera", Some("retained-data")).is_err()
+            );
+        }
+        let mut wrong = original;
+        wrong["substrate_setup"]["streams"][1]["direction"] = json!("sendrecv");
+        assert!(own(&wrong, &offer).is_err());
+    }
     #[test]
     fn reliable_data_is_preserved_without_inventing_rtp_fields_or_rebinding_its_handle() {
         let data = json!({"strm_id":"original-data","kind":"data","direction":"sendrecv",

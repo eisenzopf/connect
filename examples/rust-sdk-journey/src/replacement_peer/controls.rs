@@ -1,4 +1,4 @@
-//! Original journal observations and distinct, durable, current-authorized video controls.
+//! Original video transfer observation and separately authorized Data controls.
 use super::*;
 use connect_client::{canonical::ReplyBatch, ClientError};
 #[derive(Clone)]
@@ -269,72 +269,63 @@ pub(super) async fn open(
     capabilities: &Value,
     output: &PathBuf,
 ) -> Result<Vec<selected::Binding>> {
-    let opened_revision = admission
-        .revision
-        .checked_add(1)
-        .ok_or("video gate stream revision exhausted")?;
     save(
         &output.with_extension("completed-root.json"),
         &admission.receipt,
     )
     .await?;
-    let gate = child_scope(scope, root, "video_unmute", admission.revision)?;
-    // Every publication was muted during resource preparation. Preserve Data
-    // as a distinct reliable stream and open it only after the original root's
-    // completed resource identities have been checked by completion().
+    // The exact camera and incoming receiver were negotiated before activation.
+    // No video gate or subscription mutation is issued after completion.
+    if !own
+        .iter()
+        .any(|b| b.id == video.stream_id && b.raw["direction"] == "recvonly")
+        || !own
+            .iter()
+            .any(|b| b.id == video.receive_video_stream_id && b.raw["direction"] == "sendonly")
+    {
+        return Err("prepared video transfer lost its directional resources".into());
+    }
     let publication = own
         .iter()
-        .filter(|binding| binding.id == video.stream_id || binding.raw["kind"] == "data")
+        .filter(|b| b.raw["kind"] == "data")
         .collect::<Vec<_>>();
-    if !publication
-        .iter()
-        .any(|binding| binding.id == video.stream_id)
-    {
-        return Err("original video binding missing".into());
+    let mut revision = admission.revision;
+    if !publication.is_empty() {
+        let gate = child_scope(scope, root, "data_unmute", revision)?;
+        revision = revision
+            .checked_add(1)
+            .ok_or("Data gate revision exhausted")?;
+        let (opened, none) = control(client, &gate, "connection.update",
+            json!({"action":"unmute","streams":publication.iter().map(|b| &b.id).collect::<Vec<_>>()}),
+            capabilities, own, None, output, "data-unmute").await?;
+        if none.is_some() {
+            return Err("Data gate unexpectedly renegotiated resources".into());
+        }
+        publication_gate(&opened["result"], admission, revision, &publication)?;
+        save(&output.with_extension("data-unmute-receipt.json"), &opened).await?;
     }
-    let (opened, none) = control(
-        client,
-        &gate,
-        "connection.update",
-        json!({"action":"unmute","streams":publication.iter().map(|binding| &binding.id).collect::<Vec<_>>()}),
-        capabilities,
-        own,
-        None,
-        output,
-        "video-unmute",
-    )
-    .await?;
-    if none.is_some() {
-        return Err("publication gate returned unexpected subscription resources".into());
-    }
-    publication_gate(&opened["result"], admission, opened_revision, &publication)?;
-    save(&output.with_extension("video-unmute-receipt.json"), &opened).await?;
-    let subscription = child_scope(scope, root, "video_subscribe", opened_revision)?;
-    let mut subscriptions = vec![
-        json!({"strm_id":video.receive_audio_stream_id}),
-        json!({"strm_id":video.receive_video_stream_id}),
-    ];
     if let Some(data) = &video.receive_data_stream_id {
-        subscriptions.push(json!({"strm_id":data}));
+        let subscription = child_scope(scope, root, "data_subscribe", revision)?;
+        let (subscribed, incoming) = control(
+            client,
+            &subscription,
+            "stream.subscribe",
+            json!({"subscriptions":[{"strm_id":data}]}),
+            capabilities,
+            own,
+            Some(video),
+            output,
+            "data-subscribe",
+        )
+        .await?;
+        save(
+            &output.with_extension("data-subscribe-receipt.json"),
+            &subscribed,
+        )
+        .await?;
+        return incoming.ok_or_else(|| "actual incoming Data binding missing".into());
     }
-    let (subscribed, incoming) = control(
-        client,
-        &subscription,
-        "stream.subscribe",
-        json!({"subscriptions":subscriptions}),
-        capabilities,
-        own,
-        Some(video),
-        output,
-        "video-subscribe",
-    )
-    .await?;
-    save(
-        &output.with_extension("video-subscribe-receipt.json"),
-        &subscribed,
-    )
-    .await?;
-    incoming.ok_or_else(|| "actual incoming video binding missing".into())
+    Ok(Vec::new())
 }
 
 fn publication_gate(
