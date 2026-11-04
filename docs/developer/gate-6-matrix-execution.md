@@ -26,46 +26,46 @@ installed browsers and earlier narrow browser results do not fill those rows.
 
 ## Execution order
 
-Current browser implementation work (November 4): all four Chrome admission
-results remain bound to their recorded sources. The next full workload needs
-actual replacement target media, independent receive observers, packet capture,
-expiry and idle accounting. The new source owner preserves six master streams
-across Connection-owned clones, exposes one immutable 62-second programme,
-schedules the existing nonperiodic 100ms AV markers and records skipped source
-frames. Its monotonic terminal cannot be extended by a stalled audio clock.
-`BrowserSdkClient.keepAlive` now exposes explicit current-session reachability
-renewal without credential refresh or automatic reconnect. The workload still
-needs to own its cadence and join it at the original terminal.
+Current browser execution (November 4): actual Chrome WebTransport EdDSA and
+ES256 both pass the six-source, four-move 62-second programme at candidate
+`7bbe7700`. Each run completes two outward moves at 15 seconds and two returns
+at 40 seconds, retaining the original master clocks while retiring each old
+Connection capture. Six original ends and seven client closes finish within
+276 ms of the fixed terminal; three explicit keepalive rounds join without
+reconnect or credential refresh. The original controller is terminal and gone.
+[Seven retained attempts](../evidence/gate-6/matrix-browser-programme.json)
+include five failures and these two stage passes. Source, generated SDK and
+executable guards pass, and original browser/server owners join for all attempts.
 
-The WebTransport target API is now implemented through
-`BrowserMediaPeer.beginReplacementConnection` and typed
-`session.connections.prepareReplacement`. It submits the two original-root
-phases once, installs the exact signed target parameters for precommit capture,
-and independently waits for the original movement receipt. It retains the
-original target/device/endpoint/stream bindings and retires failed preparations.
-Seven new low-level lifecycle checks and four signed SDK boundary checks pass
-locally. The seven low-level cases reran after strengthening receipt validation;
-no older suite reran. These checks use synthetic control/codec fixtures and do
-not establish actual browser movement or decoded media success.
+Actual execution exposed two defects. The browser Video allocation validator
+hardcoded Connection generation one and rejected valid replacement parameters.
+It now binds one consistent generation from the signed original-operation offer
+and checks the final movement receipt; new focused cases cover generations two
+and three, conflicting port generations and receipt mismatch. Next, the movement
+fixture tried to transfer a publication port with no direct subscription. It now
+transfers the actual subscribed local receiver, whose ID is the selected source
+publication's ID. Both corrections are exercised by the successful actual runs.
 
-Remaining replacement integration steps:
+The public `session.connections.prepareReplacement` API submits the two
+original-root target phases once, installs the signed parameters for real
+precommit capture, and waits for the original receipt. The continuing source
+owner uses one immutable 62-second clock and nonperiodic 100ms AV markers;
+missed source frames are recorded, never synthesized. Actual source draws are
+**not independent decoded-media quality evidence**.
 
-- Bind target allocation and media preparation to the original
-  `connection.replace` operation record. The Rust public client implements the
-  two signed phases in `crates/connect-client/src/canonical/native.rs`; the new
-  browser counterpart now needs connection to the actual matrix movement driver.
-- Give browser replacement preparation its own readiness lifecycle. The ordinary
-  `BrowserMediaPeer.transition` waits for the root to complete before installing
-  routes. Replacement preparation needs actual target IO before movement can
-  complete. The new replacement branch therefore exposes prepared capture before
-  final completion. Its focused lifecycle checks pass; no browser replacement
-  run has yet verified the path against the actual server.
-- Implement the corresponding WebRTC target adapter path. The current service
-  explicitly refuses WebRTC replacement transport in `canonical_replacement.rs`,
-  and `canonical_replacement/start.rs` configures the native adapter. Enabling an
-  enum alone would not implement allocation, negotiated media, readiness or drain.
-- Run the original four moves at 15/40 seconds through those public browser paths,
-  using the continuing masters, then evaluate all complete-cell requirements.
+Remaining integration steps:
+
+- Bind independent decoded audio/video observers and actual packet capture to
+  all six browser receive routes, including the replacement and returned owners.
+  Apply the unchanged complete-cell quality thresholds; these runs do not prove
+  audio continuity, minimum received FPS or AV synchronization.
+- Add actual current-authority expiry/conflict/fallback checks and ten-second
+  idle-resource restoration to the same complete-cell verifier.
+- Implement the WebRTC target adapter lifecycle. The service still refuses
+  WebRTC replacement in `canonical_replacement.rs`; allocation, negotiated
+  media, private readiness, commit and drain must all exist before its programme.
+- Execute remaining runtime/network cells. Preserve source-specific observations;
+  the mixed-source progress ledger cannot qualify a frozen acceptance candidate.
 
 The preceding source/keepalive increment ran only new local focused checks: ten signed-control SDK
 keepalive cases and four source ownership/clock boundary cases. Eight keepalive

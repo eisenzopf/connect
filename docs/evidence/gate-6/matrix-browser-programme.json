@@ -1,0 +1,522 @@
+{
+  "format": "connect/gate6-browser-programme-attempts/1",
+  "task": "G6-058",
+  "scope": "Actual local ARM Chrome WebTransport source/movement stage; independent decoded media, capture, expiry/fallback and idle verification are still required. No complete cell qualification.",
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "attempts": [
+    {
+      "attempt": "v155",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "248d7e162bd50b24b4733ab6e336546ef54c0ef6",
+      "report_sha256": "f70383686b4428b029fce6ba7baac6ca77b3a86ca88aff543faa97c09e731809",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-programme",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "protocol",
+          "certainty": "uncertain",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": false,
+        "finished_ms": null,
+        "duration_ms": 62000,
+        "moves": []
+      },
+      "retirement": null,
+      "keepalive": {
+        "rounds": 0,
+        "requests": 0,
+        "failed": false,
+        "stopped": false
+      },
+      "owned_audio_passed": false,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": null,
+        "source_terminal": null,
+        "sources": []
+      }
+    },
+    {
+      "attempt": "v155",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "source_revision": "248d7e162bd50b24b4733ab6e336546ef54c0ef6",
+      "report_sha256": "97841e57b82c6efd66cfac7a77fa4e9824ef9d020f4b9991f0b9dfe37a8b04d7",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-programme",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "protocol",
+          "certainty": "uncertain",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": false,
+        "finished_ms": null,
+        "duration_ms": 62000,
+        "moves": []
+      },
+      "retirement": null,
+      "keepalive": {
+        "rounds": 0,
+        "requests": 0,
+        "failed": false,
+        "stopped": false
+      },
+      "owned_audio_passed": false,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": null,
+        "source_terminal": null,
+        "sources": []
+      }
+    },
+    {
+      "attempt": "v156",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "ec2b19a72f8f485cf498401b7a962736a2663d50",
+      "report_sha256": "d34ef0bad3abd46292f9a5980eec4bdec17496f4e0d0c54da7fcdddc28cd0299",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-programme",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "protocol",
+          "certainty": "uncertain",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": false,
+        "finished_ms": null,
+        "duration_ms": 62000,
+        "moves": []
+      },
+      "retirement": null,
+      "keepalive": {
+        "rounds": 0,
+        "requests": 0,
+        "failed": false,
+        "stopped": false
+      },
+      "owned_audio_passed": false,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": null,
+        "source_terminal": null,
+        "sources": []
+      }
+    },
+    {
+      "attempt": "v157",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
+      "report_sha256": "1c8d612ee76acf409ea86778af98691fef804873e0241eda95a1dbc16ac9204d",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-programme",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "application",
+          "certainty": "recorded",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": false,
+        "finished_ms": null,
+        "duration_ms": 62000,
+        "moves": []
+      },
+      "retirement": null,
+      "keepalive": {
+        "rounds": 0,
+        "requests": 0,
+        "failed": false,
+        "stopped": false
+      },
+      "owned_audio_passed": false,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": null,
+        "source_terminal": null,
+        "sources": []
+      }
+    },
+    {
+      "attempt": "v157",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "source_revision": "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
+      "report_sha256": "1429e7695c5480b886c3fcd5aa38842a2fda9e8da4a4fbb0966110ca07928d59",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-programme",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "application",
+          "certainty": "recorded",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": false,
+        "finished_ms": null,
+        "duration_ms": 62000,
+        "moves": []
+      },
+      "retirement": null,
+      "keepalive": {
+        "rounds": 0,
+        "requests": 0,
+        "failed": false,
+        "stopped": false
+      },
+      "owned_audio_passed": false,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": null,
+        "source_terminal": null,
+        "sources": []
+      }
+    },
+    {
+      "attempt": "v158",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
+      "report_sha256": "f33a6c23d9e5f530287d4ebb3b368e67eeb303ca773784d9aa2d72b772b31b98",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": true,
+      "failure": null,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": true,
+        "finished_ms": 62008.09999999963,
+        "duration_ms": 62000,
+        "moves": [
+          {
+            "source_index": 4,
+            "ordinal": 0,
+            "scheduled_start_ms": 15000,
+            "actual_start_ms": 15007.299999999814,
+            "completed_ms": 15583.799999999814,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 0,
+            "ordinal": 0,
+            "scheduled_start_ms": 15000,
+            "actual_start_ms": 15007.099999999627,
+            "completed_ms": 15762.5,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 0,
+            "ordinal": 1,
+            "scheduled_start_ms": 40000,
+            "actual_start_ms": 40000.299999999814,
+            "completed_ms": 40794.5,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 4,
+            "ordinal": 1,
+            "scheduled_start_ms": 40000,
+            "actual_start_ms": 40000.39999999991,
+            "completed_ms": 40942,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          }
+        ]
+      },
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 275.89999999990687,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "keepalive": {
+        "rounds": 3,
+        "requests": 21,
+        "failed": false,
+        "stopped": true
+      },
+      "owned_audio_passed": true,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": 62022.666666666664,
+        "source_terminal": true,
+        "sources": [
+          {
+            "index": 0,
+            "programme_draws": 1701,
+            "skipped_programme_frames": 159,
+            "maximum_draw_gap_ms": 67.70000000018626
+          },
+          {
+            "index": 1,
+            "programme_draws": 1707,
+            "skipped_programme_frames": 153,
+            "maximum_draw_gap_ms": 68
+          },
+          {
+            "index": 2,
+            "programme_draws": 1703,
+            "skipped_programme_frames": 157,
+            "maximum_draw_gap_ms": 66.90000000037253
+          },
+          {
+            "index": 3,
+            "programme_draws": 1698,
+            "skipped_programme_frames": 162,
+            "maximum_draw_gap_ms": 67.39999999990687
+          },
+          {
+            "index": 4,
+            "programme_draws": 1693,
+            "skipped_programme_frames": 167,
+            "maximum_draw_gap_ms": 67.39999999990687
+          },
+          {
+            "index": 5,
+            "programme_draws": 1694,
+            "skipped_programme_frames": 166,
+            "maximum_draw_gap_ms": 69.1999999997206
+          }
+        ]
+      }
+    },
+    {
+      "attempt": "v158",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
+      "report_sha256": "95428601f352eb1cad87edc9070606dd738fe3a9e9007adb4595fac34a3b81e2",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": true,
+      "failure": null,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme": {
+        "passed": true,
+        "finished_ms": 62005.39999999991,
+        "duration_ms": 62000,
+        "moves": [
+          {
+            "source_index": 4,
+            "ordinal": 0,
+            "scheduled_start_ms": 15000,
+            "actual_start_ms": 15000.399999999907,
+            "completed_ms": 15770.30000000028,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 0,
+            "ordinal": 0,
+            "scheduled_start_ms": 15000,
+            "actual_start_ms": 15000.100000000093,
+            "completed_ms": 15948.200000000186,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 0,
+            "ordinal": 1,
+            "scheduled_start_ms": 40000,
+            "actual_start_ms": 40007.60000000009,
+            "completed_ms": 40678.700000000186,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          },
+          {
+            "source_index": 4,
+            "ordinal": 1,
+            "scheduled_start_ms": 40000,
+            "actual_start_ms": 40007.80000000028,
+            "completed_ms": 40875.200000000186,
+            "original_capture_closed": true,
+            "source_master_continues": true
+          }
+        ]
+      },
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 275.3000000002794,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "keepalive": {
+        "rounds": 3,
+        "requests": 21,
+        "failed": false,
+        "stopped": true
+      },
+      "owned_audio_passed": true,
+      "trusted_browser_joined": true,
+      "source_observation": {
+        "source_audio_elapsed_ms": 61942.66666666666,
+        "source_terminal": true,
+        "sources": [
+          {
+            "index": 0,
+            "programme_draws": 1694,
+            "skipped_programme_frames": 164,
+            "maximum_draw_gap_ms": 68.10000000009313
+          },
+          {
+            "index": 1,
+            "programme_draws": 1697,
+            "skipped_programme_frames": 161,
+            "maximum_draw_gap_ms": 69.09999999962747
+          },
+          {
+            "index": 2,
+            "programme_draws": 1689,
+            "skipped_programme_frames": 169,
+            "maximum_draw_gap_ms": 67.70000000018626
+          },
+          {
+            "index": 3,
+            "programme_draws": 1692,
+            "skipped_programme_frames": 166,
+            "maximum_draw_gap_ms": 67.89999999990687
+          },
+          {
+            "index": 4,
+            "programme_draws": 1697,
+            "skipped_programme_frames": 161,
+            "maximum_draw_gap_ms": 68.39999999990687
+          },
+          {
+            "index": 5,
+            "programme_draws": 1692,
+            "skipped_programme_frames": 166,
+            "maximum_draw_gap_ms": 69.20000000018626
+          }
+        ]
+      }
+    }
+  ],
+  "contract_inputs_by_source_revision": {
+    "248d7e162bd50b24b4733ab6e336546ef54c0ef6": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "ec2b19a72f8f485cf498401b7a962736a2663d50": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "64ac4963dd6ca2d77b81203a7cb226d966586f2e": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "7bbe7700e88c8bcc40fb1565918be71db761cf02": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    }
+  },
+  "findings": [
+    "v155/v156: original target allocation succeeded; browser videoAllocation rejected replacement generations because it hardcoded connection generation 1.",
+    "64ac4963: signed target negotiation now binds a consistent replacement generation and verifies the final receipt; four new focused generation cases pass.",
+    "v157: target negotiation and real capture reached private media readiness, but receiver mapping selected a publication port without an existing direct subscription.",
+    "7bbe7700: movement transfers the actual subscribed local receiver port, named after its selected source."
+  ]
+}

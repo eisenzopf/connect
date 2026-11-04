@@ -1569,62 +1569,62 @@
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "incomplete",
-      "reason": "browser-admission-passed-full-checks-missing",
+      "reason": "browser-programme-passed-full-checks-missing",
+      "required_checks": [
+        "identified-candidate-client-server-versions",
+        "normal-tls-and-current-device-key-authority",
+        "selected-transport-and-authenticated-discovery",
+        "one-service-contract-and-original-operation-recovery",
+        "participant-add-update-remove-and-current-audiences",
+        "session-upgrade-and-current-capability-refusal",
+        "device-replacement-and-old-owner-retirement",
+        "declared-concurrent-workload",
+        "actual-private-packet-capture",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation",
+        "wt-unavailable-selects-documented-wss-fallback-with-reason",
+        "neither-path-usable-refuses-without-mutation-resubmission"
+      ],
+      "client_versions": null,
+      "server_version": null,
+      "actual_topology": null,
+      "packet_capture": null,
+      "decoded_media": null,
+      "outcome": null,
       "execution": {
-        "producer": "browser-admission",
-        "stage": "admission",
-        "runnable": false,
+        "producer": "browser-programme",
+        "stage": "programme",
+        "runnable": true,
         "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected",
-          "full-browser-movement-media-producer-not-connected",
+          "browser-independent-decoded-quality-and-packet-capture-not-connected",
           "browser-fallback-and-neither-path-refusal-not-executed"
         ],
         "attempted": true,
         "component": {
-          "kind": "browser-admission",
+          "kind": "browser-programme",
           "passed": true,
           "exit_code": 0,
-          "report_sha256": "c7e81b3af463b692e054fa1fca368265266306f28ee093b76db241c40a814bec",
+          "report_sha256": "f33a6c23d9e5f530287d4ebb3b368e67eeb303ca773784d9aa2d72b772b31b98",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+          "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
           "actual_connections": 6,
-          "failure": null,
-          "evidence": "docs/evidence/gate-6/matrix-browser-pinned-wt.json",
-          "evidence_sha256": "d837f391d39359153a206e877388f5d694e54159c057effc05373d828987e9e2",
-          "tls_trust": "explicit-fresh-certificate-sha256"
-        },
-        "retained_attempts": [
-          {
-            "attempt": "v148",
-            "source_revision": "2fa7382caee8a47b8f315ac7931e6f664f00c743",
-            "report_sha256": "1e3bcfac2b9b72baba10eadd55ab3982ea203cc489ffc8c13f1f15ca1ec83629",
-            "passed": false
-          },
-          {
-            "attempt": "v149",
-            "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549",
-            "report_sha256": "ff01a2bb2819afe8642873d03252e878686360604ec09d6830f6b1dff8cc0b67",
-            "passed": false
-          },
-          {
-            "attempt": "v154",
-            "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
-            "passed": true,
-            "report_sha256": "c7e81b3af463b692e054fa1fca368265266306f28ee093b76db241c40a814bec"
-          }
-        ]
+          "failure": null
+        }
       },
       "check_results": {
         "identified-candidate-client-server-versions": {
@@ -1684,30 +1684,7 @@
           "evidence": null
         }
       },
-      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
-      "expected_client_platform": "ubuntu24-arm64",
-      "required_checks": [
-        "identified-candidate-client-server-versions",
-        "normal-tls-and-current-device-key-authority",
-        "selected-transport-and-authenticated-discovery",
-        "one-service-contract-and-original-operation-recovery",
-        "participant-add-update-remove-and-current-audiences",
-        "session-upgrade-and-current-capability-refusal",
-        "device-replacement-and-old-owner-retirement",
-        "declared-concurrent-workload",
-        "actual-private-packet-capture",
-        "independently-decoded-duplex-media-and-profile-budgets",
-        "current-revocation-expiry-and-conflicting-operation-refusals",
-        "owned-drain-and-resource-reclamation",
-        "wt-unavailable-selects-documented-wss-fallback-with-reason",
-        "neither-path-usable-refuses-without-mutation-resubmission"
-      ],
-      "client_versions": null,
-      "server_version": null,
-      "actual_topology": null,
-      "packet_capture": null,
-      "decoded_media": null,
-      "outcome": null
+      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -1715,50 +1692,62 @@
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "ES256",
+      "expected_client_platform": "ubuntu24-arm64",
       "status": "incomplete",
-      "reason": "browser-admission-passed-full-checks-missing",
+      "reason": "browser-programme-passed-full-checks-missing",
+      "required_checks": [
+        "identified-candidate-client-server-versions",
+        "normal-tls-and-current-device-key-authority",
+        "selected-transport-and-authenticated-discovery",
+        "one-service-contract-and-original-operation-recovery",
+        "participant-add-update-remove-and-current-audiences",
+        "session-upgrade-and-current-capability-refusal",
+        "device-replacement-and-old-owner-retirement",
+        "declared-concurrent-workload",
+        "actual-private-packet-capture",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation",
+        "wt-unavailable-selects-documented-wss-fallback-with-reason",
+        "neither-path-usable-refuses-without-mutation-resubmission"
+      ],
+      "client_versions": null,
+      "server_version": null,
+      "actual_topology": null,
+      "packet_capture": null,
+      "decoded_media": null,
+      "outcome": null,
       "execution": {
-        "producer": "browser-admission",
-        "stage": "admission",
-        "runnable": false,
+        "producer": "browser-programme",
+        "stage": "programme",
+        "runnable": true,
         "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected",
-          "full-browser-movement-media-producer-not-connected",
+          "browser-independent-decoded-quality-and-packet-capture-not-connected",
           "browser-fallback-and-neither-path-refusal-not-executed"
         ],
         "attempted": true,
         "component": {
-          "kind": "browser-admission",
+          "kind": "browser-programme",
           "passed": true,
           "exit_code": 0,
-          "report_sha256": "d26d4c3a3a32fa739234df96cf61fe976cdbdd0226721e81c0d756b3a5febd7b",
+          "report_sha256": "95428601f352eb1cad87edc9070606dd738fe3a9e9007adb4595fac34a3b81e2",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+          "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
           "actual_connections": 6,
-          "failure": null,
-          "evidence": "docs/evidence/gate-6/matrix-browser-pinned-wt.json",
-          "evidence_sha256": "d837f391d39359153a206e877388f5d694e54159c057effc05373d828987e9e2",
-          "tls_trust": "explicit-fresh-certificate-sha256"
-        },
-        "retained_attempts": [
-          {
-            "attempt": "v154",
-            "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
-            "passed": true,
-            "report_sha256": "d26d4c3a3a32fa739234df96cf61fe976cdbdd0226721e81c0d756b3a5febd7b"
-          }
-        ]
+          "failure": null
+        }
       },
       "check_results": {
         "identified-candidate-client-server-versions": {
@@ -1818,30 +1807,7 @@
           "evidence": null
         }
       },
-      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
-      "expected_client_platform": "ubuntu24-arm64",
-      "required_checks": [
-        "identified-candidate-client-server-versions",
-        "normal-tls-and-current-device-key-authority",
-        "selected-transport-and-authenticated-discovery",
-        "one-service-contract-and-original-operation-recovery",
-        "participant-add-update-remove-and-current-audiences",
-        "session-upgrade-and-current-capability-refusal",
-        "device-replacement-and-old-owner-retirement",
-        "declared-concurrent-workload",
-        "actual-private-packet-capture",
-        "independently-decoded-duplex-media-and-profile-budgets",
-        "current-revocation-expiry-and-conflicting-operation-refusals",
-        "owned-drain-and-resource-reclamation",
-        "wt-unavailable-selects-documented-wss-fallback-with-reason",
-        "neither-path-usable-refuses-without-mutation-resubmission"
-      ],
-      "client_versions": null,
-      "server_version": null,
-      "actual_topology": null,
-      "packet_capture": null,
-      "decoded_media": null,
-      "outcome": null
+      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
@@ -2992,15 +2958,19 @@
     }
   },
   "source_revisions": [
+    "248d7e162bd50b24b4733ab6e336546ef54c0ef6",
     "2ed53986b84277953e40de73cd8b9871c8f57549",
     "2fa7382caee8a47b8f315ac7931e6f664f00c743",
     "2fedc093a13fa55e872e6fce9308670bb8743a07",
+    "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
+    "7bbe7700e88c8bcc40fb1565918be71db761cf02",
     "a7b85a59ba5703ff7ca65355800586936556b5a8",
     "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
     "bb8c166c13440c10324d955827845e3ed7f69223",
     "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
     "e9809912aed859db5393cbe7aae2f5f5258344ce",
-    "eb8736270c621ac9f4482e645ab1d7983652ba66"
+    "eb8736270c621ac9f4482e645ab1d7983652ba66",
+    "ec2b19a72f8f485cf498401b7a962736a2663d50"
   ],
   "browser_admission_evidence": {
     "path": "docs/evidence/gate-6/matrix-browser-admission.json",
@@ -3102,6 +3072,47 @@
       "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
       "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "248d7e162bd50b24b4733ab6e336546ef54c0ef6": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "ec2b19a72f8f485cf498401b7a962736a2663d50": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "64ac4963dd6ca2d77b81203a7cb226d966586f2e": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "7bbe7700e88c8bcc40fb1565918be71db761cf02": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     }
-  }
+  },
+  "browser_programme_evidence": "docs/evidence/gate-6/matrix-browser-programme.json"
 }
