@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import time
+from .sdk_video_feedback import (VideoFeedback, VideoKeyframePermit, capture_video_feedback, take_video_feedback, consumed_video_feedback)
 from dataclasses import dataclass
 from typing import Callable, TypeVar, TYPE_CHECKING
 
@@ -13,7 +15,7 @@ from ._sdk_helper import _encode
 from ._sdk_media_channel import Channel, MAX_METADATA, encoded, error, open_channel, owned, wait
 from .sdk_media_types import (ClockPacket, LocalMediaSubmission, MediaBinding, MediaGap,
     MediaNegotiation, MediaPacket, MediaStats, NegotiatedMediaStream, NativeVideoFeedback, RtpPacket, SenderClockReport,
-    invalid, unsigned)
+    invalid, unsigned, capture_rtp_video_epoch)
 from .sdk_types import (ConnectionId, ConversationId, RequestOptions, SessionId, StreamId,
                         StreamRevision, MessageId, MutationOptions, NonEmpty, OperationKey, ParticipantId, Scope, SdkError, SdkCancelledError, cancelled, identifier)
 
@@ -81,7 +83,7 @@ def packet(binding, stream, kind, value, payload) -> MediaPacket:
     if type(item) is not dict:
         raise ValueError()
     if item.get('type') == 'rtp':
-        shape(item,('type','datagram_sequence','header'))
+        shape(item,('type','datagram_sequence','header') + (('video_epoch',) if 'video_epoch' in item else ()))
         result=RtpPacket(item['datagram_sequence'],payload)
         h=result.header
         shape(item['header'],('payload_type','sequence_number','timestamp','ssrc','marker'))
@@ -90,6 +92,8 @@ def packet(binding, stream, kind, value, payload) -> MediaPacket:
                 or item['header'] != {'payload_type':h.payload_type,'sequence_number':h.sequence_number,
                     'timestamp':h.timestamp,'ssrc':h.ssrc,'marker':h.marker}):
             raise ValueError()
+        if 'video_epoch' in item:
+            capture_rtp_video_epoch(result,item['video_epoch'])
         return result
     if payload:
         raise ValueError()
@@ -207,7 +211,7 @@ class _Owner:
         key=(action,binding.conversation_id,binding.session_id,binding.connection_id,stream)
         slot=self.slots.get(key)
         if slot is None:
-            if len(self.slots)>=256 or action=='receive_data' and sum(k[0]=='receive_data' for k in self.slots)>=16:
+            if len(self.slots)>=256 or action in ('receive_data','receive_video_feedback') and sum(k[0] in ('receive_data','receive_video_feedback') for k in self.slots)>=16:
                 raise error('application')
             slot=_Slot();self.slots[key]=slot
         if slot.busy:
@@ -340,6 +344,25 @@ class MediaStream:
         return await self._owner.request({'action':'send_clock','binding':self.binding._wire(),'stream_id':self.id,
             'datagram_sequence':sequence,'report':report._wire()},b'',options,
             lambda *v:submitted(self.binding,self.id,sequence,*v),True)
+
+    async def request_keyframe(self,options:RequestOptions) -> LocalMediaSubmission:
+        return await self._owner.request({'action':'request_keyframe','binding':self.binding._wire(),'stream_id':self.id},b'',options,
+            lambda kind,value,payload:submitted(self.binding,self.id,unsigned(value['datagram_sequence']),kind,value,payload),True)
+
+    async def receive_video_feedback(self,options:RequestOptions) -> VideoFeedback:
+        return await self._owner.receive(self.binding,self.id,options,'receive_video_feedback',
+            lambda *v:capture_video_feedback(self._owner,self.binding,self.id,*v))
+
+    async def consume_video_feedback(self,feedback:VideoFeedback,options:RequestOptions) -> VideoKeyframePermit | None:
+        try:
+            if type(options) is not RequestOptions:
+                raise ValueError()
+            token=take_video_feedback(self._owner,self.binding,self.id,feedback)
+        except ValueError:
+            invalid()
+        started=time.monotonic()
+        return await self._owner.request({'action':'consume_video_feedback','binding':self.binding._wire(),'stream_id':self.id,'token':token},b'',options,
+            lambda *v:consumed_video_feedback(self.binding,self.id,feedback,token,started,*v),True)
 
     async def receive_packet(self,options:RequestOptions) -> MediaPacket:
         return await self._owner.receive(self.binding,self.id,options,'receive',lambda *v:packet(self.binding,self.id,*v))

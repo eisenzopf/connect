@@ -140,3 +140,5 @@ export type {
     ReplacementVideo,
     ReplacementVideoStream,
 } from "./replacement_video.js";
+
+export type { SdkVideoReceiveEpoch, SdkVideoFeedback, SdkVideoKeyframePermit } from "./node_video_feedback.js";

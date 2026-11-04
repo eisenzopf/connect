@@ -1,0 +1,24 @@
+{
+  "format": "connect/gate6-sdk-video-feedback-ipc/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Node/Python public media handles expose current receiver keyframe request, owned publisher hint receive and one-shot hint consumption. References are bound to the originating language Client and exact resource scope.",
+    "Permits charge full consumption RPC elapsed time on the local monotonic clock against floored Rust remaining milliseconds. Delayed responses cannot grant a fresh deadline.",
+    "RTP packets expose immutable matched video history after strict shape/SSRC/serial first-boundary validation; original bytes unchanged. Existing owned receive path retains cancellation ownership for hints."
+  ],
+  "planned_checks": [
+    "TypeScript build into ignored output directory; no tracked dist mutation during sourceguard.",
+    "Two new Node cases: strict metadata/references and public owned synthetic IPC with delayed reply refusal and child cleanup.",
+    "Two new Python cases: strict metadata/references and public owned synthetic IPC with delayed reply refusal and child cleanup."
+  ],
+  "limits": [
+    "Synthetic language helper IPC cases do not prove actual native server feedback, authenticated enrollment or live encoder/decoder recovery. Rust helper/current transport components have separate evidence.",
+    "Generated TypeScript artifacts will be captured and committed after sourceguarded verification. Existing passed tests are not rerun.",
+    "Production profile remains disabled; browser/direct-peer wiring, live encoder bootstrap/fragment-loss proof and full32cell matrix remain open. G6-054 deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

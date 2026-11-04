@@ -110,3 +110,14 @@ records the current native6 journey with the rebuilt original helper: identified
 PCMU audio and six independently decoded VP8 frames in both directions under
 EdDSA/ES256, alongside full-size typed data, current authority and original joins.
 The complete installed platform/facade matrix and acceptance remain open.
+
+
+Selected native video supports `await stream.request_keyframe(options)` and
+`await stream.receive_video_feedback(options)`. Consume each returned reference
+once with `await stream.consume_video_feedback(hint, options)`. A missing permit
+means it is no longer usable; check `permit.is_fresh()` immediately before
+forcing the next fresh encoder frame. The permit charges the full consumption
+RPC round trip against the original Rust deadline. Response arrival cannot
+renew it, and an equal-looking copied reference is not the captured object.
+`RtpPacket.video_epoch` exposes matched receive history while preserving original
+packet bytes. Production opt-in and live encoder recovery remain unqualified.

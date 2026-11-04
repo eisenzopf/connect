@@ -126,3 +126,16 @@ identified independently decoded PCMU/VP8 through the documented app-owned
 utility and requalifies data/current-authority/cleanup with the rebuilt helper.
 G6-064 implementation is complete in that recorded scope. The complete installed
 platform/facade matrix and Gate 6 acceptance remain open.
+
+
+For explicitly selected native video feedback, `stream.requestKeyframe(options)`
+submits a hint for the current receive epoch. `stream.receiveVideoFeedback(options)`
+returns an immutable helper-owned reference. Consume it once with
+`stream.consumeVideoFeedback(hint, options)`: an expired, superseded or delayed
+reference returns no permit. A returned permit's `isFresh()` must still be true
+immediately before forcing the next fresh source frame. Its deadline charges
+the complete consumption RPC round trip against the original Rust lifetime;
+response receipt never starts a new 200 ms lifetime. Cloned/foreign references
+cannot be consumed. `SdkRtpPacket.videoEpoch` exposes matched receive history
+without changing the original RTP bytes. Production profile opt-in remains
+disabled pending live encoder/decoder recovery qualification.

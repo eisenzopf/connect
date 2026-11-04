@@ -9,6 +9,7 @@ __all__ = [
     'ConnectError', 'NativeClient', 'NativeAudioClient', 'HttpClient', 'ContextRecord',
     'TASK_PROFILE', 'TaskCommand', 'TaskDefinition', 'TaskOutcome', 'TaskRecord', 'TaskScope',
     'Media', 'MediaConnection', 'MediaStream', 'MediaBinding', 'MediaNegotiation',
+    'VideoReceiveEpoch', 'VideoFeedback', 'VideoKeyframePermit',
     'NegotiatedMediaStream', 'NativeVideoFeedback', 'RtpHeader', 'RtpPacket', 'SenderClockReport', 'ClockPacket',
     'MediaGap', 'MediaPacket', 'LocalMediaSubmission', 'MediaStats', 'MembershipAction',
     'MembershipRequest', 'MembershipOutcome', 'MembershipSnapshot', 'MembershipInvitations',
@@ -88,6 +89,7 @@ _EXPORT_GROUPS = (
     ('.sdk_media', (
         'Media', 'MediaConnection', 'MediaStream',
     )),
+    ('.sdk_video_feedback', ('VideoReceiveEpoch', 'VideoFeedback', 'VideoKeyframePermit')),
     ('.sdk_media_types', (
         'MediaBinding', 'MediaNegotiation', 'NegotiatedMediaStream', 'NativeVideoFeedback', 'RtpHeader', 'RtpPacket',
         'SenderClockReport', 'ClockPacket', 'MediaGap', 'MediaPacket', 'LocalMediaSubmission',
@@ -182,3 +184,6 @@ else:
 
     def __dir__():
         return sorted(set(globals()) | set(__all__))
+
+if TYPE_CHECKING:
+    from .sdk_video_feedback import VideoReceiveEpoch, VideoFeedback, VideoKeyframePermit

@@ -1,5 +1,6 @@
 /** Captured negotiated media and typed data. No capture, renderer or grant. */
 import { inspect } from "node:util";
+import { captureVideoEpoch, type SdkVideoReceiveEpoch } from "./node_video_feedback.js";
 import { NodeSdkError } from "./sdk_helper.js";
 import {
     canonicalJson,
@@ -144,6 +145,14 @@ export interface SdkRtpHeader {
     readonly marker: boolean;
 }
 const rtpBytes = new WeakMap<SdkRtpPacket, Buffer>();
+const rtpEpochs = new WeakMap<SdkRtpPacket, SdkVideoReceiveEpoch>();
+export function captureRtpVideoEpoch(packet: SdkRtpPacket, value: Json): void {
+    if (!rtpBytes.has(packet) || rtpEpochs.has(packet)) throw new Error();
+    const epoch = captureVideoEpoch(value);
+    if (packet.header.ssrc !== epoch.ssrc || ((packet.datagramSequence - epoch.firstSequence) >>> 0) >= 0x80000000
+        || (packet.datagramSequence === epoch.firstSequence && packet.header.timestamp !== epoch.firstTimestamp)) throw new Error();
+    rtpEpochs.set(packet, epoch);
+}
 export class SdkRtpPacket {
     readonly kind = "rtp" as const;
     readonly datagramSequence: number;
@@ -186,6 +195,7 @@ export class SdkRtpPacket {
         rtpBytes.set(this, raw);
         Object.freeze(this);
     }
+    get videoEpoch(): SdkVideoReceiveEpoch | undefined { return rtpEpochs.get(this); }
     get bytes(): Uint8Array {
         return Uint8Array.from(rtpBytes.get(this)!);
     }

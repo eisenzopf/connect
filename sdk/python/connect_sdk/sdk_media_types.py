@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import struct
+from .sdk_video_feedback import VideoReceiveEpoch, capture_video_epoch
 from typing import ClassVar, Literal, TypeAlias
 
 from .sdk_types import (ConnectionId, ConversationId, Direction, Json, Medium,
@@ -42,11 +43,20 @@ class RtpHeader:
     marker: bool
 
 
+def capture_rtp_video_epoch(packet, value):
+    epoch=capture_video_epoch(value)
+    if (type(packet) is not RtpPacket or packet.video_epoch is not None or packet.header.ssrc != epoch.ssrc
+            or ((packet.datagram_sequence-epoch.first_sequence) & 0xffffffff) >= 0x80000000
+            or (packet.datagram_sequence==epoch.first_sequence and packet.header.timestamp!=epoch.first_timestamp)):
+        raise ValueError()
+    object.__setattr__(packet,'_video_epoch',epoch)
+
 @dataclass(frozen=True, repr=False)
 class RtpPacket:
     datagram_sequence: int
     data: bytes
     kind: ClassVar[Literal['rtp']] = 'rtp'
+    _video_epoch: VideoReceiveEpoch | None = field(init=False,default=None)
     _header: RtpHeader = field(init=False)
     _payload_start: int = field(init=False)
     _payload_end: int = field(init=False)
@@ -74,6 +84,10 @@ class RtpPacket:
         object.__setattr__(self,'_header',RtpHeader(flags & 127,seq,timestamp,ssrc,bool(flags & 128)))
         object.__setattr__(self,'_payload_start',start)
         object.__setattr__(self,'_payload_end',end)
+
+    @property
+    def video_epoch(self) -> VideoReceiveEpoch | None:
+        return self._video_epoch
 
     @property
     def header(self) -> RtpHeader:

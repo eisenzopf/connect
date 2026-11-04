@@ -57,7 +57,20 @@ async def media(id,value,payload):
     if mode=='die-media-before-control':
         writer.close();await writer.wait_closed()
         await released();os._exit(3)
-    if action=='describe':
+    if action=='request_keyframe':
+        await write_frame(0x81,id,{'type':'submitted','binding':command['binding'],'stream_id':command['stream_id'],
+            'boundary':'local-media-queue','datagram_sequence':7})
+    elif action=='receive_video_feedback':
+        await write_frame(0x81,id,{'type':'video_feedback','binding':command['binding'],'stream_id':command['stream_id'],
+            'token':'a'*32,'datagram_sequence':7,'ssrc':0x1234,'epoch':'b'*32,'epoch_revision':2})
+    elif action=='consume_video_feedback':
+        remaining=200
+        if mode=='feedback-delayed':
+            remaining=50
+            await asyncio.sleep(.08) # Delay after capturing the remaining lifetime.
+        await write_frame(0x81,id,{'type':'video_feedback_consumed','binding':command['binding'],'stream_id':command['stream_id'],
+            'token':command['token'],'remaining_ms':remaining})
+    elif action=='describe':
         result={'type':'negotiation','binding':command['binding'],'source_clock':True,'stream_revision':1,
             'streams':[{'id':'audio','medium':'audio','direction':'sendrecv','codec':{'name':'pcmu','params':{'sample_rate':8000,'channels':1}},'stream_local_id':7}]}
         await write_frame(0x81,id,result)
@@ -73,6 +86,8 @@ async def media(id,value,payload):
         _,flags,seq,ts,ssrc=struct.unpack('!BBHII',last_rtp[:12])
         item={'type':'rtp','datagram_sequence':last_sequence,'header':{'payload_type':flags&127,'sequence_number':seq,'timestamp':ts,'ssrc':ssrc,'marker':bool(flags&128)}}
         body=last_rtp
+        if mode.startswith('feedback'):
+            item['video_epoch']={'epoch':'b'*32,'incarnation':'c'*32,'revision':2,'ssrc':ssrc,'first_sequence':last_sequence,'first_timestamp':ts}
         if mode in ('clock','clock-held','clock-reply-held'):
             item={'type':'clock','datagram_sequence':8,'report':{'ssrc':1,'ntp':str(2**64-1),'rtp':2,'packets':3,'octets':4,'cname':'synthetic-source'}};body=b''
         elif mode in ('gap','gap-held'):item={'type':'gap','dropped_packets':str(2**64-1)};body=b''
