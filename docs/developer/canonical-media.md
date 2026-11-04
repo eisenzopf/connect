@@ -140,7 +140,8 @@ current negotiated binding.
 
 ## Native video feedback implementation checkpoint
 
-The `rtcp-pli-epoch/1` codec is a candidate for the Gate 6 bootstrap work. It is
+The `rtcp-pli-epoch/1` codec passes its focused local ARM syntax test at
+`6a697185`; see [guarded evidence](../evidence/gate-6/native-video-feedback-codec.json). It is
 not yet advertised or admitted by a native transport. Existing media and
 sender-clock parsers continue to reject it; codec success grants no permission.
 

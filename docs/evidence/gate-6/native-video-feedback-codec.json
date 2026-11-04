@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-native-video-feedback-codec/1",
   "task": "G6-058",
-  "status": "candidate-unverified",
+  "status": "component-pass",
   "patch": {
     "path": "patches/rvoip/gate6-native-epoch-video-feedback-codec.patch",
     "sha256": "e1e0e75f525236bc14f2c9c4b7e987c98e181630a29c89de705b2cf49aa3bd64",
@@ -11,7 +11,7 @@
   "wire_bytes": 48,
   "capability_advertised": false,
   "transport_admission_enabled": false,
-  "tests_run": false,
+  "tests_run": true,
   "required_case": "substrate::video_feedback::tests::epoch_feedback_exact_wire_refuses_unnegotiated_clock_and_malformed_members",
   "limits": [
     "Syntax only; no claim of feedback authorization, delivery, decoder recovery or epochs.",
@@ -19,5 +19,44 @@
     "No full workload, prior passing suite or GitHub tests."
   ],
   "task_complete": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 116729,
+    "source_revision": "6a697185dae9870b3c8b4dab59becbeb25c020b9",
+    "passed": true,
+    "steps": [
+      {
+        "group": "codec",
+        "case": "substrate::video_feedback::tests::epoch_feedback_exact_wire_refuses_unnegotiated_clock_and_malformed_members",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 140 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "2a4f199fc480658d391b1d27657a6a442af26b5b02254552eca4c88c2daffe79"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "codec",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "773e83d0bb904f6c5be96511736c1727272cc189ec51177033b56bc7a2200930",
+        "test_executable_sha256": "b39df21d8047c2a7a9aca6e1541e053a927a206a6af3e02a38dd8a70201edb6a",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 305.6384969849896
+  },
+  "proof": [
+    "Exact fixed wire bytes and roundtrip pass; all truncations, fixed-member mutation, zero identities/epoch, extra members, padding and oversized datagrams are refused.",
+    "Existing native media and sender-clock entry points refuse the unnegotiated feedback wire.",
+    "Only the new exact codec case ran (140 existing cases filtered out); all final guards pass."
+  ]
 }
