@@ -112,3 +112,143 @@ fn an_existing_owned_resource_keeps_one_shared_lock_without_reentering_preparati
             .unwrap(),
     );
 }
+
+#[test]
+fn same_scope_read_admission_coexists_and_keeps_reserved_writer_exclusive() {
+    let f = Fixture::new();
+    let scope = f.scope(AuthorityMode::Read);
+    let name = f
+        .store
+        .authority
+        .name(&(scope.kind, scope.id.clone()))
+        .unwrap();
+    let preparing = f
+        .store
+        .authority
+        .lock_file(&format!("{name}.admission"))
+        .unwrap();
+    lock_admission(preparing.file(), AuthorityMode::Read, None).unwrap();
+    // Pause one actual reader at admission while a second enters the public
+    // Store path. Read/read exclusion must not manufacture a packet deferral.
+    let second = f
+        .store
+        .try_acquire_authority(&[scope.clone()])
+        .expect("a concurrent reader must not defer another reader");
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[f.scope(AuthorityMode::Write)])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(preparing);
+    let store = f.store.clone();
+    let write = f.scope(AuthorityMode::Write);
+    let writer_scope = write.clone();
+    let writer = std::thread::spawn(move || {
+        store.acquire_authority(&[writer_scope], &AuthorityWait::new(Duration::from_secs(2)))
+    });
+    waiting(&f.store, &write);
+    let refused = f.store.try_acquire_authority(&[scope.clone()]);
+    let writer_waited = !writer.is_finished();
+    drop(second);
+    let exclusive = writer.join().unwrap().unwrap();
+    assert!(writer_waited, "writer overlapped an active resource reader");
+    assert_eq!(
+        refused.unwrap_err().code,
+        "authority-busy",
+        "cached reader bypassed a reserved writer"
+    );
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[scope.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(exclusive);
+    drop(f.store.try_acquire_authority(&[scope]).unwrap());
+}
+
+#[test]
+fn concurrent_cold_readers_coalesce_only_the_current_owned_resource() {
+    let f = Fixture::new();
+    let manager = &f.store.authority;
+    let scope = f.scope(AuthorityMode::Read);
+    let name = manager.name(&(scope.kind, scope.id.clone())).unwrap();
+    let admission = manager.lock_file(&format!("{name}.admission")).unwrap();
+    lock_admission(admission.file(), AuthorityMode::Read, None).unwrap();
+    let mut sibling = None;
+    let resource = manager
+        .read_resource(&name, None, || {
+            // A second reader wins publication while our first cold resource is
+            // being opened. Both own shared admission; neither may admit a writer.
+            sibling = Some(f.store.try_acquire_authority(&[scope.clone()])?);
+            manager.lock_file(&format!("{name}.resource"))
+        })
+        .unwrap();
+    let sibling = sibling.unwrap();
+    let Held::Read { _resource: other } = &sibling._held[0] else {
+        panic!("expected reader")
+    };
+    assert!(
+        Arc::ptr_eq(&resource, other),
+        "concurrent cold readers published separate resources"
+    );
+    drop(admission);
+    drop(sibling);
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[f.scope(AuthorityMode::Write)])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(resource);
+    drop(
+        f.store
+            .try_acquire_authority(&[f.scope(AuthorityMode::Write)])
+            .unwrap(),
+    );
+}
+
+#[test]
+fn blocked_shared_reader_keeps_original_deadline_and_releases_partial_scopes() {
+    let f = Fixture::new();
+    let a = AuthorityScope::identity("reader_wait_a", AuthorityMode::Read).unwrap();
+    let b = AuthorityScope::identity("reader_wait_b", AuthorityMode::Read).unwrap();
+    let mut write_b = b.clone();
+    write_b.mode = AuthorityMode::Write;
+    let held = f.store.try_acquire_authority(&[write_b]).unwrap();
+    let started = Instant::now();
+    let wait = AuthorityWait::new(Duration::from_millis(15));
+    assert_eq!(
+        f.store
+            .acquire_authority(&[a.clone(), b.clone()], &wait)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(
+        started.elapsed() < Duration::from_millis(100),
+        "reader renewed its original wait"
+    );
+    let mut write_a = a.clone();
+    write_a.mode = AuthorityMode::Write;
+    drop(
+        f.store
+            .try_acquire_authority(&[write_a])
+            .expect("failed read retained its first scope"),
+    );
+    let cancelled = AuthorityWait::new(Duration::from_secs(1));
+    cancelled.cancel();
+    assert_eq!(
+        f.store
+            .acquire_authority(&[a.clone(), b.clone()], &cancelled)
+            .unwrap_err()
+            .code,
+        "cancelled"
+    );
+    drop(held);
+    drop(f.store.try_acquire_authority(&[a, b]).unwrap());
+}

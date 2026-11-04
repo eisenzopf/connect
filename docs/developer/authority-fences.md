@@ -22,7 +22,11 @@ behind a waiting writer. It does not validate a principal or signed request.
 A value returned by credential/key lookup remains a snapshot, not a grant.
 
 Each scope has an admission turnstile and a shared/exclusive resource lock.
-A writer retains admission while waiting for existing readers and while writing;
+Readers share admission briefly while acquiring their current resource lock;
+concurrent readers do not exclude each other at the turnstile. If two readers
+prepare the same resource concurrently, they coalesce on the still-owned local
+resource before returning. No idle authority is cached.
+A writer reserves admission exclusively while waiting for existing readers and while writing;
 new readers cannot pass its intent, including readers sharing an existing local
 file descriptor. Unrelated Identity scopes can proceed. Duplicate requests are
 collapsed with write dominating read, and acquisition order is deterministic.

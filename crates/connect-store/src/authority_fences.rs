@@ -466,7 +466,7 @@ impl Manager {
             diagnostic.stage = "open-admission";
             let admission = self.lock_file(&format!("{name}.admission"))?;
             diagnostic.stage = "lock-admission";
-            lock_with(admission.file(), wait)?;
+            lock_admission(admission.file(), *mode, wait)?;
             if *mode == AuthorityMode::Write {
                 diagnostic.stage = "open-resource";
                 let resource = self.file(&format!("{name}.resource"))?;
@@ -499,7 +499,8 @@ impl Manager {
             _timing: AuthorityTiming::capture(wait.is_some()),
         }))
     }
-    // The caller owns this scope's exclusive admission description. The
+    // The caller owns this scope's shared admission description. A writer
+    // cannot reserve admission while any reader prepares its resource. The
     // factory only prepares its resource file; it cannot create an IO grant.
     fn read_resource(
         self: &Arc<Self>,
@@ -526,11 +527,18 @@ impl Manager {
             )
         })?;
         let resource = Arc::new(file);
-        // Same-name admission is still exclusive, so no other acquisition can
-        // install a resource for this name. A busy immediate registry drops
-        // this original file lock before returning; no partial reader survives.
-        self.reader_registry(wait)?
-            .insert(name.into(), Arc::downgrade(&resource));
+        // Another reader can prepare the same name under shared admission.
+        // Prefer its still-active resource if it published first; release our
+        // redundant shared file outside the registry. This retains one owned
+        // resource per live name without retaining idle authority. A busy
+        // immediate registry still drops this original file before returning.
+        let mut readers = self.reader_registry(wait)?;
+        if let Some(existing) = readers.get(name).and_then(Weak::upgrade) {
+            drop(readers);
+            return Ok(existing);
+        }
+        readers.insert(name.into(), Arc::downgrade(&resource));
+        drop(readers);
         Ok(resource)
     }
     fn reader_registry(
@@ -545,7 +553,12 @@ impl Manager {
                 Ok(readers) => return Ok(readers),
                 Err(std::sync::TryLockError::WouldBlock) => match wait {
                     Some(wait) => wait.pause()?,
-                    None => return Err(authority_busy()),
+                    None => {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "Current authority reader registry is busy",
+                        ))
+                    }
                 },
                 Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
             }
@@ -658,6 +671,27 @@ impl Manager {
 }
 fn authority_busy() -> Error {
     Error::new("authority-busy", "Current authority is busy")
+}
+// Readers only exclude a reserved writer during this short admission phase.
+// Writers still reserve the gate exclusively before waiting on the resource;
+// once reserved, they exclude every subsequent reader, including cache hits.
+fn lock_admission(file: &File, mode: AuthorityMode, wait: Option<&AuthorityWait>) -> Result<()> {
+    if mode == AuthorityMode::Write {
+        return lock_with(file, wait);
+    }
+    loop {
+        if let Some(wait) = wait {
+            wait.check()?;
+        }
+        match FileExt::try_lock_shared(file) {
+            Ok(()) => return Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => match wait {
+                Some(wait) => wait.pause()?,
+                None => return Err(authority_busy()),
+            },
+            Err(_) => return Err(Error::new("authority-unavailable", "Authority lock failed")),
+        }
+    }
 }
 fn lock_with(file: &File, wait: Option<&AuthorityWait>) -> Result<()> {
     if let Some(wait) = wait {
