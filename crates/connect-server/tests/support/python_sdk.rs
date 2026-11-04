@@ -59,6 +59,7 @@ async fn run(algorithm: &str) {
         toml::to_string(&sdk::ClientConfig {
             control: peer_control.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
+            native_video_feedback: false,
             application: None,
         })
         .unwrap()
@@ -101,6 +102,7 @@ async fn run(algorithm: &str) {
         let config_value = sdk::ClientConfig {
             control: f.client.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
+            native_video_feedback: false,
             application: Some(connect_client::application::ApplicationClientConfig {
                 endpoint: f.server.http_address.unwrap(),
                 credential: f.client.credential.clone(),

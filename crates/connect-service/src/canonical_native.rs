@@ -121,6 +121,10 @@ pub(crate) fn base_profile() -> Result<NativeMediaProfile> {
         AssuranceLevel::Identified,
         AssuranceLevel::Identified,
     )
+    // The canonical host installs the signed native lifecycle writer. This
+    // advertises support only: the original peer offer and confirmation must
+    // both select the profile before any packet tag or feedback IO is enabled.
+    .map(NativeMediaProfile::with_video_feedback)
     .map_err(denied)
 }
 struct Preparing {

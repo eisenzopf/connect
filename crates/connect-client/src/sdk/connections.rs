@@ -219,7 +219,8 @@ impl Session {
             },
         };
         let fail = |kind| Error::request(kind, Some(&key), false);
-        let payload = offer_payload(streams).map_err(|e| fail(e.kind))?;
+        let payload = offer_payload(streams, self.client().native_video_feedback)
+            .map_err(|e| fail(e.kind))?;
         let payload =
             conversations::extend(payload, options.extensions).map_err(|e| fail(e.kind))?;
         // Markers belong to distinct, separately authorized transition workflows.
@@ -310,7 +311,7 @@ pub(super) fn codec_parameters(medium: Medium, name: &str) -> Option<Value> {
     };
     Some(json!({"sample_rate":rate,"channels":channels}))
 }
-fn offer_payload(streams: NonEmpty<OfferedStream>) -> Result<Value> {
+fn offer_payload(streams: NonEmpty<OfferedStream>, video_feedback: bool) -> Result<Value> {
     use serde_json::json;
     let streams = streams.into_vec();
     let fail = |kind| Error::local(kind);
@@ -364,7 +365,38 @@ fn offer_payload(streams: NonEmpty<OfferedStream>) -> Result<Value> {
         }
         offered.push(json!({"id":stream.id,"kind":stream.kind,"direction":stream.direction,"codec_preferences":codecs}));
     }
-    Ok(
-        json!({"substrate":"quic","capabilities":{"audio_codecs":audio,"video_codecs":video,"data_protocols":data,"max_streams_per_connection":32,"identity_assurance_offered":"identified","source_clock":"rtcp-sr-sdes/1"},"streams_offered":offered}),
-    )
+    let mut payload = json!({"substrate":"quic","capabilities":{"audio_codecs":audio,"video_codecs":video,"data_protocols":data,"max_streams_per_connection":32,"identity_assurance_offered":"identified","source_clock":"rtcp-sr-sdes/1"},"streams_offered":offered});
+    if video_feedback {
+        payload["capabilities"]["video_feedback"] = json!(video_feedback::PROFILE);
+    }
+    Ok(payload)
+}
+
+#[cfg(test)]
+mod feedback_offer_tests {
+    use super::*;
+    #[test]
+    fn video_feedback_offer_is_explicit_and_preserves_the_source_clock_and_streams() {
+        let streams = || NonEmpty {
+            first: OfferedStream {
+                id: "camera".parse().unwrap(),
+                kind: Medium::Video,
+                direction: Direction::Sendonly,
+                codecs: NonEmpty {
+                    first: "vp8".into(),
+                    rest: vec![],
+                },
+            },
+            rest: vec![],
+        };
+        let ordinary = offer_payload(streams(), false).unwrap();
+        assert!(ordinary["capabilities"].get("video_feedback").is_none());
+        let selected = offer_payload(streams(), true).unwrap();
+        assert_eq!(
+            selected["capabilities"]["video_feedback"],
+            video_feedback::PROFILE
+        );
+        assert_eq!(selected["capabilities"]["source_clock"], "rtcp-sr-sdes/1");
+        assert_eq!(selected["streams_offered"], ordinary["streams_offered"]);
+    }
 }

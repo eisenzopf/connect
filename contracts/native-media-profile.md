@@ -378,3 +378,19 @@ encoding and independent FFmpeg decoding. Feedback authority is controlled in
 this worker proof. See `docs/evidence/gate-6/live-feedback-recovery.json` for
 scope. Actual signed SDK/server recovery, the replacement peer and browser
 integration remain unfinished; no full transport cell is qualified.
+
+### Explicit SDK profile configuration (candidate)
+
+`ClientConfig.native_video_feedback` (TOML `native_video_feedback = true`) opts
+configured Rust clients and managed Node/Python helpers into `rtcp-pli-epoch/1`.
+It defaults to false. Direct `Client::connect` and adoption of a raw authenticated
+peer do not enable it. The setting is captured before the configured client is
+returned and applies to its original native offers; source clocks are unchanged.
+Consumers opting in must use authenticated packet epochs to partition decoder
+history and consume current typed feedback before requesting fresh source frames.
+
+The canonical server now advertises support through its installed signed
+lifecycle writer. An original peer offer and its matching confirmation must
+both select the profile; server support alone cannot enable tagged packets.
+Actual public SDK/server verification is pending for this candidate. Browser
+and direct replacement consumers remain separate unfinished integrations.

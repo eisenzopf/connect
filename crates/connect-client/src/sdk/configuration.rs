@@ -23,6 +23,10 @@ use std::path::Path;
 pub struct ClientConfig {
     pub control: CanonicalClientConfig,
     pub tenant_id: TenantId,
+    /// Explicitly negotiate authenticated video epochs and current keyframe
+    /// feedback. The consumer must partition decoder history by packet epoch.
+    #[serde(default)]
+    pub native_video_feedback: bool,
     /// Participant Client uses named application reads only. Explicit
     /// AdministrativeClient also requires this table for trusted provisioning.
     /// Never a canonical transport fallback.
@@ -81,7 +85,8 @@ impl Client {
             ),
             None => None,
         };
-        let client = Self::connect(config.control, config.tenant_id).await?;
+        let mut client = Self::connect(config.control, config.tenant_id).await?;
+        client.native_video_feedback = config.native_video_feedback;
         Ok(match application {
             Some(application) => client.with_application_reads(application),
             None => client,

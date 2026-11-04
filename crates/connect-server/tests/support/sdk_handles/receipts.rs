@@ -13,6 +13,7 @@ fn config(f: &Fixture, control: CanonicalClientConfig) -> sdk::ClientConfig {
         }),
         control,
         tenant_id: "tnt_default".parse().unwrap(),
+        native_video_feedback: false,
     }
 }
 async fn connect(f: &Fixture, control: CanonicalClientConfig) -> Client {

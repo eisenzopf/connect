@@ -206,6 +206,7 @@ async fn run(case: Case, algorithm: &str, configured: bool) {
         Client::connect_configured(ClientConfig {
             control: config,
             tenant_id: "tenant".parse().unwrap(),
+            native_video_feedback: false,
             application: Some(application),
         })
         .await

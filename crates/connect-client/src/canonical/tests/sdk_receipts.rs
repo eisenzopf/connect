@@ -351,6 +351,7 @@ async fn unconfigured_receipts_are_explicitly_unsupported_without_losing_native_
 fn config() -> ClientConfig {
     ClientConfig {
         tenant_id: "tenant".parse().unwrap(),
+        native_video_feedback: false,
         application: None,
         control: CanonicalClientConfig {
             network_profile: NativeNetworkProfile::Local,

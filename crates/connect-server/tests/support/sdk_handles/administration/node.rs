@@ -107,6 +107,7 @@ impl Probe {
         let sdk_config = sdk::ClientConfig {
             control: config.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
+            native_video_feedback: false,
             application: Some(application),
         };
         let native = f.temp.path().join(format!("node-admin-{index}.toml"));

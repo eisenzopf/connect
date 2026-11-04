@@ -102,6 +102,7 @@ pub(crate) fn configured(control: CanonicalClientConfig) -> connect_client::sdk:
     connect_client::sdk::ClientConfig {
         control,
         tenant_id: "tnt_default".parse().unwrap(),
+        native_video_feedback: false,
         application: None,
     }
 }

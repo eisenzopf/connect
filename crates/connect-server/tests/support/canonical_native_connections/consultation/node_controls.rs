@@ -122,6 +122,7 @@ async fn start_configured(
     let sdk_config = sdk::ClientConfig {
         control: config,
         tenant_id: "tnt_default".parse().unwrap(),
+        native_video_feedback: false,
         application: None,
     };
     let native = f.temp.path().join(format!("node-consult-{mode}.toml"));

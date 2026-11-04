@@ -141,6 +141,7 @@ pub struct MutationOptions {
 pub struct Client {
     shared: Arc<worker::Shared>,
     tenant_id: TenantId,
+    native_video_feedback: bool,
     application: Option<Arc<application_reads::OwnedReads>>,
 }
 impl Client {
@@ -161,6 +162,7 @@ impl Client {
         Ok(Self {
             shared: worker::Shared::start(peer)?,
             tenant_id,
+            native_video_feedback: false,
             application: None,
         })
     }

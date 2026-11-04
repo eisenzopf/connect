@@ -43,6 +43,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
         let sdk_config = connect_client::sdk::ClientConfig {
             control: f.client.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
+            native_video_feedback: false,
             application: Some(connect_client::application::ApplicationClientConfig {
                 endpoint: f.server.http_address.unwrap(),
                 credential: f.client.credential.clone(),
@@ -60,6 +61,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
         let peer_sdk_config = connect_client::sdk::ClientConfig {
             control: peer_control.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
+            native_video_feedback: false,
             application: None,
         };
         let peer_native = f.temp.path().join("peer-sdk-client.toml");
