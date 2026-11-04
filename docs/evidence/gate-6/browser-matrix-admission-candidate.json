@@ -55,7 +55,19 @@
         "cell_qualified": false
       }
     ],
-    "tracked_files_match_tested_bytes": true
+    "tracked_files_match_tested_bytes": true,
+    "python_actor_boundary_checks": {
+      "passed": 3,
+      "failed": 0,
+      "procedure": "python3 -m unittest discover -s scripts/tests -p test_browser_matrix_actors.py -v",
+      "test_source_sha256": "087f0020d3d0948a9e21906903596be643bdae86f44f85abaffa3eb30aa0f315",
+      "implementation_revision": "dd987926ec18955b4ba5d70cda6ad6f32f18fe2e",
+      "checks": [
+        "cross-actor private-key path refuses export",
+        "changed credential/signing cohort cannot reuse original issuance",
+        "readable or symlinked protected input refuses export"
+      ]
+    }
   },
   "actual_browser_authentication_executed": false,
   "actual_six_browser_connections_executed": false,

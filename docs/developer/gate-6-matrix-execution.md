@@ -107,7 +107,8 @@ public reports. Both retained signing cohorts exported/imported successfully.
 
 Six new focused checks pass for intent persistence, uncertainty, original
 references, deadline/cleanup ownership and signing-key conversion. Key checks
-also pass on Linux Node22.16.0. These are library checks. The browser admission
+also pass on Linux Node22.16.0. Three additional actor-export checks pass for
+private-file boundaries, issuance credentials and signing cohorts. These are library checks. The browser admission
 scenario still needs the owned fixture/launcher integration and actual browser
 execution; it does not qualify a cell. The complete 60-second media, four-move,
 expiry and idle observations remain required. See
