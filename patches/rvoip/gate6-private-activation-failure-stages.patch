@@ -1,0 +1,123 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -842,6 +842,15 @@
+         held: &(dyn Any + Send + Sync),
+         managed: Option<crate::orchestrator::participant_control::ManagedAudienceContext>,
+     ) -> ControlResult<(AudioAudienceOutcome, AudioAudienceHandle)> {
++        // Failure-only metadata for private activation; no packet-path logging.
++        let refused = |stage: &'static str, id: &ConnectionId, error: StreamControlError| {
++            if plan.request.activate_muted.is_some() {
++                tracing::debug!(target: "rvoip_core::replacement_commit",
++                    operation = %plan.request.operation_id, connection = %id, stage, ?error,
++                    "Private audience refused before publication");
++            }
++            error
++        };
+         if plan.scene != self.id {
+             return Err(StreamControlError::Authority);
+         }
+@@ -880,7 +889,8 @@
+             } else {
+                 MediaControlIntent::AudioAudience { plan: &plan }
+             };
+-            let control = controller.policy.current_control(&scope, &intent, held)?;
++            let control = controller.policy.current_control(&scope, &intent, held)
++                .map_err(|error| refused("current-control", id, error))?;
+             deadline = deadline
+                 .min(control.deadline)
+                 .min(StreamController::command_deadline(
+@@ -1009,7 +1019,8 @@
+                     })?;
+                 }
+                 let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+-                let owner = control.authority()?;
++                let owner = control.authority()
++                    .map_err(|error| refused("prepare-owner", id, error))?;
+                 StreamController::check(&scope, &owner)?;
+                 state
+                     .model
+@@ -1051,7 +1062,7 @@
+                     rules,
+                     &control,
+                     plan.replacement.is_some(),
+-                )?;
++                ).map_err(|error| refused("prepare-audio", id, error))?;
+                 let direct = plan
+                     .replacement
+                     .as_ref()
+@@ -1085,7 +1096,7 @@
+                         .map(|(id, _)| id.clone())
+                         .collect::<BTreeSet<_>>();
+                     if ids.is_empty() {
+-                        return Err(StreamControlError::NotReady);
++                        return Err(refused("gate-audio-missing", id, StreamControlError::NotReady));
+                     }
+                     if plan.restore.is_none()
+                         && ids.iter().any(|id| !state.model.streams()[id].source_muted)
+@@ -1175,7 +1186,8 @@
+         }
+         let mut tickets = Vec::new();
+         for target in &targets {
+-            current(target, deadline, &cancel)?;
++            current(target, deadline, &cancel)
++                .map_err(|error| refused("before-quiesce", &target.controller.connection, error))?;
+             tokens.push(target.control.cancellation.clone());
+             tokens.push(target.controller.shutdown.clone());
+             tokens.push(target.audio.cancellation());
+@@ -1230,7 +1242,8 @@
+             // Validate one receiver at a time: another receiver is often also
+             // its publisher. Holding all state locks here would reenter them.
+             for target in &targets {
+-                current(target, deadline, &cancel)?;
++                current(target, deadline, &cancel)
++                .map_err(|error| refused("validate-current", &target.controller.connection, error))?;
+                 let id = &target.controller.connection;
+                 let member = &members[id];
+                 let state = target
+@@ -1250,7 +1263,8 @@
+                         error
+                     })?;
+                 }
+-                let owner = target.control.authority()?;
++                let owner = target.control.authority()
++                    .map_err(|error| refused("validate-owner", id, error))?;
+                 StreamController::check(&scope, &owner)?;
+                 state
+                     .model
+@@ -1264,7 +1278,7 @@
+                     &owner,
+                     Some(&target.control),
+                     None,
+-                )?);
++                ).map_err(|error| refused("validate-audio", id, error))?);
+                 if let Some(direct) = &target.direct {
+                     receive.extend(direct.validate(
+                         &target.controller,
+@@ -1286,7 +1300,8 @@
+             let mut models = Vec::new();
+             let mut revisions = BTreeMap::new();
+             for ((target, state), owner) in targets.iter().zip(&states).zip(&owners) {
+-                current(target, deadline, &cancel)?;
++                current(target, deadline, &cancel)
++                .map_err(|error| refused("model-current", &target.controller.connection, error))?;
+                 if state.closed {
+                     return Err(StreamControlError::Cancelled);
+                 }
+@@ -1318,14 +1333,15 @@
+             }
+             let mut commits = targets
+                 .iter()
+-                .map(|t| t.audio.lock())
++                .map(|t| t.audio.lock().map_err(|error| refused("audio-commit-lock", &t.controller.connection, error)))
+                 .collect::<ControlResult<Vec<_>>>()?;
+             let mut direct_commits = targets
+                 .iter()
+                 .map(|t| t.direct.as_ref().map(|d| d.lock(&t.controller)).transpose())
+                 .collect::<ControlResult<Vec<_>>>()?;
+             for (target, state) in targets.iter().zip(&states) {
+-                current(target, deadline, &cancel)?;
++                current(target, deadline, &cancel)
++                .map_err(|error| refused("publish-current", &target.controller.connection, error))?;
+                 if let Some(handoff) = &plan.handoff {
+                     handoff.validate_target(&target.controller, state)?;
+                 }

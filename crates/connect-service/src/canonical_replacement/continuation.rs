@@ -30,6 +30,24 @@ pub(crate) struct Invocation {
     pub deadline: tokio::time::Instant,
 }
 impl Invocation {
+    fn refused(
+        &self,
+        stage: &'static str,
+        id: &ConnectionId,
+        error: StreamControlError,
+    ) -> StreamControlError {
+        let phase = match &self.phase {
+            Phase::Attach => "attach",
+            Phase::Activate(_) => "activate",
+            Phase::Signal(_) => "signal",
+            Phase::Commit(_) => "commit",
+        };
+        tracing::debug!(target: "connect_service::canonical_replacement",
+            operation = %self.root.origin.request().operation_id,
+            connection = %id, phase, stage, ?error,
+            "Replacement held authority refused");
+        error
+    }
     pub(crate) fn controls_telephone(
         &self,
         source: &crate::telephone_replacement::media::Policy,
@@ -58,7 +76,10 @@ impl Invocation {
     fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
         self.check()?;
         if id == self.policy.pending.binding().connection() {
-            return self.policy.current_owner(self.read.media());
+            return self
+                .policy
+                .current_owner(self.read.media())
+                .map_err(|error| self.refused("candidate-owner", id, error));
         }
         if id.as_str()
             == self
@@ -79,16 +100,29 @@ impl Invocation {
                 );
             }
         }
-        let entry = self.policy.base.entry(id)?;
+        let entry = self
+            .policy
+            .base
+            .entry(id)
+            .map_err(|error| self.refused("existing-registry", id, error))?;
         let read = self
             .read
             .existing(id.as_str(), None)
             .ok_or(StreamControlError::Authority)?;
-        let owner = entry.owner(read.target(), &entry.principal, false)?;
+        let owner = entry
+            .owner(read.target(), &entry.principal, false)
+            .map_err(|error| self.refused("existing-binding", id, error))?;
         entry
             .activation()?
-            .ok_or(StreamControlError::NotReady)?
+            .ok_or_else(|| {
+                self.refused(
+                    "existing-activation-missing",
+                    id,
+                    StreamControlError::NotReady,
+                )
+            })?
             .current(owner)
+            .map_err(|error| self.refused("existing-activation-current", id, error))
     }
     pub(crate) fn media_control(
         &self,
@@ -291,13 +325,18 @@ impl MediaAuthorityLease for Held {
                 .source_matches(source)?;
             let _ = i.owner(&source.connection)?;
         } else {
-            let entry = i.policy.base.entry(&source.connection)?;
+            let entry = i
+                .policy
+                .base
+                .entry(&source.connection)
+                .map_err(|error| i.refused("receive-registry", &source.connection, error))?;
             let view = i
                 .read
                 .existing(source.connection.as_str(), None)
                 .ok_or(StreamControlError::Authority)?
                 .target();
-            crate::canonical_media::source_matches(source, &entry, view)?;
+            crate::canonical_media::source_matches(source, &entry, view)
+                .map_err(|error| i.refused("receive-source", &source.connection, error))?;
         }
         let mut owner = i.owner(&self.target)?;
         owner.may_route_source = true;

@@ -1003,5 +1003,27 @@
       "original_media_tasks_started": 30,
       "feedback_workers_started": 6
     }
+  },
+  "activation_investigation": {
+    "run": "v113",
+    "operation_ledger_verified": true,
+    "first_return_failure": {
+      "operation_id": "move_36814695-7f17-4f6a-80f0-70d652086a6c",
+      "revision": 12,
+      "activation": "unknown",
+      "attempts": 1,
+      "compensation": "confirmed"
+    },
+    "sibling_return_failure": {
+      "operation_id": "move_e8141a1d-bc15-4cfd-8894-ebfc61000530",
+      "revision": 14,
+      "activation": "confirmed",
+      "readiness": "confirmed",
+      "compensation": "confirmed"
+    },
+    "source_peer_observations": "Both first-generation physical peers passed, explicitly stopped and joined; no evidence of spontaneous early owner death.",
+    "candidate_cause": "Held authority calls the packet-oriented entries.try_lock lookup, which maps contention to NotReady. This is one possible source, not yet established as the v113 trigger.",
+    "next_action": "Run only the failed full native workload with failure-stage metadata at held authority and Core audience prepublication checks. No generic activation retry or deadline change.",
+    "cause_proven": false
   }
 }

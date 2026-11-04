@@ -1619,6 +1619,11 @@
       "path": "patches/rvoip/gate6-replacement-plan-failure-stages.patch",
       "sha256": "8213cc53c3ec793a0ee65f40551797d84d6fa1678900f81a82da442a5be5c9c9",
       "source": "G6-058 v110 diagnosis: distinguish effect-free replacement plan lock contention, audience revision, video binding, readiness and saved audio selection failures. Error values and admission/commit behavior unchanged; logs contain metadata only."
+    },
+    {
+      "path": "patches/rvoip/gate6-private-activation-failure-stages.patch",
+      "sha256": "0bff09d393953c8ed0c444307c3fb2585a7c0de58bd674ac890885475de2f103",
+      "source": "G6-058 v113 diagnosis: identify private audience activation failure before publication, including held authority, audio preparation, validation and commit locks. Preserve errors, authorization and original deadlines."
     }
   ]
 }
