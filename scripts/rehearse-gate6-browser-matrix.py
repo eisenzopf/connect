@@ -230,6 +230,12 @@ def main():
         phase = "actual-browser-admission"
         browser_output = private / "browser"
         browser_output.mkdir()
+        # Docker cannot create a nested destination beneath the read-only
+        # workspace mount. This empty ignored host mountpoint supplies the
+        # short private alias required by the Unix audio socket path limit.
+        audio_mount = ROOT / ".local/matrix-browser"
+        audio_mount.mkdir(mode=0o700, exist_ok=True)
+        assert not audio_mount.is_symlink() and not any(audio_mount.iterdir())
         browser_input = browser_output / "input.json"
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
             transport=args.transport, signingAlgorithm=args.signing, origin=origin,
