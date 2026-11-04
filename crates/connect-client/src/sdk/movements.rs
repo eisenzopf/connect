@@ -603,7 +603,7 @@ mod activation_tests {
     #[test]
     fn native_activation_completion_preserves_ready_stopped_and_refuses_contradictions() {
         let ready: Value = serde_json::from_str(include_str!(
-            "../../../../../sdk/tests/fixtures/native_move_activation.json"
+            "../../../../sdk/tests/fixtures/native_move_activation.json"
         ))
         .unwrap();
         let key = OperationKey {
