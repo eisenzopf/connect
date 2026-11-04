@@ -173,3 +173,38 @@ payload 111 and auxiliary payloads 101, 110 and 126, plus unregistered payload
 optional audio feedback profile. Existing primary repair and source-clock
 feedback remain separate regression checks. Current permission through actual
 WebRTC driver IO is still required for guarded signal routing.
+
+## Opt-in native video epochs and feedback
+
+The candidate `rtcp-pli-epoch/1` profile is negotiated separately through the
+`video_feedback` capability in the authenticated offer and signed parameter
+confirmation. It is disabled by default. Omitted confirmation cannot activate
+an offered feedback profile. Existing sender-clock negotiation supplies no
+feedback permission.
+
+The signed `stream.epoch` lifecycle notice describes an actual ordinary packet,
+not readiness or permission. Its envelope carries the exact Conversation,
+Session and Connection. The payload binds `original_operation` and
+`original_offer` (the confirmed `native-prepared/1` setup's `offer_id`), physical
+`incarnation`, `strm_id`, `stream_local_id`, `stream_generation`,
+`connection_generation`, monotonic `revision`, `direction` (`publisher` or
+`receiver`), opaque `epoch`, actual `ssrc`, `first_sequence` and
+`first_timestamp`. Incarnation and epoch are 32-character UUID/u128 hexadecimal
+identifiers. Sequences and timestamps retain the original unsigned 32-bit native
+and RTP clocks. A reselection can change epoch and first sequence while retaining
+the same physical handle, SSRC and stream generation.
+
+Notices use the existing owned native lifecycle writer and current original
+physical-source authority. They may precede connection readiness so a receiver
+can bootstrap without waiting for unrelated streams. Retained registry entries
+contain only bounded metadata and weak generation predicates. The current
+binding and epoch are rechecked before reliable submission. Consumers must check
+the signed physical/operation/binding scope, reject stale notice revisions, and
+classify packet boundaries without reusing decoder history from a prior epoch.
+Receipt of a number never authorizes feedback: the native adapter separately
+checks the physical handle, emitted SSRC and current selected route, then obtains
+both endpoints' current permissions before dispatching to the publisher.
+
+This contract addition is a candidate pending its new focused signed transport
+proofs. Production host enablement, SDK notice ordering and source-worker feedback
+remain pending; it does not qualify G6-058 media quality.

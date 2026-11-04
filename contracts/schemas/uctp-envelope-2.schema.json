@@ -75,7 +75,8 @@
         "operation.reconcile",
         "operation.updated",
         "session.observation",
-        "session.consult.return"
+        "session.consult.return",
+        "stream.epoch"
       ]
     },
     "id": {
@@ -2329,6 +2330,93 @@
         "streams"
       ],
       "additionalProperties": true
+    },
+    "StreamEpoch": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "rtcp-pli-epoch/1"
+        },
+        "strm_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "stream_local_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "original_operation": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "original_offer": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "incarnation": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "stream_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "connection_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "direction": {
+          "enum": [
+            "publisher",
+            "receiver"
+          ]
+        },
+        "epoch": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "ssrc": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "first_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "first_timestamp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "profile",
+        "strm_id",
+        "stream_local_id",
+        "original_operation",
+        "original_offer",
+        "incarnation",
+        "stream_generation",
+        "connection_generation",
+        "revision",
+        "direction",
+        "epoch",
+        "ssrc",
+        "first_sequence",
+        "first_timestamp"
+      ],
+      "additionalProperties": false
     },
     "HandoffPreparation": {
       "type": "object",
@@ -4692,6 +4780,27 @@
               "in_reply_to"
             ]
           }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "stream.epoch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/StreamEpoch"
+          }
+        },
+        "required": [
+          "cid",
+          "sid",
+          "connid"
         ]
       }
     },

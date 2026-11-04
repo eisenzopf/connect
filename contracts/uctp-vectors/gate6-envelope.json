@@ -3244,6 +3244,66 @@
       }
     },
     {
+      "id": "schema-stream.epoch",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.epoch",
+        "id": "env_vector_66",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "profile": "rtcp-pli-epoch/1",
+          "strm_id": "example",
+          "stream_local_id": 1,
+          "original_operation": "example",
+          "original_offer": "example",
+          "incarnation": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "stream_generation": 1,
+          "connection_generation": 1,
+          "revision": 1,
+          "direction": "publisher",
+          "epoch": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "ssrc": 1,
+          "first_sequence": 0,
+          "first_timestamp": 0
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.epoch",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.epoch",
+        "id": "env_vector_66",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "profile": "rtcp-pli-epoch/1",
+          "strm_id": "example",
+          "stream_local_id": 1,
+          "original_operation": "example",
+          "original_offer": "example",
+          "incarnation": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "stream_generation": 1,
+          "connection_generation": 1,
+          "revision": 1,
+          "direction": "publisher",
+          "epoch": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "ssrc": 1,
+          "first_sequence": 0,
+          "first_timestamp": 0
+        }
+      }
+    },
+    {
       "id": "active-speaker-session-silence",
       "scope": "schema-only",
       "valid": true,

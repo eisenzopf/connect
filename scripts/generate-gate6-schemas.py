@@ -94,6 +94,22 @@ def build():
  definitions['StreamSubscription']['oneOf']=[{'required':['strm_id'],'not':{'anyOf':[{'required':['from_participant']},{'required':['kinds']}]}},{'required':['from_participant'],'not':{'required':['strm_id']}}]
  definitions['ReadyStreamBinding']=obj({k:v for k,v in definitions['StreamInfo']['properties'].items() if k!='opened_at'})
  definitions['ConnectionReady']=obj({'streams':array(ref('ReadyStreamBinding'),1)})
+ # Exact authenticated native history metadata, never readiness or media authority.
+ definitions['StreamEpoch']={**obj({
+  'profile':{'const':'rtcp-pli-epoch/1'},'strm_id':ref('Identifier'),
+  'stream_local_id':{'type':'integer','minimum':1,'maximum':65535},
+  'original_operation':ref('Identifier'),'original_offer':ref('Identifier'),
+  'incarnation':{**ID,'minLength':32,'maxLength':32},
+  'stream_generation':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},
+  'connection_generation':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},
+  'revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},
+  'direction':{'enum':['publisher','receiver']},
+  'epoch':{**ID,'minLength':32,'maxLength':32},
+  'ssrc':{'type':'integer','minimum':1,'maximum':4294967295},
+  'first_sequence':{'type':'integer','minimum':0,'maximum':4294967295},
+  'first_timestamp':{'type':'integer','minimum':0,'maximum':4294967295}
+ }), 'additionalProperties':False}
+
  # Target-owned native isolation is distinct from an executable handoff or
  # decoded readiness. Its signed profile has no caller reference or ready bit.
  definitions['HandoffPreparation']={'type':'object','properties':{'profile':{'const':'connect-handoff-preparation-v1'}},'required':['profile'],'additionalProperties':False}
@@ -160,6 +176,7 @@ def build():
  kinds={e['type']:e['payload_struct'] or 'ConnectionReady' for e in ledger['envelopes']}
  kinds.update({'conversation.get':'ConversationGet','conversation.participant.add':'MemberAdd','conversation.participant.update':'MemberUpdate','conversation.participant.remove':'MemberRemove','conversation.participant.changed':'MemberChanged','conversation.subscribe':'ConversationSubscribe','conversation.snapshot':'ConversationSnapshot','conversation.event':'ConversationEvent','session.consult':'SessionConsult','session.handoff':'SessionHandoff','connection.replace':'ConnectionReplace','operation.get':'OperationGet','operation.cancel':'OperationCancel','operation.reconcile':'OperationReconcile','operation.updated':'OperationUpdated','session.observation':'SessionObservation'})
  kinds['session.consult.return']='SessionConsultReturn'
+ kinds['stream.epoch']='StreamEpoch'
  mutations={'conversation.create','conversation.close','conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','session.consult','session.consult.return','session.handoff','connection.offer','connection.answer','connection.update','connection.end','connection.replace','stream.subscribe','stream.unsubscribe','message.send','message.read','dtmf.send','operation.cancel','operation.reconcile'}
  revisioned={'conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.update','session.consult','session.consult.return','session.handoff','connection.replace','connection.update','stream.subscribe','stream.unsubscribe'}
  definitions['Signature']=obj({'keyid':{'type':'string','minLength':1},'alg':{'enum':['EdDSA','ES256','PS256','RS256']},'sig':{'type':'string','minLength':1}})
@@ -196,7 +213,7 @@ def sample(node,definitions):
  if 'oneOf' in node and 'properties' not in node:return sample(node['oneOf'][0],definitions)
  if 'anyOf' in node:return sample(node['anyOf'][0],definitions)
  if node.get('format')=='date-time':return '2026-10-15T12:00:00Z'
- if node.get('type')=='string':return 'example'
+ if node.get('type')=='string':return 'example' if node.get('minLength',0)<=7 else 'e'*node['minLength']
  if node.get('type') in ('integer','number'):return node.get('minimum',0)
  if node.get('type')=='boolean':return False
  if node.get('type')=='array':

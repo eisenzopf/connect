@@ -1589,6 +1589,11 @@
       "path": "patches/rvoip/gate6-replacement-fixture-video-argument.patch",
       "sha256": "3931f5abcf58b973966d1327b4bdffbc2ddae44d0d8b960945755e54bb1048a5",
       "source": "Compile existing audio-only native/adapter replacement fixtures against explicit optional video request API; no old case rerun"
+    },
+    {
+      "path": "patches/rvoip/gate6-signed-native-video-epochs.patch",
+      "sha256": "9683771135541a46573e9ce3a14e6217c977166f22e73e37cc51ac7a822924b9",
+      "source": "Gate 6 explicit native feedback negotiation and signed physical/operation/generation packet-boundary epoch notices through owned lifecycle writer"
     }
   ]
 }

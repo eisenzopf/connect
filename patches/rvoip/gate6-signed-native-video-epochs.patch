@@ -1,0 +1,1913 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -98,6 +98,17 @@
+         self.epoch.id
+     }
+ 
++    /// Weak structural generation metadata only. This is not a permission
++    /// check; dispatch still reacquires both current endpoint authorities.
++    pub fn is_current(&self) -> bool {
++        self.direct.is_current()
++            && !self.epoch.scope.cancelled()
++            && self.epoch.scope.source_ticket.is_current()
++            && self.epoch.scope.target_ticket.is_current()
++            && self.epoch.scope.source.upgrade().is_some()
++            && self.epoch.scope.target.upgrade().is_some()
++    }
++
+     /// Invoke one bounded nonblocking local source dispatch under fresh source
+     /// publication and exact receiver-selection authority. The callback must
+     /// not detach IO or retain these guards. A failed dispatch consumes its
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
+@@ -0,0 +1,140 @@
++//! Bounded metadata for the existing owned signed lifecycle writer. No media,
++//! retained authority or additional task lives in this registry.
++use super::*;
++use crate::staged_media::{same_binding, VideoFeedbackEpoch, VideoFeedbackProfile};
++use std::sync::Weak;
++type Current = Arc<dyn Fn() -> bool + Send + Sync>;
++#[derive(Clone)]
++pub struct VideoEpochObservation {
++    pub(crate) binding: ReadyMediaBinding,
++    pub(crate) operation: String,
++    pub(crate) offer: String,
++    pub(crate) revision: u64,
++    pub(crate) epoch: VideoFeedbackEpoch,
++    current: Current,
++}
++impl std::fmt::Debug for VideoEpochObservation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("VideoEpochObservation(redacted)")
++    }
++}
++impl VideoEpochObservation {
++    pub fn binding(&self) -> &ReadyMediaBinding {
++        &self.binding
++    }
++    pub fn original_operation(&self) -> &str {
++        &self.operation
++    }
++    pub fn original_offer(&self) -> &str {
++        &self.offer
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn epoch(&self) -> VideoFeedbackEpoch {
++        self.epoch
++    }
++    pub(crate) fn key(&self) -> (StreamId, bool) {
++        (self.binding.transport_id.clone(), self.epoch.publisher)
++    }
++}
++#[derive(Default)]
++struct State {
++    revision: u64,
++    values: BTreeMap<(StreamId, bool), VideoEpochObservation>,
++}
++#[derive(Default)]
++pub(crate) struct Registry(Mutex<State>);
++struct Profile {
++    flow: Weak<NativeFlow>,
++    binding: ReadyMediaBinding,
++    operation: String,
++    offer: String,
++}
++impl VideoFeedbackProfile for Profile {
++    fn announce(
++        &self,
++        binding: &ReadyMediaBinding,
++        epoch: VideoFeedbackEpoch,
++        current: Current,
++    ) -> ControlResult<()> {
++        let flow = self.flow.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if !flow.current() || !same_binding(binding, &self.binding) || !current() {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut state = flow
++            .video_epochs
++            .0
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?;
++        state.values.retain(|_, v| (v.current)());
++        let key = (binding.transport_id.clone(), epoch.publisher);
++        if state.values.get(&key).is_some_and(|v| v.epoch == epoch) {
++            return Ok(());
++        }
++        if state.values.len() >= 128 || state.revision >= crate::v2::MAX_SAFE_REVISION {
++            return Err(StreamControlError::Backpressure);
++        }
++        state.revision += 1;
++        let revision = state.revision;
++        state.values.insert(
++            key,
++            VideoEpochObservation {
++                binding: binding.clone(),
++                operation: self.operation.clone(),
++                offer: self.offer.clone(),
++                revision,
++                epoch,
++                current,
++            },
++        );
++        drop(state);
++        flow.changed.notify_waiters();
++        Ok(())
++    }
++}
++impl NativeFlow {
++    pub(crate) fn video_feedback_profile(
++        self: &Arc<Self>,
++        binding: &ReadyMediaBinding,
++        operation: &str,
++        offer: &str,
++    ) -> Arc<dyn VideoFeedbackProfile> {
++        Arc::new(Profile {
++            flow: Arc::downgrade(self),
++            binding: binding.clone(),
++            operation: operation.into(),
++            offer: offer.into(),
++        })
++    }
++    pub(crate) fn next_video_epoch(
++        &self,
++        active: &[ReadyMediaBinding],
++        sent: &BTreeMap<(StreamId, bool), u64>,
++    ) -> Option<VideoEpochObservation> {
++        if !self.current() {
++            return None;
++        }
++        let state = self.video_epochs.0.try_lock().ok()?;
++        state
++            .values
++            .values()
++            .filter(|v| {
++                (v.current)()
++                    && sent.get(&v.key()).is_none_or(|old| *old < v.revision)
++                    && active.iter().any(|b| same_binding(b, &v.binding))
++            })
++            .min_by_key(|v| v.revision)
++            .cloned()
++    }
++    pub(crate) fn video_epoch_current(&self, value: &VideoEpochObservation) -> bool {
++        self.current()
++            && (value.current)()
++            && self.video_epochs.0.try_lock().ok().is_some_and(|state| {
++                state
++                    .values
++                    .get(&value.key())
++                    .is_some_and(|v| v.revision == value.revision && (v.current)())
++            })
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -1,4 +1,5 @@
+ //! Native IO observations, never a permission grant or a peer ready assertion.
++pub(crate) mod video_epochs;
+ use crate::v2::payloads::{ConnectionQuality, StreamQuality};
+ use rvoip_core::{ids::StreamId, staged_streams::*, stream_lifecycle::*};
+ use std::time::Duration;
+@@ -28,6 +29,7 @@
+     quality_epoch: CancellationToken,
+ }
+ pub(crate) struct NativeFlow {
++    video_epochs: video_epochs::Registry,
+     state: Mutex<State>,
+     lifetime: CancellationToken,
+     pub(crate) changed: Notify,
+@@ -79,6 +81,7 @@
+     }
+     pub(crate) fn new(lifetime: CancellationToken) -> Arc<Self> {
+         Arc::new(Self {
++            video_epochs: Default::default(),
+             state: Mutex::new(State {
+                 ports: BTreeMap::new(),
+                 epoch: lifetime.child_token(),
+--- a/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+@@ -12,6 +12,9 @@
+     pub publisher: bool,
+     pub epoch: u128,
+     pub ssrc: u32,
++    /// First actually admitted/submitted native datagram in this history.
++    pub first_sequence: u32,
++    pub first_timestamp: u32,
+ }
+ /// Installed only by a profile that separately negotiated rtcp-pli-epoch/1 for
+ /// this exact binding. Implementations must bind notices to the authenticated
+@@ -20,8 +23,12 @@
+ /// notice, with no policy reentry. Success is not remote receipt. Returning an
+ /// error leaves feedback disabled for the unannounced epoch; media is not retried.
+ pub trait VideoFeedbackProfile: Send + Sync {
+-    fn announce(&self, binding: &ReadyMediaBinding, epoch: VideoFeedbackEpoch)
+-        -> ControlResult<()>;
++    fn announce(
++        &self,
++        binding: &ReadyMediaBinding,
++        epoch: VideoFeedbackEpoch,
++        current: Arc<dyn Fn() -> bool + Send + Sync>,
++    ) -> ControlResult<()>;
+ }
+ struct Publisher {
+     epoch: VideoFeedbackEpoch,
+@@ -33,6 +40,8 @@
+     route: VideoFeedbackRoute,
+     ssrc: u32,
+     source_ssrc: u32,
++    first_sequence: u32,
++    first_timestamp: u32,
+     announced: bool,
+ }
+ #[derive(Default)]
+@@ -76,7 +85,13 @@
+     }
+     // Called only after the original ingress packet was accepted, using its
+     // weak current clock/generation predicate. No packet custody is extended.
+-    pub fn published(&self, ssrc: u32, clock: MediaSourceClock) -> ControlResult<()> {
++    pub fn published(
++        &self,
++        ssrc: u32,
++        clock: MediaSourceClock,
++        first_sequence: u32,
++        first_timestamp: u32,
++    ) -> ControlResult<()> {
+         if !self.live() || !self.binding.source_ready || ssrc == 0 || !(clock.is_current)() {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -95,6 +110,8 @@
+                     publisher: true,
+                     epoch: uuid::Uuid::new_v4().as_u128(),
+                     ssrc,
++                    first_sequence,
++                    first_timestamp,
+                 },
+                 current: clock.is_current,
+                 clock: identity,
+@@ -103,7 +120,8 @@
+         }
+         let publisher = state.publisher.as_mut().unwrap();
+         if !publisher.announced {
+-            self.profile.announce(&self.binding, publisher.epoch)?;
++            self.profile
++                .announce(&self.binding, publisher.epoch, publisher.current.clone())?;
+             publisher.announced = true;
+         }
+         Ok(())
+@@ -113,6 +131,8 @@
+         route: VideoFeedbackRoute,
+         ssrc: u32,
+         source_ssrc: u32,
++        first_sequence: u32,
++        first_timestamp: u32,
+     ) -> ControlResult<()> {
+         if !self.live() || !self.binding.sink_ready || ssrc == 0 || source_ssrc == 0 {
+             return Err(StreamControlError::NotReady);
+@@ -128,6 +148,8 @@
+                 route,
+                 ssrc,
+                 source_ssrc,
++                first_sequence,
++                first_timestamp,
+                 announced: false,
+             });
+         }
+@@ -139,6 +161,12 @@
+                     publisher: false,
+                     epoch: receiver.route.epoch(),
+                     ssrc,
++                    first_sequence: receiver.first_sequence,
++                    first_timestamp: receiver.first_timestamp,
++                },
++                {
++                    let route = receiver.route.clone();
++                    Arc::new(move || route.is_current())
+                 },
+             )?;
+             receiver.announced = true;
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -249,6 +249,51 @@
+     port: WeakAdapterMediaPort,
+     counters: Arc<StagedRtpCounters>,
+ }
++impl PortIngress {
++    fn publish_source(
++        &self,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++        sequence: Option<u32>,
++    ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        let mut clock = None;
++        let result = self
++            .port
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)
++            .and_then(|p| {
++                p.try_publish_clocked(&frame, |current| {
++                    clock = self.clock.snapshot(ssrc, current);
++                    clock.clone()
++                })
++            });
++        if result.is_ok() {
++            if let (Some(feedback), Some(clock), Some(sequence)) = (&self.feedback, clock, sequence)
++            {
++                let _ = feedback.published(ssrc, clock, sequence, frame.timestamp_rtp);
++            }
++        }
++        match result {
++            Ok(()) => {
++                self.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
++                    flow.received(&port);
++                    flow.record_rtp(&port, true, datagram_bytes);
++                }
++                Ok(())
++            }
++            Err(e) => {
++                self.counters.rejected.fetch_add(1, Ordering::AcqRel);
++                if matches!(e, StreamControlError::Backpressure) {
++                    Err(mpsc::error::TrySendError::Full(frame))
++                } else {
++                    Err(mpsc::error::TrySendError::Closed(frame))
++                }
++            }
++        }
++    }
++}
+ impl CheckedMediaIngress for PortIngress {
+     fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+         let result = self
+@@ -291,40 +336,16 @@
+         ssrc: u32,
+         datagram_bytes: usize,
+     ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+-        let mut clock = None;
+-        let result = self
+-            .port
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)
+-            .and_then(|p| {
+-                p.try_publish_clocked(&frame, |current| {
+-                    clock = self.clock.snapshot(ssrc, current);
+-                    clock.clone()
+-                })
+-            });
+-        if result.is_ok() {
+-            if let (Some(feedback), Some(clock)) = (&self.feedback, clock) {
+-                let _ = feedback.published(ssrc, clock);
+-            }
+-        }
+-        match result {
+-            Ok(()) => {
+-                self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+-                if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
+-                    flow.received(&port);
+-                    flow.record_rtp(&port, true, datagram_bytes);
+-                }
+-                Ok(())
+-            }
+-            Err(e) => {
+-                self.counters.rejected.fetch_add(1, Ordering::AcqRel);
+-                if matches!(e, StreamControlError::Backpressure) {
+-                    Err(mpsc::error::TrySendError::Full(frame))
+-                } else {
+-                    Err(mpsc::error::TrySendError::Closed(frame))
+-                }
+-            }
+-        }
++        self.publish_source(frame, ssrc, datagram_bytes, None)
++    }
++    fn try_send_rtp_observed(
++        &self,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++        sequence: u32,
++    ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        self.publish_source(frame, ssrc, datagram_bytes, Some(sequence))
+     }
+     fn try_video_feedback(&self, request: &crate::substrate::VideoFeedbackDatagram) -> bool {
+         self.feedback
+@@ -992,7 +1013,12 @@
+                             }
+                         }
+                     } else {
+-                        let send = |frame, origin| {
++                        let mut boundary = None;
++                        let send = |frame: MediaFrame, origin| {
++                            boundary = Some((
++                                packetizer.as_ref().expect("owned packetizer").outer,
++                                frame.timestamp_rtp,
++                            ));
+                             let result = packetizer.as_mut().expect("owned packetizer").send(
+                                 frame,
+                                 origin,
+@@ -1016,8 +1042,13 @@
+                                     let packetizer = packetizer.as_ref().expect("owned packetizer");
+                                     if let Some(source) = &packetizer.previous_video {
+                                         // Feedback metadata failure never replays media already sent.
+-                                        let _ =
+-                                            feedback.delivered(route, packetizer.ssrc, source.ssrc);
++                                        let _ = feedback.delivered(
++                                            route,
++                                            packetizer.ssrc,
++                                            source.ssrc,
++                                            boundary.expect("successful submission").0,
++                                            boundary.expect("successful submission").1,
++                                        );
+                                     }
+                                     Ok(())
+                                 }
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -39,6 +39,16 @@
+         datagram_bytes: usize,
+     ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+         self.try_send_rtp(frame, datagram_bytes)
++    }
++    /// Exact native receipt sequence, observed by the sole physical reader.
++    fn try_send_rtp_observed(
++        &self,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++        _sequence: u32,
++    ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        self.try_send_rtp_source(frame, ssrc, datagram_bytes)
+     }
+     /// Clock-only RTCP cannot imply readiness or enqueue a media packet.
+     fn try_clock(&self, _bytes: &[u8]) -> bool {
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -107,6 +107,7 @@
+                     "connection.ready"
+                         | "stream.opened"
+                         | "stream.closed"
++                        | "stream.epoch"
+                         | "dtmf.received"
+                         | "connection.quality"
+                 )
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -75,7 +75,8 @@
+         "operation.reconcile",
+         "operation.updated",
+         "session.observation",
+-        "session.consult.return"
++        "session.consult.return",
++        "stream.epoch"
+       ]
+     },
+     "id": {
+@@ -2330,6 +2331,93 @@
+       ],
+       "additionalProperties": true
+     },
++    "StreamEpoch": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "rtcp-pli-epoch/1"
++        },
++        "strm_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_local_id": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 65535
++        },
++        "original_operation": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "original_offer": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "incarnation": {
++          "type": "string",
++          "minLength": 32,
++          "maxLength": 32,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "stream_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "connection_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "revision": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "direction": {
++          "enum": [
++            "publisher",
++            "receiver"
++          ]
++        },
++        "epoch": {
++          "type": "string",
++          "minLength": 32,
++          "maxLength": 32,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "ssrc": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 4294967295
++        },
++        "first_sequence": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 4294967295
++        },
++        "first_timestamp": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 4294967295
++        }
++      },
++      "required": [
++        "profile",
++        "strm_id",
++        "stream_local_id",
++        "original_operation",
++        "original_offer",
++        "incarnation",
++        "stream_generation",
++        "connection_generation",
++        "revision",
++        "direction",
++        "epoch",
++        "ssrc",
++        "first_sequence",
++        "first_timestamp"
++      ],
++      "additionalProperties": false
++    },
+     "HandoffPreparation": {
+       "type": "object",
+       "properties": {
+@@ -2758,6 +2846,63 @@
+         }
+       ]
+     },
++    "ReplacementVideoStream": {
++      "type": "object",
++      "properties": {
++        "previous": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "replacement": {
++          "$ref": "#/$defs/Identifier"
++        }
++      },
++      "required": [
++        "previous",
++        "replacement"
++      ],
++      "additionalProperties": false
++    },
++    "ReplacementVideo": {
++      "type": "object",
++      "properties": {
++        "publications": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/ReplacementVideoStream"
++          },
++          "maxItems": 32
++        },
++        "receivers": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/ReplacementVideoStream"
++          },
++          "maxItems": 32
++        }
++      },
++      "required": [
++        "publications",
++        "receivers"
++      ],
++      "additionalProperties": false,
++      "anyOf": [
++        {
++          "properties": {
++            "publications": {
++              "minItems": 1
++            }
++          }
++        },
++        {
++          "properties": {
++            "receivers": {
++              "minItems": 1
++            }
++          }
++        }
++      ],
++      "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
++    },
+     "ConnectionReplace": {
+       "type": "object",
+       "properties": {
+@@ -3031,63 +3176,6 @@
+         "sig"
+       ],
+       "additionalProperties": true
+-    },
+-    "ReplacementVideoStream": {
+-      "type": "object",
+-      "properties": {
+-        "previous": {
+-          "$ref": "#/$defs/Identifier"
+-        },
+-        "replacement": {
+-          "$ref": "#/$defs/Identifier"
+-        }
+-      },
+-      "required": [
+-        "previous",
+-        "replacement"
+-      ],
+-      "additionalProperties": false
+-    },
+-    "ReplacementVideo": {
+-      "type": "object",
+-      "properties": {
+-        "publications": {
+-          "type": "array",
+-          "items": {
+-            "$ref": "#/$defs/ReplacementVideoStream"
+-          },
+-          "maxItems": 32
+-        },
+-        "receivers": {
+-          "type": "array",
+-          "items": {
+-            "$ref": "#/$defs/ReplacementVideoStream"
+-          },
+-          "maxItems": 32
+-        }
+-      },
+-      "required": [
+-        "publications",
+-        "receivers"
+-      ],
+-      "additionalProperties": false,
+-      "anyOf": [
+-        {
+-          "properties": {
+-            "publications": {
+-              "minItems": 1
+-            }
+-          }
+-        },
+-        {
+-          "properties": {
+-            "receivers": {
+-              "minItems": 1
+-            }
+-          }
+-        }
+-      ],
+-      "description": "At most 32 mappings in total. Previous IDs unique within each list; replacement IDs unique across both lists. Transfers existing selections only; exact negotiated resources and current authorization required."
+     }
+   },
+   "allOf": [
+@@ -4697,6 +4785,27 @@
+     },
+     {
+       "if": {
++        "properties": {
++          "type": {
++            "const": "stream.epoch"
++          }
++        }
++      },
++      "then": {
++        "properties": {
++          "payload": {
++            "$ref": "#/$defs/StreamEpoch"
++          }
++        },
++        "required": [
++          "cid",
++          "sid",
++          "connid"
++        ]
++      }
++    },
++    {
++      "if": {
+         "required": [
+           "type",
+           "payload"
+--- a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
++++ b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+@@ -3241,6 +3241,66 @@
+           "retained_connid": "example"
+         },
+         "operation_id": "op_vector_65"
++      }
++    },
++    {
++      "id": "schema-stream.epoch",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "stream.epoch",
++        "id": "env_vector_66",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "profile": "rtcp-pli-epoch/1",
++          "strm_id": "example",
++          "stream_local_id": 1,
++          "original_operation": "example",
++          "original_offer": "example",
++          "incarnation": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
++          "stream_generation": 1,
++          "connection_generation": 1,
++          "revision": 1,
++          "direction": "publisher",
++          "epoch": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
++          "ssrc": 1,
++          "first_sequence": 0,
++          "first_timestamp": 0
++        }
++      }
++    },
++    {
++      "id": "schema-unsupported-version-stream.epoch",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 1,
++        "type": "stream.epoch",
++        "id": "env_vector_66",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "profile": "rtcp-pli-epoch/1",
++          "strm_id": "example",
++          "stream_local_id": 1,
++          "original_operation": "example",
++          "original_offer": "example",
++          "incarnation": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
++          "stream_generation": 1,
++          "connection_generation": 1,
++          "revision": 1,
++          "direction": "publisher",
++          "epoch": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
++          "ssrc": 1,
++          "first_sequence": 0,
++          "first_timestamp": 0
++        }
+       }
+     },
+     {
+@@ -5488,6 +5548,345 @@
+         },
+         "operation_id": "op_vector_22"
+       }
++    },
++    {
++      "id": "ice-restart-original-shape",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-largest-successor",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 9007199254740990,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-missing-details",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart"
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-missing-generation",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-negative",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": -1,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-unsafe",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 9007199254740991,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-fractional",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0.5,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-kind",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "native-prepared/1",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-streams",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          },
++          "streams": [
++            "stream-example"
++          ]
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-codecs",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          },
++          "codec_preferences": [
++            "opus"
++          ]
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-quality",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            }
++          },
++          "quality_interval_ms": 1000
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-endpoint",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            },
++            "endpoint_id": "untrusted-endpoint"
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "ice-restart-ready",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.update",
++        "id": "env_vector_25",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "action": "ice-restart",
++          "details": {
++            "expected_ice_generation": 0,
++            "setup": {
++              "kind": "websocket+webrtc",
++              "sdp": "v=0\r\na=ice-ufrag:synthetic\r\n"
++            },
++            "ready": true
++          }
++        },
++        "operation_id": "op_vector_25",
++        "expected_revision": 1
++      }
+     }
+   ]
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -463,6 +463,9 @@
+             None => route.physical.data.handles(scope.owner.clone()),
+         };
+         let flow = crate::native_flow::NativeFlow::new(route.cancel.child_token());
++        if let Some(broker) = &negotiation {
++            broker.attach_flow(&flow);
++        }
+         let backend = Arc::new(crate::staged_data::NativeMedia {
+             flow: flow.clone(),
+             announcements: Arc::new(tokio::sync::Mutex::new(Default::default())),
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -2,6 +2,7 @@
+ //! This is not Participant presence, durable Session projection or a receipt.
+ use super::auth_dispatch::lifecycle::{NativeLifecycleFence, NativeLifecycleOrigin};
+ use super::{auth_dispatch::*, Envelope};
++pub use crate::native_flow::video_epochs::VideoEpochObservation;
+ use crate::{native_flow::NativeFlow, staged_media::StagedRtpScope};
+ use async_trait::async_trait;
+ use rvoip_core::{
+@@ -17,6 +18,9 @@
+ use tokio_util::sync::CancellationToken;
+ #[derive(Clone)]
+ pub enum NativeLifecycleEvent {
++    StreamEpoch {
++        observation: VideoEpochObservation,
++    },
+     ConnectionReady {
+         streams: Vec<ReadyMediaBinding>,
+         observation: NativeConnectionReadyObservation,
+@@ -98,6 +102,7 @@
+ }
+ #[derive(Default)]
+ pub(crate) struct Announcements {
++    video_epochs: BTreeMap<(StreamId, bool), u64>,
+     ready: bool,
+     opened: BTreeMap<StreamId, ReadyMediaBinding>,
+     retired_at: BTreeMap<StreamId, chrono::DateTime<chrono::Utc>>,
+@@ -135,6 +140,13 @@
+         }
+         let active = c.active_bindings();
+         let observed = match &self.event {
++            NativeLifecycleEvent::StreamEpoch { observation } => {
++                self.flow.confirmed_at(self.revision)
++                    && self.flow.video_epoch_current(observation)
++                    && active
++                        .iter()
++                        .any(|b| crate::staged_media::same_binding(b, observation.binding()))
++            }
+             NativeLifecycleEvent::ConnectionReady { streams, .. } => {
+                 self.flow.confirmed_at(self.revision)
+                     && !streams.is_empty()
+@@ -379,7 +391,7 @@
+             let permit = AnswerPermit::new(authority, origin.event_cancellation(), deadline);
+             let (written, receipt) = tokio::sync::oneshot::channel();
+             let result = Arc::new(Mutex::new(None));
+-            let frames = frames(&self.scope.media, &event)?;
++            let frames = frames(&self.scope.media, &event, self.origin.incarnation())?;
+             let delivery = match HandlerDelivery::native_lifecycle(
+                 origin.clone(),
+                 frames,
+@@ -440,6 +452,16 @@
+     controller: &StreamController,
+     scope: &NativeLifecycleScope,
+ ) -> Option<NativeLifecycleEvent> {
++    // A receiver may need this history before its first decodable keyframe.
++    // It is independent of Connection readiness and never announces that state.
++    if flow.confirmed_at(revision) {
++        state
++            .video_epochs
++            .retain(|(transport, _), _| active.iter().any(|b| &b.transport_id == transport));
++        if let Some(observation) = flow.next_video_epoch(active, &state.video_epochs) {
++            return Some(NativeLifecycleEvent::StreamEpoch { observation });
++        }
++    }
+     if !state.ready {
+         if !active.is_empty()
+             && flow.confirmed_at(revision)
+@@ -525,6 +547,11 @@
+ }
+ fn apply(state: &mut Announcements, event: NativeLifecycleEvent) {
+     match event {
++        NativeLifecycleEvent::StreamEpoch { observation } => {
++            state
++                .video_epochs
++                .insert(observation.key(), observation.revision());
++        }
+         NativeLifecycleEvent::ConnectionReady { .. } => state.ready = true,
+         NativeLifecycleEvent::ConnectionQuality { .. } => {}
+         NativeLifecycleEvent::StreamOpened { stream } => {
+@@ -560,6 +587,7 @@
+ fn frames(
+     scope: &StagedRtpScope,
+     event: &NativeLifecycleEvent,
++    incarnation: uuid::Uuid,
+ ) -> Result<Vec<Envelope>, DispatchError> {
+     if let NativeLifecycleEvent::StreamReplaced {
+         previous,
+@@ -581,10 +609,31 @@
+             packet("stream.opened", json!({"stream":opened}))?,
+         ]);
+     }
+-    frame(scope, event).map(|frame| vec![frame])
+-}
+-fn frame(scope: &StagedRtpScope, event: &NativeLifecycleEvent) -> Result<Envelope, DispatchError> {
++    frame(scope, event, incarnation).map(|frame| vec![frame])
++}
++fn frame(
++    scope: &StagedRtpScope,
++    event: &NativeLifecycleEvent,
++    incarnation: uuid::Uuid,
++) -> Result<Envelope, DispatchError> {
+     let (name, payload) = match event {
++        NativeLifecycleEvent::StreamEpoch { observation: o } => {
++            let b = o.binding();
++            let e = o.epoch();
++            (
++                "stream.epoch",
++                json!({
++                    "profile":crate::substrate::VIDEO_FEEDBACK_PROFILE,
++                    "strm_id":b.negotiated.requested.logical_id.as_str(), "stream_local_id":b.stream_local_id,
++                    "original_operation":o.original_operation(), "original_offer":o.original_offer(),
++                    "incarnation":incarnation.simple().to_string(), "stream_generation":b.generation,
++                    "connection_generation":b.connection_generation, "revision":o.revision(),
++                    "direction":if e.publisher { "publisher" } else { "receiver" },
++                    "epoch":format!("{:032x}",e.epoch), "ssrc":e.ssrc,
++                    "first_sequence":e.first_sequence, "first_timestamp":e.first_timestamp
++                }),
++            )
++        }
+         NativeLifecycleEvent::ConnectionQuality { report, .. } => (
+             "connection.quality",
+             serde_json::to_value(report).map_err(|_| DispatchError::Unsupported)?,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -246,7 +246,7 @@
+         // before any queue buffering. There is no unguarded fanout fallback.
+         match binding.ingress() {
+             PeerMediaIngress::Checked(ingress) => ingress
+-                .try_send_rtp_source(frame, payload.ssrc, bytes.len())
++                .try_send_rtp_observed(frame, payload.ssrc, bytes.len(), datagram.seq)
+                 .is_ok(),
+             PeerMediaIngress::Channel(_) => false,
+         }
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -6,6 +6,7 @@
+ /// Trusted server capability configuration. It grants no media permission.
+ #[derive(Clone)]
+ pub struct NativeMediaProfile {
++    pub(crate) video_feedback: bool,
+     pub(crate) local: EndpointMediaCapabilities,
+     pub(crate) wire: Value,
+     pub(crate) server_assurance: AssuranceLevel,
+@@ -13,6 +14,14 @@
+     codec_preferences: Vec<String>,
+ }
+ impl NativeMediaProfile {
++    /// Opt in only when the host installs the signed lifecycle writer. Peers
++    /// must explicitly confirm the same profile; this is not media permission.
++    pub fn with_video_feedback(mut self) -> Self {
++        self.video_feedback = true;
++        self.wire["video_feedback"] = json!(crate::substrate::VIDEO_FEEDBACK_PROFILE);
++        self
++    }
++
+     /// Host policy orders only formats also offered by the peer and supported
+     /// by the current profile. It never changes capabilities or grants IO.
+     pub fn with_codec_preferences(
+@@ -109,6 +118,7 @@
+                 .remove("identity_assurance_required");
+         }
+         Ok(Self {
++            video_feedback: false,
+             local,
+             wire,
+             server_assurance,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -95,6 +95,7 @@
+     }
+ }
+ struct Progress {
++    video_feedback: bool,
+     bindings: Vec<ReadyMediaBinding>,
+     setup: Option<Value>,
+     confirmed: bool,
+@@ -148,6 +149,7 @@
+     }
+ }
+ struct RetainedPeer {
++    video_feedback: bool,
+     negotiated: EndpointMediaCapabilities,
+     declared: Option<EndpointMediaCapabilities>,
+     substrate: String,
+@@ -159,6 +161,7 @@
+     }
+ }
+ pub(crate) struct NativeNegotiation {
++    flow: Mutex<Weak<crate::native_flow::NativeFlow>>,
+     pub(crate) scope: StagedRtpScope,
+     pub(crate) profile: Arc<NativeMediaProfile>,
+     participant: ParticipantId,
+@@ -243,6 +246,12 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner());
+         if let Some(retained) = retained.as_mut() {
++            retained.video_feedback = self
++                .operation
++                .progress
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .video_feedback;
+             retained.negotiated = self.operation.plan.remote.clone();
+             retained.substrate = self.operation.substrate.clone();
+             if self
+@@ -257,6 +266,12 @@
+             }
+         } else {
+             *retained = Some(RetainedPeer {
++                video_feedback: self
++                    .operation
++                    .progress
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .video_feedback,
+                 negotiated: self.operation.plan.remote.clone(),
+                 declared: None,
+                 substrate: self.operation.substrate.clone(),
+@@ -275,6 +290,29 @@
+     }
+ }
+ impl NativeNegotiation {
++    pub(crate) fn attach_flow(&self, flow: &Arc<crate::native_flow::NativeFlow>) {
++        *self.flow.lock().unwrap_or_else(|p| p.into_inner()) = Arc::downgrade(flow);
++    }
++    fn requested_video_feedback(&self, op: &Operation) -> Result<bool, NativeOfferError> {
++        let requested = if let Some(command) = op
++            .command()
++            .filter(|a| a.envelope().kind() == "connection.offer")
++        {
++            match command.envelope().original()["payload"]["capabilities"].get("video_feedback") {
++                None => false,
++                Some(v) if v.as_str() == Some(crate::substrate::VIDEO_FEEDBACK_PROFILE) => true,
++                _ => return Err(NativeOfferError::Unsupported),
++            }
++        } else {
++            self.retained
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .is_some_and(|p| p.video_feedback)
++        };
++        Ok(requested && self.profile.video_feedback)
++    }
++
+     pub(crate) fn is_busy(&self) -> bool {
+         if self.request_slot.available_permits() == 0 {
+             return true;
+@@ -298,6 +336,7 @@
+         substrate: &'static str,
+     ) -> Arc<Self> {
+         Arc::new(Self {
++            flow: Mutex::new(Weak::new()),
+             scope,
+             profile,
+             participant,
+@@ -558,6 +597,7 @@
+                 bindings: vec![],
+                 setup: None,
+                 confirmed: false,
++                video_feedback: false,
+                 error: None,
+                 server_reply: None,
+             }),
+@@ -630,6 +670,7 @@
+                 bindings: Vec::new(),
+                 setup: None,
+                 confirmed: false,
++                video_feedback: false,
+                 error: None,
+                 server_reply: None,
+             }),
+@@ -791,7 +832,18 @@
+         if let (Source::Server { invocation, .. }, Some(reply)) = (&op.source, &server_reply) {
+             invocation.confirmed(reply)?;
+         }
++        let feedback = self.requested_video_feedback(&op)?;
++        if feedback
++            && answer
++                .capabilities
++                .get("video_feedback")
++                .and_then(Value::as_str)
++                != Some(crate::substrate::VIDEO_FEEDBACK_PROFILE)
++        {
++            return Err(NativeOfferError::Confirmation);
++        }
+         let mut state = op.progress.lock().unwrap_or_else(|p| p.into_inner());
++        state.video_feedback = feedback;
+         state.setup = Some(setup);
+         state.confirmed = true;
+         state.server_reply = server_reply;
+@@ -820,6 +872,41 @@
+ }
+ #[async_trait]
+ impl StagedRtpNegotiator for NativeNegotiation {
++    fn video_feedback(
++        &self,
++        scope: &StagedRtpScope,
++        binding: &ReadyMediaBinding,
++    ) -> ControlResult<Option<Arc<dyn VideoFeedbackProfile>>> {
++        if !self.profile.video_feedback || binding.negotiated.requested.medium != Medium::Video {
++            return Ok(None);
++        }
++        self.subset(scope, std::slice::from_ref(binding))?;
++        let op = self.active().map_err(|_| StreamControlError::NotReady)?;
++        // This is private preparation. Ordinary admission remains disabled
++        // until batch_finished validates the peer's explicit confirmation.
++        if !self
++            .requested_video_feedback(&op)
++            .map_err(|_| StreamControlError::Unsupported)?
++        {
++            return Ok(None);
++        }
++        let operation = op
++            .envelope
++            .scope(Scope::Operation)
++            .ok_or(StreamControlError::Authority)?;
++        let flow = self
++            .flow
++            .try_lock()
++            .map_err(|_| StreamControlError::Backpressure)?
++            .upgrade()
++            .ok_or(StreamControlError::NotReady)?;
++        Ok(Some(flow.video_feedback_profile(
++            binding,
++            operation,
++            op.envelope.id(),
++        )))
++    }
++
+     async fn prepare(
+         &self,
+         s: &StagedRtpScope,
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -183,6 +183,8 @@
+     pub streams_offered: Vec<StreamOffer>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub substrate_setup: Option<Value>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub handoff_preparation: Option<HandoffPreparation>,
+ }
+ 
+ impl std::fmt::Debug for ConnectionOffer {
+@@ -898,7 +900,7 @@
+ 
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct StreamActiveSpeaker {
+-    pub active_participant: Option<Identifier>,
++    pub active_participant: Identifier,
+     pub strm_id: Identifier,
+     pub changed_at: DateTime<Utc>,
+ }
+@@ -968,11 +970,53 @@
+ }
+ 
+ #[derive(Clone, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct StreamEpoch {
++    pub profile: StreamEpochProfile,
++    pub strm_id: Identifier,
++    pub stream_local_id: u64,
++    pub original_operation: Identifier,
++    pub original_offer: Identifier,
++    pub incarnation: String,
++    pub stream_generation: u64,
++    pub connection_generation: u64,
++    pub revision: u64,
++    pub direction: StreamEpochDirection,
++    pub epoch: String,
++    pub ssrc: u64,
++    pub first_sequence: u64,
++    pub first_timestamp: u64,
++}
++
++impl std::fmt::Debug for StreamEpoch {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("StreamEpoch(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct HandoffPreparation {
++    pub profile: HandoffPreparationProfile,
++}
++
++impl std::fmt::Debug for HandoffPreparation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("HandoffPreparation(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
+ pub struct OperationUpdated {
+     pub operation_id: Identifier,
+-    /// Stable authoritative record reference when supplied by the host Store.
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub record_id: Option<Identifier>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub subscription_record_id: Option<Identifier>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub command_type: Option<String>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub expected_revision: Option<u64>,
+     pub state: OperationState,
+     pub revision: u64,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+@@ -984,6 +1028,27 @@
+ impl std::fmt::Debug for OperationUpdated {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         f.write_str("OperationUpdated(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct ReconciliationHint {
++    pub operation_id: Identifier,
++    pub record_id: Identifier,
++    pub command_type: ReconciliationHintCommandType,
++    pub expected_revision: u64,
++    pub state: ReconciliationHintState,
++    pub revision: u64,
++    pub subscription_record_id: Identifier,
++    pub stream_revision: u64,
++    pub journal_hint: bool,
++    pub resources_changed: bool,
++}
++
++impl std::fmt::Debug for ReconciliationHint {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReconciliationHint(redacted)")
+     }
+ }
+ 
+@@ -1057,6 +1122,7 @@
+     pub consultation_record_id: Identifier,
+     pub retained_connid: Identifier,
+ }
++
+ impl std::fmt::Debug for SessionConsultReturn {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         f.write_str("SessionConsultReturn(redacted)")
+@@ -1402,6 +1468,26 @@
+     Recvonly,
+     #[serde(rename = "inactive")]
+     Inactive,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum StreamEpochProfile {
++    #[serde(rename = "rtcp-pli-epoch/1")]
++    RtcpPliEpoch1,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum StreamEpochDirection {
++    #[serde(rename = "publisher")]
++    Publisher,
++    #[serde(rename = "receiver")]
++    Receiver,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum HandoffPreparationProfile {
++    #[serde(rename = "connect-handoff-preparation-v1")]
++    ConnectHandoffPreparationV1,
+ }
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+@@ -1424,6 +1510,18 @@
+     Interrupted,
+     #[serde(rename = "unknown")]
+     Unknown,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum ReconciliationHintCommandType {
++    #[serde(rename = "stream.reconcile")]
++    StreamReconcile,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++pub enum ReconciliationHintState {
++    #[serde(rename = "completed")]
++    Completed,
+ }
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+@@ -1624,8 +1722,6 @@
+     ConversationEvent(ConversationEvent),
+     #[serde(rename = "session.consult")]
+     SessionConsult(SessionConsult),
+-    #[serde(rename = "session.consult.return")]
+-    SessionConsultReturn(SessionConsultReturn),
+     #[serde(rename = "session.handoff")]
+     SessionHandoff(SessionHandoff),
+     #[serde(rename = "connection.replace")]
+@@ -1640,6 +1736,10 @@
+     OperationUpdated(OperationUpdated),
+     #[serde(rename = "session.observation")]
+     SessionObservation(SessionObservation),
++    #[serde(rename = "session.consult.return")]
++    SessionConsultReturn(SessionConsultReturn),
++    #[serde(rename = "stream.epoch")]
++    StreamEpoch(StreamEpoch),
+ }
+ 
+ impl Payload {
+@@ -1703,7 +1803,6 @@
+             Self::ConversationSnapshot(_) => "conversation.snapshot",
+             Self::ConversationEvent(_) => "conversation.event",
+             Self::SessionConsult(_) => "session.consult",
+-            Self::SessionConsultReturn(_) => "session.consult.return",
+             Self::SessionHandoff(_) => "session.handoff",
+             Self::ConnectionReplace(_) => "connection.replace",
+             Self::OperationGet(_) => "operation.get",
+@@ -1711,6 +1810,8 @@
+             Self::OperationReconcile(_) => "operation.reconcile",
+             Self::OperationUpdated(_) => "operation.updated",
+             Self::SessionObservation(_) => "session.observation",
++            Self::SessionConsultReturn(_) => "session.consult.return",
++            Self::StreamEpoch(_) => "stream.epoch",
+         }
+     }
+ }
+@@ -1775,7 +1876,6 @@
+     ("conversation.snapshot", false, false),
+     ("conversation.event", false, false),
+     ("session.consult", true, true),
+-    ("session.consult.return", true, true),
+     ("session.handoff", true, true),
+     ("connection.replace", true, true),
+     ("operation.get", false, false),
+@@ -1783,4 +1883,6 @@
+     ("operation.reconcile", true, false),
+     ("operation.updated", false, false),
+     ("session.observation", false, false),
++    ("session.consult.return", true, true),
++    ("stream.epoch", false, false),
+ ];
+--- a/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
+@@ -46,6 +46,7 @@
+         | ConnectionQuality(_)
+         | ConnectionReplace(_)
+         | StreamOpened(_)
++        | StreamEpoch(_)
+         | StreamClosed(_)
+         | StreamActiveSpeaker(_)
+         | CapabilityAdvertise(_)
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
+@@ -0,0 +1,178 @@
++//! Actual signed native lifecycle writer on two real local physical peers.
++//! Relationship authority is controlled; no Connect Store/SDK quality claim.
++use super::*;
++async fn epoch(f: &Fixture, wire: &mut Wire) -> Value {
++    let event = tokio::time::timeout(Duration::from_secs(3), wire.read())
++        .await
++        .unwrap();
++    assert_eq!(event.kind(), "stream.epoch", "unexpected event {event:?}");
++    f.verify_server(&event).await;
++    assert!(event.scope(Scope::Reply).is_none());
++    assert!(event.scope(Scope::Operation).is_none());
++    assert_eq!(event.scope(Scope::Conversation), Some("conversation"));
++    assert_eq!(event.scope(Scope::Session), Some("session"));
++    event.original().clone()
++}
++fn feedback_request(handle: u16, notice: &Value, seq: u32) -> Bytes {
++    pack_video_feedback_datagram(&VideoFeedbackDatagram {
++        stream_local_id: handle,
++        seq,
++        sender_ssrc: 83,
++        media_ssrc: notice["payload"]["ssrc"].as_u64().unwrap() as u32,
++        activation_epoch: u128::from_str_radix(notice["payload"]["epoch"].as_str().unwrap(), 16)
++            .unwrap(),
++    })
++    .unwrap()
++}
++async fn source_feedback(s: &Scene) -> VideoFeedbackDatagram {
++    let raw = tokio::time::timeout(
++        Duration::from_secs(2),
++        s.wire.quic.as_ref().unwrap().2.read_datagram(),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    observe_video_feedback_datagram(&raw).unwrap()
++}
++#[tokio::test]
++async fn signed_video_epochs_bind_original_operations_physical_peers_and_reselected_packet_boundaries(
++) {
++    let profile = Arc::new((*profile(false)).clone().with_video_feedback());
++    let mut s = Scene::new_profiled("quic", false, true, true, profile, None).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let mut offer = lifecycle_offer(&s, 0, 0, "sendonly");
++    offer["payload"]["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}));
++    let (answer, callback) = s.prepared(offer.clone()).await;
++    let vh = subscriptions::stream_handle(&callback, "camera");
++    // Preparation traffic has no epoch notice and cannot initialize history.
++    send(&s.wire, subscriptions::video_sequence(vh, 1, 3000));
++    no_event(&mut s.wire).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    assert!(s.record.results.lock().unwrap()[0].is_ok());
++    let mut other = s.second_wire().await;
++    let (_, cb) = other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "recvonly")).await;
++    other.send(s.f.sign(s.confirmation(&cb))).await;
++    s.wait(2).await;
++    let receiver = s.native.adapters[&s.kind]
++        .media_controller(&s.second_id)
++        .unwrap();
++    let subscribe = || {
++        subscriptions::command(
++            "stream.subscribe",
++            receiver.revision(),
++            json!({"subscriptions":[{"strm_id":"camera"}]}),
++        )
++    };
++    let selection = subscribe();
++    other.send(s.f.sign(selection.clone())).await;
++    let cb = other.read().await;
++    assert_eq!(cb.kind(), "connection.offer");
++    s.f.verify_server(&cb).await;
++    let bh = subscriptions::stream_handle(&cb, "camera");
++    other.send(s.f.sign(s.confirmation(&cb))).await;
++    assert_eq!(other.read().await.kind(), "ack");
++    no_event(&mut other).await;
++    no_event(&mut s.wire).await;
++    send(&s.wire, subscriptions::video_sequence(vh, 2, 6000));
++    let delivered = received(&other).await;
++    let source = epoch(&s.f, &mut s.wire).await;
++    let target = epoch(&s.f, &mut other).await;
++    let sp = &source["payload"];
++    let tp = &target["payload"];
++    assert_eq!(source["connid"], "native_0");
++    assert_eq!(target["connid"], "native_1");
++    assert_ne!(sp["incarnation"], tp["incarnation"]);
++    assert_eq!(sp["original_operation"], offer["operation_id"]);
++    assert_eq!(
++        sp["original_offer"],
++        answer.original()["payload"]["substrate_setup"]["offer_id"]
++    );
++    assert_eq!(tp["original_operation"], selection["operation_id"]);
++    assert_eq!(
++        tp["original_offer"],
++        cb.original()["payload"]["substrate_setup"]["offer_id"]
++    );
++    assert_eq!(sp["first_sequence"], 2);
++    assert_eq!(sp["first_timestamp"], 6000);
++    assert_eq!(tp["first_sequence"], delivered.seq);
++    assert_eq!(tp["first_timestamp"], 6000);
++    assert_eq!(tp["ssrc"], delivered.rtp.packet().header.ssrc);
++    assert_eq!(tp["stream_local_id"], bh);
++    assert_eq!(sp["stream_local_id"], vh);
++    assert_eq!(sp["direction"], "publisher");
++    assert_eq!(tp["direction"], "receiver");
++    assert_ne!(sp["epoch"], tp["epoch"]);
++    send(&other, feedback_request(bh, &target, 1));
++    let pli = source_feedback(&s).await;
++    assert_eq!(pli.stream_local_id, vh);
++    assert_eq!(pli.media_ssrc, 7);
++    assert_eq!(
++        format!("{:032x}", pli.activation_epoch),
++        sp["epoch"].as_str().unwrap()
++    );
++    // Reselect exactly the same source/handle/SSRC. Epoch and first sequence
++    // must still distinguish the histories; codec/clock/old media stay intact.
++    other
++        .send(s.f.sign(subscriptions::command(
++            "stream.unsubscribe",
++            receiver.revision(),
++            json!({"strm_ids":["camera"]}),
++        )))
++        .await;
++    assert_eq!(other.read().await.kind(), "ack");
++    other.send(s.f.sign(subscribe())).await;
++    assert_eq!(other.read().await.kind(), "ack");
++    send(&s.wire, subscriptions::video_sequence(vh, 3, 9000));
++    let second = received(&other).await;
++    let next = epoch(&s.f, &mut other).await;
++    let np = &next["payload"];
++    assert_eq!(np["ssrc"], tp["ssrc"]);
++    assert_eq!(np["stream_local_id"], tp["stream_local_id"]);
++    assert_eq!(np["original_operation"], tp["original_operation"]);
++    assert_eq!(np["incarnation"], tp["incarnation"]);
++    assert_eq!(np["stream_generation"], tp["stream_generation"]);
++    assert_ne!(np["epoch"], tp["epoch"]);
++    assert!(np["revision"].as_u64() > tp["revision"].as_u64());
++    assert_eq!(np["first_sequence"], second.seq);
++    assert!(second.seq > delivered.seq);
++    assert_eq!(np["first_timestamp"], 9000);
++    let media = s.native.adapters[&s.kind]
++        .physical_source(&s.second_id)
++        .unwrap()
++        .media()
++        .unwrap();
++    let rejected = media.snapshot().feedback_rejected;
++    send(&other, feedback_request(bh, &target, 2));
++    core_fixture::until(|| media.snapshot().feedback_rejected > rejected).await;
++    tokio::time::sleep(Duration::from_millis(110)).await;
++    send(&other, feedback_request(bh, &next, 2));
++    assert_eq!(source_feedback(&s).await.stream_local_id, vh);
++    assert!(s.grants.0.try_write().is_ok());
++    s.wire.server.shutdown().await.unwrap();
++    other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn signed_video_feedback_requires_explicit_peer_confirmation_before_activation() {
++    let profile = Arc::new((*profile(false)).clone().with_video_feedback());
++    let mut s = Scene::new_profiled("quic", false, true, true, profile, None).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let mut offer = lifecycle_offer(&s, 0, 0, "sendonly");
++    offer["payload"]["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}));
++    let (_, cb) = s.prepared(offer).await;
++    let handle = subscriptions::stream_handle(&cb, "camera");
++    let mut reply = s.confirmation(&cb);
++    reply["payload"]["capabilities"]
++        .as_object_mut()
++        .unwrap()
++        .remove("video_feedback");
++    s.wire.send(s.f.sign(reply)).await;
++    s.wait(1).await;
++    assert!(s.record.results.lock().unwrap()[0].is_err());
++    assert_eq!(s.wire.read().await.kind(), "error");
++    assert_eq!(s.controller().revision(), 0);
++    assert!(s.controller().active_bindings().is_empty());
++    send(&s.wire, subscriptions::video_sequence(handle, 2, 6000));
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -1419,6 +1419,9 @@
+             return Err(DispatchError::Authority);
+         }
+         let streams = match event {
++            NativeLifecycleEvent::StreamEpoch { observation } => {
++                std::slice::from_ref(observation.binding())
++            }
+             NativeLifecycleEvent::ConnectionReady { streams, .. }
+             | NativeLifecycleEvent::ConnectionQuality { streams, .. } => streams.as_slice(),
+             NativeLifecycleEvent::StreamOpened { stream }
+@@ -2424,3 +2427,6 @@
+ 
+ #[path = "native_offers/session_codecs.rs"]
+ mod session_codecs;
++
++#[path = "native_offers/video_epochs.rs"]
++mod video_epochs;
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
+@@ -12,6 +12,7 @@
+         &self,
+         binding: &ReadyMediaBinding,
+         epoch: VideoFeedbackEpoch,
++        _: Arc<dyn Fn() -> bool + Send + Sync>,
+     ) -> ControlResult<()> {
+         if self.refuse.load(Ordering::Acquire) {
+             return Err(StreamControlError::Backpressure);
+@@ -255,6 +256,8 @@
+                     publisher: false,
+                     epoch: 1,
+                     ssrc: out.rtp.packet().header.ssrc,
++                    first_sequence: 0,
++                    first_timestamp: 0,
+                 },
+                 0,
+             ),
