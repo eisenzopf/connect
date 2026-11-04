@@ -110,7 +110,7 @@ fn offered(id: &str, direction: Direction) -> NonEmpty<sdk::OfferedStream> {
             id: format!("{id}-voice").parse().unwrap(),
             kind: Medium::Audio,
             direction: Direction::Sendrecv,
-            codecs: single("pcmu".into()),
+            codecs: single("g.711-mu".into()),
         }],
     }
 }
@@ -430,6 +430,7 @@ async fn exercise() {
         .wait(options())
         .await
         .unwrap();
+    eprintln!("production replacement phase: initial-media-offers");
     let source = session
         .offer_connection(
             "feedback-source".parse().unwrap(),
@@ -482,6 +483,7 @@ async fn exercise() {
     let retained_recv = target.stream_by_id("feedback-camera".parse().unwrap());
     let retained_send = target.stream_by_id("feedback-monitor".parse().unwrap());
     let old_recv = source.stream_by_id("feedback-monitor".parse().unwrap());
+    eprintln!("production replacement phase: initial-codec-history");
     let mut encoder = Encoder::open(f.temp.path()).await;
     let first = encoder.frame(0, true).await;
     let mut original_sequence = 0;
@@ -539,8 +541,10 @@ async fn exercise() {
         },
         payload_extensions: Default::default(),
     };
+    eprintln!("production replacement phase: replacement-prepare");
     let root = controller.transition(command.clone()).await.unwrap();
     phase(&f, &mut controller, &command, 1).await;
+    eprintln!("production replacement phase: replacement-allocate");
     let mut replacement = CanonicalClient::open(replacement_config).await.unwrap();
     let offer = json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]},{"id":"replacement-camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]},{"id":"replacement-incoming-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
     replacement
@@ -551,6 +555,7 @@ async fn exercise() {
         )
         .await
         .unwrap();
+    eprintln!("production replacement phase: replacement-native-negotiation");
     let (_, scope) = replacement
         .begin_native_replacement_media(
             &command,
@@ -580,6 +585,7 @@ async fn exercise() {
     );
     let streams=bindings.iter().map(|b|json!({"id":b["strm_id"],"kind":b["kind"],"direction":match b["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":b["codec"]})).collect::<Vec<_>>();
     replacement.answer_connection_offer(&callback,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":offer["capabilities"],"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+    eprintln!("production replacement phase: replacement-resource-capture");
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
     for sequence in 1..=12u16 {
@@ -601,12 +607,14 @@ async fn exercise() {
         .unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
+    eprintln!("production replacement phase: replacement-commit");
     let done = phase(&f, &mut controller, &command, 7).await;
     let done = serde_json::to_value(done).unwrap();
     assert_eq!(done["state"], "completed");
     assert_eq!(done["result"]["generation"], 2);
     // New replacement receiver starts with an interframe from the unchanged
     // retained source. Only actual signed history can solicit source recovery.
+    eprintln!("production replacement phase: replacement-receiver-recovery");
     let delta = encoder.frame(1, false).await;
     assert_eq!(delta[0] & 1, 1);
     publish(&retained_send, &delta, 1, &mut retained_sequence).await;
@@ -629,6 +637,7 @@ async fn exercise() {
     // In the reverse direction the retained receiver requests a keyframe from
     // the raw generation-two publisher. Pumping receives the physical feedback;
     // the boolean is consumed once immediately before the next fresh encoding.
+    eprintln!("production replacement phase: replacement-publisher-recovery");
     let delta = encoder.frame(3, false).await;
     assert_eq!(delta[0] & 1, 1);
     let mut sequence = 0;
