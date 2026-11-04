@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-native-video-feedback-binding/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "patch": 294,
   "source_revision": "72c3e78be018e8d3ed6817323a58f9a3a2661a0a",
   "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
@@ -12,10 +12,7 @@
     "Publisher dispatch rewrites to its own actual handle, SSRC, activation epoch and independent sequence. Shared publisher100ms coalescing bounds fan-in in addition to per-route bounds; uncertain local send consumes its sequence.",
     "Canonical reader separates bounded checked video feedback from clock/media. Native negotiation defaults disabled and does not advertise the profile. An installed profile must admit an authenticated epoch notice before feedback can use its record."
   ],
-  "planned_checks": [
-    "peer_native::canonical_media::video_feedback::native_feedback_binds_actual_handles_ssrc_epochs_authority_and_shared_publisher_rate",
-    "peer_native::canonical_media::video_feedback::native_feedback_unnegotiated_and_unannounced_epochs_remain_disabled"
-  ],
+  "planned_checks": [],
   "remaining": [
     "The new canonical QUIC cases use controlled readiness and epoch-notice admission. They do not prove signed Service epoch negotiation or decoded media.",
     "Production NativeNegotiation still uses the default-disabled profile. Implement explicit capability negotiation, signed original-operation/physical-incarnation/generation/selected-source association, monotonic notice ordering and first admitted/submitted packet boundary before enabling it.",
@@ -50,5 +47,56 @@
     "elapsed_seconds": 299.980049159989,
     "classification": "Compile-only fixture drift:22 older audio-only test calls omitted the new Option<ReplacementVideoRequest> argument. No feedback test executed. Patch295 supplies None in those fixtures; runtime feedback code unchanged."
   },
-  "fixture_correction_patch": 295
+  "fixture_correction_patch": 295,
+  "verified_source_revision": "9658f3bdeb1bc2c06ac1bc5dd76c86ef9a4e2d0f",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 118546,
+    "source_revision": "9658f3bdeb1bc2c06ac1bc5dd76c86ef9a4e2d0f",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::video_feedback::native_feedback_binds_actual_handles_ssrc_epochs_authority_and_shared_publisher_rate",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 0.23s"
+        ],
+        "log_sha256": "dfa92844a47955bf608aaa8b4553f2a4ff6ef909908ca5e8e34b6f88b53daa03"
+      },
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::video_feedback::native_feedback_unnegotiated_and_unannounced_epochs_remain_disabled",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 0.01s"
+        ],
+        "log_sha256": "5e9ba0d9e679e472150794b524d3ddbc094e21585edde8326d19c4e7abca294f"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_video_feedback_binding_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "c6833c662e53a7e8937ff424f6ec6c27a8e74532a3a9aaf8438dd4c8e7d2156b",
+        "test_executable_sha256": "4a37a156b3f67a35ab9ff3a5cee56b1a507ba7d60a40b7f91d7234068015d8a4",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 211.82731788900855
+  },
+  "proof": [
+    "Actual canonical local QUIC reader and staged adapter route feedback through current Core selection to the actual publisher handle. Publisher epoch and sequence are distinct from receiver input; actual output SSRC and original RTP timestamp match admitted receiver metadata.",
+    "Wrong physical handle, wrong receiver SSRC, wrong epoch and duplicate sequence refuse. A second receiver shares the same publisher100ms coalescing limit; a later new request succeeds with the next publisher sequence.",
+    "Current publisher or receiver revocation, private source routing, direct-selection removal and publisher retirement refuse. Changed publisher SSRC produces a fresh publisher epoch and receiver SSRC, rejects the previous receiver binding, and dispatches only to the current source.",
+    "Default-unnegotiated profiles and refused epoch-announcement admission leave feedback disabled while original media still passes. Controlled announcement provider is not a signed Service proof.",
+    "Both exact cases pass (0.23s and0.01s), each with184 other cases filtered. Source, prepared dependencies and executable guards pass. Original failed compile is retained; no existing passed case or full workload was rerun."
+  ]
 }

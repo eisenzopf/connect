@@ -193,13 +193,16 @@ reselection, pause/resume and source physical replacement. Unrelated Data change
 preserve the video epoch. These are Core fixture proofs, not signed Service or
 native transport qualification. See [the exact evidence](../evidence/gate-6/video-feedback-authority.json).
 
-The native adapter candidate at `72c3e78b` binds feedback to the actual emitted
+The native adapter at `72c3e78b`, verified at `9658f3bd`, binds feedback to the actual emitted
 receiver SSRC and Core route epoch. Dispatch resolves the publisher from Core's
 current selected physical port, checks that exact allocation and observed source
 SSRC, and emits the publisher's own epoch and sequence under both current policy
 guards. A shared publisher limit bounds fan-in across receivers. Cleanup owns the
-bounded state. The two new local canonical QUIC cases are pending; see
-[the candidate and exact scope](../evidence/gate-6/native-video-feedback-binding.json).
+bounded state. Two new local canonical QUIC cases pass with unchanged source,
+dependency and executable guards. They cover actual handle/SSRC/epoch dispatch,
+shared publisher coalescing, current revocation, stale selection and refused
+announcement admission. The announcement provider is controlled; see
+[the evidence and exact scope](../evidence/gate-6/native-video-feedback-binding.json).
 
 The production negotiation profile remains disabled. Before enabling it, connect
 explicit capability negotiation and signed notices to the original operation,
