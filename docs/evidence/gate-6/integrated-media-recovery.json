@@ -1567,6 +1567,37 @@
       },
       "evidence": "programme-clock-full-workload.json",
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v122",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 157307,
+        "source_revision": "004ea19bf0df6ab2d5132029c502c13024879a3a",
+        "passed": true,
+        "steps": [
+          {
+            "case": "scripts/tests/transport_programme_clock_consumers.test.mjs",
+            "exit_code": 0,
+            "log_sha256": "5c9fa160106de886f493e269defd2b524067dda85c915c71e83a15d5d20f76d3",
+            "test_results": [
+              "# pass 1",
+              "# fail 0"
+            ]
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "programme_clock_regression": true,
+        "node_executable_sha256": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.6382181700028013
+      },
+      "evidence": "programme-clock.json",
+      "full_media_quality_comparison_available": false
     }
   ],
   "diagnosis": {
@@ -1591,7 +1622,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Verify the new warmup/session-observer clock consumer regression, then retry only the failed full workload. Preserve v120 focused evidence; do not claim integrated clock or quality success. Audio authority contention remains unresolved; G6-054 stays deferred.",
+  "next_investigation": "Retry only the failed full workload with both missed clock consumers corrected. No deadline or quality-limit change. G6-054 remains deferred; audio authority contention and full matrix remain open.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
