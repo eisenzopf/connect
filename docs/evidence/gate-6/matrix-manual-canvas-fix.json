@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-manual-canvas-fix/1",
+  "source_revision": "947d9f30300d45205e0f647c9a71e2f2b7004a01",
+  "cause": "Native manual canvas track (including clone) reports frameRate zero after max30 constraints. The SDK mistook a valid requestFrame-driven source for unsupported capture.",
+  "actual_runtime_probe": {
+    "runtime": "Chrome for Testing 156.0.8078.4 Linux ARM64",
+    "native_canvas_track": true,
+    "clone_retains_original_canvas": true,
+    "settings": {
+      "width": 640,
+      "height": 360,
+      "frameRate": 0
+    },
+    "request_frame_function": true
+  },
+  "fix": "Accept zero automatic sampling rate only for a live native CanvasCaptureMediaStreamTrack with its actual HTMLCanvasElement and requestFrame method. Retain 640x360 capture bounds and existing negotiated 30fps/1Mbit sender limits. Generic zero-rate, ended, missing-native-API and oversized sources still refuse.",
+  "prechecks": {
+    "runner": "Local native Ubuntu ARM64 VM",
+    "dependency_preparation_passed": true,
+    "typescript_build_passed": true,
+    "selected_tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "log_sha256": "261949c9fb8900ce3a3ff224d1806e25752f146460f1c9a9e098ca0fa1a1e894"
+  },
+  "original_failed_precheck": "f48a927c TypeScript compile initially failed narrowing optional frameRate; 947d9f30 fixed it. Original log retained.",
+  "browser_retest_executed": false,
+  "cell_qualified": false
+}
