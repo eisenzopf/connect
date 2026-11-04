@@ -1,0 +1,28 @@
+{
+  "format": "connect/native-control-executor-candidate/1",
+  "status": "implemented; local ARM verification pending",
+  "counterexample_source_revision": "38570499be671dcb12fa1d0af501b7f3853d2e22",
+  "counterexample_evidence": "docs/evidence/gate-6/native-control-executor-before.json",
+  "change": [
+    "The existing original native stream worker remains one pinned future. Each actual poll runs as a blocking job; Pending releases its blocking thread. Only the original future waker permits another poll.",
+    "Join the actual blocking task before scheduling another poll. A separate bounded registry retains its handle if the async waiter is cancelled; orphan completion reaping never steals an active waiter result.",
+    "Runtime health includes owned blocking polls. The existing background coordinator reaps orphan completions; shutdown closes admission and joins original running polls, recording timeouts/panics as failed drains.",
+    "Store grants, original IDs, leases, effect control flow and deadlines remain in the same original future. No Core operation is reconstructed or retried by the execution bridge."
+  ],
+  "required_cases": [
+    "native_control_sql_wait_preserves_executor_progress_and_original_join",
+    "native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+    "cancelled_native_control_retains_running_sql_poll_through_drain",
+    "native_control_poll_panic_remains_a_failed_drain"
+  ],
+  "validation_status": "Not run yet. First case is the failed v138 regression; three additional cases are new. Tests cover no unsolicited polling, duplicate/self wakes, original deadline, nested blocking work with one pool thread, actual SQL ownership through parent cancellation, capacity/closed refusal and panic retention.",
+  "risks_and_limits": [
+    "This is a scheduling change across native stream control synchronous execution segments; signed gate/subscription and full workload behavior remain unverified.",
+    "The focused single-thread counterexample does not identify the unlogged v137 SQL owner or prove a common cause for every media gap.",
+    "Existing full quality thresholds, current authority, packet age/queue/history bounds, full-cell expiry and idle requirements remain unchanged. G6-054 is deferred."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

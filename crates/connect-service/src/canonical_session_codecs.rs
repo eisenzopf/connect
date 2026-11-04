@@ -156,6 +156,7 @@ async fn run(runtime: Weak<Runtime>, store: Arc<Store>, stop: CancellationToken)
             }
             _ = interval.tick() => {
                 let Some(host) = runtime.upgrade() else { break };
+                host.reap_control_polls();
                 if let Ok(mut origins) = host.codec_origins.lock() { origins.retain(|_, origin| origin.current()); }
                 drop(host);
                 let recover = recovery.elapsed() >= Duration::from_secs(1);

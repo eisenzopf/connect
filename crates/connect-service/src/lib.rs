@@ -453,6 +453,7 @@ impl Service {
                 work.abort_all();
                 while work.join_next().await.is_some() {}
             }
+            incomplete |= !runtime.drain_control_polls(deadline).await;
             incomplete |= runtime
                 .retirement_failed
                 .load(std::sync::atomic::Ordering::Acquire);

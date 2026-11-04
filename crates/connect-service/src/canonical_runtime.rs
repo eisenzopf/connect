@@ -52,6 +52,7 @@ pub(crate) struct Runtime {
     physical: Mutex<Vec<Weak<Physical>>>,
     capacity: usize,
     pub(crate) work: Mutex<tokio::task::JoinSet<()>>,
+    control_polls: Arc<control_work::Polls>,
     pub(crate) native_workers: crate::canonical_native::workers::Workers,
     pub(crate) credential_refresh_receipts: Mutex<
         std::collections::BTreeMap<
@@ -293,6 +294,7 @@ impl Runtime {
             invitation_callers: Mutex::new(Default::default()),
             host_configuration_closed: Mutex::new(false),
             work: Mutex::new(tokio::task::JoinSet::new()),
+            control_polls: Default::default(),
             native_workers: Default::default(),
             credential_refresh_receipts: Mutex::new(Default::default()),
             stop,
@@ -445,7 +447,10 @@ impl Runtime {
                 .count()
                 .min(u32::MAX as usize) as u32,
             physical_capacity: self.capacity as u32,
-            owned_tasks: work.len().min(u32::MAX as usize) as u32,
+            owned_tasks: work
+                .len()
+                .saturating_add(self.control_polls.len()?)
+                .min(u32::MAX as usize) as u32,
         })
     }
     pub(crate) fn snapshot(&self) -> CanonicalRuntimeSnapshot {
