@@ -1598,6 +1598,163 @@
       },
       "evidence": "programme-clock.json",
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v123",
+      "state": {
+        "programme_clock_fix": true,
+        "authority_summary": true,
+        "decoder_boundary_fix": true,
+        "build_jobs": 4,
+        "audio_terminal_counters": true,
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 157431,
+        "source_revision": "a6c4305834f47f07dea6e2c8b33b24699a6eefef",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T11:27:47.309040+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "6ffa41747b4b37f23940d3782171d06362cc551e256ebfb2eecef6e97f282c77",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+        "peer_binary_sha256": "7ec333029ca48fe3aa7b52974575152ba58be31429b99da102135fe3914b802b",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 100.7561079950101
+      },
+      "evidence": "programme-clock-integrated.json",
+      "physical_stages": [
+        {
+          "segment": "0-0",
+          "passed": false,
+          "failure": {
+            "phase": "original-completion",
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only"
+          },
+          "original_root_completed": false,
+          "physical_data_exchange_verified": false,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "clock_anchor_matches_original_input": true,
+          "source_start_audio_index": 879,
+          "source_start_video_index": 527,
+          "ledger": {
+            "state": "unknown",
+            "revision": 15
+          },
+          "effects": [
+            {
+              "provider": "native-replacement-prepare",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-allocate",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-start",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-attach",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-activate",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-readiness",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-commit",
+              "state": "unknown",
+              "attempt": 1
+            }
+          ],
+          "capture_failure_stage": "physical-owner-control",
+          "capture_sha256": "f7b1d4bbd1cd22d3eeec4275c28b3b7fbbb73559ad6f0938f4f8e0775a18ebdb"
+        },
+        {
+          "segment": "4-0",
+          "passed": true,
+          "failure": null,
+          "original_root_completed": true,
+          "physical_data_exchange_verified": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "clock_anchor_matches_original_input": true,
+          "source_start_audio_index": 878,
+          "source_start_video_index": 527,
+          "ledger": {
+            "state": "completed",
+            "revision": 16
+          },
+          "effects": [
+            {
+              "provider": "native-replacement-prepare",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-allocate",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-start",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-attach",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-activate",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-readiness",
+              "state": "confirmed",
+              "attempt": 1
+            },
+            {
+              "provider": "native-replacement-commit",
+              "state": "confirmed",
+              "attempt": 1
+            }
+          ],
+          "capture_failure_stage": null,
+          "capture_sha256": "4cb82e3da2c90a7341feaed62a09de659876325bdb409da1529637685b8564e4"
+        }
+      ],
+      "full_media_quality_comparison_available": false
     }
   ],
   "diagnosis": {
@@ -1622,7 +1779,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Retry only the failed full workload with both missed clock consumers corrected. No deadline or quality-limit change. G6-054 remains deferred; audio authority contention and full matrix remain open.",
+  "next_investigation": "Resolve replacement pre-publication metadata Backpressure under the original operation/plan/deadline after auditing all error paths. Add deterministic actual-lock collision, cancellation/expiry/revision/current-authority coverage; retry only definitely unpublished work. Do not replay uncertain effects or widen deadlines. Audio quality/full32cell matrix remain open; G6-054 deferred; local ARM only.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,

@@ -1,0 +1,247 @@
+{
+  "format": "connect/programme-clock-integrated-evidence/1",
+  "run": "v123",
+  "source_revision": "a6c4305834f47f07dea6e2c8b33b24699a6eefef",
+  "state": {
+    "programme_clock_fix": true,
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 157431,
+    "source_revision": "a6c4305834f47f07dea6e2c8b33b24699a6eefef",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T11:27:47.309040+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "6ffa41747b4b37f23940d3782171d06362cc551e256ebfb2eecef6e97f282c77",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+    "peer_binary_sha256": "7ec333029ca48fe3aa7b52974575152ba58be31429b99da102135fe3914b802b",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 100.7561079950101
+  },
+  "physical_stages": [
+    {
+      "segment": "0-0",
+      "passed": false,
+      "failure": {
+        "phase": "original-completion",
+        "name": "NodeSdkError",
+        "kind": "deadline",
+        "certainty": "read-only"
+      },
+      "original_root_completed": false,
+      "physical_data_exchange_verified": false,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "clock_anchor_matches_original_input": true,
+      "source_start_audio_index": 879,
+      "source_start_video_index": 527,
+      "ledger": {
+        "state": "unknown",
+        "revision": 15
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "unknown",
+          "attempt": 1
+        }
+      ],
+      "capture_failure_stage": "physical-owner-control",
+      "capture_sha256": "f7b1d4bbd1cd22d3eeec4275c28b3b7fbbb73559ad6f0938f4f8e0775a18ebdb"
+    },
+    {
+      "segment": "4-0",
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "clock_anchor_matches_original_input": true,
+      "source_start_audio_index": 878,
+      "source_start_video_index": 527,
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "capture_failure_stage": null,
+      "capture_sha256": "4cb82e3da2c90a7341feaed62a09de659876325bdb409da1529637685b8564e4"
+    }
+  ],
+  "media_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "control_task_started": true,
+    "elapsed_ms": 23687.09406900406,
+    "failure": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    },
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "aggregate_audio_counters": {
+    "collect-deferred": {
+      "events": 88,
+      "samples": 0,
+      "members": 7
+    },
+    "burst-trim": {
+      "events": 56,
+      "samples": 53760,
+      "members": 6
+    },
+    "take-deferred": {
+      "events": 68,
+      "samples": 0,
+      "members": 7
+    },
+    "target-before-start": {
+      "events": 77,
+      "samples": 73920,
+      "members": 8
+    },
+    "target-deferred": {
+      "events": 15,
+      "samples": 14400,
+      "members": 7
+    },
+    "empty-output": {
+      "events": 2475,
+      "samples": 0,
+      "members": 8
+    },
+    "refresh-reset": {
+      "events": 3,
+      "samples": 0,
+      "members": 2
+    },
+    "subscription-refused": {
+      "events": 9365,
+      "samples": 8990400,
+      "members": 6
+    }
+  },
+  "held_interval_callers": {
+    "crates/connect-store/src/peer_authority.rs:775": {
+      "count": 90,
+      "max_us": 297937,
+      "total_us": 6799301
+    }
+  },
+  "failed_projection_stages": {
+    "lock-resource/identity/true": 2
+  },
+  "diagnosis": {
+    "observed_first_cause": "Core reports Replacement movement outcome uncertain error=Media(Backpressure) at 11:27:40.018120Z. Segment0-0 commit remains unknown at revision15 with attempt1; no physical-complete phase or completed-root observation. Segment4-0 completed at revision16 and passed Data exchange; neither return attempted.",
+    "code_path": [
+      "connect-service canonical_replacement/movement.rs marks any error from commit_staged_device_replacement_with_held as uncertain.",
+      "Core staged_streams/audio_subscriptions.rs and direct_subscriptions.rs convert a busy publisher state try_lock into Backpressure during validation. Normal media_subscriptions.rs retries this definite precommit collision after releasing locks, within the original deadline.",
+      "Core staged_streams/audience.rs applies replacement audio/direct plans and repeats validation before publication, but propagates Backpressure instead of owning a bounded retry. Existing failure-stage tracing is restricted to activate_muted, so this run does not distinguish exact audio/direct/preparation/final-validation branch."
+    ],
+    "next_fix_requirements": [
+      "Audit every possible Backpressure return through the managed replacement path before declaring it definitely unpublished. Do not retry arbitrary Core errors or an unknown effect.",
+      "Own retry at a boundary that releases scene/controller/policy guards and quiescence on each collision, retains the original operation/plan/expected revisions/deadline, and revalidates current authorization. Do not renew leases, reopen the ledger attempt, or extend deadlines.",
+      "Reconstruct owned managed context for each retry: it is Send but deliberately need not be Sync, so borrowing it across await is not a safe mechanical refactor.",
+      "Add deterministic real metadata-lock collision coverage, checking one physical/logical commit after release and no commit on cancellation, original deadline, changed revision or revoked authority. Preserve the earlier v120/v122 passing tests without rerunning them.",
+      "Only rerun this failed full workload after the concrete correction; keep audio quality and the full32cell matrix open."
+    ]
+  },
+  "scope": "Local Ubuntu24.04 ARM64, same failed four-move native workload. One actual physical handoff/Data exchange validates clock propagation on that stage only.",
+  "limitations": [
+    "No return-handling or wall-step integrated proof; neither return move ran.",
+    "No independent full audio/video quality comparison; no complete cell qualification.",
+    "The exact audio/direct metadata-lock branch was not captured; retry design requires source audit and deterministic regression."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}
