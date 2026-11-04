@@ -1,0 +1,198 @@
+{
+  "format": "connect/original-native-ingress-integrated/1",
+  "run": "v131",
+  "source_revision": "6b62a2973230243000fa033d384e606debf7422a",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "state": {
+    "owned_original_native_ingress": true,
+    "replacement_precommit_retry": true,
+    "programme_clock_fix": true,
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 168612,
+    "source_revision": "6b62a2973230243000fa033d384e606debf7422a",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T13:51:01.440483+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "868e1ad705fae60c0979b25f2a557ffe78336209ff5783eb8f19555ea06951a6",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "4cbf449bddc2a3085bfe868f061e51a9a447f23053371937a83d696d667f831a",
+    "peer_binary_sha256": "71d47bfc3e99ca654aa86e50fe9dc38d2e2de4ae3bd266507dd7ce193026e003",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1006.0885162620107
+  },
+  "failure": {
+    "phase": "independent-native-opus-vp8-decode",
+    "name": "AssertionError",
+    "line": 608
+  },
+  "decoder_failure": {
+    "name": "ValueError",
+    "line": 88
+  },
+  "decoder_failure_reason": "moving physical codec history bound (more than32 histories in one original receiver video capture)",
+  "control_workload": {
+    "passed": true,
+    "moves_completed": 4,
+    "replacement_data_io_verified": true,
+    "all_observed_helpers_joined": true,
+    "original_media_tasks_started": 30,
+    "original_media_tasks_joined": true,
+    "encoder_processes_joined": 6
+  },
+  "capture": {
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "pcap_sha256": "67f29f4917eb0e40be85a642c0375217cde12253b83ef9aab36d38ba194e8213",
+    "pcap_bytes": 81269479,
+    "kernel_dropped_packets": 0,
+    "counts": {
+      "packets": 107233,
+      "to_server_packets": 57057,
+      "from_server_packets": 50176,
+      "captured_bytes": 79553727,
+      "udp_payload_bytes": 75049941,
+      "to_server_udp_bytes": 30603363,
+      "from_server_udp_bytes": 44446578
+    }
+  },
+  "server_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "original_video_capture_comparison": [
+    {
+      "index": 0,
+      "frames_before": 575,
+      "frames_after": 514,
+      "histories_before": 1,
+      "histories_after": 13
+    },
+    {
+      "index": 1,
+      "frames_before": 1857,
+      "frames_after": 1785,
+      "histories_before": 3,
+      "histories_after": 25
+    },
+    {
+      "index": 2,
+      "frames_before": 1860,
+      "frames_after": 1801,
+      "histories_before": 1,
+      "histories_after": 23
+    },
+    {
+      "index": 3,
+      "frames_before": 1859,
+      "frames_after": 1830,
+      "histories_before": 2,
+      "histories_after": 16
+    },
+    {
+      "index": 4,
+      "frames_before": 541,
+      "frames_after": 516,
+      "histories_before": 1,
+      "histories_after": 15
+    },
+    {
+      "index": 5,
+      "frames_before": 1853,
+      "frames_after": 1707,
+      "histories_before": 4,
+      "histories_after": 61
+    }
+  ],
+  "aggregate_audio_counters": {
+    "collect-deferred": {
+      "events": 348,
+      "samples": 0,
+      "members": 10
+    },
+    "input-discontinuity": {
+      "events": 139,
+      "samples": 65280,
+      "members": 10
+    },
+    "burst-trim": {
+      "events": 66,
+      "samples": 63360,
+      "members": 6
+    },
+    "take-deferred": {
+      "events": 143,
+      "samples": 0,
+      "members": 10
+    },
+    "target-before-start": {
+      "events": 66,
+      "samples": 63360,
+      "members": 10
+    },
+    "target-deferred": {
+      "events": 54,
+      "samples": 51840,
+      "members": 7
+    },
+    "empty-output": {
+      "events": 3126,
+      "samples": 0,
+      "members": 10
+    },
+    "subscription-refused": {
+      "events": 24831,
+      "samples": 23837760,
+      "members": 8
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0,
+      "members": 4
+    },
+    "target-refused": {
+      "events": 1,
+      "samples": 960,
+      "members": 1
+    },
+    "refresh-refused": {
+      "events": 1,
+      "samples": 0,
+      "members": 1
+    }
+  },
+  "findings": [
+    "All four original moves and control workload pass. Full run fails before decoding; no audio/video quality pass or complete cell.",
+    "Receiver5 contains61 distinct decoder histories versus4 before; receivers0/2 also reset repeatedly despite unchanged SSRC/epoch. This is capture evidence of interrupted histories, not a reason to relax the32-history verifier bound.",
+    "Original ingress initial model snapshot uses try_lock and immediately refuses temporary exclusion; the prior fresh publication path waits up to20ms without policy authority. This is a candidate regression cause, not a proven explanation of every captured loss."
+  ],
+  "next": [
+    "Add one focused actual initial-model-lock contention counterexample comparing original ingress capture with previous publication behavior. Preserve exact original packet age/readiness and no stale authority.",
+    "Choose a fix from that evidence; do not rerun full workload blindly or relax quality/history limits.",
+    "Complete-cell expiry, ten-second idle resource proof and remaining matrix cells remain separate requirements."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
