@@ -1,0 +1,645 @@
+{
+  "format": "connect/gate6-browser-pinned-WT-admission/1",
+  "task": "G6-058",
+  "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+  "contract_inputs": {
+    "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+    "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+    "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+    "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+    "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+    "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+    "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+    "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+  },
+  "service_contract_sha256": "83f7c89ffdc86e7d3c82b17d0b40f8ae93ffe9dad3b60dc7f5d815aa06e5c4fd",
+  "scope": "Actual local ARM Chrome WebTransport admission through standard explicit fresh-certificate SHA256 trust. No public-CA deployment, full media/moves/quality or complete-cell qualification.",
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "attempts": [
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "report_sha256": "d26d4c3a3a32fa739234df96cf61fe976cdbdd0226721e81c0d756b3a5febd7b",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "passed": true,
+      "controller_gone": true,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_observation": {
+        "format": "connect/browser-matrix-admission-observation/1",
+        "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+        "transport": "chrome-webtransport",
+        "signing_algorithm": "ES256",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "passed": true,
+        "cell_qualified": false,
+        "task_complete": false,
+        "full_media_programme_executed": false,
+        "scope": "Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.",
+        "tls_trust": {
+          "https_wss": "isolated-profile-CA",
+          "webtransport": "explicit-fresh-certificate-sha256",
+          "leaf_sha256": "7a459121e35d4549e343677c508d38d68a5b802dbbf5df471be77790936c5d5d",
+          "leaf_key": "ECDSA-P256",
+          "leaf_validity_seconds": 86400,
+          "certificate_errors_ignored": false
+        },
+        "untrusted_browser": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "unconfigured_ca_refused": true,
+        "trust": {
+          "normal_profile_ca_import": true,
+          "root_sha256": "65036d4734a082ab32d0174839eaf006addd95a36e1c8554605feadc1d8ab64d",
+          "browser_version": "Google Chrome for Testing 156.0.8078.4"
+        },
+        "last_original_stage": "select-5",
+        "wrong_pin_refusal": {
+          "mismatched_leaf_refused": true,
+          "original_transport_closed": true,
+          "application_streams_created": 0,
+          "application_mutations_submitted": 0
+        },
+        "authenticated_owners": 7,
+        "admission": {
+          "checks": [
+            "seven-current-browser-owners-on-selected-transport",
+            "original-browser-operation-reference-recovers-same-conversation",
+            "participant-add-update-remove-rejoin-and-current-addressed-history",
+            "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+            "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+          ],
+          "operations": [
+            {
+              "name": "create",
+              "operationId": "matrix_op_14441c0f-1b03-4695-ac88-1b5b89727641",
+              "state": "completed"
+            },
+            {
+              "name": "before",
+              "operationId": "matrix_op_24667eec-47f1-46ad-815b-aaa870553f0f",
+              "state": "completed"
+            },
+            {
+              "name": "add",
+              "operationId": "matrix_op_07b40dd5-2c1e-4198-9c30-533551b93c0d",
+              "state": "completed"
+            },
+            {
+              "name": "included",
+              "operationId": "matrix_op_7e0f47dd-f69e-4a02-9133-7f23eaae9e68",
+              "state": "completed"
+            },
+            {
+              "name": "update",
+              "operationId": "matrix_op_0d3bea68-134b-4fd2-b853-920bda6efeb3",
+              "state": "completed"
+            },
+            {
+              "name": "remove",
+              "operationId": "matrix_op_a3dad78a-7c78-420c-b202-7a051e94531b",
+              "state": "completed"
+            },
+            {
+              "name": "after",
+              "operationId": "matrix_op_84b6c307-4b57-4baa-ad66-0d1e5265eb63",
+              "state": "completed"
+            },
+            {
+              "name": "readd",
+              "operationId": "matrix_op_69b93923-9a71-4a07-914d-a3f7fea9e1d1",
+              "state": "completed"
+            },
+            {
+              "name": "invite-0",
+              "operationId": "matrix_op_7ea93ae4-ec5f-4e1a-8d7c-43a648add3cd",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-2",
+              "operationId": "matrix_op_57b98ad4-f0b8-488b-a048-be2ec605da56",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-3",
+              "operationId": "matrix_op_80510802-08eb-433e-8e69-3bce9f9283ef",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-4",
+              "operationId": "matrix_op_48fe89d0-d474-46e6-a8d2-4475dd93a132",
+              "state": "completed"
+            },
+            {
+              "name": "upgrade-0",
+              "operationId": "matrix_op_5e7e79d8-27be-4071-9cb0-a21de52edf81",
+              "state": "completed"
+            },
+            {
+              "name": "invite-1",
+              "operationId": "matrix_op_ebc65a8c-a2a4-4901-919e-f9e78e9fe881",
+              "state": "completed"
+            },
+            {
+              "name": "accept-1-participant-2",
+              "operationId": "matrix_op_7d7bc0da-e744-400c-ac1e-3710945f57c4",
+              "state": "completed"
+            },
+            {
+              "name": "upgrade-1",
+              "operationId": "matrix_op_3d2f01b5-f4ed-4f46-beb7-15ac13f979c5",
+              "state": "completed"
+            },
+            {
+              "name": "offer-0",
+              "operationId": "matrix_op_20295a2d-6e23-4235-abfa-04e1a3126f20",
+              "state": "completed"
+            },
+            {
+              "name": "offer-1",
+              "operationId": "matrix_op_7a109149-ce58-4164-9045-a247c02eb21e",
+              "state": "completed"
+            },
+            {
+              "name": "offer-2",
+              "operationId": "matrix_op_d78c9c8c-1d16-48b0-b68a-242f1aaac4b2",
+              "state": "completed"
+            },
+            {
+              "name": "offer-3",
+              "operationId": "matrix_op_1b980ef2-7cee-4082-a31b-a1bed9a1c8a6",
+              "state": "completed"
+            },
+            {
+              "name": "offer-4",
+              "operationId": "matrix_op_4b15928f-9c31-439a-b4d8-910862f9f56d",
+              "state": "completed"
+            },
+            {
+              "name": "offer-5",
+              "operationId": "matrix_op_707665d2-230c-4fe0-9b9c-258e4fcb3cc6",
+              "state": "completed"
+            },
+            {
+              "name": "select-0",
+              "operationId": "matrix_op_2a469585-ed7b-4522-88b1-08a195833359",
+              "state": "completed"
+            },
+            {
+              "name": "select-1",
+              "operationId": "matrix_op_bed42169-c281-419c-b134-b89666615c1c",
+              "state": "completed"
+            },
+            {
+              "name": "select-2",
+              "operationId": "matrix_op_71ea3b61-52d5-4637-b35a-9a9e4cdcdaae",
+              "state": "completed"
+            },
+            {
+              "name": "select-3",
+              "operationId": "matrix_op_424b7918-e786-4854-9b12-8cfba7223aec",
+              "state": "completed"
+            },
+            {
+              "name": "select-4",
+              "operationId": "matrix_op_fd6449d1-a3f6-479b-93d3-26e19a7644e0",
+              "state": "completed"
+            },
+            {
+              "name": "select-5",
+              "operationId": "matrix_op_1582e52a-b8b8-4834-83fa-336220b6b6c0",
+              "state": "completed"
+            }
+          ],
+          "fullProgrammeComplete": false
+        },
+        "actual_connections": 6,
+        "source_startup": {
+          "real_time_audio_state": "running",
+          "sources": [
+            {
+              "index": 0,
+              "source_id": 0,
+              "draws": 15,
+              "capture_started": true
+            },
+            {
+              "index": 1,
+              "source_id": 1,
+              "draws": 14,
+              "capture_started": true
+            },
+            {
+              "index": 2,
+              "source_id": 2,
+              "draws": 14,
+              "capture_started": true
+            },
+            {
+              "index": 3,
+              "source_id": 3,
+              "draws": 13,
+              "capture_started": true
+            },
+            {
+              "index": 4,
+              "source_id": 0,
+              "draws": 12,
+              "capture_started": true
+            },
+            {
+              "index": 5,
+              "source_id": 1,
+              "draws": 11,
+              "capture_started": true
+            }
+          ],
+          "scope": "Actual capture startup only. No decoded receive or profile-quality pass."
+        },
+        "retirement": {
+          "passed": true,
+          "elapsedMs": 203.5,
+          "originalEndsCompleted": 6,
+          "originalClientsClosed": 7,
+          "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+        },
+        "rtc_diagnostics": {
+          "peer_bound": 4,
+          "event_bound_per_peer": 128,
+          "omitted_peers": 0,
+          "peers": []
+        },
+        "trusted_browser": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "owned_stun": {
+          "received": 0,
+          "answered": 0,
+          "malformed": 0,
+          "send_errors": 0,
+          "original_socket_joined": true
+        },
+        "journal_events": 101
+      },
+      "owned_audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      },
+      "browser_owner_joined": true
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "report_sha256": "c7e81b3af463b692e054fa1fca368265266306f28ee093b76db241c40a814bec",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "passed": true,
+      "controller_gone": true,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_observation": {
+        "format": "connect/browser-matrix-admission-observation/1",
+        "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+        "transport": "chrome-webtransport",
+        "signing_algorithm": "EdDSA",
+        "browser": "Google Chrome for Testing 156.0.8078.4",
+        "passed": true,
+        "cell_qualified": false,
+        "task_complete": false,
+        "full_media_programme_executed": false,
+        "scope": "Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.",
+        "tls_trust": {
+          "https_wss": "isolated-profile-CA",
+          "webtransport": "explicit-fresh-certificate-sha256",
+          "leaf_sha256": "70977bfceab32d026c407b219fa5864e1715c94806f11631270935d71414cb2c",
+          "leaf_key": "ECDSA-P256",
+          "leaf_validity_seconds": 86400,
+          "certificate_errors_ignored": false
+        },
+        "untrusted_browser": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "unconfigured_ca_refused": true,
+        "trust": {
+          "normal_profile_ca_import": true,
+          "root_sha256": "2e3929cbf3c86339203296b0d40ade967f8aeb356403d08ed6d3c13987a0a388",
+          "browser_version": "Google Chrome for Testing 156.0.8078.4"
+        },
+        "last_original_stage": "select-5",
+        "wrong_pin_refusal": {
+          "mismatched_leaf_refused": true,
+          "original_transport_closed": true,
+          "application_streams_created": 0,
+          "application_mutations_submitted": 0
+        },
+        "authenticated_owners": 7,
+        "admission": {
+          "checks": [
+            "seven-current-browser-owners-on-selected-transport",
+            "original-browser-operation-reference-recovers-same-conversation",
+            "participant-add-update-remove-rejoin-and-current-addressed-history",
+            "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+            "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+          ],
+          "operations": [
+            {
+              "name": "create",
+              "operationId": "matrix_op_9147bbb3-2114-41ec-8aa9-0896faea36a9",
+              "state": "completed"
+            },
+            {
+              "name": "before",
+              "operationId": "matrix_op_d27bfb50-11f9-4449-8d4e-2f25c0146006",
+              "state": "completed"
+            },
+            {
+              "name": "add",
+              "operationId": "matrix_op_67d62f4b-610a-4886-9d20-1d4323cb646f",
+              "state": "completed"
+            },
+            {
+              "name": "included",
+              "operationId": "matrix_op_56d56318-5277-4499-ac1a-2e0877fe7c38",
+              "state": "completed"
+            },
+            {
+              "name": "update",
+              "operationId": "matrix_op_cbc8c8e6-17af-4af5-b431-d2342ca2c515",
+              "state": "completed"
+            },
+            {
+              "name": "remove",
+              "operationId": "matrix_op_086c2b88-e003-4ed5-8023-fce69d773e2b",
+              "state": "completed"
+            },
+            {
+              "name": "after",
+              "operationId": "matrix_op_fedf92c0-ae86-4998-ba4d-d6d576d32f77",
+              "state": "completed"
+            },
+            {
+              "name": "readd",
+              "operationId": "matrix_op_c3c7774e-1635-4387-828d-a5db1469a3a8",
+              "state": "completed"
+            },
+            {
+              "name": "invite-0",
+              "operationId": "matrix_op_bf160728-7814-4860-8377-2bec8f16ef15",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-2",
+              "operationId": "matrix_op_efcb2c97-33db-4351-96ec-dda4a9e893cb",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-3",
+              "operationId": "matrix_op_ee85c2b6-4f9a-4cf3-832c-d5fce886bbfd",
+              "state": "completed"
+            },
+            {
+              "name": "accept-0-participant-4",
+              "operationId": "matrix_op_c1ae4b8d-af3b-4ee0-b1b5-5306fa6c881b",
+              "state": "completed"
+            },
+            {
+              "name": "upgrade-0",
+              "operationId": "matrix_op_918531f6-440d-42c5-9531-5afc573ff797",
+              "state": "completed"
+            },
+            {
+              "name": "invite-1",
+              "operationId": "matrix_op_d7bef513-a537-4117-9350-6b48c0a89485",
+              "state": "completed"
+            },
+            {
+              "name": "accept-1-participant-2",
+              "operationId": "matrix_op_119ccc4a-2e6f-4f5e-a359-da94675ac6c3",
+              "state": "completed"
+            },
+            {
+              "name": "upgrade-1",
+              "operationId": "matrix_op_9cb36a27-6254-45fb-b934-f07aaf5c6856",
+              "state": "completed"
+            },
+            {
+              "name": "offer-0",
+              "operationId": "matrix_op_87868890-552b-4898-9acf-209842f8383b",
+              "state": "completed"
+            },
+            {
+              "name": "offer-1",
+              "operationId": "matrix_op_757b75a5-b073-425c-abfa-81ef1fd7569f",
+              "state": "completed"
+            },
+            {
+              "name": "offer-2",
+              "operationId": "matrix_op_cc830f74-784b-407b-b0c3-5b7a5bc653be",
+              "state": "completed"
+            },
+            {
+              "name": "offer-3",
+              "operationId": "matrix_op_067b5508-c810-4ef0-8e75-fcddac91e6c8",
+              "state": "completed"
+            },
+            {
+              "name": "offer-4",
+              "operationId": "matrix_op_45df155d-120f-47e9-8792-bd5bb27c13f9",
+              "state": "completed"
+            },
+            {
+              "name": "offer-5",
+              "operationId": "matrix_op_d855b7b0-9f56-4a63-9fcb-4ee86d7730d6",
+              "state": "completed"
+            },
+            {
+              "name": "select-0",
+              "operationId": "matrix_op_33075f05-1e77-47b3-92aa-4d3c3f855ebb",
+              "state": "completed"
+            },
+            {
+              "name": "select-1",
+              "operationId": "matrix_op_7a67f943-34ab-4de9-840b-b765d13ec862",
+              "state": "completed"
+            },
+            {
+              "name": "select-2",
+              "operationId": "matrix_op_9beb8267-0836-4ed1-b492-2bfcb27c7da7",
+              "state": "completed"
+            },
+            {
+              "name": "select-3",
+              "operationId": "matrix_op_68435708-e77e-45e7-82d0-902763388fa9",
+              "state": "completed"
+            },
+            {
+              "name": "select-4",
+              "operationId": "matrix_op_965e8d44-f960-4a41-bbba-a3560bca005a",
+              "state": "completed"
+            },
+            {
+              "name": "select-5",
+              "operationId": "matrix_op_094092dd-b7fb-41ac-b0bd-3cb12057bd3e",
+              "state": "completed"
+            }
+          ],
+          "fullProgrammeComplete": false
+        },
+        "actual_connections": 6,
+        "source_startup": {
+          "real_time_audio_state": "running",
+          "sources": [
+            {
+              "index": 0,
+              "source_id": 0,
+              "draws": 16,
+              "capture_started": true
+            },
+            {
+              "index": 1,
+              "source_id": 1,
+              "draws": 15,
+              "capture_started": true
+            },
+            {
+              "index": 2,
+              "source_id": 2,
+              "draws": 14,
+              "capture_started": true
+            },
+            {
+              "index": 3,
+              "source_id": 3,
+              "draws": 14,
+              "capture_started": true
+            },
+            {
+              "index": 4,
+              "source_id": 0,
+              "draws": 13,
+              "capture_started": true
+            },
+            {
+              "index": 5,
+              "source_id": 1,
+              "draws": 12,
+              "capture_started": true
+            }
+          ],
+          "scope": "Actual capture startup only. No decoded receive or profile-quality pass."
+        },
+        "retirement": {
+          "passed": true,
+          "elapsedMs": 205,
+          "originalEndsCompleted": 6,
+          "originalClientsClosed": 7,
+          "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+        },
+        "rtc_diagnostics": {
+          "peer_bound": 4,
+          "event_bound_per_peer": 128,
+          "omitted_peers": 0,
+          "peers": []
+        },
+        "trusted_browser": {
+          "original_process_joined": true,
+          "forced_kill": false,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        },
+        "owned_stun": {
+          "received": 0,
+          "answered": 0,
+          "malformed": 0,
+          "send_errors": 0,
+          "original_socket_joined": true
+        },
+        "journal_events": 101
+      },
+      "owned_audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      },
+      "browser_owner_joined": true
+    }
+  ],
+  "correction": "A browser-known public CA is not the only supported local WT trust mode. The existing SDK supports the standard WebTransport serverCertificateHashes API. Earlier local-CA QUIC refusals remain failed observations; fresh explicit-pinning admission passes both signing cohorts with wrong-pin negatives. HTTPS/WSS normal CA validation and separate enrolled signing/device authority are retained.",
+  "references": [
+    "https://www.w3.org/TR/webtransport/#dom-webtransportoptions-servercertificatehashes",
+    "https://letsencrypt.org/docs/certificates-for-localhost/"
+  ]
+}

@@ -3,7 +3,7 @@
   "task": "G6-058",
   "contract_inputs": {
     "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
-    "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+    "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
     "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
     "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
     "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
@@ -94,9 +94,9 @@
     }
   ],
   "counts": {
-    "not-run": 26,
-    "failed": 4,
-    "incomplete": 2
+    "not-run": 25,
+    "failed": 3,
+    "incomplete": 4
   },
   "cells": [
     {
@@ -1569,51 +1569,42 @@
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
-      "status": "failed",
-      "reason": "browser-normal-QUIC-CA-refused",
+      "status": "incomplete",
+      "reason": "browser-admission-passed-full-checks-missing",
       "execution": {
         "producer": "browser-admission",
+        "stage": "admission",
         "runnable": false,
-        "blockers": [
-          "chrome-QUIC-known-root-trust-chain-not-provisioned"
-        ],
+        "blockers": [],
         "completion_blockers": [
-          "full-browser-four-move-62s-media-programme-not-executed",
-          "actual-capture-independent-quality-observer-not-connected",
-          "browser-fallback-and-neither-path-refusal-not-executed",
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
-          "full-cell-requirement-verifier-not-connected"
+          "full-cell-requirement-verifier-not-connected",
+          "full-browser-movement-media-producer-not-connected",
+          "browser-fallback-and-neither-path-refusal-not-executed"
         ],
         "attempted": true,
         "component": {
           "kind": "browser-admission",
-          "passed": false,
-          "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549",
-          "report_sha256": "ff01a2bb2819afe8642873d03252e878686360604ec09d6830f6b1dff8cc0b67",
-          "evidence": "docs/evidence/gate-6/matrix-browser-admission.json",
-          "evidence_sha256": "5cf2fd6331e07d54b71767f00674d64ca52d2f1adf2fe0b00fcfa7d58238f773",
-          "browser": "Google Chrome for Testing 156.0.8078.4",
-          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
-          "authenticated_owners": 0,
-          "actual_connections": 0,
-          "failure": {
-            "phase": "actual-browser-admission",
-            "browser": {
-              "stage": "authenticate-controller-1",
-              "name": "BrowserSdkError",
-              "kind": "transport-uncertain",
-              "certainty": "not-submitted",
-              "problem": null
-            }
-          },
+          "passed": true,
+          "exit_code": 0,
+          "report_sha256": "c7e81b3af463b692e054fa1fca368265266306f28ee093b76db241c40a814bec",
           "integrity": {
             "source_inputs_unchanged": true,
+            "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
-            "executable_unchanged": true
-          }
+            "browser_owner_joined": true
+          },
+          "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+          "browser": "Google Chrome for Testing 156.0.8078.4",
+          "authenticated_owners": 7,
+          "actual_connections": 6,
+          "failure": null,
+          "evidence": "docs/evidence/gate-6/matrix-browser-pinned-wt.json",
+          "evidence_sha256": "d837f391d39359153a206e877388f5d694e54159c057effc05373d828987e9e2",
+          "tls_trust": "explicit-fresh-certificate-sha256"
         },
-        "stage": "admission",
         "retained_attempts": [
           {
             "attempt": "v148",
@@ -1626,6 +1617,12 @@
             "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549",
             "report_sha256": "ff01a2bb2819afe8642873d03252e878686360604ec09d6830f6b1dff8cc0b67",
             "passed": false
+          },
+          {
+            "attempt": "v154",
+            "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+            "passed": true,
+            "report_sha256": "c7e81b3af463b692e054fa1fca368265266306f28ee093b76db241c40a814bec"
           }
         ]
       },
@@ -1687,7 +1684,30 @@
           "evidence": null
         }
       },
-      "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549"
+      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+      "expected_client_platform": "ubuntu24-arm64",
+      "required_checks": [
+        "identified-candidate-client-server-versions",
+        "normal-tls-and-current-device-key-authority",
+        "selected-transport-and-authenticated-discovery",
+        "one-service-contract-and-original-operation-recovery",
+        "participant-add-update-remove-and-current-audiences",
+        "session-upgrade-and-current-capability-refusal",
+        "device-replacement-and-old-owner-retirement",
+        "declared-concurrent-workload",
+        "actual-private-packet-capture",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation",
+        "wt-unavailable-selects-documented-wss-fallback-with-reason",
+        "neither-path-usable-refuses-without-mutation-resubmission"
+      ],
+      "client_versions": null,
+      "server_version": null,
+      "actual_topology": null,
+      "packet_capture": null,
+      "decoded_media": null,
+      "outcome": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -1695,21 +1715,50 @@
       "network": "local",
       "transport": "chrome-webtransport",
       "signing": "ES256",
-      "status": "not-run",
-      "reason": "execution-preflight-blocked",
+      "status": "incomplete",
+      "reason": "browser-admission-passed-full-checks-missing",
       "execution": {
-        "producer": null,
+        "producer": "browser-admission",
+        "stage": "admission",
         "runnable": false,
-        "blockers": [
-          "full-browser-movement-media-producer-not-connected"
-        ],
+        "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
-          "full-cell-requirement-verifier-not-connected"
+          "full-cell-requirement-verifier-not-connected",
+          "full-browser-movement-media-producer-not-connected",
+          "browser-fallback-and-neither-path-refusal-not-executed"
         ],
-        "attempted": false,
-        "component": null
+        "attempted": true,
+        "component": {
+          "kind": "browser-admission",
+          "passed": true,
+          "exit_code": 0,
+          "report_sha256": "d26d4c3a3a32fa739234df96cf61fe976cdbdd0226721e81c0d756b3a5febd7b",
+          "integrity": {
+            "source_inputs_unchanged": true,
+            "executable_unchanged": true,
+            "sdk_dist_inputs_unchanged": true,
+            "browser_owner_joined": true
+          },
+          "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+          "browser": "Google Chrome for Testing 156.0.8078.4",
+          "authenticated_owners": 7,
+          "actual_connections": 6,
+          "failure": null,
+          "evidence": "docs/evidence/gate-6/matrix-browser-pinned-wt.json",
+          "evidence_sha256": "d837f391d39359153a206e877388f5d694e54159c057effc05373d828987e9e2",
+          "tls_trust": "explicit-fresh-certificate-sha256"
+        },
+        "retained_attempts": [
+          {
+            "attempt": "v154",
+            "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+            "passed": true,
+            "report_sha256": "d26d4c3a3a32fa739234df96cf61fe976cdbdd0226721e81c0d756b3a5febd7b"
+          }
+        ]
       },
       "check_results": {
         "identified-candidate-client-server-versions": {
@@ -1769,7 +1818,30 @@
           "evidence": null
         }
       },
-      "source_revision": null
+      "source_revision": "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
+      "expected_client_platform": "ubuntu24-arm64",
+      "required_checks": [
+        "identified-candidate-client-server-versions",
+        "normal-tls-and-current-device-key-authority",
+        "selected-transport-and-authenticated-discovery",
+        "one-service-contract-and-original-operation-recovery",
+        "participant-add-update-remove-and-current-audiences",
+        "session-upgrade-and-current-capability-refusal",
+        "device-replacement-and-old-owner-retirement",
+        "declared-concurrent-workload",
+        "actual-private-packet-capture",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation",
+        "wt-unavailable-selects-documented-wss-fallback-with-reason",
+        "neither-path-usable-refuses-without-mutation-resubmission"
+      ],
+      "client_versions": null,
+      "server_version": null,
+      "actual_topology": null,
+      "packet_capture": null,
+      "decoded_media": null,
+      "outcome": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
@@ -2913,7 +2985,10 @@
       "normal_CA_WSS_verified": true,
       "normal_CA_WT_refused": true,
       "owned_software_audio_verified": true,
-      "full_media_quality_verified": false
+      "full_media_quality_verified": false,
+      "explicit_fresh_WT_pin_passed_both_signing_cohorts": true,
+      "wrong_pin_refused_both_cohorts": true,
+      "public_CA_not_required_for_this_explicit_local_mode": true
     }
   },
   "source_revisions": [
@@ -2921,6 +2996,7 @@
     "2fa7382caee8a47b8f315ac7931e6f664f00c743",
     "2fedc093a13fa55e872e6fce9308670bb8743a07",
     "a7b85a59ba5703ff7ca65355800586936556b5a8",
+    "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
     "bb8c166c13440c10324d955827845e3ed7f69223",
     "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
     "e9809912aed859db5393cbe7aae2f5f5258344ce",
@@ -2929,7 +3005,103 @@
   "browser_admission_evidence": {
     "path": "docs/evidence/gate-6/matrix-browser-admission.json",
     "sha256": "5cf2fd6331e07d54b71767f00674d64ca52d2f1adf2fe0b00fcfa7d58238f773",
-    "passed_stages": 2,
-    "qualified_cells": 0
+    "passed_stages": 4,
+    "qualified_cells": 0,
+    "additional_pinned_WT_evidence": {
+      "path": "docs/evidence/gate-6/matrix-browser-pinned-wt.json",
+      "sha256": "d837f391d39359153a206e877388f5d694e54159c057effc05373d828987e9e2"
+    }
+  },
+  "contract_inputs_by_source_revision": {
+    "2ed53986b84277953e40de73cd8b9871c8f57549": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "2fa7382caee8a47b8f315ac7931e6f664f00c743": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "2fedc093a13fa55e872e6fce9308670bb8743a07": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "a7b85a59ba5703ff7ca65355800586936556b5a8": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "bb8c166c13440c10324d955827845e3ed7f69223": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "d7019125ace0b3fa2dd2b37e1293e2602ad0211d": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "e9809912aed859db5393cbe7aae2f5f5258344ce": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "eb8736270c621ac9f4482e645ab1d7983652ba66": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "b7b64d2abfb9b5948905f0fd313aace5cbc24422": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    }
   }
 }

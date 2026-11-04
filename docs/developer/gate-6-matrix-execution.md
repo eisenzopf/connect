@@ -163,12 +163,23 @@ six current AV offers/subscriptions with active synthetic capture, six original
 ends and seven client closes in less than 300 ms. This is startup/retirement
 evidence, not decoded quality or the full movement programme.
 
-WT currently fails before authentication: Chrome QUIC rejects the locally added
-root even though HTTPS/WSS accept it. This is consistent with
+The earlier WT private-CA attempts failed before authentication: Chrome QUIC
+rejects locally added root trust even though HTTPS/WSS accept it, consistent with
 [Chromium's documented local trust policy](https://chromium.googlesource.com/chromium/src/%2Bshow/main/net/data/ssl/chrome_root_store/faq.md).
-The fixture needs a valid hostname and certificate chaining to a browser-known
-root. A Let's Encrypt DNS-01 certificate is a suitable option that can keep the
-service and test traffic local; [DNS-01 does not require a public webserver](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
-No Let's Encrypt certificate is configured yet. No certificate-verification
-bypass, developer-mode flag or hash-mode substitution has been used to count a
-normal-CA cell as passed.
+The earlier statement that a publicly trusted certificate was required for this
+local fixture was too restrictive. The existing SDK supports the standard
+WebTransport `serverCertificateHashes` mode. Before v154, the operating profile
+records its exact fresh one-day ECDSA P-256 leaf trust, independent of the enrolled
+server signing key. The pinned leaf is checked against the certificate actually
+served; a wrong hash must fail before any application stream or mutation.
+
+Both actual Chrome WT signing cohorts now pass admission with this explicit local
+trust mode at `b7b64d2a`, including the two wrong-pin negatives, seven enrolled
+Devices, six active AV captures/current subscriptions and original retirement.
+See [the source-bound WT result](../evidence/gate-6/matrix-browser-pinned-wt.json).
+This clears the local certificate prerequisite, not full-cell qualification or
+a public-CA deployment. HTTPS/WSS keep normal profile CA validation. No global
+certificate-error bypass or developer-mode flag is used. The standard defines
+[certificate hashing and its short-lived certificate requirements](https://www.w3.org/TR/webtransport/#dom-webtransportoptions-servercertificatehashes).
+Let's Encrypt cannot issue for `localhost`; it is unnecessary for this declared
+local trust mode. See [Let's Encrypt's localhost documentation](https://letsencrypt.org/docs/certificates-for-localhost/).
