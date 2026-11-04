@@ -1,0 +1,492 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -0,0 +1,185 @@
++//! Original native receive custody across definite temporary metadata refusal.
++//! No authority, model lock or delivery guard survives a retry boundary.
++use super::*;
++
++pub(super) struct OriginalStamp {
++    revision: u64,
++    credential: CredentialSnapshot,
++    consumer: Option<audio_consumer::ConsumerStamp>,
++    scene: Option<scene_consumer::SceneStamp>,
++}
++impl OriginalStamp {
++    pub(super) fn validate(&self, owner: &StreamController, state: &State) -> ControlResult<()> {
++        if state.model.revision() != self.revision {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        owner.check_credential_snapshot(&self.credential)
++    }
++}
++/// One original frame, not cloneable and never an authorization. The owner
++/// must discard it on any error except MetadataBusy and must bound its queue.
++pub struct OriginalIngress {
++    port: AdapterMediaPort,
++    frame: MediaFrame,
++    ticket: PeerRouteTicket,
++    stamp: OriginalStamp,
++    received_at: Instant,
++    deadline: tokio::time::Instant,
++    finished: bool,
++}
++impl AdapterMediaPort {
++    /// Capture the original active route and generations before policy can
++    /// refuse temporarily. An unavailable initial snapshot cannot be recaptured
++    /// later: no unqualified pre-ready packet enters retained custody.
++    /// None means an isolated preparation observer consumed the frame.
++    pub fn retain_original_ingress(
++        &self,
++        frame: MediaFrame,
++        received_at: Instant,
++    ) -> ControlResult<Option<OriginalIngress>> {
++        if self.0.kind() == StreamKind::Data {
++            return Err(StreamControlError::Unsupported);
++        }
++        let now = Instant::now();
++        if received_at > now || now.duration_since(received_at) >= Duration::from_millis(200) {
++            return Err(StreamControlError::Deadline);
++        }
++        self.0.validate(&frame)?;
++        if self
++            .0
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .messages_only
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let owner = self
++            .0
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if self.0.kind() == StreamKind::Audio {
++            let probe = owner
++                .audio_preparation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .and_then(Weak::upgrade);
++            if let Some(result) = probe.and_then(|p| p.observe(&owner, &self.0, &frame)) {
++                return result.map(|()| None);
++            }
++        }
++        let state = owner
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if owner.shutdown.is_cancelled()
++            || state.closed
++            || !state
++                .active
++                .get(&self.0.binding.negotiated.requested.logical_id)
++                .is_some_and(|p| Arc::ptr_eq(p, &self.0))
++            || state
++                .model
++                .streams()
++                .get(&self.0.binding.negotiated.requested.logical_id)
++                .is_none_or(|s| !s.permits(false))
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let ticket = self.0.ticket();
++        if !ticket.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        let stamp = OriginalStamp {
++            revision: state.model.revision(),
++            credential: owner.credential_snapshot(),
++            consumer: owner.current_consumer_stamp(&self.0)?,
++            scene: owner.current_scene_stamp()?,
++        };
++        Ok(Some(OriginalIngress {
++            port: self.clone(),
++            frame,
++            ticket,
++            stamp,
++            received_at,
++            deadline: (received_at + Duration::from_millis(200)).into(),
++            finished: false,
++        }))
++    }
++}
++impl OriginalIngress {
++    /// One nonblocking admission attempt. Only MetadataBusy leaves this object
++    /// retryable. Success consumes it logically, preventing duplicate publish.
++    pub fn try_publish_clocked(
++        &mut self,
++        observe: impl FnOnce(
++            Arc<dyn Fn() -> bool + Send + Sync>,
++        ) -> Option<crate::stream::MediaSourceClock>,
++    ) -> ControlResult<()> {
++        if self.finished {
++            return Err(StreamControlError::Cancelled);
++        }
++        let result = self.publish(observe);
++        if !matches!(result, Err(StreamControlError::MetadataBusy)) {
++            self.finished = true;
++        }
++        result
++    }
++    fn publish(
++        &mut self,
++        observe: impl FnOnce(
++            Arc<dyn Fn() -> bool + Send + Sync>,
++        ) -> Option<crate::stream::MediaSourceClock>,
++    ) -> ControlResult<()> {
++        let owner = self
++            .port
++            .0
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !self.ticket.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        let (lease, admission, deadline) = owner.admit_original_or_queued(
++            &self.port.0,
++            &self.ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Retained(self.stamp.consumer.as_ref()),
++            None,
++            scene_consumer::SceneCheck::retained_publish(self.stamp.scene.as_ref()),
++            None,
++            None,
++            None,
++            Some(&mut self.deadline),
++            Some(&self.stamp),
++        )?;
++        if tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        let mut frame = self.frame.clone();
++        frame.source_clock = observe(self.port.clock_liveness(self.ticket.clone(), &admission));
++        self.port
++            .0
++            .enqueue_ingress(MediaPacket {
++                frame,
++                data: None,
++                source: self.port.0.clone(),
++                ticket: self.ticket.clone(),
++                admitted_at: self.received_at,
++                consumer: admission.consumer.clone(),
++                scene: admission.scene.clone(),
++                custody: if self.port.0.kind() == StreamKind::Audio {
++                    PacketCustody::from_lease(lease.as_ref())
++                } else {
++                    PacketCustody::default()
++                },
++            })
++            .map_err(|e| match e {
++                mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
++                mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
++            })
++    }
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -0,0 +1,184 @@
++//! Original receive recovery must retain generations, not a positive grant.
++use super::*;
++use crate::staged_streams::{audio_consumer::AudioConsumer, scene_consumer::SceneConsumer};
++struct OriginalPolicy {
++    inner: Arc<Policy>,
++    mode: Arc<AtomicUsize>,
++}
++impl MediaPolicy for OriginalPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current(scope)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        match self.mode.load(Ordering::SeqCst) {
++            1 => Err(StreamControlError::MetadataBusy),
++            2 => Err(StreamControlError::NotReady),
++            _ => self.inner.current(scope),
++        }
++    }
++}
++async fn fixture() -> (Fixture, Arc<AtomicUsize>) {
++    let mode = Arc::new(AtomicUsize::new(1));
++    let m = mode.clone();
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(OriginalPolicy { inner, mode: m })
++        })),
++    );
++    f.start(&[Medium::Audio, Medium::Video]).await;
++    (f, mode)
++}
++#[tokio::test]
++async fn original_ingress_recovers_exact_frame_and_releases_authority_between_attempts() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, mode) = fixture().await;
++        let port = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let at = Instant::now();
++        let frame = frame(&port, 160);
++        let mut original = port
++            .retain_original_ingress(frame.clone(), at)
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::MetadataBusy)
++        ));
++        assert!(input.try_recv().is_err());
++        drop(f.policy.0.try_write().expect("busy receive kept authority"));
++        // The original model generation is also preserved through a definite
++        // nonblocking model mutex collision, with no authority retained.
++        mode.store(0, Ordering::SeqCst);
++        let held = f.a.state.lock().unwrap();
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::MetadataBusy)
++        ));
++        drop(held);
++        original.try_publish_clocked(|_| None).unwrap();
++        let packet = receive(&mut input).await;
++        assert_eq!(packet.frame.timestamp_rtp, frame.timestamp_rtp);
++        assert_eq!(packet.frame.payload, frame.payload);
++        assert_eq!(packet.admitted_at, at);
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::Cancelled)
++        ));
++        assert!(input.try_recv().is_err(), "original submitted twice");
++    }
++}
++#[tokio::test]
++async fn original_ingress_refuses_revocation_aba_new_audience_and_semantic_readiness() {
++    for action in 0..9 {
++        let (f, mode) = fixture().await;
++        let port = f.aa.port(Medium::Audio);
++        let id = desired(Medium::Audio).logical_id;
++        let mut input = f.a.take_ingress(&id).unwrap();
++        let mut original = port
++            .retain_original_ingress(frame(&port, 160), Instant::now())
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::MetadataBusy)
++        ));
++        let mut consumer = None;
++        let mut scene = None;
++        match action {
++            0 => {
++                f.policy
++                    .0
++                    .try_write()
++                    .unwrap()
++                    .revoked
++                    .insert("alice".into());
++            }
++            1 => f.a.shutdown.cancel(),
++            2 => port.0.retire(),
++            3 => {
++                let ids = [id.clone()].into_iter().collect();
++                f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Mute, deadline())
++                    .await
++                    .unwrap();
++                f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
++                    .await
++                    .unwrap();
++            }
++            4 => {
++                let c = AudioConsumer::optional(Some(id.clone()), 8000);
++                c.activate(true);
++                *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&c));
++                consumer = Some(c);
++            }
++            5 => {
++                let s = SceneConsumer::new(11);
++                s.activate();
++                *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&s));
++                scene = Some(s);
++            }
++            6 => {
++                f.a.credential.lock().unwrap().revision += 1;
++            }
++            7 => tokio::time::sleep(Duration::from_millis(205)).await,
++            8 => {
++                mode.store(2, Ordering::SeqCst);
++                assert!(matches!(
++                    original.try_publish_clocked(|_| None),
++                    Err(StreamControlError::NotReady)
++                ));
++            }
++            _ => unreachable!(),
++        }
++        mode.store(0, Ordering::SeqCst);
++        assert!(
++            original.try_publish_clocked(|_| None).is_err(),
++            "old original adopted action {action}"
++        );
++        assert!(
++            input.try_recv().is_err(),
++            "action {action} published old frame"
++        );
++        drop(f.policy.0.try_write().expect("refusal kept authority"));
++        drop((consumer, scene));
++    }
++}
++#[tokio::test]
++async fn original_ingress_cannot_capture_prepared_muted_future_or_expired_inputs() {
++    let (f, mode) = fixture().await;
++    mode.store(0, Ordering::SeqCst);
++    let port = f.aa.port(Medium::Audio);
++    for at in [
++        Instant::now() + Duration::from_secs(1),
++        Instant::now() - Duration::from_millis(201),
++    ] {
++        assert!(matches!(
++            port.retain_original_ingress(frame(&port, 160), at),
++            Err(StreamControlError::Deadline)
++        ));
++    }
++    let ids = [desired(Medium::Audio).logical_id].into_iter().collect();
++    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Mute, deadline())
++        .await
++        .unwrap();
++    assert!(port
++        .retain_original_ingress(frame(&port, 160), Instant::now())
++        .is_err());
++    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
++        .await
++        .unwrap();
++    // A model busy at the initial snapshot cannot promise an active generation.
++    let held = f.a.state.lock().unwrap();
++    assert!(matches!(
++        port.retain_original_ingress(frame(&port, 160), Instant::now()),
++        Err(StreamControlError::NotReady)
++    ));
++    drop(held);
++    port.0.state.lock().unwrap().ready = false;
++    assert!(port
++        .retain_original_ingress(frame(&port, 160), Instant::now())
++        .is_err());
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2831,3 +2831,5 @@
+ mod native_queue_observations;
+ 
+ mod queued_source_dispatch;
++
++mod original_ingress_custody;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -42,6 +42,10 @@
+     Deadline,
+     #[error("staged media is not ready")]
+     NotReady,
++    /// Definite temporary metadata exclusion, before any packet publication.
++    /// Only an owner retaining the original generations may retry this result.
++    #[error("staged media metadata busy")]
++    MetadataBusy,
+     #[error("staged media backpressure")]
+     Backpressure,
+     #[error("staged media cleanup is unconfirmed")]
+@@ -353,6 +357,16 @@
+     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         self.current(scope)
+     }
++    /// Current publication for an original adapter-owned receive. Return
++    /// MetadataBusy only for definite temporary metadata exclusion; semantic
++    /// NotReady (prepared, suspended, paused) remains a terminal refusal.
++    /// No authority reader may survive a refused attempt.
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current(scope)
++    }
+     /// Recheck this exact packet source or recipient policy while an actual
+     /// source lease for this original packet remains owned. Opt-in implementations may reuse only its
+     /// complete file fence; never borrow permissions or extend packet age.
+@@ -2198,7 +2212,41 @@
+         data: Option<&reliable_data::StagedData>,
+         held: Option<&(dyn Any + Send + Sync)>,
+         packet_context: Option<&(dyn Any + Send + Sync)>,
++        queued_deadline: Option<&mut tokio::time::Instant>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
++        self.admit_original_or_queued(
++            port,
++            ticket,
++            sending,
++            source,
++            consumer,
++            direct,
++            scene,
++            data,
++            held,
++            packet_context,
++            queued_deadline,
++            None,
++        )
++    }
++    fn admit_original_or_queued(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        sending: bool,
++        source: Option<&MediaSource>,
++        consumer: audio_consumer::ConsumerCheck<'_>,
++        direct: Option<&direct_subscriptions::DirectStamp>,
++        scene: scene_consumer::SceneCheck<'_>,
++        data: Option<&reliable_data::StagedData>,
++        held: Option<&(dyn Any + Send + Sync)>,
++        packet_context: Option<&(dyn Any + Send + Sync)>,
+         mut queued_deadline: Option<&mut tokio::time::Instant>,
++        original: Option<&original_ingress::OriginalStamp>,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+@@ -2232,7 +2280,9 @@
+             if detached {
+                 match self.state.try_lock() {
+                     Ok(state) => Ok(state),
+-                    Err(std::sync::TryLockError::WouldBlock) => Err(if fresh_publication {
++                    Err(std::sync::TryLockError::WouldBlock) => Err(if original.is_some() {
++                        StreamControlError::MetadataBusy
++                    } else if fresh_publication {
+                         // Existing ingress owners retry Backpressure using the
+                         // same original packet and its unchanged age/deadline.
+                         StreamControlError::Backpressure
+@@ -2246,6 +2296,9 @@
+             }
+         };
+         let validate = |state: &State| -> ControlResult<()> {
++            if let Some(original) = original {
++                original.validate(self, state)?;
++            }
+             if self.shutdown.is_cancelled()
+                 || state.closed
+                 || !state
+@@ -2341,6 +2394,9 @@
+                 return Err(StreamControlError::Deadline);
+             }
+             let lease = match (data, packet_context) {
++                (None, None) if original.is_some() => {
++                    self.policy.current_original_ingress(&scope)?
++                }
+                 (Some(data), None) => self.policy.current_data(&scope, data, held)?,
+                 (None, Some(context)) => self.policy.current_packet(&scope, context)?,
+                 // A retained original with no still-active custody needs a
+@@ -3560,3 +3616,5 @@
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
++
++pub mod original_ingress;

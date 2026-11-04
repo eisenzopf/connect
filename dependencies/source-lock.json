@@ -1639,6 +1639,11 @@
       "path": "patches/rvoip/gate6-native-ingress-contention-regression.patch",
       "sha256": "ce1b2b649d2404fc5a27b8addd6564b77fa0beb7203e8858080bea0121f5662b",
       "source": "G6-058 actual canonical QUIC one-frame temporary metadata contention regression; original frame must recover without resend, fresh frame controls reader liveness. Controlled media policy, not production Store qualification."
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-original-ingress.patch",
+      "sha256": "9f2e9e705c594e0cb2bd2ee410b8ab0cde27b60e790fde875702b39835246a0e",
+      "source": "G6-058 v126 proven original native frame loss: Core owns the original receive time, route, model, credential, consumer and scene generations across explicitly classified metadata contention. No authority survives retry; semantic readiness, revoked, changed or expired inputs remain refused. Native adapter integration follows after focused Core verification."
     }
   ]
 }

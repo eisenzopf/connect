@@ -1,0 +1,48 @@
+{
+  "format": "connect/native-ingress-before-evidence/1",
+  "run": "v126",
+  "source_revision": "4a77ed46fafa57a78a4ea541d9c824e8613ce03f",
+  "platform": "local Ubuntu24.04 ARM64 VM on owner Mac Studio",
+  "scope": "One actual encrypted canonical QUIC original packet with controlled temporary policy mutex exclusion; no production Store or full matrix claim.",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 163595,
+    "source_revision": "4a77ed46fafa57a78a4ea541d9c824e8613ce03f",
+    "passed": false,
+    "steps": [
+      {
+        "group": "native-ingress-before",
+        "case": "peer_native::canonical_media::ingress_retry::original_native_frame_survives_temporary_metadata_unavailability_without_resend",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 190 filtered out; finished in 0.15s"
+        ],
+        "log_sha256": "a86539c24a67ac1b68d4379bae57ce7a78e7d58f01f888c09e38303956877336"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_ingress_before_regression": true,
+    "builds": [
+      {
+        "group": "native-ingress-before",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "92c727a7197dc5c25884da521bcadf0f102f1c3fcb31c6b08ff55f844f75a82d",
+        "test_executable_sha256": "9a9fd2be8c89a8704102d1c5c0ab878510627f25da42b3efa3fa07d742c7f004",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 447.4478506930027
+  },
+  "observation": "original_recovered=false fresh_received=true temporary_refusals=1 ingress_rejected=1 reader_joined=true",
+  "conclusion": "Before-fix regression reproduced: original packet lost; distinct fresh packet and joined reader exclude a persistently dead route.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "next": "Verify bounded original receive custody and exact generation/authority refusal, then integrate the native reader and production contention classification."
+}
