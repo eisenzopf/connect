@@ -3,7 +3,20 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {createPrivateKey} from 'node:crypto';
 import path from 'node:path';
 const input=JSON.parse(await readFile(process.argv[2],'utf8'));
-for(const actor of input.run.actors){actor.private_jwk=createPrivateKey({key:Buffer.from(actor.private_pkcs8,'base64url'),format:'der',type:'pkcs8'}).export({format:'jwk'});delete actor.private_pkcs8;}
+for(const actor of input.run.actors){
+ const original=Buffer.from(actor.private_pkcs8,'base64url');let der=original,publicKey;
+ // ring emits RFC 5958 Ed25519 OneAsymmetricKey with the optional public
+ // key. OpenSSL's PKCS#8 importer expects PrivateKeyInfo without that field.
+ // Accept only the exact fixture encoding and verify the derived public key.
+ if(actor.algorithm==='EdDSA'){
+  if(original.length!==83||original.subarray(0,16).toString('hex')!=='3051020101300506032b657004220420'||original.subarray(48,51).toString('hex')!=='812100')throw Error('Unexpected fixture Ed25519 encoding');
+  der=Buffer.concat([Buffer.from('302e020100300506032b657004220420','hex'),original.subarray(16,48)]);
+  publicKey=original.subarray(51).toString('base64url');
+ }
+ actor.private_jwk=createPrivateKey({key:der,format:'der',type:'pkcs8'}).export({format:'jwk'});
+ if(publicKey&&actor.private_jwk.x!==publicKey)throw Error('Fixture Ed25519 public key changed');
+ delete actor.private_pkcs8;
+}
 const version=await(await fetch(`http://127.0.0.1:${input.debug_port}/json/version`)).json();
 if(version.Browser!=='Chrome/156.0.8078.4')throw Error('Pinned local ARM Chrome changed');
 const socket=new WebSocket(version.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(Error('Owned CDP opening failed'));});
