@@ -122,6 +122,7 @@ try{
             return {passed:retirement.passed,authenticated_owners:Object.keys(actors).length,admission:state.report,
                 actual_connections:state.connections.length,retirement};
         }catch(error){
+            console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
             return {passed:false,authenticated_owners:Object.keys(actors).length,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,

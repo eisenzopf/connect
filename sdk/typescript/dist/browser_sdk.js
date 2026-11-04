@@ -478,12 +478,21 @@ function translated(error, certainty, key) {
             "media-input-failed": "application",
             "resync-required": "resync-required",
         };
+        // A signed, scoped unsupported-feature response is an explicit refusal,
+        // including its 501 code. Other 5xx failures retain submission uncertainty.
+        const unsupportedRefusal = error.code === "refused" &&
+            error.problem?.code === 501 &&
+            error.problem.category === "unsupported" &&
+            error.problem.reason === "unsupported_feature";
         const kind = error.code === "refused"
             ? error.problem?.code === 401 || error.problem?.code === 403
                 ? "authentication"
-                : "application"
+                : unsupportedRefusal
+                    ? "unsupported"
+                    : "application"
             : (kinds[error.code] ?? "transport-uncertain");
-        return new BrowserSdkError(kind, ["forbidden", "unauthorized"].includes(error.code) ||
+        return new BrowserSdkError(kind, unsupportedRefusal ||
+            ["forbidden", "unauthorized"].includes(error.code) ||
             (error.code === "refused" &&
                 error.problem !== undefined &&
                 error.problem.code >= 400 &&
