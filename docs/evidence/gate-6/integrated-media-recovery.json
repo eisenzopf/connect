@@ -1779,7 +1779,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Run the previously failed full native workload locally on ARM with the verified pre-publication metadata retry. Inspect original operation/effect outcomes, physical Data exchange, decoded audio/video quality and cleanup. No prior passing case reruns or G6-054 execution.",
+  "next_investigation": "Analyze original audio histories and stored PCM to locate missing frames and the route0 identity/marker failure; correlate with source/mixer admission and current-authority lifetimes. Preserve the59.9s/200ms/audio identity/A-V limits; no blind full rerun.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
@@ -1808,5 +1808,14 @@
     "passed": true,
     "evidence": "docs/evidence/gate-6/replacement-precommit-retry.json",
     "scope": "One new exact Core scene regression on local Ubuntu 24.04 ARM64, with an actual publisher state mutex and the production retry helper. Controlled policy; not the signed production listener."
+  },
+  "replacement_retry_integrated": {
+    "run": "v125",
+    "source_revision": "1e558e0b704444d2c2b635fc33c33c45819b88c9",
+    "evidence": "docs/evidence/gate-6/replacement-retry-integrated.json",
+    "conversation_passed": true,
+    "full_quality_passed": false,
+    "original_moves_completed": 4,
+    "physical_data_exchanges_verified": 4
   }
 }

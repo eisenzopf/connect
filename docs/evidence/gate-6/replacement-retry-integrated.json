@@ -1,0 +1,593 @@
+{
+  "format": "connect/replacement-retry-integrated-evidence/1",
+  "run": "v125",
+  "source_revision": "1e558e0b704444d2c2b635fc33c33c45819b88c9",
+  "state": {
+    "replacement_precommit_retry": true,
+    "programme_clock_fix": true,
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 159671,
+    "source_revision": "1e558e0b704444d2c2b635fc33c33c45819b88c9",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T12:13:03.094497+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "47e33220d454cb0c50bacb9baf4aebb725dbec5754fe99032b16b29559edd0f1",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "ce1cd7fab243655fe444a72d535369815193ed03da730a5bac4c59b1a633a5b4",
+    "peer_binary_sha256": "7ec333029ca48fe3aa7b52974575152ba58be31429b99da102135fe3914b802b",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1227.7663859879976
+  },
+  "report_sha256": "47e33220d454cb0c50bacb9baf4aebb725dbec5754fe99032b16b29559edd0f1",
+  "conversation_sha256": "b1a9ae00d08ed2e1bb2179ec63f10ebb36a45cb01a11f6a7dff36396da239f2d",
+  "decoded_sha256": "deff0110c374da4a786753a22a79aa5aed64a60f008725f8690abd2bd15f0d58",
+  "movement_audit_sha256": "a31be80195e82a8d2c81909a6dd8d74f5c65c4071a0a248eb58e63dbf19e87f2",
+  "terminal_summary_sha256": "350d47a36007be74c78c0157cb09404a15548cc87d559ac604a4f059513babd0",
+  "conversation_passed": true,
+  "physical_stages": [
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "0-0",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "9a7fbb566be4b2625e077517191d222be46040644e2b61eaf112836f1c3f70c8",
+      "source_start_audio_index": 896,
+      "source_start_video_index": 537,
+      "sent_audio_packets": 1340,
+      "sent_video_packets": 1814,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 40
+    },
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "0-1",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "af859ebe0f7c60fb6672d0de32efdd419d08c9806c701bed950a42ef8a203a54",
+      "source_start_audio_index": 2143,
+      "source_start_video_index": 1286,
+      "sent_audio_packets": 957,
+      "sent_video_packets": 1281,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 30
+    },
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "4-0",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "43082f725a35d37e968e664bca964de6629fecca12f9c5f680ba141b9d73c857",
+      "source_start_audio_index": 884,
+      "source_start_video_index": 530,
+      "sent_audio_packets": 1304,
+      "sent_video_packets": 1831,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 13
+    },
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "4-1",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "bfa23e75d32a5e178f21eb8c9e322efc1194bfa486eb2b633751875737fb92f8",
+      "source_start_audio_index": 2137,
+      "source_start_video_index": 1282,
+      "sent_audio_packets": 963,
+      "sent_video_packets": 1330,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 14
+    }
+  ],
+  "physical_codec_histories_inspected": 30,
+  "independently_decoded_codec_histories": 30,
+  "quality_routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.42,
+        "samples": 2852160,
+        "bad_identity_blocks": 1,
+        "original_window_packets": 2971,
+        "maximum_arrival_gap_ms": 138.97400000000198
+      },
+      "min_video_frames": 26,
+      "av": {
+        "status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.24,
+        "samples": 2843520,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2962,
+        "maximum_arrival_gap_ms": 169.9975190013647
+      },
+      "min_video_frames": 28,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 78.89750900864634,
+        "p95_abs_skew_ms": 82.9106259942094
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.48,
+        "samples": 2855040,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2974,
+        "maximum_arrival_gap_ms": 140.03456699848175
+      },
+      "min_video_frames": 29,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 38.52085499465474,
+        "p95_abs_skew_ms": 58.96908499300224
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.48,
+        "samples": 2855040,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2974,
+        "maximum_arrival_gap_ms": 139.66079400479794
+      },
+      "min_video_frames": 29,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 75.41365150362367,
+        "p95_abs_skew_ms": 82.02820000052213
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.46,
+        "samples": 2854080,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2973,
+        "maximum_arrival_gap_ms": 140.89800000000105
+      },
+      "min_video_frames": 27,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 40.83450000000077,
+        "p95_abs_skew_ms": 83.15500000000497
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.66,
+        "samples": 2815680,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2933,
+        "maximum_arrival_gap_ms": 144.4287900030613
+      },
+      "min_video_frames": 24,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 59.58905901014688,
+        "p95_abs_skew_ms": 100.56798100471553
+      }
+    }
+  ],
+  "video_checks": [
+    {
+      "index": 0,
+      "changing_window_frames": 1794,
+      "min_frames_per_second": 26,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    },
+    {
+      "index": 1,
+      "changing_window_frames": 1796,
+      "min_frames_per_second": 28,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    },
+    {
+      "index": 2,
+      "changing_window_frames": 1799,
+      "min_frames_per_second": 29,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    },
+    {
+      "index": 3,
+      "changing_window_frames": 1798,
+      "min_frames_per_second": 29,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    },
+    {
+      "index": 4,
+      "changing_window_frames": 1795,
+      "min_frames_per_second": 27,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    },
+    {
+      "index": 5,
+      "changing_window_frames": 1792,
+      "min_frames_per_second": 24,
+      "wrong_source_pixel_frames": 0,
+      "undecodable_frames": 0
+    }
+  ],
+  "media_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "control_task_started": true,
+    "elapsed_ms": 63598.03842699528,
+    "failure": null,
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "aggregate_audio_counters": {
+    "collect-deferred": {
+      "events": 168,
+      "samples": 0,
+      "members": 10
+    },
+    "burst-trim": {
+      "events": 65,
+      "samples": 62400,
+      "members": 7
+    },
+    "take-deferred": {
+      "events": 109,
+      "samples": 0,
+      "members": 10
+    },
+    "target-before-start": {
+      "events": 155,
+      "samples": 148800,
+      "members": 10
+    },
+    "target-deferred": {
+      "events": 16,
+      "samples": 15360,
+      "members": 8
+    },
+    "empty-output": {
+      "events": 2966,
+      "samples": 0,
+      "members": 10
+    },
+    "input-discontinuity": {
+      "events": 19,
+      "samples": 21120,
+      "members": 7
+    },
+    "subscription-refused": {
+      "events": 24894,
+      "samples": 23898240,
+      "members": 8
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0,
+      "members": 4
+    }
+  },
+  "authority_counts": {
+    "hold": 232,
+    "peer": 88,
+    "admission": 7
+  },
+  "failed_projection_stages": {
+    "lock-resource/identity/true": 7
+  },
+  "held_interval_callers": {
+    "crates/connect-store/src/peer_authority.rs:775": {
+      "count": 225,
+      "max_us": 721713,
+      "total_us": 28487693
+    },
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs:380": {
+      "count": 2,
+      "max_us": 67171,
+      "total_us": 102079
+    },
+    "crates/connect-store/src/transitions/native_offers/observations.rs:302": {
+      "count": 1,
+      "max_us": 393620,
+      "total_us": 393620
+    },
+    "crates/connect-store/src/transitions/native_streams.rs:674": {
+      "count": 4,
+      "max_us": 100848,
+      "total_us": 224955
+    }
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "148bc9a3823bec0b5f7df56c1dc7b6e50540339ee54800a527350773c652c810",
+    "pcap_bytes": 81194025,
+    "captured_seconds": 91.006316531013,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 105693,
+      "to_server_packets": 56341,
+      "from_server_packets": 49352,
+      "captured_bytes": 79502913,
+      "udp_payload_bytes": 75063807,
+      "to_server_udp_bytes": 30382958,
+      "from_server_udp_bytes": 44680849
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "failure_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "failure": {
+    "phase": "independent-native-opus-vp8-decode",
+    "name": "AssertionError",
+    "line": 608
+  },
+  "findings": [
+    "All four original roots completed at revision16; all28 effects confirmed at attempt1. Four physical Data exchanges verified, original references and clock anchors preserved, old owners and target workers joined without force.",
+    "All six routes meet the existing per-second video cadence, decoded/changing frame count, source-pixel and 200ms maximum audio-gap checks. All30 codec histories independently decode.",
+    "Full quality still fails: each route has less than the required59.9s audio. Route0 additionally has one failed audio identity block and uncalibrated audio marker cadence; five other A/V alignments pass.",
+    "Audio terminal counters retain168collect/109take deferrals,65trimmed chunks/62400samples and19input-discontinuity events. These aggregate counters do not yet attribute every missing decoded frame.",
+    "Seven captured-projection acquisitions fail at identity writer admission.225long signed-peer authority intervals have a721.713ms maximum. Correlation does not identify each competing owner or prove the cause of all audio loss."
+  ],
+  "limitations": [
+    "The full fixture remains failed at independent media-quality validation, before later revocation/resource assertions. Cleanup observed on failure is not all required idle/teardown qualification.",
+    "No complete transport cell or Gate6 acceptance qualified. G6-054 remains deferred.",
+    "This is one local Ubuntu24.04 ARM64 native QUIC EdDSA workload; other cells cannot inherit it."
+  ],
+  "next": "Analyze original audio histories and stored PCM to locate missing frames and the route0 identity/marker failure; correlate with source/mixer admission and current-authority lifetimes. Preserve the59.9s/200ms/audio identity/A-V limits; no blind full rerun.",
+  "task_complete": false,
+  "transport_cells_qualified": 0
+}
