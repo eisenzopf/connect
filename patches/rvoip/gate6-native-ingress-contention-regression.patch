@@ -1,0 +1,150 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -323,6 +323,9 @@
+         &self.factory.adapters[&self.kind]
+     }
+     async fn configure(&mut self, n: usize) -> Leg {
++        self.configure_policy(n, self.grants.clone()).await
++    }
++    async fn configure_policy(&mut self, n: usize, policy: Arc<dyn MediaPolicy>) -> Leg {
+         let id = self.reserve(n).await;
+         self.grants
+             .0
+@@ -338,7 +341,7 @@
+                 principal("old"),
+                 self.factory.core.conversation.clone(),
+                 self.scope(&id),
+-                self.grants.clone(),
++                policy,
+                 readiness.clone(),
+                 16,
+             )
+@@ -1434,3 +1437,6 @@
+ 
+ #[path = "canonical_media/video_feedback.rs"]
+ mod video_feedback;
++
++#[path = "canonical_media/ingress_retry.rs"]
++mod ingress_retry;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -0,0 +1,119 @@
++//! Actual canonical QUIC reader and Core ingress under temporary policy custody.
++use super::*;
++
++struct TemporaryMetadata {
++    policy: Arc<MediaGrants>,
++    gate: std::sync::Mutex<()>,
++    entered: Notify,
++    refused: std::sync::atomic::AtomicUsize,
++}
++impl MediaPolicy for TemporaryMetadata {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            match self.gate.try_lock() {
++                Ok(_guard) => self.policy.current(scope),
++                Err(std::sync::TryLockError::WouldBlock) => {
++                    self.refused.fetch_add(1, Ordering::SeqCst);
++                    self.entered.notify_one();
++                    Err(StreamControlError::NotReady)
++                }
++                Err(_) => Err(StreamControlError::Authority),
++            }
++        } else {
++            self.policy.current(scope)
++        }
++    }
++}
++
++#[tokio::test]
++async fn original_native_frame_survives_temporary_metadata_unavailability_without_resend() {
++    let mut network = Network::new("quic").await;
++    let policy = Arc::new(TemporaryMetadata {
++        policy: network.grants.clone(),
++        gate: std::sync::Mutex::new(()),
++        entered: Notify::new(),
++        refused: std::sync::atomic::AtomicUsize::new(0),
++    });
++    let source = network.configure_policy(0, policy.clone()).await;
++    let target = network.configure_policy(1, policy.clone()).await;
++    network.start(&source, &[Medium::Audio]).await;
++    network.start(&target, &[Medium::Audio]).await;
++    let mut input = source
++        .controller
++        .take_ingress(&StreamId::from_string("audio"))
++        .unwrap();
++    let stream = binding(&source, Medium::Audio).stream_local_id;
++    let held = policy.gate.lock().unwrap();
++    // One actual original encrypted QUIC datagram, never submitted twice.
++    send(&network.wire, audio(stream, 0));
++    tokio::time::timeout(Duration::from_secs(1), policy.entered.notified())
++        .await
++        .unwrap();
++    tokio::time::sleep(Duration::from_millis(20)).await;
++    drop(held);
++    let original = tokio::time::timeout(Duration::from_millis(120), input.recv())
++        .await
++        .ok()
++        .flatten();
++    let original_preserved = observed_original(&network, &target, original, 160).await;
++    // A distinct fresh packet proves the same reader, binding and policy remain
++    // usable. It cannot substitute for recovery of the first original packet.
++    send(
++        &network.wire,
++        pack_rtp_datagram(&RtpDatagram {
++            flags: 0,
++            stream_local_id: stream,
++            seq: 320,
++            rtp: RtpMediaPayload {
++                payload: tone(),
++                payload_type: 0,
++                sequence_number: 2,
++                timestamp: 320,
++                ssrc: 7,
++            },
++        })
++        .unwrap(),
++    );
++    let fresh = tokio::time::timeout(Duration::from_secs(1), input.recv())
++        .await
++        .ok()
++        .flatten();
++    let fresh_preserved = observed_original(&network, &target, fresh, 320).await;
++    let rejected = source.media.snapshot().ingress_rejected;
++    network.stop().await;
++    let joined = !source.media.snapshot().reader_running && source.media.router().is_shutdown();
++    println!("original_recovered={original_preserved} fresh_received={fresh_preserved} temporary_refusals={} ingress_rejected={rejected} reader_joined={joined}", policy.refused.load(Ordering::SeqCst));
++    assert!(
++        joined,
++        "original reader must retire even on regression failure"
++    );
++    assert!(
++        fresh_preserved,
++        "fresh control packet proves recovery of current policy and route"
++    );
++    assert!(
++        original_preserved,
++        "temporary metadata contention lost the original native audio frame"
++    );
++}
++
++async fn observed_original(
++    network: &Network,
++    target: &Leg,
++    packet: Option<MediaPacket>,
++    timestamp: u32,
++) -> bool {
++    let Some(packet) = packet else {
++        return false;
++    };
++    if packet
++        .try_forward_to(&target.controller, &StreamId::from_string("audio"))
++        .is_err()
++    {
++        return false;
++    }
++    let out = received(&network.wire).await;
++    decoded(&out);
++    let frame = out.rtp.into_media_payload();
++    frame.timestamp == timestamp && frame.payload == tone()
++}
