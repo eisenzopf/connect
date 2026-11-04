@@ -371,7 +371,7 @@ export class BrowserVp8Codec {
         }
     }
     /** Consumes and closes the caller's VideoFrame on every path. */
-    encode(frame: VideoFrame): boolean {
+    encode(frame: VideoFrame, currentFeedback = false): boolean {
         try {
             while (
                 this.frameTimes.length &&
@@ -391,7 +391,9 @@ export class BrowserVp8Codec {
             // Refresh references within 500 ms after loss; the profile permits
             // at most one second between keyframes. Bitrate bounds still apply.
             const keyFrame =
-                this.forceKey || frame.timestamp - this.lastKey >= 500000;
+                this.forceKey ||
+                currentFeedback ||
+                frame.timestamp - this.lastKey >= 500000;
             if (keyFrame) this.lastKey = frame.timestamp;
             this.forceKey = false;
             this.encoder.encode(frame, { keyFrame });
@@ -404,6 +406,16 @@ export class BrowserVp8Codec {
     lost(): void {
         this.decodeCounts.assemblyLosses++;
         this.needsKey = true;
+    }
+    /** A new authenticated history discards old decoder references and queued
+     * outputs while preserving the caller's original source/receive clocks. */
+    resetReceiveHistory(): void {
+        if (this.stopped) return;
+        this.needsKey = true;
+        this.ssrc = undefined;
+        this.lastSequence = this.lastTimestamp = undefined;
+        this.decoder.reset();
+        this.decoder.configure({ codec: "vp8", optimizeForLatency: true });
     }
     requestKeyFrame(): void {
         this.forceKey = true;

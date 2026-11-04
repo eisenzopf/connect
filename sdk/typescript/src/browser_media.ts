@@ -15,7 +15,20 @@ import {
     MEDIA_LIMITS,
     type MediaBinding,
 } from "./browser_rtp.js";
-import { decodeNativeRtpDatagram } from "./browser_video_wire.js";
+import {
+    decodeNativeRtpDatagram,
+    decodeNativeVideoEpoch,
+    decodeNativeVideoFeedback,
+    VIDEO_FEEDBACK_PROFILE,
+} from "./browser_video_wire.js";
+import {
+    BrowserVideoEpochs,
+    videoAllocation,
+    videoNotice,
+    type VideoNotice,
+    type VideoFeedbackWrite,
+} from "./browser_video_epochs.js";
+import type { RtpDatagram } from "./browser_rtp.js";
 import {
     decodeRtcpSenderReport,
     isRtcpDatagram,
@@ -46,6 +59,8 @@ export interface BrowserConnectionOptions {
     operationId: string;
     /** Target-owned audio stays isolated until an attributed handoff commits. */
     purpose?: "handoff-preparation";
+    /** Opt into authenticated native Video epochs and bounded keyframe feedback. */
+    nativeVideoFeedback?: boolean;
     audio?: string;
     video?: string;
     screen?: string;
@@ -79,6 +94,8 @@ interface Route {
     lastReport: number;
     clockProfile: boolean;
     assembler?: Vp8Assembler;
+    video?: BrowserVideoEpochs;
+    publisherSsrc?: number;
     observed: {
         encoded: number;
         keys: number;
@@ -107,6 +124,8 @@ interface ConnectionState {
     reconciling?: Promise<void>;
     controlling?: Promise<void>;
     pendingServer?: Envelope;
+    prepared?: Plan;
+    generations: Map<string, number>;
     closed: Set<() => void>;
 }
 interface Transition {
@@ -117,12 +136,17 @@ interface Transition {
     fail: (error: unknown) => void;
 }
 interface Plan {
+    feedback: Map<number, ReturnType<typeof captureAllocation>>;
+    notices: Map<string, VideoNotice>;
     clockProfile: boolean;
     media: MediaBinding[];
     data: Map<string, BrowserDataProtocol>;
     revision: number;
     received: Set<string>;
 }
+const captureAllocation = (
+    value: NonNullable<ReturnType<typeof videoAllocation>>,
+) => value;
 const fail = (message: string): never => {
     throw new ConnectError("protocol", message);
 };
@@ -143,6 +167,7 @@ export class BrowserMediaPeer {
     private readonly connections = new Map<string, ConnectionState>();
     private readonly transitions = new Map<string, Transition>();
     private readonly queue = new MediaSendQueue();
+    private readonly feedbackWrites = new Map<Route, VideoFeedbackWrite>();
     private readonly stopEvents: () => void;
     private readonly stopLifetime: () => void;
     private readonly timer: ReturnType<typeof setInterval>;
@@ -185,6 +210,8 @@ export class BrowserMediaPeer {
                 const expired = route.assembler?.expire() ?? 0;
                 route.observed.expired += expired;
                 if (expired) route.vp8?.lost();
+                route.video?.expire(performance.now());
+                this.requestVideoRecovery(route);
             }
         }, 50);
         this.tasks.track(
@@ -241,7 +268,233 @@ export class BrowserMediaPeer {
         this.close();
         this.callbacks.error?.(error);
     }
+    private videoControlling(route: Route): boolean {
+        const state = this.connections.get(route.binding.connectionId);
+        return (
+            this.stopped ||
+            !state ||
+            this.routes.get(route.binding.handle) !== route ||
+            !!state.controlling ||
+            !!state.reconciling ||
+            [...this.transitions.values()].some(
+                (t) => t.scope.connid === state.scope.connid,
+            )
+        );
+    }
+    private installVideoNotice(route: Route, notice: VideoNotice): void {
+        if (!route.video?.observe(notice)) return;
+        if (notice.role === "receiver") {
+            route.assembler?.clear();
+            route.vp8?.resetReceiveHistory();
+            for (const item of route.video.drain(performance.now()))
+                this.deliverRtp(route, item.packet, item.arrived);
+            this.requestVideoRecovery(route);
+        }
+    }
+    private requestVideoRecovery(route: Route): void {
+        if (
+            !route.video ||
+            !route.vp8?.decodeDiagnostics.waitingForKey ||
+            this.videoControlling(route) ||
+            this.feedbackWrites.has(route)
+        )
+            return;
+        const write = route.video.request(performance.now());
+        if (!write) return;
+        this.feedbackWrites.set(route, write);
+        this.tasks.track(this.drain().catch((error) => this.die(error)));
+    }
+    private async writeVideoFeedback(
+        route: Route,
+        write: VideoFeedbackWrite,
+    ): Promise<void> {
+        const current = () =>
+            !this.videoControlling(route) &&
+            route.video?.current(write, performance.now());
+        if (!current()) return;
+        const remaining = 200 - (performance.now() - write.started);
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+            await Promise.race([
+                (async () => {
+                    await this.writer.ready;
+                    if (!current()) return;
+                    // This sequence was consumed on capture. An uncertain write
+                    // closes the owner; no requeue, retarget or retry follows.
+                    await this.writer.write(write.bytes);
+                })(),
+                new Promise<never>((_, reject) => {
+                    timer = setTimeout(
+                        () =>
+                            reject(
+                                new ConnectError(
+                                    "timeout",
+                                    "Video feedback writer exceeded original age",
+                                ),
+                            ),
+                        remaining,
+                    );
+                }),
+            ]);
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+    private applyVideoControl(
+        state: ConnectionState,
+        type: string,
+        payload: JsonObject,
+        completed: JsonObject,
+    ): void {
+        const routes = [...state.routes.values()].filter((r) => r.video);
+        if (!routes.length) return;
+        if (type === "stream.unsubscribe") {
+            if (
+                !Array.isArray(payload.streams) ||
+                !payload.streams.every(identifier)
+            )
+                fail("Invalid original video unsubscribe");
+            for (const route of routes)
+                if (payload.streams.includes(route.binding.streamId)) {
+                    route.video!.unselect();
+                    route.assembler?.clear();
+                    route.vp8?.resetReceiveHistory();
+                }
+        }
+        if (
+            type !== "connection.update" ||
+            !["hold", "resume", "mute", "unmute"].includes(
+                String(payload.action),
+            )
+        )
+            return;
+        const result = completed.result;
+        if (
+            !jsonObject(result) ||
+            result.connection_id !== state.scope.connid ||
+            result.connection_generation !== 1 ||
+            result.action !== payload.action ||
+            result.resources_changed !== false ||
+            !Array.isArray(result.gate_streams) ||
+            !result.gate_streams.length ||
+            result.gate_streams.length > 32
+        )
+            fail("Invalid current video gate result");
+        const gates = result.gate_streams as JsonObject[],
+            ids = new Set<string>();
+        for (const gate of gates) {
+            if (
+                !jsonObject(gate) ||
+                !jsonObject(gate.binding) ||
+                !identifier(gate.binding.stream_id) ||
+                ids.has(gate.binding.stream_id)
+            )
+                fail("Invalid video gate binding");
+            ids.add(gate.binding.stream_id as string);
+        }
+        const expected = Array.isArray(payload.streams)
+            ? payload.streams
+            : [...state.routes.keys(), ...state.data.keys()];
+        if (
+            expected.length !== ids.size ||
+            !expected.every((id) => typeof id === "string" && ids.has(id))
+        )
+            fail("Video gate result changed original targets");
+        for (const route of routes) {
+            const gate = gates.find(
+                (g) =>
+                    (g.binding as JsonObject).stream_id ===
+                    route.binding.streamId,
+            );
+            if (!gate) continue;
+            const binding = gate.binding as JsonObject,
+                b = route.binding;
+            if (
+                binding.medium !== b.kind ||
+                binding.direction !== invert(b.direction) ||
+                binding.stream_local_id !== b.handle ||
+                binding.stream_generation !== b.generation ||
+                binding.connection_generation !== 1 ||
+                !jsonObject(binding.codec) ||
+                binding.codec.name !== "vp8" ||
+                !jsonObject(binding.codec.params) ||
+                binding.codec.params.sample_rate !== 90000 ||
+                binding.codec.params.channels !== 0 ||
+                binding.codec.params.payload_type !== b.payloadType ||
+                !["active", "paused"].includes(String(gate.state)) ||
+                typeof gate.source_muted !== "boolean" ||
+                (gate.held_direction !== null &&
+                    !["sendonly", "recvonly", "sendrecv", "inactive"].includes(
+                        String(gate.held_direction),
+                    ))
+            )
+                fail("Video gate result changed current allocation");
+            const direction =
+                gate.held_direction === null
+                    ? b.direction
+                    : gate.held_direction === "inactive"
+                      ? "inactive"
+                      : invert(gate.held_direction);
+            const send =
+                gate.state === "active" &&
+                !gate.source_muted &&
+                b.direction !== "recvonly" &&
+                (direction === "sendonly" || direction === "sendrecv");
+            const receive =
+                gate.state === "active" &&
+                b.direction !== "sendonly" &&
+                (direction === "recvonly" || direction === "sendrecv");
+            route.video!.gates(send, receive);
+            if (!receive) {
+                route.assembler?.clear();
+                route.vp8?.resetReceiveHistory();
+            }
+        }
+    }
     private event(frame: Envelope): void {
+        if (frame.type === "stream.epoch") {
+            try {
+                const notice = videoNotice(frame);
+                const state = this.connections.get(notice.root.connid);
+                if (
+                    !state ||
+                    state.scope.cid !== notice.root.cid ||
+                    state.scope.sid !== notice.root.sid
+                )
+                    return;
+                const route = state.routes.get(notice.stream);
+                if (route?.video?.matches(notice))
+                    this.installVideoNotice(route, notice);
+                else if (state.prepared) {
+                    const binding = state.prepared.media.find(
+                        (b) => b.handle === notice.handle,
+                    );
+                    const allocation = state.prepared.feedback.get(
+                        notice.handle,
+                    );
+                    if (
+                        binding &&
+                        allocation &&
+                        new BrowserVideoEpochs(
+                            state.scope,
+                            binding,
+                            allocation,
+                        ).matches(notice)
+                    ) {
+                        const key = notice.stream + ":" + notice.role,
+                            old = state.prepared.notices.get(key);
+                        if (!old || old.revision < notice.revision) {
+                            if (!old && state.prepared.notices.size >= 64)
+                                fail("Prepared epoch notice bound exceeded");
+                            state.prepared.notices.set(key, notice);
+                        }
+                    }
+                }
+            } catch (error) {
+                this.die(error);
+            }
+            return;
+        }
         if (
             frame.type === "connection.offer" &&
             typeof frame.operation_id === "string"
@@ -356,6 +609,7 @@ export class BrowserMediaPeer {
         )
             return fail("Unbound server reconciliation parameters");
         const plan = this.plan(frame, state, state.selectedKinds);
+        state.prepared = plan;
         await this.answer(state, frame, frame.operation_id, {
             timeoutMs: 10000,
         });
@@ -413,6 +667,10 @@ export class BrowserMediaPeer {
             !Number.isSafeInteger(setup.revision)
         )
             return fail("Invalid native media setup");
+        const remote = jsonObject(frame.payload.capabilities)
+            ? frame.payload.capabilities
+            : {};
+        const feedback: Plan["feedback"] = new Map();
         const media: MediaBinding[] = [],
             data = new Map<string, BrowserDataProtocol>(),
             received = new Set<string>(),
@@ -490,12 +748,38 @@ export class BrowserMediaPeer {
                 !declared.some((c) => jsonObject(c) && c.name === codec.name)
             )
                 return fail("Receiver codec was never declared");
+            const prior = state.routes.get(value.strm_id);
+            const sameBinding =
+                prior &&
+                prior.binding.handle === Number(value.stream_local_id) &&
+                prior.binding.kind === value.kind &&
+                prior.binding.codec === codec.name &&
+                prior.binding.payloadType === Number(params.payload_type) &&
+                prior.binding.direction === direction;
+            const generation =
+                state.caps.video_feedback === VIDEO_FEEDBACK_PROFILE &&
+                value.kind === "video"
+                    ? sameBinding
+                        ? prior.binding.generation
+                        : (state.generations.get(value.strm_id) ?? 0) + 1
+                    : 1;
+            const allocation = videoAllocation(
+                value,
+                state.caps,
+                remote,
+                frame.operation_id,
+                setup.offer_id,
+                generation,
+                sameBinding ? prior.video?.allocation : undefined,
+            );
+            if (allocation)
+                feedback.set(Number(value.stream_local_id), allocation);
             media.push({
                 handle: Number(value.stream_local_id),
                 streamId: value.strm_id,
                 connectionId: state.scope.connid,
                 sessionId: state.scope.sid,
-                generation: 1,
+                generation,
                 kind: value.kind as MediaBinding["kind"],
                 codec: codec.name as MediaBinding["codec"],
                 payloadType: Number(params.payload_type),
@@ -511,6 +795,8 @@ export class BrowserMediaPeer {
         if (declaredClock !== undefined && declaredClock !== "rtcp-sr-sdes/1")
             return fail("Unsupported source clock profile");
         return {
+            feedback,
+            notices: new Map(),
             media,
             data,
             revision: Number(setup.revision),
@@ -533,6 +819,17 @@ export class BrowserMediaPeer {
         for (const binding of plan.media) {
             let route = this.routes.get(binding.handle);
             if (route) {
+                if (
+                    canonicalJson(
+                        (route.video?.allocation as unknown as Json) ?? null,
+                    ) !==
+                    canonicalJson(
+                        (plan.feedback.get(
+                            binding.handle,
+                        ) as unknown as Json) ?? null,
+                    )
+                )
+                    fail("Current video feedback allocation changed");
                 if (route.clockProfile !== plan.clockProfile)
                     fail("Current media clock profile changed");
                 if (
@@ -567,9 +864,19 @@ export class BrowserMediaPeer {
                         unsynchronized: 0,
                     },
                 };
+                const allocation = plan.feedback.get(binding.handle);
+                if (allocation)
+                    route.video = new BrowserVideoEpochs(
+                        state.scope,
+                        route.binding,
+                        allocation,
+                    );
                 this.routes.set(binding.handle, route);
                 if (binding.direction !== "recvonly")
-                    route.sender = new RtpSender(binding, this.mtu);
+                    route.sender = new RtpSender(
+                        binding,
+                        route.video ? this.mtu - 16 : this.mtu,
+                    );
                 const encoded = (frame: EncodedMedia) => {
                     if (
                         this.stopped ||
@@ -581,14 +888,20 @@ export class BrowserMediaPeer {
                     route!.observed.encoded++;
                     if (frame.key) route!.observed.keys++;
                     const before = this.queue.droppedPackets;
-                    const accepted = this.queue.push(
-                        route!.sender.packetize(
-                            frame.bytes,
-                            rtpTimestampFromMicroseconds(
-                                frame.timestampUs,
-                                binding.kind === "audio" ? 48000 : 90000,
-                            ),
+                    const packets = route!.sender.packetize(
+                        frame.bytes,
+                        rtpTimestampFromMicroseconds(
+                            frame.timestampUs,
+                            binding.kind === "audio" ? 48000 : 90000,
                         ),
+                    );
+                    if (packets.length)
+                        route!.publisherSsrc = new DataView(
+                            packets[0].buffer,
+                            packets[0].byteOffset,
+                        ).getUint32(16);
+                    const accepted = this.queue.push(
+                        packets,
                         binding.kind === "audio",
                     );
                     if (!accepted || before !== this.queue.droppedPackets)
@@ -622,10 +935,23 @@ export class BrowserMediaPeer {
                 }
             }
             current.set(binding.streamId, route);
+            if (route.video) {
+                if (
+                    !state.generations.has(binding.streamId) &&
+                    state.generations.size >= 128
+                )
+                    fail("Video generation history bound exceeded");
+                state.generations.set(binding.streamId, binding.generation);
+            }
         }
         for (const old of state.routes.values())
             if (!retained.has(old.binding.handle)) this.remove(old);
         state.routes = current;
+        state.prepared = undefined;
+        for (const notice of plan.notices.values()) {
+            const route = current.get(notice.stream);
+            if (route) this.installVideoNotice(route, notice);
+        }
         state.data = plan.data;
         state.received = plan.received;
         state.revision = plan.revision;
@@ -635,6 +961,13 @@ export class BrowserMediaPeer {
         this.sending = true;
         try {
             for (;;) {
+                const feedback = this.feedbackWrites.entries().next().value;
+                if (feedback) {
+                    const [route, write] = feedback;
+                    this.feedbackWrites.delete(route);
+                    await this.writeVideoFeedback(route, write);
+                    continue;
+                }
                 const bytes = this.queue.pop();
                 if (!bytes || this.stopped) return;
                 try {
@@ -733,6 +1066,7 @@ export class BrowserMediaPeer {
                     throw new ConnectError("transport", "Media datagram EOF");
                 return;
             }
+            const arrived = performance.now();
             // A stream with queued chunks can resolve every read as a microtask.
             // Give WebCodecs output/dequeue tasks a turn within its eight-frame
             // decode bound, rather than treating task starvation as media loss.
@@ -740,6 +1074,44 @@ export class BrowserMediaPeer {
                 burst = 0;
                 await new Promise<void>((resolve) => setTimeout(resolve, 0));
                 if (this.stopped) return;
+            }
+            if (value.length === 48 && value[1] === 0 && value[9] === 206) {
+                try {
+                    const feedback = decodeNativeVideoFeedback(value),
+                        route = this.routes.get(feedback.handle);
+                    if (!route?.video || this.videoControlling(route))
+                        throw new Error();
+                    route.video.feedback(feedback, arrived);
+                } catch {
+                    this.counters.rejected++;
+                }
+                continue;
+            }
+            if (value[1] === 1) {
+                try {
+                    const packet = decodeNativeVideoEpoch(value),
+                        route = this.routes.get(packet.packet.handle);
+                    if (!route?.video) throw new Error();
+                    this.registry.require(
+                        packet.packet.handle,
+                        "receive",
+                        packet.packet.payloadType,
+                    );
+                    const count = [...this.routes.values()].reduce(
+                        (n, r) => n + (r.video?.pendingPackets ?? 0),
+                        0,
+                    );
+                    const admitted = route.video.packet(
+                        packet,
+                        arrived,
+                        performance.now(),
+                        count < 128,
+                    );
+                    if (admitted) this.deliverRtp(route, admitted, arrived);
+                } catch {
+                    this.counters.rejected++;
+                }
+                continue;
             }
             if (isRtcpDatagram(value)) {
                 try {
@@ -779,39 +1151,48 @@ export class BrowserMediaPeer {
                     packet.payloadType,
                 );
                 route = this.routes.get(packet.handle)!;
+                if (route.video) throw new Error();
             } catch {
                 this.counters.rejected++;
                 continue;
             }
-            this.counters.received++;
-            route.observed.received++;
-            const timing = route.clock.timestamp(
-                packet.handle,
-                packet.ssrc,
-                packet.timestamp,
-            );
-            if (timing.synchronized) route.observed.synchronized++;
-            else route.observed.unsynchronized++;
-            if (route.opus)
-                route.opus.decode(packet.payload, timing.timestampUs);
-            else {
-                let complete;
-                try {
-                    complete = route.assembler!.push(packet);
-                } catch {
-                    this.counters.rejected++;
-                    route.vp8!.lost();
-                    continue;
-                }
-                if (complete) {
-                    route.observed.complete++;
-                    if (route.vp8!.decode(complete, timing.timestampUs))
-                        route.observed.submitted++;
-                    else route.observed.skipped++;
-                }
-            }
+            this.deliverRtp(route, packet, arrived);
         }
     }
+    private deliverRtp(
+        route: Route,
+        packet: RtpDatagram,
+        arrived: number,
+    ): void {
+        this.counters.received++;
+        route.observed.received++;
+        const timing = route.clock.timestamp(
+            packet.handle,
+            packet.ssrc,
+            packet.timestamp,
+        );
+        if (timing.synchronized) route.observed.synchronized++;
+        else route.observed.unsynchronized++;
+        if (route.opus) route.opus.decode(packet.payload, timing.timestampUs);
+        else {
+            let complete;
+            try {
+                complete = route.assembler!.push(packet, arrived);
+            } catch {
+                this.counters.rejected++;
+                route.vp8!.lost();
+                return;
+            }
+            if (complete) {
+                route.observed.complete++;
+                if (route.vp8!.decode(complete, timing.timestampUs))
+                    route.observed.submitted++;
+                else route.observed.skipped++;
+            }
+        }
+        this.requestVideoRecovery(route);
+    }
+
     /** Start one original offer. `accepted` means validated current physical
      * parameters arrived; `ready` separately observes installation. Neither
      * promise can retry the mutation or lend ownership after peer retirement. */
@@ -954,6 +1335,9 @@ export class BrowserMediaPeer {
             max_streams_per_connection: 32,
             identity_assurance_offered: "identified",
             source_clock: "rtcp-sr-sdes/1",
+            ...(input.nativeVideoFeedback === true
+                ? { video_feedback: VIDEO_FEEDBACK_PROFILE }
+                : {}),
         };
         const state: ConnectionState = {
             scope: {
@@ -976,6 +1360,7 @@ export class BrowserMediaPeer {
                 ]),
             ),
             received: new Set(),
+            generations: new Map(),
             selectedKinds: new Set(),
             closed: new Set(),
         };
@@ -1145,6 +1530,8 @@ export class BrowserMediaPeer {
             expected_revision: expected,
         };
         attempted?.();
+        for (const route of state.routes.values())
+            route.video?.invalidateRequests();
         const started = this.client.begin(type, payload, scope, {
             ...remaining(),
             terminalType:
@@ -1227,6 +1614,7 @@ export class BrowserMediaPeer {
             if (frame) {
                 this.requireState(state);
                 const plan = this.plan(frame, state, selectedKinds);
+                state.prepared = plan;
                 accepted?.();
                 await this.answer(state, frame, operationId, remaining());
                 await started.response;
@@ -1302,6 +1690,7 @@ export class BrowserMediaPeer {
                 this.requireState(state);
                 state.revision = Number(result.stream_revision);
             }
+            this.applyVideoControl(state, type, payload, completed);
             for (const kind of selectedKinds) state.selectedKinds.add(kind);
         } catch (error) {
             if (
@@ -1318,6 +1707,7 @@ export class BrowserMediaPeer {
             clearTimeout(timer);
             options.signal?.removeEventListener("abort", abort);
             this.transitions.delete(operationId);
+            state.prepared = undefined;
             const next = state.pendingServer;
             state.pendingServer = undefined;
             if (
@@ -1446,7 +1836,15 @@ export class BrowserMediaPeer {
             frame.close();
             throw new ConnectError("protocol", "Invalid capture timestamp");
         }
-        const accepted = route.vp8.encode(frame);
+        const feedback =
+            !this.videoControlling(route) &&
+            route.publisherSsrc !== undefined &&
+            (route.video?.takeFeedback(
+                performance.now(),
+                route.publisherSsrc,
+            ) ??
+                false);
+        const accepted = route.vp8.encode(frame, feedback);
         if (accepted) route.captureClock.observe(timestamp);
         return accepted;
     }
@@ -1614,6 +2012,8 @@ export class BrowserMediaPeer {
         route.opus?.close();
         route.vp8?.close();
         route.assembler?.clear();
+        route.video?.close();
+        this.feedbackWrites.delete(route);
     }
     /** Retire local owners after observing an authorized durable end receipt. */
     retireLocalConnection(id: string): void {
