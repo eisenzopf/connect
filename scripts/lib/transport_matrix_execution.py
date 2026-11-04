@@ -16,15 +16,24 @@ COMPLETION_GAPS = [
 ]
 
 
-def configure_execution(matrix, environment):
+def configure_execution(matrix, environment, stage="media"):
+    if stage not in {"media", "admission"}:
+        raise ValueError("Unknown execution stage")
     if environment["server"] not in DIMENSIONS["server"]:
         raise ValueError("Unapproved execution platform")
     matrix["execution_environment"] = environment
     for cell in matrix["cells"]:
         blockers = []
+        admission = stage == "admission"
         if cell["server"] != environment["server"]:
             blockers.append("requires-other-local-arm-host")
-        if cell["transport"] != "native-quic":
+        if admission:
+            if (cell["server"] != "ubuntu24-arm64" or cell["network"] != "local"
+                    or cell["transport"] not in {"chrome-webtransport", "chrome-wss-webrtc"}):
+                blockers.append("browser-admission-producer-unavailable-for-this-cell")
+            if not environment.get("browser_runtime_image_id"):
+                blockers.append("exact-local-arm-browser-image-not-verified")
+        elif cell["transport"] != "native-quic":
             blockers.append("full-browser-movement-media-producer-not-connected")
             if cell["network"] == "local" and cell["server"] == environment["server"]:
                 browser = "firefox" if cell["transport"].startswith("firefox") else "chrome"
@@ -38,9 +47,11 @@ def configure_execution(matrix, environment):
         if cell["server"] == environment["server"]:
             blockers.extend(environment["execution_blockers"])
         cell["execution"] = dict(
-            producer="native-media" if cell["transport"] == "native-quic" else None,
+            producer="browser-admission" if admission else "native-media" if cell["transport"] == "native-quic" else None,
+            stage=stage,
             runnable=not blockers, blockers=blockers,
-            completion_blockers=list(COMPLETION_GAPS), attempted=False,
+            completion_blockers=list(COMPLETION_GAPS) + (["full-browser-movement-media-producer-not-connected",
+                "browser-fallback-and-neither-path-refusal-not-executed"] if admission else []), attempted=False,
             component=None,
         )
         cell["check_results"] = {name: {"status": "not-run", "evidence": None}
@@ -87,6 +98,43 @@ def record_native_result(matrix, cell, report, report_sha256, exit_code):
     cell["execution"].update(attempted=True, component=component)
     cell.update(status="incomplete" if passed else "failed",
                 reason="required-workload-passed-full-checks-missing" if passed else "required-workload-failed")
+    matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
+    return cell
+
+
+def record_browser_result(matrix, cell, report, report_sha256, exit_code):
+    """An actual admission observation is a partial stage, never cell evidence."""
+    if (cell not in matrix["cells"] or cell["execution"].get("producer") != "browser-admission"
+            or cell["execution"]["component"] is not None):
+        raise ValueError("Browser admission must match an unrecorded selected stage")
+    if not re.fullmatch(r"[0-9a-f]{64}", report_sha256):
+        raise ValueError("Missing original browser report digest")
+    if (report.get("format") != "connect/browser-matrix-component/1" or report.get("stage") != "admission"
+            or report.get("source_revision") != matrix["source_revision"] or report.get("cell_id") != cell["id"]
+            or report.get("server_platform") != cell["server"] or report.get("client_platform") != "ubuntu24-arm64"
+            or cell["network"] != "local" or report.get("transport") != cell["transport"]
+            or report.get("signing_algorithm") != cell["signing"]
+            or report.get("browser_image_id") != matrix["execution_environment"].get("browser_runtime_image_id")):
+        raise ValueError("Browser stage candidate/platform/network/transport/signing/image differs")
+    if (type(report.get("passed")) is not bool or type(exit_code) is not int
+            or report.get("cell_qualified") is not False or report.get("full_media_programme_executed") is not False):
+        raise ValueError("Missing scoped terminal browser outcome")
+    guards = {key: report.get(key) is True for key in (
+        "source_inputs_unchanged", "executable_unchanged", "sdk_dist_inputs_unchanged", "browser_owner_joined")}
+    passed = report["passed"] and exit_code == 0 and all(guards.values())
+    observation = report.get("browser_observation", {})
+    if passed and (observation.get("source_revision") != matrix["source_revision"]
+            or observation.get("transport") != cell["transport"] or observation.get("signing_algorithm") != cell["signing"]
+            or observation.get("authenticated_owners") != 7 or observation.get("actual_connections") != 6
+            or observation.get("passed") is not True):
+        raise ValueError("Successful admission lacks its actual browser workload")
+    cell["execution"].update(attempted=True, component=dict(kind="browser-admission", passed=passed,
+        exit_code=exit_code, report_sha256=report_sha256, integrity=guards, source_revision=report["source_revision"],
+        binary_sha256=report.get("binary_sha256"), browser=observation.get("browser"),
+        authenticated_owners=observation.get("authenticated_owners"), actual_connections=observation.get("actual_connections"),
+        failure=report.get("failure")))
+    cell.update(status="incomplete" if passed else "failed",
+                reason="browser-admission-passed-full-checks-missing" if passed else "browser-admission-failed")
     matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
     return cell
 

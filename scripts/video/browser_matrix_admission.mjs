@@ -7,6 +7,8 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {fixturePrivateJwk,fixtureServerJwk} from '../lib/browser_matrix_keys.mjs';
 import {launchOwnedChromium} from './owned_chromium.mjs';
+import {installPeerDiagnostics} from './browser_failure.mjs';
+import {openLoopbackStun} from './loopback_stun.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -43,7 +45,7 @@ const report={format:'connect/browser-matrix-admission-observation/1',source_rev
     transport:spec.transport,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
     scope:'Actual isolated Chrome normal-CA/public browser-SDK control and six-connection admission only. No full media/four-move/expiry/idle/fallback or complete-cell qualification.'};
-let owner,server,page,journal,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
+let owner,server,page,journal,stun,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
 const diagnostic=text=>{
     const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
     if(diagnosticBytes<=1024*1024)diagnostics=diagnostics.then(()=>fs.appendFile(path.join(output,'browser-private.log'),body,{mode:0o600})).catch(()=>{});
@@ -83,7 +85,11 @@ try{
         report.trust={normal_profile_ca_import:true,root_sha256:result.root_sha256,browser_version:result.version};
     });
     stage='current-browser-authentication';
+    // Local scope uses an owned Binding reflector so the browser can supply
+    // actual IP candidates while retaining its ordinary mDNS/privacy policy.
+    stun=await openLoopbackStun();spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     page=await owner.browser.newPage();
+    await page.addInitScript(installPeerDiagnostics);
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
@@ -112,7 +118,7 @@ try{
                         notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt}};
                 const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
                     deviceId:configuration.device.id,endpoints:spec.endpoints,preferredTransport:selected,allowFallback:false,
-                    timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,resolveEnrollment:async()=>enrollment});
+                    timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
                 actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,client};
             }
             window.matrixPhase='admission';const plan=browserMatrixPlan();
@@ -131,7 +137,8 @@ try{
                 original_client_closes:closes.map(value=>value.status)};
         }
     },{spec,selected});
-    Object.assign(report,result);stage='browser-retirement';
+    Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
+    stage='browser-retirement';
     report.trusted_browser=await owner.close();owner=undefined;
     report.passed=Boolean(report.passed&&report.trusted_browser.original_process_joined&&!report.trusted_browser.forced_kill);
 }catch(error){
@@ -139,6 +146,7 @@ try{
     await fs.writeFile(path.join(output,'failure-private.log'),String(error.stack??error),{mode:0o600});
 }finally{
     if(owner)report.failure_browser=await owner.close();
+    if(stun)report.owned_stun=await stun.close();
     await serial.catch(()=>{});await journal?.close();await diagnostics;
     if(server)await new Promise(resolve=>server.close(resolve));
     report.journal_events=events;

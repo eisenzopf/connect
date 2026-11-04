@@ -13,13 +13,14 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
 import traceback
 
 from lib.transport_matrix import digest, inventory, load_contract
-from lib.transport_matrix_execution import configure_execution, merge_hosts, record_native_result, select_cells
+from lib.transport_matrix_execution import configure_execution, merge_hosts, record_browser_result, record_native_result, select_cells
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,7 +39,7 @@ def command_version(command):
         return None
 
 
-def probe(chrome=None, firefox=None):
+def probe(chrome=None, firefox=None, browser_image=None):
     system, machine = platform.system(), platform.machine()
     if (system, machine) == ("Darwin", "arm64"):
         server = "macos-arm64"
@@ -87,10 +88,25 @@ def probe(chrome=None, firefox=None):
         actual = version.split()[-1] if version else None
         browsers[name] = dict(version=version, expected_version=expected[name],
                               matches_frozen_version=actual == expected[name])
+    verified_image = None
+    if browser_image is not None:
+        if server != "ubuntu24-arm64" or not re.fullmatch(r"sha256:[0-9a-f]{64}", browser_image):
+            raise ValueError("Supply an exact installed ARM Linux browser image ID")
+        image = json.loads(subprocess.check_output(["docker", "image", "inspect", browser_image], text=True))[0]
+        if image["Id"] != browser_image or image["Architecture"] != "arm64" or image["Os"] != "linux":
+            raise ValueError("Browser image architecture or identity differs")
+        version = command_version(["docker", "run", "--rm", "--network", "none", "--read-only",
+            "--user", f"{os.getuid()}:{os.getgid()}", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+            browser_image, "/ms-playwright/chromium-1248/chrome-linux-arm64/chrome", "--version"])
+        if version != "Google Chrome for Testing " + expected["chrome"]:
+            raise ValueError("Browser image lacks the frozen Chrome version")
+        verified_image = browser_image
+        browsers["chrome"] = dict(version=version, expected_version=expected["chrome"], matches_frozen_version=True)
     return dict(server=server, system=system, architecture=machine, kernel=platform.release(),
                 observed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), versions=versions,
                 media_libraries=media_libraries,
                 browsers=browsers, scratch_free_bytes=free, execution_blockers=blockers,
+                browser_runtime_image_id=verified_image,
                 capture_permission_observation=capture_permissions,
                 owned_systemd_vm=(system == "Linux" and os.getuid() != 0
                     and Path("/run/systemd/system").is_dir()
@@ -108,12 +124,13 @@ def execute_selected(matrix, ids, output, execute):
         save(output / "matrix.json", matrix)
         try:
             report, report_sha256, code = execute(cell)
-            record_native_result(matrix, cell, report, report_sha256, code)
+            record = record_browser_result if cell["execution"].get("producer") == "browser-admission" else record_native_result
+            record(matrix, cell, report, report_sha256, code)
         except Exception as error:
             cell.update(status="failed", reason="workload-execution-or-evidence-binding-failed")
             cell["execution"].update(attempted=True, failure_class=type(error).__name__)
             # Exception text may include credentials/paths; only private traceback retains it.
-            (output / (cell["signing"] + "-" + cell["network"] + "-failure.log")).write_text(traceback.format_exc())
+            (output / (cell["transport"] + "-" + cell["signing"] + "-" + cell["network"] + "-failure.log")).write_text(traceback.format_exc())
         except BaseException:
             cell.update(status="failed", reason="original-workload-interrupted")
             cell["execution"]["attempted"] = True
@@ -131,6 +148,8 @@ def main():
     parser.add_argument("--host-report", type=Path, action="append", default=[])
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
+    parser.add_argument("--stage", choices=("media", "admission"), default="media")
+    parser.add_argument("--browser-image", help="Exact already installed ARM image for browser admission")
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("This runner is for the owner's local ARM resources")
@@ -152,7 +171,9 @@ def main():
         save(output / "matrix.json", matrix)
         print(json.dumps(dict(required_cells=32, qualified_cells=0, host_reports=matrix["host_reports_received"])))
         return 0
-    configure_execution(matrix, probe(args.chrome, args.firefox))
+    if args.stage == "admission" and args.phase == "run" and not args.browser_image:
+        parser.error("Browser admission requires --browser-image with an exact installed image ID")
+    configure_execution(matrix, probe(args.chrome, args.firefox, args.browser_image), args.stage)
     save(output / "matrix.json", matrix)
     if args.phase == "probe":
         print(json.dumps(dict(required_cells=32, runnable_workloads=sum(c["execution"]["runnable"] for c in matrix["cells"]),
@@ -176,6 +197,20 @@ def main():
 
         def execute(cell):
             directory = output / "cells" / cell["server"] / cell["network"] / cell["transport"] / cell["signing"]
+            if cell["execution"]["producer"] == "browser-admission":
+                directory.parent.mkdir(parents=True, exist_ok=True)
+                loader = importlib.util.spec_from_file_location("matrix_browser_fixture", ROOT / "scripts/rehearse-gate6-browser-matrix.py")
+                module = importlib.util.module_from_spec(loader)
+                loader.loader.exec_module(module)
+                original_argv = sys.argv
+                sys.argv = [str(module.__file__), "--stage", "admission", "--transport", cell["transport"],
+                            "--signing", cell["signing"], "--image", args.browser_image, "--output", str(directory)]
+                try:
+                    code = module.main()
+                finally:
+                    sys.argv = original_argv
+                path = directory / "component.json"
+                return json.loads(path.read_text()), digest(path), code
             directory.mkdir(parents=True, exist_ok=False)
             loader = importlib.util.spec_from_file_location("matrix_native_fixture", ROOT / "scripts/check-transport-fixtures.py")
             module = importlib.util.module_from_spec(loader)
