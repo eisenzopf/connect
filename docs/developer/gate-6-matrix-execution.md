@@ -31,8 +31,10 @@ installed browsers and earlier narrow browser results do not fill those rows.
    current ordinary Ubuntu container has `docker-init`, so it cannot stand in
    for the specified systemd/isolated-client-namespace Remote profile. The parent
    Colima VM already runs Ubuntu24.04 ARM64/systemd and has namespace tools and
-   noninteractive sudo; connect Node/Rust tooling and the source-bound runner to
-   that ordinary-user host. No replacement VM is implied.
+   noninteractive sudo. Its pinned toolchain is now connected, and the first
+   actual systemd/native Remote workload has run with separate client namespace.
+   All four moves completed; all six media routes failed quality. Namespace,
+   service and clients retired without forced cleanup. No replacement VM was used.
 2. Execute available native signing/platform cohorts independently, starting
    with Ubuntu local ES256. Preserve the failed EdDSA observation; do not rerun
    it merely to obtain a green matrix. Run other cohorts as their environments
@@ -113,3 +115,5 @@ scenario still needs the owned fixture/launcher integration and actual browser
 execution; it does not qualify a cell. The complete 60-second media, four-move,
 expiry and idle observations remain required. See
 [the bounded implementation evidence](../evidence/gate-6/browser-matrix-admission-candidate.json).
+
+The first [systemd/namespace Remote EdDSA result](../evidence/gate-6/matrix-native-remote-eddsa.json) completes the control/movement programme but fails independent media quality. Its cold VM-host build is retained for the next cohort; the attempted cache bind did not expose the container cache and is not claimed as reuse. Full original private media and captures remain on the owned VM.

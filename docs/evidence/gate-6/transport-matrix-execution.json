@@ -1,7 +1,6 @@
 {
-  "format": "connect/gate6-matrix-execution-summary/1",
+  "format": "connect/gate6-matrix-execution-summary/2",
   "task": "G6-058",
-  "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66",
   "contract_inputs": {
     "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
     "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
@@ -57,7 +56,8 @@
           "accessible_device_count": 0,
           "capture_started": false
         }
-      }
+      },
+      "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66"
     },
     {
       "sha256": "d24273303a8e0d75ad603a7c3e2f33aa7de2ed8127edc2f38da3617dc6b5bec5",
@@ -89,12 +89,13 @@
         "execution_blockers": [],
         "owned_systemd_vm": false,
         "capture_access": "not-proven-by-tool-version; actual capture required by workload"
-      }
+      },
+      "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66"
     }
   ],
   "counts": {
-    "not-run": 31,
-    "failed": 1
+    "not-run": 30,
+    "failed": 2
   },
   "cells": [
     {
@@ -168,7 +169,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/native-quic/ES256",
@@ -241,7 +243,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
@@ -323,7 +326,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
@@ -405,7 +409,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
@@ -487,7 +492,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
@@ -569,7 +575,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
@@ -652,7 +659,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
@@ -735,7 +743,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
@@ -809,7 +818,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
@@ -883,7 +893,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
@@ -966,7 +977,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
@@ -1049,7 +1061,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
@@ -1132,7 +1145,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
@@ -1215,7 +1229,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
@@ -1298,7 +1313,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
@@ -1381,7 +1397,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
@@ -1452,7 +1469,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
@@ -1541,7 +1559,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
@@ -1622,7 +1641,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -1703,7 +1723,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
@@ -1784,7 +1805,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
@@ -1865,7 +1887,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
@@ -1947,7 +1970,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
@@ -2029,7 +2053,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
@@ -2037,21 +2062,38 @@
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "EdDSA",
-      "status": "not-run",
-      "reason": "execution-preflight-blocked",
+      "status": "failed",
+      "reason": "required-workload-failed",
       "execution": {
         "producer": "native-media",
-        "runnable": false,
-        "blockers": [
-          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
-        ],
+        "runnable": true,
+        "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected"
         ],
-        "attempted": false,
-        "component": null
+        "attempted": true,
+        "component": {
+          "kind": "native-media",
+          "source_revision": "2fedc093a13fa55e872e6fce9308670bb8743a07",
+          "report_sha256": "ada7bfb7bc011825de950b79e18518304904a68a27ce1a248c33fd8fbe2135e6",
+          "passed": false,
+          "exit_code": 1,
+          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+          "peer_binary_sha256": "1e3f0e44101d9a4ea436b058b5ac95ef86a1a855cecc408e9ffc8acbcc813a76",
+          "integrity": {
+            "source_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "sdk_dist_inputs_unchanged": true
+          },
+          "failure": {
+            "phase": "independent-native-opus-vp8-decode",
+            "name": "AssertionError",
+            "line": 608
+          },
+          "public_evidence": "docs/evidence/gate-6/matrix-native-remote-eddsa.json"
+        }
       },
       "check_results": {
         "identified-candidate-client-server-versions": {
@@ -2083,16 +2125,16 @@
           "evidence": null
         },
         "declared-concurrent-workload": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-eddsa.json"
         },
         "actual-private-packet-capture": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-eddsa.json"
         },
         "independently-decoded-duplex-media-and-profile-budgets": {
-          "status": "not-run",
-          "evidence": null
+          "status": "failed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-eddsa.json"
         },
         "current-revocation-expiry-and-conflicting-operation-refusals": {
           "status": "not-run",
@@ -2102,7 +2144,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": "2fedc093a13fa55e872e6fce9308670bb8743a07"
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
@@ -2175,7 +2218,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
@@ -2257,7 +2301,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
@@ -2339,7 +2384,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
@@ -2421,7 +2467,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
@@ -2503,7 +2550,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
@@ -2585,7 +2633,8 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
@@ -2667,10 +2716,11 @@
           "status": "not-run",
           "evidence": null
         }
-      }
+      },
+      "source_revision": null
     }
   ],
-  "scope": "Actual current local-host preflights and selected native media execution. No skipped/inherited pass. Browser full-workload, remote topology and full expiry/idle/verifier integration remain unfinished. G6-054 deferred. No GitHub/cloud tests.",
+  "scope": "Progress ledger across separately identified candidate revisions; every attempted cell retains its own source and artifact evidence. No cells qualified and no result inherited between candidates. Final acceptance still needs every complete cell at the frozen acceptance candidate. G6-054 deferred; local ARM execution only.",
   "additional_environment_findings": {
     "local_vm_host": {
       "os": "Ubuntu 24.04.4 LTS",
@@ -2689,15 +2739,18 @@
         "setpriv",
         "sudo"
       ],
-      "missing_tools": [
-        "node",
-        "npm",
-        "cargo",
-        "rustc"
-      ],
+      "missing_tools": [],
       "tests_executed": false,
       "network_namespace_created": false,
-      "scope": "Existing connect-gate6 Colima VM host, outside the workload container. Environment observed directly through colima ssh. Required Node/Rust tooling and source-bound runner are not connected yet; no remote-profile qualification."
+      "scope": "Existing Ubuntu24.04 ARM64 systemd VM host now has pinned Node/Rust PATH and media development packages; native Remote profile actually executed in a separate client namespace and cleaned up. No new VM/cloud resource used; completed media quality failed.",
+      "tools_connected": true,
+      "systemd_namespace_execution_observed": true,
+      "container_cache_reused": false,
+      "cold_host_build_completed": true
     }
-  }
+  },
+  "source_revisions": [
+    "2fedc093a13fa55e872e6fce9308670bb8743a07",
+    "eb8736270c621ac9f4482e645ab1d7983652ba66"
+  ]
 }
