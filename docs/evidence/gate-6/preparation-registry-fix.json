@@ -1,0 +1,108 @@
+{
+  "format": "connect/preparation-registry-fix/1",
+  "run": "v136",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "before": "docs/evidence/gate-6/preparation-registry-before.json",
+  "source_revision": "5b0d09b68c2b7c392dbf187895e1134f52971e03",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 175704,
+    "source_revision": "5b0d09b68c2b7c392dbf187895e1134f52971e03",
+    "passed": true,
+    "steps": [
+      {
+        "group": "production-replacement",
+        "case": "sdk_handles::replacement_video_recovery::signed_replacement_preparation_preserves_current_authority_under_registry_contention",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 1.49s"
+        ],
+        "log_sha256": "ad649ae4d2a66232085c58df9dc69cef0a664df3b1c7ddb77010c00792cba8aa"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "preparation_registry_fix": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "production-replacement",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "cc161b1fe91620e1cb38414498c79b0831efc4775c045431b5324880c33fc393",
+        "test_executable_sha256": "2d5b5eb5c93c4da065e4a709516dd7e84c0c4f6a3728fec0290c8b82162f3ae9",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 738.7369878289901
+  },
+  "original_operations": [
+    {
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "ledger_sha256": "0f70e4f5e6aad103d563c799aef4da40962beeae0e4f0c87c6258cfff166de96"
+    }
+  ],
+  "probe_markers": [
+    "original preparation registry probe: before=true held=true cancelled_refused=true after=true",
+    "original preparation refusal probe: wrong_owner=true missing_owner=true changed_intent=true expired=true initial_capture_busy=true"
+  ],
+  "log_sha256": "ad649ae4d2a66232085c58df9dc69cef0a664df3b1c7ddb77010c00792cba8aa",
+  "one_normal_original": true,
+  "scope": "One actual signed production listener preparation invocation. The test-only probe makes no engine effect. Normal original replacement and independent VP8 decode execute once; this is not the full four-move workload.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "verified_behavior": [
+    "The actual original preparation authority succeeds before, during and after exclusion of the real media registry.",
+    "Cancelled invocation, wrong or missing captured owners, changed intent and expired Core control refuse.",
+    "Initial capture under real registry exclusion reports authority-busy. The production retry closure releases its refused current read before retry, before any begin/Core effect.",
+    "One signed production replacement completes with seven confirmed single-attempt effects; fresh VP8 frames independently decode in both directions; peers, encoder and server join."
+  ],
+  "design": "Exact source/retained entry references are captured with a fresh original preparation read before begin. The Core invocation revalidates original read, current binding/generation, activation, identity/member and deadline; references are not cached positive grants. Other callers retain their existing lookup behavior. Begun preparations and uncertain effects are not retried.",
+  "limits": [
+    "One focused native production-listener case, not the full four-move60second media programme or a complete matrix cell.",
+    "v134 return failure did not identify its exact Authority sub-branch; this proves and repairs a concrete mechanism.",
+    "v131 decoder-history bound and v125 audio-duration/AV failures remain unresolved pending complete workload evidence.",
+    "Credential-expiry and ten-second live-idle producer requirements remain open; all32cells unqualified; G6-054 deferred."
+  ]
+}
