@@ -1,4 +1,5 @@
 //! Local signed SDK feedback against the production listener, with real VP8.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use connect_client::{canonical::CanonicalClientConfig, ClientConfig};
