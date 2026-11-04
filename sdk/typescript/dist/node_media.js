@@ -3,9 +3,10 @@ import { NodeSdkError } from "./sdk_helper.js";
 import { duration } from "./canonical_validation.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
+import { captureVideoFeedback, takeVideoFeedback, consumedVideoFeedback, } from "./node_video_feedback.js";
 import { captureNativeVideoFeedback } from "./native_video_feedback.js";
 import { openMediaChannel, mediaError, mediaDuration, encodeFrame, exact, localWait, owned, MEDIA_PROFILE, MEDIA_METADATA, } from "./node_media_channel.js";
-import { SdkRtpPacket, capturedRtp, clockWire, bindingWire, captureBinding, decimal, uint, capturedData, receivedData, mediaFrozen, mediaJson, } from "./node_media_types.js";
+import { SdkRtpPacket, capturedRtp, captureRtpVideoEpoch, clockWire, bindingWire, captureBinding, decimal, uint, capturedData, receivedData, mediaFrozen, mediaJson, } from "./node_media_types.js";
 function sameBinding(a, b) {
     return canonicalJson(a) === canonicalJson(bindingWire(b));
 }
@@ -112,7 +113,12 @@ function packet(binding, id, f) {
         typeof p === "object" &&
         !Array.isArray(p) &&
         p.type === "rtp") {
-        if (!exact(p, ["type", "datagram_sequence", "header"]))
+        if (!exact(p, [
+            "type",
+            "datagram_sequence",
+            "header",
+            ...(Object.hasOwn(p, "video_epoch") ? ["video_epoch"] : []),
+        ]))
             throw new Error();
         const result = new SdkRtpPacket(p.datagram_sequence, f.payload), h = result.header;
         if (!exact(p.header, [
@@ -131,6 +137,8 @@ function packet(binding, id, f) {
                     marker: h.marker,
                 }))
             throw new Error();
+        if (Object.hasOwn(p, "video_epoch"))
+            captureRtpVideoEpoch(result, p.video_epoch);
         return result;
     }
     if (f.payload.length ||
@@ -320,7 +328,11 @@ class Owner {
             if (!slot.flight) {
                 original.completedAt = undefined;
                 const flight = owned(this.request({
-                    action: data ? "receive_data" : "receive",
+                    action: data === true
+                        ? "receive_data"
+                        : data === "feedback"
+                            ? "receive_video_feedback"
+                            : "receive",
                     binding: bindingWire(binding),
                     stream_id: id,
                 }, Buffer.alloc(0), { timeoutMs: options.timeoutMs }, (frame) => {
@@ -409,6 +421,29 @@ class Owner {
                 datagram_sequence: uint(sequence),
                 report: clockWire(report),
             }, Buffer.alloc(0), o, (f) => submitted(binding, id, sequence, f), true),
+            requestKeyframe: (o) => this.request({
+                action: "request_keyframe",
+                binding: bindingWire(binding),
+                stream_id: id,
+            }, Buffer.alloc(0), o, (f) => submitted(binding, id, uint(f.metadata.datagram_sequence), f), true),
+            receiveVideoFeedback: (o) => this.receive(binding, id, o, "feedback", (f) => captureVideoFeedback(this, binding, id, f)),
+            consumeVideoFeedback: (feedback, o) => {
+                let token;
+                try {
+                    mediaDuration(o);
+                    token = takeVideoFeedback(this, binding, id, feedback);
+                }
+                catch {
+                    throw mediaError("validation", true);
+                }
+                const started = performance.now();
+                return this.request({
+                    action: "consume_video_feedback",
+                    binding: bindingWire(binding),
+                    stream_id: id,
+                    token,
+                }, Buffer.alloc(0), o, (f) => consumedVideoFeedback(binding, id, feedback, token, started, f), true);
+            },
             receivePacket: (o) => this.receive(binding, id, o, false, (f) => packet(binding, id, f)),
             sendData: (input, o) => {
                 const operationId = o?.operationId;

@@ -1,5 +1,6 @@
 /** Captured negotiated media and typed data. No capture, renderer or grant. */
 import { inspect } from "node:util";
+import { captureVideoEpoch, } from "./node_video_feedback.js";
 import { NodeSdkError } from "./sdk_helper.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -96,6 +97,18 @@ export function bindingWire(v) {
     };
 }
 const rtpBytes = new WeakMap();
+const rtpEpochs = new WeakMap();
+export function captureRtpVideoEpoch(packet, value) {
+    if (!rtpBytes.has(packet) || rtpEpochs.has(packet))
+        throw new Error();
+    const epoch = captureVideoEpoch(value);
+    if (packet.header.ssrc !== epoch.ssrc ||
+        (packet.datagramSequence - epoch.firstSequence) >>> 0 >= 0x80000000 ||
+        (packet.datagramSequence === epoch.firstSequence &&
+            packet.header.timestamp !== epoch.firstTimestamp))
+        throw new Error();
+    rtpEpochs.set(packet, epoch);
+}
 export class SdkRtpPacket {
     kind = "rtp";
     datagramSequence;
@@ -139,6 +152,9 @@ export class SdkRtpPacket {
         });
         rtpBytes.set(this, raw);
         Object.freeze(this);
+    }
+    get videoEpoch() {
+        return rtpEpochs.get(this);
     }
     get bytes() {
         return Uint8Array.from(rtpBytes.get(this));

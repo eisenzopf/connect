@@ -1,22 +1,90 @@
 {
   "format": "connect/gate6-sdk-video-feedback-ipc/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
-  "implementation": [
-    "Node/Python public media handles expose current receiver keyframe request, owned publisher hint receive and one-shot hint consumption. References are bound to the originating language Client and exact resource scope.",
-    "Permits charge full consumption RPC elapsed time on the local monotonic clock against floored Rust remaining milliseconds. Delayed responses cannot grant a fresh deadline.",
-    "RTP packets expose immutable matched video history after strict shape/SSRC/serial first-boundary validation; original bytes unchanged. Existing owned receive path retains cancellation ownership for hints."
-  ],
-  "planned_checks": [
-    "TypeScript build into ignored output directory; no tracked dist mutation during sourceguard.",
-    "Two new Node cases: strict metadata/references and public owned synthetic IPC with delayed reply refusal and child cleanup.",
-    "Two new Python cases: strict metadata/references and public owned synthetic IPC with delayed reply refusal and child cleanup."
+  "source_revision": "cae7f036470424bf4f6905a1a4af8d7f82ccf45e",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 121104,
+    "source_revision": "cae7f036470424bf4f6905a1a4af8d7f82ccf45e",
+    "passed": true,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "sdk_video_feedback_ipc_candidate": true,
+    "component_checks": [
+      {
+        "case": "typescript-build",
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "summary": []
+      },
+      {
+        "case": "node-feedback-ipc",
+        "exit_code": 0,
+        "log_sha256": "b0d9e8915bba3d68976dce743df4b81b1adec0a804c593d4ff4affeaba4fb241",
+        "summary": [
+          "  ...",
+          "# Subtest: public Node media feedback traverses owned IPC and discards delayed consumption replies",
+          "ok 2 - public Node media feedback traverses owned IPC and discards delayed consumption replies",
+          "  ---",
+          "  duration_ms: 182.403067",
+          "  type: 'test'",
+          "  ...",
+          "1..2",
+          "# tests 2",
+          "# suites 0",
+          "# pass 2",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# todo 0",
+          "# duration_ms 221.037295"
+        ]
+      },
+      {
+        "case": "python-feedback-ipc",
+        "exit_code": 0,
+        "log_sha256": "108c829c31e651d56b91ecf9e3b375806257a55e1cb0b96233b711be478e7e9b",
+        "summary": [
+          "..",
+          "----------------------------------------------------------------------",
+          "Ran 2 tests in 0.172s",
+          "",
+          "OK"
+        ]
+      }
+    ],
+    "executable_unchanged": true,
+    "runtime_sha256": {
+      "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+      "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+    },
+    "sdk_outputs_unchanged": true,
+    "generated_outputs_sha256": "e65d64df011969daa0eb07584240e3e78bcdfe42699a59fc2909413dad39618a",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1.5475390650099143
+  },
+  "result_state_sha256": "101dacf3bebbea0103b9b2bf941a175bad585098732f0e4c1452a041961c3d0f",
+  "captured_generated_outputs": {
+    "node_media_types.d.ts": "277a11a345e32afb8dd5b2a8515dcfad3da640dd24f13626a962de4efe1ba779",
+    "node_media.d.ts": "8270682446b2a7fe3fd8d7f8e5bdfd39aa161403ef0e317987d3eac4f778ae74",
+    "node_media_types.js": "2cccb9c622ade0c742c77b2dc3814b3d48ac6192f8b0528562516e8243d547bd",
+    "node_media.js": "9b5736adad50f088b30938563e100cb43b964bad6dd3728cffb88c8c8231786f",
+    "node_video_feedback.d.ts": "b7df8900e1cfa6644973cad400a7bca2dec341a120f954371c2299538720466c",
+    "index.d.ts": "692d532444688fb418d5e48570fcb10483203488f4919a8941d1559d40652d4f",
+    "node_video_feedback.js": "e3b837209b68a6accc39e7169fe85855c46c30380fc4f941a1abadd42466f0d9"
+  },
+  "scope": [
+    "Two Node and two Python cases pass: strict packet epoch metadata, owned hint identity, one-shot consumption and public client/helper IPC including delayed reply expiry and child cleanup.",
+    "TypeScript compiled into ignored output directory; generated output and tracked/prepared/runtime inputs unchanged throughout checks. Captured outputs installed after completed run."
   ],
   "limits": [
-    "Synthetic language helper IPC cases do not prove actual native server feedback, authenticated enrollment or live encoder/decoder recovery. Rust helper/current transport components have separate evidence.",
-    "Generated TypeScript artifacts will be captured and committed after sourceguarded verification. Existing passed tests are not rerun.",
-    "Production profile remains disabled; browser/direct-peer wiring, live encoder bootstrap/fragment-loss proof and full32cell matrix remain open. G6-054 deferred."
+    "Synthetic helper IPC, not actual signed server or live encoder/decoder recovery.",
+    "Production feedback profile remains disabled. Browser/direct-peer integration and full matrix remain open; G6-054 deferred."
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,

@@ -3,6 +3,7 @@ import { SdkHelper } from "./sdk_helper.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
 import type { OperationKey } from "./canonical_error.js";
 import { type Json } from "./uctp_json.js";
+import { type SdkVideoFeedback, type SdkVideoKeyframePermit } from "./node_video_feedback.js";
 import type { ParticipantId, MessageId, SdkMutationOptions, SdkOperation } from "./node_sdk.js";
 import type { SdkNonEmpty } from "./node_sessions.js";
 import type { StreamId } from "./node_connections.js";
@@ -13,6 +14,9 @@ export interface SdkMediaStream {
     sendRtp(packet: SdkRtpPacket, options: CanonicalRequestOptions): Promise<SdkLocalMediaSubmission>;
     sendClock(sequence: number, report: SdkSenderClockReport, options: CanonicalRequestOptions): Promise<SdkLocalMediaSubmission>;
     receivePacket(options: CanonicalRequestOptions): Promise<SdkMediaPacket>;
+    requestKeyframe(options: CanonicalRequestOptions): Promise<SdkLocalMediaSubmission>;
+    receiveVideoFeedback(options: CanonicalRequestOptions): Promise<SdkVideoFeedback>;
+    consumeVideoFeedback(feedback: SdkVideoFeedback, options: CanonicalRequestOptions): Promise<SdkVideoKeyframePermit | undefined>;
     sendData(input: {
         readonly messageId: MessageId;
         readonly to: SdkNonEmpty<ParticipantId>;

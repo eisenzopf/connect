@@ -349,5 +349,8 @@ RTP helper packets carry optional `video_epoch` only when the Rust SDK has
 matched the signed notice and packet; fields are epoch, incarnation, revision,
 SSRC, first native sequence and first RTP timestamp. Ordinary packets omit it.
 The two focused helper-reference checks pass on local ARM64 at `490acc71`; see
-`docs/evidence/gate-6/helper-video-feedback.json`. Node/Python consumers and
-end-to-end IPC/live decoder recovery remain unverified.
+`docs/evidence/gate-6/helper-video-feedback.json`. The Node/Python typed APIs and four synthetic helper IPC cases pass on local
+ARM64 at `cae7f036`; see `docs/evidence/gate-6/sdk-video-feedback-ipc.json`.
+Consumption deducts the full RPC elapsed time, including a delayed reply; a
+cloned or already consumed reference cannot create a new permit. Actual signed
+server and live encoder/decoder recovery remain unverified.

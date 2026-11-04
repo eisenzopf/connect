@@ -1,5 +1,6 @@
 /** Captured negotiated media and typed data. No capture, renderer or grant. */
 import { inspect } from "node:util";
+import { type SdkVideoReceiveEpoch } from "./node_video_feedback.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { ConversationId, ParticipantId, MessageId, OperationId, SdkRevision } from "./node_sdk.js";
 import type { ConnectionId, StreamId, SdkDirection, SdkNativeVideoFeedback } from "./node_connections.js";
@@ -37,12 +38,14 @@ export interface SdkRtpHeader {
     readonly ssrc: number;
     readonly marker: boolean;
 }
+export declare function captureRtpVideoEpoch(packet: SdkRtpPacket, value: Json): void;
 export declare class SdkRtpPacket {
     #private;
     readonly kind: "rtp";
     readonly datagramSequence: number;
     readonly header: SdkRtpHeader;
     constructor(sequence: number, bytes: Uint8Array);
+    get videoEpoch(): SdkVideoReceiveEpoch | undefined;
     get bytes(): Uint8Array;
     get payload(): Uint8Array;
     [inspect.custom](): string;
