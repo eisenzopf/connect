@@ -13,6 +13,8 @@ const AGE: Duration = Duration::from_millis(200);
 pub struct NativeVideoDatagram {
     pub bytes: Vec<u8>,
     pub video_epoch: Option<VideoReceiveEpoch>,
+    /// Original physical read, retained while waiting for a signed epoch.
+    pub received_at: Instant,
 }
 struct Waiting {
     bytes: Vec<u8>,
@@ -263,6 +265,7 @@ impl NativeVideoDatagrams {
         Ok(NativeVideoDatagram {
             bytes: item.bytes,
             video_epoch: Some(notice.history),
+            received_at: item.arrived,
         })
     }
     pub async fn receive(&mut self) -> Result<NativeVideoDatagram> {
@@ -347,6 +350,7 @@ impl NativeVideoDatagrams {
             return Ok(NativeVideoDatagram {
                 bytes,
                 video_epoch: None,
+                received_at: arrived,
             });
         }
     }

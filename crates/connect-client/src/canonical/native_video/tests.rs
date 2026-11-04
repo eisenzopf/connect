@@ -42,7 +42,9 @@ pub(super) fn scoped(kind: &str, payload: Value, reply: Option<&str>) -> Envelop
 pub(super) fn epoch(request: &str, revision: u64, publisher: bool) -> Envelope {
     let mut v =
         crate::sdk::video_feedback::epochs::tests::notice_value(revision.into(), revision, 0, 0);
-    v["ts"] = envelope("ack", json!({}))["ts"].clone();
+    let fresh = envelope("ack", json!({}));
+    v["ts"] = fresh["ts"].clone();
+    v["id"] = fresh["id"].clone();
     v["payload"]["original_offer"] = json!(request);
     v["payload"]["direction"] = json!(if publisher { "publisher" } else { "receiver" });
     Envelope::from_value(v).unwrap()
