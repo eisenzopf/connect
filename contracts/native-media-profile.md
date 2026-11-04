@@ -485,7 +485,7 @@ working replacement media routes without relaxing packet-age admission.
 A short production replacement now verifies feedback and fresh independent VP8
 decode in both directions at unchanged RTP timestamps; see
 `docs/evidence/gate-6/production-replacement-video-feedback.json`. Full cell
-qualification and delayed browser writer verification remain open.
+qualification remains open. Delayed browser writer verification is recorded below.
 
 
 Local ARM evidence for signed gate adoption is in
@@ -493,8 +493,8 @@ Local ARM evidence for signed gate adoption is in
 history, scope, binding and revision fences, replay, uncertainty and retirement.
 A separate production generation-two hold/resume case recovers fresh epochs and
 independently decodes VP8 keys in both directions at original RTP18000 and24000.
-Production mute/unmute, delayed browser writes and complete transport
-qualification are not established by that short hold/resume case.
+Production mute/unmute and complete transport qualification are not established
+by that short hold/resume case. Delayed browser writes have separate evidence below.
 
 
 Codec adoption evidence is in `docs/evidence/gate-6/replacement-video-codecs.json`.
@@ -505,3 +505,13 @@ PCMU audio with a new PCMA handle and stream generation while retaining the vide
 allocations, then verifies fresh video decode and current feedback in both
 directions at original RTP15000 and18000. It does not measure post-change audio
 quality or qualify the complete transport workload.
+
+
+Browser writer evidence is in `docs/evidence/gate-6/browser-video-writer.json`.
+Three standard-stream owner cases verify original-age expiry, epoch replacement
+and uncertain writes. A separate actual signed Chromium/WebTransport case
+delays application completion after the native feedback write: the original
+200ms deadline closes ownership, the packet is forwarded once without retry,
+and shutdown waits for completion before releasing ownership. This verifies
+application completion uncertainty, not network loss or full media quality.
+The owned browser stops and joins; source, dependency and runtime guards pass.

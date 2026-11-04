@@ -105,12 +105,19 @@
   "transport_cells_qualified": 0,
   "task_complete": false,
   "remaining": [
-    "Delayed browser writer uncertainty focused proof.",
-    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+    "Retest the failed complete native media workload with the current four-move contract: two moves in each of two Sessions, at 15s and 40s within the 62s programme / 60s observation.",
+    "Complete all 32 frozen local/remote-profile transport cells, quality, teardown, idle and failure cases. G6-054 remains deferred."
   ],
   "limitations": [
     "Changed video allocation rejection/adoption and failed or uncertain codec operations are component evidence; the production case changes audio and retains video.",
     "The production case verifies signed PCMA resource adoption and submits PCMA packets; it does not independently measure post-change audio quality.",
     "No complete transport cell, sustained A/V synchronization, quality or full failure matrix is established by this short case."
-  ]
+  ],
+  "follow_up_browser_writer": {
+    "source_revision": "e4e715e2d39f43e0f55fb9a630b8dbff2df0d6d5",
+    "evidence": "docs/evidence/gate-6/browser-video-writer.json",
+    "new_cases_passed": 4,
+    "complete_transport_cells": 0,
+    "current_movement_contract": "Four moves, at 15s and 40s in each of two Sessions. Historical twenty-move stress runs are not the current workload."
+  }
 }

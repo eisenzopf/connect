@@ -1,0 +1,167 @@
+{
+  "format": "connect/gate6-browser-video-writer/1",
+  "task": "G6-058",
+  "status": "focused-browser-writer-pass",
+  "source_revision": "e4e715e2d39f43e0f55fb9a630b8dbff2df0d6d5",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "github_or_cloud_tests": false
+  },
+  "verification_run": {
+    "run": "browser-video-writer-v106",
+    "state": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 130059,
+      "source_revision": "e4e715e2d39f43e0f55fb9a630b8dbff2df0d6d5",
+      "passed": true,
+      "steps": [
+        {
+          "group": "signed-server",
+          "case": "browser_video_feedback::actual_chromium_signed_webtransport_feedback_writer_uncertainty",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.12s"
+          ],
+          "log_sha256": "db1f09cd0feb6e3c5b2ea938b6148f94cbfca3026a3ce33d6753cdffa0ac0d43"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "actual_chromium_feedback_candidate": true,
+      "typescript_build": {
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "runtime_sha256": {
+        "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+        "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+      },
+      "component_checks": [
+        {
+          "case": "browser-writer-components",
+          "exit_code": 0,
+          "log_sha256": "f5d0f3149f43210c52222df716dfb58eab8b6209bc7453e2fdc82b2b8db3778a",
+          "summary": [
+            "  duration_ms: 156.110263",
+            "  type: 'test'",
+            "  ...",
+            "# Subtest: browser feedback uncertain write is submitted once then closes and joins without retry",
+            "ok 3 - browser feedback uncertain write is submitted once then closes and joins without retry",
+            "  ---",
+            "  duration_ms: 277.962724",
+            "  type: 'test'",
+            "  ...",
+            "1..3",
+            "# tests 3",
+            "# suites 0",
+            "# pass 3",
+            "# fail 0",
+            "# cancelled 0",
+            "# skipped 0",
+            "# todo 0",
+            "# duration_ms 752.736227"
+          ]
+        }
+      ],
+      "builds": [
+        {
+          "group": "signed-server",
+          "compile_exit_code": 0,
+          "compile_log_sha256": "19f9e77d48347b90f87cc7a87797ea89212f8f10b421eea65f6d8f9353c16ed5",
+          "test_executable_sha256": "30f3743ea63fac597c87523ffb2740f7c47c32d7555a28aa618f57b69712d5b7",
+          "executable_unchanged": true
+        }
+      ],
+      "executable_unchanged": true,
+      "browser": {
+        "port": 19288,
+        "version": "Chrome/156.0.8078.4",
+        "architecture": "aarch64",
+        "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+        "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+        "owned_container": "connect-gate6-browser-writer-v106",
+        "local_only": true
+      },
+      "sdk_outputs_unchanged": true,
+      "runtime_unchanged": true,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 68.85542622600042
+    },
+    "state_sha256": "fd3543bf66f8fed05674506a8d43df3b9f5fb2b84e4ca73fe8fd212def6e33a0",
+    "owned_browser": {
+      "port": 19288,
+      "version": "Chrome/156.0.8078.4",
+      "architecture": "aarch64",
+      "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+      "owned_container": "connect-gate6-browser-writer-v106",
+      "local_only": true,
+      "binary_unchanged": true,
+      "joined": true,
+      "exit_code": 0
+    },
+    "browser_result": {
+      "passed": true,
+      "same_ssrc": true,
+      "new_epoch": true,
+      "fresh_frame": false,
+      "shutdown_joined": true,
+      "feedback_packets": 1,
+      "delayed_feedback": true,
+      "write_attempts": 1,
+      "forwarded_feedback": 1,
+      "shutdown_waited": true,
+      "timeout_message": "Video feedback writer exceeded original age",
+      "write_to_timeout_ms": 204.29999999701977,
+      "source_frames": [
+        {
+          "timestamp": 27,
+          "ssrc": 3899627392,
+          "key": true,
+          "sequence": 24917,
+          "at": 143.79999999701977
+        },
+        {
+          "timestamp": 26973,
+          "ssrc": 3899627392,
+          "key": false,
+          "sequence": 24918,
+          "at": 442
+        }
+      ],
+      "decoded_frames": [
+        {
+          "stream": "camera",
+          "red": 32,
+          "timestamp": 157700,
+          "at": 159.20000000298023
+        }
+      ],
+      "scope": "One local signed Chromium/WebTransport uncertain feedback write. Native write happens once; application completion is intentionally delayed. Original 200ms owner deadline and owned shutdown are verified; not a network-loss simulation or full transport cell.",
+      "browser": "Chrome/156.0.8078.4"
+    }
+  },
+  "scope": [
+    "Three new WHATWG-stream owner cases verify original-age expiry without a late write, stale-epoch discard with serial consumption, and uncertain-write shutdown without retry. These use controlled signaling and codec setup.",
+    "One new actual signed Chromium/WebTransport case delays application completion after the native feedback write. The original 200ms deadline closes ownership; feedback is submitted and forwarded once; shutdown waits for outstanding completion and releases all ownership. Actual timeout was 204.3ms.",
+    "All source, prepared dependency, executable, SDK output and runtime guards pass; owned Chrome stops and joins."
+  ],
+  "new_cases_passed": 4,
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "limitations": [
+    "Application completion uncertainty is injected after the actual native write; this is not network-loss simulation.",
+    "The timeout case intentionally closes the receiver; it does not establish fresh post-timeout video recovery or sustained media quality.",
+    "No complete transport cell is qualified."
+  ],
+  "remaining": [
+    "Retest the failed complete native media workload with the current four-move contract: two moves in each of two Sessions, at 15s and 40s within the 62s programme / 60s observation.",
+    "Complete all 32 frozen local/remote-profile transport cells, quality, teardown, idle and failure cases. G6-054 remains deferred."
+  ]
+}

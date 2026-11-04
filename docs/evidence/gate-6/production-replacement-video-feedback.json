@@ -244,5 +244,12 @@
       "Delayed browser writer uncertainty focused proof.",
       "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
     ]
+  },
+  "follow_up_browser_writer": {
+    "source_revision": "e4e715e2d39f43e0f55fb9a630b8dbff2df0d6d5",
+    "evidence": "docs/evidence/gate-6/browser-video-writer.json",
+    "new_cases_passed": 4,
+    "complete_transport_cells": 0,
+    "current_movement_contract": "Four moves, at 15s and 40s in each of two Sessions. Historical twenty-move stress runs are not the current workload."
   }
 }
