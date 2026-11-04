@@ -1,0 +1,531 @@
+{
+  "format": "connect/g6-058-core-audio-loss/1",
+  "date": "2026-11-04",
+  "attempt": "v175",
+  "source_revision": "06ca6a1f0be3d496c5c0872b4f32e2b87fadd357",
+  "report_sha256": "b8691406ec0f26bb3901dca1ef1d30b550054281b6c5cfcb28bdceb8f9c77483",
+  "terminal_log_sha256": "e133decd3d7805da825dbea5181ae2179144b1455724a5f00def4b6a66692203",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "browser_owner_joined": true
+  },
+  "cell_qualified": false,
+  "task_complete": false,
+  "moves_completed": 4,
+  "decoded_quality_passed": false,
+  "idle_passed": false,
+  "terminal_counters": {
+    "collect-deferred": {
+      "events": 155,
+      "samples": 0
+    },
+    "input-discontinuity": {
+      "events": 10,
+      "samples": 6720
+    },
+    "take-deferred": {
+      "events": 139,
+      "samples": 0
+    },
+    "target-before-start": {
+      "events": 215,
+      "samples": 206400
+    },
+    "empty-output": {
+      "events": 766,
+      "samples": 0
+    },
+    "subscription-refused": {
+      "events": 26840,
+      "samples": 25766400
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0
+    },
+    "burst-trim": {
+      "events": 131,
+      "samples": 125760
+    },
+    "target-deferred": {
+      "events": 8,
+      "samples": 7680
+    },
+    "refresh-refused": {
+      "events": 1,
+      "samples": 0
+    }
+  },
+  "owners": [
+    {
+      "core_owner_ordinal": 0,
+      "counters": {
+        "collect-deferred": {
+          "events": 6,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 0
+        },
+        "take-deferred": {
+          "events": 2,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 3,
+          "samples": 2880
+        },
+        "empty-output": {
+          "events": 64,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 1,
+      "counters": {
+        "collect-deferred": {
+          "events": 3,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 960
+        },
+        "take-deferred": {
+          "events": 1,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 10,
+          "samples": 9600
+        },
+        "subscription-refused": {
+          "events": 2085,
+          "samples": 2001600
+        },
+        "empty-output": {
+          "events": 74,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 2,
+      "counters": {
+        "refresh-reset": {
+          "events": 2,
+          "samples": 0
+        },
+        "collect-deferred": {
+          "events": 16,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 2,
+          "samples": 960
+        },
+        "burst-trim": {
+          "events": 24,
+          "samples": 23040
+        },
+        "take-deferred": {
+          "events": 24,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 14,
+          "samples": 13440
+        },
+        "subscription-refused": {
+          "events": 8,
+          "samples": 7680
+        },
+        "empty-output": {
+          "events": 33,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 3,
+      "counters": {
+        "refresh-reset": {
+          "events": 2,
+          "samples": 0
+        },
+        "collect-deferred": {
+          "events": 3,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 2,
+          "samples": 3840
+        },
+        "take-deferred": {
+          "events": 3,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 41,
+          "samples": 39360
+        },
+        "subscription-refused": {
+          "events": 2547,
+          "samples": 2445120
+        },
+        "empty-output": {
+          "events": 45,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 4,
+      "counters": {
+        "collect-deferred": {
+          "events": 14,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 0
+        },
+        "burst-trim": {
+          "events": 17,
+          "samples": 16320
+        },
+        "take-deferred": {
+          "events": 17,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 32,
+          "samples": 30720
+        },
+        "subscription-refused": {
+          "events": 6695,
+          "samples": 6427200
+        },
+        "target-deferred": {
+          "events": 1,
+          "samples": 960
+        },
+        "empty-output": {
+          "events": 141,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 5,
+      "counters": {
+        "collect-deferred": {
+          "events": 72,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 0
+        },
+        "burst-trim": {
+          "events": 53,
+          "samples": 50880
+        },
+        "take-deferred": {
+          "events": 52,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 32,
+          "samples": 30720
+        },
+        "subscription-refused": {
+          "events": 6690,
+          "samples": 6422400
+        },
+        "empty-output": {
+          "events": 97,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 6,
+      "counters": {
+        "collect-deferred": {
+          "events": 4,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 0
+        },
+        "burst-trim": {
+          "events": 12,
+          "samples": 11520
+        },
+        "take-deferred": {
+          "events": 12,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 37,
+          "samples": 35520
+        },
+        "subscription-refused": {
+          "events": 6645,
+          "samples": 6379200
+        },
+        "target-deferred": {
+          "events": 4,
+          "samples": 3840
+        },
+        "empty-output": {
+          "events": 103,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 7,
+      "counters": {
+        "refresh-reset": {
+          "events": 2,
+          "samples": 0
+        },
+        "collect-deferred": {
+          "events": 2,
+          "samples": 0
+        },
+        "take-deferred": {
+          "events": 1,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 30,
+          "samples": 28800
+        },
+        "subscription-refused": {
+          "events": 2160,
+          "samples": 2073600
+        },
+        "target-deferred": {
+          "events": 1,
+          "samples": 960
+        },
+        "empty-output": {
+          "events": 54,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 8,
+      "counters": {
+        "collect-deferred": {
+          "events": 34,
+          "samples": 0
+        },
+        "input-discontinuity": {
+          "events": 1,
+          "samples": 960
+        },
+        "burst-trim": {
+          "events": 25,
+          "samples": 24000
+        },
+        "take-deferred": {
+          "events": 24,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 5,
+          "samples": 4800
+        },
+        "target-deferred": {
+          "events": 2,
+          "samples": 1920
+        },
+        "empty-output": {
+          "events": 112,
+          "samples": 0
+        }
+      }
+    },
+    {
+      "core_owner_ordinal": 9,
+      "counters": {
+        "refresh-refused": {
+          "events": 1,
+          "samples": 0
+        },
+        "refresh-reset": {
+          "events": 2,
+          "samples": 0
+        },
+        "collect-deferred": {
+          "events": 1,
+          "samples": 0
+        },
+        "take-deferred": {
+          "events": 3,
+          "samples": 0
+        },
+        "target-before-start": {
+          "events": 11,
+          "samples": 10560
+        },
+        "subscription-refused": {
+          "events": 10,
+          "samples": 9600
+        },
+        "empty-output": {
+          "events": 43,
+          "samples": 0
+        }
+      }
+    }
+  ],
+  "quality": [
+    {
+      "route": 0,
+      "audio": {
+        "decoded_seconds": 59.4,
+        "identified_seconds": 59.38,
+        "maximum_gap_ms": 115.5000000000004,
+        "bad_identity_frames": 1,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 24,
+      "sync_status": "failed",
+      "median_abs_skew_ms": 97.64999999944024,
+      "p95_abs_skew_ms": 137.30000000074227
+    },
+    {
+      "route": 1,
+      "audio": {
+        "decoded_seconds": 59.6,
+        "identified_seconds": 59.6,
+        "maximum_gap_ms": 79.29999999887684,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 24,
+      "sync_status": "failed",
+      "median_abs_skew_ms": null,
+      "p95_abs_skew_ms": null
+    },
+    {
+      "route": 2,
+      "audio": {
+        "decoded_seconds": 59.56,
+        "identified_seconds": 59.56,
+        "maximum_gap_ms": 80.69999999925727,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 24,
+      "sync_status": "failed",
+      "median_abs_skew_ms": 84.40000000037173,
+      "p95_abs_skew_ms": 143.90000000037162
+    },
+    {
+      "route": 3,
+      "audio": {
+        "decoded_seconds": 58.84,
+        "identified_seconds": 57.84,
+        "maximum_gap_ms": 115.5000000000004,
+        "bad_identity_frames": 50,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 24,
+      "sync_status": "failed",
+      "median_abs_skew_ms": null,
+      "p95_abs_skew_ms": null
+    },
+    {
+      "route": 4,
+      "audio": {
+        "decoded_seconds": 59.08,
+        "identified_seconds": 59.06,
+        "maximum_gap_ms": 197.59999999962787,
+        "bad_identity_frames": 1,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 20,
+      "sync_status": "failed",
+      "median_abs_skew_ms": 100.15000000037145,
+      "p95_abs_skew_ms": 139.19999999925503
+    },
+    {
+      "route": 5,
+      "audio": {
+        "decoded_seconds": 59.08,
+        "identified_seconds": 58.620000000000005,
+        "maximum_gap_ms": 98.2999999988823,
+        "bad_identity_frames": 23,
+        "duplicate_frames": 0,
+        "passed": false
+      },
+      "video_minimum_fps": 24,
+      "sync_status": "failed",
+      "median_abs_skew_ms": 100.79999999888223,
+      "p95_abs_skew_ms": 140.7999999988814
+    }
+  ],
+  "input": [
+    {
+      "source": 0,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    },
+    {
+      "source": 1,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    },
+    {
+      "source": 2,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    },
+    {
+      "source": 3,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    },
+    {
+      "source": 4,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    },
+    {
+      "source": 5,
+      "capture_envelope_status": "observer-valid",
+      "capture_gap_count": 0,
+      "audio_encoder_refusals": 0
+    }
+  ],
+  "finding": "The Core mixer demonstrably drops original PCM: 131 burst trims discard125760 samples (2.62seconds summed across distinct source owners). Collection is deferred155 times and taking the next original quantum139 times. These counters identify a downstream loss mechanism; they do not establish which transient metadata check causes each deferral.",
+  "limitations": [
+    "Totals span each owner lifetime including startup/teardown; do not equate their sum to one measured receive route deficit. Core owner ordinals are log order, not browser source indices.",
+    "Subscription-refused counts include intentionally unselected sources and are not automatically media loss.",
+    "Target-before-start includes correct rejection of pre-activation source data; do not remove that authorization fence.",
+    "No source timestamp rewriting, PCM fabrication, threshold change or queue-budget increase."
+  ],
+  "next_fix": "Locate the unavailable current metadata check causing mixer collection/take deferral, then remove that contention or retry the same still-current original packet within its existing deadline without adding one full20ms mixer period per refusal. Preserve revocation, expiry, generation, scene and source ownership tests."
+}
