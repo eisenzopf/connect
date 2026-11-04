@@ -976,7 +976,7 @@ function translated(
         return new BrowserSdkError(
             kind,
             unsupportedRefusal ||
-            ["forbidden", "unauthorized"].includes(error.code) ||
+                ["forbidden", "unauthorized"].includes(error.code) ||
                 (error.code === "refused" &&
                     error.problem !== undefined &&
                     error.problem.code >= 400 &&
@@ -1841,6 +1841,30 @@ export class BrowserSdkClient {
     get transport() {
         return current(this).owner.status;
     }
+    /** Renew reachability on this physical peer using its current signed session.
+     * Does not refresh credentials, extend authentication expiry, reconnect,
+     * or retry. Applications own the cadence and stop it before closing. */
+    async keepAlive(options: BrowserSdkRequestOptions): Promise<void> {
+        try {
+            fields(options, ["timeoutMs", "signal"], invalid);
+            if (
+                options.signal !== undefined &&
+                !(options.signal instanceof AbortSignal)
+            )
+                invalid();
+            const budget = new Budget(options),
+                s = current(this),
+                peer = s.peer,
+                epoch = s.owner.status.physicalEpoch;
+            if (!(Number(peer.authenticationExpiresAt) > Date.now()))
+                throw new BrowserSdkError("authentication", "read-only");
+            await peer.keepAlive(budget.options());
+            s.observe(peer, epoch);
+            budget.options();
+        } catch (error) {
+            throw translated(error, "read-only");
+        }
+    }
     async reconnect(
         options: Parameters<BrowserTransportClient["reconnect"]>[0] = {},
     ): Promise<void> {
@@ -2536,15 +2560,13 @@ export class BrowserSession {
                         budget.options(),
                     );
                 } else
-                    begun = s
-                        .nativePeer()
-                        .beginOfferConnection(
-                            {
-                                ...low,
-                                nativeVideoFeedback: s.nativeVideoFeedback,
-                            },
-                            budget.options(),
-                        );
+                    begun = s.nativePeer().beginOfferConnection(
+                        {
+                            ...low,
+                            nativeVideoFeedback: s.nativeVideoFeedback,
+                        },
+                        budget.options(),
+                    );
                 const local = {
                     cid: this.conversationId,
                     sid: this.id,

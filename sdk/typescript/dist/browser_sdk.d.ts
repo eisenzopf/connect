@@ -220,6 +220,10 @@ export declare class BrowserSdkClient {
     private constructor();
     static connect(options: BrowserSdkClientOptions): Promise<BrowserSdkClient>;
     get transport(): BrowserTransportState;
+    /** Renew reachability on this physical peer using its current signed session.
+     * Does not refresh credentials, extend authentication expiry, reconnect,
+     * or retry. Applications own the cadence and stop it before closing. */
+    keepAlive(options: BrowserSdkRequestOptions): Promise<void>;
     reconnect(options?: Parameters<BrowserTransportClient["reconnect"]>[0]): Promise<void>;
     close(options: BrowserSdkRequestOptions): Promise<void>;
     [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope, continuation?: BrowserTransitionContinuation): Promise<BrowserOperation<T>>;

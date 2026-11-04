@@ -1134,6 +1134,26 @@ export class BrowserSdkClient {
     get transport() {
         return current(this).owner.status;
     }
+    /** Renew reachability on this physical peer using its current signed session.
+     * Does not refresh credentials, extend authentication expiry, reconnect,
+     * or retry. Applications own the cadence and stop it before closing. */
+    async keepAlive(options) {
+        try {
+            fields(options, ["timeoutMs", "signal"], invalid);
+            if (options.signal !== undefined &&
+                !(options.signal instanceof AbortSignal))
+                invalid();
+            const budget = new Budget(options), s = current(this), peer = s.peer, epoch = s.owner.status.physicalEpoch;
+            if (!(Number(peer.authenticationExpiresAt) > Date.now()))
+                throw new BrowserSdkError("authentication", "read-only");
+            await peer.keepAlive(budget.options());
+            s.observe(peer, epoch);
+            budget.options();
+        }
+        catch (error) {
+            throw translated(error, "read-only");
+        }
+    }
     async reconnect(options = {}) {
         const s = current(this);
         try {
@@ -1584,9 +1604,7 @@ export class BrowserSession {
                     begun = BrowserRtcConnection.begin(peer, low, participant.id, s.rtcConfiguration, budget.options());
                 }
                 else
-                    begun = s
-                        .nativePeer()
-                        .beginOfferConnection({
+                    begun = s.nativePeer().beginOfferConnection({
                         ...low,
                         nativeVideoFeedback: s.nativeVideoFeedback,
                     }, budget.options());

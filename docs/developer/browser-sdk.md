@@ -27,6 +27,15 @@ fixture. Live browser private consultation/return, device movement, installed
 media parity and full app integration retain the downstream requirements above.
 A successful Session control operation does not establish media.
 
+For long-lived browser owners, `await client.keepAlive({timeoutMs: 5000, signal})`
+explicitly renews the current physical peer's reachability through signed
+`auth.keepalive`. The application owns its cadence and stops it before closing.
+This call does not refresh credentials, extend the original authentication
+expiry, reconnect, retry, or submit a Session/Connection mutation. It rejects
+expired local authentication and propagates current server authorization
+refusals. Cancellation or a response timeout retires the original physical
+peer through the existing control owner's cleanup rules.
+
 ```ts
 import {
     BrowserSdkClient, browserOperationKinds, sdkId,
