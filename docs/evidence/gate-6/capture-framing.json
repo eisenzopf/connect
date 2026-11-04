@@ -1,0 +1,270 @@
+{
+  "format": "connect/gate6-capture-framing/1",
+  "task": "G6-058",
+  "runtime_source_revision": "fc12209b770312febc95335a829dbf97ec1a2346",
+  "offline_source_revision": "661893f93548ebfd961155c4a1d0794346dadd08",
+  "runtime_run": "v111",
+  "offline_run": "v112",
+  "environment": "Owner Mac Studio local Ubuntu24.04 ARM64 VM; no GitHub/cloud execution",
+  "failure_before": {
+    "phase": "original-and-physical-capture-custody",
+    "assertion": "row.datagram.length <= 1188",
+    "observed_maximum": 1204,
+    "cause": "Offline validator retained the untagged framing limit. Selected rtcp-pli-epoch/1 adds a 16-byte epoch without increasing the 1180-byte RTP body limit.",
+    "source": [
+      "scripts/lib/transport_replacement_observation.mjs",
+      "sdk/typescript/src/browser_video_wire.ts"
+    ]
+  },
+  "correction": "Validate exact ordinary versus negotiated video epoch framing before allocation/decoder interpretation; retain handle, selected-profile, raw bytes, clocks, custody hashes and pre-completion quarantine.",
+  "new_regression": {
+    "passed": true,
+    "name": "physical capture accepts selected epoch framing without enlarging RTP or ordinary bounds",
+    "log_sha256": "0091ace640bdccbc4ef259c76e7dd75e43882e416ce317daeb4141fe3100e81b",
+    "rejects": [
+      "selected 1205-byte packet",
+      "ordinary 1189-byte packet",
+      "unselected tagged packet",
+      "tagged audio handle",
+      "oversized pre-completion row"
+    ]
+  },
+  "saved_capture_custody": {
+    "format": "connect/physical-movement-segments/1",
+    "sha256": "9b3c3278d09231e226d6f71d02c14b7441b59b80fffd68d07f26675937c137ed",
+    "original_capture_sha256": [
+      "f68fbc93292ebecd064ad0355ac2b29e14536b89311b9e5b0c301e6f5d64ce45",
+      "d0b96abd3947cb96ba65f0edb0d5f8e6ac0e92ec751fd4e2f8684a47fa462649",
+      "a999c6b2476251972e79e1947bd000a58ba06632ad8e5765fa453b6254dc4f0d",
+      "6daa6d2dd45668a74922a35e24451c6387f757caed9e62925061fecb6c157173",
+      "69e30b672863745da73b9b81a543f124def3f1b75affb7768c47763e5105c95d",
+      "c1c43077d3b5bab6d30d39b107fbc66e0a45350d9bdf4a0ffe1f2e9131efe0c8"
+    ],
+    "original_move_records_bound": 4,
+    "reliable_data_exchanges_bound": 4
+  },
+  "offline_source_inputs_unchanged": true,
+  "capture_inputs_unchanged": true,
+  "runtime_rerun": false,
+  "previous_passing_tests_rerun": false,
+  "decoded_report_sha256": "ea4af06500df62b20697e7e8669bdc9c11573deebcc7c2ce49be1a5e96dee7ab",
+  "decode": {
+    "passed": false,
+    "all_histories_decoded": true,
+    "physical_histories": 35,
+    "decoder_histories": 35,
+    "routes": [
+      {
+        "index": 0,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 58.2,
+          "samples": 2793600,
+          "bad_identity_blocks": 0,
+          "original_window_packets": 2910,
+          "maximum_arrival_gap_ms": 307.137999999999
+        },
+        "video": {
+          "decoded_window_frames": 1740,
+          "changing_window_frames": 1739,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 0,
+        "low_video_seconds": [
+          {
+            "programme_second": 18,
+            "frames": 4
+          },
+          {
+            "programme_second": 44,
+            "frames": 0
+          }
+        ],
+        "sync_status": "passed",
+        "paired_sync_markers": 78
+      },
+      {
+        "index": 1,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 57.44,
+          "samples": 2757120,
+          "bad_identity_blocks": 0,
+          "original_window_packets": 2872,
+          "maximum_arrival_gap_ms": 229.06939599999896
+        },
+        "video": {
+          "decoded_window_frames": 1711,
+          "changing_window_frames": 1710,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 0,
+        "low_video_seconds": [
+          {
+            "programme_second": 18,
+            "frames": 4
+          },
+          {
+            "programme_second": 19,
+            "frames": 5
+          },
+          {
+            "programme_second": 44,
+            "frames": 0
+          }
+        ],
+        "sync_status": "passed",
+        "paired_sync_markers": 79
+      },
+      {
+        "index": 2,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 56.28,
+          "samples": 2701440,
+          "bad_identity_blocks": 0,
+          "original_window_packets": 2814,
+          "maximum_arrival_gap_ms": 209.9769249999954
+        },
+        "video": {
+          "decoded_window_frames": 1741,
+          "changing_window_frames": 1740,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 0,
+        "low_video_seconds": [
+          {
+            "programme_second": 18,
+            "frames": 4
+          },
+          {
+            "programme_second": 44,
+            "frames": 0
+          }
+        ],
+        "sync_status": "failed",
+        "paired_sync_markers": 0
+      },
+      {
+        "index": 3,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 58.9,
+          "samples": 2827200,
+          "bad_identity_blocks": 0,
+          "original_window_packets": 2945,
+          "maximum_arrival_gap_ms": 277.96847400000115
+        },
+        "video": {
+          "decoded_window_frames": 1744,
+          "changing_window_frames": 1743,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 0,
+        "low_video_seconds": [
+          {
+            "programme_second": 18,
+            "frames": 4
+          },
+          {
+            "programme_second": 44,
+            "frames": 0
+          }
+        ],
+        "sync_status": "passed",
+        "paired_sync_markers": 81
+      },
+      {
+        "index": 4,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 58.08,
+          "samples": 2787840,
+          "bad_identity_blocks": 1,
+          "original_window_packets": 2904,
+          "maximum_arrival_gap_ms": 208.20910000000003
+        },
+        "video": {
+          "decoded_window_frames": 1720,
+          "changing_window_frames": 1719,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 0,
+        "low_video_seconds": [
+          {
+            "programme_second": 18,
+            "frames": 0
+          },
+          {
+            "programme_second": 43,
+            "frames": 9
+          },
+          {
+            "programme_second": 44,
+            "frames": 1
+          }
+        ],
+        "sync_status": "passed",
+        "paired_sync_markers": 81
+      },
+      {
+        "index": 5,
+        "passed": false,
+        "audio": {
+          "decoded_seconds": 58.4,
+          "samples": 2803200,
+          "bad_identity_blocks": 1,
+          "original_window_packets": 2920,
+          "maximum_arrival_gap_ms": 204.18314600000303
+        },
+        "video": {
+          "decoded_window_frames": 1778,
+          "changing_window_frames": 1777,
+          "wrong_source_pixel_frames": 0,
+          "undecodable_frames": 0
+        },
+        "minimum_frames_per_observation_second": 20,
+        "low_video_seconds": [
+          {
+            "programme_second": 17,
+            "frames": 23
+          },
+          {
+            "programme_second": 44,
+            "frames": 20
+          }
+        ],
+        "sync_status": "passed",
+        "paired_sync_markers": 80
+      }
+    ]
+  },
+  "next_confirmed_finding": {
+    "cause": "Full native workload omitted root ClientConfig.native_video_feedback. Rust defaults false; all six original routes recorded video_feedback:null, so no original publisher feedback workers ran. Replacement peers alone selected the profile.",
+    "original_sdk_config_sha256": [
+      "f257f4dbb2e2ae5bfb72c8e6c3a551d4bdd1bdc0293936e045ecb8f37017bf8b",
+      "e5d21823a3d6d5ff0816c547c15407e34e6a4333c5bf2a21ff572dfa58e785f9",
+      "12169838bbe77289553296d0b17ba883c05f95570a0b5a1590e98e51596abe86",
+      "f663c626df9c91d1379d3b3389e142f1dd61087df2ee3cab103226d626720b28",
+      "814da5bd0cb89e133fbfede149af15877501962c0eb1ff9fc955d006abe7da97",
+      "db84620d1d975029c1be3e38980494bf7795653002473d0da5575cb5513c106d",
+      "1d9c8c283b7ad44650a7fe77ddf27621b7743630fa1094814cbf63e5fba25c9a"
+    ],
+    "all_original_configs_omit_feedback": true,
+    "original_routes_with_feedback": 0,
+    "candidate_correction": "Enable native_video_feedback for every full-media SDK config and require selection in both negotiated video directions during setup; verify in the next failed-workload run.",
+    "audio_cause_proven": false
+  },
+  "limitations": [
+    "Original v111 full command failed before final history/idle assertions, and is retained as failed. Offline capture recovery cannot promote that command to a pass.",
+    "All six decoded quality rows fail unchanged bounds. Audio interruption, insufficient audio coverage and video continuity remain; one marker-alignment row fails.",
+    "v109 initial-start refusal and v110 planning conflict did not recur in v111; neither is proven fixed."
+  ],
+  "task_complete": false,
+  "transport_cells_qualified": 0
+}

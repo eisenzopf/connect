@@ -753,6 +753,137 @@
         "original_group_retired": true
       },
       "all_observed_helpers_joined": true
+    },
+    {
+      "run": "v111",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 136057,
+        "source_revision": "fc12209b770312febc95335a829dbf97ec1a2346",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T08:15:59.469102+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "48a00cfbf10e3a05dd5b5176a80e735cf280143510ccfa4b2a9718449316c146",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "67b615b246e69fc1a1f29bc88bb0a59bb183c94fc82bf091585b6654caca2341",
+        "peer_binary_sha256": "fc892758af6336bc5aa70f5e8364b94409f72c2a3c10445b897551881e633438",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 1341.7860371720017
+      },
+      "state_sha256": "5f57d89ba9bc151dd43759118e89f6ae9fb267640aeeb8b0bdf47677e599a98a",
+      "scope": "Full native local/EdDSA media workload; original command failed in offline capture custody after all four original moves and programme completion. No passed tests rerun.",
+      "completed_workload_moves": 4,
+      "moves": [
+        {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 0,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 4329.148553000003,
+          "scheduled_start_ms": 15000,
+          "actual_start_ms": 15528.264664999999,
+          "data_exchange_verified": true
+        },
+        {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 0,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 4427.1683749999975,
+          "scheduled_start_ms": 15000,
+          "actual_start_ms": 15450.232692000001,
+          "data_exchange_verified": true
+        },
+        {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 1,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 5636.322400999998,
+          "scheduled_start_ms": 40000,
+          "actual_start_ms": 40746.971934,
+          "data_exchange_verified": true
+        },
+        {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 6110.759149999998,
+          "scheduled_start_ms": 40000,
+          "actual_start_ms": 40868.024456,
+          "data_exchange_verified": true
+        }
+      ],
+      "runtime_media_tasks": {
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 24,
+        "elapsed_ms": 63363.949076,
+        "failure": null
+      },
+      "failure": {
+        "phase": "original-and-physical-capture-custody",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "file": "scripts/check-transport-conversation.mjs",
+          "line": 417,
+          "column": 32
+        },
+        "source_stack": [
+          {
+            "line": 417,
+            "column": 32
+          }
+        ],
+        "assertion": {
+          "actual": {
+            "type": "boolean"
+          },
+          "expected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "fd316bdc4f1abca1bbd4bbd960757e17a079ec3e7495dc6f2dfb97f70a9362c6"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_observed_helpers_joined": true,
+      "offline_recovery_evidence": "docs/evidence/gate-6/capture-framing.json"
     }
   ],
   "diagnosis": {
@@ -768,17 +899,28 @@
   "task_complete": false,
   "transport_cells_qualified": 0,
   "limitations": [
-    "v110 reports three original moves completed; only the first two report camera transfer admission and verified Data exchange. The fourth original fails during planning before movement commit. This is not four qualified moves.",
-    "The workload stops after about 44 seconds; no complete 60-second independent media-quality result or transport cell is qualified.",
-    "v109 initial start refusal did not recur in v110 and remains unexplained; do not assume both failures have the same cause."
+    "Original v111 full command failed before final history/idle assertions, and is retained as failed. Offline capture recovery cannot promote that command to a pass.",
+    "All six decoded quality rows fail unchanged bounds. Audio interruption, insufficient audio coverage and video continuity remain; one marker-alignment row fails.",
+    "v109 initial-start refusal and v110 planning conflict did not recur in v111; neither is proven fixed."
   ],
   "remaining": [
-    "Identify the precise Core planning conflict, correct its cause, and rerun only the failed integrated workload.",
+    "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
   "next_investigation": {
-    "observed": "Core plan errors conflate state try-lock contention, audience revision/context mismatch, stale video binding and saved audio selection conflicts. Service maps all of these to forbidden.",
-    "action": "One local ARM rerun with metadata-only failure-stage diagnostics in Core plus initial-start diagnostics in Service. No behavior relaxation, deadline extension or generic conflict retry.",
-    "cause_proven": false
+    "cause": "Full native workload omitted root ClientConfig.native_video_feedback. Rust defaults false; all six original routes recorded video_feedback:null, so no original publisher feedback workers ran. Replacement peers alone selected the profile.",
+    "original_sdk_config_sha256": [
+      "f257f4dbb2e2ae5bfb72c8e6c3a551d4bdd1bdc0293936e045ecb8f37017bf8b",
+      "e5d21823a3d6d5ff0816c547c15407e34e6a4333c5bf2a21ff572dfa58e785f9",
+      "12169838bbe77289553296d0b17ba883c05f95570a0b5a1590e98e51596abe86",
+      "f663c626df9c91d1379d3b3389e142f1dd61087df2ee3cab103226d626720b28",
+      "814da5bd0cb89e133fbfede149af15877501962c0eb1ff9fc955d006abe7da97",
+      "db84620d1d975029c1be3e38980494bf7795653002473d0da5575cb5513c106d",
+      "1d9c8c283b7ad44650a7fe77ddf27621b7743630fa1094814cbf63e5fba25c9a"
+    ],
+    "all_original_configs_omit_feedback": true,
+    "original_routes_with_feedback": 0,
+    "candidate_correction": "Enable native_video_feedback for every full-media SDK config and require selection in both negotiated video directions during setup; verify in the next failed-workload run.",
+    "audio_cause_proven": false
   }
 }
