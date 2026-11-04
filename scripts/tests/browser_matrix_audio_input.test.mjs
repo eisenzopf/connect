@@ -13,6 +13,8 @@ test('queued distinct original PCM can share an arrival time without retiming it
     assert.equal(input.report().status,'observer-valid');
     assert.equal(input.report().equal_resolution_arrivals,1);
     assert.equal(input.report().owners[0].frames,13);
+    assert.equal(input.report().owners[0].capture_span_us,240000);
+    assert.equal(input.report().owners[0].arrival_span_seconds,.24);
 });
 test('duplicate PCM and backwards arrival remain invalid even with a plausible marker',()=>{
     for(const [timestamp,arrival] of [[200000,.3],[220000,.19],[210000,.3]]){

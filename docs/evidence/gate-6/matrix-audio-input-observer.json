@@ -10,13 +10,20 @@
     "passed": 7,
     "failed": 0,
     "skipped": 0,
-    "log_sha256": "016817fbde693050fecb6827accb7aabf2f4648e7a6b30adf50666f8e89a2b3a"
+    "log_sha256": "016817fbde693050fecb6827accb7aabf2f4648e7a6b30adf50666f8e89a2b3a",
+    "span_observation_followup": {
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "ce222a41a003037f076a957c60a7c8100ae6c3f59fafb90a13ea609b97802809",
+      "scope": "Same four input cases rerun after adding original capture/arrival spans; original seven-case run retained."
+    }
   },
   "sources": {
-    "scripts/lib/browser_matrix_audio_input.mjs": "c42cd995f19b4bfd3a7ac777d38c1bcee33ac8eccaebc117655baf4f678d84e7",
+    "scripts/lib/browser_matrix_audio_input.mjs": "55e07681d34729d3862e97768c376bf5f546b5be2bfb0e42fbd285813c4d5951",
     "scripts/lib/browser_matrix_pipeline.mjs": "3ae5c5c21b55fc2f52f77135302b20b5a185238000602df0949c32c6f4a270ed",
     "scripts/video/browser_matrix_admission.mjs": "be318176571a6ac3f79ac99f9a753bf486ee08ffa51d7f7cfec92d333294742e",
-    "scripts/tests/browser_matrix_audio_input.test.mjs": "387f86286070271eeabadbf39d868ea592c72fa64398b38ed6ff85a6dbcc196f"
+    "scripts/tests/browser_matrix_audio_input.test.mjs": "b1217919aafb50d4a0560c732cd68748114d474e61f99fcc51205a930a829db2"
   },
   "browser_workload_executed": false,
   "cell_qualified": false,
