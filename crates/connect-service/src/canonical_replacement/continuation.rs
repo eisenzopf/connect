@@ -22,6 +22,7 @@ pub(crate) enum Phase {
 }
 #[derive(Clone)]
 pub(crate) struct Invocation {
+    pub entries: std::collections::BTreeMap<ConnectionId, Arc<crate::canonical_media::Connection>>,
     pub policy: Arc<TargetPolicy>,
     pub source_phone: Option<Arc<crate::telephone_replacement::media::Policy>>,
     pub read: Arc<NativeReplacementSceneRead>,
@@ -73,13 +74,58 @@ impl Invocation {
         }
         Ok(())
     }
-    fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
+    fn entry(&self, id: &ConnectionId) -> ControlResult<Arc<crate::canonical_media::Connection>> {
+        self.entries
+            .get(id)
+            .cloned()
+            .ok_or(StreamControlError::Authority)
+    }
+    fn candidate_owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
+        let context = self.read.media().source().context();
+        let source = ConnectionId::from_string(context.source_runtime_connection_id.clone());
+        let retained = ConnectionId::from_string(context.retained_runtime_connection_id.clone());
+        if id == &source || id == &retained || source == retained {
+            return Err(StreamControlError::Authority);
+        }
+        // Both original owners must remain live under this exact owned
+        // scene read. Never consult packet registries inside a Core fence.
+        let old = self
+            .owner(&source)
+            .map_err(|error| self.refused("candidate-source-owner", &source, error))?;
+        self.owner(&retained)
+            .map_err(|error| self.refused("candidate-retained-owner", &retained, error))?;
+        if old.member.participant().as_str() != context.participant_id
+            || old.member.epoch() != context.membership_epoch
+        {
+            return Err(StreamControlError::Authority);
+        }
+        self.policy
+            .current_owner_with_source(self.read.media(), old)
+            .map_err(|error| self.refused("candidate-owner", id, error))
+    }
+    pub(super) fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
         self.check()?;
         if id == self.policy.pending.binding().connection() {
-            return self
-                .policy
-                .current_owner(self.read.media())
-                .map_err(|error| self.refused("candidate-owner", id, error));
+            #[cfg(feature = "test-support")]
+            if matches!(self.phase, Phase::Commit(_)) {
+                if let Some(result) = self.policy.base.probe_held_registry_for_test(
+                    &self.root.origin.request().operation_id,
+                    || {
+                        let refused = matches!(
+                            self.policy.current_owner(self.read.media()),
+                            Err(StreamControlError::Authority)
+                        );
+                        let mut expired = self.clone();
+                        expired.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
+                        let expired_refused =
+                            matches!(expired.owner(id), Err(StreamControlError::Authority));
+                        (refused && expired_refused, self.candidate_owner(id))
+                    },
+                ) {
+                    return result;
+                }
+            }
+            return self.candidate_owner(id);
         }
         if id.as_str()
             == self
@@ -101,8 +147,6 @@ impl Invocation {
             }
         }
         let entry = self
-            .policy
-            .base
             .entry(id)
             .map_err(|error| self.refused("existing-registry", id, error))?;
         let read = self
@@ -163,7 +207,7 @@ impl Invocation {
                 .ok_or(StreamControlError::Authority)?
                 .principal()?
         } else {
-            self.policy.base.entry(scope.connection)?.principal.clone()
+            self.entry(scope.connection)?.principal.clone()
         };
         if scope.conversation != owner.member.conversation()
             || scope.session != owner.presence.session()
@@ -326,8 +370,6 @@ impl MediaAuthorityLease for Held {
             let _ = i.owner(&source.connection)?;
         } else {
             let entry = i
-                .policy
-                .base
                 .entry(&source.connection)
                 .map_err(|error| i.refused("receive-registry", &source.connection, error))?;
             let view = i

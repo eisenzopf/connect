@@ -341,6 +341,18 @@ impl Policy {
         &self,
         session: &str,
     ) -> ControlResult<Vec<Arc<NativeMediaOrigin>>> {
+        Ok(self
+            .scene_entries(session)?
+            .values()
+            .map(|v| v.origin.clone())
+            .collect())
+    }
+    /// Retain exact registry incarnations before acquiring Store readers or
+    /// entering Core. These objects carry no current authorization by themselves.
+    pub(crate) fn scene_entries(
+        &self,
+        session: &str,
+    ) -> ControlResult<BTreeMap<ConnectionId, Arc<Connection>>> {
         // Host continuations call this before entering Core or acquiring Store
         // readers. Copy the bounded metadata under the short registry lock;
         // packet lookup contention must not masquerade as revoked authority.
@@ -350,7 +362,12 @@ impl Policy {
             .map_err(denied)?
             .values()
             .filter(|v| v.origin.session_id() == session)
-            .map(|v| v.origin.clone())
+            .map(|v| {
+                (
+                    ConnectionId::from_string(v.origin.runtime_connection_id()),
+                    v.clone(),
+                )
+            })
             .collect())
     }
 }

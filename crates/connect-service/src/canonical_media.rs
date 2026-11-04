@@ -72,6 +72,8 @@ pub(crate) struct Policy {
     initial_targets: Mutex<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
     #[cfg(feature = "test-support")]
+    held_registry_probes: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicUsize>>>,
+    #[cfg(feature = "test-support")]
     replacement_adoption_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
     #[cfg(feature = "test-support")]
     replacement_data_observer_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
@@ -464,6 +466,46 @@ impl Policy {
         Ok(armed)
     }
     #[cfg(feature = "test-support")]
+    pub(crate) fn arm_held_registry_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> connect_protocol::Result<Arc<std::sync::atomic::AtomicUsize>> {
+        let mut probes = self
+            .held_registry_probes
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if probes.contains_key(operation) {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        // 0=armed, 1=entered, 2=legacy refusal and held-owner success, 3=failed comparison.
+        let state = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        probes.insert(operation.into(), state.clone());
+        Ok(state)
+    }
+    #[cfg(feature = "test-support")]
+    pub(crate) fn probe_held_registry_for_test(
+        &self,
+        operation: &str,
+        probe: impl FnOnce() -> (bool, ControlResult<MediaOwner>),
+    ) -> Option<ControlResult<MediaOwner>> {
+        use std::sync::atomic::Ordering;
+        let state = self.held_registry_probes.lock().ok()?.remove(operation)?;
+        state.store(1, Ordering::Release);
+        let Ok(_registry) = self.entries.lock() else {
+            return Some(Err(StreamControlError::Authority));
+        };
+        let (legacy_refused, current) = probe();
+        state.store(
+            if legacy_refused && current.is_ok() {
+                2
+            } else {
+                3
+            },
+            Ordering::Release,
+        );
+        Some(current)
+    }
+    #[cfg(feature = "test-support")]
     pub(crate) fn with_registry_for_test(
         &self,
         hold: impl FnOnce(),
@@ -679,6 +721,8 @@ impl Policy {
             capacity,
             #[cfg(feature = "test-support")]
             replacement_adoption_refusals: Default::default(),
+            #[cfg(feature = "test-support")]
+            held_registry_probes: Default::default(),
             #[cfg(feature = "test-support")]
             replacement_data_observer_refusals: Default::default(),
             #[cfg(feature = "test-support")]
@@ -1060,6 +1104,17 @@ impl MediaPolicy for Policy {
         intent: &MediaControlIntent<'_>,
         held: &(dyn Any + Send + Sync),
     ) -> ControlResult<MediaControl> {
+        // A held replacement already owns exact scene entries and current
+        // Store custody. Unrelated packet-registry contention is not a changed
+        // command grant; dispatch the sealed invocation before packet routing.
+        if let Some(i) =
+            held.downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
+        {
+            if !std::ptr::eq(self, Arc::as_ptr(&i.policy.base)) {
+                return Err(StreamControlError::Authority);
+            }
+            return i.media_control(scope, intent);
+        }
         if let Some(target) = self.initial_target(scope.connection)? {
             return target.current_control(scope, intent, held);
         }
@@ -1080,14 +1135,6 @@ impl MediaPolicy for Policy {
             held.downcast_ref::<crate::telephone_replacement::continuation::Invocation>()
         {
             if !std::ptr::eq(self, Arc::as_ptr(&i.runtime.media)) {
-                return Err(StreamControlError::Authority);
-            }
-            return i.media_control(scope, intent);
-        }
-        if let Some(i) =
-            held.downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
-        {
-            if !std::ptr::eq(self, Arc::as_ptr(&i.policy.base)) {
                 return Err(StreamControlError::Authority);
             }
             return i.media_control(scope, intent);

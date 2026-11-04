@@ -32,9 +32,8 @@ impl Runtime {
         let Phase::Commit(plan) = i.phase.clone() else {
             return Err(Error::forbidden());
         };
-        let owner = started
-            .policy
-            .current_owner(i.read.media())
+        let owner = i
+            .owner(started.policy.pending.binding().connection())
             .map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement",stage="current-owner",?error,"Replacement pre-commit refused");
                 Error::forbidden()

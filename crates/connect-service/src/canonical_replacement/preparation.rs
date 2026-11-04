@@ -49,10 +49,14 @@ impl Runtime {
         started: &Arc<StartedReplacement>,
         phase: Phase,
     ) -> Result<Invocation> {
-        let sources = self
+        let entries = self
             .media
-            .scene_origins(&root.origin.request().session_id)
+            .scene_entries(&root.origin.request().session_id)
             .map_err(|_| Error::forbidden())?;
+        let sources = entries
+            .values()
+            .map(|entry| entry.origin.clone())
+            .collect::<Vec<_>>();
         let store = self.media.store.clone();
         let origin = started
             .policy
@@ -70,6 +74,7 @@ impl Runtime {
             .replacement_telephone_source(read.media().source())
             .map_err(|_| Error::forbidden())?;
         Ok(Invocation {
+            entries,
             source_phone,
             policy: started.policy.clone(),
             root: root.clone(),

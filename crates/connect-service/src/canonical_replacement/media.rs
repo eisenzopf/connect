@@ -69,10 +69,18 @@ impl TargetPolicy {
         source: &connect_store::NativeReplacementPreparationRead,
         target: &connect_store::PeerConnectionProjection,
     ) -> ControlResult<(MediaOwner, MediaOwner)> {
+        let old = self.base.replacement_source_owner(source).map_err(deny)?;
+        self.owners_with_source(source, target, old)
+    }
+    fn owners_with_source(
+        &self,
+        source: &connect_store::NativeReplacementPreparationRead,
+        target: &connect_store::PeerConnectionProjection,
+        old: MediaOwner,
+    ) -> ControlResult<(MediaOwner, MediaOwner)> {
         if !source.current() {
             return Err(StreamControlError::Authority);
         }
-        let old = self.base.replacement_source_owner(source).map_err(deny)?;
         let member = current_member(&self.principal, &target.session).map_err(deny)?;
         let identity = IdentityBinding::from_authenticated(
             &self.principal,
@@ -140,6 +148,19 @@ impl TargetPolicy {
         read: &connect_store::NativeReplacementMediaRead,
     ) -> ControlResult<MediaOwner> {
         let (owner, old) = self.owners(read.source(), read.target())?;
+        self.activation
+            .get()
+            .ok_or(StreamControlError::NotReady)?
+            .current_replacement(owner, &old, &self.pending)
+    }
+    /// The held invocation derives this source from its exact owned scene
+    /// entries and current read; packet callbacks continue to use current_owner.
+    pub(super) fn current_owner_with_source(
+        &self,
+        read: &connect_store::NativeReplacementMediaRead,
+        old: MediaOwner,
+    ) -> ControlResult<MediaOwner> {
+        let (owner, old) = self.owners_with_source(read.source(), read.target(), old)?;
         self.activation
             .get()
             .ok_or(StreamControlError::NotReady)?

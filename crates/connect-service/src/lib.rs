@@ -283,6 +283,18 @@ impl Service {
             .media
             .retire_replacement_publication_once_for_test(record, controller, during)
     }
+    /// Inject one contended registry at the exact held replacement commit owner check.
+    #[cfg(feature = "test-support")]
+    pub fn arm_canonical_held_registry_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicUsize>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .arm_held_registry_probe_for_test(operation)
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {

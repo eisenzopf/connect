@@ -350,6 +350,13 @@ async fn signed_production_replacement_codec_change_preserves_video_and_adopts_n
         .await
         .unwrap();
 }
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_replacement_commit_preserves_current_owner_under_registry_contention() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(3))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -637,6 +644,17 @@ async fn exercise(mode: u8) {
         },
         payload_extensions: Default::default(),
     };
+    #[cfg(feature = "test-support")]
+    let held_registry_probe = if mode == 3 {
+        Some(
+            f.server
+                .service
+                .arm_canonical_held_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
     eprintln!("production replacement phase: replacement-prepare");
     let root = controller.transition(command.clone()).await.unwrap();
     phase(&f, &mut controller, &command, 1).await;
@@ -714,6 +732,12 @@ async fn exercise(mode: u8) {
     let done = serde_json::to_value(done).unwrap();
     assert_eq!(done["state"], "completed");
     assert_eq!(done["result"]["generation"], 2);
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = held_registry_probe {
+        assert_eq!(probe.load(std::sync::atomic::Ordering::Acquire), 2,
+            "legacy lookup and expired invocation must refuse while current owned entries survive registry contention");
+    }
+
     // New replacement receiver starts with an interframe from the unchanged
     // retained source. Only actual signed history can solicit source recovery.
     eprintln!("production replacement phase: replacement-receiver-recovery");
