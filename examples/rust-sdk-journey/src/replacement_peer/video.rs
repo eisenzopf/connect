@@ -51,7 +51,8 @@ pub(super) fn packets(
     datagram: &mut u32,
     encoded: &[u8],
 ) -> Vec<Vec<u8>> {
-    let chunks = encoded.chunks(1167).collect::<Vec<_>>();
+    // Reserve the selected 16-byte receiver epoch within the original MTU.
+    let chunks = encoded.chunks(1151).collect::<Vec<_>>();
     chunks
         .iter()
         .enumerate()

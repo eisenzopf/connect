@@ -285,6 +285,7 @@ fn validate_offer(offer_json: &Value, source: &Source) -> Result<()> {
             || audio[0]["id"] == video.stream_id
             || audio[0]["id"] == video.receive_audio_stream_id
             || audio[0]["id"] == video.receive_video_stream_id
+            || offer_json["capabilities"]["video_feedback"] != "rtcp-pli-epoch/1"
             || offer_json["capabilities"]["video_codecs"]
                 != json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}])
         {
@@ -397,7 +398,8 @@ pub(super) async fn run(
         }
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
-        let io = client.claim_native_datagrams()?;
+        let io = if source.video.is_some() { media::Io::Video(client.claim_native_video_datagrams()?) }
+            else { media::Io::Audio(client.claim_native_datagrams()?) };
         let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media, encoder.as_mut())?;
         let start = pump.start;
         let until = pump.until;
@@ -491,7 +493,7 @@ pub(super) async fn run(
         Ok(())
     };
     let media::Observation {
-        rows,
+        mut rows,
         sent,
         skipped,
         captured_bytes,
@@ -504,11 +506,15 @@ pub(super) async fn run(
         source_start_audio_index,
         source_start_video_index,
         control_packet_events,
+        video_feedback_requests,
     } = media;
+    // Epoch notices can arrive after datagrams. Preserve physical read order
+    // in the evidence without renewing an arrival or RTP timestamp.
+    rows.sort_by_key(|row| row["elapsed_us"].as_u64().unwrap_or(u64::MAX));
     let shutdown = client.shutdown().await;
     let result = json!({"format":"connect/native-replacement-peer-observation/1",
         "passed":work.is_ok() && shutdown.is_ok() && encoder_join.as_ref().is_ok_and(|joined| joined.as_ref().is_none_or(|joined| joined.joined && (joined.clean || joined.cancelled))),"encoder_process":encoder_join.as_ref().ok().and_then(|joined| joined.as_ref()),"sent_audio_packets":sent,"skipped_original_frames":skipped,
-        "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"original_client_joined":shutdown.is_ok(),
+        "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"video_feedback_requests":video_feedback_requests,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
@@ -607,6 +613,7 @@ mod tests {
         });
         source.validate().unwrap();
         let mut av = offer;
+        av["capabilities"]["video_feedback"] = json!("rtcp-pli-epoch/1");
         av["capabilities"]["video_codecs"] =
             json!([{"name":"vp8","params":{"sample_rate":90000,"channels":0}}]);
         av["capabilities"]["max_streams_per_connection"] = json!(4);

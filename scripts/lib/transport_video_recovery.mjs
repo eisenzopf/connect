@@ -52,6 +52,7 @@ export class VideoReceiveHistory {
     #lastRequest = -Infinity;
     #history = 0;
     constructor(requireEpoch) { this.requireEpoch = requireEpoch; }
+    get pendingFragments() { return this.#assembler.queuedFragments; }
 
     #reset() {
         this.#assembler.clear(); this.#lastFrame = undefined;

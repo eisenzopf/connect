@@ -131,3 +131,29 @@ test("malformed RTCP cannot fall back to RTP or become a clock observation", () 
     const datagram = rtp(); datagram[9] = 200;
     assert.throws(() => physicalAvSegment(fixture([row(100, datagram)]), expected));
 });
+
+test("selected replacement capture splits same-SSRC signed epochs and refuses stale or unbound history", () => {
+    const epoch = (n, firstSequence, firstTimestamp) => ({ epoch: n.toString(16).padStart(32,"0"),
+        incarnation: "f".repeat(32), revision:n, ssrc:12, first_sequence:firstSequence, first_timestamp:firstTimestamp });
+    const tagged = (time, n, sequence, timestamp, key) => {
+        const plain=Uint8Array.from(video({sequence,timestamp,payload:[0x10,key?0:1,1,2]}));
+        new DataView(plain.buffer).setUint32(4,sequence);
+        const wire=new Uint8Array(plain.length+16);wire.set(plain.subarray(0,8));wire[1]=1;
+        wire.set(Buffer.from(n.epoch,"hex"),8);wire.set(plain.subarray(8),24);
+        return {...row(time,[...wire]), video_epoch: n};
+    };
+    const one=epoch(1,1,960),two=epoch(2,2,3960);
+    const capture=fixture([tagged(1_000,one,1,960,true), tagged(34_000,two,2,3960,false),tagged(67_000,two,3,6960,true)]);
+    for(const binding of capture.negotiated_streams.filter(s=>s.kind==="video"))binding.video_feedback={profile:"rtcp-pli-epoch/1",original_operation:"move",original_offer:"offer",stream_generation:1,connection_generation:1};
+    const before=structuredClone(capture),result=physicalAvSegment(capture,expected);
+    assert.deepEqual(capture,before);
+    assert.deepEqual(result.video[0].rows.map(r=>r.timestamp),[960,6960]);
+    assert.deepEqual(result.video[0].rows.map(r=>r.decoder_history),[1,2]);
+    assert.deepEqual(result.video[0].rows.map(r=>r.elapsed_ms),[1,67]);
+    for(const change of [c=>{c.received[1].video_epoch.epoch=one.epoch;},
+        c=>{c.received[1].video_epoch.ssrc=13;},c=>{c.received[1].video_epoch.first_timestamp++;},
+        c=>{c.received[1].video_epoch.revision=1;},c=>{delete c.received[1].video_epoch;},
+        c=>{delete c.negotiated_streams[0].video_feedback;}]) {
+        const wrong=structuredClone(capture);change(wrong);assert.throws(()=>physicalAvSegment(wrong,expected));
+    }
+});

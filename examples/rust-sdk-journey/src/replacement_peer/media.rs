@@ -1,7 +1,54 @@
 //! One original packet programme progresses while signed control is pending.
 use super::*;
-use connect_client::canonical::NativeDatagrams;
+use connect_client::canonical::{NativeDatagrams, NativeVideoDatagrams};
 use std::future::Future;
+
+// The application owns its original programme; protocol history and feedback
+// validation belong to the explicitly selected public client IO owner.
+pub(super) enum Io {
+    Audio(NativeDatagrams),
+    Video(NativeVideoDatagrams),
+}
+struct Received {
+    bytes: Vec<u8>,
+    epoch: Option<connect_client::sdk::VideoReceiveEpoch>,
+    arrived: tokio::time::Instant,
+}
+impl Io {
+    fn send(&self, bytes: &[u8]) -> Result<()> {
+        match self {
+            Self::Audio(io) => io.send(bytes)?,
+            Self::Video(io) => io.send(bytes)?,
+        };
+        Ok(())
+    }
+    async fn receive(&mut self) -> Result<Received> {
+        match self {
+            Self::Audio(io) => {
+                let bytes = io.receive().await?;
+                Ok(Received {
+                    bytes,
+                    epoch: None,
+                    arrived: tokio::time::Instant::now(),
+                })
+            }
+            Self::Video(io) => {
+                let packet = io.receive().await?;
+                Ok(Received {
+                    bytes: packet.bytes,
+                    epoch: packet.video_epoch,
+                    arrived: packet.received_at,
+                })
+            }
+        }
+    }
+    fn keyframe(&mut self, handle: u16, ssrc: u32) -> Result<bool> {
+        Ok(match self {
+            Self::Audio(_) => false,
+            Self::Video(io) => io.take_keyframe_request(handle, ssrc)?,
+        })
+    }
+}
 
 #[derive(Default)]
 pub(super) struct Observation {
@@ -18,10 +65,11 @@ pub(super) struct Observation {
     pub source_start_audio_index: usize,
     pub source_start_video_index: usize,
     pub control_packet_events: u32,
+    pub video_feedback_requests: u32,
 }
 
 pub(super) struct Pump<'a> {
-    io: NativeDatagrams,
+    io: Io,
     source: &'a Source,
     audio: &'a selected::Binding,
     video: Option<&'a selected::Binding>,
@@ -43,7 +91,7 @@ pub(super) struct Pump<'a> {
 }
 impl<'a> Pump<'a> {
     pub fn new(
-        io: NativeDatagrams,
+        io: Io,
         source: &'a Source,
         audio: &'a selected::Binding,
         video: Option<&'a selected::Binding>,
@@ -170,7 +218,7 @@ impl<'a> Pump<'a> {
         };
         if let Some(packet) = packet {
             let packet = packet?;
-            self.observation.captured_bytes += packet.len();
+            self.observation.captured_bytes += packet.bytes.len();
             let maximum_rows = if self.source.video.is_some() {
                 16000
             } else {
@@ -181,9 +229,17 @@ impl<'a> Pump<'a> {
             {
                 return Err("replacement receive observation bound exceeded".into());
             }
+            let elapsed = packet
+                .arrived
+                .saturating_duration_since(self.start)
+                .as_micros();
+            let completed = self
+                .observation
+                .root_observed_programme_us
+                .is_some_and(|at| elapsed >= at);
             self.observation.rows.push(
-                json!({"elapsed_us":self.start.elapsed().as_micros(),"datagram":packet,
-                "original_root_completed_observed":self.observation.root_observed}),
+                json!({"elapsed_us":elapsed,"datagram":packet.bytes,"video_epoch":packet.epoch,
+                "original_root_completed_observed":completed}),
             );
             return Ok(());
         }
@@ -300,10 +356,16 @@ impl<'a> Pump<'a> {
                 } else {
                     let deadline = (tokio::time::Instant::now() + Duration::from_millis(100))
                         .min(due + Duration::from_millis(200));
+                    let feedback = self.io.keyframe(binding.handle, video.ssrc)?;
+                    self.observation.video_feedback_requests += u32::from(feedback);
                     self.encoder
                         .as_mut()
                         .ok_or("missing live video encoder")?
-                        .request(self.video_index as u32, self.first_video_key, deadline)?;
+                        .request(
+                            self.video_index as u32,
+                            self.first_video_key || feedback,
+                            deadline,
+                        )?;
                 }
             }
         }

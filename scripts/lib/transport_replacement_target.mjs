@@ -106,6 +106,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             data_protocols: dataStreamId === undefined ? [] : ["binary"],
             max_streams_per_connection: video ? 8 : dataStreamId === undefined ? 1 : 2,
             identity_assurance_offered: "identified", source_clock: "rtcp-sr-sdes/1",
+            ...(video ? { video_feedback: "rtcp-pli-epoch/1" } : {}),
         }, streams_offered: [{ id: streamId, kind: "audio", direction: "sendrecv", codec_preferences: ["opus"] },
             ...(video ? [{ id: video.stream_id, kind: "video", direction: "sendonly", codec_preferences: ["vp8"] },
                 { id: video.receive_video_stream_id, kind: "video", direction: "recvonly", codec_preferences: ["vp8"] }] : []),
