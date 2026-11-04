@@ -66,7 +66,10 @@ def main():
     private.mkdir()
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
-    env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug"
+    # These bounded counters are already collected on the media path and emit
+    # only when each owned audio member retires. Preserve loss attribution
+    # without adding per-packet logging to the measured programme.
+    env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
     sources = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()

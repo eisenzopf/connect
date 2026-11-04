@@ -24,6 +24,56 @@
     "log_sha256": "261949c9fb8900ce3a3ff224d1806e25752f146460f1c9a9e098ca0fa1a1e894"
   },
   "original_failed_precheck": "f48a927c TypeScript compile initially failed narrowing optional frameRate; 947d9f30 fixed it. Original log retained.",
-  "browser_retest_executed": false,
-  "cell_qualified": false
+  "browser_retest_executed": true,
+  "cell_qualified": false,
+  "browser_retests": [
+    {
+      "attempt": "v174",
+      "source_revision": "8b14ba655ce640fe12b589904317d4ddee1ef41c",
+      "signing": "EdDSA",
+      "transport": "chrome-wss-webrtc",
+      "passed": true,
+      "report_sha256": "252b244e7725dae6928ec75e7114eb1d328c764f971052a3176494921dd8f152",
+      "authenticated_owners": 7,
+      "actual_connections": 6,
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 458.2000000011176,
+        "originalEndsCompleted": 6,
+        "originalSessionsEnded": 2,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "browser_owner_joined": true
+      }
+    },
+    {
+      "attempt": "v174",
+      "source_revision": "8b14ba655ce640fe12b589904317d4ddee1ef41c",
+      "signing": "ES256",
+      "transport": "chrome-wss-webrtc",
+      "passed": true,
+      "report_sha256": "eaa6cf69d184b24911546d20c18d56fd948a538b6055f5f630cf46f2bfc3ede3",
+      "authenticated_owners": 7,
+      "actual_connections": 6,
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 487.09999999962747,
+        "originalEndsCompleted": 6,
+        "originalSessionsEnded": 2,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "browser_owner_joined": true
+      }
+    }
+  ]
 }

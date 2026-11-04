@@ -701,6 +701,14 @@
         "decoded_media_verified": false,
         "transport": "chrome-webtransport"
       }
+    },
+    {
+      "attempt": "v173",
+      "source_revision": "8b14ba655ce640fe12b589904317d4ddee1ef41c",
+      "report_sha256": "a3fec743e465adec10e6dd5208173ad70b11c162f3480e4531601bf47cb4c7b6",
+      "passed": false,
+      "evidence": "matrix-av-followup-v173.json",
+      "scope": "Full four-move, independent decoded quality and ten-second idle observation; all guards passed; quality/idle failed."
     }
   ],
   "interpretation": "Physical owners and transport pools return to baseline, all ten render owners join and five SDK media peers have zero bindings/queues. Eight outer control task entries remain retained; source inspection finds periodic cleanup reaps inner polls but not completed outer JoinSet entries. RSS, descriptors and thread/process residuals also fail the predeclared zero-retention profile; they are not yet attributed to a production leak or a legitimate cache.",

@@ -5362,6 +5362,14 @@
       },
       "routes": [],
       "source_observations": []
+    },
+    {
+      "attempt": "v173",
+      "source_revision": "8b14ba655ce640fe12b589904317d4ddee1ef41c",
+      "report_sha256": "a3fec743e465adec10e6dd5208173ad70b11c162f3480e4531601bf47cb4c7b6",
+      "passed": false,
+      "evidence": "matrix-av-followup-v173.json",
+      "scope": "Full four-move, independent decoded quality and ten-second idle observation; all guards passed; quality/idle failed."
     }
   ],
   "contract_inputs_by_source_revision": {

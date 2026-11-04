@@ -25,7 +25,9 @@
     "scripts/video/browser_matrix_admission.mjs": "be318176571a6ac3f79ac99f9a753bf486ee08ffa51d7f7cfec92d333294742e",
     "scripts/tests/browser_matrix_audio_input.test.mjs": "b1217919aafb50d4a0560c732cd68748114d474e61f99fcc51205a930a829db2"
   },
-  "browser_workload_executed": false,
+  "browser_workload_executed": true,
   "cell_qualified": false,
-  "task_complete": false
+  "task_complete": false,
+  "actual_evidence": "matrix-av-followup-v173.json",
+  "actual_scope": "All six input envelopes valid; source continuity and original arrival diagnostics now measured. Decoded AV remains failed."
 }
