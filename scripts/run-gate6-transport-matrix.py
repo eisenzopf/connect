@@ -51,8 +51,12 @@ def probe(chrome=None, firefox=None):
         raise ValueError("Only owner's local Mac/Ubuntu ARM execution is supported")
     versions = {name: command_version([name, flag]) for name, flag in (
         ("rustc", "--version"), ("node", "--version"), ("ffmpeg", "-version"), ("tcpdump", "--version"))}
-    blockers = ["missing-tool-" + name for name in ("cargo", "rustc", "node", "npm", "ffmpeg", "tcpdump")
+    blockers = ["missing-tool-" + name for name in ("cargo", "rustc", "node", "npm", "ffmpeg", "tcpdump", "cc", "pkg-config")
                 if shutil.which(name) is None]
+    media_libraries = {name: command_version(["pkg-config", "--modversion", name])
+                       for name in ("opus", "vpx", "openssl")}
+    blockers.extend("missing-development-library-" + name
+                    for name, version in media_libraries.items() if not version)
     if not (versions["rustc"] or "").startswith("rustc 1.97.1 "):
         blockers.append("pinned-rust-1.97.1-unavailable")
     if int((versions["node"] or "v0").lstrip("v").split(".")[0]) < 22:
@@ -85,6 +89,7 @@ def probe(chrome=None, firefox=None):
                               matches_frozen_version=actual == expected[name])
     return dict(server=server, system=system, architecture=machine, kernel=platform.release(),
                 observed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), versions=versions,
+                media_libraries=media_libraries,
                 browsers=browsers, scratch_free_bytes=free, execution_blockers=blockers,
                 capture_permission_observation=capture_permissions,
                 owned_systemd_vm=(system == "Linux" and os.getuid() != 0

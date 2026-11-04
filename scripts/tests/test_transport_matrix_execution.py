@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -134,6 +135,27 @@ class MatrixExecution(unittest.TestCase):
         self.assertEqual(visited, [cells[0]["id"]])
         self.assertEqual(cells[0]["reason"], "original-workload-interrupted")
         self.assertEqual(cells[1]["status"], "not-run")
+
+    def test_absent_vpx_development_package_blocks_workload_before_source_generation(self):
+        def version(command):
+            if command[0] == "pkg-config":
+                return None if command[-1] == "vpx" else "1.0"
+            if command[0] == "rustc":
+                return "rustc 1.97.1 (fixture)"
+            if command[0] == "node":
+                return "v22.16.0"
+            return "fixture"
+
+        with patch.object(driver.platform, "system", return_value="Linux"), \
+                patch.object(driver.platform, "machine", return_value="aarch64"), \
+                patch.object(driver.platform, "freedesktop_os_release", return_value={"ID": "ubuntu", "VERSION_ID": "24.04"}), \
+                patch.object(driver.shutil, "which", return_value="/fixture/tool"), \
+                patch.object(driver.shutil, "disk_usage", return_value=type("Disk", (), {"free": 10 * 1024**3})()), \
+                patch.object(driver, "command_version", side_effect=version):
+            environment = driver.probe()
+        self.assertEqual(environment["execution_blockers"], ["missing-development-library-vpx"])
+        matrix = configure_execution(inventory(ROOT, "a" * 40), environment)
+        self.assertFalse(any(c["execution"]["runnable"] for c in matrix["cells"]))
 
 
 if __name__ == "__main__":
