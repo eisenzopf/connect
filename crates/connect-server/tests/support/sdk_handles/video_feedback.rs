@@ -76,6 +76,14 @@ impl Encoder {
         assert!(self.child.wait().await.unwrap().success());
     }
 }
+fn rtp(pt: u8, sequence: u16, timestamp: u32, ssrc: u32, marker: bool, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = vec![0x80, pt | if marker { 0x80 } else { 0 }];
+    bytes.extend_from_slice(&sequence.to_be_bytes());
+    bytes.extend_from_slice(&timestamp.to_be_bytes());
+    bytes.extend_from_slice(&ssrc.to_be_bytes());
+    bytes.extend_from_slice(payload);
+    bytes
+}
 fn configured(control: CanonicalClientConfig) -> sdk::ClientConfig {
     sdk::ClientConfig {
         control,
@@ -91,7 +99,12 @@ fn single<T>(first: T) -> NonEmpty<T> {
     }
 }
 fn offered(id: &str, direction: Direction) -> NonEmpty<sdk::OfferedStream> {
-    single(selections::stream(id, Medium::Video, direction, "vp8"))
+    single(sdk::OfferedStream {
+        id: id.parse().unwrap(),
+        kind: Medium::Video,
+        direction,
+        codecs: single("vp8".into()),
+    })
 }
 async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut u16) {
     let parts = frame.chunks(1000).collect::<Vec<_>>();
@@ -100,7 +113,7 @@ async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut 
         body.extend_from_slice(bytes);
         let packet = sdk::RtpPacket::new(
             u32::from(*sequence),
-            media::rtp(
+            rtp(
                 96,
                 *sequence,
                 index * 3000,
@@ -325,7 +338,7 @@ async fn exercise() {
     let selected = target
         .subscribe(
             single(StreamSelector::Stream(id.clone())),
-            selections::revision(1),
+            sdk::StreamRevision::try_from(1).unwrap(),
             mutation("feedback-select"),
         )
         .await

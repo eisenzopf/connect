@@ -224,6 +224,17 @@ pub(crate) fn offer_plan(
             assurance("identity_assurance_offered", AssuranceLevel::Anonymous)?,
             assurance("identity_assurance_required", AssuranceLevel::Anonymous)?,
         )
+        .map(|profile| {
+            // Filtering codecs must retain the host's explicit wire profile.
+            // Negotiation still requires the peer's offer and confirmation.
+            if base.capabilities()["video_feedback"]
+                == rvoip_uctp::substrate::VIDEO_FEEDBACK_PROFILE
+            {
+                profile.with_video_feedback()
+            } else {
+                profile
+            }
+        })
         .and_then(|profile| profile.with_codec_preferences(&view.session.session.codec_preferences))
         .map_err(|error|{tracing::debug!(target:"connect_service::canonical_native",?error,"Current native profile refused");denied(error)})?,
     );

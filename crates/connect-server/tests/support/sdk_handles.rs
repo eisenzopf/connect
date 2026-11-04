@@ -27,8 +27,6 @@ mod selections;
 mod stream_metadata;
 #[path = "sdk_handles/tasks.rs"]
 mod tasks;
-#[path = "sdk_handles/video_feedback.rs"]
-mod video_feedback;
 use super::*;
 use connect_client::sdk::{
     self, Client, ConversationPolicy, MutationOptions, NonEmpty, RequestOptions,

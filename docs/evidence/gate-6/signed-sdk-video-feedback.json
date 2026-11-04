@@ -1,16 +1,23 @@
 {
   "format": "connect/gate6-signed-sdk-video-feedback/1",
   "task": "G6-058",
-  "status": "verification-running",
+  "status": "failed-correction-prepared",
   "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
     "SDK ClientConfig.native_video_feedback explicitly opts configured Rust/Node/Python helpers into rtcp-pli-epoch/1; defaultfalse and ordinary Client::connect unchanged.",
     "Production canonical server advertises support via its installed signed lifecycle writer; both peer offer and confirmation must select the profile."
   ],
-  "verification_snapshot": {
-    "stage": "compile-signed-server",
-    "source_guard_active": true,
+  "pending": [
+    "Correction and signed SDK/server recovery await a new local ARM run.",
+    "Direct replacement/browser integration and the full transport matrix remain open; G6-054 deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
     "controller_pid": 121476,
     "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
     "passed": false,
@@ -23,6 +30,15 @@
           "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 282 filtered out; finished in 0.00s"
         ],
         "log_sha256": "872ac280615e8b84faced2a2a7aa9d40c4185957a27edde3b52ed39ef8675a28"
+      },
+      {
+        "group": "signed-server",
+        "case": "sdk_handles::video_feedback::signed_sdk_video_feedback_encodes_fresh_frames_after_reselection_and_rechecks_hold",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 440 filtered out; finished in 0.22s"
+        ],
+        "log_sha256": "679cf8f9639bfe6f4d904558d4c59678756ae58e677e05583d11efab931f9eb5"
       }
     ],
     "general_suites_rerun": false,
@@ -35,16 +51,23 @@
         "compile_log_sha256": "506e65051544d5d03d18ee24e0b029e83cb114a39eeaa3d95407208b723d523c",
         "test_executable_sha256": "e5534cbc64e5969e5ea927e60f1d07c6e9d9a429c47f163e143e1e3062d87a82",
         "executable_unchanged": true
+      },
+      {
+        "group": "signed-server",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "e92c4eef8cd71d5570232eb2d0e54d6e045df291fbb88fe6da8608488c0f97c4",
+        "test_executable_sha256": "9ca806276d92a711f3696a6cce9346463262dd31674846bfe8d18f6d71b57080",
+        "executable_unchanged": true
       }
     ],
-    "executable_unchanged": true
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1366.605886002988
   },
-  "pending": [
-    "Final source/prepared/executable guard checks are not complete.",
-    "Production signed SDK/server case is compiling: same-SSRC reselection, actual publisher feedback, actual live VP8 frame2 at RTP6000, independent decoding and hold refusal. No integration pass claimed.",
-    "Replacement peer/browser integration and full transport matrix remain open; G6-054 deferred."
-  ],
-  "old_passed_cases_rerun": false,
-  "full_media_rehearsal_run": false,
-  "task_complete": false
+  "result_state_sha256": "cf8b73bc86ea294f2b7074b20f6ce46944c217cdeb755d8806611eba3ee119bb",
+  "finding": "Production service offer_plan reconstructs the codec-filtered NativeMediaProfile and drops the base profile video_feedback capability. The first signed SDK source negotiates zero feedback allocations. Failed at the explicit allocation assertion before encoder work; not a media recovery pass.",
+  "correction": "Preserve the host feedback profile when filtering current allowed codecs. Move the same failed case into focused gate6_video_feedback target, sharing unchanged identity provisioning with the existing harness; only this failed case will rerun. SDK offer case passed and will not repeat."
 }
