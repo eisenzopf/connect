@@ -1,0 +1,62 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -182,3 +182,59 @@
+         .retain_original_ingress(frame(&port, 160), Instant::now())
+         .is_err());
+ }
++
++#[tokio::test]
++async fn original_ingress_initial_model_exclusion_preserves_original_without_waiting() {
++    let mut observations = Vec::new();
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, mode) = fixture().await;
++        mode.store(0, Ordering::SeqCst);
++        let port = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let at = Instant::now();
++        let original_frame = frame(&port, 160);
++        // An actual controller metadata reader excludes this initial snapshot.
++        // Holding it on this thread requires capture to return without waiting;
++        // the outer exact-test deadline catches a blocking implementation.
++        let held = f.a.state.lock().unwrap();
++        let capture = port.retain_original_ingress(original_frame.clone(), at);
++        let captured = matches!(&capture, Ok(Some(_)));
++        let mut original = capture.ok().flatten();
++        let deferred = original.as_mut().is_some_and(|original| {
++            matches!(
++                original.try_publish_clocked(|_| None),
++                Err(StreamControlError::MetadataBusy)
++            )
++        });
++        assert!(input.try_recv().is_err());
++        drop(held);
++        drop(
++            f.policy
++                .0
++                .try_write()
++                .expect("initial exclusion retained authority"),
++        );
++        let recovered = original
++            .as_mut()
++            .is_some_and(|original| original.try_publish_clocked(|_| None).is_ok());
++        let exact = if recovered {
++            let packet = receive(&mut input).await;
++            packet.frame.payload == original_frame.payload
++                && packet.frame.timestamp_rtp == 160
++                && packet.admitted_at == at
++        } else {
++            false
++        };
++        assert!(input.try_recv().is_err());
++        // A distinct ordinary fresh original still traverses the existing path.
++        port.try_publish_clocked(&frame(&port, 320), |_| None)
++            .unwrap();
++        let fresh = receive(&mut input).await.frame.timestamp_rtp == 320;
++        println!("initial_model_exclusion medium={medium:?} captured={captured} deferred={deferred} recovered={recovered} exact={exact} fresh={fresh}");
++        observations.push(captured && deferred && recovered && exact && fresh);
++    }
++    assert!(
++        observations.into_iter().all(|v| v),
++        "initial model exclusion discarded the original before bounded custody"
++    );
++}

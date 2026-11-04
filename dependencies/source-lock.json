@@ -1654,6 +1654,11 @@
       "path": "patches/rvoip/gate6-native-original-audio-cap.patch",
       "sha256": "46ba00d7fd12ba50be5acf85ce085374497eb5aa3aae8bec6c8a11fe54ea4a53",
       "source": "G6-058 contract audit: native original-receive pending audio queue must obey the frozen10 twenty-ms frame bound. Keep video32 and totalpeer256 bounds unchanged. Add actual QUIC20-frame contention saturation case: first10 originals recover in order, overflow10 refuses, fresh next original remains usable and reader joins."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-original-snapshot-counterexample.patch",
+      "sha256": "5e9fcc4c63e90da3ed204d68ae31f197046cbe02ad9dffdccc3b10ca51d4c183",
+      "source": "G6-058 v131 regression investigation: new exact audio/video original ingress case holds actual controller model mutex at initial capture, requires nonblocking original custody and later current-authorized recovery; distinct fresh original proves fixture usability. Expected to fail before fix. No production changes or earlier passing tests rerun."
     }
   ]
 }
