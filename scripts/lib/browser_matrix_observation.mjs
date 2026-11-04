@@ -100,7 +100,7 @@ export function browserMatrixObservation(Renderer,plan) {
             owners.push(owner);if(active)routes[index].active=connection.id;
         },
         async initial(state,options){for(const route of plan.routes){const selected=routes[route.index].selected;
-            await this.attach(route.index,state.connections[route.index],{audio:selected.audio,video:selected.video,active:true},options);}},
+            await this.attach(route.index,state.connections[route.index],{audio:route.audio,video:selected.video,active:true},options);}},
         start(origin){for(const route of routes)route.measure.start(origin.originMs);},
         activate(index,connectionId){check(bindings.get(connectionId)?.index===index,'Original prepared observer required');routes[index].active=connectionId;},
         report(){const measured=routes.map(route=>route.measure.report());return {format:'connect/browser-matrix-decoded-media/1',

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DecodedRoute,pcmIdentity} from '../lib/browser_matrix_observation.mjs';
+import {DecodedRoute,pcmIdentity,browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {markerFrames} from '../video/marker_calibration.mjs';
 const tone=(hz,amplitude=.05,offset=0)=>Float32Array.from({length:960},(_,i)=>amplitude*Math.sin(2*Math.PI*hz*(i+offset)/48000));
 test('decoded identity refuses silence and another participant rather than trusting expected frequency',()=>{
@@ -32,4 +32,27 @@ test('missing received audio and repeated decoded timestamp cannot be hidden by 
     const gap=observed({gap:true});assert.equal(gap.passed,false);assert.ok(gap.audio.maximum_gap_ms>=490);
     assert.ok(gap.audio.identified_seconds<59.9);
     const duplicate=observed({duplicate:true});assert.equal(duplicate.passed,false);assert.equal(duplicate.audio.duplicate_frames,1);
+});
+
+test('initial duplex audio observes its own port and a prepared target stays excluded until original movement commit',async()=>{
+    const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');
+    const plan=browserMatrixPlan(),old=globalThis.document;
+    class Renderer {audio(){return true;}video(){return true;}}
+    globalThis.document={createElement:()=>({getContext:()=>({})})};
+    const connection=id=>({id,streams:{byId:id=>({id})},render:async()=>({close(){},finished:Promise.resolve()})});
+    const state={connections:plan.routes.map(route=>connection(route.connection))};
+    const observer=browserMatrixObservation(Renderer,plan),renderer=new Renderer();
+    const frame={sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:1,
+        copyTo:output=>output.set(tone(1100))};
+    try{
+        await observer.initial(state,{timeoutMs:500});observer.start({originMs:performance.now()-2000});
+        const binding={connectionId:plan.routes[0].connection,streamId:plan.routes[0].audio};
+        renderer.audio(binding,frame);
+        await observer.attach(0,connection('target'),{audio:'target-audio',video:'target-video'},{timeoutMs:500});
+        renderer.audio({connectionId:'target',streamId:'target-audio'},frame);
+        assert.equal(observer.report().routes[0].audio.decoded_seconds,.02);
+        observer.activate(0,'target');renderer.audio(binding,{...frame,timestamp:2});
+        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:3});
+        assert.equal(observer.report().routes[0].audio.decoded_seconds,.04);
+    }finally{await observer.close();globalThis.document=old;}
 });

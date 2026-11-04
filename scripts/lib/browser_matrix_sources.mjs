@@ -86,7 +86,7 @@ export async function browserMatrixSources() {
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
                     record.draws++;video.requestFrame();
                 };
-                draw();record.timer=setInterval(draw,1000/30);
+                record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
             }
             const stream=new MediaStream(record.stream.getTracks().map(track=>track.clone()));
             const binding={connectionId:connection.id,stream,capture:undefined,retired:false};
@@ -111,6 +111,10 @@ export async function browserMatrixSources() {
             programme=Object.freeze({audioOriginSeconds,originMs,deadlineMs:originMs+durationMs,durationMs,
                 markerProgram,sourcePulseMs:100});
             for(const source of sources){
+                // AudioContext advances in quanta. Poll the unchanged 30fps
+                // source coordinate frequently enough to observe each frame;
+                // draw still emits only the current frame once, never catch-up.
+                clearInterval(source.timer);source.timer=setInterval(source.draw,5);
                 source.gain.gain.setValueAtTime(.05,audioOriginSeconds);
                 for(const frame of pulses){
                     source.gain.gain.setValueAtTime(.7,audioOriginSeconds+frame/30);

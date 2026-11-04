@@ -99,3 +99,18 @@ test('capture resolving after source closure is retired rather than escaping to 
     await assert.rejects(()=>pending,/retired during capture/);assert.equal(closed,1);
     assert.ok(f.tracks.every(track=>track.readyState==='ended'));assert.equal(f.audio.closed,1);
 }));
+
+test('quantized audio clock polling emits each current source frame once without changing its cadence',()=>fixture(async f=>{
+    for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
+    const original=f.owner.beginProgramme();
+    for(let elapsed=0;elapsed<1000;elapsed+=5){
+        const quantum=Math.floor(elapsed/(128/48))*128/48000;
+        f.tick(original.originMs+elapsed,original.audioOriginSeconds+quantum);
+        f.tick(original.originMs+elapsed,original.audioOriginSeconds+quantum);
+    }
+    for(const source of f.owner.observation().sources){
+        assert.equal(source.programme_draws,30);assert.equal(source.last_programme_frame,29);
+        assert.equal(source.skipped_programme_frames,0);
+    }
+    assert.strictEqual(f.owner.observation().programme,original);
+}));
