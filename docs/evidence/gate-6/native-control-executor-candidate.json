@@ -1,6 +1,6 @@
 {
   "format": "connect/native-control-executor-candidate/1",
-  "status": "implemented; four exact service cases and new signed production control case pass locally on ARM",
+  "status": "implemented; focused and signed cases pass, full native workload still fails remaining media requirements",
   "counterexample_source_revision": "38570499be671dcb12fa1d0af501b7f3853d2e22",
   "counterexample_evidence": "docs/evidence/gate-6/native-control-executor-before.json",
   "change": [
@@ -15,9 +15,9 @@
     "cancelled_native_control_retains_running_sql_poll_through_drain",
     "native_control_poll_panic_remains_a_failed_drain"
   ],
-  "validation_status": "v139 at155dcd50: four exact service cases pass. v140 at96e2b618: combined signed subscription recovery and replacement gate case passes. All source/prepared/executable guards pass. See native-control-executor-fix.json and native-control-signed.json. Full media remains unverified.",
+  "validation_status": "v139 service cases and v140 signed production case pass. v141 atdde6cbab completes all handoffs and all six A/V alignment checks pass; full quality still fails audio duration and outward continuity/video rate on routes4/5. All integrity guards pass. See native-control-integrated.json.",
   "risks_and_limits": [
-    "Signed subscription recovery and replacement gate behavior pass in one new local ARM case; full workload behavior remains unverified.",
+    "The full workload confirms remaining audio omissions and an outward metadata-admission gap. This correction does not close G6-058 or qualify any complete matrix cell.",
     "The focused single-thread counterexample does not identify the unlogged v137 SQL owner or prove a common cause for every media gap.",
     "Existing full quality thresholds, current authority, packet age/queue/history bounds, full-cell expiry and idle requirements remain unchanged. G6-054 is deferred."
   ],
