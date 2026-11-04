@@ -1,0 +1,117 @@
+{
+  "format": "connect/gate6-videocall-reference-review/1",
+  "task": "G6-058",
+  "review_date": "2026-11-04",
+  "upstream": {
+    "repository": "https://api.github.com/repos/security-union/videocall-rs",
+    "revision": "31a8b2076e7228f1b846fe4ed75dc70ffc27eb44",
+    "branch": "main",
+    "date": "2026-08-16T08:00:01Z"
+  },
+  "source_files": [
+    {
+      "path": "videocall-client/src/connection/connection_manager.rs",
+      "sha256": "7746f133c4d75c3d96a9aaacf9961e45976bc84dcfa0fa6f1fdc82bd72d1aa46",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-client/src/connection/connection_manager.rs",
+      "bytes": 107410
+    },
+    {
+      "path": "videocall-client/src/connection/webtransport.rs",
+      "sha256": "f0543d62327e13f26f0e0a5235f98b7cd658fb79009c709be17bf41a07f7646b",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-client/src/connection/webtransport.rs",
+      "bytes": 10358
+    },
+    {
+      "path": "videocall-client/src/decode/peer_decoder.rs",
+      "sha256": "da6881db078c58dd59c649c26b3373f206507d0da65c5e78915b23f36ecf3b96",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-client/src/decode/peer_decoder.rs",
+      "bytes": 14366
+    },
+    {
+      "path": "videocall-client/src/decode/video_decoder_wrapper.rs",
+      "sha256": "ec4dc4fb9c91bbfbc8ea4884208668fdcf65c3686908b22beba74c014b00f12e",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-client/src/decode/video_decoder_wrapper.rs",
+      "bytes": 3768
+    },
+    {
+      "path": "videocall-client/src/decode/neteq_audio_decoder.rs",
+      "sha256": "7f79e41eb67fde880996569dc404ed8e1c198026a5986f1ecf17567ac1098eea",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-client/src/decode/neteq_audio_decoder.rs",
+      "bytes": 38475
+    },
+    {
+      "path": "videocall-codecs/src/jitter_buffer.rs",
+      "sha256": "a8e9cabe8a0ebdcac2171f8d230baffdaab1fe1cc096cc6816549847b8473030",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-codecs/src/jitter_buffer.rs",
+      "bytes": 30301
+    },
+    {
+      "path": "videocall-codecs/src/jitter_estimator.rs",
+      "sha256": "16f36c99a154422ad9d6ae5eaf93c25d2a898820d446cb238e77504d0e6d0513",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/videocall-codecs/src/jitter_estimator.rs",
+      "bytes": 5539
+    },
+    {
+      "path": "protobuf/types/media_packet.proto",
+      "sha256": "7ef1a22ad33f049706b16b80a1ece87cfdb192bf9c9c1cf3ba7019d116a84791",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/protobuf/types/media_packet.proto",
+      "bytes": 1699
+    },
+    {
+      "path": "README.md",
+      "sha256": "d6029f15d40e1a48a48842b60dac0d467434d73fdd3a30ad5a1b2e454749f9f3",
+      "url": "https://raw.githubusercontent.com/security-union/videocall-rs/31a8b2076e7228f1b846fe4ed75dc70ffc27eb44/README.md",
+      "bytes": 34438
+    }
+  ],
+  "method": "Read pinned upstream implementation, its public issue #814 and linked PR #839, and compared with Connect source. No upstream builds, tests, imported production code or A/V reruns.",
+  "findings": [
+    {
+      "id": "replacement-continuity",
+      "source": "videocall-client/src/connection/connection_manager.rs",
+      "symbols": [
+        "start_reelection",
+        "complete_election",
+        "old_active_connection"
+      ],
+      "observed": "Re-election retains the original active connection while candidates are evaluated. Successful election selects the new owner and subsequently drops the original.",
+      "connect_application": "Audit preparation, readiness, commit and old-owner retirement as separate boundaries. Preserve old-owner service on precommit failure; prepare candidates without granting ordinary media authority.",
+      "limit": "Server-connection election is not proof of cross-device or cross-adapter replacement with Connect durable operations/current authority. Inspect actual Connect boundaries before changing them.",
+      "non_av_checks": [
+        "Candidate preparation failure preserves original owner and terminal status.",
+        "Cancellation or revocation before commit cannot activate candidate.",
+        "Duplicate completion and late original cleanup cannot retire replacement."
+      ]
+    },
+    {
+      "id": "video-order-and-bootstrap",
+      "source": "videocall-codecs/src/jitter_buffer.rs",
+      "symbols": [
+        "insert_frame",
+        "find_and_move_continuous_frames",
+        "flush"
+      ],
+      "observed": "Sequence-indexed bounded buffer, keyframe-first decoding, gap recovery at later keyframes, adaptive delay and restart heuristics.",
+      "connect_application": "Use their test scenarios as a comparison for reordering and new-decoder startup; keep Connect authenticated generation boundary rather than treating sequence rollback as sufficient authority.",
+      "limit": "Their maximum video delay is 500ms and buffer capacity is 200 frames; these are not Connect acceptance limits. File inspection is not a benchmark or proof of end-to-end A/V synchronization. A/V work remains deferred."
+    },
+    {
+      "id": "quic-ordering-lesson",
+      "source": "https://github.com/security-union/videocall-rs/issues/814",
+      "observed": "The project reported independent per-packet QUIC streams producing reordering interpreted as loss and excessive keyframe requests. Issue is closed and links #839.",
+      "connect_comparison": "Connect BrowserMediaPeer owns WebTransport datagram streams (browser_media.ts), not the exact per-packet reliable-stream path described in #814. The general ordering/feedback lesson applies; the issue is not evidence of the same bug in Connect."
+    },
+    {
+      "id": "audio-worker-separation",
+      "source": "videocall-client/src/decode/neteq_audio_decoder.rs",
+      "observed": "NetEq audio work runs in a Worker and PCM is delivered through an AudioWorklet; readiness and worker lifecycle are explicit.",
+      "connect_application": "Compare worker initialization, clock labeling and teardown when audio investigation resumes.",
+      "limit": "Do not infer proven inter-media synchronization from an audio jitter buffer. Do not use concealment, adaptive buffering or larger delay as evidence that original samples met Connect criteria."
+    }
+  ],
+  "next_work": "Continue all non-AV G6-058 matrix requirements; use replacement lifecycle lessons for control verification. A/V sync remains deferred.",
+  "tests_executed_for_this_review": false,
+  "production_changes": false,
+  "task_complete": false,
+  "matrix_qualified": false
+}
