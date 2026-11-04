@@ -1,22 +1,105 @@
 {
   "format": "connect/gate6-replacement-live-encoder/1",
   "task": "G6-058",
-  "status": "candidate-unverified",
+  "status": "component-pass",
   "implementation": [
     "Replacement source contract now carries exact private executable/raw SHA256 descriptors and finite frame count; immutable-frame fallback removed.",
     "A bounded owned Rust worker retains one original request/reply across cancelled control waits, original deadline and source index intact.",
     "Pump polls encoder readiness alongside original audio/network ticks; encoding does not block those ticks. First admitted video requests a fresh current keyframe.",
     "Shutdown joins the actual encoder process and distinguishes clean EOF, explicit in-flight cancellation, and codec/process failure."
   ],
-  "planned_verification": [
-    "Two new local ARM Rust actual-worker cases: original reply/control race and independent fresh-marker decoding; malformed/partial/cancelled reply handling plus actual PID termination.",
-    "New Rust source-contract refusal case.",
-    "Two changed Node input-contract cases for exact copied descriptor and malformed/legacy refusal."
-  ],
+  "planned_verification": [],
   "remaining": [
     "Integrated native movement with live encoding has not run.",
     "Current-authorized feedback and authenticated activation epochs remain unfinished.",
     "No full media qualification, matrix completion, G6-054 retest or downstream task promotion."
   ],
-  "task_complete": false
+  "task_complete": false,
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 117464,
+    "source_revision": "9152c1aae72cf85c060829bba68614324ef656e7",
+    "passed": true,
+    "steps": [
+      {
+        "case": "two changed live AV descriptor contract cases",
+        "exit_code": 0,
+        "log_sha256": "b7560062a56d297c042941b357fbe384fd68ba7f4165bd374fae6451e94ed888",
+        "results": [
+          "ok 1 - live AV target retains stream identities and copies the finite raw-source descriptor",
+          "ok 2 - live AV source rejects immutable frames, invalid counts, paths and hashes before target IO",
+          "# tests 2",
+          "# pass 2",
+          "# fail 0"
+        ]
+      },
+      {
+        "case": "replacement_peer::encoder::tests::live_encoder_original_reply_survives_control_wait_and_decodes_fresh_frame",
+        "exit_code": 0,
+        "log_sha256": "cbdcdc1beda3330de5fbc8458d1c1546ae3ec56841fa556c80fa4f9ca499c975",
+        "results": [
+          "",
+          "running 1 test",
+          "test replacement_peer::encoder::tests::live_encoder_original_reply_survives_control_wait_and_decodes_fresh_frame ... ok",
+          "",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.06s",
+          ""
+        ]
+      },
+      {
+        "case": "replacement_peer::encoder::tests::live_encoder_failed_or_cancelled_reply_joins_actual_process_and_refuses_reissue",
+        "exit_code": 0,
+        "log_sha256": "329287ba92d0a81a6b304a4f21ae8845bb9a2b8d89a9936cbcd6dd2745bf69bd",
+        "results": [
+          "",
+          "running 1 test",
+          "test replacement_peer::encoder::tests::live_encoder_failed_or_cancelled_reply_joins_actual_process_and_refuses_reissue ... ok",
+          "",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.32s",
+          ""
+        ]
+      },
+      {
+        "case": "replacement_peer::video::tests::live_program_dimensions_count_and_identity_contract_refuses_before_peer_io",
+        "exit_code": 0,
+        "log_sha256": "67075132c0066181581a241f639a2b438fcd6f289227e2628a6fc2294455dbeb",
+        "results": [
+          "",
+          "running 1 test",
+          "test replacement_peer::video::tests::live_program_dimensions_count_and_identity_contract_refuses_before_peer_io ... ok",
+          "",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.00s",
+          ""
+        ]
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "replacement_live_encoder_candidate": true,
+    "encoder_build": {
+      "source_sha256": "59c50c1c0998c6f55f716459f763cd5141fb301392acc4d3cfe028a816ca6471",
+      "executable_sha256": "afdb1a09a653a0c4dac3c00fdccbbe5fce43508c2f3bacfe045cea4dd26a6215",
+      "libvpx": "1.14.0",
+      "output": "/workspace/.local/gate6-arm64-replacement-live-encoder-v65/live-vp8-encoder",
+      "scope": "Build only; not encoder behavior, transport or media qualification"
+    },
+    "build": {
+      "compile_exit_code": 0,
+      "compile_log_sha256": "665bc5dbfb4d5cffc76e5a8aaa447e3e3a375a778f96d53863943f3a75c447d8",
+      "test_executable_sha256": "366cf7a0099705e404e77f326921f4bf23fe96552be114083a4fd8f8dd126343"
+    },
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 76.41542195199872
+  },
+  "proof": [
+    "Two Node live-source descriptor cases passed.",
+    "New Rust source-contract case passed.",
+    "Actual C encoder requested frame7 is independently decoded to its original marker; original timestamp and one pending request preserved.",
+    "Partial, foreign and oversized replies fail closed; cancellation and failures join the actual PID; mismatched input digest and symlink are refused.",
+    "Test executable, C encoder, tracked source and prepared dependency guards all remain unchanged."
+  ],
+  "additional_candidate": "A new controlled case will cancel the receive wait after a partial pipe reply, release the remainder, and require the same reply without a second command. Not yet executed."
 }
