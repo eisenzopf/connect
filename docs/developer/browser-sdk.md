@@ -1258,3 +1258,21 @@ cleanup follows those exact stream IDs. Full transport qualification remains
 open. See [actual browser evidence](../evidence/gate-6/actual-browser-video-feedback.json),
 [component evidence](../evidence/gate-6/browser-video-epochs.json)
 and [the native profile contract](../../contracts/native-media-profile.md).
+
+
+Complete VP8 frames are reordered within their current authenticated receive
+history before entering the decoder. Contiguous frames are delivered immediately;
+a missing predecessor gets at most 20 ms of reorder wait, counted from the first
+original fragment arrival. Timer delays never extend the original 200 ms media
+age: expired data is discarded. Complete and incomplete frames share the existing
+eight-frame and 64-fragment bounds. Capacity pressure ends the wait and leaves
+keyframe recovery to the strict decoder. Source/receive timestamps are unchanged.
+
+A signed receiver-generation change, unsubscribe, disabled receive gate, or owner
+retirement clears pending ordering state. Sequence rollback alone does not start
+a new history. `routeDiagnostics.ordering` reports held/late/expired frames,
+declared gaps and pending frame/fragment counts. `Vp8Frame.arrived` identifies
+the first original fragment arrival on the local monotonic clock. The controlled
+ARM checks and old-SDK counterexample are recorded in
+[`browser-complete-frame-order-v179.json`](../evidence/gate-6/browser-complete-frame-order-v179.json);
+these checks do not qualify a real browser/network matrix cell.

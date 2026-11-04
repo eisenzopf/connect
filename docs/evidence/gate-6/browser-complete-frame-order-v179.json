@@ -42,5 +42,14 @@
     "Old-route failure/cancellation integration audit remains open; no complete G6-058 cell qualification."
   ],
   "cell_qualified": false,
-  "task_complete": false
+  "task_complete": false,
+  "before_fix_counterexample": {
+    "source_revision": "455d6b32133af53815220241df5c61469793134f",
+    "case": "browser physical owner stages signed epochs, resets same-SSRC decode history, writes current feedback and forces only a fresh frame",
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0,
+    "failure": "Reordered completed frame immediately sets waitingForKey=true; expected false while predecessor can still arrive.",
+    "log_sha256": "685e8e1371dc28acd62fcdb62038438aa17eb9d372c903f0b8e931391c2879c9"
+  }
 }
