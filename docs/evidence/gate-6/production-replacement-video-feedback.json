@@ -225,5 +225,15 @@
   ],
   "limitations": [
     "This short un-impaired production replacement case does not qualify a complete transport cell or sustained A/V synchronization, quality, bitrate, frame pacing, or all failure/recovery transitions."
-  ]
+  ],
+  "gate_adoption_follow_up": {
+    "status": "focused-gate-recovery-pass",
+    "source_revision": "6b904dd6e2f61c62f2cf4594c85c5cf0db82daab",
+    "evidence": "docs/evidence/gate-6/replacement-video-gates.json",
+    "remaining": [
+      "Signed codec reoffer, exact new/retained resource adoption and its failure/lifetime checks.",
+      "Delayed browser writer uncertainty focused proof.",
+      "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+    ]
+  }
 }

@@ -1,0 +1,138 @@
+{
+  "format": "connect/gate6-replacement-video-gates/1",
+  "task": "G6-058",
+  "status": "focused-gate-recovery-pass",
+  "source_revision": "6b904dd6e2f61c62f2cf4594c85c5cf0db82daab",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "github_or_cloud_tests": false
+  },
+  "verification_runs": [
+    {
+      "run": "replacement-video-gates-v103",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 129029,
+        "source_revision": "e93c09e699ffcde3836bb7420c795bfaadd90cfa",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 101,
+            "compile_log_sha256": "e6d05e742923ce02cccdc01691fe3145c8bf8dae1a52eb83a585ee455769a810"
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 5.435110140999313
+      },
+      "state_sha256": "78d0ea0bf2da1f8a2c72f6eb4ecbfff5bbc3c095c1742ffc38720f74edef4be0"
+    },
+    {
+      "run": "replacement-video-gates-v104",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 129148,
+        "source_revision": "6b904dd6e2f61c62f2cf4594c85c5cf0db82daab",
+        "passed": true,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::controls::replacement_video_gate_results_require_fresh_history_and_preserve_other_direction",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 290 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "26f233146afc3e81e9ca1ad9ea4019de2853d157dfe3b507ac02c36b0b0ec6fc"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::controls::replacement_video_gate_resume_joins_early_notice_and_cannot_restore_unsubscribed_history",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 290 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "d7ca394001f96e50e02af4f33947f9f0784e31ca984e2db8d9bd33febdfa8fb6"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::controls::replacement_video_gate_results_refuse_foreign_binding_revision_and_uncertain_completion",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 290 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "ed31761a5cfe46f86dceae6d8da786c27cb932fe16249a9608228463d71d8abd"
+          },
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_hold_resume_recovers_both_video_directions",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.77s"
+            ],
+            "log_sha256": "c50e3b75f1165a7441293d4575b5bd44b0fe242040228345a637e0855a4112e6"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "85e2fa3abd521ac84261a5d4c992347de05f16f2d5670e2cb78a941390fc9048",
+            "test_executable_sha256": "6f98b9cb60ee69ecbf7a38f4b2c74b0f2700abfcf33f3dfd97a7a8a148102f1b",
+            "executable_unchanged": true
+          },
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "104262fc878105fbdf8e32e772bc4b5a98aebba448a240ffaecd9d57a38ab301",
+            "test_executable_sha256": "850506d759777cfb48a02c1fe7b348fae2e345bf851a5f43e5668e7efa977602",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 278.21865310099383
+      },
+      "state_sha256": "afbfd7444865bec127214839c66ec47b5bf490613cf6941fed8c97ba79ee5983"
+    }
+  ],
+  "fix": "The raw replacement video owner used to suspend permanently on gate commands. It now retains bounded original signed gate intents and adopts only matching operation results with exact sealed stream bindings, connection generation and revision. Changed operation reuse is refused. History high water survives controls; a resumed direction needs a fresh authenticated notice. Unaffected receive history is retained for publisher mute. Codec replacement still suspends until paired resource adoption is implemented.",
+  "scope": [
+    "Three new client component cases: publisher mute/unmute with fresh history and retained receive direction; hold/resume with notice-before-result, unsubscribe and retirement fences; binding/revision rejection, uncertain/failed results and original-operation status recovery.",
+    "One new actual enrolled EdDSA production replacement case: generation two, both original video directions transferred, signed hold and resume with exact successive native revisions.",
+    "Both resumed directions establish new signed epochs, solicit real feedback and independently decode fresh VP8 keys at unchanged original RTP18000 and24000. The raw publisher hint is consumed once immediately before encoding.",
+    "Encoder, physical peers and server join; source, prepared dependency and executable guards pass."
+  ],
+  "failures_retained": [
+    "v103 compile failed before runtime: StreamId does not implement Display; fixed to use its validated as_str accessor. No behavior threshold changed."
+  ],
+  "new_cases_passed": 4,
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "remaining": [
+    "Signed codec reoffer, exact new/retained resource adoption and its failure/lifetime checks.",
+    "Delayed browser writer uncertainty focused proof.",
+    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+  ],
+  "limitations": [
+    "Production case proves hold/resume; mute/unmute and invalid/replayed results are component evidence in this run.",
+    "No complete transport cell, sustained A/V synchronization, quality, all control failures or codec resource replacement is qualified by this short run."
+  ]
+}

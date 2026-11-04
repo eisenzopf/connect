@@ -253,5 +253,15 @@
     "Signed QUIC fixture checks do not prove a production replacement transaction or sustained A/V quality.",
     "v96 example build is at c0dd26d0; v97 client generation test is at 3661ec9c. Full example compilation with subsequent changes remains required before running it."
   ],
-  "follow_up": "Production replacement recovery passes separately at2535b724 after repairing its missing signed lifecycle writer. See production-replacement-video-feedback.json; original component scope and limitations above remain historical."
+  "follow_up": "Production replacement recovery passes separately at2535b724 after repairing its missing signed lifecycle writer. See production-replacement-video-feedback.json; original component scope and limitations above remain historical.",
+  "gate_adoption_follow_up": {
+    "status": "focused-gate-recovery-pass",
+    "source_revision": "6b904dd6e2f61c62f2cf4594c85c5cf0db82daab",
+    "evidence": "docs/evidence/gate-6/replacement-video-gates.json",
+    "remaining": [
+      "Signed codec reoffer, exact new/retained resource adoption and its failure/lifetime checks.",
+      "Delayed browser writer uncertainty focused proof.",
+      "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+    ]
+  }
 }

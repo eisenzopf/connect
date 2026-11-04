@@ -460,10 +460,15 @@ establishes readiness or completes the original replacement operation.
 The replacement example and offline capture consumer use this explicit path.
 The generic raw datagram parser remains strict. Focused local ARM evidence is in
 `docs/evidence/gate-6/replacement-video-owner.json`; the separate production
-recovery evidence is linked below. The current raw owner conservatively
-suspends after hold/mute/resume/unmute/codec commands: signed control/resource
-adoption remains required before those paths qualify. This is an implementation
-limitation, not an accepted permanent hold or resume contract.
+recovery evidence is linked below. Gate controls retain bounded original signed
+intents, validate exact stream bindings and connection generations in signed
+results, and preserve history high water. Resume/unmute cannot reactivate a
+retired notice; a fresh matching signed epoch is required. Publisher mute
+preserves the unaffected receive direction. Original-operation status recovery
+may settle the same intent but cannot install resources or manufacture epochs.
+The raw owner still suspends on codec renegotiation until the new signed offer,
+confirmation and matching durable resource result can be adopted together.
+This remaining resource-adoption limitation is not a permanent suspend contract.
 
 
 Replacement activation also attaches the lifecycle registration captured from
@@ -475,4 +480,13 @@ working replacement media routes without relaxing packet-age admission.
 A short production replacement now verifies feedback and fresh independent VP8
 decode in both directions at unchanged RTP timestamps; see
 `docs/evidence/gate-6/production-replacement-video-feedback.json`. Full cell
-qualification and the raw gate/resource adoption limitation above remain open.
+qualification and the raw codec resource-adoption limitation above remain open.
+
+
+Local ARM evidence for signed gate adoption is in
+`docs/evidence/gate-6/replacement-video-gates.json`. Three component cases cover
+history, scope, binding and revision fences, replay, uncertainty and retirement.
+A separate production generation-two hold/resume case recovers fresh epochs and
+independently decodes VP8 keys in both directions at original RTP18000 and24000.
+Production mute/unmute, codec replacement, delayed browser writes and complete
+transport qualification are not established by that short case.
