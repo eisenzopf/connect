@@ -49,7 +49,7 @@ def main():
         before=sources();(output / "source-inputs.json").write_text(json.dumps(before, sort_keys=True) + "\n")
         state.update(stage="compiling", source_guard_active=True);save()
         log=output / "compile.log"
-        code=bounded(["cargo", "test", "--release", "--locked", "-p", "connect-service", "--lib",
+        code=bounded(["cargo", "test", "--release", "--locked", "-p", "connect-service", "--features", "test-support", "--lib",
             "--no-run", "--message-format=json"], log, env, 3600)
         state["compile_exit_code"]=code;state["compile_log_sha256"]=digest(log);save()
         assert code == 0
@@ -62,6 +62,10 @@ def main():
                 binaries.append(Path(value["executable"]))
         assert len(binaries)==1
         binary=binaries[0];state["binary_sha256"]=digest(binary)
+        log=output / "test-list.log"
+        code=bounded([str(binary), CASE, "--exact", "--list"], log, env, 10)
+        state["test_list_exit_code"]=code;state["test_list_sha256"]=digest(log)
+        assert code == 0 and log.read_text().splitlines().count(CASE + ": test") == 1, "Exact required test must be compiled"
         state.update(stage="new-regression");save()
         log=output / "case.log"
         code=bounded([str(binary), CASE, "--exact", "--nocapture", "--test-threads=1"], log, env, 30)
