@@ -2670,5 +2670,34 @@
       }
     }
   ],
-  "scope": "Actual current local-host preflights and selected native media execution. No skipped/inherited pass. Browser full-workload, remote topology and full expiry/idle/verifier integration remain unfinished. G6-054 deferred. No GitHub/cloud tests."
+  "scope": "Actual current local-host preflights and selected native media execution. No skipped/inherited pass. Browser full-workload, remote topology and full expiry/idle/verifier integration remain unfinished. G6-054 deferred. No GitHub/cloud tests.",
+  "additional_environment_findings": {
+    "local_vm_host": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "architecture": "aarch64",
+      "kernel": "6.8.0-117-generic",
+      "pid1": "systemd",
+      "ordinary_user": true,
+      "noninteractive_sudo_available": true,
+      "present_tools": [
+        "git",
+        "python3",
+        "tcpdump",
+        "systemd-run",
+        "systemctl",
+        "ip",
+        "setpriv",
+        "sudo"
+      ],
+      "missing_tools": [
+        "node",
+        "npm",
+        "cargo",
+        "rustc"
+      ],
+      "tests_executed": false,
+      "network_namespace_created": false,
+      "scope": "Existing connect-gate6 Colima VM host, outside the workload container. Environment observed directly through colima ssh. Required Node/Rust tooling and source-bound runner are not connected yet; no remote-profile qualification."
+    }
+  }
 }

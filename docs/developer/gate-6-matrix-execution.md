@@ -29,7 +29,10 @@ installed browsers and earlier narrow browser results do not fill those rows.
 1. Probe both actual local hosts at the committed candidate. Record tool and
    frozen browser versions, scratch capacity and systemd availability. The
    current ordinary Ubuntu container has `docker-init`, so it cannot stand in
-   for the specified systemd/isolated-client-namespace Remote profile.
+   for the specified systemd/isolated-client-namespace Remote profile. The parent
+   Colima VM already runs Ubuntu24.04 ARM64/systemd and has namespace tools and
+   noninteractive sudo; connect Node/Rust tooling and the source-bound runner to
+   that ordinary-user host. No replacement VM is implied.
 2. Execute available native signing/platform cohorts independently, starting
    with Ubuntu local ES256. Preserve the failed EdDSA observation; do not rerun
    it merely to obtain a green matrix. Run other cohorts as their environments
