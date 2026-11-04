@@ -1,21 +1,58 @@
 {
   "format": "connect/gate6-native-video-feedback-renegotiation/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "patch": 297,
   "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
   "implementation": [
     "Reject feedback-profile enable/disable changes on unchanged Video allocations before parameter exchange and commit; original endpoints, handles and negotiated setting remain authoritative. New allocations can negotiate their own profile.",
     "Validate feedback confirmation before calling the server-origin confirmation hook."
   ],
-  "planned_checks": [
-    "peer_native::canonical_media::native_offers::video_epochs::signed_video_feedback_profile_changes_require_new_video_allocations"
-  ],
+  "planned_checks": [],
   "remaining": [
     "Candidate remains default-disabled in production. SDK signed notice ordering/packet attribution and encoder feedback integration are pending.",
     "No full media workload, qualification-cell or G6-058 completion claim. G6-054 remains deferred."
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "c1e1dbd11dd2dbd71c1fb50f307dc081d518f0be",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 119043,
+    "source_revision": "c1e1dbd11dd2dbd71c1fb50f307dc081d518f0be",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::signed_video_feedback_profile_changes_require_new_video_allocations",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 187 filtered out; finished in 0.09s"
+        ],
+        "log_sha256": "95c2830a9752306370b66b6e0cf983210bf17c03f2c571b13d02ff33618b0392"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_feedback_renegotiation_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "be4b091b3d09676d65a489dbd28c887d033c5a1af15ef535e28583312cb45a52",
+        "test_executable_sha256": "a81beac248da3f333e67ab5a59d8efec0f5d0ecf1ebdc848d3bfc34dea9eedd7",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 257.63513324200176
+  },
+  "proof": [
+    "One new exact signed local QUIC case covers initially disabled and initially enabled profiles. Changing the feedback setting over the same Video resource refuses before parameter exchange; revision, handles, generations and endpoint behavior stay unchanged.",
+    "Retry with the original setting succeeds using the existing video handle. The case passes in0.09s with187 other cases filtered. Tracked source, prepared dependencies and executable integrity guards pass."
+  ]
 }

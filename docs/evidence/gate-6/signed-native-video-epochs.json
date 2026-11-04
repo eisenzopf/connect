@@ -14,7 +14,7 @@
   ],
   "planned_checks": [],
   "remaining": [
-    "A subsequent feedback-profile change over reused video allocations was found during review. Patch297 refuses it before parameter exchange; its new focused case is pending separately in native-video-feedback-renegotiation.json.",
+    "Patch297 now has a focused signed local ARM pass for refusing feedback-profile changes over reused Video allocations. See native-video-feedback-renegotiation.json. Selected allocation provenance and SDK epoch integration remain separate.",
     "The new transport cases use actual signed native writers and physical QUIC peers but controlled relationship authority. They do not prove installed Connect Store authority or SDK media quality.",
     "Production native host remains default-disabled. Client monotonic notice validation, epoch/SSRC/sequence packet attribution and publisher/receiver feedback APIs still require integration and focused proofs.",
     "Connect both live encoder workers to currently bound feedback, then prove initial decoder bootstrap and fragment-loss recovery under original timing/profile. Do not admit preparation media or replay old encoded frames.",
