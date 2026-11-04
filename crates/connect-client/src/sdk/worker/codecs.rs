@@ -18,26 +18,7 @@ pub(super) struct Prepared {
 fn fail(key: &OperationKey) -> Error {
     Error::request(ErrorKind::Protocol, Some(key), true)
 }
-pub(super) fn same_stream(a: &NegotiatedStream, b: &NegotiatedStream) -> bool {
-    a.id == b.id
-        && a.medium == b.medium
-        && a.direction == b.direction
-        && a.codec == b.codec
-        && a.stream_local_id == b.stream_local_id
-}
-pub(super) fn matches(
-    streams: &[NegotiatedStream],
-    wire_handles: &BTreeMap<StreamId, u16>,
-    binding: &CodecBinding,
-) -> bool {
-    streams.iter().any(|s| {
-        s.id.as_str() == binding.stream_id
-            && serde_json::to_value(s.medium).ok() == Some(json!(binding.medium))
-            && serde_json::to_value(s.direction.reverse()).ok() == Some(json!(binding.direction))
-            && wire_handles.get(&s.id) == Some(&binding.stream_local_id)
-            && s.codec == binding.codec
-    })
-}
+pub(super) use super::super::native_codec_negotiation::{matches, same_stream};
 impl Prepared {
     pub fn belongs_to(&self, key: &OperationKey) -> bool {
         &self.key == key
@@ -102,224 +83,34 @@ pub(super) fn prepare(
     {
         return Err(bad());
     }
-    let p = &frame.original()["payload"];
-    let setup = &p["substrate_setup"];
-    if p["by_participant"] != json!(entry.participant)
-        || p["substrate"] != "quic"
-        || p["capabilities"] != entry.server_capabilities
-        || setup["kind"] != "native-prepared/1"
-        || setup["offer_id"] != request_id
-        || setup["revision"].as_u64() != expected.checked_add(1)
-        || serde_json::to_vec(setup).map_err(|_| bad())?.len() > 32 * 1024
-    {
-        return Err(bad());
-    }
-    let wire = setup["streams"]
-        .as_array()
-        .filter(|s| !s.is_empty() && s.len() <= 32)
-        .ok_or_else(bad)?;
-    let offered = p["streams_offered"].as_array().ok_or_else(bad)?;
-    if wire.len() != entry.selected.streams.len() || offered.len() != wire.len() {
-        return Err(bad());
-    }
-    let targets: BTreeSet<StreamId> = if let Some(ids) = payload["streams"].as_array() {
-        ids.iter()
-            .map(|v| serde_json::from_value(v.clone()).map_err(|_| bad()))
-            .collect::<Result<_>>()?
-    } else {
-        entry
-            .selected
-            .streams
-            .iter()
-            .filter(|s| s.medium != Medium::Data)
-            .map(|s| s.id.clone())
-            .collect()
-    };
-    if targets.is_empty()
-        || targets.iter().any(|id| {
-            !entry
-                .selected
-                .streams
-                .iter()
-                .any(|s| &s.id == id && s.medium != Medium::Data)
-        })
-    {
-        return Err(bad());
-    }
-    let preferences = payload["codec_preferences"].as_array().ok_or_else(bad)?;
-    let mut selected = Vec::new();
-    let mut video_feedback = BTreeMap::new();
-    let mut generations = BTreeMap::new();
-    let mut wire_handles = BTreeMap::new();
-    let mut ids = BTreeSet::new();
-    let mut handles = BTreeSet::new();
-    let mut answered = Vec::new();
-    for stream in wire {
-        let id: StreamId = serde_json::from_value(stream["strm_id"].clone()).map_err(|_| bad())?;
-        if !ids.insert(id.clone()) {
-            return Err(bad());
-        }
-        let old = entry
-            .selected
-            .streams
-            .iter()
-            .find(|s| s.id == id)
-            .ok_or_else(bad)?;
-        let medium: Medium = serde_json::from_value(stream["kind"].clone()).map_err(|_| bad())?;
-        let direction = serde_json::from_value::<Direction>(stream["direction"].clone())
-            .map_err(|_| bad())?
-            .reverse();
-        if medium != old.medium || direction != old.direction {
-            return Err(bad());
-        }
-        let h = stream["stream_local_id"]
-            .as_u64()
-            .and_then(|v| u16::try_from(v).ok())
-            .filter(|v| *v > 0)
-            .ok_or_else(bad)?;
-        if !handles.insert(h) {
-            return Err(bad());
-        }
-        wire_handles.insert(id.clone(), h);
-        let handle = if medium == Medium::Data {
-            if entry.wire_handles.get(&id) != Some(&h) {
-                return Err(bad());
-            }
-            None
-        } else {
-            Some(h)
-        };
-        let candidate = NegotiatedStream {
-            id: id.clone(),
-            medium,
-            direction,
-            codec: stream["codec"].clone(),
-            stream_local_id: handle,
-        };
-        let name = stream["codec"]["name"].as_str().ok_or_else(bad)?;
-        let name = connections::codec_name(name);
-        if targets.contains(&id) {
-            let family = match medium {
-                Medium::Audio => "audio_codecs",
-                Medium::Video | Medium::Screen => "video_codecs",
-                Medium::Data => return Err(bad()),
-            };
-            let supported = |caps: &Value, name: &str| {
-                caps[family].as_array().is_some_and(|values| {
-                    values.iter().any(|c| {
-                        c["name"]
-                            .as_str()
-                            .is_some_and(|n| connections::codec_name(n) == name)
-                    })
-                })
-            };
-            let expected_name = preferences
-                .iter()
-                .filter_map(Value::as_str)
-                .map(connections::codec_name)
-                .find(|n| {
-                    connections::codec_parameters(medium, n).is_some()
-                        && supported(&entry.local_capabilities, n)
-                        && supported(&entry.server_capabilities, n)
-                })
-                .ok_or_else(bad)?;
-            if name != expected_name {
-                return Err(bad());
-            }
-            let params = connections::codec_parameters(medium, &name).ok_or_else(bad)?;
-            if params
-                .as_object()
-                .ok_or_else(bad)?
-                .iter()
-                .any(|(k, v)| stream["codec"]["params"][k] != *v)
-            {
-                return Err(bad());
-            }
-            let pt = match name.as_str() {
-                "pcmu" => 0,
-                "pcma" => 8,
-                "opus" => 111,
-                "vp8" => 96,
-                _ => return Err(bad()),
-            };
-            let mut declared = entry.local_capabilities[family]
-                .as_array()
-                .ok_or_else(bad)?
-                .iter()
-                .find(|c| {
-                    c["name"]
-                        .as_str()
-                        .is_some_and(|n| connections::codec_name(n) == name)
-                })
-                .ok_or_else(bad)?["params"]
-                .clone();
-            declared["payload_type"] = json!(pt);
-            if stream["codec"]["params"] != declared {
-                return Err(bad());
-            }
-        } else if !same_stream(old, &candidate) {
-            return Err(bad());
-        }
-        let unchanged = same_stream(old, &candidate);
-        if !unchanged {
-            let handle = handle.ok_or_else(bad)?;
-            if cache.values().any(|c| c.reserved_handles.contains(&handle)) {
-                return Err(bad());
-            }
-        }
-        let generation = *entry.generations.get(&id).ok_or_else(bad)?;
-        generations.insert(
-            id.clone(),
-            if unchanged {
-                generation
-            } else {
-                generation
-                    .checked_add(1)
-                    .filter(|n| *n <= 9_007_199_254_740_991)
-                    .ok_or_else(bad)?
-            },
-        );
-        if let Some(feedback) = video_feedback::selection(
-            stream,
-            video_feedback::Selection {
-                local: &entry.local_capabilities,
-                remote: &entry.server_capabilities,
-                operation: key.operation_id.as_str(),
-                offer: request_id,
-                generation: *generations.get(&id).ok_or_else(bad)?,
-                connection_generation: 1,
-                previous: if unchanged {
-                    entry.selected.video_feedback.get(&id)
-                } else {
-                    None
-                },
-            },
-        )
-        .map_err(|_| bad())?
-        {
-            video_feedback.insert(id.clone(), feedback);
-        }
-        let choices: Vec<_> = offered
-            .iter()
-            .filter(|s| s["id"] == stream["strm_id"])
-            .collect();
-        if choices.len() != 1
-            || choices[0]["kind"] != stream["kind"]
-            || choices[0]["direction"] != stream["direction"]
-            || choices[0]["codec_preferences"] != json!([stream["codec"]["name"]])
-        {
-            return Err(bad());
-        }
-        answered.push(json!({"id":id,"kind":medium,"direction":direction,"codec":stream["codec"]}));
-        selected.push(candidate);
-    }
-    let answer=serde_json::from_value(json!({"by_participant":entry.participant,"substrate":"quic","capabilities":entry.local_capabilities,"streams_answered":answered,"substrate_setup":setup})).map_err(|_|bad())?;
-    let selected = NativeNegotiation {
-        video_feedback,
-        source_clock: entry.selected.source_clock,
-        stream_revision: StreamRevision::try_from(expected + 1).map_err(|_| bad())?,
-        streams: selected,
-    };
+    let reserved_handles = cache
+        .values()
+        .flat_map(|c| c.reserved_handles.iter().copied())
+        .collect();
+    let candidate = native_codec_negotiation::prepare(
+        native_codec_negotiation::Base {
+            selected: &entry.selected,
+            participant: &entry.participant,
+            local_capabilities: &entry.local_capabilities,
+            server_capabilities: &entry.server_capabilities,
+            wire_handles: &entry.wire_handles,
+            generations: &entry.generations,
+            reserved_handles: &reserved_handles,
+            connection_generation: 1,
+        },
+        key,
+        payload,
+        expected,
+        request_id,
+        frame,
+    )?;
+    let native_codec_negotiation::Candidate {
+        selected,
+        wire_handles,
+        generations,
+        answer,
+    } = candidate;
+    let handles = wire_handles.values().copied().collect::<BTreeSet<_>>();
     let gates = entry.gates.clone();
     let observed_revision = selected.stream_revision;
     let base = entry.selected.streams.clone();

@@ -323,3 +323,5 @@ fn replacement_video_seals_signed_generation_two_and_later_without_weakening_ini
 }
 
 mod controls;
+
+mod codecs;

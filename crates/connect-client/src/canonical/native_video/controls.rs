@@ -28,6 +28,9 @@ fn permits(g: &GateStream, publisher: bool) -> bool {
             .is_none_or(|d| d == "sendrecv" || d == if publisher { "recvonly" } else { "sendonly" })
 }
 impl Controls {
+    pub fn has_operation(&self, operation: &str) -> bool {
+        self.operations.contains_key(operation)
+    }
     pub fn admits(&self, notice: &Notice) -> bool {
         let key = (notice.handle, notice.role == Role::Publisher);
         self.floors
@@ -49,6 +52,12 @@ pub(super) fn outgoing(s: &mut State, frame: &Value) -> Result<()> {
     let operation = frame["operation_id"]
         .as_str()
         .ok_or(ClientError::Protocol)?;
+    if s.codecs
+        .as_ref()
+        .is_some_and(|c| c.has_operation(operation))
+    {
+        return Err(ClientError::Protocol);
+    }
     let expected = frame["expected_revision"]
         .as_u64()
         .filter(|r| (1..9_007_199_254_740_991).contains(r))
@@ -180,42 +189,7 @@ pub(super) fn outgoing(s: &mut State, frame: &Value) -> Result<()> {
     Ok(())
 }
 fn matches(s: &State, gate: &GateStream) -> bool {
-    let b = &gate.binding;
-    let Some(selected) = &s.selected else {
-        return false;
-    };
-    let Some(stream) = selected
-        .streams
-        .iter()
-        .find(|v| v.id.as_str() == b.stream_id)
-    else {
-        return false;
-    };
-    let original =
-        &s.callback.as_ref().unwrap_or(&Value::Null)["payload"]["substrate_setup"]["streams"];
-    let Some(wire) = original.as_array().and_then(|v| {
-        v.iter()
-            .find(|v| v["strm_id"].as_str() == Some(b.stream_id.as_str()))
-    }) else {
-        return false;
-    };
-    // Initial sealed resources have stream generation one. Profiled video
-    // carries its generation explicitly; all bindings share the connection.
-    let generation = selected
-        .video_feedback
-        .values()
-        .next()
-        .map(|v| v.connection_generation);
-    generation == Some(b.connection_generation)
-        && b.stream_generation
-            == selected
-                .video_feedback
-                .get(&stream.id)
-                .map_or(1, |v| v.stream_generation)
-        && wire["kind"] == b.medium
-        && wire["direction"] == b.direction
-        && wire["stream_local_id"].as_u64() == Some(u64::from(b.stream_local_id))
-        && stream.codec == b.codec
+    codecs::matches(s, &gate.binding)
 }
 pub(super) fn observe(s: &mut State, frame: &Envelope) -> Result<()> {
     let Payload::OperationUpdated(update) = frame.payload() else {

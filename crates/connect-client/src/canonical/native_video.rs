@@ -28,6 +28,7 @@ struct State {
     active: BTreeMap<(u16, bool), Notice>,
     suspended: bool,
     controls: controls::Controls,
+    codecs: Option<codecs::Owner>,
     ended: bool,
     version: u64,
 }
@@ -60,6 +61,7 @@ impl Shared {
             active: BTreeMap::new(),
             suspended: false,
             controls: controls::Controls::default(),
+            codecs: None,
             ended: false,
             version: 0,
         });
@@ -80,6 +82,11 @@ impl Shared {
                 || s.scope.session_id.as_deref() != Some(root.session_id.as_str())
                 || s.scope.connection_id.as_deref() != Some(root.connection_id.as_str())
             {
+                return Ok(true);
+            }
+            if codecs::notice(s, &n)? {
+                drop(guard);
+                self.changed.notify_waiters();
                 return Ok(true);
             }
             let selected = match &s.selected {
@@ -135,9 +142,19 @@ impl Shared {
             && frame.scope(Scope::Connection) == s.scope.connection_id.as_deref()
             && frame.kind() == "operation.updated"
         {
+            codecs::observe(s, frame)?;
             controls::observe(s, frame)?;
             drop(guard);
             self.changed.notify_waiters();
+            return Ok(false);
+        }
+        if !s.ended
+            && own_root
+            && frame.scope(Scope::Connection) == s.scope.connection_id.as_deref()
+            && frame.kind() == "connection.offer"
+            && s.selected.is_some()
+        {
+            codecs::offer(s, frame)?;
             return Ok(false);
         }
         if s.ended
@@ -171,6 +188,9 @@ impl Shared {
         let Some(s) = guard.as_ref() else {
             return Ok(false);
         };
+        if codecs::check_confirmation(s, frame, answer, root)? {
+            return Ok(true);
+        }
         if root.connection_id != s.scope.connection_id || root.operation_id != s.scope.operation_id
         {
             return Ok(false);
@@ -191,10 +211,16 @@ impl Shared {
     pub fn confirmed(&self) -> Result<()> {
         let mut guard = self.state.lock().map_err(|_| ClientError::Protocol)?;
         let s = guard.as_mut().ok_or(ClientError::Protocol)?;
+        if s.selected.is_some() && codecs::written(s)? {
+            drop(guard);
+            self.changed.notify_waiters();
+            return Ok(());
+        }
         if s.ended || s.selected.is_some() || s.callback.is_none() {
             return Err(ClientError::Protocol);
         }
         s.selected = Some(protocol(s.negotiating.selected())?.clone());
+        s.codecs = Some(codecs::Owner::new(s)?);
         if !s.suspended {
             s.active = s.notices.clone();
         }
@@ -227,10 +253,7 @@ impl Shared {
                 if connect_protocol::native_gates::is_gate(&frame["payload"]) {
                     controls::outgoing(s, frame)?;
                 } else if frame["payload"]["action"] == "codec-renegotiate" {
-                    // Resource replacement must still pair a new signed offer
-                    // with its durable result before installing new bindings.
-                    s.suspended = true;
-                    s.active.clear();
+                    codecs::outgoing(s, frame)?;
                 }
             }
             Some("stream.unsubscribe") => {
@@ -238,6 +261,7 @@ impl Shared {
                 let ids = frame["payload"]["strm_ids"]
                     .as_array()
                     .ok_or(ClientError::Protocol)?;
+                codecs::unselect(s, ids);
                 s.active.retain(|(_, publisher), n| {
                     *publisher
                         || !ids
@@ -267,6 +291,7 @@ fn self_scope(scope: &CommandScope) -> [Option<&str>; 4] {
 #[cfg(test)]
 pub(crate) mod tests;
 
+mod codecs;
 mod controls;
 pub(super) mod io;
 pub use io::{NativeVideoDatagram, NativeVideoDatagrams};

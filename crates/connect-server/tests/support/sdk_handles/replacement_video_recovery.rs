@@ -334,15 +334,59 @@ async fn phase(
 #[tokio::test]
 async fn signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions(
 ) {
-    tokio::time::timeout(Duration::from_secs(90), exercise(false))
+    tokio::time::timeout(Duration::from_secs(90), exercise(0))
         .await
         .unwrap();
 }
 #[tokio::test]
 async fn signed_production_replacement_hold_resume_recovers_both_video_directions() {
-    tokio::time::timeout(Duration::from_secs(90), exercise(true))
+    tokio::time::timeout(Duration::from_secs(90), exercise(1))
         .await
         .unwrap();
+}
+#[tokio::test]
+async fn signed_production_replacement_codec_change_preserves_video_and_adopts_new_audio() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(2))
+        .await
+        .unwrap();
+}
+async fn codec_change(
+    owner: &mut CanonicalClient,
+    scope: &CommandScope,
+    caps: &Value,
+    expected: u64,
+) -> Value {
+    let mut scope = scope.clone();
+    scope.operation_id = Some("replacement-codec-change".into());
+    scope.expected_revision = Some(expected);
+    let request = owner
+        .send_value(
+            "connection.update",
+            json!({"action":"codec-renegotiate","codec_preferences":["g.711-a","vp8"]}),
+            scope.clone(),
+        )
+        .await
+        .unwrap();
+    let mut result = None;
+    for _ in 0..32 {
+        let frame = owner.receive().await.unwrap();
+        if frame.kind() == "connection.offer" {
+            let p = &frame.original()["payload"];
+            let streams=p["substrate_setup"]["streams"].as_array().unwrap().iter().map(|b|json!({"id":b["strm_id"],"kind":b["kind"],"direction":match b["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":b["codec"]})).collect::<Vec<_>>();
+            owner.answer_connection_offer(&frame,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":caps,"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+        } else if frame.scope(rvoip_uctp::v2::Scope::Reply) == Some(request.as_str()) {
+            if frame.kind() == "operation.updated" {
+                let p = &frame.original()["payload"];
+                assert_eq!(p["state"], "completed", "{p}");
+                result = Some(p["result"].clone());
+            } else if frame.kind() == "ack" {
+                return result.unwrap();
+            } else {
+                panic!("unexpected codec result {:?}", frame.original());
+            }
+        }
+    }
+    panic!("bounded codec result missing")
 }
 async fn gate(
     owner: &mut CanonicalClient,
@@ -382,7 +426,7 @@ async fn gate(
     }
     panic!("bounded gate result missing")
 }
-async fn exercise(gates: bool) {
+async fn exercise(mode: u8) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter("connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug")
         .with_test_writer()
@@ -449,7 +493,10 @@ async fn exercise(gates: bool) {
         .find(|p| p.identity_id.as_str() == f.peer.identity_id)
         .unwrap()
         .id;
-    let caps = json!({"audio":["g.711-mu"],"video":["vp8"]});
+    let mut caps = json!({"audio":["g.711-mu"],"video":["vp8"]});
+    if mode == 2 {
+        caps["audio"] = json!(["g.711-mu", "g.711-a"]);
+    }
     let session = room
         .invite(
             "native-session".parse().unwrap(),
@@ -595,7 +642,13 @@ async fn exercise(gates: bool) {
     phase(&f, &mut controller, &command, 1).await;
     eprintln!("production replacement phase: replacement-allocate");
     let mut replacement = CanonicalClient::open(replacement_config).await.unwrap();
-    let offer = json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]},{"id":"replacement-camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]},{"id":"replacement-incoming-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
+    let mut offer = json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]},{"id":"replacement-camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]},{"id":"replacement-incoming-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
+    if mode == 2 {
+        offer["capabilities"]["audio_codecs"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"name":"pcma","params":{"sample_rate":8000,"channels":1}}));
+    }
     replacement
         .allocate_native_replacement_target(
             &command,
@@ -708,7 +761,7 @@ async fn exercise(gates: bool) {
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 4).await;
-    if gates {
+    if mode == 1 {
         eprintln!("production replacement phase: signed-hold-resume");
         let revision: u64 = rusqlite::Connection::open(&f.config.database)
             .unwrap()
@@ -772,6 +825,59 @@ async fn exercise(gates: bool) {
         assert_eq!(bytes, fresh);
         decode(f.temp.path(), &bytes, 8).await;
         eprintln!("production replacement gate proof: signed generation2 hold/resume, fresh epoch and independent VP8 decode in both directions at original RTP18000 and24000");
+    }
+    if mode == 2 {
+        eprintln!("production replacement phase: signed-codec-resource-adoption");
+        let revision:u64=rusqlite::Connection::open(&f.config.database).unwrap().query_row("SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",[scope.connection_id.as_ref().unwrap()],|r|r.get(0)).unwrap();
+        let result = codec_change(&mut replacement, &scope, &offer["capabilities"], revision).await;
+        assert_eq!(result["resources_changed"], true);
+        assert_eq!(result["stream_revision"], revision + 1);
+        let bindings = result["codec_bindings"].as_array().unwrap();
+        let audio = bindings
+            .iter()
+            .find(|b| b["stream_id"] == "replacement-voice")
+            .unwrap();
+        assert_eq!(audio["connection_generation"], 2);
+        assert_eq!(audio["stream_generation"], 2);
+        assert_eq!(audio["codec"]["params"]["payload_type"], 8);
+        let new_voice = audio["stream_local_id"].as_u64().unwrap() as u16;
+        assert_ne!(new_voice, voice);
+        for (id, handle) in [
+            ("replacement-camera", camera),
+            ("replacement-incoming-camera", incoming),
+        ] {
+            let b = bindings.iter().find(|b| b["stream_id"] == id).unwrap();
+            assert_eq!(b["stream_local_id"], handle);
+            assert_eq!(b["stream_generation"], 1);
+            assert_eq!(b["connection_generation"], 2);
+        }
+        use rvoip_uctp::substrate::{pack, MediaDatagram};
+        for n in 1..=12u16 {
+            io.send(&pack(&MediaDatagram {
+                flags: 0,
+                stream_local_id: new_voice,
+                seq: u32::from(n),
+                payload: rtp(8, n, u32::from(n) * 160, 0x72727272, false, &[0xd5; 160]).into(),
+            }))
+            .unwrap();
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let fresh = encoder.frame(5, true).await;
+        publish(&retained_send, &fresh, 5, &mut retained_sequence).await;
+        let (bytes, _) = raw_receive(&mut io, 5, incoming).await;
+        assert_eq!(bytes, fresh);
+        decode(f.temp.path(), &bytes, 5).await;
+        retained_recv.request_keyframe(options()).await.unwrap();
+        let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
+        let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();
+        assert!(requested);
+        let fresh = encoder.frame(6, requested).await;
+        assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
+        raw_publish(&io, camera, &fresh, 6, &mut sequence);
+        let (bytes, _) = receive(&retained_recv, 6).await;
+        assert_eq!(bytes, fresh);
+        decode(f.temp.path(), &bytes, 6).await;
+        eprintln!("production replacement codec proof: actual generation2 signed codec commit, new PCMA handle/generation, retained video allocations, post-commit video decode original RTP15000/18000 and one-use current feedback");
     }
     encoder.close().await;
     replacement.shutdown().await.unwrap();

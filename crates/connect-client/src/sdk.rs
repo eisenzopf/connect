@@ -44,6 +44,7 @@ mod invitations;
 mod journal_recovery;
 mod media;
 mod movements;
+pub(crate) mod native_codec_negotiation;
 pub(crate) mod native_negotiation;
 mod operation;
 mod participants;
