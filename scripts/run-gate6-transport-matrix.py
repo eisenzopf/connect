@@ -145,16 +145,19 @@ def main():
     parser.add_argument("--phase", choices=("probe", "run", "merge"), required=True)
     parser.add_argument("--output", type=Path, required=True, help="New private directory under .local")
     parser.add_argument("--cell", action="append", default=[], help="Exact G6-058/platform/network/transport/signing ID")
+    parser.add_argument("--all-cells", action="store_true", help="Explicitly select all 32; unavailable producers remain not-run")
     parser.add_argument("--host-report", type=Path, action="append", default=[])
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
-    parser.add_argument("--stage", choices=("media", "admission", "programme", "quality"), default="media")
+    parser.add_argument("--stage", choices=("media", "admission", "programme", "quality", "non-av"), default="media")
     parser.add_argument("--browser-image", help="Exact already installed ARM image for browser admission")
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("This runner is for the owner's local ARM resources")
     if args.cell and args.phase != "run" or args.host_report and args.phase != "merge":
         parser.error("Cells belong to run; host reports belong to merge")
+    if args.all_cells and (args.cell or args.phase != "run"):
+        parser.error("--all-cells requires run and cannot be combined with --cell")
     output = args.output.resolve()
     if not output.is_relative_to((ROOT / ".local").resolve()):
         parser.error("Results must stay under ignored .local")
@@ -163,6 +166,8 @@ def main():
     os.chdir(ROOT)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     matrix = inventory(ROOT, revision)
+    if args.all_cells:
+        args.cell = [cell["id"] for cell in matrix["cells"]]
     matrix["execution_phase"] = args.phase
     if args.phase == "merge":
         if not args.host_report:
@@ -203,7 +208,7 @@ def main():
                 module = importlib.util.module_from_spec(loader)
                 loader.loader.exec_module(module)
                 original_argv = sys.argv
-                sys.argv = [str(module.__file__), "--stage", args.stage, "--transport", cell["transport"],
+                sys.argv = [str(module.__file__), "--stage", cell["execution"]["stage"], "--transport", cell["transport"],
                             "--signing", cell["signing"], "--image", args.browser_image, "--output", str(directory)]
                 try:
                     code = module.main()
@@ -217,10 +222,10 @@ def main():
             loader.loader.exec_module(module)
             module.BASE = directory
             with (directory / "controller.log").open("x") as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
-                code = module.main(media_workload=True, signing_algorithm=cell["signing"],
+                code = module.main(media_workload=args.stage != "non-av", data_workload=args.stage == "non-av", signing_algorithm=cell["signing"],
                                    network_profile="local" if cell["network"] == "local" else "remote",
                                    host_capture=True)
-            path = directory / "evidence/media/rehearsal.json"
+            path = directory / ("evidence/data/rehearsal.json" if args.stage == "non-av" else "evidence/media/rehearsal.json")
             return json.loads(path.read_text()), digest(path), code
 
         execute_selected(matrix, args.cell, output, execute)

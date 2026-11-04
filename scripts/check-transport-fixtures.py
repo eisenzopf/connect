@@ -576,6 +576,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
+                report["conversation_control"] = {key: observed.get(key) for key in (
+                    "passed", "checks", "all_observed_helpers_joined", "workload_mode",
+                    "maximum_active_members_observed", "concurrent_session_intents_observed",
+                    "actual_connection_workload_observed", "actual_topology_verified")}
                 # A later control/recovery failure must not discard the already
                 # completed native media observation. Preserve both results.
                 decoded = None

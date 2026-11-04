@@ -15,6 +15,8 @@ COMPLETION_GAPS = [
     "full-cell-requirement-verifier-not-connected",
 ]
 
+AV_CHECK = "independently-decoded-duplex-media-and-profile-budgets"
+
 
 def browser_selection_verified(observation):
     """Require original recovery, real unavailable paths and joined owners."""
@@ -44,14 +46,17 @@ def browser_selection_verified(observation):
 
 
 def configure_execution(matrix, environment, stage="media"):
-    if stage not in {"media", "admission", "programme", "quality"}:
+    if stage not in {"media", "admission", "programme", "quality", "non-av"}:
         raise ValueError("Unknown execution stage")
     if environment["server"] not in DIMENSIONS["server"]:
         raise ValueError("Unapproved execution platform")
     matrix["execution_environment"] = environment
+    matrix["requested_stage"] = stage
     for cell in matrix["cells"]:
         blockers = []
-        admission = stage in {"admission", "programme", "quality"}
+        non_av = stage == "non-av"
+        admission = stage in {"admission", "programme", "quality"} or (non_av and cell["transport"] != "native-quic")
+        actual_stage = "admission" if non_av and admission else "data" if non_av else stage
         if cell["server"] != environment["server"]:
             blockers.append("requires-other-local-arm-host")
         if admission:
@@ -76,8 +81,8 @@ def configure_execution(matrix, environment, stage="media"):
         if cell["server"] == environment["server"]:
             blockers.extend(environment["execution_blockers"])
         cell["execution"] = dict(
-            producer="browser-" + stage if admission else "native-media" if cell["transport"] == "native-quic" else None,
-            stage=stage,
+            producer="browser-" + actual_stage if admission else ("native-data" if non_av else "native-media") if cell["transport"] == "native-quic" else None,
+            stage=actual_stage,
             runnable=not blockers, blockers=blockers,
             completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-not-qualified" if stage == "quality" else "browser-independent-decoded-quality-and-packet-capture-not-connected" if stage == "programme" else "full-browser-movement-media-producer-not-connected"),
                 "browser-fallback-and-neither-path-refusal-not-executed"] if admission else []), attempted=False,
@@ -85,6 +90,11 @@ def configure_execution(matrix, environment, stage="media"):
         )
         cell["check_results"] = {name: {"status": "not-run", "evidence": None}
                                  for name in cell["required_checks"]}
+        if non_av:
+            cell["check_results"][AV_CHECK].update(status="not-run", reason="outside-selected-non-av-stage; AV qualification tracked separately")
+            cell["non_av_scope"] = dict(required_checks=[name for name in cell["required_checks"] if name != AV_CHECK],
+                qualified=False, all_required_checks_executed=False,
+                note="Admission/data stages execute available checks only. Replacement, expiry and idle gaps remain required; no AV or full-cell qualification.")
         cell["reason"] = "execution-preflight-blocked" if blockers else "required-workload-ready-not-run"
     return matrix
 
@@ -118,7 +128,7 @@ def record_native_result(matrix, cell, report, report_sha256, exit_code):
         "source_inputs_unchanged", "executables_unchanged", "sdk_dist_inputs_unchanged")}
     passed = report["passed"] and exit_code == 0 and all(guards.values())
     # Copy a small allowlist. Reports contain private paths and generated actors.
-    component = dict(kind="native-media", report_sha256=report_sha256,
+    component = dict(kind=cell["execution"]["producer"], report_sha256=report_sha256,
                      passed=passed, exit_code=exit_code, integrity=guards,
                      source_revision=report["source_revision"],
                      binary_sha256=report.get("binary_sha256"),
@@ -127,8 +137,44 @@ def record_native_result(matrix, cell, report, report_sha256, exit_code):
     cell["execution"].update(attempted=True, component=component)
     cell.update(status="incomplete" if passed else "failed",
                 reason="required-workload-passed-full-checks-missing" if passed else "required-workload-failed")
+    if cell["execution"]["producer"] == "native-data":
+        record_native_data_checks(cell, report, report_sha256, passed)
     matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
     return cell
+
+
+def record_native_data_checks(cell, report, digest, passed):
+    """Promote only observed control clauses; data is not AV/movement/idle proof."""
+    observed = report.get("conversation_control", {})
+    checks = observed.get("checks", [])
+    valid = (passed and observed.get("passed") is True
+        and observed.get("all_observed_helpers_joined") is True
+        and observed.get("workload_mode") == "six-native-data-connections"
+        and observed.get("maximum_active_members_observed") == 4
+        and observed.get("concurrent_session_intents_observed") == 2
+        and observed.get("actual_connection_workload_observed") is True
+        and observed.get("actual_topology_verified") is True)
+    requirements = {
+        "participant-add-update-remove-and-current-audiences": {
+            "scoped-native-conversation-and-nonmember-current-access-refusal",
+            "four-active-participants-and-addition-does-not-expand-older-message-audience",
+            "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+            "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+        },
+        "session-upgrade-and-current-capability-refusal": {
+            "two-current-accepted-session-intents-coexist-with-one-main-session",
+            "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change",
+        },
+    }
+    for name, required in requirements.items():
+        if valid and required <= set(checks):
+            cell["check_results"][name] = dict(status="passed", evidence=digest)
+    # Expose the executed subcases without claiming the composite expiry,
+    # four-move or ten-second resource requirements from partial observations.
+    cell["non_av_observations"] = dict(report_sha256=digest, valid=valid,
+        checks=checks, producer_checks=report.get("checks", []),
+        missing=["four-device-moves-and-old-owner-retirement", "current-expiry-refusal",
+                 "ten-second-idle-resource-restoration"])
 
 
 def record_browser_result(matrix, cell, report, report_sha256, exit_code):

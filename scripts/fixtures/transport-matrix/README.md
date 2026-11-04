@@ -11,6 +11,25 @@ The owned systemd/netns lane requires
 an ordinary user. No named host, provider or model account is enabled by it.
 
 
+## Non-A/V execution
+
+Use `scripts/run-gate6-transport-matrix.py --phase run --stage non-av
+--all-cells --browser-image <verified-local-arm-image-id> --output <fresh-.local-directory>`
+on the owned ARM VM. This explicitly selects all 32 cells and continues after
+individual failures. It runs native data/control workloads and available real
+browser admission/control stages without requiring decoded A/V quality first.
+The browser admission stage negotiates media connections, but does not run the
+62-second quality programme or claim decoded media quality.
+
+Every original requirement remains visible. Current producers cover four Linux
+native local/isolated-remote signing cohorts and four Linux local Chrome cohorts.
+Other host/network/browser producers must still be connected and executed;
+preflight results do not count as tests. Available producers also have outstanding
+replacement, expiry and idle clauses. The non-A/V mode therefore cannot yet
+qualify every non-A/V requirement or close a cell. A/V fixes and qualification
+continue separately under the owner's latest instruction.
+
+
 [The matrix contract](../../../contracts/gate6-transport-matrix.json) preserves
 32 required cells: two server platforms, Local and isolated Remote-profile
 topologies, native QUIC/Chrome WT/Chrome WSS-WebRTC/Firefox WSS-WebRTC, and both

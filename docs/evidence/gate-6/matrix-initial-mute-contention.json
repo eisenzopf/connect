@@ -29,10 +29,47 @@
     "fix": "Capture exact source/retained Connection references before begin_native_replacement_start_with_read; retain them in StartInvocation and rederive owners under the original current Store read, cancellation and deadline at each check. No retries of negotiation/mute or mutation IDs, and no packet authority bypass."
   },
   "verification": {
-    "status": "new-controlled-regression-compiling",
+    "status": "passed-focused-regression",
     "case": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_retains_current_owners_under_registry_contention",
     "expected": "Actual initial mute under the real registry mutex rejects old lookup, accepts current captured owners and rejects expired invocation; the same original replacement then carries both video directions and joins original owners.",
     "attempt": "v168",
-    "source_revision": "368e35b523a562c46b48f4cea7eb3c8e0f39751e"
+    "source_revision": "368e35b523a562c46b48f4cea7eb3c8e0f39751e",
+    "result": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 32451,
+      "source_revision": "368e35b523a562c46b48f4cea7eb3c8e0f39751e",
+      "passed": true,
+      "steps": [
+        {
+          "group": "production-replacement",
+          "case": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_retains_current_owners_under_registry_contention",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 1.63s"
+          ],
+          "log_sha256": "6222f2c60162a4acbd2809d0ccf63388c143fd034700dc904a8d42089ac5b3bc"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "initial_mute_registry_fix": true,
+      "previous_passed_cases_rerun": false,
+      "builds": [
+        {
+          "group": "production-replacement",
+          "compile_exit_code": 0,
+          "compile_log_sha256": "1e5dc04c10ac9b3c438944a51e94f6489fc62a4224ed8e147c2eef85cb9e13be",
+          "test_executable_sha256": "06df70e3c7704f4e442e62580782ed8e06216a5f199ccab231fb82bdb6b8cf70",
+          "test_discovery_sha256": "e82e0f1d8bac8fd9adb1ba16419a0cf461846e26df4eca9024245dd55d83a1dd",
+          "executable_unchanged": true
+        }
+      ],
+      "executable_unchanged": true,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 1051.048863084001
+    },
+    "scope": "One signed production replacement under controlled initial-mute registry contention; old lookup refuses, retained current owners succeed, expired invocation refuses, fresh duplex video decodes and original owners join. Does not prove every v167 failure used this branch or qualify full workload."
   }
 }
