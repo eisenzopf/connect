@@ -263,5 +263,14 @@
       "Delayed browser writer uncertainty focused proof.",
       "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
     ]
+  },
+  "codec_adoption_follow_up": {
+    "status": "focused-codec-adoption-pass",
+    "source_revision": "2b40c76dca98c8477afb51f0c6f1f8dc36571587",
+    "evidence": "docs/evidence/gate-6/replacement-video-codecs.json",
+    "remaining": [
+      "Delayed browser writer uncertainty focused proof.",
+      "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+    ]
   }
 }

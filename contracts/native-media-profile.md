@@ -466,9 +466,14 @@ results, and preserve history high water. Resume/unmute cannot reactivate a
 retired notice; a fresh matching signed epoch is required. Publisher mute
 preserves the unaffected receive direction. Original-operation status recovery
 may settle the same intent but cannot install resources or manufacture epochs.
-The raw owner still suspends on codec renegotiation until the new signed offer,
-confirmation and matching durable resource result can be adopted together.
-This remaining resource-adoption limitation is not a permanent suspend contract.
+Codec renegotiation suspends the raw owner while its original operation is
+uncertain. The shared SDK validator checks the exact signed callback against
+sealed capabilities, stream IDs, codecs, directions, handles and generations.
+Only a successful confirmation write paired with the matching completed
+operation adopts the candidate. Changed resources cannot reuse a retired handle;
+retained allocations keep their original provenance. Failed negotiation discards
+the candidate, and completed receipts cannot resurrect retired connections or
+subscriptions. Neither a callback nor a historical receipt grants media IO.
 
 
 Replacement activation also attaches the lifecycle registration captured from
@@ -480,7 +485,7 @@ working replacement media routes without relaxing packet-age admission.
 A short production replacement now verifies feedback and fresh independent VP8
 decode in both directions at unchanged RTP timestamps; see
 `docs/evidence/gate-6/production-replacement-video-feedback.json`. Full cell
-qualification and the raw codec resource-adoption limitation above remain open.
+qualification and delayed browser writer verification remain open.
 
 
 Local ARM evidence for signed gate adoption is in
@@ -488,5 +493,15 @@ Local ARM evidence for signed gate adoption is in
 history, scope, binding and revision fences, replay, uncertainty and retirement.
 A separate production generation-two hold/resume case recovers fresh epochs and
 independently decodes VP8 keys in both directions at original RTP18000 and24000.
-Production mute/unmute, codec replacement, delayed browser writes and complete
-transport qualification are not established by that short case.
+Production mute/unmute, delayed browser writes and complete transport
+qualification are not established by that short hold/resume case.
+
+
+Codec adoption evidence is in `docs/evidence/gate-6/replacement-video-codecs.json`.
+Four component cases cover both receipt/write orderings, retained and changed
+video allocations across connection generations, handle reuse, altered results,
+uncertainty, failure and retirement. A separate production codec case replaces
+PCMU audio with a new PCMA handle and stream generation while retaining the video
+allocations, then verifies fresh video decode and current feedback in both
+directions at original RTP15000 and18000. It does not measure post-change audio
+quality or qualify the complete transport workload.

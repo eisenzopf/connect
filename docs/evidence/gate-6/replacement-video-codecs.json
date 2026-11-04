@@ -1,0 +1,116 @@
+{
+  "format": "connect/gate6-replacement-video-codecs/1",
+  "task": "G6-058",
+  "status": "focused-codec-adoption-pass",
+  "source_revision": "2b40c76dca98c8477afb51f0c6f1f8dc36571587",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "github_or_cloud_tests": false
+  },
+  "verification_runs": [
+    {
+      "run": "replacement-video-codecs-v105",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 129613,
+        "source_revision": "2b40c76dca98c8477afb51f0c6f1f8dc36571587",
+        "passed": true,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::codecs::replacement_video_codec_adoption_pairs_write_result_and_new_allocation_for_each_generation",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 294 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "c2d078bf0a2870676e7c864e5862a7e3245ebb139ed773ed16e2d6a09fa14e51"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::codecs::replacement_video_codec_retained_resources_require_paired_receipt_and_preserve_unsubscribe",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 294 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "4fc148276facf76e47f9b173270566c0498c2d91254b94e0d7b81081e9e7b978"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::codecs::replacement_video_codec_rejects_altered_offer_confirmation_receipt_and_handle_reuse",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 294 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "4cb3405a5473c6e9e208bc10a275087f5a21e2ae138ba3ba06bf75866bb958ee"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::codecs::replacement_video_codec_uncertainty_failure_and_retirement_never_install_candidate_resources",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 294 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "eaff6f7e19bdcb3cc8fb7fb25d5c37dc3e8614c77e6be8ddeea126bbc578a438"
+          },
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_codec_change_preserves_video_and_adopts_new_audio",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 1.98s"
+            ],
+            "log_sha256": "bcf2c8059533b0d5b6e39853f346db2a6837d087f9df8a36340191d3bc917468"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "c6183ec0dfee6af300ccd630de71a431bb1646ca24e70dee936e533fdd003c7a",
+            "test_executable_sha256": "9f8ef89db017c3a927dd027e124c3cd0508450b1db4d756def807a24a5b05b41",
+            "executable_unchanged": true
+          },
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "025da4e7456f7269a5671415b7844e9e930386ebd0299c9e8dc64bbf29e3525a",
+            "test_executable_sha256": "191fa7a19c36903a8c8e34891949368b0f4317df6ad89f65f28a520c5960c80c",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 279.9241715679964
+      },
+      "state_sha256": "ba03890b9173645a35d3156793e796d79808c7cb1e4f531524ec7ff4d9be7e7f"
+    }
+  ],
+  "fix": "Extract existing SDK codec validation into a shared pure validator. The explicit replacement owner captures the original codec intent, validates the exact signed callback against sealed local resources and the actual connection generation, and joins successful confirmation write with a matching completed operation. Neither alone installs resources. Changed resources get exact new generations and unused handles; retained resources preserve their allocation provenance. Unknown outcomes remain suspended. Failed operations discard candidate resources; retirement wins.",
+  "scope": [
+    "Four new client component cases cover paired write/result in either order; retained and changed video allocations across connection generations one, two and three; stale or altered callback/receipt rejection; retired handle reuse; uncertainty, failed negotiation, unsubscribe and retirement fences.",
+    "One new actual enrolled EdDSA generation-two production replacement codec-change case passes in 1.98 seconds. Its audio changes from PCMU to PCMA with a new handle and stream generation two; both video bindings retain their original handles, generations and allocation provenance.",
+    "After codec commit, fresh VP8 independently decodes in both directions at original RTP15000 and18000. Actual retained receiver feedback reaches the raw publisher and is consumed once immediately before fresh encoding.",
+    "Owned peers, encoder and server join; source, prepared dependency and executable guards pass."
+  ],
+  "new_cases_passed": 5,
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "remaining": [
+    "Delayed browser writer uncertainty focused proof.",
+    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+  ],
+  "limitations": [
+    "Changed video allocation rejection/adoption and failed or uncertain codec operations are component evidence; the production case changes audio and retains video.",
+    "The production case verifies signed PCMA resource adoption and submits PCMA packets; it does not independently measure post-change audio quality.",
+    "No complete transport cell, sustained A/V synchronization, quality or full failure matrix is established by this short case."
+  ]
+}

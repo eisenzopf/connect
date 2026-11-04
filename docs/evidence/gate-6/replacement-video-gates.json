@@ -134,5 +134,14 @@
   "limitations": [
     "Production case proves hold/resume; mute/unmute and invalid/replayed results are component evidence in this run.",
     "No complete transport cell, sustained A/V synchronization, quality, all control failures or codec resource replacement is qualified by this short run."
-  ]
+  ],
+  "codec_adoption_follow_up": {
+    "status": "focused-codec-adoption-pass",
+    "source_revision": "2b40c76dca98c8477afb51f0c6f1f8dc36571587",
+    "evidence": "docs/evidence/gate-6/replacement-video-codecs.json",
+    "remaining": [
+      "Delayed browser writer uncertainty focused proof.",
+      "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+    ]
+  }
 }
