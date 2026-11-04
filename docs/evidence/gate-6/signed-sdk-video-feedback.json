@@ -1,0 +1,50 @@
+{
+  "format": "connect/gate6-signed-sdk-video-feedback/1",
+  "task": "G6-058",
+  "status": "verification-running",
+  "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "SDK ClientConfig.native_video_feedback explicitly opts configured Rust/Node/Python helpers into rtcp-pli-epoch/1; defaultfalse and ordinary Client::connect unchanged.",
+    "Production canonical server advertises support via its installed signed lifecycle writer; both peer offer and confirmation must select the profile."
+  ],
+  "verification_snapshot": {
+    "stage": "compile-signed-server",
+    "source_guard_active": true,
+    "controller_pid": 121476,
+    "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
+    "passed": false,
+    "steps": [
+      {
+        "group": "sdk",
+        "case": "sdk::connections::feedback_offer_tests::video_feedback_offer_is_explicit_and_preserves_the_source_clock_and_streams",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 282 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "872ac280615e8b84faced2a2a7aa9d40c4185957a27edde3b52ed39ef8675a28"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "signed_sdk_feedback_candidate": true,
+    "builds": [
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "506e65051544d5d03d18ee24e0b029e83cb114a39eeaa3d95407208b723d523c",
+        "test_executable_sha256": "e5534cbc64e5969e5ea927e60f1d07c6e9d9a429c47f163e143e1e3062d87a82",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true
+  },
+  "pending": [
+    "Final source/prepared/executable guard checks are not complete.",
+    "Production signed SDK/server case is compiling: same-SSRC reselection, actual publisher feedback, actual live VP8 frame2 at RTP6000, independent decoding and hold refusal. No integration pass claimed.",
+    "Replacement peer/browser integration and full transport matrix remain open; G6-054 deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}
