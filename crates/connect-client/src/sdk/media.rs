@@ -1,4 +1,5 @@
 //! One bounded native receive inbox; slow media readers cannot block control.
+pub(super) mod feedback;
 use super::streams::StreamKey;
 use super::video_feedback::epochs::{Notice, Role};
 use super::*;
@@ -17,6 +18,10 @@ const RECEIVE_QUEUE_AGE: Duration = Duration::from_millis(200);
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MediaStats {
     pub received_datagrams: u64,
+    /// Valid syntax received on a selected publisher feedback binding.
+    pub feedback_datagrams: u64,
+    /// Duplicate, overwritten or expired bounded feedback hints.
+    pub feedback_drops: u64,
     pub rtp_packets: u64,
     pub clock_reports: u64,
     pub malformed_datagrams: u64,
@@ -35,6 +40,7 @@ pub(super) struct Binding {
     pub clock: bool,
 }
 struct Queue {
+    feedback: feedback::FeedbackState,
     video: Option<NativeVideoFeedback>,
     receiver_epoch: Option<Notice>,
     receiver_epoch_active: bool,
@@ -86,6 +92,7 @@ impl Inbox {
             s.queues.insert(
                 key,
                 Queue {
+                    feedback: Default::default(),
                     video: selected.video_feedback.get(&stream.id).cloned(),
                     receiver_epoch: None,
                     receiver_epoch_active: false,
@@ -126,6 +133,8 @@ impl Inbox {
             *slot = Some(notice);
             if receiver {
                 queue.receiver_epoch_active = true;
+            } else {
+                queue.feedback.announce_publisher();
             }
         }
         drop(s);
@@ -164,6 +173,12 @@ impl Inbox {
             return Ok(());
         }
         s.stats.received_datagrams = s.stats.received_datagrams.saturating_add(1);
+        if bytes.get(9) == Some(&206) && bytes.get(1) == Some(&0) {
+            Self::push_feedback(&mut s, &bytes);
+            drop(s);
+            self.changed.notify_waiters();
+            return Ok(());
+        }
         let tagged = bytes.get(1) == Some(&rvoip_uctp::substrate::VIDEO_EPOCH_FLAG);
         let (parsed, video_tag, body_offset) = match if tagged {
             rvoip_uctp::substrate::observe_video_epoch_datagram(&bytes).map(|p| {
@@ -320,6 +335,7 @@ impl Inbox {
             };
             let key = key(&stream.id);
             let queue = s.queues.entry(key.clone()).or_insert_with(|| Queue {
+                feedback: Default::default(),
                 video: selected.video_feedback.get(&stream.id).cloned(),
                 receiver_epoch: None,
                 receiver_epoch_active: false,
@@ -339,6 +355,9 @@ impl Inbox {
             if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
                 queue.receiver_epoch_active = false;
             }
+            if !matches!(direction, Direction::Sendonly | Direction::Sendrecv) {
+                queue.feedback.disable_publisher();
+            }
             let lost = if changed || !matches!(direction, Direction::Recvonly | Direction::Sendrecv)
             {
                 let count = queue.items.len();
@@ -353,6 +372,7 @@ impl Inbox {
                 queue.receiver_epoch = None;
                 queue.receiver_epoch_active = false;
                 queue.publisher_epoch = None;
+                queue.feedback = Default::default();
             }
             queue.video = selected.video_feedback.get(&stream.id).cloned();
             let old = queue.binding.stream.stream_local_id;
@@ -394,6 +414,9 @@ impl Inbox {
                 .get_mut(key)
                 .ok_or_else(|| Error::local(ErrorKind::Protocol))?;
             queue.binding.stream.direction = *direction;
+            if !matches!(direction, Direction::Sendonly | Direction::Sendrecv) {
+                queue.feedback.disable_publisher();
+            }
             if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
                 queue.receiver_epoch_active = false;
                 let packets = queue.items.len();

@@ -157,6 +157,33 @@ impl Stream {
             )
             .await
     }
+    /// Request a fresh keyframe for the current signed receive epoch. Success
+    /// means local queue submission only. The service rechecks both endpoints'
+    /// current authority and coalesces publisher requests; this never replays video.
+    pub async fn request_keyframe(&self, options: RequestOptions) -> Result<LocalMediaSubmission> {
+        self.client
+            .shared
+            .request_keyframe(self.key.clone(), options)
+            .await
+    }
+    /// Receive a bounded hint for this local video publisher. This separate
+    /// control API does not grant a send-only Stream an RTP receive direction.
+    pub async fn receive_video_feedback(
+        &self,
+        options: RequestOptions,
+    ) -> Result<VideoKeyframeRequest> {
+        self.client
+            .shared
+            .receive_video_feedback(&self.key, options)
+            .await
+    }
+    /// Recheck local allocation, authenticated source history, gate and original
+    /// age immediately before applying a hint to the next fresh encoded frame.
+    pub fn video_feedback_is_current(&self, request: &VideoKeyframeRequest) -> Result<bool> {
+        self.client
+            .shared
+            .video_feedback_is_current(&self.key, request)
+    }
     /// Cloned handles consume one shared per-stream queue. Cancellation and
     /// timeout leave packets and other streams/control waits owned and usable.
     pub async fn receive_packet(&self, options: RequestOptions) -> Result<MediaPacket> {

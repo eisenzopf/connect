@@ -47,9 +47,13 @@ pub(super) struct Shared {
     media_requests: mpsc::Sender<MediaCommand>,
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
 }
+enum MediaSend {
+    Packet(MediaPacket),
+    Keyframe(media::feedback::KeyframeTarget),
+}
 struct MediaCommand {
     key: streams::StreamKey,
-    packet: MediaPacket,
+    packet: MediaSend,
     expires: tokio::time::Instant,
     signal: CancellationToken,
     reply: oneshot::Sender<Result<LocalMediaSubmission>>,
@@ -263,12 +267,18 @@ impl Shared {
                         }
                         let result=(|| {
                             let binding=native_binding(&owned_native,&command.key)?;
-                            let (bytes,datagram_sequence)=media::encode(&binding,&command.packet)?;
-                            peer.send_native_media_datagram(&bytes).map_err(|e| {
+                            let transport_error=|e| {
                                 let kind=Error::transport(e,None).kind;
                                 Error::media(kind,!matches!(kind,ErrorKind::Protocol|ErrorKind::Validation|ErrorKind::Configuration))
-                            })?;
-                            Ok(LocalMediaSubmission{datagram_sequence})
+                            };
+                            match &command.packet {
+                                MediaSend::Packet(packet)=>{
+                                    let (bytes,datagram_sequence)=media::encode(&binding,packet)?;
+                                    peer.send_native_media_datagram(&bytes).map_err(transport_error)?;
+                                    Ok(LocalMediaSubmission{datagram_sequence})
+                                },
+                                MediaSend::Keyframe(target)=>owned_media.send_keyframe(&binding,target,|bytes|peer.send_owned_video_feedback(bytes).map_err(transport_error)),
+                            }
                         })();
                         let _=command.reply.send(result);
                     }
@@ -425,6 +435,61 @@ impl Shared {
         // Validate all retained packet/report bytes before entering the bounded queue.
         let binding = native_binding(&self.native, &key)?;
         media::encode(&binding, &packet)?;
+        self.queue_media(key, MediaSend::Packet(packet), options)
+            .await
+    }
+    pub(super) async fn request_keyframe(
+        &self,
+        key: streams::StreamKey,
+        options: RequestOptions,
+    ) -> Result<LocalMediaSubmission> {
+        options.validate()?;
+        if self.closed.load(Ordering::Acquire) || options.signal.is_cancelled() {
+            return Err(Error::media(ErrorKind::Cancelled, false));
+        }
+        native_binding(&self.native, &key)?;
+        let target = self.media.keyframe_target(&key)?;
+        self.queue_media(key, MediaSend::Keyframe(target), options)
+            .await
+    }
+    pub(super) async fn receive_video_feedback(
+        &self,
+        key: &streams::StreamKey,
+        options: RequestOptions,
+    ) -> Result<VideoKeyframeRequest> {
+        options.validate()?;
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::media(ErrorKind::Cancelled, false));
+        }
+        native_binding(&self.native, key)?;
+        self.media.receive_feedback(key, options).await
+    }
+    pub(super) fn video_feedback_is_current(
+        &self,
+        key: &streams::StreamKey,
+        request: &VideoKeyframeRequest,
+    ) -> Result<bool> {
+        if self.closed.load(Ordering::Acquire) {
+            return Ok(false);
+        }
+        let binding = match native_binding(&self.native, key) {
+            Ok(b) => b,
+            Err(_) => return Ok(false),
+        };
+        if !matches!(
+            binding.stream.direction,
+            Direction::Sendonly | Direction::Sendrecv
+        ) {
+            return Ok(false);
+        }
+        self.media.feedback_is_current(key, request)
+    }
+    async fn queue_media(
+        &self,
+        key: streams::StreamKey,
+        packet: MediaSend,
+        options: RequestOptions,
+    ) -> Result<LocalMediaSubmission> {
         let expires = tokio::time::Instant::now() + options.timeout;
         let permit = tokio::select! {biased;
             _=options.signal.cancelled()=>return Err(Error::media(ErrorKind::Cancelled,false)),

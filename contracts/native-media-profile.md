@@ -293,3 +293,33 @@ never authorizes feedback. These SDK changes pass three focused local ARM checks
 `docs/evidence/gate-6/sdk-video-epoch-join.json`. Typed publisher feedback,
 helper/browser/direct-peer integration and real decoder
 bootstrap/fragment-loss recovery remain required before production opt-in.
+
+
+### Typed local keyframe feedback
+
+The Rust SDK exposes `Stream::request_keyframe`, `Stream::receive_video_feedback`
+and `Stream::video_feedback_is_current`. Receiver requests capture the exact
+current selected allocation and signed receive history before entering the
+existing bounded media command queue. Submission rechecks that target; a changed
+route refuses instead of retargeting the queued request. A possibly uncertain
+submission consumes its native serial once and is never implicitly retried.
+Success reports local transport submission, not server admission or delivery.
+
+The publisher control path is separate from RTP receive direction. It accepts
+only the explicit 48-byte PLI/epoch form on a selected Video publisher binding.
+There is at most one pending hint per existing Stream. Its original arrival
+expires after 200 ms, and serial high-water state survives consumption/expiry so
+replays cannot renew that age. Unknown epochs wait for their matching signed
+publisher notice; handle, actual SSRC and current selected allocation must agree.
+Local hold, binding replacement, retirement and client shutdown invalidate hints.
+`VideoKeyframeRequest` has read-only sequence/SSRC/epoch/revision accessors and
+an original-age `expires_in` value. Clones never extend it, and a request cannot
+be applied to a different physical client's otherwise identical binding.
+
+The live source must call `video_feedback_is_current` immediately before asking
+its owned encoder to encode the next eligible fresh source frame. No encoded
+history is replayed and no timestamp or frame index is reset. Core separately
+rechecks current source/receiver authority and retains its shared publisher
+100 ms feedback limit. These APIs remain verification-pending and production
+profile opt-in remains disabled until runtime integration and decoder recovery
+are demonstrated.

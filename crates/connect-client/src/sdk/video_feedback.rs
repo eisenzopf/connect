@@ -18,6 +18,41 @@ pub struct NativeVideoFeedback {
     pub connection_generation: u64,
 }
 
+/// A bounded keyframe hint for this physical publisher's current allocation.
+/// It is not media permission. Recheck with `Stream::video_feedback_is_current`
+/// immediately before asking the owned encoder for its next fresh frame.
+#[derive(Clone, Debug)]
+pub struct VideoKeyframeRequest {
+    pub(super) datagram_sequence: u32,
+    pub(super) ssrc: u32,
+    pub(super) epoch: String,
+    pub(super) epoch_revision: u64,
+    pub(super) key: streams::StreamKey,
+    pub(super) allocation: NativeVideoFeedback,
+    pub(super) history: epochs::VideoReceiveEpoch,
+    pub(super) binding_id: u128,
+    pub(super) expires: tokio::time::Instant,
+}
+impl VideoKeyframeRequest {
+    pub fn datagram_sequence(&self) -> u32 {
+        self.datagram_sequence
+    }
+    pub fn ssrc(&self) -> u32 {
+        self.ssrc
+    }
+    pub fn epoch(&self) -> &str {
+        &self.epoch
+    }
+    pub fn epoch_revision(&self) -> u64 {
+        self.epoch_revision
+    }
+    /// Remaining original-arrival lifetime; cloning never renews this deadline.
+    pub fn expires_in(&self) -> Duration {
+        self.expires
+            .saturating_duration_since(tokio::time::Instant::now())
+    }
+}
+
 pub(super) struct Selection<'a> {
     pub local: &'a Value,
     pub remote: &'a Value,

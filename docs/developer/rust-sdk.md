@@ -928,3 +928,14 @@ decoder history when this identity changes; metadata grants no feedback right.
 The profile remains disabled by default while live encoder recovery and the
 remaining runtime integrations are completed. See
 [`native-media-profile.md`](../../contracts/native-media-profile.md).
+
+
+For a selected video feedback profile, a receiver calls
+`stream.request_keyframe(options).await` for its current authenticated epoch.
+A local video source awaits `stream.receive_video_feedback(options)` separately
+from media reception, then checks `stream.video_feedback_is_current(&request)`
+immediately before encoding the next fresh frame. The hint's read-only epoch,
+SSRC, serial and original remaining lifetime never grant media authority. A
+changed route or expired hint must be discarded; no encoded frame is replayed.
+The service continues to enforce current source/receiver authorization and its
+shared publisher feedback limit.

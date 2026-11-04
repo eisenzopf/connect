@@ -2,11 +2,40 @@
 use super::*;
 #[derive(Clone, Copy)]
 pub(crate) enum Traffic {
+    VideoFeedback,
     ClockThenPcm,
     ForeignClock,
     ClockOnly,
 }
 pub(super) async fn emit(traffic: Traffic, connection: &quinn::Connection, ready: &Notify) {
+    if matches!(traffic, Traffic::VideoFeedback) {
+        let bytes = tokio::time::timeout(Duration::from_secs(2), connection.read_datagram())
+            .await
+            .unwrap()
+            .unwrap();
+        let request = rvoip_uctp::substrate::observe_video_feedback_datagram(&bytes).unwrap();
+        assert_eq!(
+            (
+                request.stream_local_id,
+                request.seq,
+                request.media_ssrc,
+                request.activation_epoch
+            ),
+            (7, 77, 83, 11)
+        );
+        connection.send_datagram(bytes).unwrap();
+        let mut rtp = vec![0x80, 96, 0, 100];
+        rtp.extend_from_slice(&3000u32.to_be_bytes());
+        rtp.extend_from_slice(&83u32.to_be_bytes());
+        rtp.extend_from_slice(&[0x10, 0x31]);
+        let mut native = vec![1, 0, 0, 7];
+        native.extend_from_slice(&100u32.to_be_bytes());
+        native.extend_from_slice(&rtp);
+        let tagged = rvoip_uctp::substrate::tag_video_epoch_datagram(&native, 11).unwrap();
+        connection.send_datagram(tagged).unwrap();
+        ready.notify_one();
+        return;
+    }
     let wire = pack_sender_clock_datagram(&SenderClockDatagram {
         stream_local_id: if matches!(traffic, Traffic::ForeignClock) {
             8

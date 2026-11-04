@@ -1,0 +1,24 @@
+{
+  "format": "connect/gate6-sdk-video-keyframe-feedback/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Typed separate receive_video_feedback/request_keyframe/video_feedback_is_current APIs. Existing bounded worker owns all transport submissions; original target rechecked at actual send, uncertain attempts consume serial without retry.",
+    "One pending PLI per existing selected Video publisher; exact epoch/SSRC/allocation, serial replay watermark and200ms original-arrival lifetime. No send-only RTP receive bypass; holds/retirement/current peer expiry and cross-client reuse refuse.",
+    "Canonical owned transport explicitly parses feedback and accepts bounded tagged receive envelopes while ordinary native media parser remains strict."
+  ],
+  "planned_checks": [
+    "sdk::media::feedback::tests::publisher_feedback_is_bounded_current_and_never_grants_media_receive_direction",
+    "sdk::media::feedback::tests::queued_keyframe_request_cannot_retarget_or_retry_an_uncertain_submission",
+    "canonical::native::tests::owned_video_feedback_transport_keeps_explicit_syntax_and_current_peer_authority"
+  ],
+  "limits": [
+    "State/admission tests and controlled post-auth physical QUIC syntax/current-expiry case; no full production server or SDK encoder recovery claim.",
+    "Helper Node/Python APIs, browser/direct-peer profile wiring and actual live decoder bootstrap/fragment-loss proofs remain open. Production opt-in remains disabled.",
+    "No previous passed cases or full workload rerun. No complete transport cell or task-complete claim. G6-054 remains deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

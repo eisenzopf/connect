@@ -188,6 +188,24 @@ impl CanonicalClient {
             .send_datagram(bytes.to_vec().into())
             .map_err(|_| ClientError::Transport)
     }
+    /// The SDK has already matched its exact selected receive epoch. Syntax and
+    /// current physical-peer authority are checked again at actual submission.
+    pub(crate) fn send_owned_video_feedback(&self, bytes: &[u8]) -> Result<()> {
+        rvoip_uctp::substrate::observe_video_feedback_datagram(bytes)
+            .map_err(|_| ClientError::Protocol)?;
+        let mut current = self.pending()?;
+        current.complete = true;
+        if self
+            .connection
+            .max_datagram_size()
+            .is_none_or(|limit| bytes.len() > limit)
+        {
+            return Err(ClientError::Protocol);
+        }
+        self.connection
+            .send_datagram(bytes.to_vec().into())
+            .map_err(|_| ClientError::Transport)
+    }
     /// The SDK owns this atomic read alongside its independently owned signed reader.
     /// Idle media has no frame deadline; current peer authority still gates both ends.
     pub(crate) async fn receive_owned_native_datagram(&self) -> Result<Vec<u8>> {
@@ -199,7 +217,7 @@ impl CanonicalClient {
             .await
             .map_err(|_| ClientError::Transport)?;
         self.check_current()?;
-        if bytes.len() > MAX_NATIVE_MEDIA_DATAGRAM {
+        if bytes.len() > MAX_NATIVE_MEDIA_DATAGRAM + 16 {
             return Err(ClientError::Protocol);
         }
         Ok(bytes.to_vec())
@@ -232,6 +250,67 @@ impl CanonicalClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn owned_video_feedback_transport_keeps_explicit_syntax_and_current_peer_authority() {
+        use crate::canonical::tests::{controlled, native_media::Traffic, Fault};
+        use rvoip_uctp::substrate::{
+            observe_video_epoch_datagram, observe_video_feedback_datagram,
+            pack_video_feedback_datagram, VideoFeedbackDatagram,
+        };
+        let (mut client, server, _) =
+            controlled(Fault::NativeDatagrams(Traffic::VideoFeedback)).await;
+        client
+            .operation_get(
+                "op_probe",
+                CommandScope {
+                    conversation_id: Some("conv_one".into()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        let bytes = pack_video_feedback_datagram(&VideoFeedbackDatagram {
+            stream_local_id: 7,
+            seq: 77,
+            sender_ssrc: 1,
+            media_ssrc: 83,
+            activation_epoch: 11,
+        })
+        .unwrap();
+        assert!(client.send_native_media_datagram(&bytes).is_err());
+        let mut malformed = bytes.to_vec();
+        malformed[28] = 0;
+        assert!(client.send_owned_video_feedback(&malformed).is_err());
+        client.send_owned_video_feedback(&bytes).unwrap();
+        let a = tokio::time::timeout(
+            Duration::from_secs(2),
+            client.receive_owned_native_datagram(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        let b = tokio::time::timeout(
+            Duration::from_secs(2),
+            client.receive_owned_native_datagram(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        let (feedback, video) = if a.len() == 48 { (&a, &b) } else { (&b, &a) };
+        assert_eq!(observe_video_feedback_datagram(feedback).unwrap().seq, 77);
+        let packet = observe_video_epoch_datagram(video).unwrap();
+        assert_eq!(packet.epoch, 11);
+        assert_eq!(packet.rtp.packet().header.timestamp, 3000);
+        assert!(observe_native_media_datagram(video).is_err());
+        client.authenticated_until = chrono::Utc::now() - chrono::Duration::seconds(1);
+        assert!(matches!(
+            client.send_owned_video_feedback(&bytes),
+            Err(ClientError::Authentication)
+        ));
+        assert!(client.closed.load(Ordering::Acquire));
+        client.shutdown().await.unwrap();
+        server.await.unwrap();
+    }
     #[test]
     fn native_wire_validator_accepts_clock_metadata_and_rtp_without_rewriting_either() {
         let report = SenderClockDatagram {
