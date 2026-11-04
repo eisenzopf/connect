@@ -74,5 +74,63 @@
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "task_complete": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "rust_build_attempts": [
+    {
+      "run": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 115753,
+        "source_revision": "26b27d4bee38c137b24a6270d6cdb0f7e8d1ec2d",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "video_routing_candidate": true,
+        "builds": [
+          {
+            "group": "sdk",
+            "compile_exit_code": 101,
+            "compile_log_sha256": "0f2eacb61ba229cdc403c88e7d4a294cc4a9037653d1530a01c27798bc5ced7c"
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.4689022220118204
+      },
+      "cause": "Runner requested nonexistent client test-support feature; no compilation or tests. Corrected runner flag only."
+    },
+    {
+      "run": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 115864,
+        "source_revision": "26b27d4bee38c137b24a6270d6cdb0f7e8d1ec2d",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "video_routing_candidate": true,
+        "builds": [
+          {
+            "group": "sdk",
+            "compile_exit_code": 101,
+            "compile_log_sha256": "72c63d9be347c20e1d0250e0051a17b482dbb66429ddb509599ce63e6efdb81c"
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 63.57474070999888
+      },
+      "cause": "New Rust include_str fixture path went one parent too far. Corrected to existing repository fixture at 2c63f906; no tests executed."
+    }
+  ],
+  "rust_retry_source": "2c63f906de05b9673faa8dcf0b466a11701a75b5",
+  "rust_retry_status": "Running new exact Rust activation case, then failed signed native video case only"
 }

@@ -49,9 +49,17 @@ Movement targets exactly one Endpoint or prepared candidate Connection. Those
 IDs and topology/Conversation revisions have distinct declaration brands.
 Saved contexts bind the complete Conversation/Session/controller scope,
 retained Connection and exact target/role intent. Incoming helper references
-must match the original submitted context. Typed results require bounded,
-disjoint topology IDs, the retained original, the captured candidate/Endpoint,
+must match the original submitted context. Typed results require bounded topology IDs, the retained original, the captured candidate/Endpoint,
 correct outgoing retirement and the expected Conversation revision advance.
+
+Native movement results expose `activationState: "ready" | "stopped"`.
+`stopped` records a known physical move whose target retired before activation;
+only that exact target appears in both admitted and retired sets. Every other
+duplicate or cross-set overlap is refused. `ready` records historical activation,
+not continuing connectivity or decoded video. The separate telephone result has
+`activationState: null`. Restoring the original operation preserves this state
+and its captured generation; none of these handles acquires media custody.
+
 
 Optional `roleChange` and `binding` fields expose captured host observations.
 They confer no current role authority or media ownership. Topology handles do

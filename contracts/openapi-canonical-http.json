@@ -6059,7 +6059,7 @@
           "readiness"
         ],
         "additionalProperties": false,
-        "description": "Captured committed native/telephone replacement. Retained/admitted/retired IDs are recorded with the move, never inferred from readiness or SDK input. The replaced source is retired, the admitted ID equals connection_id, and all IDs across the three sets are distinct. Generation and membership epoch are observations, not media grants or resource revisions."
+        "description": "Captured committed telephone replacement. Retained/admitted/retired IDs are recorded with the move, never inferred from readiness or SDK input. The replaced source is retired, the admitted ID equals connection_id, and all IDs across the three sets are distinct. Generation and membership epoch are observations, not media grants or resource revisions."
       },
       "NativeReplacementActivationCompletion": {
         "type": "object",
@@ -6140,7 +6140,8 @@
             ]
           },
           "physical_readiness": {
-            "type": "object"
+            "type": "object",
+            "description": "Original physical commit observation. For ready activation this equals readiness; for stopped activation readiness is null and this remains historical."
           }
         },
         "required": [
