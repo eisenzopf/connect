@@ -1659,6 +1659,11 @@
       "path": "patches/rvoip/gate6-initial-original-snapshot-counterexample.patch",
       "sha256": "5e9fcc4c63e90da3ed204d68ae31f197046cbe02ad9dffdccc3b10ca51d4c183",
       "source": "G6-058 v131 regression investigation: new exact audio/video original ingress case holds actual controller model mutex at initial capture, requires nonblocking original custody and later current-authorized recovery; distinct fresh original proves fixture usability. Expected to fail before fix. No production changes or earlier passing tests rerun."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-original-snapshot-custody.patch",
+      "sha256": "b2d01e2eb8d79bd1fa61555632c21a6d2e3e5a53a99b9166334e70791947ec1a",
+      "source": "G6-058 v132 proves immediate initial model snapshot exclusion loses audio/video. Freeze independently readable active port/route and exact consumer/scene activation metadata at original receipt; never wait for model state or adopt a later readiness/gate. Retain whole-model revision when available; otherwise no inferred revision, with fresh current model/policy and callback revision checks required at publication. Add initial-exclusion authority/gate/expiry/pre-ready/refreshed-activation refusal cases. Verification pending."
     }
   ]
 }

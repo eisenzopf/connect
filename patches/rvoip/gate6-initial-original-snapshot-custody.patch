@@ -1,0 +1,408 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -210,6 +210,18 @@
+     pub(super) cancellation: CancellationToken,
+ }
+ impl ConsumerStamp {
++    // Descriptor freshness only; publication still reacquires current authority.
++    pub(super) fn active_at(&self, received_at: Instant) -> bool {
++        self.owner.upgrade().is_some_and(|owner| {
++            let state = owner.state.lock().unwrap_or_else(|p| p.into_inner());
++            state.active
++                && state.epoch == self.epoch
++                && state.started == self.started
++                && self.started <= received_at
++                && self.ticket.is_current()
++                && !self.cancellation.is_cancelled()
++        })
++    }
+     pub(super) fn is_current(&self) -> bool {
+         self.owner.upgrade().is_some_and(|owner| {
+             let state = owner.state.lock().unwrap_or_else(|p| p.into_inner());
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -3,15 +3,30 @@
+ use super::*;
+ 
+ pub(super) struct OriginalStamp {
+-    revision: u64,
++    revision: Option<u64>,
++    received_at: Instant,
+     credential: CredentialSnapshot,
+     consumer: Option<audio_consumer::ConsumerStamp>,
+     scene: Option<scene_consumer::SceneStamp>,
+ }
+ impl OriginalStamp {
+     pub(super) fn validate(&self, owner: &StreamController, state: &State) -> ControlResult<()> {
+-        if state.model.revision() != self.revision {
++        if self
++            .revision
++            .is_some_and(|revision| state.model.revision() != revision)
++        {
+             return Err(MediaTransitionError::Conflict.into());
++        }
++        if self
++            .consumer
++            .as_ref()
++            .is_some_and(|s| !s.active_at(self.received_at))
++            || self
++                .scene
++                .as_ref()
++                .is_some_and(|s| !s.active_at(self.received_at))
++        {
++            return Err(StreamControlError::NotReady);
+         }
+         owner.check_credential_snapshot(&self.credential)
+     }
+@@ -28,9 +43,9 @@
+     finished: bool,
+ }
+ impl AdapterMediaPort {
+-    /// Capture the original active route and generations before policy can
+-    /// refuse temporarily. An unavailable initial snapshot cannot be recaptured
+-    /// later: no unqualified pre-ready packet enters retained custody.
++    /// Capture original active port/route/consumer/scene generations before
++    /// policy can refuse temporarily. Model exclusion retains these descriptors,
++    /// never a grant. Current model and policy must pass before publication.
+     /// None means an isolated preparation observer consumed the frame.
+     pub fn retain_original_ingress(
+         &self,
+@@ -70,33 +85,62 @@
+                 return result.map(|()| None);
+             }
+         }
+-        let state = owner
+-            .state
+-            .try_lock()
+-            .map_err(|_| StreamControlError::NotReady)?;
++        // Port readiness and delivery generations are independently readable.
++        // Never wait for model metadata on the physical packet reader, and never
++        // adopt a port committed after the original receive observation.
+         if owner.shutdown.is_cancelled()
+-            || state.closed
+-            || !state
+-                .active
+-                .get(&self.0.binding.negotiated.requested.logical_id)
+-                .is_some_and(|p| Arc::ptr_eq(p, &self.0))
+-            || state
+-                .model
+-                .streams()
+-                .get(&self.0.binding.negotiated.requested.logical_id)
+-                .is_none_or(|s| !s.permits(false))
++            || self
++                .0
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .status
++                != PortStatus::Active
+         {
+             return Err(StreamControlError::NotReady);
+         }
+         let ticket = self.0.ticket();
+-        if !ticket.is_current() {
+-            return Err(StreamControlError::NotReady);
+-        }
++        if !ticket.is_current() || ticket.committed_at().is_none_or(|at| at > received_at) {
++            return Err(StreamControlError::NotReady);
++        }
++        let consumer = owner.current_consumer_stamp(&self.0)?;
++        let scene = owner.current_scene_stamp()?;
++        if consumer.as_ref().is_some_and(|s| !s.active_at(received_at))
++            || scene.as_ref().is_some_and(|s| !s.active_at(received_at))
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let state = match owner.state.try_lock() {
++            Ok(state) => Some(state),
++            Err(std::sync::TryLockError::WouldBlock) => None,
++            Err(std::sync::TryLockError::Poisoned(error)) => Some(error.into_inner()),
++        };
++        if let Some(state) = &state {
++            if state.closed
++                || !state
++                    .active
++                    .get(&self.0.binding.negotiated.requested.logical_id)
++                    .is_some_and(|p| Arc::ptr_eq(p, &self.0))
++                || state
++                    .model
++                    .streams()
++                    .get(&self.0.binding.negotiated.requested.logical_id)
++                    .is_none_or(|s| !s.permits(false))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        // If available, retain the stricter whole-model revision too. If busy,
++        // no revision is inferred or recaptured: the frozen active port ticket
++        // fences gate/codec/retirement ABA, and the frozen consumer/scene stamps
++        // fence audience/readiness. Admission still validates the current model
++        // before and after fresh policy, including its revision across that call.
+         let stamp = OriginalStamp {
+-            revision: state.model.revision(),
++            revision: state.as_ref().map(|s| s.model.revision()),
++            received_at,
+             credential: owner.credential_snapshot(),
+-            consumer: owner.current_consumer_stamp(&self.0)?,
+-            scene: owner.current_scene_stamp()?,
++            consumer,
++            scene,
+         };
+         Ok(Some(OriginalIngress {
+             port: self.clone(),
+@@ -141,6 +185,12 @@
+             .ok_or(StreamControlError::Cancelled)?;
+         if !self.ticket.is_current() {
+             return Err(StreamControlError::NotReady);
++        }
++        {
++            let state = self.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++            if !state.ready || state.status != PortStatus::Active {
++                return Err(StreamControlError::NotReady);
++            }
+         }
+         let (lease, admission, deadline) = owner.admit_original_or_queued(
+             &self.port.0,
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -85,6 +85,19 @@
+     pub(super) cancel: CancellationToken,
+ }
+ impl SceneStamp {
++    // Freeze actual activation as well as identity; a later activation of the
++    // same object must not make a pre-ready packet eligible for publication.
++    pub(super) fn active_at(&self, received_at: Instant) -> bool {
++        self.owner.upgrade().is_some_and(|owner| {
++            let state = owner.state.lock().unwrap_or_else(|p| p.into_inner());
++            state.active
++                && state.started == self.started
++                && self.started <= received_at
++                && self.ticket.same_generation(&state.ticket)
++                && self.ticket.is_current()
++                && !self.cancel.is_cancelled()
++        })
++    }
+     pub(super) fn same_generation(&self, other: &Self) -> bool {
+         Weak::ptr_eq(&self.owner, &other.owner)
+             && self.scene == other.scene
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -170,13 +170,8 @@
+     f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
+         .await
+         .unwrap();
+-    // A model busy at the initial snapshot cannot promise an active generation.
+-    let held = f.a.state.lock().unwrap();
+-    assert!(matches!(
+-        port.retain_original_ingress(frame(&port, 160), Instant::now()),
+-        Err(StreamControlError::NotReady)
+-    ));
+-    drop(held);
++    // Initial model exclusion is covered by the dedicated nonblocking capture
++    // and refusal cases below; it no longer discards an otherwise current input.
+     port.0.state.lock().unwrap().ready = false;
+     assert!(port
+         .retain_original_ingress(frame(&port, 160), Instant::now())
+@@ -238,3 +233,202 @@
+         "initial model exclusion discarded the original before bounded custody"
+     );
+ }
++
++#[tokio::test]
++async fn original_ingress_initial_exclusion_cannot_adopt_later_gates_or_authority() {
++    for medium in [Medium::Audio, Medium::Video] {
++        for action in 0..10 {
++            let (f, mode) = fixture().await;
++            mode.store(0, Ordering::SeqCst);
++            let port = f.aa.port(medium);
++            let id = desired(medium).logical_id;
++            let mut input = f.a.take_ingress(&id).unwrap();
++            let at = Instant::now();
++            let held = f.a.state.lock().unwrap();
++            let mut original = port
++                .retain_original_ingress(frame(&port, 160), at)
++                .unwrap()
++                .unwrap();
++            assert!(matches!(
++                original.try_publish_clocked(|_| None),
++                Err(StreamControlError::MetadataBusy)
++            ));
++            drop(held);
++            let mut consumer = None;
++            let mut scene = None;
++            match action {
++                0 => {
++                    f.policy
++                        .0
++                        .try_write()
++                        .unwrap()
++                        .revoked
++                        .insert("alice".into());
++                }
++                1 => f.a.shutdown.cancel(),
++                2 => port.0.retire(),
++                3 => {
++                    let ids = [id.clone()].into_iter().collect();
++                    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Mute, deadline())
++                        .await
++                        .unwrap();
++                    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
++                        .await
++                        .unwrap();
++                }
++                4 => {
++                    let c = AudioConsumer::optional(Some(id.clone()), 8000);
++                    c.activate(true);
++                    *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&c));
++                    consumer = Some(c);
++                }
++                5 => {
++                    let c = SceneConsumer::new(12);
++                    c.activate();
++                    *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&c));
++                    scene = Some(c);
++                }
++                6 => f.a.credential.lock().unwrap().revision += 1,
++                7 => tokio::time::sleep(Duration::from_millis(205)).await,
++                8 => {
++                    mode.store(2, Ordering::SeqCst);
++                    assert!(matches!(
++                        original.try_publish_clocked(|_| None),
++                        Err(StreamControlError::NotReady)
++                    ));
++                    mode.store(0, Ordering::SeqCst);
++                }
++                9 => {
++                    port.0.state.lock().unwrap().ready = false;
++                }
++                _ => unreachable!(),
++            }
++            assert!(
++                original.try_publish_clocked(|_| None).is_err(),
++                "initially excluded original crossed {medium:?} action {action}"
++            );
++            assert!(input.try_recv().is_err());
++            drop(
++                f.policy
++                    .0
++                    .try_write()
++                    .expect("initial refusal kept authority"),
++            );
++            drop((consumer, scene));
++        }
++    }
++}
++
++#[tokio::test]
++async fn original_ingress_initial_exclusion_refuses_pre_ready_and_post_receipt_activation() {
++    for action in 0..7 {
++        let (f, mode) = fixture().await;
++        mode.store(0, Ordering::SeqCst);
++        let port = f.aa.port(Medium::Audio);
++        let id = desired(Medium::Audio).logical_id;
++        let mut input = f.a.take_ingress(&id).unwrap();
++        let at = Instant::now();
++        let mut consumer = None;
++        let mut scene = None;
++        match action {
++            0 => port.0.state.lock().unwrap().status = PortStatus::Prepared,
++            1 => port.0.state.lock().unwrap().ready = false,
++            2 | 3 => {
++                let c = AudioConsumer::optional(Some(id.clone()), 8000);
++                if action == 3 {
++                    c.activate(true);
++                }
++                *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&c));
++                consumer = Some(c);
++            }
++            4 | 5 => {
++                let c = SceneConsumer::new(13);
++                if action == 5 {
++                    c.activate();
++                }
++                *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&c));
++                scene = Some(c);
++            }
++            6 => {
++                let ids = [id.clone()].into_iter().collect();
++                f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Mute, deadline())
++                    .await
++                    .unwrap();
++                f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
++                    .await
++                    .unwrap();
++            }
++            _ => unreachable!(),
++        }
++        let held = f.a.state.lock().unwrap();
++        assert!(
++            port.retain_original_ingress(frame(&port, 160), at).is_err(),
++            "pre-ready or later activation {action} captured"
++        );
++        drop(held);
++        assert!(input.try_recv().is_err());
++        drop((consumer, scene));
++    }
++    // A packet received while already muted cannot be rescued by a later
++    // unmute, even when initial model exclusion prevented reading that mute.
++    let (f, mode) = fixture().await;
++    mode.store(0, Ordering::SeqCst);
++    let port = f.aa.port(Medium::Audio);
++    let id = desired(Medium::Audio).logical_id;
++    let mut input = f.a.take_ingress(&id).unwrap();
++    let ids = [id].into_iter().collect();
++    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Mute, deadline())
++        .await
++        .unwrap();
++    let held = f.a.state.lock().unwrap();
++    let mut original = port
++        .retain_original_ingress(frame(&port, 160), Instant::now())
++        .unwrap()
++        .unwrap();
++    drop(held);
++    f.a.set_media_gate(f.a.revision(), &ids, StreamGateAction::Unmute, deadline())
++        .await
++        .unwrap();
++    assert!(original.try_publish_clocked(|_| None).is_err());
++    assert!(input.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn original_ingress_initial_exclusion_keeps_exact_activation_instant() {
++    for audio in [true, false] {
++        let (f, mode) = fixture().await;
++        mode.store(0, Ordering::SeqCst);
++        let port = f.aa.port(Medium::Audio);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Audio).logical_id)
++                .unwrap();
++        let consumer = AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++        let scene = SceneConsumer::new(14);
++        if audio {
++            consumer.activate(true);
++            *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&consumer));
++        } else {
++            scene.activate();
++            *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&scene));
++        }
++        let held = f.a.state.lock().unwrap();
++        let mut original = port
++            .retain_original_ingress(frame(&port, 160), Instant::now())
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::MetadataBusy)
++        ));
++        drop(held);
++        // Same object/ticket, later readiness observation: original activation
++        // metadata must not be silently refreshed by a retry.
++        if audio {
++            consumer.activate(true);
++        } else {
++            scene.activate();
++        }
++        assert!(original.try_publish_clocked(|_| None).is_err());
++        assert!(input.try_recv().is_err());
++    }
++}

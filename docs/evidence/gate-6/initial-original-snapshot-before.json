@@ -1,0 +1,52 @@
+{
+  "format": "connect/initial-original-snapshot-before/1",
+  "run": "v132",
+  "source_revision": "258606fd4cba0d2964008827ead16c516b45e67c",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 170780,
+    "source_revision": "258606fd4cba0d2964008827ead16c516b45e67c",
+    "passed": false,
+    "steps": [
+      {
+        "group": "initial-model-snapshot",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_initial_model_exclusion_preserves_original_without_waiting",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 610 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "f8ed4d9cc3811b2ee51e9e10ef9954c4a4afd3e98ddceaeae39a8943be2280ae"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "initial_model_snapshot_counterexample": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "initial-model-snapshot",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "a6065cbd3ec495e555c9a0fbe431a91c07bb3ed5b7494c50116d8b96313eea54",
+        "test_executable_sha256": "e688c8864539a44c723c77f99fb6cad4e93a47e09247cdd2fa770bc8e9106ed4",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "expected_counterexample_observed": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 155.8272207669943
+  },
+  "observation": {
+    "audio": "captured=false deferred=false recovered=false exact=false fresh=true",
+    "video": "captured=false deferred=false recovered=false exact=false fresh=true"
+  },
+  "finding": "An actual held controller model mutex causes immediate refusal before original custody for both media types; no current policy or network failure is needed. Distinct fresh inputs succeed after release.",
+  "limits": "Core controlled contention proof; not proof that every v131 sequence gap has this cause. Full integrated quality remains failed.",
+  "fix_candidate": "patches/rvoip/gate6-initial-original-snapshot-custody.patch; focused verification pending",
+  "task_complete": false,
+  "cell_qualified": false
+}
