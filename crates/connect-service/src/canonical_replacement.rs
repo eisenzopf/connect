@@ -312,10 +312,12 @@ impl Runtime {
         let lease = Arc::new(lease);
         let plan = lease.plan()?;
         let resolved: Result<_> = async {
-            let read = retry_metadata(&self.stop, || async {
-                self.media
-                    .store
-                    .native_replacement_preparation_attempt_read(&lease)
+            let (read, entries) = retry_metadata(&self.stop, || async {
+                let read = self.media.store.native_replacement_preparation_attempt_read(&lease)?;
+                let entries = self.media.replacement_preparation_entries(&read)?;
+                // A refused lookup drops this attempt's read before the next
+                // bounded metadata retry. Begin/engine effects are still ahead.
+                Ok((read, entries))
             })
             .await?;
             let actor = self.media.store.revalidate(&credential).map_err(|error| {
@@ -335,7 +337,7 @@ impl Runtime {
             let telephone_target = if let Some(route) = &telephone_route {
                 let old = self
                     .media
-                    .replacement_source_owner(&read)
+                    .replacement_source_owner_with_entries(&read, &entries)
                     .map_err(|_| Error::forbidden())?;
                 Some(Arc::new(crate::telephone_replacement::authority::target(
                     self,
@@ -347,10 +349,10 @@ impl Runtime {
             } else {
                 None
             };
-            Ok((read, principal, telephone_target))
+            Ok((read, entries, principal, telephone_target))
         }
         .await;
-        let (read, principal, telephone_target) = match resolved {
+        let (read, entries, principal, telephone_target) = match resolved {
             Ok(value) => value,
             Err(error) => {
                 self.abort_unstarted_replacement(lease.clone(), &error.code)
@@ -375,6 +377,7 @@ impl Runtime {
         let invocation = ReplacementPreparationInvocation {
             policy: self.media.clone(),
             read: Arc::new(read),
+            entries,
             principal: principal.clone(),
             intent: intent(&plan)?,
             deadline,

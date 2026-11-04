@@ -1,0 +1,102 @@
+{
+  "format": "connect/preparation-registry-counterexample/1",
+  "run": "v135",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "source_revision": "c4f4f7270deb41d2dd2f3cfe49d37db7a969679f",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 174815,
+    "source_revision": "c4f4f7270deb41d2dd2f3cfe49d37db7a969679f",
+    "passed": false,
+    "steps": [
+      {
+        "group": "production-replacement",
+        "case": "sdk_handles::replacement_video_recovery::signed_replacement_preparation_preserves_current_authority_under_registry_contention",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 1.59s"
+        ],
+        "log_sha256": "180048fca0616ab20890d077422e1c77d33d9336d8fe929ddddca264f1d43211"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "preparation_registry_counterexample": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "production-replacement",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "c6e6cb122d40051badcc3fca344b5ef55875ff445f2aa05b918677bcd671f888",
+        "test_executable_sha256": "1d636ab79e119879cedeed7a8c90ddaf953dca14499e7816e87ba013e1f05750",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "expected_counterexample_observed": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 994.2335098319891
+  },
+  "original_operations": [
+    {
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "ledger_sha256": "d48cce3e48de2f61281f54a15e8ecaa462a48229f7d8561e4890d323dbefe7d7"
+    }
+  ],
+  "probe_markers": [
+    "original preparation registry probe: before=true held=false cancelled_refused=true after=true"
+  ],
+  "log_sha256": "180048fca0616ab20890d077422e1c77d33d9336d8fe929ddddca264f1d43211",
+  "one_normal_original": true,
+  "scope": "One actual signed production listener preparation invocation. The test-only probe makes no engine effect. Normal original replacement and independent VP8 decode execute once; this is not the full four-move workload.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "finding": "The actual original preparation invocation succeeds before and after excluding the real media registry, but returns Authority while the registry is held. Cancelled invocation refuses. The test deliberately fails its required held-authority assertion after the ordinary original replacement completes and peers/encoder/server join.",
+  "limits": [
+    "This confirms a failure mechanism in the actual preparation path, but v134 did not log which Authority branch fired.",
+    "The counterexample is a failed behavior check, not a qualification pass.",
+    "Full four-move media quality, all32 transport cells and ten-second idle resources remain unqualified. G6-054 remains deferred."
+  ]
+}

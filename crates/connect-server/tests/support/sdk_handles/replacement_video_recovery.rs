@@ -937,7 +937,9 @@ async fn exercise(mode: u8) {
             bits & 4 != 0,
             bits & 8 != 0
         );
-        assert_eq!(bits, 15, "original preparation authority must survive registry exclusion while cancelled authority refuses");
+        eprintln!("original preparation refusal probe: wrong_owner={} missing_owner={} changed_intent={} expired={} initial_capture_busy={}",
+            bits & 16 != 0, bits & 32 != 0, bits & 64 != 0, bits & 128 != 0, bits & 256 != 0);
+        assert_eq!(bits, 511, "original preparation retains exact ownership and current authority under metadata exclusion");
     }
     eprintln!("production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP6000 and12000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified");
 }

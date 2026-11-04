@@ -14,11 +14,70 @@ use rvoip_core::{
 pub(crate) struct ReplacementPreparationInvocation {
     pub policy: Arc<Policy>,
     pub read: Arc<NativeReplacementPreparationRead>,
+    pub entries: ReplacementPreparationEntries,
     pub principal: AuthenticatedPrincipal,
     pub intent: ParticipantReplacementMutation,
     pub deadline: tokio::time::Instant,
     pub cancel: tokio_util::sync::CancellationToken,
     pub telephone: Option<Arc<crate::telephone_replacement::authority::Target>>,
+}
+/// Exact metadata owners captured before any Core preparation effect.
+/// These references confer no grant; every use checks the original read and
+/// each current physical binding/activation against its signed projection.
+#[derive(Clone)]
+pub(crate) struct ReplacementPreparationEntries {
+    entries: BTreeMap<ConnectionId, Arc<Connection>>,
+}
+impl ReplacementPreparationEntries {
+    fn entry(&self, id: &ConnectionId) -> ParticipantResult<Arc<Connection>> {
+        self.entries
+            .get(id)
+            .cloned()
+            .ok_or(ParticipantControlError::Authority)
+    }
+}
+impl Policy {
+    pub(crate) fn replacement_preparation_entries(
+        &self,
+        read: &NativeReplacementPreparationRead,
+    ) -> connect_protocol::Result<ReplacementPreparationEntries> {
+        use connect_protocol::Error;
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        let context = read.context();
+        let source = ConnectionId::from_string(context.source_runtime_connection_id.clone());
+        let retained = ConnectionId::from_string(context.retained_runtime_connection_id.clone());
+        if source == retained {
+            return Err(Error::forbidden());
+        }
+        let registry = self.entries.try_lock().map_err(|error| match error {
+            std::sync::TryLockError::WouldBlock => {
+                Error::new("authority-busy", "Original preparation entries are busy")
+            }
+            std::sync::TryLockError::Poisoned(_) => Error::storage(),
+        })?;
+        let mut entries = BTreeMap::new();
+        let retained_entry = registry
+            .get(&retained)
+            .cloned()
+            .ok_or_else(Error::forbidden)?;
+        entries.insert(retained, retained_entry);
+        if matches!(
+            read.source(),
+            connect_store::NativeReplacementSourceRead::Native(_)
+        ) {
+            let source_entry = registry
+                .get(&source)
+                .cloned()
+                .ok_or_else(Error::forbidden)?;
+            entries.insert(source, source_entry);
+        }
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(ReplacementPreparationEntries { entries })
+    }
 }
 #[cfg(feature = "test-support")]
 impl ReplacementPreparationInvocation {
@@ -49,7 +108,7 @@ impl ReplacementPreparationInvocation {
         };
         // Each temporary authority result drops before the next observation.
         let before = self.current(&scope).is_ok();
-        let (held, cancelled) = {
+        let (held, cancelled, wrong_owner, missing_owner, changed_intent, expired, capture_busy) = {
             let _registry = self.policy.entries.lock().expect("actual media registry");
             let held = self.current(&scope).is_ok();
             let mut invalid = self.clone();
@@ -59,13 +118,62 @@ impl ReplacementPreparationInvocation {
                 invalid.current(&scope),
                 Err(ParticipantControlError::Authority)
             );
-            (held, cancelled)
+            let mut wrong = self.clone();
+            let source = ConnectionId::from_string(context.source_runtime_connection_id.clone());
+            let retained =
+                ConnectionId::from_string(context.retained_runtime_connection_id.clone());
+            let other = wrong
+                .entries
+                .entry(&retained)
+                .expect("actual retained owner");
+            wrong.entries.entries.insert(source, other);
+            let wrong_owner = matches!(
+                wrong.current(&scope),
+                Err(ParticipantControlError::Authority)
+            );
+            let mut missing = self.clone();
+            missing.entries.entries.clear();
+            let missing_owner = matches!(
+                missing.current(&scope),
+                Err(ParticipantControlError::Authority)
+            );
+            let mut changed = self.clone();
+            changed.intent.retained = changed.intent.source.clone();
+            let changed_intent = matches!(
+                changed.current(&scope),
+                Err(ParticipantControlError::Authority)
+            );
+            let mut late = self.clone();
+            late.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
+            let expired = matches!(
+                self.policy.replacement_preparation_control(&scope, &late),
+                Err(ParticipantControlError::Deadline)
+            );
+            let capture_busy = self
+                .policy
+                .replacement_preparation_entries(&self.read)
+                .err()
+                .is_some_and(|error| error.code == "authority-busy");
+            (
+                held,
+                cancelled,
+                wrong_owner,
+                missing_owner,
+                changed_intent,
+                expired,
+                capture_busy,
+            )
         };
         let after = self.current(&scope).is_ok();
         let bits = usize::from(before)
             | (usize::from(held) << 1)
             | (usize::from(cancelled) << 2)
-            | (usize::from(after) << 3);
+            | (usize::from(after) << 3)
+            | (usize::from(wrong_owner) << 4)
+            | (usize::from(missing_owner) << 5)
+            | (usize::from(changed_intent) << 6)
+            | (usize::from(expired) << 7)
+            | (usize::from(capture_busy) << 8);
         probe.store(bits, Ordering::Release);
     }
 }
@@ -115,7 +223,9 @@ impl ParticipantReplacementLease for ReplacementPreparationInvocation {
         {
             return Err(deny());
         }
-        let old = self.policy.replacement_source_owner(&self.read)?;
+        let old = self
+            .policy
+            .replacement_source_owner_with_entries(&self.read, &self.entries)?;
         if let Some(target) = &self.telephone {
             if ctx.target_transport != connect_protocol::provisioning::EndpointTransport::Telephone
                 || target.principal.subject != ctx.target_route_owner_id
@@ -144,7 +254,9 @@ impl ParticipantReplacementLease for ReplacementPreparationInvocation {
         ) {
             return Err(ParticipantControlError::Unsupported);
         }
-        let principal = self.policy.replacement_source_principal(&self.read)?;
+        let principal = self
+            .policy
+            .replacement_source_principal(&self.read, &self.entries)?;
         let binding = IdentityBinding::from_authenticated(
             &principal,
             IdentityId::from_string(ctx.identity_id.clone()),
@@ -197,6 +309,7 @@ impl Policy {
     pub(crate) fn replacement_source_principal(
         &self,
         read: &NativeReplacementPreparationRead,
+        entries: &ReplacementPreparationEntries,
     ) -> ParticipantResult<AuthenticatedPrincipal> {
         let deny = || ParticipantControlError::Authority;
         if !read.current() {
@@ -205,7 +318,7 @@ impl Policy {
         let id = ConnectionId::from_string(read.context().source_runtime_connection_id.clone());
         match read.source() {
             connect_store::NativeReplacementSourceRead::Native(_) => {
-                Ok(self.entry(&id).map_err(|_| deny())?.principal.clone())
+                Ok(entries.entry(&id)?.principal.clone())
             }
             connect_store::NativeReplacementSourceRead::Telephone(phone, _) => {
                 let source = self
@@ -224,23 +337,36 @@ impl Policy {
         &self,
         read: &NativeReplacementPreparationRead,
     ) -> ParticipantResult<MediaOwner> {
+        self.replacement_source_owner_with_lookup(read, |id| {
+            self.entry(id)
+                .map_err(|_| ParticipantControlError::Authority)
+        })
+    }
+    pub(crate) fn replacement_source_owner_with_entries(
+        &self,
+        read: &NativeReplacementPreparationRead,
+        entries: &ReplacementPreparationEntries,
+    ) -> ParticipantResult<MediaOwner> {
+        self.replacement_source_owner_with_lookup(read, |id| entries.entry(id))
+    }
+    fn replacement_source_owner_with_lookup(
+        &self,
+        read: &NativeReplacementPreparationRead,
+        lookup: impl Fn(&ConnectionId) -> ParticipantResult<Arc<Connection>>,
+    ) -> ParticipantResult<MediaOwner> {
         let deny = || ParticipantControlError::Authority;
         let ctx = read.context();
         if !read.current() {
             return Err(deny());
         }
-        let retained = self
-            .entry(&ConnectionId::from_string(
-                ctx.retained_runtime_connection_id.clone(),
-            ))
-            .map_err(|_| deny())?;
+        let retained = lookup(&ConnectionId::from_string(
+            ctx.retained_runtime_connection_id.clone(),
+        ))?;
         let old = match read.source() {
             connect_store::NativeReplacementSourceRead::Native(source_read) => {
-                let source = self
-                    .entry(&ConnectionId::from_string(
-                        ctx.source_runtime_connection_id.clone(),
-                    ))
-                    .map_err(|_| deny())?;
+                let source = lookup(&ConnectionId::from_string(
+                    ctx.source_runtime_connection_id.clone(),
+                ))?;
                 let owner = source
                     .owner(source_read.target(), &source.principal, false)
                     .map_err(|_| deny())?;
