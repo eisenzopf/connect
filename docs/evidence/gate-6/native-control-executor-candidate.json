@@ -1,6 +1,6 @@
 {
   "format": "connect/native-control-executor-candidate/1",
-  "status": "implemented; local ARM verification pending",
+  "status": "implemented; four exact local ARM service cases pass",
   "counterexample_source_revision": "38570499be671dcb12fa1d0af501b7f3853d2e22",
   "counterexample_evidence": "docs/evidence/gate-6/native-control-executor-before.json",
   "change": [
@@ -15,7 +15,7 @@
     "cancelled_native_control_retains_running_sql_poll_through_drain",
     "native_control_poll_panic_remains_a_failed_drain"
   ],
-  "validation_status": "Not run yet. First case is the failed v138 regression; three additional cases are new. Tests cover no unsolicited polling, duplicate/self wakes, original deadline, nested blocking work with one pool thread, actual SQL ownership through parent cancellation, capacity/closed refusal and panic retention.",
+  "validation_status": "v139 at155dcd50: four exact cases pass, all source/prepared/executable guards pass. See docs/evidence/gate-6/native-control-executor-fix.json. Signed controls and full media remain unverified.",
   "risks_and_limits": [
     "This is a scheduling change across native stream control synchronous execution segments; signed gate/subscription and full workload behavior remain unverified.",
     "The focused single-thread counterexample does not identify the unlogged v137 SQL owner or prove a common cause for every media gap.",

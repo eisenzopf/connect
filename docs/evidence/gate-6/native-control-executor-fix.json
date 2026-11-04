@@ -1,0 +1,86 @@
+{
+  "format": "connect/native-control-executor-fix/1",
+  "run": "v139",
+  "source_revision": "155dcd50759d6ad2597f1a80bc6eb1b8d608c9cc",
+  "platform": "Owner Mac Studio local Ubuntu 24.04 ARM64 VM",
+  "passed": true,
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 180260,
+    "source_revision": "155dcd50759d6ad2597f1a80bc6eb1b8d608c9cc",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native-control-executor",
+        "case": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.43s"
+        ],
+        "log_sha256": "545c56f886fc488d646e169ba53ed8291e5d897dd5dd3d5a058588e0499b5dda"
+      },
+      {
+        "group": "native-control-executor",
+        "case": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.20s"
+        ],
+        "log_sha256": "efd8fed9599b51262d142d7dea7671397f466e86bef228ee8cae7187ac861e95"
+      },
+      {
+        "group": "native-control-executor",
+        "case": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.44s"
+        ],
+        "log_sha256": "dd7b43e794a2d62972ed1ce2d53a1bbc02650176114cfbfd46aa13a40bd69d4f"
+      },
+      {
+        "group": "native-control-executor",
+        "case": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.13s"
+        ],
+        "log_sha256": "6a45bb63f93415c16b12c90cc268a49806e3a91863cdd21080f4b9a1c9844bcd"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_control_executor_fix": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "native-control-executor",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "341a8c12ca8ff95874a92f473e1ec369baadcd1b67f3453e5dc5e0af80533c40",
+        "test_executable_sha256": "0f4397f5266135d416245b0e461be0b713c6dc836fc46f5320ff8571c499f788",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 544.4391202830011
+  },
+  "state_sha256": "929b5c8f5cb288c7ae7f4dba56ec2488256142bac2b7a67fed0828ce69df1df7",
+  "counterexample_evidence": "docs/evidence/gate-6/native-control-executor-before.json",
+  "findings": [
+    "The previously failing actual Store SQL exclusion case now preserves independent timer progress while the original read remains pending. The original control worker and SQL owner join normally.",
+    "Original future wakes and deadline remain live; duplicate/self wakes work, no unsolicited polling occurs, and a nested blocking job completes with only one blocking thread.",
+    "Cancelling the async parent retains its running SQL poll until the actual job joins. Capacity and closed admission refuse extra work.",
+    "A synthetic panic is observed and retained as a failed drain, rather than counted as successful shutdown. The test itself passes."
+  ],
+  "limits": [
+    "These four exact service cases prove scheduling and ownership behavior, not a signed listener or full media qualification.",
+    "The unlogged v137 SQL owner and contribution of this defect to every media gap remain unproven.",
+    "G6-054 remains deferred. All 32 cells and full quality/expiry/idle requirements remain open."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

@@ -364,6 +364,15 @@ async fn signed_replacement_preparation_preserves_current_authority_under_regist
         .await
         .unwrap();
 }
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_native_control_preserves_subscription_recovery_and_replacement_gates() {
+    // A new combined production-path case for the control execution bridge.
+    // Scheduler exclusion, cancellation and poll custody have separate probes.
+    tokio::time::timeout(Duration::from_secs(90), exercise(5))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -586,6 +595,69 @@ async fn exercise(mode: u8) {
             .await
             .unwrap();
     }
+    if mode == 5 {
+        let revision = target
+            .refresh(options())
+            .await
+            .unwrap()
+            .stream_revision
+            .unwrap();
+        let removed = target
+            .unsubscribe(
+                single("feedback-camera".parse().unwrap()),
+                revision,
+                mutation("executor-unselect"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(removed.stream_revision.get(), revision.get() + 1);
+        let selected = || NonEmpty {
+            first: StreamSelector::Stream("feedback-camera".parse().unwrap()),
+            rest: vec![StreamSelector::Stream(
+                "feedback-camera-voice".parse().unwrap(),
+            )],
+        };
+        let restored = target
+            .subscribe(
+                selected(),
+                removed.stream_revision,
+                mutation("executor-reselect"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(restored.stream_revision.get(), revision.get() + 2);
+        // Same original operation and expected revision: recover its result,
+        // never silently construct another logical mutation after uncertainty.
+        let recovered = target
+            .subscribe(
+                selected(),
+                removed.stream_revision,
+                mutation("executor-reselect"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(recovered.stream_revision, restored.stream_revision);
+        let actual = target
+            .refresh(options())
+            .await
+            .unwrap()
+            .stream_revision
+            .unwrap();
+        assert_eq!(actual, restored.stream_revision);
+        eprintln!("native executor signed controls: unsubscribe/resubscribe each advance once; same-operation recovery preserves the original revision");
+    }
     let source_audio = source.stream_by_id("feedback-camera-voice".parse().unwrap());
     let target_audio = target.stream_by_id("feedback-monitor-voice".parse().unwrap());
     tokio::join!(sound(&source_audio), sound(&target_audio));
@@ -803,7 +875,7 @@ async fn exercise(mode: u8) {
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 4).await;
-    if mode == 1 {
+    if mode == 1 || mode == 5 {
         eprintln!("production replacement phase: signed-hold-resume");
         let revision: u64 = rusqlite::Connection::open(&f.config.database)
             .unwrap()
