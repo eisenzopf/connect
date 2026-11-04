@@ -1,0 +1,274 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_retry.rs
+@@ -0,0 +1,35 @@
++//! Retry only the scene's definitely unpublished metadata collision.
++use super::*;
++use std::sync::Mutex;
++
++pub(crate) async fn run<T, F, Fut>(
++    cutoff: &Mutex<tokio::time::Instant>,
++    cancellation: &CancellationToken,
++    mut attempt: F,
++) -> ControlResult<T>
++where
++    F: FnMut() -> Fut,
++    Fut: std::future::Future<Output = ControlResult<T>>,
++{
++    loop {
++        if cancellation.is_cancelled() {
++            return Err(ParticipantControlError::Cancelled);
++        }
++        if tokio::time::Instant::now() >= *cutoff.lock().unwrap_or_else(|p| p.into_inner()) {
++            return Err(ParticipantControlError::Deadline);
++        }
++        match attempt().await {
++            // The scene completes all fallible audio/direct metadata checks
++            // before its first commit. Other errors, including uncertain
++            // outcomes, must never be replayed through this helper.
++            Err(ParticipantControlError::Media(StreamControlError::Backpressure)) => {}
++            result => return result,
++        }
++        let deadline = *cutoff.lock().unwrap_or_else(|p| p.into_inner());
++        tokio::select! { biased;
++            _ = cancellation.cancelled() => return Err(ParticipantControlError::Cancelled),
++            _ = tokio::time::sleep_until(deadline) => return Err(ParticipantControlError::Deadline),
++            _ = tokio::time::sleep(Duration::from_millis(2)) => {}
++        }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -17,6 +17,7 @@
+ };
+ use std::collections::BTreeSet;
+ use std::sync::atomic::{AtomicU8, Ordering};
++pub(crate) mod metadata_retry;
+ const PREPARING: u8 = 0;
+ const ATTACHED: u8 = 1;
+ const COMMITTED: u8 = 2;
+@@ -798,47 +799,60 @@
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<(AudioDeviceReplacementOutcome, AudioDeviceReplacementHandle)> {
+         let p = &plan.preparation;
+-        self.owns_replacement(p)?;
+-        p.check()?;
+-        let request = scope(p, ReplacementPhase::Commit, Some(&plan.media));
+-        let control = p
+-            .runtime
+-            .policy
+-            .current_replacement_control(&request, held)?;
+-        let authority = control.current(&request)?;
+-        check_authority(&request, &authority)?;
+-        let mut lifecycles = p.source_lifecycles.clone();
+-        lifecycles.push(p.candidate.clone());
+-        lifecycles.sort_by(|a, b| a.connection_id.cmp(&b.connection_id));
+-        let context = ManagedReplacementContext {
+-            owner: self.clone(),
+-            runtime: p.runtime.clone(),
+-            plan: plan.clone(),
+-            control,
+-            conversation: self
+-                .conversation(&p.runtime.conversation)
+-                .ok_or_else(|| RvoipError::ConversationNotFound(p.runtime.conversation.clone()))?,
+-            session: self
+-                .session(&p.runtime.session)
+-                .ok_or_else(|| RvoipError::SessionNotFound(p.runtime.session.clone()))?,
+-            lifecycles,
+-        };
+-        let result = p
+-            .runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?
+-            .commit_audio_device_replacement_managed(
+-                plan.media.clone(),
+-                p.deadline,
+-                p.cancellation.clone(),
+-                held,
+-                Some(context),
+-            )
+-            .await?;
+-        self.retire_participant_route(&result.0.replaced);
+-        Ok(result)
++        let cutoff = std::sync::Mutex::new(p.deadline);
++        // Backpressure from the scene is a definite metadata collision before
++        // publication. Each failed attempt drops its locks, controls, inflight
++        // permits and quiescence guards. Keep the original plan and cutoff;
++        // construct fresh owned control below (it need not be Sync).
++        metadata_retry::run(&cutoff, &p.cancellation, || async {
++            self.owns_replacement(p)?;
++            p.check()?;
++            let request = scope(p, ReplacementPhase::Commit, Some(&plan.media));
++            let control = p
++                .runtime
++                .policy
++                .current_replacement_control(&request, held)?;
++            {
++                let mut cutoff = cutoff.lock().unwrap_or_else(|p| p.into_inner());
++                *cutoff = (*cutoff).min(control.deadline);
++            }
++            let authority = control.current(&request)?;
++            check_authority(&request, &authority)?;
++            let mut lifecycles = p.source_lifecycles.clone();
++            lifecycles.push(p.candidate.clone());
++            lifecycles.sort_by(|a, b| a.connection_id.cmp(&b.connection_id));
++            let context = ManagedReplacementContext {
++                owner: self.clone(),
++                runtime: p.runtime.clone(),
++                plan: plan.clone(),
++                control,
++                conversation: self.conversation(&p.runtime.conversation).ok_or_else(|| {
++                    RvoipError::ConversationNotFound(p.runtime.conversation.clone())
++                })?,
++                session: self
++                    .session(&p.runtime.session)
++                    .ok_or_else(|| RvoipError::SessionNotFound(p.runtime.session.clone()))?,
++                lifecycles,
++            };
++            let attempt_deadline = *cutoff.lock().unwrap_or_else(|p| p.into_inner());
++            let result = p
++                .runtime
++                .mixer
++                .staged
++                .as_ref()
++                .ok_or(ParticipantControlError::Unsupported)?
++                .commit_audio_device_replacement_managed(
++                    plan.media.clone(),
++                    attempt_deadline,
++                    p.cancellation.clone(),
++                    held,
++                    Some(context),
++                )
++                .await?;
++            self.retire_participant_route(&result.0.replaced);
++            Ok(result)
++        })
++        .await
+     }
+     pub fn replay_staged_device_replacement(
+         &self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -843,3 +843,121 @@
+ }
+ 
+ mod video;
++
++
++#[tokio::test]
++async fn replacement_metadata_collision_retries_original_plan_and_preserves_refusals() {
++    use crate::orchestrator::participant_control::{
++        replacement::metadata_retry, ParticipantControlError,
++    };
++    for mode in ["recover", "cancel", "expire", "revoke", "role-change"] {
++        let mut f = Move::new(false).await;
++        f.io().await;
++        f.confirm().await;
++        let plan = f.plan().unwrap();
++        let expected = plan.audience().request().expected_revision;
++        let candidate = f.room.nodes["device"].controller.clone();
++        let (entered, ready) = std::sync::mpsc::channel();
++        let (release, releasing) = std::sync::mpsc::channel();
++        let (finished, released) = std::sync::mpsc::channel();
++        let holder = std::thread::spawn(move || {
++            let _state = candidate.state.lock().unwrap();
++            entered.send(()).unwrap();
++            // Bound even a broken test path; never strand the executor.
++            let _ = releasing.recv_timeout(Duration::from_secs(2));
++            drop(_state);
++            let _ = finished.send(());
++        });
++        ready.recv_timeout(Duration::from_secs(2)).unwrap();
++        let release = Mutex::new(Some(release));
++        let calls = AtomicUsize::new(0);
++        let collisions = AtomicUsize::new(0);
++        let cutoff = Mutex::new(deadline());
++        let cancel = CancellationToken::new();
++        let result = metadata_retry::run(&cutoff, &cancel, || async {
++            calls.fetch_add(1, Ordering::SeqCst);
++            let grant = f
++                .room
++                .grant(Approval::Audience(plan.audience().clone()))
++                .await;
++            let until = *cutoff.lock().unwrap();
++            let result = f
++                .room
++                .scene
++                .commit_audio_device_replacement(plan.clone(), until, cancel.clone(), &grant)
++                .await;
++            drop(grant);
++            if matches!(result, Err(StreamControlError::Backpressure)) {
++                collisions.fetch_add(1, Ordering::SeqCst);
++                assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++                release.lock().unwrap().take().unwrap().send(()).unwrap();
++                released.recv_timeout(Duration::from_secs(2)).unwrap();
++                match mode {
++                    "cancel" => cancel.cancel(),
++                    "expire" => *cutoff.lock().unwrap() = tokio::time::Instant::now(),
++                    "revoke" => {
++                        f.room
++                            .domain
++                            .base
++                            .0
++                            .write()
++                            .await
++                            .revoked
++                            .insert("alice".into());
++                    }
++                    "role-change" => {
++                        let ids = [ConnectionId::from_string("alice")];
++                        let target = f.room.scene.role_targets(&ids).remove(0);
++                        target
++                            .prepare_role(until, CancellationToken::new())
++                            .await
++                            .unwrap()
++                            .commit(false);
++                    }
++                    _ => {}
++                }
++            }
++            result.map_err(ParticipantControlError::from)
++        })
++        .await;
++        // This joins the actual metadata owner before examining outcomes.
++        if let Some(release) = release.lock().unwrap().take() {
++            let _ = release.send(());
++        }
++        holder.join().unwrap();
++        assert_eq!(
++            collisions.load(Ordering::SeqCst),
++            1,
++            "{mode}: actual publisher mutex collision required"
++        );
++        if mode == "recover" {
++            let (outcome, _) = result.unwrap();
++            assert_eq!(calls.load(Ordering::SeqCst), 2);
++            assert_eq!(outcome.media.audience_revision, expected + 1);
++            assert_eq!(outcome.admitted, ConnectionId::from_string("device"));
++            assert!(f.room.nodes["alice"].controller.shutdown.is_cancelled());
++            f.room.publish("device", 5200).unwrap();
++            f.room.tick();
++            f.room.heard("bob", 5200).await;
++        } else {
++            match mode {
++                "cancel" => assert!(matches!(result, Err(ParticipantControlError::Cancelled))),
++                "expire" => assert!(matches!(result, Err(ParticipantControlError::Deadline))),
++                _ => assert!(
++                    result.is_err(),
++                    "{mode}: stale authority or role cannot publish"
++                ),
++            }
++            assert_eq!(
++                calls.load(Ordering::SeqCst),
++                if mode == "cancel" || mode == "expire" {
++                    1
++                } else {
++                    2
++                }
++            );
++            assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++            assert_eq!(f.room.scene.audience_revision(), expected);
++        }
++    }
++}

@@ -1629,6 +1629,11 @@
       "path": "patches/rvoip/gate6-audio-terminal-counters.patch",
       "sha256": "24da9fa615d85b5d252d5040f3cd3b5b75aab486fc3abc8577a5ebb2498e3ee6",
       "source": "G6-058 v116 diagnosis: fixed-size per-member audio loss/defer counters emitted only at teardown. Distinguish original PCM trim, missed ticks, expiry, input discontinuity and source/target admission without per-packet logs or changed media authority/quality limits."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-precommit-retry.patch",
+      "sha256": "f4dbe3b9bf60ed6a032a17b0722b95d1dc41084a17160615485ac98d8059e188",
+      "source": "G6-058 v123: retry only definite pre-publication scene metadata Backpressure within the original managed replacement plan and narrowing deadline. Fresh current control per attempt; release owned locks/quiescence before waiting. Actual publisher mutex regression covers one publication after release and cancellation, expiry, revocation and role-change refusal."
     }
   ]
 }
