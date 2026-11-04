@@ -1594,6 +1594,11 @@
       "path": "patches/rvoip/gate6-signed-native-video-epochs.patch",
       "sha256": "9683771135541a46573e9ce3a14e6217c977166f22e73e37cc51ac7a822924b9",
       "source": "Gate 6 explicit native feedback negotiation and signed physical/operation/generation packet-boundary epoch notices through owned lifecycle writer"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-video-feedback-renegotiation.patch",
+      "sha256": "39d08e464617f12fcdaf73db75bf7ea7633afb9dfa20106539314c5fdd3558cf",
+      "source": "Refuse feedback capability changes over reused video allocations before parameter exchange; validate full confirmation before server acceptance"
     }
   ]
 }

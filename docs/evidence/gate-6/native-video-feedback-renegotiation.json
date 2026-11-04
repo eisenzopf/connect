@@ -1,0 +1,21 @@
+{
+  "format": "connect/gate6-native-video-feedback-renegotiation/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "patch": 297,
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Reject feedback-profile enable/disable changes on unchanged Video allocations before parameter exchange and commit; original endpoints, handles and negotiated setting remain authoritative. New allocations can negotiate their own profile.",
+    "Validate feedback confirmation before calling the server-origin confirmation hook."
+  ],
+  "planned_checks": [
+    "peer_native::canonical_media::native_offers::video_epochs::signed_video_feedback_profile_changes_require_new_video_allocations"
+  ],
+  "remaining": [
+    "Candidate remains default-disabled in production. SDK signed notice ordering/packet attribution and encoder feedback integration are pending.",
+    "No full media workload, qualification-cell or G6-058 completion claim. G6-054 remains deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

@@ -1,0 +1,143 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -697,6 +697,28 @@
+     }
+     pub(crate) fn batch_started(&self, ports: &[PortPreparation]) -> ControlResult<()> {
+         let op = self.active().map_err(|_| StreamControlError::NotReady)?;
++        let feedback = self.requested_video_feedback(&op).map_err(|error| {
++            op.progress.lock().unwrap_or_else(|p| p.into_inner()).error = Some(error);
++            StreamControlError::Unsupported
++        })?;
++        // Reused allocations keep their original endpoint profile. Changing
++        // that profile requires new video allocations, not a capability claim
++        // over an unchanged live resource.
++        let retained_feedback = self
++            .retained
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .map(|peer| peer.video_feedback);
++        if retained_feedback.is_some_and(|previous| previous != feedback)
++            && ports.iter().any(|port| {
++                !port.is_new && port.port.binding().negotiated.requested.medium == Medium::Video
++            })
++        {
++            op.progress.lock().unwrap_or_else(|p| p.into_inner()).error =
++                Some(NativeOfferError::Unsupported);
++            return Err(StreamControlError::Unsupported);
++        }
+         let bindings = ports
+             .iter()
+             .map(|p| p.port.binding().clone())
+@@ -829,9 +851,6 @@
+         {
+             return Err(NativeOfferError::Confirmation);
+         }
+-        if let (Source::Server { invocation, .. }, Some(reply)) = (&op.source, &server_reply) {
+-            invocation.confirmed(reply)?;
+-        }
+         let feedback = self.requested_video_feedback(&op)?;
+         if feedback
+             && answer
+@@ -841,6 +860,9 @@
+                 != Some(crate::substrate::VIDEO_FEEDBACK_PROFILE)
+         {
+             return Err(NativeOfferError::Confirmation);
++        }
++        if let (Source::Server { invocation, .. }, Some(reply)) = (&op.source, &server_reply) {
++            invocation.confirmed(reply)?;
+         }
+         let mut state = op.progress.lock().unwrap_or_else(|p| p.into_inner());
+         state.video_feedback = feedback;
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
+@@ -176,3 +176,89 @@
+     no_event(&mut s.wire).await;
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++#[tokio::test]
++async fn signed_video_feedback_profile_changes_require_new_video_allocations() {
++    for initially_enabled in [false, true] {
++        let profile = Arc::new((*profile(false)).clone().with_video_feedback());
++        let mut s = Scene::new_profiled("quic", false, true, true, profile, None).await;
++        s.record.lifecycle.store(true, Ordering::Release);
++        let mut offer = lifecycle_offer(&s, 0, 0, "sendonly");
++        offer["payload"]["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}));
++        if !initially_enabled {
++            offer["payload"]["capabilities"]
++                .as_object_mut()
++                .unwrap()
++                .remove("video_feedback");
++        }
++        let (_, callback) = s.prepared(offer.clone()).await;
++        let handle = subscriptions::stream_handle(&callback, "camera");
++        s.confirm(&callback).await;
++        s.wait(1).await;
++        assert!(s.record.results.lock().unwrap()[0].is_ok());
++        let before = s.controller().active_bindings();
++        let mut changed = offer.clone();
++        changed["id"] = json!(format!("change_{}", uuid::Uuid::new_v4().simple()));
++        changed["operation_id"] = json!(format!("op_{}", uuid::Uuid::new_v4().simple()));
++        changed["expected_revision"] = json!(1);
++        if initially_enabled {
++            changed["payload"]["capabilities"]
++                .as_object_mut()
++                .unwrap()
++                .remove("video_feedback");
++        } else {
++            changed["payload"]["capabilities"]["video_feedback"] = json!("rtcp-pli-epoch/1");
++        }
++        s.wire.send(s.f.sign(changed)).await;
++        let refused = s.wire.read().await;
++        assert_eq!(
++            refused.kind(),
++            "error",
++            "profile change must refuse before parameter exchange"
++        );
++        s.f.verify_server(&refused).await;
++        s.wait(2).await;
++        assert!(matches!(
++            s.record.results.lock().unwrap()[1],
++            Err(NativeOfferError::Unsupported)
++        ));
++        assert_eq!(s.controller().revision(), 1);
++        let after = s.controller().active_bindings();
++        assert_eq!(after.len(), before.len());
++        for old in &before {
++            let current = after
++                .iter()
++                .find(|b| b.transport_id == old.transport_id)
++                .unwrap();
++            assert_eq!(current.negotiated, old.negotiated);
++            assert_eq!(current.stream_local_id, old.stream_local_id);
++            assert_eq!(current.generation, old.generation);
++            assert_eq!(current.connection_generation, old.connection_generation);
++            assert_eq!(current.source_ready, old.source_ready);
++            assert_eq!(current.sink_ready, old.sink_ready);
++        }
++        // Refusal preserves the actual endpoint's initial negotiated behavior.
++        send(&s.wire, subscriptions::video_sequence(handle, 2, 6000));
++        if initially_enabled {
++            let event = epoch(&s.f, &mut s.wire).await;
++            assert_eq!(
++                event["payload"]["original_operation"],
++                offer["operation_id"]
++            );
++            assert_eq!(event["payload"]["first_sequence"], 2);
++        } else {
++            no_event(&mut s.wire).await;
++        }
++        // The unchanged setting remains negotiable on the same allocation.
++        offer["id"] = json!(format!("same_{}", uuid::Uuid::new_v4().simple()));
++        offer["operation_id"] = json!(format!("op_{}", uuid::Uuid::new_v4().simple()));
++        offer["expected_revision"] = json!(1);
++        let (_, cb) = s.prepared(offer).await;
++        assert_eq!(subscriptions::stream_handle(&cb, "camera"), handle);
++        s.confirm(&cb).await;
++        s.wait(3).await;
++        assert!(s.record.results.lock().unwrap()[2].is_ok());
++        assert_eq!(s.controller().revision(), 2);
++        s.wire.server.shutdown().await.unwrap();
++    }
++}
