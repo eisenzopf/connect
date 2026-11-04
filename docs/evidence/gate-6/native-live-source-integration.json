@@ -79,7 +79,7 @@
     "Packet IO in the nativeAv cases is a public-interface test double; no native network, admission, decoded quality or full-cell proof.",
     "The source-generation test is a small command/manifest/marker proof, not a frozen-workload qualification.",
     "Raw/reference fixtures are removed after checking. Source and prepared-dependency guards passed; no retained executable-before/after guard is claimed for these temporary executables.",
-    "Replacement peer still uses immutable frames and needs its own cancellation-safe live worker integration.",
+    "Replacement-peer integration was outside this checkpoint; subsequent owned-worker/source-contract proofs are recorded in replacement-live-encoder.json.",
     "Feedback codec is syntactic only; current-authorized feedback and authenticated operation/incarnation/generation/activation epochs remain unfinished.",
     "Existing passed broad suites and full media workload were not rerun. G6-054 remains deferred."
   ],

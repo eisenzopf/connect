@@ -10,7 +10,7 @@
   ],
   "planned_verification": [],
   "remaining": [
-    "Integrated native movement with live encoding has not run.",
+    "Integrated native movement with live encoding has not run; Pump and source propagation compile, while the worker and input contracts have separate focused proofs.",
     "Current-authorized feedback and authenticated activation epochs remain unfinished.",
     "No full media qualification, matrix completion, G6-054 retest or downstream task promotion."
   ],
@@ -99,7 +99,48 @@
     "New Rust source-contract case passed.",
     "Actual C encoder requested frame7 is independently decoded to its original marker; original timestamp and one pending request preserved.",
     "Partial, foreign and oversized replies fail closed; cancellation and failures join the actual PID; mismatched input digest and symlink are refused.",
-    "Test executable, C encoder, tracked source and prepared dependency guards all remain unchanged."
+    "Test executable, C encoder, tracked source and prepared dependency guards all remain unchanged.",
+    "A separately executed controlled partial-reply case cancels the foreground receive wait after nine header bytes, releases the remainder, and consumes the original reply; child asserts no second command before clean EOF. The original absolute deadline remains unchanged."
   ],
-  "additional_candidate": "A new controlled case will cancel the receive wait after a partial pipe reply, release the remainder, and require the same reply without a second command. Not yet executed."
+  "partial_reply_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 117816,
+    "source_revision": "63cd61bad96c53da83a0dbe59e66a5822f933528",
+    "passed": true,
+    "steps": [
+      {
+        "case": "replacement_peer::encoder::tests::live_encoder_partial_reply_survives_cancelled_wait_without_repeated_command",
+        "exit_code": 0,
+        "log_sha256": "36876ae5b32835327ed3d8d23bebe34e6e218097b68b1a5dc8e4a7c118c39485",
+        "results": [
+          "",
+          "running 1 test",
+          "test replacement_peer::encoder::tests::live_encoder_partial_reply_survives_cancelled_wait_without_repeated_command ... ok",
+          "",
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.03s",
+          ""
+        ]
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "replacement_live_encoder_candidate": true,
+    "encoder_build": {
+      "source_sha256": "59c50c1c0998c6f55f716459f763cd5141fb301392acc4d3cfe028a816ca6471",
+      "executable_sha256": "afdb1a09a653a0c4dac3c00fdccbbe5fce43508c2f3bacfe045cea4dd26a6215",
+      "libvpx": "1.14.0",
+      "output": "/workspace/.local/gate6-arm64-replacement-live-encoder-v65/live-vp8-encoder",
+      "scope": "Build only; not encoder behavior, transport or media qualification"
+    },
+    "build": {
+      "compile_exit_code": 0,
+      "compile_log_sha256": "374ac26f9a3da19b73a763282b875e23274253f09f15397492a863baec56937f",
+      "test_executable_sha256": "32dff3bb117cccad4aa799627dcdd5920a12d03284178cbf0f0b8a576d06fd19"
+    },
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 4.655075485992711
+  }
 }

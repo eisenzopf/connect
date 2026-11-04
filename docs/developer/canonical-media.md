@@ -138,6 +138,25 @@ later media. Pass the borrowed decoded frames synchronously, retaining the
 current negotiated binding.
 
 
+## Live native fixture source checkpoint
+
+The initial Node sender and Rust replacement peer use the finite private I420
+programme through the owned C encoder. The replacement source contract carries
+exact executable/raw SHA256 digests and frame count; it does not accept immutable
+encoded frame arrays. Original source indices map to the original 90 kHz RTP
+clock, with no reset or replay after movement. No encoder result may extend the
+original 200 ms source-age bound.
+
+The Rust worker owns one request, pipe operation and retained reply independently
+of foreground control waits. Audio and packet ticks can continue while it encodes.
+Peer cleanup joins the child, distinguishing clean EOF, explicit cancellation and
+failure. A descriptor or a fresh keyframe supplies no admission or feedback grant.
+
+Local ARM component checks at `9152c1aa` and `63cd61ba` verify independent decoding,
+partial-reply cancellation, malformed input/output, exact contract propagation
+and actual PID cleanup. These do not qualify integrated movement, current-authorized
+feedback or activation epochs. See the [scoped evidence](../evidence/gate-6/replacement-live-encoder.json).
+
 ## Native video feedback implementation checkpoint
 
 The `rtcp-pli-epoch/1` codec passes its focused local ARM syntax test at
