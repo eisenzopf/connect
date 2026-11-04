@@ -1,0 +1,25 @@
+{
+  "format": "connect/gate6-native-video-packet-epochs/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "patch": 300,
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
+  "problem": "A reliable signed epoch notice can follow packets from a new selection that reused the same handle and SSRC. A sequence lower bound and old current notice alone cannot safely identify those packets before the new notice is read.",
+  "implementation": [
+    "Explicitly negotiated receiver Video uses native flags1 plus a16-byte nonzero Core route epoch before the unchanged RTP body. Ordinary native parser rejects nonzero flags; an explicit bounded parser validates the tagged form.",
+    "Core makes exact route metadata available to the native writer inside current delivery guards before IO. Endpoint history installation and signed epoch announcement still require actual successful send. No permission is retained in the tag or route metadata.",
+    "Packetizer subtracts24-byte framing from MTU and excludes epoch framing from RTCP payload counters. Source clocks/RTP timestamps remain unchanged. Existing sender ingress and clock-only paths retain their formats."
+  ],
+  "planned_checks": [
+    "epoch_video_envelope_preserves_original_rtp_and_requires_explicit_parser (video_epoch_datagram integration target)",
+    "peer_native::canonical_media::native_offers::video_epochs::native_video_packets_identify_reselection_before_reading_the_signed_notice"
+  ],
+  "remaining": [
+    "Production remains default-disabled. SDK must join in-band epoch, actual SSRC and first-sequence boundary to signed selected allocation and current notice before decoding.",
+    "Add bounded pending signed notice handling for confirmed selection before paired resource adoption, distinct typed current feedback APIs, and actual live encoder bootstrap/fragment-loss proofs.",
+    "Browser and Rust replacement direct-peer integration remain open. No full workload,32-cell or task completion claim; G6-054 remains deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

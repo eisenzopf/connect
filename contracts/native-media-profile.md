@@ -232,3 +232,33 @@ The SDK preserves this metadata through initial negotiation, codec changes,
 stream selection and typed Node/Python media descriptions. This addition is pending its
 new focused signed allocation/SDK checks. It does not itself enable feedback or
 admit video to a decoder.
+
+
+### Receiver video packet epochs
+
+The explicitly selected `rtcp-pli-epoch/1` profile uses a distinct receiver-video
+datagram form: native version `1`, flags `0x01`, the existing 16-bit handle and
+32-bit datagram sequence, a 16-byte big-endian nonzero route epoch, then the
+original complete RTP body. The tag adds 16 bytes to the existing native header;
+packetization subtracts all 24 framing bytes from the transport MTU. The tag
+changes no RTP timestamp, payload, marker or source clock. RTCP payload counters
+exclude the extra framing.
+
+This form is server-to-receiver Video only. Publisher ingress, Audio, Screen,
+Data, clock-only reports and unselected peers keep their existing formats. The
+ordinary native media parser refuses nonzero flags; callers must use the
+explicit epoch-video parser and validate the selected profile. Native feedback
+PLI remains its separate 48-byte epoch-bound form.
+
+Core issues the route epoch inside the same current delivery permission interval
+that submits the packet. Feedback endpoint installation and the signed notice
+still follow successful actual submission. A packet can arrive before its
+signed notice: its in-band epoch prevents silent adoption into a preceding
+history that reused the same handle and SSRC. The client must match the tag,
+SSRC, sequence boundary and original allocation against the signed notice before
+decoder admission. Pending packets retain their original arrival age and must
+expire under the existing200ms bound. A tag alone is never permission or a clock.
+
+This packet extension is a candidate pending its new syntax and signed native
+transport cases. SDK parser/history admission and encoder feedback integration
+remain open; the production profile remains disabled.

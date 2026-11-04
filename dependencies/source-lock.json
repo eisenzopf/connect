@@ -1609,6 +1609,11 @@
       "path": "patches/rvoip/gate6-video-allocation-commit-snapshot.patch",
       "sha256": "6cb5841811c602c83175d76377b7604c5623fbcd1896f1aa65a93c15ba9a7482",
       "source": "Snapshot video allocation metadata once before retained peer construction; avoid overlapping temporary mutex guards during first commit"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-video-packet-epoch.patch",
+      "sha256": "09e3b092e9a297c9fed95f28147cfa7752360475af877d24b6db1ed2187530af",
+      "source": "Carry current Core route epoch in explicitly negotiated receiver video datagrams before reliable notices; retain original RTP bytes/clock, MTU and guarded dispatch boundaries"
     }
   ]
 }

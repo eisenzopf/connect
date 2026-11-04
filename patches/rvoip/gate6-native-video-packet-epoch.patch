@@ -1,0 +1,473 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+@@ -687,7 +687,7 @@
+         .unwrap();
+     outgoing(output)
+         .await
+-        .deliver_video_with_feedback(|_, _| async { Ok(()) })
++        .deliver_video_with_feedback(|_, _, _| async { Ok(()) })
+         .await
+         .unwrap()
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -216,14 +216,15 @@
+ }
+ 
+ impl QueuedMedia {
+-    /// Return exact feedback metadata only after successful guarded native
+-    /// video submission. The returned record retains no media or permission.
++    /// Supply the exact route epoch inside the current delivery guards so a
++    /// native writer can identify the packet before a reliable notice arrives.
++    /// Return metadata only after successful submission; no retained permission.
+     pub async fn deliver_video_with_feedback<F, Fut>(
+         self,
+         send: F,
+     ) -> ControlResult<VideoFeedbackRoute>
+     where
+-        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>, VideoFeedbackRoute) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+     {
+         if self.frame.kind != StreamKind::Video
+@@ -251,8 +252,9 @@
+         let mut installed = None;
+         let output = &mut installed;
+         self.deliver_with_origin(move |frame, origin| async move {
+-            send(frame, origin).await?;
+-            *output = Some(VideoFeedbackRoute::issued(scope, descriptor, direct)?);
++            let route = VideoFeedbackRoute::issued(scope, descriptor, direct)?;
++            send(frame, origin, route.clone()).await?;
++            *output = Some(route);
+             Ok(())
+         })
+         .await?;
+--- a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -39,6 +39,7 @@
+         sink_ready: true,
+     };
+     let mut p = Packetizer {
++        feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+         ssrc: 1,
+--- a/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
+@@ -132,6 +132,10 @@
+     )
+ }
+ pub(crate) fn payload_octets(packet: &[u8]) -> Option<u32> {
++    if packet.get(1) == Some(&crate::substrate::VIDEO_EPOCH_FLAG) {
++        let tagged = crate::substrate::observe_video_epoch_datagram(packet).ok()?;
++        return u32::try_from(tagged.rtp.packet().payload.len()).ok();
++    }
+     if packet.len() < 20 {
+         return None;
+     }
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -593,6 +593,7 @@
+     clock: Option<(u128, u64)>,
+ }
+ struct Packetizer {
++    feedback_epoch: Option<u128>,
+     outer: u32,
+     rtp: u16,
+     ssrc: u32,
+@@ -684,23 +685,33 @@
+                 .ok_or(StreamControlError::NotReady)?;
+             let packets = self
+                 .video
+-                .packetize(input, maximum.saturating_sub(8).min(1180))
++                .packetize(
++                    input,
++                    maximum
++                        .saturating_sub(if self.feedback_epoch.is_some() { 24 } else { 8 })
++                        .min(1180),
++                )
+                 .ok_or(StreamControlError::NotReady)?;
+             packets
+                 .into_iter()
+                 .map(|packet| {
+-                    observe_rtp(packet).and_then(|rtp| {
+-                        pack_observed_rtp_datagram(&ObservedRtpDatagram {
+-                            flags: 0,
+-                            stream_local_id: binding.stream_local_id,
+-                            seq: {
+-                                let seq = self.outer;
+-                                self.outer = self.outer.wrapping_add(1);
+-                                seq
+-                            },
+-                            rtp,
++                    observe_rtp(packet)
++                        .and_then(|rtp| {
++                            pack_observed_rtp_datagram(&ObservedRtpDatagram {
++                                flags: 0,
++                                stream_local_id: binding.stream_local_id,
++                                seq: {
++                                    let seq = self.outer;
++                                    self.outer = self.outer.wrapping_add(1);
++                                    seq
++                                },
++                                rtp,
++                            })
+                         })
+-                    })
++                        .and_then(|wire| match self.feedback_epoch {
++                            Some(epoch) => crate::substrate::tag_video_epoch_datagram(&wire, epoch),
++                            None => Ok(wire),
++                        })
+                 })
+                 .collect::<Result<Vec<_>, _>>()
+                 .map_err(|_| StreamControlError::NotReady)?
+@@ -967,6 +978,7 @@
+             let cname = self.clocks.cname.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Some(Packetizer {
++                    feedback_epoch: None,
+                     outer: 0,
+                     rtp: 0,
+                     ssrc: u32::from_be_bytes(
+@@ -1014,7 +1026,11 @@
+                         }
+                     } else {
+                         let mut boundary = None;
+-                        let send = |frame: MediaFrame, origin| {
++                        let mut send = |frame: MediaFrame, origin, epoch| {
++                            packetizer
++                                .as_mut()
++                                .expect("owned packetizer")
++                                .feedback_epoch = epoch;
+                             boundary = Some((
+                                 packetizer.as_ref().expect("owned packetizer").outer,
+                                 frame.timestamp_rtp,
+@@ -1036,7 +1052,11 @@
+                             std::future::ready(result.map(|_| ()))
+                         };
+                         if let Some(feedback) = &feedback {
+-                            let delivered = queued.deliver_video_with_feedback(send).await;
++                            let delivered = queued
++                                .deliver_video_with_feedback(|frame, origin, route| {
++                                    send(frame, origin, Some(route.epoch()))
++                                })
++                                .await;
+                             match delivered {
+                                 Ok(route) => {
+                                     let packetizer = packetizer.as_ref().expect("owned packetizer");
+@@ -1055,7 +1075,9 @@
+                                 Err(error) => Err(error),
+                             }
+                         } else {
+-                            queued.deliver_with_origin(send).await
++                            queued
++                                .deliver_with_origin(|frame, origin| send(frame, origin, None))
++                                .await
+                         }
+                     };
+                     if let Err(problem) = &result {
+@@ -1176,6 +1198,7 @@
+             }),
+         };
+         let mut packetizer = Packetizer {
++            feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+             ssrc: 1,
+@@ -1249,6 +1272,7 @@
+         };
+         let transport = Prefix(Mutex::new(Vec::new()));
+         let mut packetizer = Packetizer {
++            feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+             ssrc: 1,
+@@ -1320,6 +1344,7 @@
+             sink_ready: true,
+         };
+         let mut packetizer = Packetizer {
++            feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+             ssrc: 1,
+--- a/crates/uctp/rvoip-uctp/src/substrate/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+@@ -11,7 +11,11 @@
+ pub mod quinn;
+ pub mod source_clock;
+ pub mod tls;
++pub mod video_epoch;
+ pub mod video_feedback;
++pub use video_epoch::{
++    observe_video_epoch_datagram, tag_video_epoch_datagram, VideoEpochDatagram, VIDEO_EPOCH_FLAG,
++};
+ 
+ pub use correlation::{send_and_wait, Pending};
+ pub use datagram::{
+--- a/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs
+@@ -48,9 +48,9 @@
+ pub fn observe_native_media_datagram(
+     input: &[u8],
+ ) -> Result<ObservedNativeMediaDatagram, SubstrateError> {
+-    if input.len() > 16 * 1024 + 20 {
++    if input.get(1) != Some(&0) || input.len() > 16 * 1024 + 20 {
+         return Err(SubstrateError::InvalidDatagram(
+-            "native media datagram too large",
++            "native media flags or size unsupported",
+         ));
+     }
+     if input.get(9).is_some_and(|kind| (192..=223).contains(kind)) {
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/substrate/video_epoch.rs
+@@ -0,0 +1,66 @@
++//! Explicitly negotiated receiver-video history on the native packet boundary.
++//! A tag identifies history; only the signed selection/notice and current route
++//! authorize its use. It never grants media or feedback permission.
++use super::{observe_rtp, observe_rtp_datagram, ObservedRtpPayload};
++use crate::errors::SubstrateError;
++use bytes::{BufMut, Bytes, BytesMut};
++
++pub const VIDEO_EPOCH_FLAG: u8 = 1;
++const MAXIMUM: usize = 16 * 1024 + 36;
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct VideoEpochDatagram {
++    pub stream_local_id: u16,
++    pub seq: u32,
++    pub epoch: u128,
++    pub rtp: ObservedRtpPayload,
++}
++fn invalid() -> SubstrateError {
++    SubstrateError::InvalidDatagram("invalid native video epoch packet")
++}
++/// Preserve the original RTP body byte for byte, including its original clock.
++/// Call only within current delivery guards for a selected feedback profile.
++pub fn tag_video_epoch_datagram(input: &[u8], epoch: u128) -> Result<Bytes, SubstrateError> {
++    if epoch == 0
++        || input.len() > MAXIMUM - 16
++        || input.get(1) != Some(&0)
++        || input.get(9).is_some_and(|kind| (192..=223).contains(kind))
++    {
++        return Err(invalid());
++    }
++    let parsed = observe_rtp_datagram(input)?;
++    if parsed.rtp.packet().header.ssrc == 0 {
++        return Err(invalid());
++    }
++    let mut output = BytesMut::with_capacity(input.len() + 16);
++    output.extend_from_slice(&input[..8]);
++    output[1] = VIDEO_EPOCH_FLAG;
++    output.put_u128(epoch);
++    output.extend_from_slice(&input[8..]);
++    Ok(output.freeze())
++}
++/// This separate parser must never be a fallback for ordinary unnegotiated RTP.
++pub fn observe_video_epoch_datagram(input: &[u8]) -> Result<VideoEpochDatagram, SubstrateError> {
++    if input.len() < 36
++        || input.len() > MAXIMUM
++        || input[..2] != [1, VIDEO_EPOCH_FLAG]
++        || (192..=223).contains(&input[25])
++    {
++        return Err(invalid());
++    }
++    let stream_local_id = u16::from_be_bytes(input[2..4].try_into().expect("bounded header"));
++    let seq = u32::from_be_bytes(input[4..8].try_into().expect("bounded header"));
++    let epoch = u128::from_be_bytes(input[8..24].try_into().expect("bounded epoch"));
++    if stream_local_id == 0 || epoch == 0 {
++        return Err(invalid());
++    }
++    let rtp = observe_rtp(Bytes::copy_from_slice(&input[24..]))?;
++    if rtp.packet().header.ssrc == 0 {
++        return Err(invalid());
++    }
++    Ok(VideoEpochDatagram {
++        stream_local_id,
++        seq,
++        epoch,
++        rtp,
++    })
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
+@@ -359,3 +359,109 @@
+     assert_eq!(s.controller().revision(), 3);
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++async fn tagged_video(wire: &Wire) -> rvoip_uctp::substrate::VideoEpochDatagram {
++    let raw = tokio::time::timeout(
++        Duration::from_secs(2),
++        wire.quic.as_ref().unwrap().2.read_datagram(),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    assert!(
++        rvoip_uctp::substrate::observe_native_media_datagram(&raw).is_err(),
++        "tagged video cannot enter ordinary RTP without explicit selection"
++    );
++    rvoip_uctp::substrate::observe_video_epoch_datagram(&raw).unwrap()
++}
++#[tokio::test]
++async fn native_video_packets_identify_reselection_before_reading_the_signed_notice() {
++    let profile = Arc::new((*profile(false)).clone().with_video_feedback());
++    let mut s = Scene::new_profiled("quic", false, true, true, profile, None).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let mut offer = lifecycle_offer(&s, 0, 0, "sendonly");
++    offer["payload"]["streams_offered"].as_array_mut().unwrap().push(json!({"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}));
++    let (_, cb) = s.prepared(offer).await;
++    let source_handle = subscriptions::stream_handle(&cb, "camera");
++    s.confirm(&cb).await;
++    s.wait(1).await;
++    let mut other = s.second_wire().await;
++    let (_, cb) = other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "recvonly")).await;
++    other.send(s.f.sign(s.confirmation(&cb))).await;
++    s.wait(2).await;
++    let receiver = s.native.adapters[&s.kind]
++        .media_controller(&s.second_id)
++        .unwrap();
++    let subscribe = || {
++        subscriptions::command(
++            "stream.subscribe",
++            receiver.revision(),
++            json!({"subscriptions":[{"strm_id":"camera"}]}),
++        )
++    };
++    other.send(s.f.sign(subscribe())).await;
++    let cb = other.read().await;
++    assert_eq!(cb.kind(), "connection.offer");
++    s.f.verify_server(&cb).await;
++    let target_handle = subscriptions::stream_handle(&cb, "camera");
++    other.send(s.f.sign(s.confirmation(&cb))).await;
++    assert_eq!(other.read().await.kind(), "ack");
++    send(
++        &s.wire,
++        subscriptions::video_sequence(source_handle, 1, 6000),
++    );
++    // The packet is consumed before the reliable notice; it still identifies
++    // which history must be authenticated before any decoder can see its RTP.
++    let first = tagged_video(&other).await;
++    let _source = epoch(&s.f, &mut s.wire).await;
++    let notice = epoch(&s.f, &mut other).await;
++    assert_eq!(first.stream_local_id, target_handle);
++    assert_eq!(
++        format!("{:032x}", first.epoch),
++        notice["payload"]["epoch"].as_str().unwrap()
++    );
++    assert_eq!(
++        first.seq,
++        notice["payload"]["first_sequence"].as_u64().unwrap() as u32
++    );
++    assert_eq!(first.rtp.packet().header.timestamp, 6000);
++    other
++        .send(s.f.sign(subscriptions::command(
++            "stream.unsubscribe",
++            receiver.revision(),
++            json!({"strm_ids":["camera"]}),
++        )))
++        .await;
++    assert_eq!(other.read().await.kind(), "ack");
++    other.send(s.f.sign(subscribe())).await;
++    assert_eq!(other.read().await.kind(), "ack");
++    send(
++        &s.wire,
++        subscriptions::video_sequence(source_handle, 2, 9000),
++    );
++    let next = tagged_video(&other).await;
++    assert_eq!(next.stream_local_id, first.stream_local_id);
++    assert_eq!(
++        next.rtp.packet().header.ssrc,
++        first.rtp.packet().header.ssrc
++    );
++    assert_eq!(next.rtp.packet().header.timestamp, 9000);
++    assert_ne!(
++        next.epoch, first.epoch,
++        "SSRC/handle reuse must not silently inherit the previous decoder history"
++    );
++    let next_notice = epoch(&s.f, &mut other).await;
++    assert_eq!(
++        format!("{:032x}", next.epoch),
++        next_notice["payload"]["epoch"].as_str().unwrap()
++    );
++    assert_eq!(
++        next.seq,
++        next_notice["payload"]["first_sequence"].as_u64().unwrap() as u32
++    );
++    assert!(next_notice["payload"]["revision"].as_u64() > notice["payload"]["revision"].as_u64());
++    send(&other, feedback_request(target_handle, &next_notice, 1));
++    assert_eq!(source_feedback(&s).await.stream_local_id, source_handle);
++    s.wire.server.shutdown().await.unwrap();
++    other.server.shutdown().await.unwrap();
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -449,7 +449,17 @@
+     })
+     .await
+     .unwrap();
+-    observe_rtp_datagram(&bytes).unwrap()
++    if bytes.get(1) == Some(&rvoip_uctp::substrate::VIDEO_EPOCH_FLAG) {
++        let tagged = rvoip_uctp::substrate::observe_video_epoch_datagram(&bytes).unwrap();
++        ObservedRtpDatagram {
++            flags: 0,
++            stream_local_id: tagged.stream_local_id,
++            seq: tagged.seq,
++            rtp: tagged.rtp,
++        }
++    } else {
++        observe_rtp_datagram(&bytes).unwrap()
++    }
+ }
+ async fn packet(input: &mut mpsc::Receiver<MediaPacket>) -> MediaPacket {
+     tokio::time::timeout(Duration::from_secs(2), input.recv())
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/video_epoch_datagram.rs
+@@ -0,0 +1,48 @@
++use rvoip_uctp::substrate::{
++    observe_native_media_datagram, observe_video_epoch_datagram, tag_video_epoch_datagram,
++};
++#[test]
++fn epoch_video_envelope_preserves_original_rtp_and_requires_explicit_parser() {
++    let mut ordinary = vec![1, 0, 0, 42, 255, 255, 255, 255];
++    ordinary.extend_from_slice(&[
++        0xb1, 0xe0, 255, 254, 255, 255, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0xbe, 0xde, 0, 1, 0x10,
++        0x33, 0, 0, 0x10, 1, 2, 3, 0, 0, 0, 4,
++    ]);
++    let epoch = 0x0102030405060708090a0b0c0d0e0f10_u128;
++    let tagged = tag_video_epoch_datagram(&ordinary, epoch).unwrap();
++    assert_eq!(&tagged[..8], &[1, 1, 0, 42, 255, 255, 255, 255]);
++    assert_eq!(&tagged[8..24], &epoch.to_be_bytes());
++    assert_eq!(&tagged[24..], &ordinary[8..]);
++    let parsed = observe_video_epoch_datagram(&tagged).unwrap();
++    assert_eq!(parsed.epoch, epoch);
++    assert_eq!(parsed.stream_local_id, 42);
++    assert_eq!(parsed.seq, u32::MAX);
++    assert_eq!(parsed.rtp.packet().header.timestamp, 0xffffff00);
++    assert_eq!(parsed.rtp.packet().header.sequence_number, 65534);
++    assert!(parsed.rtp.packet().header.marker);
++    assert!(observe_native_media_datagram(&tagged).is_err());
++    assert!(observe_video_epoch_datagram(&ordinary).is_err());
++    assert!(tag_video_epoch_datagram(&ordinary, 0).is_err());
++    assert!(tag_video_epoch_datagram(&tagged, epoch).is_err());
++    for length in 0..36 {
++        assert!(observe_video_epoch_datagram(&tagged[..length]).is_err());
++    }
++    for range in [2..4, 8..24, 32..36] {
++        let mut bad = tagged.to_vec();
++        bad[range].fill(0);
++        assert!(observe_video_epoch_datagram(&bad).is_err());
++    }
++    for flags in [0, 2, 255] {
++        let mut bad = tagged.to_vec();
++        bad[1] = flags;
++        assert!(observe_video_epoch_datagram(&bad).is_err());
++    }
++    assert!(observe_video_epoch_datagram(&vec![0; 16 * 1024 + 37]).is_err());
++    // Same physical handle, SSRC, timestamp and sequence are insufficient to
++    // cross a selection boundary. The in-band epoch stays independently visible.
++    let next = tag_video_epoch_datagram(&ordinary, epoch + 1).unwrap();
++    let next = observe_video_epoch_datagram(&next).unwrap();
++    assert_eq!(next.seq, parsed.seq);
++    assert_eq!(next.rtp, parsed.rtp);
++    assert_ne!(next.epoch, parsed.epoch);
++}
